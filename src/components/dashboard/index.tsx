@@ -2,12 +2,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import {
-    User, AlertTriangle, TrendingUp, Shield,
+    User, AlertTriangle, TrendingUp,
     Clock, Bus, Wrench, CheckCircle2, ChevronRight, Fuel,
     FileText, Calendar, Activity, Bell, Users
 } from 'lucide-react';
 import AdminManagement from './AdminManagement';
-import PermissionsManager from './PermissionsManager';
 
 export default function Dashboard({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: any) => void }) {
     const { userRole, currentUser } = useAuth();
