@@ -1,4 +1,4 @@
 Verificação de deploy na Vercel
 Data: 2026-01-03
-Email: rafael.rocha.tech@gmail.com
-Teste #6: Mais uma verificação de deploy.
+Email: frota@tropicalinspire.pt
+Teste #7: Trocando para o email corporativo.
