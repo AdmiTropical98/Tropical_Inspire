@@ -1,4 +1,1 @@
-Verificação de deploy na Vercel
-Data: 2026-01-03
-Email: frota@tropicalinspire.pt
-Teste #7: Trocando para o email corporativo.
+Trigger Vercel Build - Timestamp: 2026-01-03 19:30
