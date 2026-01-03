@@ -4,8 +4,9 @@ import { usePermissions } from '../../contexts/PermissionsContext';
 import {
     User, AlertTriangle, TrendingUp,
     Clock, Bus, Wrench, CheckCircle2, ChevronRight, Fuel,
-    FileText, Calendar, Activity, Bell, Users
+    FileText, Calendar, Activity, Bell, Users, Settings
 } from 'lucide-react';
+import AdminManagement from './AdminManagement';
 
 export default function Dashboard({ setActiveTab }: { setActiveTab: (tab: any) => void }) {
     const { userRole, currentUser } = useAuth();
@@ -268,8 +269,16 @@ export default function Dashboard({ setActiveTab }: { setActiveTab: (tab: any) =
 
                 </div>
 
+
                 {/* RIGHT: Activity & Alerts (1/3) */}
                 <div className="space-y-6">
+
+                    {/* Admin Management (Only for Admins) */}
+                    {userRole === 'admin' && (
+                        <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6">
+                            <AdminManagement />
+                        </div>
+                    )}
 
                     {/* Activity Feed */}
                     <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 h-full min-h-[400px]">

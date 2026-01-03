@@ -323,3 +323,11 @@ export interface Fatura {
         centroCustoId?: string;
     };
 }
+
+export interface AdminUser {
+    id: string; // auth.uid
+    email: string;
+    nome?: string;
+    role: 'admin';
+    createdAt: string;
+}

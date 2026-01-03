@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser } from '../types';
 import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js'; // For temp admin creation
 
 interface WorkshopContextType {
     fornecedores: Fornecedor[];
@@ -55,6 +56,9 @@ interface WorkshopContextType {
     addNotification: (n: Notification) => void;
     updateNotification: (n: Notification) => void;
     refreshData: () => Promise<void>;
+    adminUsers: AdminUser[];
+    createAdminUser: (email: string, password: string, nome: string) => Promise<{ success: boolean; error?: string }>;
+    deleteAdminUser: (id: string) => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -84,6 +88,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
     const [oficinaUsers, setOficinaUsers] = useState<OficinaUser[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
 
 
 
@@ -176,6 +181,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             const { data: refillData } = await supabase.from('tank_refills').select('*');
             if (refillData) setTankRefills(refillData.map((r: any) => ({ ...r, litersAdded: r.liters_added, levelBefore: r.level_before, levelAfter: r.level_after, totalSpentSinceLast: r.total_spent_since_last, pumpMeterReading: r.pump_meter_reading, systemExpectedReading: r.system_expected_reading, staffId: r.staff_id, staffName: r.staff_name, pricePerLiter: r.price_per_liter, totalCost: r.total_cost })));
+
+            // 6. Admin Users (Only if admin)
+            const { data: admins } = await supabase.from('admin_users').select('*');
+            if (admins) setAdminUsers(admins.map((a: any) => ({
+                id: a.id,
+                email: a.email,
+                nome: a.nome,
+                role: a.role,
+                createdAt: a.created_at
+            })));
 
         } catch (error) {
             console.error('Error refreshing data:', error);
@@ -651,6 +666,64 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 addOficinaUser,
                 updateOficinaUser,
                 deleteOficinaUser,
+
+                adminUsers,
+                createAdminUser: async (email, password, nome) => {
+                    try {
+                        // Create a temporary client to avoid signing out the current user
+                        const tempClient = createClient(
+                            import.meta.env.VITE_SUPABASE_URL,
+                            import.meta.env.VITE_SUPABASE_ANON_KEY,
+                            { auth: { persistSession: false } }
+                        );
+
+                        const { data, error } = await tempClient.auth.signUp({
+                            email,
+                            password
+                        });
+
+                        if (error) return { success: false, error: error.message };
+
+                        if (data.user) {
+                            // Insert into admin_users using the MAIN authenticated client (which has permission)
+                            const { error: dbError } = await supabase.from('admin_users').insert({
+                                id: data.user.id,
+                                email: email,
+                                nome: nome,
+                                role: 'admin'
+                            });
+
+                            if (dbError) {
+                                // Rollback logic could be here (delete user), but let's just report error
+                                console.error('Error inserting admin_user:', dbError);
+                                return { success: true, error: 'User created in Auth but DB insert failed. ' + dbError.message };
+                            }
+
+                            // Refresh logic
+                            const { data: a } = await supabase.from('admin_users').select('*').eq('id', data.user.id).single();
+                            if (a) {
+                                setAdminUsers(prev => [...prev, {
+                                    id: a.id,
+                                    email: a.email,
+                                    nome: a.nome,
+                                    role: a.role,
+                                    createdAt: a.created_at
+                                }]);
+                            }
+                            return { success: true };
+                        }
+                        return { success: false, error: 'Unknown error during sign up.' };
+                    } catch (err: any) {
+                        return { success: false, error: err.message };
+                    }
+                },
+                deleteAdminUser: async (id) => {
+                    // Note: We can only delete from list. Deleting from Auth requires Service Role (backend).
+                    // So we just remove from the list table. The Auth user remains but has no "admin" entry.
+                    const { error } = await supabase.from('admin_users').delete().eq('id', id);
+                    if (!error) setAdminUsers(prev => prev.filter(u => u.id !== id));
+                },
+
                 addNotification,
                 updateNotification,
                 updateFuelTank,
