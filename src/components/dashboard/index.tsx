@@ -188,7 +188,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
 
                         {/* If Admin/Manager, show detailed fleet breakdown */}
                         {hasAccess(userRole, 'viaturas') && (
-                            <div className="grid grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                                 <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-emerald-400 text-sm font-medium">Disponíveis</span>
