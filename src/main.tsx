@@ -1,0 +1,21 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.tsx'
+
+import { AuthProvider } from './contexts/AuthContext'
+import { PermissionsProvider } from './contexts/PermissionsContext'
+
+import { WorkshopProvider } from './contexts/WorkshopContext'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <WorkshopProvider>
+      <AuthProvider>
+        <PermissionsProvider>
+          <App />
+        </PermissionsProvider>
+      </AuthProvider>
+    </WorkshopProvider>
+  </StrictMode>,
+)
