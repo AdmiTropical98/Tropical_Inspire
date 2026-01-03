@@ -110,7 +110,7 @@ export default function UserProfileMenu() {
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute bottom-full left-0 mb-4 w-64 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
 
                     {/* Header */}
                     <div className="p-3 mb-2 border-b border-slate-700/50 flex items-center gap-3">
