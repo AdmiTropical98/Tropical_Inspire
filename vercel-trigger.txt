@@ -1,4 +1,4 @@
 Verificação de deploy na Vercel
 Data: 2026-01-03
-Teste de troca de email: frota@tropicalinspire.pt (Revertendo para corrigir erro de permissão Vercel)
-Corrigindo erro: Git author Rafazildox must have access to the project on Vercel.
+Email: rafael.rocha.tech@gmail.com
+Teste #5: Tentativa após ajuste de permissões na Vercel.
