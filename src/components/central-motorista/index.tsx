@@ -20,22 +20,36 @@ export default function CentralMotorista() {
     const [requestForm, setRequestForm] = useState({ type: 'ferias', description: '' });
     const [reportForm, setReportForm] = useState({ type: 'acidente', description: '' });
 
-    // Mock Data
-    const [myRequests] = useState([
-        { id: '1', type: 'férias', date: '2023-12-01', status: 'approved', desc: 'Férias de Natal' },
-        { id: '2', type: 'adiantamento', date: '2023-11-15', status: 'pending', desc: 'Adiantamento de 100€' }
-    ]);
+    // Real Data Integration
+    const { servicos, notifications } = useWorkshop();
 
-    // Mock Vehicle Data (In real app, fetch from context/API based on assigned vehicle)
-    const myVehicle = {
-        plate: '22-VX-99',
-        model: 'Mercedes-Benz Sprinter',
-        status: 'active',
-        fuel: 65,
-        nextService: '145.000 km',
-        insurance: '2025-06-12',
-        cleaning: 'good'
-    };
+    // 1. My Requests (Filtered from System Alerts for now, ideally strictly typed)
+    const myRequests = notifications
+        .filter(n => n.type === 'system_alert' && n.data.message?.includes(currentUser?.nome || ''))
+        .map(n => ({
+            id: n.id,
+            type: n.data.title?.replace('Novo Pedido: ', '') || 'Outros',
+            date: new Date(n.timestamp).toLocaleDateString(),
+            status: n.status,
+            desc: n.data.message
+        }));
+
+    // 2. My Vehicle
+    // Since there is no direct link in DB yet, we look for a vehicle that might be assigned or null
+    // For now, we assume null to avoid showing fake data as requested.
+    // Future: const myVehicle = viaturas.find(v => v.motoristaId === currentUser.id);
+    const myVehicle: any = null;
+
+    // 3. Stats
+    const myServicesCount = servicos.filter(s => s.motoristaId === currentUser?.id).length;
+    // Rating not yet implemented in DB, defaulting to placeholder or 0
+    // @ts-ignore
+    const myRating = currentUser?.rating || 0; // Assuming rating might be added to user type later
+
+    // 4. Next Service
+    const nextService = servicos
+        .filter(s => s.motoristaId === currentUser?.id && !s.concluido)
+        .sort((a, b) => new Date(a.hora).getTime() - new Date(b.hora).getTime())[0];
 
     const handleSubmitHours = (e: React.FormEvent) => {
         e.preventDefault();
@@ -158,8 +172,14 @@ export default function CentralMotorista() {
                                                 <Navigation className="w-4 h-4" />
                                                 <span className="text-xs font-bold uppercase">Próximo Serviço</span>
                                             </div>
-                                            <p className="text-white font-bold text-lg">08:30</p>
-                                            <p className="text-xs text-slate-500 truncate">Aeroporto Faro &rarr; Albufeira</p>
+                                            {nextService ? (
+                                                <>
+                                                    <p className="text-white font-bold text-lg">{nextService.hora}</p>
+                                                    <p className="text-xs text-slate-500 truncate">{nextService.origem} &rarr; {nextService.destino}</p>
+                                                </>
+                                            ) : (
+                                                <p className="text-slate-500 text-sm italic">Sem serviços</p>
+                                            )}
                                         </div>
 
                                         <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
@@ -167,8 +187,14 @@ export default function CentralMotorista() {
                                                 <Car className="w-4 h-4" />
                                                 <span className="text-xs font-bold uppercase">Viatura</span>
                                             </div>
-                                            <p className="text-white font-bold text-lg">{myVehicle.plate}</p>
-                                            <p className="text-xs text-slate-500 truncate">{myVehicle.model}</p>
+                                            {myVehicle ? (
+                                                <>
+                                                    <p className="text-white font-bold text-lg">{myVehicle.matricula}</p>
+                                                    <p className="text-xs text-slate-500 truncate">{myVehicle.modelo}</p>
+                                                </>
+                                            ) : (
+                                                <p className="text-slate-500 text-sm italic">N/A</p>
+                                            )}
                                         </div>
 
                                         <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
@@ -176,8 +202,8 @@ export default function CentralMotorista() {
                                                 <Sun className="w-4 h-4" />
                                                 <span className="text-xs font-bold uppercase">Meteorologia</span>
                                             </div>
-                                            <p className="text-white font-bold text-lg">22°C</p>
-                                            <p className="text-xs text-slate-500">Céu Limpo</p>
+                                            <p className="text-white font-bold text-lg">--°C</p>
+                                            <p className="text-xs text-slate-500">--</p>
                                         </div>
 
                                         <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
@@ -519,11 +545,11 @@ export default function CentralMotorista() {
                         <div className="mt-8 pt-6 border-t border-slate-700/50 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-slate-900/50 p-3 rounded-xl text-center">
-                                    <span className="block text-2xl font-bold text-white">4.9</span>
+                                    <span className="block text-2xl font-bold text-white">{myRating || '--'}</span>
                                     <span className="text-[10px] text-slate-500 uppercase tracking-wider">Avaliação</span>
                                 </div>
                                 <div className="bg-slate-900/50 p-3 rounded-xl text-center">
-                                    <span className="block text-2xl font-bold text-white">124</span>
+                                    <span className="block text-2xl font-bold text-white">{myServicesCount}</span>
                                     <span className="text-[10px] text-slate-500 uppercase tracking-wider">Viagens</span>
                                 </div>
                             </div>

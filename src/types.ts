@@ -125,6 +125,7 @@ export interface Motorista {
     valorHora?: number; // Hourly Rate for overtime
     blockedPermissions?: string[]; // permissions explicitly blocked for this user
     dataRegisto?: string; // Registration date
+    rating?: number; // Driver rating (0-5)
     status?: 'disponivel' | 'ocupado' | 'indisponivel' | 'ferias'; // Added missing field
 }
 
