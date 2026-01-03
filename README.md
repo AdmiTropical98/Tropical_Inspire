@@ -71,3 +71,4 @@ export default defineConfig([
   },
 ])
 ```
+<!-- Test commit for new email configuration -->
