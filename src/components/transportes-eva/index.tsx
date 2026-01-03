@@ -100,41 +100,41 @@ export default function TransportesEva() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-[#0f172a] text-slate-100 p-8 overflow-hidden font-sans">
+        <div className="h-full flex flex-col bg-[#0f172a] text-slate-100 p-4 md:p-8 overflow-hidden font-sans">
             {/* Header Content */}
-            <div className="flex border-b border-slate-800/60 pb-8 mb-8 justify-between items-end bg-gradient-to-r from-transparent via-transparent to-transparent">
+            <div className="flex flex-col md:flex-row border-b border-slate-800/60 pb-8 mb-8 justify-between items-start md:items-end bg-gradient-to-r from-transparent via-transparent to-transparent gap-4">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-3 bg-yellow-500/10 rounded-2xl border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.1)]">
                             <Bus className="w-8 h-8 text-yellow-500" />
                         </div>
-                        <h1 className="text-4xl font-bold text-white tracking-tight">
+                        <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
                             Transportes EVA
                         </h1>
                     </div>
-                    <p className="text-slate-400 font-medium ml-1">
+                    <p className="text-slate-400 font-medium ml-1 text-sm md:text-base">
                         Controlo detalhado de utilização e ocorrências
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-[#1e293b]/80 p-1.5 pr-4 rounded-xl border border-slate-700/50 shadow-sm backdrop-blur-sm">
+                <div className="flex items-center gap-4 bg-[#1e293b]/80 p-1.5 pr-4 rounded-xl border border-slate-700/50 shadow-sm backdrop-blur-sm w-full md:w-auto">
                     <div className="p-2 bg-slate-800 rounded-lg text-slate-400">
                         <Calendar className="w-5 h-5" />
                     </div>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col flex-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-none mb-0.5">Mês Selecionado</label>
                         <input
                             type="month"
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="bg-transparent border-none p-0 text-white focus:ring-0 font-bold text-sm outline-none h-5"
+                            className="bg-transparent border-none p-0 text-white focus:ring-0 font-bold text-sm outline-none h-5 w-full"
                         />
                     </div>
                 </div>
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 shrink-0">
                 {/* Monthly Total */}
                 <div className="group relative bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 backdrop-blur-md border border-yellow-500/20 rounded-2xl p-6 overflow-hidden transition-all hover:border-yellow-500/30">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
@@ -201,9 +201,9 @@ export default function TransportesEva() {
                 </div>
             </div>
 
-            <div className="flex-1 flex gap-8 min-h-0">
+            <div className="flex-1 flex flex-col lg:flex-row gap-8 min-h-0 overflow-hidden">
                 {/* Form Panel */}
-                <div className="w-[450px] flex flex-col bg-[#1e293b]/40 border border-slate-700/50 rounded-2xl shadow-xl backdrop-blur-sm sticky top-0 h-fit max-h-full">
+                <div className="w-full lg:w-[450px] flex flex-col bg-[#1e293b]/40 border border-slate-700/50 rounded-2xl shadow-xl backdrop-blur-sm lg:sticky lg:top-0 h-fit max-h-[50vh] lg:max-h-full overflow-hidden shrink-0">
                     <div className="flex-none p-6 border-b border-slate-700/50 bg-slate-800/30 rounded-t-2xl">
                         <h2 className="text-lg font-bold text-white flex items-center gap-2">
                             <div className="bg-blue-500 p-1.5 rounded-lg">
@@ -350,7 +350,7 @@ export default function TransportesEva() {
                 </div>
 
                 {/* History List */}
-                <div className="flex-1 bg-[#1e293b]/40 border border-slate-700/50 rounded-2xl shadow-xl backdrop-blur-sm flex flex-col overflow-hidden">
+                <div className="flex-1 bg-[#1e293b]/40 border border-slate-700/50 rounded-2xl shadow-xl backdrop-blur-sm flex flex-col overflow-hidden h-[50vh] lg:h-auto">
                     <div className="p-6 border-b border-slate-700/50 bg-slate-800/30 flex justify-between items-center rounded-t-2xl">
                         <div>
                             <h2 className="text-lg font-bold text-white flex items-center gap-2">
