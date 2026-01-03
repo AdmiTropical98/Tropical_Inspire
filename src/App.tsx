@@ -13,7 +13,9 @@ import { ChatProvider } from './contexts/ChatContext';
 
 // Components
 import Login from './components/Login';
+import ResetPassword from './components/ResetPassword'; // Import ResetPassword
 import Dashboard from './components/dashboard';
+import { supabase } from './lib/supabase'; // Import Supabase client
 import Fornecedores from './components/fornecedores';
 import Viaturas from './components/viaturas';
 import Drivers from './components/motoristas';
@@ -44,6 +46,20 @@ function App() {
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false); // State for password reset mode
+
+  // Listen for Password Recovery Event
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, _session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResettingPassword(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Initial Tab based on Role
   useEffect(() => {
@@ -86,6 +102,8 @@ function App() {
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
   };
+
+  if (isResettingPassword) return <ResetPassword />;
 
   if (!isAuthenticated) return <Login />;
 
