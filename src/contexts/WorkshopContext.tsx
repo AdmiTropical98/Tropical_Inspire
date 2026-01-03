@@ -491,7 +491,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             turno_inicio: m.turnoInicio,
             turno_fim: m.turnoFim
         }).eq('id', m.id);
-        if (!error) setMotoristas(prev => prev.map(current => current.id === m.id ? m : current));
+
+        if (error) {
+            console.error("Erro ao atualizar motorista:", error);
+            throw error;
+        }
+
+        setMotoristas(prev => prev.map(current => current.id === m.id ? m : current));
     };
     const deleteMotorista = async (id: string) => {
         const { error } = await supabase.from('motoristas').delete().eq('id', id);

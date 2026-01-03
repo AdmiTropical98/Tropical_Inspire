@@ -56,19 +56,30 @@ export default function CentralMotorista() {
     });
 
     const saveShift = async () => {
-        if (currentUser && userRole === 'motorista') {
-            const updatedDriver = {
-                ...currentUser as any,
-                turnoInicio: tempShift.start,
-                turnoFim: tempShift.end
-            };
-            await updateMotorista(updatedDriver);
-            // Ideally also update AuthContext currentUser, but WorkshopContext update eventually propagates if we re-login. 
-            // For immediate UI feedback we might need to force it or rely on Realtime.
-            // For now, let's assume successful update and close edit mode.
+        if (!currentUser && userRole === 'admin') {
+            alert('Modo Admin: Isto é apenas uma simulação. Como administrador, não tens um turno atribuído na base de dados de motoristas.');
             setEditingShift(false);
-            // Force reload to see changes if simple state update isn't enough (AuthContext usually static)
-            window.location.reload();
+            return;
+        }
+
+        if (currentUser && userRole === 'motorista') {
+            try {
+                const updatedDriver = {
+                    ...currentUser as any,
+                    turnoInicio: tempShift.start,
+                    turnoFim: tempShift.end
+                };
+                await updateMotorista(updatedDriver);
+                // Ideally also update AuthContext currentUser, but WorkshopContext update eventually propagates if we re-login. 
+                // For immediate UI feedback we might need to force it or rely on Realtime.
+                alert('Turno atualizado com sucesso!');
+                setEditingShift(false);
+                // Force reload to see changes if simple state update isn't enough (AuthContext usually static)
+                window.location.reload();
+            } catch (err) {
+                console.error("Erro ao gravar turno:", err);
+                alert('Erro ao gravar turno. Verifica se a base de dados tem as colunas "turno_inicio" e "turno_fim".');
+            }
         }
     };
 
