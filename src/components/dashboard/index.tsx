@@ -4,7 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext';
 import {
     User, AlertTriangle, TrendingUp,
     Clock, Bus, Wrench, CheckCircle2, ChevronRight, Fuel,
-    FileText, Calendar, Activity, Bell, Users, Settings
+    FileText, Calendar, Activity, Bell, Users
 } from 'lucide-react';
 import AdminManagement from './AdminManagement';
 
