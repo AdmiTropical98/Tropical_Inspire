@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  LayoutDashboard, Users, UserCog, Bus, MessageSquare, Menu, X
+  LayoutDashboard, Users, UserCog, Bus, MessageSquare, Menu, X,
+  Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
