@@ -3,7 +3,10 @@ import {
   LayoutDashboard, Truck, Users, Clock, Calendar,
   Bell, X, UserCog, Fuel,
   Building2, LayoutTemplate, Briefcase,
-  Bus, MessageSquare, Wallet
+  Truck, Users, FileText, Settings, LogOut,
+  Bell, Menu, X, ChevronRight, LayoutDashboard,
+  Calendar, Fuel, Clock, Wallet, UserCog, Building2,
+  Briefcase, MessageSquare, LayoutTemplate, Bus
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -38,7 +41,7 @@ function App() {
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'permissoes' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes'>('dashboard');
 
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
@@ -55,7 +58,11 @@ function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard setActiveTab={setActiveTab} />;
+      case 'dashboard':
+      case 'overview':
+      case 'admin_users': // Add cases handled by Dashboard
+      case 'permissions':
+        return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
       case 'escalas': return <Escalas />;
       case 'horas': return <Horas />;
       case 'equipa-oficina': return <EquipaOficina />;
@@ -72,7 +79,7 @@ function App() {
       case 'contabilidade': return <Contabilidade />;
       case 'clientes': return <Clientes />;
       case 'external': return <ExternalServices />;
-      default: return <Dashboard setActiveTab={setActiveTab} />;
+      default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
   };
 
@@ -232,19 +239,37 @@ function App() {
 
         {/* MAIN CONTENT */}
         <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-950 relative">
-          {/* Top Mobile Header */}
-          <header className="md:hidden h-16 border-b border-slate-800 flex items-center justify-between px-4 bg-[#0f172a]">
-            <span className="font-bold text-lg text-white">Gestão<span className="text-blue-500">Frota</span></span>
-            <div className="flex gap-2">
-              <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 text-slate-400 hover:text-white relative">
-                <Bell className="w-6 h-6" />
-                {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+          {/* Mobile Header - Only visible on mobile */}
+          {(activeTab === 'dashboard' || activeTab === 'overview' || activeTab === 'admin_users' || activeTab === 'permissions') && ( // Show header for all dashboard tabs
+            <header className="md:hidden bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-20 flex justify-between items-center">
+              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
+                GestãoFrota
+              </h1>
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400">
+                <Menu className="w-6 h-6" />
               </button>
-              <button onClick={() => {/* Toggle Menu */ }} className="p-2 text-slate-400">
-                <LayoutTemplate className="w-6 h-6" />
-              </button>
+            </header>
+          )}
+
+          {/* Mobile Menu Overlay */}
+          {isMobileMenuOpen && (
+            <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 animate-in slide-in-from-right duration-300">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-bold text-white">Menu</h2>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <nav className="flex-1 space-y-4 overflow-y-auto">
+                {/* Re-use sidebar buttons style for mobile */}
+                <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800 text-white">
+                  <LayoutDashboard className="w-5 h-5" />
+                  <span className="font-medium">Dashboard</span>
+                </button>
+                {/* ... Add other mobile links as needed ... */}
+              </nav>
             </div>
-          </header>
+          )}
 
           <div className="flex-1 overflow-auto custom-scrollbar relative">
             {renderContent()}
@@ -252,28 +277,30 @@ function App() {
 
           {/* Chat Widget (Overlay) - Show only if NOT on messages page */}
           {activeTab !== 'mensagens' && <ChatWidget />}
-        </main>
+        </main >
 
         {/* NOTIFICATIONS DRAWER (Simplified) */}
-        {showNotifications && (
-          <div className="absolute right-0 top-0 h-full w-80 bg-[#1e293b] border-l border-slate-700 shadow-2xl z-50 p-4 animate-in slide-in-from-right">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-white">Notificações</h3>
-              <button onClick={() => setShowNotifications(false)}><X className="w-5 h-5 text-slate-400" /></button>
+        {
+          showNotifications && (
+            <div className="absolute right-0 top-0 h-full w-80 bg-[#1e293b] border-l border-slate-700 shadow-2xl z-50 p-4 animate-in slide-in-from-right">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-white">Notificações</h3>
+                <button onClick={() => setShowNotifications(false)}><X className="w-5 h-5 text-slate-400" /></button>
+              </div>
+              <div className="space-y-2">
+                {notifications.slice(0, 10).map(n => (
+                  <div key={n.id} className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 text-sm">
+                    <p className="font-bold text-white capitalize">{n.type.replace('_', ' ')}</p>
+                    <p className="text-xs text-slate-400">{n.timestamp}</p>
+                    {/* Actions could go here */}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              {notifications.slice(0, 10).map(n => (
-                <div key={n.id} className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 text-sm">
-                  <p className="font-bold text-white capitalize">{n.type.replace('_', ' ')}</p>
-                  <p className="text-xs text-slate-400">{n.timestamp}</p>
-                  {/* Actions could go here */}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </ChatProvider>
+          )
+        }
+      </div >
+    </ChatProvider >
   );
 }
 
