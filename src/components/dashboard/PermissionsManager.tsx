@@ -15,6 +15,9 @@ const MODULES: { id: PermissionModule; label: string; category: string }[] = [
     { id: 'equipa-oficina', label: 'Gerir Equipa Oficina', category: 'Gestão' },
     { id: 'fornecedores', label: 'Gerir Fornecedores', category: 'Gestão' },
     { id: 'centros_custos', label: 'Centros de Custo', category: 'Gestão' },
+    { id: 'contabilidade', label: 'Contabilidade', category: 'Gestão' },
+    { id: 'supervisores', label: 'Gerir Supervisores', category: 'Gestão' },
+    { id: 'clientes', label: 'Gerir Clientes', category: 'Gestão' },
 
     // Escalas e Horas
     { id: 'escalas', label: 'Ver Escalas', category: 'Escalas' },

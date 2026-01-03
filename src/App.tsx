@@ -181,14 +181,14 @@ function App() {
                 </button>
               )}
 
-              {userRole === 'admin' && (
+              {hasAccess(userRole, 'contabilidade') && (
                 <button onClick={() => setActiveTab('contabilidade')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'contabilidade' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
                   <Wallet className="w-5 h-5" />
                   <span className="font-medium">Contabilidade</span>
                 </button>
               )}
 
-              {userRole === 'admin' && (
+              {hasAccess(userRole, 'supervisores') && (
                 <button onClick={() => setActiveTab('supervisores')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'supervisores' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
                   <UserCog className="w-5 h-5" />
                   <span className="font-medium">Supervisores</span>
@@ -209,12 +209,12 @@ function App() {
                 </button>
               )}
 
-              {hasAccess(userRole, 'clientes') || userRole === 'admin' ? (
+              {hasAccess(userRole, 'clientes') && (
                 <button onClick={() => setActiveTab('clientes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'clientes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
                   <Briefcase className="w-5 h-5" />
                   <span className="font-medium">Clientes</span>
                 </button>
-              ) : null}
+              )}
             </div>
 
             {/* COMUNICAÇÃO */}

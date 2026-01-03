@@ -14,7 +14,8 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'central_motorista' |
     'centros_custos' |
     'plataformas_externas' |
-    'clientes';
+    'clientes' |
+    'contabilidade';
 
 export interface RolePermissions {
     supervisor: PermissionModule[];
@@ -42,7 +43,8 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'equipa-oficina',
         'combustivel', 'combustivel_calibrate', 'combustivel_edit_history',
         'centros_custos',
-        'plataformas_externas'
+        'plataformas_externas',
+        'contabilidade'
     ],
     motorista: [
         'requisicoes', 'requisicoes_edit', 'requisicoes_delete', // Allow blocking if granted
@@ -64,7 +66,8 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'centros_custos',
         'escalas', 'escalas_import', 'escalas_print', 'escalas_create', 'escalas_urgent', 'escalas_view_pending',
         'horas', 'hours_view_costs',
-        'motoristas', 'fornecedores', 'equipa-oficina', 'plataformas_externas'
+        'motoristas', 'fornecedores', 'equipa-oficina', 'plataformas_externas',
+        'supervisores', 'clientes'
     ]
 };
 
