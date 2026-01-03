@@ -679,7 +679,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                         const { data, error } = await tempClient.auth.signUp({
                             email,
-                            password
+                            password,
+                            options: {
+                                emailRedirectTo: `${window.location.origin}/`,
+                            }
                         });
 
                         if (error) return { success: false, error: error.message };
