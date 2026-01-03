@@ -289,18 +289,143 @@ function App() {
                 </button>
               </div>
               <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
-                <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800 text-white">
+                <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <LayoutDashboard className="w-5 h-5" />
                   <span className="font-medium">Dashboard</span>
                 </button>
-                <button onClick={() => { setActiveTab('transportes-eva'); setIsMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white">
-                  <Bus className="w-5 h-5" />
-                  <span className="font-medium">Transportes EVA</span>
-                </button>
-                <button onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false) }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white">
-                  <UserCog className="w-5 h-5" />
-                  <span className="font-medium">Central Motorista</span>
-                </button>
+
+                {hasAccess(userRole, 'central_motorista') && (
+                  <button onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'central-motorista' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                    <UserCog className="w-5 h-5" />
+                    <span className="font-medium">Central Motorista</span>
+                  </button>
+                )}
+
+                {/* OPERAÇÕES */}
+                <div className="pt-4 pb-2">
+                  <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Operações</p>
+
+                  {hasAccess(userRole, 'escalas') && (
+                    <button onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'escalas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Calendar className="w-5 h-5" />
+                      <span className="font-medium">Escalas</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'combustivel') && (
+                    <button onClick={() => { setActiveTab('combustivel'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'combustivel' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Fuel className="w-5 h-5" />
+                      <span className="font-medium">Combustível</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'viaturas') && (
+                    <button onClick={() => { setActiveTab('viaturas'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'viaturas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Bus className="w-5 h-5" />
+                      <span className="font-medium">Viaturas</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'motoristas') && (
+                    <button onClick={() => { setActiveTab('motoristas'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'motoristas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Users className="w-5 h-5" />
+                      <span className="font-medium">Motoristas</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'requisicoes') && (
+                    <button onClick={() => { setActiveTab('requisicoes'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'requisicoes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Clock className="w-5 h-5" />
+                      <span className="font-medium">Requisições</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'horas') && (
+                    <button onClick={() => { setActiveTab('horas'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'horas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Clock className="w-5 h-5" />
+                      <span className="font-medium">Registo Horas</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'plataformas_externas') && (
+                    <button onClick={() => { setActiveTab('transportes-eva'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'transportes-eva' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Bus className="w-5 h-5" />
+                      <span className="font-medium">Transportes EVA</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* GESTÃO / ADMIN */}
+                <div className="pt-4 pb-2">
+                  <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Administração</p>
+
+                  {hasAccess(userRole, 'equipa-oficina') && (
+                    <button onClick={() => { setActiveTab('equipa-oficina'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'equipa-oficina' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Users className="w-5 h-5" />
+                      <span className="font-medium">Equipa Oficina</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'contabilidade') && (
+                    <button onClick={() => { setActiveTab('contabilidade'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'contabilidade' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Wallet className="w-5 h-5" />
+                      <span className="font-medium">Contabilidade</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'supervisores') && (
+                    <button onClick={() => { setActiveTab('supervisores'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'supervisores' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <UserCog className="w-5 h-5" />
+                      <span className="font-medium">Supervisores</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'centros_custos') && (
+                    <button onClick={() => { setActiveTab('centros-custos'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'centros-custos' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Building2 className="w-5 h-5" />
+                      <span className="font-medium">Centros Custos</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'fornecedores') && (
+                    <button onClick={() => { setActiveTab('fornecedores'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'fornecedores' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Truck className="w-5 h-5" />
+                      <span className="font-medium">Fornecedores</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'clientes') && (
+                    <button onClick={() => { setActiveTab('clientes'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'clientes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Briefcase className="w-5 h-5" />
+                      <span className="font-medium">Clientes</span>
+                    </button>
+                  )}
+
+                  {userRole === 'admin' && (
+                    <button onClick={() => { setActiveTab('permissions'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'permissions' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <Shield className="w-5 h-5" />
+                      <span className="font-medium">Permissões</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* COMUNICAÇÃO */}
+                <div className="pt-4 pb-2">
+                  <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Comunicação</p>
+                  <button onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                    <MessageSquare className="w-5 h-5" />
+                    <span className="font-medium">Mensagens</span>
+                    {unreadCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                <div className="pt-8 mt-auto pb-4">
+                  <UserProfileMenu />
+                </div>
                 {/* Add more links if needed, or keep it simple for now */}
               </nav>
             </div>
