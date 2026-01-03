@@ -126,6 +126,8 @@ export interface Motorista {
     blockedPermissions?: string[]; // permissions explicitly blocked for this user
     dataRegisto?: string; // Registration date
     rating?: number; // Driver rating (0-5)
+    turnoInicio?: string; // HH:mm
+    turnoFim?: string; // HH:mm
     status?: 'disponivel' | 'ocupado' | 'indisponivel' | 'ferias'; // Added missing field
 }
 

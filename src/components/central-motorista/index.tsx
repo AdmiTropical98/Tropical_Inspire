@@ -5,7 +5,7 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import {
     LayoutTemplate, Clock, FileText, Share2, AlertTriangle,
     Send, Upload, Download, Car, Gauge, Shield, Sun, Navigation, Calendar,
-    Check, Fuel
+    Check, Fuel, Settings2
 } from 'lucide-react';
 
 export default function CentralMotorista() {
@@ -19,6 +19,58 @@ export default function CentralMotorista() {
     const [hoursForm, setHoursForm] = useState({ date: new Date().toISOString().split('T')[0], start: '', end: '', break: '60' });
     const [requestForm, setRequestForm] = useState({ type: 'ferias', description: '' });
     const [reportForm, setReportForm] = useState({ type: 'acidente', description: '' });
+
+    // Weather State
+    const [weather, setWeather] = useState<{ temp: number; desc: string } | null>(null);
+
+    // Shift Edit State
+    const [editingShift, setEditingShift] = useState(false);
+    const [tempShift, setTempShift] = useState({ start: '08:00', end: '17:00' });
+    const { updateMotorista } = useWorkshop();
+
+    useState(() => {
+        // Init tempShift from current user
+        if (currentUser && 'turnoInicio' in currentUser) {
+            setTempShift({
+                start: (currentUser as any).turnoInicio || '08:00',
+                end: (currentUser as any).turnoFim || '17:00'
+            });
+        }
+    });
+
+    // Fetch Weather (Lisbon default for now)
+    useState(() => {
+        fetch('https://api.open-meteo.com/v1/forecast?latitude=38.7167&longitude=-9.1333&current=temperature_2m,weather_code&timezone=auto')
+            .then(res => res.json())
+            .then(data => {
+                const code = data.current.weather_code;
+                let desc = 'Céu Limpo';
+                if (code > 3) desc = 'Nublado';
+                if (code > 50) desc = 'Chuva';
+                setWeather({
+                    temp: Math.round(data.current.temperature_2m),
+                    desc
+                });
+            })
+            .catch(err => console.error('Weather error:', err));
+    });
+
+    const saveShift = async () => {
+        if (currentUser && userRole === 'motorista') {
+            const updatedDriver = {
+                ...currentUser as any,
+                turnoInicio: tempShift.start,
+                turnoFim: tempShift.end
+            };
+            await updateMotorista(updatedDriver);
+            // Ideally also update AuthContext currentUser, but WorkshopContext update eventually propagates if we re-login. 
+            // For immediate UI feedback we might need to force it or rely on Realtime.
+            // For now, let's assume successful update and close edit mode.
+            setEditingShift(false);
+            // Force reload to see changes if simple state update isn't enough (AuthContext usually static)
+            window.location.reload();
+        }
+    };
 
     // Real Data Integration
     const { servicos, notifications } = useWorkshop();
@@ -202,17 +254,71 @@ export default function CentralMotorista() {
                                                 <Sun className="w-4 h-4" />
                                                 <span className="text-xs font-bold uppercase">Meteorologia</span>
                                             </div>
-                                            <p className="text-white font-bold text-lg">--°C</p>
-                                            <p className="text-xs text-slate-500">--</p>
+                                            {weather ? (
+                                                <>
+                                                    <p className="text-white font-bold text-lg">{weather.temp}°C</p>
+                                                    <p className="text-xs text-slate-500 capitalize">{weather.desc}</p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="text-white font-bold text-lg">--°C</p>
+                                                    <p className="text-xs text-slate-500">A carregar...</p>
+                                                </>
+                                            )}
                                         </div>
 
-                                        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
+                                        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 relative group">
+                                            <button
+                                                onClick={() => setEditingShift(true)}
+                                                className="absolute top-2 right-2 p-1.5 bg-slate-800 rounded-lg text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+                                            >
+                                                <Settings2 className="w-3 h-3" />
+                                            </button>
                                             <div className="flex items-center gap-2 text-slate-400 mb-2">
                                                 <Clock className="w-4 h-4" />
                                                 <span className="text-xs font-bold uppercase">Turno</span>
                                             </div>
-                                            <p className="text-white font-bold text-lg">08h - 17h</p>
-                                            <p className="text-xs text-emerald-400">A Decorrer</p>
+
+                                            {editingShift ? (
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex items-center gap-1">
+                                                        <input
+                                                            type="time"
+                                                            value={tempShift.start}
+                                                            onChange={e => setTempShift({ ...tempShift, start: e.target.value })}
+                                                            className="bg-slate-800 text-white text-xs rounded p-1 w-full outline-none border border-slate-700 focus:border-blue-500"
+                                                        />
+                                                        <span className="text-slate-500">-</span>
+                                                        <input
+                                                            type="time"
+                                                            value={tempShift.end}
+                                                            onChange={e => setTempShift({ ...tempShift, end: e.target.value })}
+                                                            className="bg-slate-800 text-white text-xs rounded p-1 w-full outline-none border border-slate-700 focus:border-blue-500"
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={saveShift}
+                                                            className="flex-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold py-1 rounded hover:bg-emerald-500/20"
+                                                        >
+                                                            Gravar
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditingShift(false)}
+                                                            className="flex-1 bg-slate-800 text-slate-400 text-[10px] font-bold py-1 rounded hover:bg-slate-700"
+                                                        >
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <p className="text-white font-bold text-lg">
+                                                        {(currentUser as any)?.turnoInicio || '08:00'} - {(currentUser as any)?.turnoFim || '17:00'}
+                                                    </p>
+                                                    <p className="text-xs text-emerald-400">A Decorrer</p>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -223,7 +329,7 @@ export default function CentralMotorista() {
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                                 <button
                                     onClick={() => setActiveTab('horas')}
-                                    className="p-4 bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-500 rounded-2xl transition-all group text-left"
+                                    className="p-4 bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 hover:border-blue-500/50 rounded-2xl transition-all group text-left"
                                 >
                                     <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 mb-3 group-hover:scale-110 transition-transform">
                                         <Clock className="w-5 h-5" />

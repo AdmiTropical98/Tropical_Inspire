@@ -157,7 +157,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             // 3. Team
             const { data: motoristas } = await supabase.from('motoristas').select('*');
-            if (motoristas) setMotoristas(motoristas.map((m: any) => ({ ...m, vencimentoBase: m.vencimento_base, valorHora: m.valor_hora, dataRegisto: m.data_registo, cartaConducao: m.carta_conducao, blockedPermissions: m.blocked_permissions })));
+            if (motoristas) setMotoristas(motoristas.map((m: any) => ({ ...m, vencimentoBase: m.vencimento_base, valorHora: m.valor_hora, dataRegisto: m.data_registo, cartaConducao: m.carta_conducao, blockedPermissions: m.blocked_permissions, turnoInicio: m.turno_inicio, turnoFim: m.turno_fim })));
 
             const { data: sups } = await supabase.from('supervisores').select('*');
             if (sups) setSupervisors(sups.map((s: any) => ({ ...s, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
@@ -469,7 +469,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             vencimento_base: m.vencimentoBase,
             valor_hora: m.valorHora,
             folgas: m.folgas,
-            blocked_permissions: m.blockedPermissions
+            blocked_permissions: m.blockedPermissions,
+            turno_inicio: m.turnoInicio,
+            turno_fim: m.turnoFim
         });
         if (!error) setMotoristas(prev => [...prev, m]);
     };
@@ -485,7 +487,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             vencimento_base: m.vencimentoBase,
             valor_hora: m.valorHora,
             folgas: m.folgas,
-            blocked_permissions: m.blockedPermissions
+            blocked_permissions: m.blockedPermissions,
+            turno_inicio: m.turnoInicio,
+            turno_fim: m.turnoFim
         }).eq('id', m.id);
         if (!error) setMotoristas(prev => prev.map(current => current.id === m.id ? m : current));
     };
