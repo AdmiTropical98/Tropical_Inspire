@@ -21,10 +21,10 @@ export default function Login() {
     const [regError, setRegError] = useState('');
     const [regSuccess, setRegSuccess] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        const success = login(role, email, password);
+        const success = await login(role, email, password);
         if (!success) {
             setError(role === 'motorista' ? 'Dados de acesso incorretos.' : 'Email ou palavra-passe incorretos.');
         }

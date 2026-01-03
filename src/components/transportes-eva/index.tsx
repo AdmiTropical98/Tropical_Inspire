@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Bus, Plus, Trash2, Calendar, Euro, FileText, TrendingUp, MapPin, Receipt, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { Bus, Plus, Calendar, Euro, TrendingUp, Receipt, AlertTriangle, CheckCircle, X, Check } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import type { EvaTransport, EvaDailyUsage } from '../../types';
@@ -429,10 +429,4 @@ export default function TransportesEva() {
     );
 }
 
-function Check({ className }: { className?: string }) {
-    return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-        </svg>
-    )
-}
+

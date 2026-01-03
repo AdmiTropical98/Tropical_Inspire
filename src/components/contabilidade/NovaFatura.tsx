@@ -22,7 +22,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
     const [vencimento, setVencimento] = useState(initialData?.vencimento || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
     const [notas, setNotas] = useState(initialData?.notas || '');
 
-    const { viaturas, centrosCustos, clientes } = useWorkshop();
+    const { viaturas, centrosCustos } = useWorkshop();
     const [items, setItems] = useState<ItemFatura[]>(initialData?.itens || []);
     const [showRentalModal, setShowRentalModal] = useState(false);
 

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import {
-    Fuel, Droplets, Plus, History, Check, Truck,
-    Gauge, AlertTriangle, Trash2, Search, ArrowRight,
-    ChevronDown, LayoutTemplate, Clock, Calendar, BarChart3,
-    FileText, Zap, Settings
+    Fuel, Droplets, History, Check, Truck,
+    Gauge, Trash2, LayoutTemplate, BarChart3,
+    Zap, Settings
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,7 +11,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 export default function Combustivel() {
     const {
-        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, tankRefills, registerTankRefill, deleteFuelTransaction, deleteTankRefill, setPumpTotalizer, centrosCustos
+        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, tankRefills, registerTankRefill, deleteFuelTransaction, setPumpTotalizer, centrosCustos
     } = useWorkshop();
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();

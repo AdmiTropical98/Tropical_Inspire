@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useWorkshop } from './WorkshopContext';
 import type { Motorista, Supervisor, OficinaUser } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -8,7 +9,7 @@ interface AuthContextType {
     currentUser: Motorista | Supervisor | OficinaUser | null;
     userStatus: 'online' | 'absent' | 'offline';
     language: 'pt' | 'en';
-    login: (type: 'admin' | 'motorista' | 'supervisor' | 'oficina', identifier: string, credential: string) => boolean;
+    login: (type: 'admin' | 'motorista' | 'supervisor' | 'oficina', identifier: string, credential: string) => Promise<boolean>;
     logout: () => void;
     updateStatus: (status: 'online' | 'absent' | 'offline') => void;
     setLanguage: (lang: 'pt' | 'en') => void;
@@ -91,9 +92,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const login = (type: 'admin' | 'motorista' | 'supervisor' | 'oficina', identifier: string, credential: string) => {
+    const login = async (type: 'admin' | 'motorista' | 'supervisor' | 'oficina', identifier: string, credential: string) => {
         if (type === 'admin') {
-            if (identifier === 'mglmadeira1@gmail.com' && credential === 'Portista1996') {
+            // Supabase Auth for Admin
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: identifier,
+                password: credential
+            });
+
+            if (!error && data.user) {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', 'admin');
                 setIsAuthenticated(true);
@@ -103,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (adminPhoto) setUserPhoto(adminPhoto);
                 return true;
             }
+            return false;
         } else if (type === 'oficina') {
             // Oficina Login (Dynamic)
             const staff = oficinaUsers.find(u =>

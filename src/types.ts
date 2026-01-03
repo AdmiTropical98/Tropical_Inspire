@@ -16,6 +16,7 @@ export interface Viatura {
     modelo: string;
     ano: string;
     obs: string;
+    estado?: 'disponivel' | 'em_uso' | 'em_manutencao'; // Added missing field
     // New fields for Vehicle Profile
     seguro?: Seguro;
     documentos?: DocumentoViatura[];
@@ -23,6 +24,7 @@ export interface Viatura {
     manutencoes?: Manutencao[];
     precoDiario?: number; // Daily rental rate
 }
+
 
 export interface Seguro {
     apolice: string;
@@ -123,6 +125,7 @@ export interface Motorista {
     valorHora?: number; // Hourly Rate for overtime
     blockedPermissions?: string[]; // permissions explicitly blocked for this user
     dataRegisto?: string; // Registration date
+    status?: 'disponivel' | 'ocupado' | 'indisponivel' | 'ferias'; // Added missing field
 }
 
 export interface Servico {

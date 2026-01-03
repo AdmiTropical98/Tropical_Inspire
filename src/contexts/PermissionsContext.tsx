@@ -12,7 +12,8 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'combustivel' | 'combustivel_calibrate' | 'combustivel_edit_history' |
     'central_motorista' |
     'centros_custos' |
-    'plataformas_externas';
+    'plataformas_externas' |
+    'clientes';
 
 export interface RolePermissions {
     supervisor: PermissionModule[];

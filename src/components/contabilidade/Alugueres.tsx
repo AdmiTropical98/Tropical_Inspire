@@ -429,7 +429,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                 alternateRowStyles: {
                     fillColor: [250, 250, 255]
                 },
-                didParseCell: (data) => {
+                didParseCell: (data: any) => {
                     if (data.row.index === tableBody.length - 1) {
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fillColor = [240, 240, 240];

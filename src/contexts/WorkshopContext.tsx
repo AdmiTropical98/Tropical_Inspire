@@ -54,6 +54,7 @@ interface WorkshopContextType {
     deleteOficinaUser: (id: string) => void;
     addNotification: (n: Notification) => void;
     updateNotification: (n: Notification) => void;
+    refreshData: () => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -67,12 +68,49 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
     const [centrosCustos, setCentrosCustos] = useState<CentroCusto[]>([]);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
 
-    const fetchData = async () => {
+
+
+    const [evaTransports, setEvaTransports] = useState<EvaTransport[]>([]);
+
+
+
+    const [motoristas, setMotoristas] = useState<Motorista[]>([]);
+
+
+
+
+
+    const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+    const [oficinaUsers, setOficinaUsers] = useState<OficinaUser[]>([]);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+
+
+
+    // LocalStorage sync removed as we are now using Supabase
+    // Cross-tab sync should be handled by Supabase Realtime in the future
+
+    // NEW: Services State (Lifted)
+    const [servicos, setServicos] = useState<any[]>([]);
+
+
+
+    // NEW: Fuel Management State
+    const [fuelTank, setFuelTank] = useState<FuelTank>({
+        id: 'main',
+        capacity: 6000,
+        currentLevel: 6000,
+        pumpTotalizer: 0,
+        lastRefillDate: new Date().toISOString(),
+        averagePrice: 0
+    });
+
+    const [fuelTransactions, setFuelTransactions] = useState<FuelTransaction[]>([]);
+    const [tankRefills, setTankRefills] = useState<TankRefillLog[]>([]);
+
+    const refreshData = async () => {
         try {
+            // 1. Core Data
             const { data: f } = await supabase.from('fornecedores').select('*');
             if (f) setFornecedores(f);
 
@@ -80,39 +118,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (c) setClientes(c);
 
             const { data: v } = await supabase.from('viaturas').select('*');
-            if (v) setViaturas(v.map((item: any) => ({
-                ...item,
-                precoDiario: item.preco_diario
-            })));
+            if (v) setViaturas(v.map((item: any) => ({ ...item, precoDiario: item.preco_diario })));
 
             const { data: cc } = await supabase.from('centros_custos').select('*');
             if (cc) setCentrosCustos(cc.map((item: any) => ({ ...item, id: item.id, nome: item.nome, localizacao: item.localizacao, codigo: item.codigo })));
 
             const { data: r } = await supabase.from('requisicoes').select('*');
-            if (r) setRequisicoes(r.map((item: any) => ({
-                ...item,
-                fornecedorId: item.fornecedor_id,
-                viaturaId: item.viatura_id,
-                centroCustoId: item.centro_custo_id,
-                criadoPor: item.criado_por
-            })));
+            if (r) setRequisicoes(r.map((item: any) => ({ ...item, fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por })));
 
-        } catch (error) {
-            console.error('Error fetching data from Supabase:', error);
-        }
-    };
-
-
-    const [evaTransports, setEvaTransports] = useState<EvaTransport[]>([]);
-
-    useEffect(() => {
-        const fetchEva = async () => {
-            const { data: transports, error } = await supabase.from('eva_transports').select('*');
-            if (error) { console.error('Error fetching Eva Transports:', error); return; }
-
-            const { data: days, error: daysError } = await supabase.from('eva_transport_days').select('*');
-            if (daysError) { console.error('Error fetching Eva Days:', daysError); return; }
-
+            // 2. Eva Transports
+            const { data: transports } = await supabase.from('eva_transports').select('*');
+            const { data: days } = await supabase.from('eva_transport_days').select('*');
             if (transports) {
                 const combined = transports.map((t: any) => ({
                     id: t.id,
@@ -133,146 +149,47 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 }));
                 setEvaTransports(combined);
             }
-        };
-        fetchEva();
-    }, []);
 
-    const [motoristas, setMotoristas] = useState<Motorista[]>([]);
+            // 3. Team
+            const { data: motoristas } = await supabase.from('motoristas').select('*');
+            if (motoristas) setMotoristas(motoristas.map((m: any) => ({ ...m, vencimentoBase: m.vencimento_base, valorHora: m.valor_hora, dataRegisto: m.data_registo, cartaConducao: m.carta_conducao, blockedPermissions: m.blocked_permissions })));
 
-    useEffect(() => {
-        const fetchMotoristas = async () => {
-            const { data, error } = await supabase.from('motoristas').select('*');
-            if (error) console.error('Error fetching motoristas:', error);
-            else if (data) setMotoristas(data.map((m: any) => ({
-                ...m,
-                vencimentoBase: m.vencimento_base,
-                valorHora: m.valor_hora,
-                dataRegisto: m.data_registo,
-                cartaConducao: m.carta_conducao,
-                blockedPermissions: m.blocked_permissions
-            })));
-        };
-        fetchMotoristas();
-    }, []);
+            const { data: sups } = await supabase.from('supervisores').select('*');
+            if (sups) setSupervisors(sups.map((s: any) => ({ ...s, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
 
+            const { data: oficina } = await supabase.from('oficina_users').select('*');
+            if (oficina) setOficinaUsers(oficina.map((u: any) => ({ ...u, blockedPermissions: u.blocked_permissions, dataRegisto: u.data_registo })));
 
+            // 4. Notifications & Services
+            const { data: notifs } = await supabase.from('notifications').select('*');
+            if (notifs) setNotifications(notifs.map((n: any) => ({ ...n, data: typeof n.data === 'string' ? JSON.parse(n.data) : n.data, response: typeof n.response === 'string' ? JSON.parse(n.response) : n.response })));
 
-    const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
-    const [oficinaUsers, setOficinaUsers] = useState<OficinaUser[]>([]);
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+            const { data: servs } = await supabase.from('servicos').select('*');
+            if (servs) setServicos(servs.map((s: any) => ({ ...s, motoristaId: s.motorista_id, centroCustoId: s.centro_custo_id })));
 
-    useEffect(() => {
-        const fetchSupervisores = async () => {
-            const { data } = await supabase.from('supervisores').select('*');
-            if (data) setSupervisors(data.map((s: any) => ({
-                ...s,
-                blockedPermissions: s.blocked_permissions,
-                dataRegisto: s.data_registo
-            })));
-        };
-        fetchSupervisores();
-    }, []);
-
-    useEffect(() => {
-        const fetchOficinaUsers = async () => {
-            const { data } = await supabase.from('oficina_users').select('*');
-            if (data) setOficinaUsers(data.map((u: any) => ({
-                ...u,
-                blockedPermissions: u.blocked_permissions,
-                dataRegisto: u.data_registo
-            })));
-        };
-        fetchOficinaUsers();
-    }, []);
-
-    useEffect(() => {
-        const fetchNotifications = async () => {
-            const { data } = await supabase.from('notifications').select('*');
-            if (data) setNotifications(data.map((n: any) => ({
-                ...n,
-                data: typeof n.data === 'string' ? JSON.parse(n.data) : n.data,
-                response: typeof n.response === 'string' ? JSON.parse(n.response) : n.response
-            })));
-        };
-        fetchNotifications();
-    }, []);
-
-    // LocalStorage sync removed as we are now using Supabase
-    // Cross-tab sync should be handled by Supabase Realtime in the future
-
-    // NEW: Services State (Lifted)
-    const [servicos, setServicos] = useState<any[]>([]);
-
-    useEffect(() => {
-        const fetchServicos = async () => {
-            const { data, error } = await supabase.from('servicos').select('*');
-            if (error) console.error('Error fetching servicos:', error);
-            else if (data) setServicos(data.map((s: any) => ({
-                ...s,
-                motoristaId: s.motorista_id,
-                centroCustoId: s.centro_custo_id
-            })));
-        };
-        fetchServicos();
-    }, []);
-
-    // NEW: Fuel Management State
-    const [fuelTank, setFuelTank] = useState<FuelTank>({
-        id: 'main',
-        capacity: 6000,
-        currentLevel: 6000,
-        pumpTotalizer: 0,
-        lastRefillDate: new Date().toISOString(),
-        averagePrice: 0
-    });
-
-    const [fuelTransactions, setFuelTransactions] = useState<FuelTransaction[]>([]);
-    const [tankRefills, setTankRefills] = useState<TankRefillLog[]>([]);
-
-    useEffect(() => {
-        const fetchFuelData = async () => {
-            // Fetch Tank
+            // 5. Fuel
             const { data: tankData } = await supabase.from('fuel_tank').select('*').eq('id', 'main').single();
-            if (tankData) setFuelTank({
-                id: tankData.id,
-                capacity: tankData.capacity,
-                currentLevel: tankData.current_level,
-                pumpTotalizer: tankData.pump_totalizer,
-                lastRefillDate: tankData.last_refill_date,
-                averagePrice: tankData.average_price
-            });
+            if (tankData) setFuelTank({ id: tankData.id, capacity: tankData.capacity, currentLevel: tankData.current_level, pumpTotalizer: tankData.pump_totalizer, lastRefillDate: tankData.last_refill_date, averagePrice: tankData.average_price });
 
-            // Fetch Transactions
             const { data: transData } = await supabase.from('fuel_transactions').select('*');
-            if (transData) setFuelTransactions(transData.map((t: any) => ({
-                ...t,
-                driverId: t.driver_id,
-                vehicleId: t.vehicle_id,
-                staffId: t.staff_id,
-                staffName: t.staff_name,
-                pumpCounterAfter: t.pump_counter_after,
-                pricePerLiter: t.price_per_liter,
-                totalCost: t.total_cost,
-                centroCustoId: t.centro_custo_id
-            })));
+            if (transData) setFuelTransactions(transData.map((t: any) => ({ ...t, driverId: t.driver_id, vehicleId: t.vehicle_id, staffId: t.staff_id, staffName: t.staff_name, pumpCounterAfter: t.pump_counter_after, pricePerLiter: t.price_per_liter, totalCost: t.total_cost, centroCustoId: t.centro_custo_id })));
 
-            // Fetch Refills
             const { data: refillData } = await supabase.from('tank_refills').select('*');
-            if (refillData) setTankRefills(refillData.map((r: any) => ({
-                ...r,
-                litersAdded: r.liters_added,
-                levelBefore: r.level_before,
-                levelAfter: r.level_after,
-                totalSpentSinceLast: r.total_spent_since_last,
-                pumpMeterReading: r.pump_meter_reading,
-                systemExpectedReading: r.system_expected_reading,
-                staffId: r.staff_id,
-                staffName: r.staff_name,
-                pricePerLiter: r.price_per_liter,
-                totalCost: r.total_cost
-            })));
-        };
-        fetchFuelData();
+            if (refillData) setTankRefills(refillData.map((r: any) => ({ ...r, litersAdded: r.liters_added, levelBefore: r.level_before, levelAfter: r.level_after, totalSpentSinceLast: r.total_spent_since_last, pumpMeterReading: r.pump_meter_reading, systemExpectedReading: r.system_expected_reading, staffId: r.staff_id, staffName: r.staff_name, pricePerLiter: r.price_per_liter, totalCost: r.total_cost })));
+
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        }
+    };
+
+    useEffect(() => {
+        refreshData();
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
+            if (event === 'SIGNED_IN') {
+                refreshData();
+            }
+        });
+        return () => subscription.unsubscribe();
     }, []);
 
     // Fuel Methods
@@ -743,7 +660,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 registerTankRefill,
                 setPumpTotalizer,
                 deleteFuelTransaction,
-                deleteTankRefill
+                deleteTankRefill,
+                refreshData
             }}
         >
             {children}

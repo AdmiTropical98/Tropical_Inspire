@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
     MessageSquare, Send, User, ChevronLeft, Shield, Wrench,
-    Search, Check, CheckCheck, Clock, MoreVertical, Phone, Video
+    Search, Check, CheckCheck, MoreVertical, Phone, Video
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -10,7 +10,7 @@ import { useChat } from '../../contexts/ChatContext';
 export default function ChatPage() {
     const { userRole, currentUser } = useAuth();
     const { motoristas, supervisors, oficinaUsers } = useWorkshop();
-    const { messages, sendMessage, markAsRead, unreadCount, getUnreadCountForUser } = useChat();
+    const { messages, sendMessage, markAsRead, getUnreadCountForUser } = useChat();
 
     const [selectedUser, setSelectedUser] = useState<{ id: string; name: string; role: string } | null>(null);
     const [inputMessage, setInputMessage] = useState('');

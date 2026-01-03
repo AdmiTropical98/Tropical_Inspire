@@ -10,7 +10,6 @@ import { useAuth } from './contexts/AuthContext';
 import { usePermissions } from './contexts/PermissionsContext';
 import { useWorkshop } from './contexts/WorkshopContext';
 import { ChatProvider } from './contexts/ChatContext';
-import { useTranslation } from './hooks/useTranslation';
 
 // Components
 import Login from './components/Login';
@@ -35,25 +34,14 @@ import Contabilidade from './components/contabilidade';
 import Clientes from './components/clientes';
 
 function App() {
-  const { isAuthenticated, logout, userRole } = useAuth();
-  const { t } = useTranslation();
+  const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
-  const { notifications, updateNotification, motoristas, setServicos, addNotification, confirmRefuel } = useWorkshop();
-
-
+  const { notifications } = useWorkshop();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'permissoes' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes'>('dashboard');
 
-
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
-  const [pendingFuelConfirmation, setPendingFuelConfirmation] = useState<any>(null);
-  const [fuelPin, setFuelPin] = useState('');
-  const [pinInput, setPinInput] = useState<{ [key: string]: string }>({});
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
-  const [selectedDriver, setSelectedDriver] = useState('');
-  const [mandatoryAssignment, setMandatoryAssignment] = useState<any>(null);
 
   // Initial Tab based on Role
   useEffect(() => {
@@ -64,125 +52,6 @@ function App() {
       else setActiveTab('dashboard');
     }
   }, [isAuthenticated, userRole]);
-
-  // Check for pending fuel confirmations
-  useEffect(() => {
-    const fuelRequest = notifications.find(n => n.type === 'fuel_confirmation_request' && n.status === 'pending');
-    if (fuelRequest) {
-      setPendingFuelConfirmation(fuelRequest);
-      // Auto-open modal/alert logic if needed
-    }
-  }, [notifications]);
-
-  const handleConfirmFuel = () => {
-    if (!pendingFuelConfirmation) return;
-
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      const currentUser = JSON.parse(storedUser);
-      const userPin = currentUser.pin || currentUser.password;
-      if (userPin !== fuelPin) {
-        alert('PIN incorreto! Por favor tente novamente.');
-        return;
-      }
-    }
-
-    if (pendingFuelConfirmation.response?.serviceId) {
-      confirmRefuel(pendingFuelConfirmation.response.serviceId);
-    }
-
-    updateNotification({
-      ...pendingFuelConfirmation,
-      status: 'confirmed'
-    });
-    setPendingFuelConfirmation(null);
-    setFuelPin('');
-    setActiveTab('escalas');
-  };
-
-  const handleRejectFuel = () => {
-    if (!pendingFuelConfirmation) return;
-    if (!confirm('Tem a certeza que este abastecimento não corresponde à verdade? Ao rejeitar, o registo será anulado.')) return;
-
-    updateNotification({
-      ...pendingFuelConfirmation,
-      status: 'rejected'
-    });
-    setPendingFuelConfirmation(null);
-    setFuelPin('');
-  };
-
-  const handleDismissPinRequest = (id: string) => {
-    const notif = notifications.find(n => n.id === id);
-    if (notif) updateNotification({ ...notif, status: 'confirmed' });
-  };
-
-  const generatePin = (notificationId: string) => {
-    const pin = Math.floor(1000 + Math.random() * 9000).toString();
-    setPinInput({ ...pinInput, [notificationId]: pin });
-  };
-
-  const handleApproveRequest = (notificationId: string) => {
-    const pin = pinInput[notificationId];
-    if (!pin || pin.length < 4) {
-      alert('Por favor, gere ou introduza um PIN válido (mínimo 4 dígitos).');
-      return;
-    }
-    const notification = notifications.find(n => n.id === notificationId);
-    if (notification) {
-      updateNotification({
-        ...notification,
-        status: 'approved',
-        response: { pin: pin }
-      });
-      const newInputs = { ...pinInput };
-      delete newInputs[notificationId];
-      setPinInput(newInputs);
-    }
-  };
-
-  const handleRejectRequest = (notificationId: string) => {
-    if (confirm('Tem a certeza que deseja rejeitar este pedido?')) {
-      const notification = notifications.find(n => n.id === notificationId);
-      if (notification) updateNotification({ ...notification, status: 'rejected' });
-    }
-  };
-
-  const openAssignModal = (notificationId: string) => {
-    setSelectedRequest(notificationId);
-    setShowAssignModal(true);
-  };
-
-  const handleAssignDriver = () => {
-    if (!selectedRequest || !selectedDriver) return;
-    const notification = notifications.find(n => n.id === selectedRequest);
-    if (!notification || notification.type !== 'urgent_transport_request') return;
-
-    const newServiceId = crypto.randomUUID();
-    // Create service logic omitted for brevity, assuming existing flow works or simplified
-    // We'll just notify
-    addNotification({
-      id: crypto.randomUUID(),
-      type: 'transport_assignment',
-      data: {
-        serviceId: newServiceId,
-        time: notification.data.time,
-        passenger: notification.data.passenger,
-        origin: notification.data.origin,
-        destination: notification.data.destination,
-        obs: notification.data.obs
-      },
-      status: 'pending',
-      response: { driverId: selectedDriver },
-      timestamp: new Date().toISOString()
-    });
-
-    updateNotification({ ...notification, status: 'assigned' }); // Mark original as assigned
-    setShowAssignModal(false);
-    setSelectedRequest(null);
-    setSelectedDriver('');
-    alert('Motorista atribuído e notificado!');
-  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -209,7 +78,7 @@ function App() {
 
   if (!isAuthenticated) return <Login />;
 
-  const unreadCount = notifications.filter(n => n.status === 'pending' && n.type !== 'system_alert').length; // Simplified unread
+  const unreadCount = notifications.filter(n => n.status === 'pending' && n.type !== 'system_alert').length;
 
   return (
     <ChatProvider>

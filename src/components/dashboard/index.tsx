@@ -1,16 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import {
-    LayoutDashboard, User, Shield, AlertTriangle, TrendingUp,
+    User, AlertTriangle, TrendingUp,
     Clock, Bus, Wrench, CheckCircle2, ChevronRight, Fuel,
-    FileText, Calendar, Wallet, Activity, Bell, ArrowUpRight
+    FileText, Calendar, Activity, Bell, Users
 } from 'lucide-react';
 
 export default function Dashboard({ setActiveTab }: { setActiveTab: (tab: any) => void }) {
-    const { t } = useTranslation();
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
     const { notifications, motoristas, servicos, viaturas } = useWorkshop();
@@ -24,12 +21,10 @@ export default function Dashboard({ setActiveTab }: { setActiveTab: (tab: any) =
     const todayServices = servicos.filter(s => new Date(s.data).toDateString() === new Date().toDateString()).length;
 
     // Drivers
-    const totalDrivers = motoristas.length;
     const activeDrivers = motoristas.filter(m => m.status === 'disponivel').length;
-    const busyDrivers = motoristas.filter(m => m.status === 'ocupado').length;
 
     // Vehicles
-    const totalVehicles = viaturas?.length || 0; // Guard against undefined if not loaded
+    const totalVehicles = viaturas?.length || 0;
     const availableVehicles = viaturas?.filter(v => v.estado === 'disponivel').length || 0;
     const maintenanceVehicles = viaturas?.filter(v => v.estado === 'em_manutencao').length || 0;
 
@@ -108,7 +103,7 @@ export default function Dashboard({ setActiveTab }: { setActiveTab: (tab: any) =
                     </div>
                     <div className="text-sm">
                         <p className="text-slate-400 text-xs">Data de Hoje</p>
-                        <p className="font-semibold text-white">{new Date().toLocaleDateString('pt-PT', { startContext: '2025-12-20T21:40:00Z', weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                        <p className="font-semibold text-white">{new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                     </div>
                 </div>
             </div>

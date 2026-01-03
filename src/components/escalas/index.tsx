@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import {
-    Upload, FileText, Plus, Calendar,
+    Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, Building2, MapPin, Clock, Users, Zap, MousePointer2,
-    ChevronRight, AlertCircle, FileSpreadsheet, Search
+    Search, FileSpreadsheet
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -557,7 +557,7 @@ export default function Escalas() {
                                                 <div className="absolute left-[2.35rem] top-4 bottom-4 w-px bg-slate-800/80 z-0"></div>
                                             )}
 
-                                            {driverServices.map((service, idx) => (
+                                            {driverServices.map((service) => (
                                                 <div key={service.id} className="relative z-10 flex gap-4 group/item">
 
                                                     {/* Time Column */}
@@ -624,7 +624,7 @@ export default function Escalas() {
                     </div>
 
                     {/* URGENT REQUEST SECTION (Supervisor/Admin View Only) */}
-                    {userRole !== 'normal' && notifications.some(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned')) && (
+                    {(userRole === 'admin' || userRole === 'supervisor') && notifications.some(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned')) && (
                         <div className="mt-8 pt-8 border-t border-white/10">
                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
                                 <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
