@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Truck, Users, Clock, Calendar,
   Bell, X, UserCog, Fuel, Building2, LayoutTemplate, Briefcase,
   FileText, Settings, LogOut, Menu, ChevronRight, Wallet,
-  MessageSquare, Bus
+  MessageSquare, Bus, Shield
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -32,6 +32,7 @@ import TransportesEva from './components/transportes-eva';
 import UserProfileMenu from './components/common/UserProfileMenu';
 import Contabilidade from './components/contabilidade';
 import Clientes from './components/clientes';
+import PermissionsManager from './components/dashboard/PermissionsManager'; // Import PermissionsManager
 
 function App() {
   const { isAuthenticated, userRole } = useAuth();
@@ -59,8 +60,13 @@ function App() {
       case 'dashboard':
       case 'overview':
       case 'admin_users': // Add cases handled by Dashboard
-      case 'permissions':
         return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+      case 'permissions':
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <PermissionsManager />
+          </div>
+        );
       case 'escalas': return <Escalas />;
       case 'horas': return <Horas />;
       case 'equipa-oficina': return <EquipaOficina />;
@@ -213,6 +219,13 @@ function App() {
                 <button onClick={() => setActiveTab('clientes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'clientes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
                   <Briefcase className="w-5 h-5" />
                   <span className="font-medium">Clientes</span>
+                </button>
+              )}
+
+              {userRole === 'admin' && (
+                <button onClick={() => setActiveTab('permissions')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'permissions' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+                  <Shield className="w-5 h-5" />
+                  <span className="font-medium">Permissões</span>
                 </button>
               )}
             </div>

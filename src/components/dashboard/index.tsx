@@ -281,12 +281,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                         </div>
                     )}
 
-                    {/* Permissions Management (Only for Admins) */}
-                    {activeTab === 'permissions' && userRole === 'admin' && (
-                        <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6">
-                            <PermissionsManager />
-                        </div>
-                    )}
+
 
                     {/* Activity Feed */}
                     <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 h-full min-h-[400px]">
