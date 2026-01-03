@@ -1,0 +1,2 @@
+Verificação de deploy na Vercel
+Data: 2026-01-03
