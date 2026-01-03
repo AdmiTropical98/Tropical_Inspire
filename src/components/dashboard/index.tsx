@@ -2,13 +2,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import {
-    User, AlertTriangle, TrendingUp,
+    User, AlertTriangle, TrendingUp, Shield,
     Clock, Bus, Wrench, CheckCircle2, ChevronRight, Fuel,
     FileText, Calendar, Activity, Bell, Users
 } from 'lucide-react';
 import AdminManagement from './AdminManagement';
+import PermissionsManager from './PermissionsManager';
 
-export default function Dashboard({ setActiveTab }: { setActiveTab: (tab: any) => void }) {
+export default function Dashboard({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: any) => void }) {
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
     const { notifications, motoristas, servicos, viaturas } = useWorkshop();
@@ -274,9 +275,16 @@ export default function Dashboard({ setActiveTab }: { setActiveTab: (tab: any) =
                 <div className="space-y-6">
 
                     {/* Admin Management (Only for Admins) */}
-                    {userRole === 'admin' && (
+                    {activeTab === 'admin_users' && userRole === 'admin' && (
                         <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6">
                             <AdminManagement />
+                        </div>
+                    )}
+
+                    {/* Permissions Management (Only for Admins) */}
+                    {activeTab === 'permissions' && userRole === 'admin' && (
+                        <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6">
+                            <PermissionsManager />
                         </div>
                     )}
 
@@ -317,6 +325,6 @@ export default function Dashboard({ setActiveTab }: { setActiveTab: (tab: any) =
                 </div>
             </div>
 
-        </div>
+        </div >
     );
 }

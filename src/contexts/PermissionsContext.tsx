@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { supabase } from '../lib/supabase';
 
 export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes_delete' |
     'viaturas' |
@@ -69,90 +70,87 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
 
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
     const { currentUser, userRole } = useAuth();
-    const [permissions, setPermissions] = useState<RolePermissions>(() => {
-        try {
-            const stored = localStorage.getItem('permissions');
-            if (stored) {
-                const parsed = JSON.parse(stored);
+    const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_PERMISSIONS);
+    const [loading, setLoading] = useState(true);
 
-                // MIGRATION / PATCH: Ensure new defaults are present in legacy configurations
-                if (Array.isArray(parsed.supervisor)) {
-                    const newSupDefaults = [
-                        'centros_custos', 'plataformas_externas',
-                        'requisicoes_edit', 'requisicoes_delete',
-                        'escalas_import', 'escalas_print', 'escalas_create', 'escalas_urgent', 'escalas_view_pending',
-                        'hours_view_costs',
-                        'combustivel_calibrate', 'combustivel_edit_history'
-                    ];
-                    newSupDefaults.forEach(p => {
-                        if (!parsed.supervisor.includes(p)) parsed.supervisor.push(p);
-                    });
-                }
-                if (Array.isArray(parsed.motorista)) {
-                    const newDriverDefaults = [
-                        'central_motorista', 'horas', 'escalas',
-                        'requisicoes_edit', 'requisicoes_delete',
-                        'escalas_import', 'escalas_print', 'escalas_create', 'escalas_urgent', 'escalas_view_pending',
-                        'hours_view_costs',
-                        'combustivel_calibrate', 'combustivel_edit_history'
-                    ];
-                    newDriverDefaults.forEach(p => {
-                        if (!parsed.motorista.includes(p)) parsed.motorista.push(p);
-                    });
-                }
-                if (Array.isArray(parsed.oficina)) {
-                    const newOfficeDefaults = [
-                        'centros_custos',
-                        'requisicoes_edit', 'requisicoes_delete',
-                        'combustivel_calibrate', 'combustivel_edit_history',
-                        'escalas_import', 'escalas_print', 'escalas_create', 'escalas_urgent', 'escalas_view_pending',
-                        'hours_view_costs'
-                    ];
-                    newOfficeDefaults.forEach(p => {
-                        if (!parsed.oficina.includes(p)) parsed.oficina.push(p);
-                    });
-                }
-
-                // Validate structure
-                const safePermissions = { ...DEFAULT_PERMISSIONS, ...parsed };
-                // Ensure arrays
-                if (!Array.isArray(safePermissions.supervisor)) safePermissions.supervisor = DEFAULT_PERMISSIONS.supervisor;
-                if (!Array.isArray(safePermissions.motorista)) safePermissions.motorista = DEFAULT_PERMISSIONS.motorista;
-                if (!Array.isArray(safePermissions.oficina)) safePermissions.oficina = DEFAULT_PERMISSIONS.oficina;
-                return safePermissions;
-            }
-        } catch (error) {
-            console.error('Error loading permissions:', error);
-        }
-        return DEFAULT_PERMISSIONS;
-    });
-
+    // Initial Fetch from DB
     useEffect(() => {
-        localStorage.setItem('permissions', JSON.stringify(permissions));
-    }, [permissions]);
+        const fetchPermissions = async () => {
+            try {
+                const { data, error } = await supabase.from('app_settings').select('key, value').in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina']);
 
-    const updatePermission = (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => {
-        setPermissions(prev => {
-            const currentRolePermissions = prev[role];
-            let newRolePermissions: PermissionModule[];
+                if (error) throw error;
 
-            if (hasAccess) {
-                // Add if not present
-                if (!currentRolePermissions.includes(module)) {
-                    newRolePermissions = [...currentRolePermissions, module];
-                } else {
-                    newRolePermissions = currentRolePermissions;
+                if (data) {
+                    const newPermissions = { ...DEFAULT_PERMISSIONS };
+                    data.forEach((item: any) => {
+                        if (item.key === 'permissions_supervisor') newPermissions.supervisor = item.value;
+                        if (item.key === 'permissions_motorista') newPermissions.motorista = item.value;
+                        if (item.key === 'permissions_oficina') newPermissions.oficina = item.value;
+                    });
+                    setPermissions(newPermissions);
                 }
-            } else {
-                // Remove if present
-                newRolePermissions = currentRolePermissions.filter(p => p !== module);
+            } catch (err) {
+                console.error('Error fetching permissions from DB:', err);
+                // Fallback to defaults is already set via initial state
+            } finally {
+                setLoading(false);
             }
+        };
 
-            return {
-                ...prev,
-                [role]: newRolePermissions
-            };
-        });
+        fetchPermissions();
+
+        // Subscribe to changes for real-time updates
+        const channel = supabase
+            .channel('app_settings_changes')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings' }, (payload) => {
+                const { key, value } = payload.new as any;
+                if (['permissions_supervisor', 'permissions_motorista', 'permissions_oficina'].includes(key)) {
+                    setPermissions(prev => {
+                        const updated = { ...prev };
+                        if (key === 'permissions_supervisor') updated.supervisor = value;
+                        if (key === 'permissions_motorista') updated.motorista = value;
+                        if (key === 'permissions_oficina') updated.oficina = value;
+                        return updated;
+                    });
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => {
+        const currentRolePermissions = permissions[role];
+        let newRolePermissions: PermissionModule[];
+
+        if (hasAccess) {
+            if (!currentRolePermissions.includes(module)) {
+                newRolePermissions = [...currentRolePermissions, module];
+            } else {
+                newRolePermissions = currentRolePermissions;
+            }
+        } else {
+            newRolePermissions = currentRolePermissions.filter(p => p !== module);
+        }
+
+        // Optimistic Update
+        setPermissions(prev => ({
+            ...prev,
+            [role]: newRolePermissions
+        }));
+
+        // Persist to DB
+        const dbKey = `permissions_${role}`;
+        const { error } = await supabase.from('app_settings').upsert({ key: dbKey, value: newRolePermissions });
+
+        if (error) {
+            console.error('Error updating permissions in DB:', error);
+            // Revert optimistic update? Or just alert. For now simple logging.
+            alert('Falha ao gravar permissões. Verifique a ligação.');
+        }
     };
 
     const hasAccess = (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | null, module: PermissionModule): boolean => {
