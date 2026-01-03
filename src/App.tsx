@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Truck, Users, Clock, Calendar,
-  Bell, X, UserCog, Fuel,
-  Building2, LayoutTemplate, Briefcase,
-  Truck, Users, FileText, Settings, LogOut,
-  Bell, Menu, X, ChevronRight, LayoutDashboard,
-  Calendar, Fuel, Clock, Wallet, UserCog, Building2,
-  Briefcase, MessageSquare, LayoutTemplate, Bus
+  Bell, X, UserCog, Fuel, Building2, LayoutTemplate, Briefcase,
+  FileText, Settings, LogOut, Menu, ChevronRight, Wallet,
+  MessageSquare, Bus
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -45,6 +42,7 @@ function App() {
 
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Initial Tab based on Role
   useEffect(() => {
