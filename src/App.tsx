@@ -407,7 +407,7 @@ function App() {
                   {hasAccess(userRole, 'relatorios') && (
                     <button onClick={() => { setActiveTab('relatorios'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'relatorios' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                       <BarChart3 className="w-5 h-5" />
-                      <span className="font-medium">Relatórios</span>
+                      <span className="font-medium">Relatórios <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded ml-1">NOVO</span></span>
                     </button>
                   )}
 
