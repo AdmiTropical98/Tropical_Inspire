@@ -611,7 +611,7 @@ export default function Escalas() {
                                                     e.currentTarget.style.backgroundColor = '';
                                                     handleDropService(driver.id);
                                                 }}
-                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200
+                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col h-full group transition-all duration-200
                                             ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
                                             border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
                                             ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
@@ -695,8 +695,8 @@ export default function Escalas() {
                                                 </div>
 
                                                 {/* Timeline */}
-                                                <div className="p-5 flex-1 bg-[#0b1120]/30 min-h-[200px]">
-                                                    <div className="space-y-4 relative">
+                                                <div className="p-2 md:p-3 flex-1 bg-[#0b1120]/30 min-h-[150px] overflow-y-auto custom-scrollbar relative">
+                                                    <div className="space-y-3 relative">
                                                         {/* Vertical Timeline Line */}
                                                         {driverServices.length > 1 && (
                                                             <div className="absolute left-[2.35rem] top-4 bottom-4 w-px bg-slate-800/80 z-0"></div>
