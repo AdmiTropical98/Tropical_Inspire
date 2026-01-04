@@ -273,8 +273,8 @@ function App() {
           {/* Mobile Header - Only visible on mobile */}
           {(activeTab === 'dashboard' || activeTab === 'overview' || activeTab === 'admin_users' || activeTab === 'permissions' || activeTab === 'transportes-eva' || activeTab === 'central-motorista') && ( // Show header for proper tabs
             <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
-              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
-                GestãoFrota
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                GestãoFrota <span className="text-xs text-slate-500 ml-1">v2.1</span>
               </h1>
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
                 <Menu className="w-6 h-6" />
@@ -404,12 +404,11 @@ function App() {
                     </button>
                   )}
 
-                  {hasAccess(userRole, 'relatorios') && (
-                    <button onClick={() => { setActiveTab('relatorios'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'relatorios' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                      <BarChart3 className="w-5 h-5" />
-                      <span className="font-medium">Relatórios <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded ml-1">NOVO</span></span>
-                    </button>
-                  )}
+                  {/* Forced Visibility for Debugging */}
+                  <button onClick={() => { setActiveTab('relatorios'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'relatorios' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                    <BarChart3 className="w-5 h-5" />
+                    <span className="font-medium">Relatórios <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded ml-1">DEBUG</span></span>
+                  </button>
 
                   {userRole === 'admin' && (
                     <button onClick={() => { setActiveTab('permissions'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'permissions' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
