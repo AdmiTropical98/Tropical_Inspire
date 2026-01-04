@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, UserCog, Bus, MessageSquare, Menu, X,
-  Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield
+  Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
+  BarChart3
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -33,13 +34,14 @@ import UserProfileMenu from './components/common/UserProfileMenu';
 import Contabilidade from './components/contabilidade';
 import Clientes from './components/clientes';
 import PermissionsManager from './components/dashboard/PermissionsManager'; // Import PermissionsManager
+import Relatorios from './components/relatorios'; // Import Relatorios
 
 function App() {
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios'>('dashboard');
 
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
@@ -96,6 +98,7 @@ function App() {
       case 'fornecedores': return <Fornecedores />;
       case 'contabilidade': return <Contabilidade />;
       case 'clientes': return <Clientes />;
+      case 'relatorios': return <Relatorios />;
       case 'external': return <ExternalServices />;
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
@@ -398,6 +401,13 @@ function App() {
                     <button onClick={() => { setActiveTab('clientes'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'clientes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                       <Briefcase className="w-5 h-5" />
                       <span className="font-medium">Clientes</span>
+                    </button>
+                  )}
+
+                  {hasAccess(userRole, 'relatorios') && (
+                    <button onClick={() => { setActiveTab('relatorios'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'relatorios' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <BarChart3 className="w-5 h-5" />
+                      <span className="font-medium">Relatórios</span>
                     </button>
                   )}
 

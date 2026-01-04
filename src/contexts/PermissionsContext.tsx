@@ -15,6 +15,7 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'centros_custos' |
     'plataformas_externas' |
     'clientes' |
+    'relatorios' |
     'contabilidade';
 
 export interface RolePermissions {
@@ -44,6 +45,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'combustivel', 'combustivel_calibrate', 'combustivel_edit_history',
         'centros_custos',
         'plataformas_externas',
+        'relatorios',
         'contabilidade'
     ],
     motorista: [
@@ -67,7 +69,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'escalas', 'escalas_import', 'escalas_print', 'escalas_create', 'escalas_urgent', 'escalas_view_pending',
         'horas', 'hours_view_costs',
         'motoristas', 'fornecedores', 'equipa-oficina', 'plataformas_externas',
-        'supervisores', 'clientes'
+        'supervisores', 'clientes', 'relatorios'
     ]
 };
 

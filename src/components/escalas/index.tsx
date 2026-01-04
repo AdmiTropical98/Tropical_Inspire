@@ -363,13 +363,13 @@ export default function Escalas() {
                 />
 
                 {/* Left: Date & Stats */}
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto">
+                <div className="flex flex-row items-center justify-between md:justify-start gap-4 md:gap-8 w-full md:w-auto">
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2 text-blue-400 mb-0.5">
                             <Calendar className="w-4 h-4" />
                             <span className="text-xs font-bold uppercase tracking-wider">Hoje</span>
                         </div>
-                        <h2 className="text-lg md:text-xl font-bold text-white capitalize leading-none">
+                        <h2 className="text-lg font-bold text-white capitalize leading-none truncate max-w-[200px] md:max-w-none">
                             {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </h2>
                     </div>
@@ -744,7 +744,7 @@ export default function Escalas() {
                         )}
 
                         <div className={`
-                            fixed lg:relative inset-y-0 right-0 z-40
+                            fixed lg:relative inset-y-0 right-0 z-[60]
                             w-[85vw] max-w-[400px] lg:w-[400px]
                             flex flex-col bg-[#0f172a] border-l border-white/5 shadow-2xl
                             transform transition-transform duration-300 ease-in-out
@@ -774,7 +774,7 @@ export default function Escalas() {
 
                                 {/* Batch Assign Control - Hidden in Distribute Mode */}
                                 {!isDistributeMode && pendentes.length > 0 && (
-                                    <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
+                                    <div className={`flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10 ${pendentes.length === 0 ? 'hidden' : ''}`}>
                                         <select
                                             className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer"
                                             value={selectedMotoristaForAssign}
