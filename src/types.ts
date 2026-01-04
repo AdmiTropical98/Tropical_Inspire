@@ -133,7 +133,7 @@ export interface Motorista {
 
 export interface Servico {
     id: string;
-    motoristaId?: string; // Pode ser nulo se não atribuído
+    motoristaId?: string | null; // Pode ser nulo se não atribuído
     passageiro: string;
     hora: string;
     origem: string;

@@ -363,7 +363,7 @@ export default function Escalas() {
     const unassignService = async (id: string) => {
         const service = servicos.find(s => s.id === id);
         if (service) {
-            await updateServico({ ...service, motoristaId: undefined });
+            await updateServico({ ...service, motoristaId: null });
         }
     };
 
@@ -747,35 +747,35 @@ export default function Escalas() {
                                                                                 </div>
 
                                                                                 {/* Content Card */}
-                                                                                <div className="flex-1 bg-slate-800/40 hover:bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-xl p-3 flex flex-col gap-2 transition-all relative overflow-hidden">
+                                                                                <div className="flex-1 bg-slate-800/40 hover:bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-lg p-2 flex flex-col gap-1.5 transition-all relative overflow-hidden">
                                                                                     <button
                                                                                         onClick={(e) => {
                                                                                             e.stopPropagation();
                                                                                             unassignService(service.id);
                                                                                         }}
-                                                                                        className="absolute top-2 right-2 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
+                                                                                        className="absolute top-1 right-1 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
                                                                                         title={t('schedule.remove_assignment')}
                                                                                     >
-                                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                                        <Trash2 className="w-3 h-3" />
                                                                                     </button>
 
-                                                                                    <div className="flex items-start justify-between pr-8">
+                                                                                    <div className="flex items-start justify-between pr-6">
                                                                                         <div className="flex flex-col">
-                                                                                            <span className="text-sm font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
+                                                                                            <span className="text-xs font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
                                                                                                 {service.passageiro}
                                                                                             </span>
                                                                                             {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
-                                                                                                <span className="text-[10px] text-slate-500 italic line-clamp-1">{service.obs}</span>
+                                                                                                <span className="text-[9px] text-slate-500 italic line-clamp-1">{service.obs}</span>
                                                                                             )}
                                                                                         </div>
                                                                                     </div>
 
                                                                                     {/* Route Flow */}
-                                                                                    <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
-                                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
+                                                                                    <div className="flex items-center gap-1.5 text-[10px] bg-[#0f172a]/40 p-1.5 rounded border border-white/5">
+                                                                                        <div className="w-1 h-1 rounded-full bg-slate-500 shrink-0"></div>
                                                                                         <span className="text-slate-400 truncate flex-1" title={service.origem}>{service.origem}</span>
-                                                                                        <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
-                                                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></div>
+                                                                                        <ArrowRight className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                                                                                        <div className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></div>
                                                                                         <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
                                                                                     </div>
                                                                                 </div>
