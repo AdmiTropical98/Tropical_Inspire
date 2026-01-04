@@ -391,7 +391,7 @@ export default function Escalas() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-80px)] md:h-[calc(100vh-100px)] bg-[#0f172a] relative overflow-hidden">
+        <div className="flex flex-col h-full bg-[#0f172a] relative overflow-hidden">
 
             {/* HEADER TOOLBAR */}
             <div className="h-auto md:h-20 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0 gap-4 md:gap-0">
@@ -1142,7 +1142,7 @@ export default function Escalas() {
                     </>
                 ) : (
                     /* TABLE VIEW (New) */
-                    <div className="flex-1 flex flex-col bg-[#1e293b]/30 overflow-hidden">
+                    <div className="flex-1 flex flex-col bg-[#1e293b]/30 overflow-hidden h-full">
                         {/* Bulk Action Bar */}
                         <div className="h-16 bg-[#1e293b] border-b border-white/5 px-6 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-4">
