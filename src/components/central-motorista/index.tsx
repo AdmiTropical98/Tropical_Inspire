@@ -515,30 +515,32 @@ export default function CentralMotorista() {
                                                 <button
                                                     onClick={async (e) => {
                                                         e.stopPropagation();
+                                                        alert('A iniciar confirmação...'); // Debug: Proof of life
                                                         try {
                                                             if (!n.response?.serviceId) {
                                                                 alert('Erro: ID do serviço em falta.');
                                                                 return;
                                                             }
 
-                                                            if (window.confirm('Confirma que este abastecimento foi realizado?')) {
-                                                                await confirmRefuel(n.response.serviceId);
-                                                                const { error } = await updateNotification({ ...n, status: 'approved' });
-                                                                if (error) {
-                                                                    console.error('Update Notif Error:', error);
-                                                                    throw new Error('Falha ao atualizar notificação: ' + error.message);
-                                                                }
-                                                                // Success!
+                                                            // REMOVED window.confirm for now to test raw functionality
+                                                            await confirmRefuel(n.response.serviceId);
+                                                            const { error } = await updateNotification({ ...n, status: 'approved' });
+
+                                                            if (error) {
+                                                                alert('ERRO ao gravar: ' + JSON.stringify(error));
+                                                            } else {
+                                                                alert('SUCESSO! A recarregar página...');
+                                                                window.location.reload();
                                                             }
+
                                                         } catch (err: any) {
-                                                            console.error('Error confirming:', err);
-                                                            alert('Erro ao confirmar: ' + (err.message || 'Erro desconhecido'));
+                                                            alert('EXCEPÇÃO: ' + err.message);
                                                         }
                                                     }}
-                                                    className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    className="flex-1 md:flex-none px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
                                                 >
                                                     <Check className="w-4 h-4" />
-                                                    Aceitar
+                                                    CONFIRMAR AGORA
                                                 </button>
                                                 <button
                                                     className="flex-1 md:flex-none px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
