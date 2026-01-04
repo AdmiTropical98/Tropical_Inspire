@@ -26,7 +26,10 @@ interface NewServiceState {
 }
 
 export default function Escalas() {
-    const { motoristas, servicos, setServicos, addNotification, notifications, updateNotification, centrosCustos } = useWorkshop();
+    const {
+        motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
+        addServico, updateServico, deleteServico
+    } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
@@ -77,16 +80,12 @@ export default function Escalas() {
     });
 
     // Quick Assign Function
-    const handleQuickAssign = (serviceId: string) => {
+    const handleQuickAssign = async (serviceId: string) => {
         if (!activeDriverId) return;
-
-        setServicos(prev => prev.map(s =>
-            s.id === serviceId
-                ? { ...s, motoristaId: activeDriverId }
-                : s
-        ));
-
-        // Optional: Show small toast or feedback
+        const service = servicos.find(s => s.id === serviceId);
+        if (service) {
+            await updateServico({ ...service, motoristaId: activeDriverId });
+        }
     };
 
     const handleUrgentRequest = (e: React.FormEvent) => {
@@ -112,7 +111,7 @@ export default function Escalas() {
         alert(t('schedule.alerts.urgent_request_sent'));
     };
 
-    const handleSupervisorCancel = (notification: Notification) => {
+    const handleSupervisorCancel = async (notification: Notification) => {
         if (!confirm(t('schedule.alerts.cancel_confirm'))) return;
 
         if (notification.status === 'assigned' && notification.response?.driverId) {
@@ -129,7 +128,7 @@ export default function Escalas() {
             });
 
             if (notification.response.serviceId) {
-                setServicos(prev => prev.filter(s => s.id !== notification.response!.serviceId));
+                await deleteServico(notification.response.serviceId);
             }
         }
 
@@ -168,9 +167,12 @@ export default function Escalas() {
         return true;
     });
 
-    const handleDropService = (driverId: string) => {
+    const handleDropService = async (driverId: string) => {
         if (draggedServiceId) {
-            setServicos(prev => prev.map(s => s.id === draggedServiceId ? { ...s, motoristaId: driverId } : s));
+            const service = servicos.find(s => s.id === draggedServiceId);
+            if (service) {
+                await updateServico({ ...service, motoristaId: driverId });
+            }
             setDraggedServiceId(null);
             if (isDistributeMode) { /* optional feedback */ }
         }
@@ -186,7 +188,7 @@ export default function Escalas() {
 
         const reader = new FileReader();
 
-        reader.onload = (evt) => {
+        reader.onload = async (evt) => {
             try {
                 const bstr = evt.target?.result;
                 const wb = XLSX.read(bstr, { type: 'binary' });
@@ -252,7 +254,10 @@ export default function Escalas() {
                 if (mappedServicos.length === 0) {
                     alert(t('schedule.alerts.no_valid_data'));
                 } else {
-                    setServicos(prev => [...prev, ...mappedServicos]);
+                    // Bulk insert - loop for now as we don't have bulk insert in context yet
+                    for (const s of mappedServicos) {
+                        await addServico(s);
+                    }
                 }
             } catch (error) {
                 console.error("Erro ao importar:", error);
@@ -264,7 +269,7 @@ export default function Escalas() {
         reader.readAsBinaryString(file);
     };
 
-    const handleCreateService = (e: React.FormEvent) => {
+    const handleCreateService = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const servicesToAdd: Servico[] = [{
@@ -294,7 +299,9 @@ export default function Escalas() {
             });
         }
 
-        setServicos(prev => [...prev, ...servicesToAdd]);
+        for (const s of servicesToAdd) {
+            await addServico(s);
+        }
         setShowNewServiceModal(false);
 
         setNewService({
@@ -311,14 +318,12 @@ export default function Escalas() {
         });
     };
 
-    const handleAssign = () => {
+    const handleAssign = async () => {
         if (!selectedMotoristaForAssign || selectedPendentes.length === 0) return;
 
-        setServicos(prev => prev.map(s =>
-            selectedPendentes.includes(s.id)
-                ? { ...s, motoristaId: selectedMotoristaForAssign }
-                : s
-        ));
+        const servicesToUpdate = servicos.filter(s => selectedPendentes.includes(s.id));
+        await Promise.all(servicesToUpdate.map(s => updateServico({ ...s, motoristaId: selectedMotoristaForAssign })));
+
         setSelectedPendentes([]);
         setSelectedMotoristaForAssign('');
     };
@@ -337,14 +342,17 @@ export default function Escalas() {
         }
     };
 
-    const unassignService = (id: string) => {
-        setServicos(prev => prev.map(s => s.id === id ? { ...s, motoristaId: undefined } : s));
+    const unassignService = async (id: string) => {
+        const service = servicos.find(s => s.id === id);
+        if (service) {
+            await updateServico({ ...service, motoristaId: undefined });
+        }
     };
 
-    const handleDeleteService = (id: string, e: React.MouseEvent) => {
+    const handleDeleteService = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         if (confirm(t('schedule.alerts.delete_confirm'))) {
-            setServicos(prev => prev.filter(s => s.id !== id));
+            await deleteServico(id);
             setSelectedPendentes(prev => prev.filter(x => x !== id));
         }
     };

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico } from '../types';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js'; // For temp admin creation
 
@@ -59,6 +59,9 @@ interface WorkshopContextType {
     adminUsers: AdminUser[];
     createAdminUser: (email: string, password: string, nome: string) => Promise<{ success: boolean; error?: string }>;
     deleteAdminUser: (id: string) => Promise<void>;
+    addServico: (s: Servico) => Promise<void>;
+    updateServico: (s: Servico) => Promise<void>;
+    deleteServico: (id: string) => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -169,8 +172,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const { data: notifs } = await supabase.from('notifications').select('*');
             if (notifs) setNotifications(notifs.map((n: any) => ({ ...n, data: typeof n.data === 'string' ? JSON.parse(n.data) : n.data, response: typeof n.response === 'string' ? JSON.parse(n.response) : n.response })));
 
-            const { data: servs } = await supabase.from('servicos').select('*');
-            if (servs) setServicos(servs.map((s: any) => ({ ...s, motoristaId: s.motorista_id, centroCustoId: s.centro_custo_id })));
+            const { data: servs, error: servError } = await supabase.from('servicos').select('*');
+            if (servError) console.error('Error fetching services:', servError);
+            if (servs) {
+                console.log('Fetched services:', servs.length);
+                setServicos(servs.map((s: any) => ({ ...s, motoristaId: s.motorista_id, centroCustoId: s.centro_custo_id })));
+            }
 
             // 5. Fuel
             const { data: tankData } = await supabase.from('fuel_tank').select('*').eq('id', 'main').single();
@@ -192,8 +199,98 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 createdAt: a.created_at
             })));
 
+            if (admins) setAdminUsers(admins.map((a: any) => ({
+                id: a.id,
+                email: a.email,
+                nome: a.nome,
+                role: a.role,
+                createdAt: a.created_at
+            })));
+
         } catch (error) {
             console.error('Error refreshing data:', error);
+        }
+    };
+
+    const addServico = async (s: Servico) => {
+        try {
+            console.log('Adding service to DB:', s);
+            const { data, error } = await supabase.from('servicos').insert({
+                id: s.id,
+                motorista_id: s.motoristaId,
+                passageiro: s.passageiro,
+                hora: s.hora,
+                origem: s.origem,
+                destino: s.destino,
+                voo: s.voo,
+                obs: s.obs,
+                concluido: s.concluido,
+                centro_custo_id: s.centroCustoId
+            }).select().single();
+
+            if (error) throw error;
+            console.log('Service added successfully:', data);
+
+            // Update local state with the CONFIRMED data from DB to ensure sync
+            // We map back from DB columns (snake_case) to app types (camelCase) if needed, 
+            // but for simplicity here we assume 's' is correct if DB write succeeded.
+            // Better: use 'data' to reconstruct.
+            const confirmedService: Servico = {
+                ...s,
+                motoristaId: data.motorista_id,
+                centroCustoId: data.centro_custo_id
+            };
+            setServicos(prev => [...prev, confirmedService]);
+        } catch (error: any) {
+            console.error('Error adding service:', error);
+            alert(`Erro ao adicionar serviço: ${error.message || 'Erro desconhecido'}`);
+        }
+    };
+
+    const updateServico = async (s: Servico) => {
+        try {
+            console.log('Updating service:', s.id, s);
+            const { data, error } = await supabase.from('servicos').update({
+                motorista_id: s.motoristaId,
+                passageiro: s.passageiro,
+                hora: s.hora,
+                origem: s.origem,
+                destino: s.destino,
+                voo: s.voo,
+                obs: s.obs,
+                concluido: s.concluido,
+                centro_custo_id: s.centroCustoId
+            }).eq('id', s.id).select();
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                console.warn('Update succeeded but no rows affected. Service might not exist in DB.');
+                // Create it if it doesn't exist? (Upsert). For now, just warn.
+                // Verify if we should add it?
+                alert('Aviso: Serviço não encontrado na base de dados (pode ter sido apagado). A tentar recriar...');
+                await addServico(s);
+                return;
+            }
+
+            console.log('Service updated:', data);
+            setServicos(prev => prev.map(item => item.id === s.id ? s : item));
+        } catch (error: any) {
+            console.error('Error updating service:', error);
+            alert(`Erro ao atualizar serviço: ${error.message}`);
+        }
+    };
+
+    const deleteServico = async (id: string) => {
+        try {
+            console.log('Deleting service:', id);
+            const { error } = await supabase.from('servicos').delete().eq('id', id);
+            if (error) throw error;
+            console.log('Service deleted');
+            setServicos(prev => prev.filter(s => s.id !== id));
+        } catch (error: any) {
+            console.error('Error deleting service:', error);
+            alert(`Erro ao apagar serviço: ${error.message}`);
         }
     };
 
@@ -747,6 +844,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 setPumpTotalizer,
                 deleteFuelTransaction,
                 deleteTankRefill,
+                addServico,
+                updateServico,
+                deleteServico,
                 refreshData
             }}
         >
