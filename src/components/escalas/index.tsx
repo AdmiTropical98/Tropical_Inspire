@@ -586,7 +586,7 @@ export default function Escalas() {
                                 </div>
 
                                 {/* Drivers Swimlanes */}
-                                <div className="flex gap-4 md:gap-6 overflow-x-auto pb-6 h-[calc(100vh-220px)] px-4 snap-x">
+                                <div className="flex-1 min-h-0 flex gap-4 md:gap-6 overflow-x-auto pb-6 px-4 snap-x">
                                     {filteredMotoristas.map(driver => {
                                         // Calculate Driver Stats
                                         const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
