@@ -14,7 +14,7 @@ export default function CentralMotorista() {
     const { currentUser, userRole, userPhoto } = useAuth();
     const { addNotification } = useWorkshop();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'horas' | 'pedidos' | 'recibos' | 'reportar' | 'escala'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'horas' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos'>('overview');
 
     // Forms State
     const [hoursForm, setHoursForm] = useState({ date: new Date().toISOString().split('T')[0], start: '', end: '', break: '60' });
@@ -193,6 +193,7 @@ export default function CentralMotorista() {
                     { id: 'viatura', icon: Car, label: 'Minha Viatura', color: 'indigo' },
                     { id: 'horas', icon: Clock, label: t('central.tab.hours'), color: 'blue' },
                     { id: 'pedidos', icon: Share2, label: t('central.tab.requests'), color: 'purple' },
+                    { id: 'abastecimentos', icon: Fuel, label: 'Abastecimentos', color: 'orange' },
                     { id: 'recibos', icon: FileText, label: t('central.tab.payslips'), color: 'emerald' },
                     { id: 'reportar', icon: AlertTriangle, label: t('central.tab.report'), color: 'red' }
                 ].map(tab => (
@@ -228,41 +229,7 @@ export default function CentralMotorista() {
                     {activeTab === 'overview' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                            {/* PENDING FUEL CONFIRMATIONS */}
-                            {notifications.filter(n =>
-                                n.type === 'fuel_confirmation_request' &&
-                                n.status === 'pending' &&
-                                (n.response?.driverId === currentUser?.id || !n.response?.driverId) // Match driver or all if generic
-                            ).map(n => (
-                                <div key={n.id} className="bg-amber-500/10 border border-amber-500/50 rounded-2xl p-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-amber-500/20 rounded-full text-amber-500 animate-pulse">
-                                            <Fuel className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-white text-lg">Confirmação de Abastecimento</h3>
-                                            <p className="text-slate-400 text-sm">
-                                                Confirmar abastecimento de <span className="text-white font-bold">{n.data.liters}L</span> na viatura <span className="text-white font-bold">{n.data.licensePlate}</span>?
-                                            </p>
-                                            <p className="text-xs text-slate-500 mt-1">Registo feito por: {n.data.staffId || 'Staff'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {/* Future: Add Reject button */}
-                                        <button
-                                            onClick={async () => {
-                                                if (n.response?.serviceId && confirm('Confirma que este abastecimento foi realizado?')) {
-                                                    await confirmRefuel(n.response.serviceId);
-                                                }
-                                            }}
-                                            className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2"
-                                        >
-                                            <Check className="w-4 h-4" />
-                                            Confirmar
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+
 
                             {/* Hero Status Card */}
                             <div className="bg-gradient-to-br from-blue-900/40 to-slate-900/40 border border-blue-500/10 rounded-3xl p-6 relative overflow-hidden">
@@ -465,6 +432,74 @@ export default function CentralMotorista() {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    )}
+
+                    {activeTab === 'abastecimentos' && (
+                        <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <Fuel className="w-5 h-5 text-orange-400" />
+                                Confirmação de Abastecimentos
+                            </h3>
+
+                            {notifications.filter(n =>
+                                n.type === 'fuel_confirmation_request' &&
+                                n.status === 'pending' &&
+                                (n.response?.driverId === currentUser?.id || !n.response?.driverId)
+                            ).length === 0 ? (
+                                <div className="text-center py-10 text-slate-500">
+                                    <p>Não existem pedidos de confirmação pendentes.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {notifications.filter(n =>
+                                        n.type === 'fuel_confirmation_request' &&
+                                        n.status === 'pending' &&
+                                        (n.response?.driverId === currentUser?.id || !n.response?.driverId)
+                                    ).map(n => (
+                                        <div key={n.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-3 bg-orange-500/10 rounded-lg text-orange-500">
+                                                    <Fuel className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-bold text-white">Abastecimento Viatura</h4>
+                                                        <span className="bg-orange-500/20 text-orange-400 text-xs px-2 py-0.5 rounded-full font-medium">Pendente</span>
+                                                    </div>
+                                                    <p className="text-slate-400 text-sm mt-1">
+                                                        <span className="text-white font-medium">{n.data.liters} Litros</span> na viatura <span className="text-white font-medium">{n.data.licensePlate}</span>
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        Solicitado por: <span className="text-slate-400">{n.data.staffId || 'Staff'}</span> • {new Date(n.timestamp).toLocaleDateString()} {new Date(n.timestamp).toLocaleTimeString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 w-full md:w-auto">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (n.response?.serviceId && confirm('Confirma que este abastecimento foi realizado?')) {
+                                                            await confirmRefuel(n.response.serviceId);
+                                                            // We assume context updates local state/notifications
+                                                        }
+                                                    }}
+                                                    className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                    Aceitar
+                                                </button>
+                                                <button
+                                                    className="flex-1 md:flex-none px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    onClick={() => alert('Funcionalidade de rejeitar/reportar em desenvolvimento.')}
+                                                >
+                                                    <AlertTriangle className="w-4 h-4" />
+                                                    Reportar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
