@@ -513,19 +513,17 @@ export default function CentralMotorista() {
                                             </div>
                                             <div className="flex gap-2 w-full md:w-auto">
                                                 <button
-                                                    onClick={async () => {
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
                                                         try {
-                                                            console.log('Confirming Refuel:', n);
                                                             if (!n.response?.serviceId) {
-                                                                alert('Erro: ID do serviço em falta na notificação.');
+                                                                alert('Erro: ID do serviço em falta.');
                                                                 return;
                                                             }
 
-                                                            if (confirm('Confirma que este abastecimento foi realizado?')) {
+                                                            if (window.confirm('Confirma que este abastecimento foi realizado?')) {
                                                                 await confirmRefuel(n.response.serviceId);
-                                                                // Manually update notification status
                                                                 await updateNotification({ ...n, status: 'approved' });
-                                                                alert('Abastecimento confirmado com sucesso!');
                                                             }
                                                         } catch (err: any) {
                                                             console.error('Error confirming:', err);
@@ -539,7 +537,16 @@ export default function CentralMotorista() {
                                                 </button>
                                                 <button
                                                     className="flex-1 md:flex-none px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                                                    onClick={() => alert('Funcionalidade de rejeitar/reportar em desenvolvimento.')}
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (window.confirm('Rejeitar/Reportar este pedido? Isto irá remover o pedido da lista.')) {
+                                                            try {
+                                                                await updateNotification({ ...n, status: 'rejected' });
+                                                            } catch (err: any) {
+                                                                alert('Erro ao rejeitar: ' + err.message);
+                                                            }
+                                                        }
+                                                    }}
                                                 >
                                                     <AlertTriangle className="w-4 h-4" />
                                                     Reportar
