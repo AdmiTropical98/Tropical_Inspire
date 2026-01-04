@@ -76,7 +76,6 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
     const { currentUser, userRole } = useAuth();
     const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_PERMISSIONS);
-    const [loading, setLoading] = useState(true);
 
     // Initial Fetch from DB
     useEffect(() => {
@@ -98,8 +97,6 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
             } catch (err) {
                 console.error('Error fetching permissions from DB:', err);
                 // Fallback to defaults is already set via initial state
-            } finally {
-                setLoading(false);
             }
         };
 

@@ -5,7 +5,16 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-type ReportType = 'motoristas' | 'viaturas' | 'servicos' | 'manutencoes';
+type ReportType =
+    | 'motoristas'
+    | 'viaturas'
+    | 'servicos'
+    | 'manutencoes'
+    | 'fuel_transactions'
+    | 'tank_refills'
+    | 'faturas'
+    | 'eva_transports'
+    | 'centros_custos';
 
 export default function CustomReportBuilder() {
     const [reportType, setReportType] = useState<ReportType>('motoristas');
@@ -21,21 +30,28 @@ export default function CustomReportBuilder() {
         try {
             let query = supabase.from(reportType).select('*');
 
-            // Apply Date Filters if applicable
-            // Note: Not all tables act solely on a date range in the same way, but most have a timestamp
+            // Apply Date Filters
             if (startDate && endDate) {
-                if (reportType === 'servicos') {
-                    // Servicos uses 'hora' (string timestamp mostly) or could imply date. 
-                    // Let's assume 'hora' is YYYY-MM-DD THH:mm or at least comparable string for now
-                    // Or if specific date column exists. Looking at types.ts, 'hora' is string.
-                    // Ideally we should use created_at if available or improve schema.
-                    // For now, let's skip strict date filtering on 'servicos' unless we know format.
-                } else if (reportType === 'manutencoes') {
-                    query = query.gte('data', startDate).lte('data', endDate);
-                } else if (reportType === 'motoristas' || reportType === 'viaturas') {
-                    // Usually you don't filter entities by date unless "Created At".
-                    // Maybe the user wants "List of currently active drivers"?
-                    // For entities, we ignore date range or treat as "created between".
+                switch (reportType) {
+                    case 'manutencoes':
+                        query = query.gte('data', startDate).lte('data', endDate);
+                        break;
+                    case 'fuel_transactions':
+                    case 'tank_refills':
+                        // timestamp strings
+                        query = query.gte('timestamp', startDate).lte('timestamp', endDate);
+                        break;
+                    case 'faturas':
+                        query = query.gte('data', startDate).lte('data', endDate);
+                        break;
+                    case 'eva_transports':
+                        query = query.gte('reference_date', startDate).lte('reference_date', endDate);
+                        break;
+                    case 'servicos':
+                        // query = query.gte('created_at', startDate).lte('created_at', endDate);
+                        break;
+                    default:
+                        break;
                 }
             }
 
@@ -105,13 +121,21 @@ export default function CustomReportBuilder() {
                         <label className="text-xs font-medium text-slate-400 uppercase">Tipo de Dados</label>
                         <select
                             value={reportType}
-                            onChange={(e) => setReportType(e.target.value as ReportType)}
+                            onChange={(e) => setReportType(e.target.value as any)}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="motoristas">Motoristas</option>
                             <option value="viaturas">Viaturas</option>
                             <option value="servicos">Serviços / Viagens</option>
                             <option value="manutencoes">Manutenções</option>
+                            <option disabled>--- Combustível ---</option>
+                            <option value="fuel_transactions">Abastecimentos</option>
+                            <option value="tank_refills">Reabastecimentos (Tanque)</option>
+                            <option disabled>--- Financeiro ---</option>
+                            <option value="faturas">Faturas</option>
+                            <option value="centros_custos">Centros de Custo</option>
+                            <option disabled>--- Transportes EVA ---</option>
+                            <option value="eva_transports">Serviços EVA</option>
                         </select>
                     </div>
 
