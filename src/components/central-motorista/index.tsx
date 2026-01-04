@@ -12,7 +12,14 @@ import MyScheduleView from './MyScheduleView';
 export default function CentralMotorista() {
     const { t } = useTranslation();
     const { currentUser, userRole, userPhoto } = useAuth();
-    const { addNotification } = useWorkshop();
+    const {
+        servicos,
+        notifications,
+        addNotification,
+        updateNotification,
+        confirmRefuel,
+        updateMotorista
+    } = useWorkshop();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'horas' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos'>('overview');
 
@@ -27,7 +34,7 @@ export default function CentralMotorista() {
     // Shift Edit State
     const [editingShift, setEditingShift] = useState(false);
     const [tempShift, setTempShift] = useState({ start: '08:00', end: '17:00' });
-    const { updateMotorista } = useWorkshop();
+
 
     useState(() => {
         // Init tempShift from current user
@@ -38,6 +45,24 @@ export default function CentralMotorista() {
             });
         }
     });
+
+    // Auto-open Fuel Tab if pending requests
+    const [hasCheckedFuel, setHasCheckedFuel] = useState(false);
+    // const { notifications } = useWorkshop(); // Already destructured
+
+    if (!hasCheckedFuel && notifications.length > 0) {
+        const hasPendingFuel = notifications.some(n =>
+            n.type === 'fuel_confirmation_request' &&
+            n.status === 'pending' &&
+            (n.response?.driverId === currentUser?.id || !n.response?.driverId)
+        );
+        if (hasPendingFuel) {
+            setActiveTab('abastecimentos');
+            setHasCheckedFuel(true);
+        }
+    }
+
+
 
     // Fetch Weather (Lisbon default for now)
     useState(() => {
@@ -85,7 +110,7 @@ export default function CentralMotorista() {
     };
 
     // Real Data Integration
-    const { servicos, notifications, confirmRefuel, updateNotification } = useWorkshop();
+    // const { servicos, notifications, confirmRefuel, updateNotification } = useWorkshop(); // Already destructured above
 
     // 1. My Requests (Filtered from System Alerts for now, ideally strictly typed)
     const myRequests = notifications
@@ -480,7 +505,8 @@ export default function CentralMotorista() {
                                                     onClick={async () => {
                                                         if (n.response?.serviceId && confirm('Confirma que este abastecimento foi realizado?')) {
                                                             await confirmRefuel(n.response.serviceId);
-                                                            // We assume context updates local state/notifications
+                                                            // Manually update notification status to remove it from list
+                                                            await updateNotification({ ...n, status: 'approved' });
                                                         }
                                                     }}
                                                     className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
