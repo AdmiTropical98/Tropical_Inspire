@@ -591,14 +591,28 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         if (error) {
             console.error("Erro ao atualizar motorista:", error);
+            alert(`Erro ao atualizar: ${error.message}`);
             throw error;
+        }
+
+        const { data: verify } = await supabase.from('motoristas').select('id').eq('id', m.id).single();
+        if (!verify) {
+            alert('Aviso: A atualização parece não ter sido persistida. Verifique as permissões.');
         }
 
         setMotoristas(prev => prev.map(current => current.id === m.id ? m : current));
     };
     const deleteMotorista = async (id: string) => {
-        const { error } = await supabase.from('motoristas').delete().eq('id', id);
-        if (!error) setMotoristas(prev => prev.filter(m => m.id !== id));
+        const { error, count } = await supabase.from('motoristas').delete({ count: 'exact' }).eq('id', id);
+        if (error) {
+            console.error('Error deleting motorista:', error);
+            alert(`Erro ao apagar: ${error.message}`);
+        } else if (count === 0) {
+            console.warn('Delete count 0 - likely RLS issue');
+            alert('Aviso: Não foi possível apagar o registo (permissões insuficientes ou registo já apagado).');
+        } else {
+            setMotoristas(prev => prev.filter(m => m.id !== id));
+        }
     };
 
     const addSupervisor = async (s: Supervisor) => {
