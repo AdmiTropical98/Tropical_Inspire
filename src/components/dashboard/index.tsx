@@ -160,7 +160,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                 ) : (
                     <QuickStat
                         label="Notificações"
-                        value={notifications.filter(n => n.status === 'pending').length}
+                        value={notifications.filter(n => n.status === 'pending' && n.type !== 'fuel_confirmation_request').length}
                         icon={Bell}
                         color="amber"
                     />
