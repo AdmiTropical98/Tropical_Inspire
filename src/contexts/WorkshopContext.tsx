@@ -54,7 +54,7 @@ interface WorkshopContextType {
     updateOficinaUser: (u: OficinaUser) => void;
     deleteOficinaUser: (id: string) => void;
     addNotification: (n: Notification) => void;
-    updateNotification: (n: Notification) => void;
+    updateNotification: (n: Notification) => Promise<{ error: any }>;
     refreshData: () => Promise<void>;
     adminUsers: AdminUser[];
     createAdminUser: (email: string, password: string, nome: string) => Promise<{ success: boolean; error?: string }>;
@@ -692,7 +692,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             response: n.response,
             timestamp: n.timestamp
         }).eq('id', n.id);
-        if (!error) setNotifications(prev => prev.map(current => current.id === n.id ? n : current));
+        if (!error) {
+            setNotifications(prev => prev.map(current => current.id === n.id ? n : current));
+        }
+        return { error };
     };
 
     const addCentroCusto = async (cc: CentroCusto) => {

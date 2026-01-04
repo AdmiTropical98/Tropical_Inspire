@@ -523,7 +523,12 @@ export default function CentralMotorista() {
 
                                                             if (window.confirm('Confirma que este abastecimento foi realizado?')) {
                                                                 await confirmRefuel(n.response.serviceId);
-                                                                await updateNotification({ ...n, status: 'approved' });
+                                                                const { error } = await updateNotification({ ...n, status: 'approved' });
+                                                                if (error) {
+                                                                    console.error('Update Notif Error:', error);
+                                                                    throw new Error('Falha ao atualizar notificação: ' + error.message);
+                                                                }
+                                                                // Success!
                                                             }
                                                         } catch (err: any) {
                                                             console.error('Error confirming:', err);
