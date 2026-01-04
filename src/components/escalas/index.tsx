@@ -703,11 +703,12 @@ export default function Escalas() {
                                                         )}
 
                                                         {driverServices.length === 0 ? (
-                                                            <div className="flex flex-col items-center justify-center h-40 text-slate-600 text-xs text-center border-2 border-dashed border-white/5 rounded-xl">
-                                                                <div className="p-3 bg-white/5 rounded-full mb-2">
-                                                                    <Clock className="w-5 h-5 opacity-50" />
+                                                            <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-500/50 text-xs text-center">
+                                                                <div className="p-4 bg-slate-800/30 rounded-full mb-3 shadow-inner">
+                                                                    <Clock className="w-8 h-8 opacity-40" />
                                                                 </div>
-                                                                <span>Sem serviços atribuídos</span>
+                                                                <span className="font-medium">Motorista Disponível</span>
+                                                                <span className="text-[10px] opacity-60 mt-1">Arraste serviços para aqui</span>
                                                             </div>
                                                         ) : (
                                                             /* GROUPING LOGIC */
