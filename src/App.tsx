@@ -119,8 +119,8 @@ function App() {
         <aside className="w-64 bg-[#0f172a] border-r border-slate-800 flex flex-col hidden md:flex z-50">
           <div className="p-6 border-b border-slate-800/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg">
-                <img src="/icon-sidebar.png" alt="Logo" className="w-6 h-6 object-contain" />
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-1 rounded-lg">
+                <img src="/icon-sidebar.png" alt="Logo" className="w-8 h-8 object-contain" />
               </div>
               <span className="font-bold text-xl tracking-tight text-white">Gestão<span className="text-blue-500">Frota</span></span>
             </div>
