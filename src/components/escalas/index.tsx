@@ -46,6 +46,9 @@ export default function Escalas() {
     // View Mode State
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
+    // Grouping State
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'busy'>('all');
 
@@ -707,55 +710,171 @@ export default function Escalas() {
                                                                 <span>Sem serviços atribuídos</span>
                                                             </div>
                                                         ) : (
-                                                            driverServices.map((service) => (
-                                                                <div key={service.id} className="relative z-10 flex gap-4 group/item">
-                                                                    {/* Time Column */}
-                                                                    <div className="flex flex-col items-center gap-1.5 min-w-[4.5rem] pt-0.5">
-                                                                        <span className="text-sm font-bold text-white font-mono bg-slate-800/80 px-2 py-1 rounded border border-white/5 shadow-sm">
-                                                                            {service.hora}
-                                                                        </span>
-                                                                        {service.voo && (
-                                                                            <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30">
-                                                                                {service.voo}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
+                                                            /* GROUPING LOGIC */
+                                                            (() => {
+                                                                // Group services
+                                                                const groupedServices: { [key: string]: typeof driverServices } = {};
+                                                                driverServices.forEach(s => {
+                                                                    const key = `${s.hora}|${s.origem}`;
+                                                                    if (!groupedServices[key]) groupedServices[key] = [];
+                                                                    groupedServices[key].push(s);
+                                                                });
 
-                                                                    {/* Content Card */}
-                                                                    <div className="flex-1 bg-slate-800/40 hover:bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-xl p-3 flex flex-col gap-2 transition-all relative overflow-hidden">
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                unassignService(service.id);
-                                                                            }}
-                                                                            className="absolute top-2 right-2 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
-                                                                            title={t('schedule.remove_assignment')}
-                                                                        >
-                                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                                        </button>
+                                                                // Convert to array and sort
+                                                                const groups = Object.values(groupedServices).sort((a, b) => a[0].hora.localeCompare(b[0].hora));
 
-                                                                        <div className="flex items-start justify-between pr-8">
-                                                                            <div className="flex flex-col">
-                                                                                <span className="text-sm font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
-                                                                                    {service.passageiro}
-                                                                                </span>
-                                                                                {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
-                                                                                    <span className="text-[10px] text-slate-500 italic line-clamp-1">{service.obs}</span>
-                                                                                )}
+                                                                return groups.map((group) => {
+                                                                    const isGroup = group.length > 1;
+                                                                    const firstService = group[0];
+                                                                    const groupKey = `${driver.id}-${firstService.hora}-${firstService.origem}`;
+                                                                    const isExpanded = expandedGroups[groupKey];
+
+                                                                    if (!isGroup) {
+                                                                        // RENDER SINGLE SERVICE (Legacy)
+                                                                        const service = firstService;
+                                                                        return (
+                                                                            <div key={service.id} className="relative z-10 flex gap-4 group/item">
+                                                                                {/* Time Column */}
+                                                                                <div className="flex flex-col items-center gap-1.5 min-w-[4.5rem] pt-0.5">
+                                                                                    <span className="text-sm font-bold text-white font-mono bg-slate-800/80 px-2 py-1 rounded border border-white/5 shadow-sm">
+                                                                                        {service.hora}
+                                                                                    </span>
+                                                                                    {service.voo && (
+                                                                                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30">
+                                                                                            {service.voo}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+
+                                                                                {/* Content Card */}
+                                                                                <div className="flex-1 bg-slate-800/40 hover:bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-xl p-3 flex flex-col gap-2 transition-all relative overflow-hidden">
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            unassignService(service.id);
+                                                                                        }}
+                                                                                        className="absolute top-2 right-2 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
+                                                                                        title={t('schedule.remove_assignment')}
+                                                                                    >
+                                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                                    </button>
+
+                                                                                    <div className="flex items-start justify-between pr-8">
+                                                                                        <div className="flex flex-col">
+                                                                                            <span className="text-sm font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
+                                                                                                {service.passageiro}
+                                                                                            </span>
+                                                                                            {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
+                                                                                                <span className="text-[10px] text-slate-500 italic line-clamp-1">{service.obs}</span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    {/* Route Flow */}
+                                                                                    <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
+                                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
+                                                                                        <span className="text-slate-400 truncate flex-1" title={service.origem}>{service.origem}</span>
+                                                                                        <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
+                                                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></div>
+                                                                                        <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
+                                                                                    </div>
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
+                                                                        );
+                                                                    } else {
+                                                                        // RENDER GROUP CARD
+                                                                        return (
+                                                                            <div key={groupKey} className="relative z-10 flex gap-4">
+                                                                                {/* Time Column */}
+                                                                                <div className="flex flex-col items-center gap-1.5 min-w-[4.5rem] pt-0.5">
+                                                                                    <span className="text-sm font-bold text-white font-mono bg-blue-600 px-2 py-1 rounded border border-blue-400/30 shadow-lg shadow-blue-900/20">
+                                                                                        {firstService.hora}
+                                                                                    </span>
+                                                                                    <div className="w-px h-full bg-blue-500/20 mx-auto my-1"></div>
+                                                                                </div>
 
-                                                                        {/* Route Flow */}
-                                                                        <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
-                                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
-                                                                            <span className="text-slate-400 truncate flex-1" title={service.origem}>{service.origem}</span>
-                                                                            <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
-                                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></div>
-                                                                            <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))
+                                                                                {/* Group Container */}
+                                                                                <div
+                                                                                    className={`flex-1 rounded-xl border transition-all duration-300 overflow-hidden
+                                                                                    ${isExpanded
+                                                                                            ? 'bg-slate-800/80 border-blue-500/50'
+                                                                                            : 'bg-gradient-to-br from-blue-900/20 to-slate-900/50 border-blue-500/20 hover:border-blue-500/40 cursor-pointer'
+                                                                                        }
+                                                                                `}
+                                                                                    onClick={() => {
+                                                                                        setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+                                                                                    }}
+                                                                                >
+                                                                                    {/* Group Header */}
+                                                                                    <div className="p-3">
+                                                                                        <div className="flex items-center justify-between mb-2">
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold text-white">
+                                                                                                    {group.length}
+                                                                                                </div>
+                                                                                                <span className="font-bold text-blue-100 text-sm">Passageiros</span>
+                                                                                            </div>
+                                                                                            <div className={`p-1 rounded-lg transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-white/10' : ''}`}>
+                                                                                                <LayoutList className="w-4 h-4 text-blue-400" />
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
+                                                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
+                                                                                            <span className="text-slate-300 truncate flex-1 font-medium">{firstService.origem}</span>
+                                                                                            {isExpanded && (
+                                                                                                <>
+                                                                                                    <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
+                                                                                                    <span className="text-slate-500 text-[10px] italic shrink-0">Vários Destinos</span>
+                                                                                                </>
+                                                                                            )}
+                                                                                        </div>
+
+                                                                                        {!isExpanded && (
+                                                                                            <div className="mt-2 text-xs text-slate-500 pl-1">
+                                                                                                <span className="truncate block opacity-70">
+                                                                                                    {group.map(s => s.passageiro).join(', ')}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    {/* Expanded Content */}
+                                                                                    {isExpanded && (
+                                                                                        <div className="border-t border-white/5 bg-[#0b1120]/30 divide-y divide-white/5">
+                                                                                            {group.map(service => (
+                                                                                                <div key={service.id} className="p-3 hover:bg-white/5 transition-colors relative group/subitem">
+                                                                                                    <button
+                                                                                                        onClick={(e) => {
+                                                                                                            e.stopPropagation();
+                                                                                                            unassignService(service.id);
+                                                                                                        }}
+                                                                                                        className="absolute top-3 right-3 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/subitem:opacity-100"
+                                                                                                        title={t('schedule.remove_assignment')}
+                                                                                                    >
+                                                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                                                    </button>
+
+                                                                                                    <div className="pr-8">
+                                                                                                        <div className="font-medium text-slate-200 text-sm mb-1">{service.passageiro}</div>
+                                                                                                        <div className="flex items-center gap-2 text-xs">
+                                                                                                            <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                                                            <span className="text-slate-400 truncate">{service.destino}</span>
+                                                                                                        </div>
+                                                                                                        {service.obs && (
+                                                                                                            <div className="text-[10px] text-slate-500 italic mt-1 pl-5">"{service.obs}"</div>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                });
+                                                            })()
                                                         )}
                                                     </div>
                                                 </div>
