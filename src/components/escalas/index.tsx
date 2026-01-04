@@ -3,7 +3,7 @@ import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, MousePointer2,
-    Search, LayoutList, X, GripVertical, AlertTriangle
+    Search, LayoutList, X, GripVertical, AlertTriangle, Edit
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -28,7 +28,7 @@ interface NewServiceState {
 export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
-        addServico, updateServico, deleteServico
+        addServico, updateServico, deleteServico, deleteMotorista, updateMotorista
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -53,6 +53,9 @@ export default function Escalas() {
     const [activeDriverId, setActiveDriverId] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Driver Menu State
+    const [activeDriverMenuId, setActiveDriverMenuId] = useState<string | null>(null);
 
     // New Manual Service State
     const [showNewServiceModal, setShowNewServiceModal] = useState(false);
@@ -328,6 +331,14 @@ export default function Escalas() {
         setSelectedMotoristaForAssign('');
     };
 
+    const handleBatchDelete = async () => {
+        if (selectedPendentes.length === 0) return;
+        if (!confirm(t('schedule.alerts.delete_confirm'))) return;
+
+        await Promise.all(selectedPendentes.map(id => deleteServico(id)));
+        setSelectedPendentes([]);
+    };
+
     const togglePendenteSelection = (id: string) => {
         setSelectedPendentes(prev =>
             prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -354,6 +365,21 @@ export default function Escalas() {
         if (confirm(t('schedule.alerts.delete_confirm'))) {
             await deleteServico(id);
             setSelectedPendentes(prev => prev.filter(x => x !== id));
+        }
+    };
+
+    const handleDeleteDriver = async (driverId: string, driverName: string) => {
+        if (confirm(`Tem a certeza que deseja eliminar o motorista ${driverName}?`)) {
+            await deleteMotorista(driverId);
+            setActiveDriverMenuId(null);
+        }
+    };
+
+    const handleEditDriver = async (driver: any) => {
+        const newName = prompt("Novo nome para o motorista:", driver.nome);
+        if (newName && newName !== driver.nome) {
+            await updateMotorista({ ...driver, nome: newName });
+            setActiveDriverMenuId(null);
         }
     };
 
@@ -557,14 +583,15 @@ export default function Escalas() {
                                             e.currentTarget.style.backgroundColor = '';
                                             handleDropService(driver.id);
                                         }}
-                                        className={`bg-[#1e293b] rounded-2xl overflow-hidden shadow-lg flex flex-col group transition-all duration-200
+                                        className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200
                                             ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
                                             border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
+                                            ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
                                         `}
                                     >
 
                                         {/* Card Header */}
-                                        <div className="p-4 bg-slate-900/50 border-b border-white/5 flex items-center justify-between">
+                                        <div className="p-4 bg-slate-900/50 border-b border-white/5 flex items-center justify-between rounded-t-2xl">
                                             <div className="flex items-center gap-3">
                                                 <div className="relative">
                                                     {driver.foto ? (
@@ -589,9 +616,54 @@ export default function Escalas() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button className="p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-                                                <MoreVertical className="w-5 h-5" />
-                                            </button>
+                                            <div className="relative">
+                                                <button
+                                                    onMouseDown={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveDriverMenuId(activeDriverMenuId === driver.id ? null : driver.id);
+                                                    }}
+                                                    className={`p-2 rounded-lg transition-colors ${activeDriverMenuId === driver.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                                                >
+                                                    <MoreVertical className="w-5 h-5" />
+                                                </button>
+
+                                                {activeDriverMenuId === driver.id && (
+                                                    <>
+                                                        <div
+                                                            className="fixed inset-0 z-40"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveDriverMenuId(null);
+                                                            }}
+                                                        />
+                                                        <div className="absolute right-0 top-full mt-2 w-48 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                                                            <div className="p-1">
+                                                                <button
+                                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleEditDriver(driver);
+                                                                    }}
+                                                                >
+                                                                    <Edit className="w-4 h-4" />
+                                                                    <span>Editar</span>
+                                                                </button>
+                                                                <div className="h-px bg-white/10 my-1" />
+                                                                <button
+                                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-left"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteDriver(driver.id, driver.nome);
+                                                                    }}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                    <span>Eliminar</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Timeline */}
@@ -664,7 +736,7 @@ export default function Escalas() {
                                         </div>
 
                                         {/* DRIVER FOOTER ACTIONS */}
-                                        <div className="px-4 py-3 bg-slate-900/50 border-t border-white/5 flex justify-end gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                                        <div className="px-4 py-3 bg-slate-900/50 border-t border-white/5 flex justify-end gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider rounded-b-2xl">
                                             <button className="hover:text-blue-400 transition-colors">Ver Perfil</button>
                                             <span>•</span>
                                             <button className="hover:text-blue-400 transition-colors">Enviar Msg</button>
@@ -797,9 +869,19 @@ export default function Escalas() {
                                             onClick={handleAssign}
                                             disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
                                             className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg"
+                                            title="Atribuir"
                                         >
                                             <ArrowRight className="w-4 h-4" />
                                         </button>
+                                        {selectedPendentes.length > 0 && (
+                                            <button
+                                                onClick={handleBatchDelete}
+                                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 p-2 rounded-lg transition-all"
+                                                title="Apagar selecionados"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 )}
 
@@ -884,7 +966,8 @@ export default function Escalas() {
                                                         <span className="font-mono text-sm font-bold text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/5">{service.hora}</span>
                                                         <button
                                                             onClick={(e) => handleDeleteService(service.id, e)}
-                                                            className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-800 rounded"
+                                                            className="text-slate-600 hover:text-red-400 transition-colors opacity-70 hover:opacity-100 p-1 hover:bg-slate-800 rounded"
+                                                            title={t('schedule.actions.cancel')}
                                                         >
                                                             <Trash2 className="w-3 h-3" />
                                                         </button>
