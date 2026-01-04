@@ -85,7 +85,7 @@ export default function CentralMotorista() {
     };
 
     // Real Data Integration
-    const { servicos, notifications } = useWorkshop();
+    const { servicos, notifications, confirmRefuel, updateNotification } = useWorkshop();
 
     // 1. My Requests (Filtered from System Alerts for now, ideally strictly typed)
     const myRequests = notifications
@@ -227,6 +227,42 @@ export default function CentralMotorista() {
                     {/* NEW TAB: OVERVIEW */}
                     {activeTab === 'overview' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+                            {/* PENDING FUEL CONFIRMATIONS */}
+                            {notifications.filter(n =>
+                                n.type === 'fuel_confirmation_request' &&
+                                n.status === 'pending' &&
+                                (n.response?.driverId === currentUser?.id || !n.response?.driverId) // Match driver or all if generic
+                            ).map(n => (
+                                <div key={n.id} className="bg-amber-500/10 border border-amber-500/50 rounded-2xl p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-amber-500/20 rounded-full text-amber-500 animate-pulse">
+                                            <Fuel className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-white text-lg">Confirmação de Abastecimento</h3>
+                                            <p className="text-slate-400 text-sm">
+                                                Confirmar abastecimento de <span className="text-white font-bold">{n.data.liters}L</span> na viatura <span className="text-white font-bold">{n.data.licensePlate}</span>?
+                                            </p>
+                                            <p className="text-xs text-slate-500 mt-1">Registo feito por: {n.data.staffId || 'Staff'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {/* Future: Add Reject button */}
+                                        <button
+                                            onClick={async () => {
+                                                if (n.response?.serviceId && confirm('Confirma que este abastecimento foi realizado?')) {
+                                                    await confirmRefuel(n.response.serviceId);
+                                                }
+                                            }}
+                                            className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <Check className="w-4 h-4" />
+                                            Confirmar
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
 
                             {/* Hero Status Card */}
                             <div className="bg-gradient-to-br from-blue-900/40 to-slate-900/40 border border-blue-500/10 rounded-3xl p-6 relative overflow-hidden">
