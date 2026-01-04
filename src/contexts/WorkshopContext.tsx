@@ -22,7 +22,7 @@ interface WorkshopContextType {
     tankRefills: TankRefillLog[];
     updateFuelTank: (tank: FuelTank) => void;
     registerRefuel: (transaction: FuelTransaction) => void;
-    confirmRefuel: (transactionId: string) => void;
+    confirmRefuel: (transactionId: string) => Promise<{ error?: any } | void>;
     registerTankRefill: (log: TankRefillLog) => void;
     setPumpTotalizer: (val: number) => void;
     deleteFuelTransaction: (id: string) => void;
@@ -386,7 +386,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 setFuelTransactions(prev => prev.map(t => t.id === transactionId ? { ...t, status: 'confirmed', pumpCounterAfter: newTotalizer } : t));
             }
+            return { error: transError };
         }
+        return { error: 'Transaction not found or not pending' };
     };
 
     const registerTankRefill = async (log: TankRefillLog) => {

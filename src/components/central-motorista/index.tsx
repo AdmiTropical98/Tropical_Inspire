@@ -515,32 +515,36 @@ export default function CentralMotorista() {
                                                 <button
                                                     onClick={async (e) => {
                                                         e.stopPropagation();
-                                                        alert('A iniciar confirmação...'); // Debug: Proof of life
                                                         try {
                                                             if (!n.response?.serviceId) {
                                                                 alert('Erro: ID do serviço em falta.');
                                                                 return;
                                                             }
 
-                                                            // REMOVED window.confirm for now to test raw functionality
-                                                            await confirmRefuel(n.response.serviceId);
-                                                            const { error } = await updateNotification({ ...n, status: 'approved' });
+                                                            if (window.confirm('Confirma que este abastecimento foi realizado?')) {
+                                                                // Confirm transaction
+                                                                const res = await confirmRefuel(n.response.serviceId);
+                                                                if (res && res.error) {
+                                                                    alert('Erro ao confirmar transação: ' + JSON.stringify(res.error));
+                                                                    return;
+                                                                }
 
-                                                            if (error) {
-                                                                alert('ERRO ao gravar: ' + JSON.stringify(error));
-                                                            } else {
-                                                                alert('SUCESSO! A recarregar página...');
-                                                                window.location.reload();
+                                                                // Update Notification
+                                                                const { error } = await updateNotification({ ...n, status: 'approved' });
+                                                                if (error) {
+                                                                    console.error('Update Notif Error:', error);
+                                                                    alert('Falha ao atualizar notificação: ' + error.message);
+                                                                }
                                                             }
-
                                                         } catch (err: any) {
-                                                            alert('EXCEPÇÃO: ' + err.message);
+                                                            console.error('Error confirming:', err);
+                                                            alert('Erro crítico: ' + (err.message || 'Erro desconhecido'));
                                                         }
                                                     }}
-                                                    className="flex-1 md:flex-none px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                                                 >
                                                     <Check className="w-4 h-4" />
-                                                    CONFIRMAR AGORA
+                                                    Aceitar
                                                 </button>
                                                 <button
                                                     className="flex-1 md:flex-none px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -548,7 +552,8 @@ export default function CentralMotorista() {
                                                         e.stopPropagation();
                                                         if (window.confirm('Rejeitar/Reportar este pedido? Isto irá remover o pedido da lista.')) {
                                                             try {
-                                                                await updateNotification({ ...n, status: 'rejected' });
+                                                                const { error } = await updateNotification({ ...n, status: 'rejected' });
+                                                                if (error) throw error;
                                                             } catch (err: any) {
                                                                 alert('Erro ao rejeitar: ' + err.message);
                                                             }
