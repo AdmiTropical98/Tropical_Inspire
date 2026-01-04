@@ -1,0 +1,197 @@
+import { useState } from 'react';
+import { supabase } from '../../lib/supabase';
+import { Download, FileSpreadsheet, Search, Calendar } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+
+type ReportType = 'motoristas' | 'viaturas' | 'servicos' | 'manutencoes';
+
+export default function CustomReportBuilder() {
+    const [reportType, setReportType] = useState<ReportType>('motoristas');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [generatedData, setGeneratedData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    const handleGenerate = async () => {
+        setLoading(true);
+        setGeneratedData([]);
+
+        try {
+            let query = supabase.from(reportType).select('*');
+
+            // Apply Date Filters if applicable
+            // Note: Not all tables act solely on a date range in the same way, but most have a timestamp
+            if (startDate && endDate) {
+                if (reportType === 'servicos') {
+                    // Servicos uses 'hora' (string timestamp mostly) or could imply date. 
+                    // Let's assume 'hora' is YYYY-MM-DD THH:mm or at least comparable string for now
+                    // Or if specific date column exists. Looking at types.ts, 'hora' is string.
+                    // Ideally we should use created_at if available or improve schema.
+                    // For now, let's skip strict date filtering on 'servicos' unless we know format.
+                } else if (reportType === 'manutencoes') {
+                    query = query.gte('data', startDate).lte('data', endDate);
+                } else if (reportType === 'motoristas' || reportType === 'viaturas') {
+                    // Usually you don't filter entities by date unless "Created At".
+                    // Maybe the user wants "List of currently active drivers"?
+                    // For entities, we ignore date range or treat as "created between".
+                }
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+            setGeneratedData(data || []);
+
+        } catch (err) {
+            console.error('Error generating custom report:', err);
+            alert('Erro ao gerar relatório. Verifique a consola.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const exportPDF = () => {
+        if (!generatedData.length) return;
+        const doc = new jsPDF();
+        const title = `Relatório de ${reportType.toUpperCase()}`;
+
+        doc.setFontSize(16);
+        doc.text(title, 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 28);
+
+        // Dynamic Headers based on first item keys (simplified)
+        const headers = Object.keys(generatedData[0]).filter(k =>
+            // Filter out complex objects/arrays or huge ID strings if wanted
+            typeof generatedData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl'
+        );
+
+        const rows = generatedData.map(item => headers.map(h => {
+            const val = item[h];
+            return val === undefined || val === null ? '' : String(val).substring(0, 50); // Truncate long text
+        }));
+
+        autoTable(doc, {
+            head: [headers],
+            body: rows,
+            startY: 35,
+            styles: { fontSize: 8, cellWidth: 'wrap' },
+            theme: 'grid'
+        });
+
+        doc.save(`report_${reportType}_${new Date().getTime()}.pdf`);
+    };
+
+    const exportExcel = () => {
+        if (!generatedData.length) return;
+        const ws = XLSX.utils.json_to_sheet(generatedData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
+        XLSX.writeFile(wb, `report_${reportType}_${new Date().getTime()}.xlsx`);
+    };
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
+                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <Search className="w-5 h-5 text-blue-400" /> Construtor de Relatórios
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                    {/* Report Type */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 uppercase">Tipo de Dados</label>
+                        <select
+                            value={reportType}
+                            onChange={(e) => setReportType(e.target.value as ReportType)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="motoristas">Motoristas</option>
+                            <option value="viaturas">Viaturas</option>
+                            <option value="servicos">Serviços / Viagens</option>
+                            <option value="manutencoes">Manutenções</option>
+                        </select>
+                    </div>
+
+                    {/* Dates (Optional depending on type) */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 uppercase">De (Opcional)</label>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400 uppercase">Até (Opcional)</label>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                        </div>
+                    </div>
+
+                    {/* Generate Button */}
+                    <button
+                        onClick={handleGenerate}
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                    >
+                        {loading ? 'A processar...' : 'Gerar Tabela'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Results Area */}
+            {generatedData.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-slate-400 text-sm">{generatedData.length} registos encontrados</span>
+                        <div className="flex gap-2">
+                            <button onClick={exportPDF} className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-lg text-sm transition-colors">
+                                <Download className="w-4 h-4" /> PDF
+                            </button>
+                            <button onClick={exportExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 rounded-lg text-sm transition-colors">
+                                <FileSpreadsheet className="w-4 h-4" /> Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-x-auto max-h-[500px] custom-scrollbar">
+                        <table className="w-full text-sm text-left text-slate-300">
+                            <thead className="bg-slate-900/80 sticky top-0 backdrop-blur-sm z-10 text-xs uppercase font-medium text-slate-400">
+                                <tr>
+                                    {Object.keys(generatedData[0]).filter(k => typeof generatedData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl').map(key => (
+                                        <th key={key} className="px-6 py-3 whitespace-nowrap">{key}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/50">
+                                {generatedData.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-700/30">
+                                        {Object.keys(item).filter(k => typeof item[k] !== 'object' && k !== 'foto' && k !== 'pdfUrl').map(key => (
+                                            <td key={key} className="px-6 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                                                {String(item[key] ?? '-')}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
