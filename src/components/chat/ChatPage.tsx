@@ -78,10 +78,10 @@ export default function ChatPage() {
         : [];
 
     return (
-        <div className="max-w-[1920px] mx-auto p-4 md:p-8 font-sans h-[calc(100vh-100px)]">
+        <div className="max-w-[1920px] mx-auto p-4 md:p-8 font-sans h-[calc(100dvh-80px)] md:h-[calc(100vh-100px)]">
 
             {/* Header */}
-            <div className="mb-6 flex justify-between items-center">
+            <div className={`mb-6 flex justify-between items-center ${selectedUser ? 'hidden md:flex' : ''}`}>
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20">
@@ -94,10 +94,10 @@ export default function ChatPage() {
             </div>
 
             {/* Layout Grid - Full Height */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full pb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full pb-0 md:pb-8">
 
                 {/* Sidebar - Contacts List (4 cols) */}
-                <div className="lg:col-span-4 flex flex-col gap-4 h-full">
+                <div className={`lg:col-span-4 flex flex-col gap-4 h-full ${selectedUser ? 'hidden lg:flex' : 'flex'}`}>
                     {/* Search and Stats */}
                     <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 flex flex-col gap-4">
                         <div className="relative">
@@ -163,7 +163,7 @@ export default function ChatPage() {
                                             <span className="text-[10px] text-slate-600">Agora</span>
                                         </div>
                                     </div>
-                                    <ChevronLeft className={`w-5 h-5 text-slate-500 transition-transform ${isSelected ? 'rotate-180 text-blue-400' : ''}`} />
+                                    <ChevronLeft className={`w-5 h-5 text-slate-500 transition-transform ${isSelected ? 'rotate-180 text-blue-400' : 'rotate-180 lg:rotate-0'}`} />
                                 </button>
                             );
                         })}
@@ -171,16 +171,24 @@ export default function ChatPage() {
                 </div>
 
                 {/* Main Content - Chat Window (8 cols) */}
-                <div className="lg:col-span-8 h-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden flex flex-col shadow-2xl relative">
+                <div className={`lg:col-span-8 h-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden flex flex-col shadow-2xl relative ${!selectedUser ? 'hidden lg:flex' : 'flex'}`}>
                     {/* Background decoration */}
                     <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
                     {selectedUser ? (
                         <>
                             {/* Chat Header */}
-                            <div className="bg-slate-900/80 backdrop-blur-md p-6 border-b border-slate-700/50 flex justify-between items-center z-10">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 
+                            <div className="bg-slate-900/80 backdrop-blur-md p-4 md:p-6 border-b border-slate-700/50 flex justify-between items-center z-10 sticky top-0">
+                                <div className="flex items-center gap-3 md:gap-4">
+                                    {/* Mobile Back Button */}
+                                    <button
+                                        onClick={() => setSelectedUser(null)}
+                                        className="lg:hidden p-2 -ml-2 text-slate-400 hover:text-white"
+                                    >
+                                        <ChevronLeft className="w-6 h-6" />
+                                    </button>
+
+                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 
                                         ${selectedUser.role === 'admin' ? 'bg-blue-500/10 border-blue-500 text-blue-400' :
                                             selectedUser.role === 'supervisor' ? 'bg-purple-500/10 border-purple-500 text-purple-400' :
                                                 selectedUser.role === 'oficina' ? 'bg-orange-500/10 border-orange-500 text-orange-400' :
@@ -189,28 +197,25 @@ export default function ChatPage() {
                                         <span className="font-bold text-lg">{selectedUser.name.charAt(0)}</span>
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-white">{selectedUser.name}</h2>
+                                        <h2 className="text-base md:text-xl font-bold text-white">{selectedUser.name}</h2>
                                         <div className="flex items-center gap-2">
                                             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                                            <span className="text-xs text-emerald-400 font-bold uppercase">Online agora</span>
+                                            <span className="text-[10px] md:text-xs text-emerald-400 font-bold uppercase">Online agora</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors border border-slate-700">
-                                        <Phone className="w-5 h-5" />
+                                <div className="flex items-center gap-1 md:gap-2">
+                                    <button className="p-2 md:p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors border border-slate-700">
+                                        <Phone className="w-4 h-4 md:w-5 md:h-5" />
                                     </button>
-                                    <button className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors border border-slate-700">
-                                        <Video className="w-5 h-5" />
-                                    </button>
-                                    <button className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors border border-slate-700">
-                                        <MoreVertical className="w-5 h-5" />
+                                    <button className="p-2 md:p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors border border-slate-700">
+                                        <Video className="w-4 h-4 md:w-5 md:h-5" />
                                     </button>
                                 </div>
                             </div>
 
                             {/* Messages Area */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-slate-950/30">
+                            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar bg-slate-950/30">
                                 {currentMessages.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50">
                                         <MessageSquare className="w-16 h-16 mb-4" />
@@ -222,11 +227,11 @@ export default function ChatPage() {
                                             key={msg.id}
                                             className={`flex ${msg.senderId === myId ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}
                                         >
-                                            <div className={`max-w-[70%] p-4 rounded-2xl shadow-md ${msg.senderId === myId
+                                            <div className={`max-w-[85%] md:max-w-[70%] p-3 md:p-4 rounded-2xl shadow-md ${msg.senderId === myId
                                                 ? 'bg-blue-600 text-white rounded-br-none'
                                                 : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
                                                 }`}>
-                                                <p className="text-base leading-relaxed">{msg.content}</p>
+                                                <p className="text-sm md:text-base leading-relaxed">{msg.content}</p>
                                                 <div className="flex items-center justify-end gap-1 mt-1 opacity-70">
                                                     <span className="text-[10px]">
                                                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -243,14 +248,14 @@ export default function ChatPage() {
                             </div>
 
                             {/* Input Area */}
-                            <div className="p-6 bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50 pb-8">
-                                <form onSubmit={handleSend} className="flex gap-4 max-w-5xl mx-auto">
+                            <div className="p-4 md:p-6 bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50 pb-6 md:pb-8">
+                                <form onSubmit={handleSend} className="flex gap-2 md:gap-4 max-w-5xl mx-auto">
                                     <div className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl flex items-center p-1 focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
                                         <input
                                             type="text"
                                             value={inputMessage}
                                             onChange={(e) => setInputMessage(e.target.value)}
-                                            placeholder="Escreva a sua mensagem..."
+                                            placeholder="Escreva..."
                                             className="flex-1 bg-transparent px-4 py-3 text-white outline-none placeholder:text-slate-600"
                                             autoFocus
                                         />
@@ -258,7 +263,7 @@ export default function ChatPage() {
                                     <button
                                         type="submit"
                                         disabled={!inputMessage.trim()}
-                                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white p-4 rounded-2xl transition-all shadow-lg hover:shadow-blue-600/20 active:scale-95 flex items-center gap-2 font-bold"
+                                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white p-3 md:p-4 rounded-2xl transition-all shadow-lg hover:shadow-blue-600/20 active:scale-95 flex items-center gap-2 font-bold"
                                     >
                                         <span className="hidden md:inline">Enviar</span>
                                         <Send className="w-5 h-5" />

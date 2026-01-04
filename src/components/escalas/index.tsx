@@ -2,8 +2,8 @@ import { useState, useRef } from 'react';
 import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
-    Send, Building2, MapPin, Clock, Users, Zap, MousePointer2,
-    Search, FileSpreadsheet
+    Send, MapPin, Clock, Users, MousePointer2,
+    Search, LayoutList, X, GripVertical, AlertTriangle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -36,8 +36,14 @@ export default function Escalas() {
     const [selectedMotoristaForAssign, setSelectedMotoristaForAssign] = useState<string>('');
     const [selectedCentroCusto, setSelectedCentroCusto] = useState<string>('all');
 
+    // Mobile sidebar state
+    const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false);
 
-    const [searchTerm, setSearchTerm] = useState(''); // New search feature
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'busy'>('all');
+
+    // Drag and drop state
+    const [draggedServiceId, setDraggedServiceId] = useState<string | null>(null);
 
     // Quick Distribution Mode State
     const [isDistributeMode, setIsDistributeMode] = useState(false);
@@ -150,6 +156,25 @@ export default function Escalas() {
 
     const pendentes = filteredServicos.filter(s => !s.motoristaId).sort((a, b) => a.hora.localeCompare(b.hora));
     const assigned = filteredServicos.filter(s => s.motoristaId);
+
+    // Logic & Filters
+    const filteredMotoristas = motoristas.filter(m => {
+        if (filterStatus === 'all') return true;
+        if (filterStatus === 'available') return m.status === 'disponivel';
+        if (filterStatus === 'busy') return m.status === 'ocupado';
+        return true;
+    }).filter(m => {
+        if (searchTerm) return m.nome.toLowerCase().includes(searchTerm.toLowerCase());
+        return true;
+    });
+
+    const handleDropService = (driverId: string) => {
+        if (draggedServiceId) {
+            setServicos(prev => prev.map(s => s.id === draggedServiceId ? { ...s, motoristaId: driverId } : s));
+            setDraggedServiceId(null);
+            if (isDistributeMode) { /* optional feedback */ }
+        }
+    };
 
     // Stats
     const totalServices = filteredServicos.length;
@@ -325,502 +350,558 @@ export default function Escalas() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-[#0f172a] text-slate-100 font-sans relative overflow-hidden">
-
-            {/* BACKGROUND DECORATION */}
-            <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="flex flex-col h-[calc(100dvh-80px)] md:h-[calc(100vh-100px)] bg-[#0f172a] relative overflow-hidden">
 
             {/* HEADER TOOLBAR */}
-            <div className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0">
+            <div className="h-auto md:h-20 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0 gap-4 md:gap-0">
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept=".xlsx, .xls, .csv"
+                />
 
                 {/* Left: Date & Stats */}
-                <div className="flex items-center gap-8">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto">
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2 text-blue-400 mb-0.5">
                             <Calendar className="w-4 h-4" />
                             <span className="text-xs font-bold uppercase tracking-wider">Hoje</span>
                         </div>
-                        <h2 className="text-xl font-bold text-white capitalize leading-none">
+                        <h2 className="text-lg md:text-xl font-bold text-white capitalize leading-none">
                             {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </h2>
                     </div>
 
-                    <div className="h-10 w-px bg-white/10" />
+                    <div className="hidden md:block h-10 w-px bg-white/10" />
 
-                    <div className="flex items-center gap-6">
+                    {/* Stats */}
+                    <div className="flex items-center justify-between w-full md:w-auto gap-4 md:gap-6">
                         <div className="flex flex-col items-center">
-                            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Serviços</span>
-                            <span className="text-lg font-bold text-white">{totalServices}</span>
+                            <span className="text-[10px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Serviços</span>
+                            <span className="text-base md:text-lg font-bold text-white">{totalServices}</span>
                         </div>
                         <div className="flex flex-col items-center">
-                            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Concluído</span>
-                            <span className="text-lg font-bold text-emerald-400">{progressPercentage}%</span>
+                            <span className="text-[10px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Concluído</span>
+                            <span className="text-base md:text-lg font-bold text-emerald-400">{progressPercentage}%</span>
                         </div>
-                        <div className="flex flex-col items-center relative">
-                            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Pendentes</span>
-                            <span className={`text-lg font-bold ${pendentes.length > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{pendentes.length}</span>
+                        <div
+                            className="flex flex-col items-center relative cursor-pointer md:cursor-default"
+                            onClick={() => setIsPendingSidebarOpen(true)}
+                        >
+                            <span className="text-[10px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Pendentes</span>
+                            <span className={`text-base md:text-lg font-bold ${pendentes.length > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{pendentes.length}</span>
                             {pendentes.length > 0 && <span className="absolute -top-1 -right-2 w-2 h-2 bg-amber-500 rounded-full animate-pulse" />}
                         </div>
                     </div>
                 </div>
 
                 {/* Right: Actions & Tools */}
-                <div className="flex items-center gap-3">
-
-                    {/* Search Bar */}
-                    <div className="relative group mr-2">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-end">
+                    <div className="relative flex-1 md:w-64 max-w-xs">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input
                             type="text"
-                            placeholder="Procurar pasageiro..."
-                            className="bg-slate-900/50 border border-white/10 focus:border-blue-500/50 rounded-xl py-2 pl-10 pr-4 text-sm text-slate-200 w-64 focus:w-80 transition-all outline-none placeholder:text-slate-600"
+                            placeholder="Procurar..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50"
                         />
                     </div>
 
                     {/* Cost Center Filter */}
-                    {centrosCustos.length > 0 && (
-                        <div className="relative">
-                            <select
-                                className="appearance-none bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white pl-4 pr-10 py-2.5 rounded-xl text-sm font-medium border border-white/10 focus:border-blue-500/50 outline-none transition-all cursor-pointer"
-                                value={selectedCentroCusto}
-                                onChange={(e) => setSelectedCentroCusto(e.target.value)}
-                            >
-                                <option value="all">Todos os Locais</option>
-                                {centrosCustos.map(cc => (
-                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                ))}
-                            </select>
-                            <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                        </div>
-                    )}
+                    <div className="hidden xl:block w-48">
+                        <select
+                            value={selectedCentroCusto}
+                            onChange={(e) => setSelectedCentroCusto(e.target.value)}
+                            className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
+                        >
+                            <option value="all">{t('menu.cost_centers')}: Todos</option>
+                            {centrosCustos.map(cc => (
+                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                            ))}
+                        </select>
+                    </div>
 
-                    <div className="h-8 w-px bg-white/10 mx-1" />
-
-                    {hasAccess(userRole, 'escalas_import') && (
-                        <>
+                    <div className="flex items-center gap-2">
+                        {/* Distribute Mode Toggle */}
+                        {hasAccess(userRole, 'escalas_create') && (
                             <button
                                 onClick={() => setIsDistributeMode(!isDistributeMode)}
-                                className={`h-10 px-4 rounded-xl text-sm font-bold flex items-center gap-2 transition-all mr-2
-                                    ${isDistributeMode
-                                        ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/20 ring-2 ring-amber-500/50'
-                                        : 'bg-slate-800/50 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10'
+                                className={`p-2 rounded-lg border transition-colors ${isDistributeMode
+                                    ? 'bg-blue-600 border-blue-500 text-white animate-pulse'
+                                    : 'bg-[#1e293b] border-white/5 text-slate-300 hover:bg-slate-700'
                                     }`}
+                                title="Modo de Distribuição Rápida"
                             >
-                                <Zap className={`w-4 h-4 ${isDistributeMode ? 'fill-current' : ''}`} />
-                                <span>{isDistributeMode ? 'Modo Rápido ON' : 'Modo Rápido'}</span>
+                                <MousePointer2 className="w-5 h-5" />
                             </button>
+                        )}
+                        {/* Mobile Pending Details Toggle */}
+                        {hasAccess(userRole, 'escalas_view_pending') && (
+                            <button
+                                onClick={() => setIsPendingSidebarOpen(!isPendingSidebarOpen)}
+                                className="md:hidden p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 relative"
+                            >
+                                <LayoutList className="w-5 h-5" />
+                                {pendentes.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-[10px] font-bold text-black rounded-full flex items-center justify-center">
+                                        {pendentes.length}
+                                    </span>
+                                )}
+                            </button>
+                        )}
 
+                        {hasAccess(userRole, 'escalas_import') && (
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="p-2.5 bg-slate-800/50 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-all border border-white/10 hover:border-white/20 group relative"
-                                title={t('schedule.import')}
+                                className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
+                                title="Importar Excel"
                             >
                                 <Upload className="w-5 h-5" />
-                                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10">Importar Excel</span>
                             </button>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileUpload}
-                                className="hidden"
-                                accept=".xlsx, .xls, .csv"
-                            />
-                        </>
-                    )}
+                        )}
 
-                    {hasAccess(userRole, 'escalas_create') && (
-                        <button
-                            onClick={() => setShowNewServiceModal(true)}
-                            className="h-10 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20 border border-blue-400/20 transition-all hover:scale-[1.02]"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span>{t('schedule.new_manual')}</span>
-                        </button>
-                    )}
+                        {hasAccess(userRole, 'escalas_create') && (
+                            <button
+                                onClick={() => setShowNewServiceModal(true)}
+                                className="hidden md:flex bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold items-center gap-2 transition-all shadow-lg hover:shadow-blue-600/20"
+                            >
+                                <Plus className="w-4 h-4" />
+                                <span>Novo Serviço</span>
+                            </button>
+                        )}
 
-                    {hasAccess(userRole, 'escalas_urgent') && (
                         <button
                             onClick={() => setShowUrgentModal(true)}
-                            className="h-10 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 border border-red-500/50 rounded-xl text-sm font-bold flex items-center gap-2 transition-all animate-pulse hover:animate-none ml-2"
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all"
                         >
-                            <Siren className="w-4 h-4" />
-                            {t('schedule.urgent_btn')}
+                            <AlertTriangle className="w-4 h-4" />
+                            <span className="hidden md:inline">Urgência</span>
                         </button>
-                    )}
+                    </div>
                 </div>
             </div>
 
             {/* MAIN CONTENT AREA */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden relative">
 
                 {/* LEFT: DRIVER DASHBOARD */}
-                <div className={`flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar transition-colors duration-300
+                <div className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar transition-colors duration-300
                     ${isDistributeMode ? 'bg-[#1e293b]/20' : ''}
                 `}>
-
-                    {isDistributeMode && (
-                        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-amber-500/20 rounded-lg text-amber-500">
-                                    <MousePointer2 className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-amber-100">Modo de Distribuição Rápida</h3>
-                                    <p className="text-xs text-amber-200/60">Selecione um motorista abaixo e clique nos serviços pendentes para atribuir.</p>
-                                </div>
-                            </div>
-                            {!activeDriverId && (
-                                <div className="text-xs font-bold text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-lg animate-pulse">
-                                    Selecione um motorista primeiro
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {assigned.length === 0 && motoristas.length > 0 && (
-                        <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-                            <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mb-6 border border-slate-700/50">
-                                <FileSpreadsheet className="w-10 h-10 opacity-30" />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-300">{t('schedule.empty_assigned')}</h3>
-                            <p className="max-w-md text-center mt-2 opacity-60">{t('schedule.empty_assigned_sub')}</p>
-
-                            {/* Suggestion */}
+                    <div className="max-w-[1920px] mx-auto">
+                        {/* Status Filters */}
+                        <div className="flex items-center gap-2 mb-6 md:mb-8 overflow-x-auto pb-2 scrollbar-hide">
                             <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="mt-8 text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-2 hover:underline"
+                                onClick={() => setFilterStatus('all')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
+                                    ? 'bg-blue-600 text-white border-blue-500'
+                                    : 'bg-[#1e293b] text-slate-400 border-white/5 hover:border-white/10'
+                                    }`}
                             >
-                                <Upload className="w-4 h-4" />
-                                Importar uma folha de excel agora
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => setFilterStatus('available')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all border ${filterStatus === 'available'
+                                    ? 'bg-emerald-600 text-white border-emerald-500'
+                                    : 'bg-[#1e293b] text-emerald-400 border-white/5 hover:border-white/10'
+                                    }`}
+                            >
+                                Disponíveis ({motoristas.filter(m => m.status === 'disponivel').length})
+                            </button>
+                            <button
+                                onClick={() => setFilterStatus('busy')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all border ${filterStatus === 'busy'
+                                    ? 'bg-amber-600 text-white border-amber-500'
+                                    : 'bg-[#1e293b] text-amber-400 border-white/5 hover:border-white/10'
+                                    }`}
+                            >
+                                Em Serviço ({motoristas.filter(m => m.status === 'ocupado').length})
                             </button>
                         </div>
-                    )}
 
-                    <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 pb-20">
-                        {motoristas.map(driver => {
-                            const driverServices = assigned.filter(s => s.motoristaId === driver.id)
-                                .sort((a, b) => a.hora.localeCompare(b.hora));
+                        {/* Drivers Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6">
+                            {filteredMotoristas.map(driver => {
+                                // Calculate Driver Stats
+                                const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
 
-                            if (driverServices.length === 0) return null;
+                                return (
+                                    <div
+                                        key={driver.id}
+                                        onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.style.borderColor = '#3b82f6';
+                                            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.style.borderColor = '';
+                                            e.currentTarget.style.backgroundColor = '';
+                                        }}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.style.borderColor = '';
+                                            e.currentTarget.style.backgroundColor = '';
+                                            handleDropService(driver.id);
+                                        }}
+                                        className={`bg-[#1e293b] rounded-2xl overflow-hidden shadow-lg flex flex-col group transition-all duration-200
+                                            ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
+                                            border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
+                                        `}
+                                    >
 
-                            return (
-                                <div
-                                    key={driver.id}
-                                    onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
-                                    className={`group flex flex-col backdrop-blur-md rounded-2xl overflow-hidden transition-all shadow-xl
-                                        ${isDistributeMode
-                                            ? activeDriverId === driver.id
-                                                ? 'bg-blue-600/20 border-2 border-blue-500 ring-4 ring-blue-500/10 scale-[1.02] cursor-default'
-                                                : 'bg-[#1e293b]/40 border border-white/5 hover:border-blue-500/50 cursor-pointer opacity-60 hover:opacity-100'
-                                            : 'bg-[#1e293b]/40 border border-white/5 hover:border-white/10 shadow-black/10 hover:shadow-black/20'
-                                        }
-                                    `}
-                                >
-
-                                    {/* DRIVER HEADER */}
-                                    <div className="relative px-6 py-5 bg-gradient-to-r from-slate-800/80 to-slate-900/80 border-b border-white/5 flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="relative">
-                                                {driver.foto ? (
-                                                    <img src={driver.foto} alt={driver.nome} className="w-12 h-12 rounded-full object-cover ring-2 ring-white/10 shadow-lg" />
-                                                ) : (
-                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold text-lg ring-2 ring-white/10 shadow-lg">
-                                                        {driver.nome.substring(0, 2).toUpperCase()}
-                                                    </div>
-                                                )}
-                                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-[#1e293b] rounded-full shadow-sm" title="Disponível"></div>
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-white text-base leading-tight">{driver.nome}</h3>
-                                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                                                    <span className="flex items-center gap-1.5">
-                                                        <MapPin className="w-3 h-3 text-blue-400" />
-                                                        {driverServices.length} {t('schedule.trips')}
-                                                    </span>
-                                                    {/* Optional: Add vehicle info here later */}
+                                        {/* Card Header */}
+                                        <div className="p-4 bg-slate-900/50 border-b border-white/5 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative">
+                                                    {driver.foto ? (
+                                                        <img src={driver.foto} alt={driver.nome} className="w-10 h-10 rounded-full object-cover border-2 border-slate-700" />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
+                                                            {driver.nome.charAt(0)}
+                                                        </div>
+                                                    )}
+                                                    <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-[#1e293b] rounded-full shadow-sm
+                                                    ${driver.status === 'disponivel' ? 'bg-emerald-500' :
+                                                            driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
+                                                `}></div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <button className="p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-                                            <MoreVertical className="w-5 h-5" />
-                                        </button>
-                                    </div>
-
-                                    {/* TIMELINE / SERVICE LIST */}
-                                    <div className="p-5 flex-1 bg-[#0b1120]/30 min-h-[200px]">
-                                        <div className="space-y-4 relative">
-                                            {/* Vertical Timeline Line */}
-                                            {driverServices.length > 1 && (
-                                                <div className="absolute left-[2.35rem] top-4 bottom-4 w-px bg-slate-800/80 z-0"></div>
-                                            )}
-
-                                            {driverServices.map((service) => (
-                                                <div key={service.id} className="relative z-10 flex gap-4 group/item">
-
-                                                    {/* Time Column */}
-                                                    <div className="flex flex-col items-center gap-1.5 min-w-[4.5rem] pt-0.5">
-                                                        <span className="text-sm font-bold text-white font-mono bg-slate-800/80 px-2 py-1 rounded border border-white/5 shadow-sm">
-                                                            {service.hora}
+                                                <div>
+                                                    <h3 className="font-bold text-white text-base leading-tight">{driver.nome}</h3>
+                                                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                                        <span className="flex items-center gap-1.5">
+                                                            <MapPin className="w-3 h-3 text-blue-400" />
+                                                            {driverServices.length} {t('schedule.trips')}
                                                         </span>
-                                                        {service.voo && (
-                                                            <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30">
-                                                                {service.voo}
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Content Card */}
-                                                    <div className="flex-1 bg-slate-800/40 hover:bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-xl p-3 flex flex-col gap-2 transition-all relative overflow-hidden">
-
-                                                        {/* Action (Delete) */}
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation(); // prevent card click
-                                                                unassignService(service.id);
-                                                            }}
-                                                            className="absolute top-2 right-2 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
-                                                            title={t('schedule.remove_assignment')}
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
-
-                                                        <div className="flex items-start justify-between pr-8">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
-                                                                    {service.passageiro}
-                                                                </span>
-                                                                {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
-                                                                    <span className="text-[10px] text-slate-500 italic line-clamp-1">{service.obs}</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Route Flow */}
-                                                        <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
-                                                            <span className="text-slate-400 truncate flex-1" title={service.origem}>{service.origem}</span>
-                                                            <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></div>
-                                                            <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* DRIVER FOOTER ACTIONS */}
-                                    <div className="px-4 py-3 bg-slate-900/50 border-t border-white/5 flex justify-end gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-                                        <button className="hover:text-blue-400 transition-colors">Ver Perfil</button>
-                                        <span>•</span>
-                                        <button className="hover:text-blue-400 transition-colors">Enviar Msg</button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* URGENT REQUEST SECTION (Supervisor/Admin View Only) */}
-                    {(userRole === 'admin' || userRole === 'supervisor') && notifications.some(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned')) && (
-                        <div className="mt-8 pt-8 border-t border-white/10">
-                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                                    <Siren className="w-5 h-5 text-red-500" />
-                                </div>
-                                {t('schedule.my_urgent_requests')}
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {notifications
-                                    .filter(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned'))
-                                    .map(req => (
-                                        <div key={req.id} className={`bg-[#182338]/80 backdrop-blur-md border ${req.status === 'assigned' ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.05)]'} rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300`}>
-
-                                            {/* Status Badge */}
-                                            <div className="flex justify-between items-start z-10">
-                                                {req.status === 'pending' ? (
-                                                    <span className="bg-red-500/20 text-red-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-red-500/20 flex items-center gap-1.5 animate-pulse">
-                                                        <Clock className="w-3 h-3" />
-                                                        {t('schedule.status.pending')}
-                                                    </span>
-                                                ) : (
-                                                    <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-blue-500/20 flex items-center gap-1.5">
-                                                        <CheckSquare className="w-3 h-3" />
-                                                        {t('schedule.status.assigned')}
-                                                    </span>
-                                                )}
-                                                <span className="text-slate-400 font-mono text-xs bg-black/20 px-2 py-1 rounded">{req.data.time}</span>
-                                            </div>
-
-                                            <div className="z-10 bg-black/20 p-3 rounded-xl border border-white/5">
-                                                <div className="font-bold text-white text-base mb-1">{req.data.passenger}</div>
-                                                <div className="flex flex-col gap-1.5 text-xs text-slate-400">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
-                                                        <span className="truncate">{req.data.origin}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-                                                        <span className="text-slate-200 truncate font-medium">{req.data.destination}</span>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            {req.data.obs && (
-                                                <div className="text-xs text-slate-500 italic px-2">
-                                                    "{req.data.obs}"
-                                                </div>
-                                            )}
-
-                                            <button
-                                                onClick={() => handleSupervisorCancel(req)}
-                                                className="mt-auto z-10 w-full py-2.5 bg-slate-800/50 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                                {t('schedule.actions.cancel')}
+                                            <button className="p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                                                <MoreVertical className="w-5 h-5" />
                                             </button>
                                         </div>
-                                    ))
-                                }
-                            </div>
+
+                                        {/* Timeline */}
+                                        <div className="p-5 flex-1 bg-[#0b1120]/30 min-h-[200px]">
+                                            <div className="space-y-4 relative">
+                                                {/* Vertical Timeline Line */}
+                                                {driverServices.length > 1 && (
+                                                    <div className="absolute left-[2.35rem] top-4 bottom-4 w-px bg-slate-800/80 z-0"></div>
+                                                )}
+
+                                                {driverServices.length === 0 ? (
+                                                    <div className="flex flex-col items-center justify-center h-40 text-slate-600 text-xs text-center border-2 border-dashed border-white/5 rounded-xl">
+                                                        <div className="p-3 bg-white/5 rounded-full mb-2">
+                                                            <Clock className="w-5 h-5 opacity-50" />
+                                                        </div>
+                                                        <span>Sem serviços atribuídos</span>
+                                                    </div>
+                                                ) : (
+                                                    driverServices.map((service) => (
+                                                        <div key={service.id} className="relative z-10 flex gap-4 group/item">
+                                                            {/* Time Column */}
+                                                            <div className="flex flex-col items-center gap-1.5 min-w-[4.5rem] pt-0.5">
+                                                                <span className="text-sm font-bold text-white font-mono bg-slate-800/80 px-2 py-1 rounded border border-white/5 shadow-sm">
+                                                                    {service.hora}
+                                                                </span>
+                                                                {service.voo && (
+                                                                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30">
+                                                                        {service.voo}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Content Card */}
+                                                            <div className="flex-1 bg-slate-800/40 hover:bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-xl p-3 flex flex-col gap-2 transition-all relative overflow-hidden">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        unassignService(service.id);
+                                                                    }}
+                                                                    className="absolute top-2 right-2 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
+                                                                    title={t('schedule.remove_assignment')}
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+
+                                                                <div className="flex items-start justify-between pr-8">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-sm font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
+                                                                            {service.passageiro}
+                                                                        </span>
+                                                                        {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
+                                                                            <span className="text-[10px] text-slate-500 italic line-clamp-1">{service.obs}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Route Flow */}
+                                                                <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
+                                                                    <span className="text-slate-400 truncate flex-1" title={service.origem}>{service.origem}</span>
+                                                                    <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></div>
+                                                                    <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* DRIVER FOOTER ACTIONS */}
+                                        <div className="px-4 py-3 bg-slate-900/50 border-t border-white/5 flex justify-end gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                                            <button className="hover:text-blue-400 transition-colors">Ver Perfil</button>
+                                            <span>•</span>
+                                            <button className="hover:text-blue-400 transition-colors">Enviar Msg</button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    )}
+
+                        {/* URGENT REQUEST SECTION (Supervisor/Admin View Only) */}
+                        {(userRole === 'admin' || userRole === 'supervisor') && notifications.some(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned')) && (
+                            <div className="mt-8 pt-8 border-t border-white/10">
+                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+                                    <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
+                                        <Siren className="w-5 h-5 text-red-500" />
+                                    </div>
+                                    {t('schedule.my_urgent_requests')}
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {notifications
+                                        .filter(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned'))
+                                        .map(req => (
+                                            <div key={req.id} className={`bg-[#182338]/80 backdrop-blur-md border ${req.status === 'assigned' ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.05)]'} rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300`}>
+                                                {/* Status Badge */}
+                                                <div className="flex justify-between items-start z-10">
+                                                    {req.status === 'pending' ? (
+                                                        <span className="bg-red-500/20 text-red-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-red-500/20 flex items-center gap-1.5 animate-pulse">
+                                                            <Clock className="w-3 h-3" />
+                                                            {t('schedule.status.pending')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-blue-500/20 flex items-center gap-1.5">
+                                                            <CheckSquare className="w-3 h-3" />
+                                                            {t('schedule.status.assigned')}
+                                                        </span>
+                                                    )}
+                                                    <span className="text-slate-400 font-mono text-xs bg-black/20 px-2 py-1 rounded">{req.data.time}</span>
+                                                </div>
+
+                                                <div className="z-10 bg-black/20 p-3 rounded-xl border border-white/5">
+                                                    <div className="font-bold text-white text-base mb-1">{req.data.passenger}</div>
+                                                    <div className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+                                                            <span className="truncate">{req.data.origin}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                                                            <span className="text-slate-200 truncate font-medium">{req.data.destination}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {req.data.obs && (
+                                                    <div className="text-xs text-slate-500 italic px-2">
+                                                        "{req.data.obs}"
+                                                    </div>
+                                                )}
+
+                                                <button
+                                                    onClick={() => handleSupervisorCancel(req)}
+                                                    className="mt-auto z-10 w-full py-2.5 bg-slate-800/50 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                    {t('schedule.actions.cancel')}
+                                                </button>
+                                            </div>
+                                        ))
+                                    }
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* RIGHT SIDEBAR: PENDING SERVICES */}
                 {hasAccess(userRole, 'escalas_view_pending') && (
-                    <div className="w-[400px] flex flex-col bg-[#0f172a] border-l border-white/5 shadow-2xl z-30 relative">
+                    <>
+                        {/* Mobile Backdrop */}
+                        {isPendingSidebarOpen && (
+                            <div
+                                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+                                onClick={() => setIsPendingSidebarOpen(false)}
+                            />
+                        )}
 
-                        {/* Sidebar Header */}
-                        <div className="p-6 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 z-20">
-                            <h2 className="flex items-center gap-3 text-lg font-bold text-white mb-6">
-                                <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
-                                    <Upload className="w-4 h-4 text-white" />
+                        <div className={`
+                            fixed lg:relative inset-y-0 right-0 z-40
+                            w-[85vw] max-w-[400px] lg:w-[400px]
+                            flex flex-col bg-[#0f172a] border-l border-white/5 shadow-2xl
+                            transform transition-transform duration-300 ease-in-out
+                            ${isPendingSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+                        `}>
+                            {/* Sidebar Header */}
+                            <div className="p-6 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 z-20 flex flex-col gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
+                                        <Upload className="w-4 h-4 text-white" />
+                                    </div>
+                                    <h2 className="text-lg font-bold text-white max-w-[150px] truncate">
+                                        {t('schedule.pending.title')}
+                                    </h2>
+                                    <div className="flex items-center gap-2 ml-auto">
+                                        <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
+                                            {pendentes.length}
+                                        </span>
+                                        <button
+                                            onClick={() => setIsPendingSidebarOpen(false)}
+                                            className="lg:hidden p-1.5 text-slate-400 hover:text-white bg-slate-800/50 rounded-lg"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </div>
-                                {t('schedule.pending.title')}
-                                <span className="ml-auto bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                                    {pendentes.length}
-                                </span>
-                            </h2>
 
+                                {/* Batch Assign Control - Hidden in Distribute Mode */}
+                                {!isDistributeMode && pendentes.length > 0 && (
+                                    <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
+                                        <select
+                                            className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer"
+                                            value={selectedMotoristaForAssign}
+                                            onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
+                                        >
+                                            <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
+                                            {motoristas.map(m => (
+                                                <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            onClick={handleAssign}
+                                            disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
+                                            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg"
+                                        >
+                                            <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
 
-
-                            {/* Batch Assign Control - Hidden in Distribute Mode */}
-                            {!isDistributeMode && (
-                                <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
-                                    <select
-                                        className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer"
-                                        value={selectedMotoristaForAssign}
-                                        onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
-                                    >
-                                        <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
-                                        {motoristas.map(m => (
-                                            <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        onClick={handleAssign}
-                                        disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
-                                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg"
-                                    >
-                                        <ArrowRight className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between mt-4">
-                                <button
-                                    onClick={toggleSelectAll}
-                                    className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white transition-colors"
-                                >
-                                    Selecionar Todos
-                                </button>
-                                <span className="text-[10px] text-slate-600">
-                                    {selectedPendentes.length} selecionados
-                                </span>
+                                {pendentes.length > 0 && (
+                                    <div className="flex items-center justify-between mt-1">
+                                        <button
+                                            onClick={toggleSelectAll}
+                                            className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white transition-colors"
+                                        >
+                                            Selecionar Todos
+                                        </button>
+                                        <span className="text-[10px] text-slate-600">
+                                            {selectedPendentes.length} selecionados
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                        </div>
 
-                        {/* Pending List */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
-                            {pendentes.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-600 px-10 text-center">
-                                    <CheckSquare className="w-12 h-12 mb-4 opacity-20" />
-                                    <p className="text-sm font-medium">{t('schedule.pending.empty')}</p>
-                                    <p className="text-xs opacity-50 mt-1">Ótimo trabalho! Tudo organizado.</p>
-                                </div>
-                            ) : (
-                                pendentes.map(service => (
-                                    <div
-                                        key={service.id}
-                                        onClick={() => {
-                                            if (isDistributeMode) {
-                                                handleQuickAssign(service.id);
-                                            } else {
-                                                togglePendenteSelection(service.id);
-                                            }
-                                        }}
-                                        className={`group relative p-3 rounded-xl border transition-all cursor-pointer select-none
-                                            ${isDistributeMode
-                                                ? activeDriverId
-                                                    ? 'bg-slate-800/30 border-white/5 hover:bg-blue-600/20 hover:border-blue-500/50 hover:scale-[1.02]'
-                                                    : 'bg-slate-800/30 border-white/5 opacity-50 cursor-not-allowed'
-                                                : selectedPendentes.includes(service.id)
-                                                    ? 'bg-blue-900/20 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
-                                                    : 'bg-slate-800/30 border-white/5 hover:border-white/10 hover:bg-slate-800/50'
-                                            }
-                                        `}
-                                    >
-                                        <div className="flex gap-3">
-                                            {/* Checkbox Visual or Assign Action */}
-                                            {isDistributeMode ? (
-                                                <div className={`w-5 h-5 mt-0.5 rounded-md flex items-center justify-center transition-colors
-                                                    ${activeDriverId ? 'bg-slate-800 text-slate-500 group-hover:bg-blue-500 group-hover:text-white' : 'bg-slate-800 text-slate-600'}
-                                                `}>
-                                                    <ArrowRight className="w-3.5 h-3.5" />
-                                                </div>
-                                            ) : (
-                                                <div className={`w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center transition-colors
-                                                    ${selectedPendentes.includes(service.id)
-                                                        ? 'bg-blue-600 border-blue-600'
-                                                        : 'bg-slate-900 border-slate-700 group-hover:border-slate-500'}
-                                                `}>
-                                                    {selectedPendentes.includes(service.id) && <CheckSquare className="w-3.5 h-3.5 text-white" />}
-                                                </div>
-                                            )}
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <span className="font-mono text-sm font-bold text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/5">{service.hora}</span>
-                                                    <button
-                                                        onClick={(e) => handleDeleteService(service.id, e)}
-                                                        className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-800 rounded"
-                                                    >
-                                                        <Trash2 className="w-3 h-3" />
-                                                    </button>
-                                                </div>
-
-                                                <div className="font-medium text-slate-200 text-sm truncate pr-2 mb-2">{service.passageiro}</div>
-
-                                                <div className="text-xs text-slate-500 flex flex-col gap-1.5 bg-black/20 p-2 rounded-lg border border-white/5">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
-                                                        <span className="truncate">{service.origem}</span>
+                            {/* Pending List */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
+                                {pendentes.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-slate-600 px-10 text-center">
+                                        <CheckSquare className="w-12 h-12 mb-4 opacity-20" />
+                                        <p className="text-sm font-medium">{t('schedule.pending.empty')}</p>
+                                        <p className="text-xs opacity-50 mt-1">Ótimo trabalho! Tudo organizado.</p>
+                                    </div>
+                                ) : (
+                                    pendentes.map(service => (
+                                        <div
+                                            key={service.id}
+                                            onClick={() => {
+                                                if (isDistributeMode) {
+                                                    handleQuickAssign(service.id);
+                                                } else {
+                                                    togglePendenteSelection(service.id);
+                                                }
+                                            }}
+                                            draggable={!isDistributeMode}
+                                            onDragStart={(e) => {
+                                                setDraggedServiceId(service.id);
+                                                e.dataTransfer.setData('text/plain', service.id);
+                                            }}
+                                            onDragEnd={() => setDraggedServiceId(null)}
+                                            className={`group relative p-3 rounded-xl border transition-all cursor-grab active:cursor-grabbing select-none
+                                                        ${isDistributeMode
+                                                    ? activeDriverId
+                                                        ? 'bg-slate-800/30 border-white/5 hover:bg-blue-600/20 hover:border-blue-500/50 hover:scale-[1.02]'
+                                                        : 'bg-slate-800/30 border-white/5 opacity-50 cursor-not-allowed'
+                                                    : selectedPendentes.includes(service.id)
+                                                        ? 'bg-blue-900/20 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
+                                                        : 'bg-slate-900/40 border-white/5 hover:border-white/10 hover:bg-slate-800/60'
+                                                }
+                                                    `}
+                                        >
+                                            <div className="flex gap-3">
+                                                {/* Drag Handle */}
+                                                {!isDistributeMode && !selectedPendentes.includes(service.id) && (
+                                                    <div className="hidden group-hover:flex absolute left-1 top-1/2 -translate-y-1/2 p-1 text-slate-600 cursor-grab active:cursor-grabbing">
+                                                        <GripVertical className="w-4 h-4" />
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                                                        <span className="truncate text-slate-400 group-hover:text-slate-300 transition-colors">{service.destino}</span>
+                                                )}
+
+                                                {/* Checkbox Visual or Assign Action */}
+                                                {isDistributeMode ? (
+                                                    <div className={`w-5 h-5 mt-0.5 rounded-md flex items-center justify-center transition-colors
+                                                                ${activeDriverId ? 'bg-slate-800 text-slate-500 group-hover:bg-blue-500 group-hover:text-white' : 'bg-slate-800 text-slate-600'}
+                                                            `}>
+                                                        <ArrowRight className="w-3.5 h-3.5" />
+                                                    </div>
+                                                ) : (
+                                                    <div className={`w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center transition-colors
+                                                                ${selectedPendentes.includes(service.id)
+                                                            ? 'bg-blue-600 border-blue-600'
+                                                            : 'bg-slate-900 border-slate-700 group-hover:border-slate-500'}
+                                                            `}>
+                                                        {selectedPendentes.includes(service.id) && <CheckSquare className="w-3.5 h-3.5 text-white" />}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <span className="font-mono text-sm font-bold text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/5">{service.hora}</span>
+                                                        <button
+                                                            onClick={(e) => handleDeleteService(service.id, e)}
+                                                            className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-800 rounded"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="font-medium text-slate-200 text-sm truncate pr-2 mb-2">{service.passageiro}</div>
+
+                                                    <div className="text-xs text-slate-500 flex flex-col gap-1.5 bg-black/20 p-2 rounded-lg border border-white/5">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
+                                                            <span className="truncate">{service.origem}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                                            <span className="truncate text-slate-400 group-hover:text-slate-300 transition-colors">{service.destino}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
-                            )}
+                                    ))
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
 
