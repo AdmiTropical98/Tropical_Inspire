@@ -100,7 +100,7 @@ export default function TransportesEva() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-[#0f172a] text-slate-100 p-4 md:p-8 overflow-hidden font-sans">
+        <div className="h-full flex flex-col bg-[#0f172a] text-slate-100 p-4 md:p-8 overflow-y-auto custom-scrollbar font-sans">
             {/* Header Content */}
             <div className="flex flex-col md:flex-row border-b border-slate-800/60 pb-8 mb-8 justify-between items-start md:items-end bg-gradient-to-r from-transparent via-transparent to-transparent gap-4">
                 <div>

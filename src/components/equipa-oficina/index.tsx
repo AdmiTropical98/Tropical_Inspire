@@ -268,8 +268,8 @@ export default function EquipaOficina() {
                                     key={status}
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === status
-                                            ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/25'
-                                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/25'
+                                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
                                         }`}
                                 >
                                     {t(`team.filter.${status}`)}

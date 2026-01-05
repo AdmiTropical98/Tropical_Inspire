@@ -86,7 +86,7 @@ export default function Horas() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-[#0f172a] text-slate-100 overflow-hidden font-sans">
+        <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-8">
             {/* Header Toolbar */}
             <div className="h-16 border-b border-slate-800 flex items-center justify-end px-8 bg-[#0f172a]/95 backdrop-blur z-10">
                 <div className="flex items-center gap-2 text-sm bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700/50">

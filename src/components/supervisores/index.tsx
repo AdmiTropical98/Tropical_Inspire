@@ -101,7 +101,7 @@ export default function Supervisores() {
     }, [supervisors, filter, statusFilter, sortBy]);
 
     return (
-        <div className="max-w-7xl mx-auto p-4 lg:p-8 h-full overflow-y-auto custom-scrollbar relative">
+        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
             {permissionUser && (
                 <UserPermissionsModal
                     isOpen={true}
@@ -280,8 +280,8 @@ export default function Supervisores() {
                                     key={status}
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === status
-                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
                                         }`}
                                 >
                                     {t(`supervisors.filter.${status}`)}

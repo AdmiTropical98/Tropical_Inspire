@@ -59,7 +59,7 @@ export default function Clientes() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="relative w-full md:w-96 group">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />

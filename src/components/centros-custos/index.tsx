@@ -28,7 +28,7 @@ export default function CentrosCustos() {
     };
 
     return (
-        <div className="h-full flex flex-col p-8 animate-in fade-in duration-500">
+        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
             {/* Header */}
             <div className="flex justify-between items-center mb-8">
                 <div>

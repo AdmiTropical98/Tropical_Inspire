@@ -8,7 +8,7 @@ export default function Relatorios() {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'presets' | 'custom'>('dashboard');
 
     return (
-        <div className="flex flex-col h-screen bg-[#0f172a] overflow-hidden">
+        <div className="flex flex-col h-full bg-[#0f172a] overflow-hidden">
             {/* Header Section */}
             <div className="p-8 border-b border-slate-800/50 bg-[#0f172a]/50 backdrop-blur-xl z-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -29,8 +29,8 @@ export default function Relatorios() {
                         <button
                             onClick={() => setActiveTab('dashboard')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'dashboard'
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                 }`}
                         >
                             <PieChart className="w-4 h-4" />
@@ -39,8 +39,8 @@ export default function Relatorios() {
                         <button
                             onClick={() => setActiveTab('presets')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'presets'
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                 }`}
                         >
                             <FileText className="w-4 h-4" />
@@ -49,8 +49,8 @@ export default function Relatorios() {
                         <button
                             onClick={() => setActiveTab('custom')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'custom'
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                 }`}
                         >
                             <SlidersHorizontal className="w-4 h-4" />

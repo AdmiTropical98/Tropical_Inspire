@@ -63,7 +63,7 @@ export default function Viaturas() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto p-4 md:p-8 font-sans h-full flex flex-col">
+        <div className="max-w-7xl mx-auto p-4 md:p-8 font-sans h-full flex flex-col overflow-y-auto custom-scrollbar">
             {selectedViatura && (
                 <VehicleProfile
                     viatura={selectedViatura}

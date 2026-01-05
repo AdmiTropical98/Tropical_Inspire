@@ -78,8 +78,7 @@ export default function ChatPage() {
         : [];
 
     return (
-        <div className="max-w-[1920px] mx-auto p-4 md:p-8 font-sans h-[calc(100dvh-80px)] md:h-[calc(100vh-100px)]">
-
+        <div className="h-full flex overflow-hidden bg-[#0f172a]">
             {/* Header */}
             <div className={`mb-6 flex justify-between items-center ${selectedUser ? 'hidden md:flex' : ''}`}>
                 <div>

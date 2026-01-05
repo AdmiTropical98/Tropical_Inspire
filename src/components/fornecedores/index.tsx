@@ -35,7 +35,7 @@ export default function Fornecedores() {
     );
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
             {/* Toolbar */}
             <div className="p-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-900/30 rounded-t-3xl">
                 <div className="relative">

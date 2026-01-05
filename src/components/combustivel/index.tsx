@@ -126,7 +126,7 @@ export default function Combustivel() {
         .slice(0, 5);
 
     return (
-        <div className="max-w-[1920px] mx-auto p-4 md:p-8 font-sans">
+        <div className="h-full overflow-y-auto custom-scrollbar max-w-[1920px] mx-auto p-4 md:p-8 font-sans space-y-8">
 
             {/* Header */}
             <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
