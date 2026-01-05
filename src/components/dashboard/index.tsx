@@ -86,7 +86,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
     );
 
     return (
-        <div className="p-6 space-y-8">
+        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
 
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

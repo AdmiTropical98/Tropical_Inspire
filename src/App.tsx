@@ -447,7 +447,7 @@ function App() {
             </div>
           )}
 
-          <div className="flex-1 overflow-auto custom-scrollbar relative w-full">
+          <div className="flex-1 overflow-hidden relative w-full flex flex-col min-h-0">
             {renderContent()}
           </div>
 
