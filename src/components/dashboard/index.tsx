@@ -55,18 +55,24 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
         </div>
     );
 
-    const getTimeAgo = (dateData: string | Date) => {
+    const getTimeAgo = (dateData: string | Date | undefined) => {
+        if (!dateData) return '---';
         try {
             const date = typeof dateData === 'string' ? new Date(dateData) : dateData;
+            // Check if date is valid
+            if (isNaN(date.getTime())) return '---';
+
             const now = new Date();
             const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-            if (diffInSeconds < 60) return `há ${diffInSeconds} s`;
+            if (diffInSeconds < 60) return 'há ' + (diffInSeconds < 0 ? 0 : diffInSeconds) + ' s';
             const diffInMinutes = Math.floor(diffInSeconds / 60);
             if (diffInMinutes < 60) return `há ${diffInMinutes} m`;
             const diffInHours = Math.floor(diffInMinutes / 60);
             if (diffInHours < 24) return `há ${diffInHours} h`;
-            return date.toLocaleDateString();
+
+            // If more than 24h, show date
+            return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
         } catch (e) {
             return '---';
         }

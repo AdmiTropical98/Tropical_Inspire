@@ -28,9 +28,7 @@ export default function Contabilidade() {
     const [expenseBreakdown, setExpenseBreakdown] = useState([
         { category: 'Combustível', value: 0, color: 'bg-blue-500' },
         { category: 'Manutenção', value: 0, color: 'bg-red-500' },
-        { category: 'Peças & Pneus', value: 0, color: 'bg-amber-500' },
         { category: 'Salários', value: 0, color: 'bg-emerald-500' },
-        { category: 'Outros', value: 0, color: 'bg-slate-500' },
     ]);
 
     const [topCostCenters, setTopCostCenters] = useState<{ id: string; nome: string; total: number }[]>([]);
@@ -77,10 +75,7 @@ export default function Contabilidade() {
                 .select('vencimento_base');
 
             const totalSalaries = allDrivers?.reduce((acc, curr) => acc + (curr.vencimento_base || 0), 0) || 0;
-            const totalParts = 0; // Still no dedicated parts table separate from maintenance generally
-            const totalOther = 0;
-
-            const totalExpenses = totalFuel + totalMaint + totalSalaries + totalParts + totalOther;
+            const totalExpenses = totalFuel + totalMaint + totalSalaries;
 
             setFinancialStats({
                 totalRevenue,
@@ -92,9 +87,7 @@ export default function Contabilidade() {
             setExpenseBreakdown([
                 { category: 'Combustível', value: totalFuel, color: 'bg-blue-500' },
                 { category: 'Manutenção', value: totalMaint, color: 'bg-red-500' },
-                { category: 'Peças & Pneus', value: totalParts, color: 'bg-amber-500' },
                 { category: 'Salários', value: totalSalaries, color: 'bg-emerald-500' },
-                { category: 'Outros', value: totalOther, color: 'bg-slate-500' },
             ]);
 
             // 5. Top Cost Centers Aggregation

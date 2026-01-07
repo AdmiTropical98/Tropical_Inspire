@@ -11,7 +11,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 export default function Combustivel() {
     const {
-        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, tankRefills, registerTankRefill, deleteFuelTransaction, setPumpTotalizer, centrosCustos
+        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, tankRefills, registerTankRefill, deleteFuelTransaction, setPumpTotalizer, centrosCustos, deleteTankRefill
     } = useWorkshop();
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
@@ -548,51 +548,78 @@ export default function Combustivel() {
                                 <thead>
                                     <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                                         <th className="pb-4 pl-4">{t('fuel.history.date')}</th>
-                                        <th className="pb-4">{t('fuel.history.driver')}</th>
-                                        <th className="pb-4 text-center">{t('fuel.history.vehicle')}</th>
+                                        <th className="pb-4">Operação</th>
+                                        <th className="pb-4 text-center">Entidade</th>
                                         <th className="pb-4 text-right">Qtd.</th>
                                         <th className="pb-4 text-center">{t('fuel.history.status')}</th>
                                         <th className="pb-4 w-10"></th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-sm">
-                                    {fuelTransactions.map(transaction => {
-                                        const driverName = motoristas.find(m => m.id === transaction.driverId)?.nome || 'Staff Office';
-                                        return (
-                                            <tr key={transaction.id} className="bg-slate-800/10 hover:bg-slate-800/30 transition-all group">
-                                                <td className="p-4 rounded-l-xl font-mono text-slate-400 text-xs border-y border-l border-white/5 group-hover:border-white/10">
-                                                    <div>{new Date(transaction.timestamp).toLocaleDateString()}</div>
-                                                    <div className="text-slate-600 mt-0.5">{new Date(transaction.timestamp).toLocaleTimeString().slice(0, 5)}</div>
-                                                </td>
-                                                <td className="p-4 border-y border-white/5 group-hover:border-white/10">
-                                                    <span className="font-bold text-slate-200 block">{driverName}</span>
-                                                </td>
-                                                <td className="p-4 text-center border-y border-white/5 group-hover:border-white/10">
-                                                    <span className="font-mono text-xs font-bold text-slate-300 bg-black/20 px-2 py-1 rounded border border-white/5">
-                                                        {transaction.vehicleId}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-right border-y border-white/5 group-hover:border-white/10">
-                                                    <div className="font-bold text-yellow-500">{transaction.liters} L</div>
-                                                </td>
-                                                <td className="p-4 text-center border-y border-white/5 group-hover:border-white/10">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${transaction.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-500'}`}>
-                                                        {transaction.status === 'confirmed' ? 'OK' : 'Pendente'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 rounded-r-xl border-y border-r border-white/5 group-hover:border-white/10">
-                                                    {hasAccess(userRole, 'combustivel_edit_history') && (
-                                                        <button
-                                                            onClick={() => { if (confirm('Apagar?')) deleteFuelTransaction(transaction.id); }}
-                                                            className="text-slate-600 hover:text-red-400 p-1"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {[
+                                        ...fuelTransactions.map(t => ({ ...t, type: 'out', dateObj: new Date(t.timestamp) })),
+                                        ...tankRefills.map(t => ({ ...t, type: 'in', dateObj: new Date(t.timestamp) }))
+                                    ]
+                                        .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime())
+                                        .map((item: any) => {
+                                            const isRefill = item.type === 'in';
+                                            const driverName = !isRefill
+                                                ? (motoristas.find(m => m.id === item.driverId)?.nome || 'Staff Office')
+                                                : (item.staffName || 'Admin');
+
+                                            return (
+                                                <tr key={item.id} className="bg-slate-800/10 hover:bg-slate-800/30 transition-all group">
+                                                    <td className="p-4 rounded-l-xl font-mono text-slate-400 text-xs border-y border-l border-white/5 group-hover:border-white/10">
+                                                        <div>{new Date(item.timestamp).toLocaleDateString()}</div>
+                                                        <div className="text-slate-600 mt-0.5">{new Date(item.timestamp).toLocaleTimeString().slice(0, 5)}</div>
+                                                    </td>
+                                                    <td className="p-4 border-y border-white/5 group-hover:border-white/10">
+                                                        <span className={`font-bold block ${isRefill ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                                            {isRefill ? 'Entrada (Tanque)' : 'Abastecimento'}
+                                                        </span>
+                                                        <span className="text-xs text-slate-500">{driverName}</span>
+                                                    </td>
+                                                    <td className="p-4 text-center border-y border-white/5 group-hover:border-white/10">
+                                                        {isRefill ? (
+                                                            <span className="px-2 py-1 rounded border border-emerald-500/20 text-emerald-500 text-xs font-bold">
+                                                                {item.supplier || 'Fornecedor N/D'}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="font-mono text-xs font-bold text-slate-300 bg-black/20 px-2 py-1 rounded border border-white/5">
+                                                                {item.vehicleId}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-4 text-right border-y border-white/5 group-hover:border-white/10">
+                                                        <div className={`font-bold ${isRefill ? 'text-emerald-500' : 'text-yellow-500'}`}>
+                                                            {isRefill ? '+' : '-'}{item.liters || item.litersAdded} L
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4 text-center border-y border-white/5 group-hover:border-white/10">
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${isRefill || item.status === 'confirmed'
+                                                            ? 'bg-emerald-500/10 text-emerald-400'
+                                                            : 'bg-amber-500/10 text-amber-500'
+                                                            }`}>
+                                                            {isRefill ? 'Confirmado' : (item.status === 'confirmed' ? 'OK' : 'Pendente')}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4 rounded-r-xl border-y border-r border-white/5 group-hover:border-white/10">
+                                                        {hasAccess(userRole, 'combustivel_edit_history') && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (confirm('Apagar registo?')) {
+                                                                        isRefill ? deleteTankRefill(item.id) : deleteFuelTransaction(item.id);
+                                                                    }
+                                                                }}
+                                                                className="text-slate-600 hover:text-red-400 p-1"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                 </tbody>
                             </table>
                         </div>

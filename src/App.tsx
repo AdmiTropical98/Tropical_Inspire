@@ -112,7 +112,7 @@ function App() {
 
   return (
     <ChatProvider>
-      <div className="flex bg-black min-h-screen text-slate-200 font-sans overflow-hidden">
+      <div className="flex bg-black h-screen text-slate-200 font-sans overflow-hidden">
         {/* Force deploy correction */}
 
         {/* SIDEBAR */}
