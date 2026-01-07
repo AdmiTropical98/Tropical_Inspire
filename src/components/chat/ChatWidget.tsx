@@ -7,7 +7,7 @@ import { useChat } from '../../contexts/ChatContext';
 export default function ChatWidget() {
     const { userRole, currentUser } = useAuth();
     const { motoristas, supervisors, oficinaUsers } = useWorkshop();
-    const { messages, sendMessage, markAsRead, unreadCount, getUnreadCountForUser } = useChat();
+    const { messages, sendMessage, markAsRead, getUnreadCountForUser } = useChat();
 
     const [isOpen, setIsOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<{ id: string; name: string; role: string } | null>(null);
@@ -174,8 +174,8 @@ export default function ChatWidget() {
                                             className={`flex ${msg.senderId === myId ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.senderId === myId
-                                                    ? 'bg-blue-600 text-white rounded-br-none'
-                                                    : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
+                                                ? 'bg-blue-600 text-white rounded-br-none'
+                                                : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
                                                 }`}>
                                                 <p>{msg.content}</p>
                                                 <p className={`text-[10px] mt-1 text-right ${msg.senderId === myId ? 'text-blue-200' : 'text-slate-500'}`}>
@@ -218,12 +218,6 @@ export default function ChatWidget() {
                 className="pointer-events-auto p-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-600/30 transition-all hover:scale-110 active:scale-95 group relative"
             >
                 {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
-
-                {!isOpen && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold border-2 border-[#0f172a]">
-                        {unreadCount}
-                    </span>
-                )}
             </button>
         </div>
     );
