@@ -194,7 +194,7 @@ export default function Requisicoes() {
             doc.setFontSize(12);
             doc.setTextColor(0);
             doc.setFont('helvetica', 'bold');
-            doc.text(`#${req.numero}`, 10, yPos + 6);
+            doc.text(`R:${req.numero}`, 10, yPos + 6);
 
             const createdBy = req.criadoPor || 'Staff';
             const splitName = createdBy.split(' ')[0] + ' ' + (createdBy.split(' ')[1] || '');
@@ -521,7 +521,7 @@ export default function Requisicoes() {
                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-mono font-bold text-lg
                                             ${req.status === 'concluida' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-700 text-slate-300'}
                                         `}>
-                                            #{req.numero}
+                                            R:{req.numero}
                                         </div>
                                         <div>
                                             <p className="text-white font-bold">{fornecedores.find(f => f.id === req.fornecedorId)?.nome || 'Fornecedor'}</p>
@@ -584,7 +584,7 @@ export default function Requisicoes() {
                                     <div className="flex flex-col md:flex-row justify-between md:items-center gap-6">
                                         <div className="flex items-start gap-5">
                                             <div className="bg-slate-800 p-4 rounded-2xl text-blue-400 font-bold text-2xl min-w-[5rem] text-center border border-slate-700 font-mono shadow-sm">
-                                                #{req.numero}
+                                                R:{req.numero}
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-3 mb-2">
