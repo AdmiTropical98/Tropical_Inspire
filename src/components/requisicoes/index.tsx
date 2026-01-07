@@ -85,11 +85,23 @@ export default function Requisicoes() {
         if (tipo === 'Viatura' && !viaturaId) return alert('Selecione uma viatura');
         if (items.length === 0) return alert('Adicione pelo menos um item');
 
-        const maxNum = Math.max(0, ...requisicoes.map(r => r.numero));
+        const currentYear = new Date().getFullYear().toString().slice(-2);
+        const prefix = `${currentYear}/`;
+
+        const yearRequisicoes = requisicoes.filter(r => r.numero && r.numero.startsWith(prefix));
+
+        const maxSeq = yearRequisicoes.reduce((max, r) => {
+            const parts = r.numero.split('/');
+            if (parts.length === 2) {
+                const seq = parseInt(parts[1], 10);
+                return !isNaN(seq) && seq > max ? seq : max;
+            }
+            return max;
+        }, 0);
 
         const newReq: Requisicao = {
             id: crypto.randomUUID(),
-            numero: maxNum + 1,
+            numero: `${prefix}${(maxSeq + 1).toString().padStart(4, '0')}`,
             data,
             tipo,
             fornecedorId,
@@ -206,7 +218,7 @@ export default function Requisicoes() {
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(100);
-            let contextLabel = req.tipo === 'Viatura' ? 'VIATURA' : 'DESTINO';
+            const contextLabel = req.tipo === 'Viatura' ? 'VIATURA' : 'DESTINO';
             doc.text(contextLabel, col2X, yPos);
 
             doc.setFont('helvetica', 'bold');
@@ -372,11 +384,11 @@ export default function Requisicoes() {
             ? (!r.status || r.status === 'pendente')
             : r.status === 'concluida';
 
-        const matchesSearch = r.numero.toString().includes(filter) ||
+        const matchesSearch = r.numero.toLowerCase().includes(filter.toLowerCase()) ||
             fornecedores.find(f => f.id === r.fornecedorId)?.nome.toLowerCase().includes(filter.toLowerCase());
 
         return matchesStatus && matchesSearch;
-    }).sort((a, b) => b.numero - a.numero);
+    }).sort((a, b) => b.numero.localeCompare(a.numero));
 
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 font-sans">

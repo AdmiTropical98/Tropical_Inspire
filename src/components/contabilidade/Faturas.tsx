@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Plus, Search, FileText, Download, Eye, Trash2, Pencil } from 'lucide-react';
 import type { Fatura } from '../../types';
 
+import { useWorkshop } from '../../contexts/WorkshopContext';
+
 interface FaturasProps {
     invoices: Fatura[];
     onCreateNew: () => void;
@@ -14,6 +16,7 @@ interface FaturasProps {
 export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, onEdit, onView }: FaturasProps) {
     // const [invoices] = useState<Fatura[]>(MOCK_INVOICES); // Removed local state
     const [searchTerm, setSearchTerm] = useState('');
+    const { clientes } = useWorkshop();
 
     const getStatusColor = (status: Fatura['status']) => {
         switch (status) {
@@ -79,8 +82,7 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
                                     {invoice.numero}
                                 </td>
                                 <td className="px-6 py-4 text-slate-300">
-                                    {/* Mock Client Name lookup */}
-                                    {invoice.clienteId === 'c1' ? 'Cliente Exemplo Lda' : 'Particular'}
+                                    {clientes.find(c => c.id === invoice.clienteId)?.nome || 'Cliente Desconhecido'}
                                 </td>
                                 <td className="px-6 py-4 text-slate-400">{invoice.data}</td>
                                 <td className="px-6 py-4 text-slate-400">{invoice.vencimento}</td>

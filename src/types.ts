@@ -66,7 +66,7 @@ export interface CentroCusto {
 
 export interface Requisicao {
     id: string;
-    numero: number;
+    numero: string;
     data: string;
     tipo: 'Oficina' | 'Stock' | 'Viatura' | 'CentroCusto';
     viaturaId?: string;
@@ -325,6 +325,7 @@ export interface Fatura {
         dataFim: string;
         centroCustoId?: string;
     };
+    cliente?: Cliente;
 }
 
 export interface AdminUser {

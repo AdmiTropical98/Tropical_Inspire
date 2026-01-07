@@ -509,6 +509,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const addRequisicao = async (r: Requisicao) => {
         const { error } = await supabase.from('requisicoes').insert({
             id: r.id,
+            numero: r.numero,
             data: r.data,
             tipo: r.tipo,
             fornecedor_id: r.fornecedorId,

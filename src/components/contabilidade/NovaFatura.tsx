@@ -9,20 +9,14 @@ interface NovaFaturaProps {
     onSave: (data: any) => void;
 }
 
-// MOCK CLIENTS
-const MOCK_CLIENTS: Cliente[] = [
-    { id: 'c1', nome: 'Cliente Exemplo Lda', nif: '500123456', email: 'contato@exemplo.com', morada: 'Luanda, Angola', telefone: '923456789' },
-    { id: 'c2', nome: 'Transportes Rápidos', nif: '500987654', email: 'geral@transrapidos.ao', morada: 'Viana, Luanda', telefone: '912345678' },
-    { id: 'c3', nome: 'Particular - João Silva', nif: '100200300', email: 'joao.silva@email.com', morada: 'Talatona', telefone: '933222111' },
-];
-
 export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaProps) {
+    const { viaturas, centrosCustos, clientes } = useWorkshop();
+
     const [clienteId, setClienteId] = useState(initialData?.clienteId || '');
     const [data, setData] = useState(initialData?.data || new Date().toISOString().split('T')[0]);
     const [vencimento, setVencimento] = useState(initialData?.vencimento || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
     const [notas, setNotas] = useState(initialData?.notas || '');
 
-    const { viaturas, centrosCustos } = useWorkshop();
     const [items, setItems] = useState<ItemFatura[]>(initialData?.itens || []);
     const [showRentalModal, setShowRentalModal] = useState(false);
 
@@ -56,10 +50,10 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
             quantidade: rentalDays,
             precoUnitario: rentalRate,
             taxaImposto: 14,
-            total: (rentalDays * rentalRate) * 1.14 // Including tax in total helper, but items calculate differently
+            total: (rentalDays * rentalRate) * 1.14
         };
 
-        // Let the updateItem logic handle the total calc to be safe, but here we set initial
+        // Recalculate precisely
         const subRes = rentalDays * rentalRate;
         const taxRes = subRes * 0.14;
         newItem.total = subRes + taxRes;
@@ -171,15 +165,15 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                             className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">Selecione um cliente...</option>
-                            {MOCK_CLIENTS.map(c => (
+                            {clientes.map(c => (
                                 <option key={c.id} value={c.id}>{c.nome}</option>
                             ))}
                         </select>
                         {clienteId && (
                             <div className="p-4 bg-slate-800/30 rounded-lg text-sm text-slate-400 space-y-1">
-                                <p className="font-medium text-white">{MOCK_CLIENTS.find(c => c.id === clienteId)?.nome}</p>
-                                <p>NIF: {MOCK_CLIENTS.find(c => c.id === clienteId)?.nif}</p>
-                                <p>{MOCK_CLIENTS.find(c => c.id === clienteId)?.morada}</p>
+                                <p className="font-medium text-white">{clientes.find(c => c.id === clienteId)?.nome}</p>
+                                <p>NIF: {clientes.find(c => c.id === clienteId)?.nif}</p>
+                                <p>{clientes.find(c => c.id === clienteId)?.morada}</p>
                             </div>
                         )}
                     </div>
@@ -218,6 +212,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
+
                             <FileText className="w-5 h-5 text-blue-500" />
                             Itens da Fatura
                         </h3>

@@ -372,7 +372,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             doc.setFont('helvetica', 'bold');
             doc.text('RELATÓRIO DE CUSTOS DE ALUGUER', 10, 70);
 
-            let yPos = 85;
+            const yPos = 85;
 
             // --- TABLE ---
             const tableBody = Array.from(costCenterStats.entries()).map(([ccId, stats]) => {
