@@ -55,6 +55,23 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
         </div>
     );
 
+    const getTimeAgo = (dateData: string | Date) => {
+        try {
+            const date = typeof dateData === 'string' ? new Date(dateData) : dateData;
+            const now = new Date();
+            const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+            if (diffInSeconds < 60) return `há ${diffInSeconds} s`;
+            const diffInMinutes = Math.floor(diffInSeconds / 60);
+            if (diffInMinutes < 60) return `há ${diffInMinutes} m`;
+            const diffInHours = Math.floor(diffInMinutes / 60);
+            if (diffInHours < 24) return `há ${diffInHours} h`;
+            return date.toLocaleDateString();
+        } catch (e) {
+            return '---';
+        }
+    };
+
     const ActivityItem = ({ icon: Icon, title, time, type }: any) => (
         <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-800/30 transition-colors border border-transparent hover:border-slate-700/50">
             <div className={`mt-1 p-2 rounded-lg ${type === 'alert' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
@@ -111,7 +128,6 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
 
             {/* Main Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
                 {/* 1. Services / Requests */}
                 {hasAccess(userRole, 'requisicoes') ? (
                     <QuickStat
@@ -169,10 +185,8 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
 
             {/* Content Split: Operations vs Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
                 {/* LEFT: Operational Overview (2/3) */}
                 <div className="lg:col-span-2 space-y-6">
-
                     {/* Live Operations Panel */}
                     <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6">
                         <div className="flex items-center justify-between mb-6">
@@ -184,7 +198,8 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                                 Ver Escalas <ChevronRight className="w-4 h-4 ml-1" />
                             </button>
                         </div>
-
+                        {/* Stats Logic moved to separate block, but keeping structure intact */}
+                        {/* ... */}
                         {/* If Admin/Manager, show detailed fleet breakdown */}
                         {hasAccess(userRole, 'viaturas') && (
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -266,21 +281,16 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                             )}
                         </div>
                     </div>
-
                 </div>
-
 
                 {/* RIGHT: Activity & Alerts (1/3) */}
                 <div className="space-y-6">
-
                     {/* Admin Management (Only for Admins) */}
                     {activeTab === 'admin_users' && userRole === 'admin' && (
                         <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6">
                             <AdminManagement />
                         </div>
                     )}
-
-
 
                     {/* Activity Feed */}
                     <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 h-full min-h-[400px]">
@@ -299,25 +309,28 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                                         key={n.id}
                                         icon={n.type.includes('urgent') ? AlertTriangle : FileText}
                                         title={n.type.replace(/_/g, ' ').toUpperCase()}
-                                        time="há 5 min" // Mock time for now or use relative calc
+                                        time={getTimeAgo(n.timestamp || new Date())}
                                         type={n.type.includes('urgent') ? 'alert' : 'info'}
                                     />
                                 ))
                             )}
                         </div>
 
-                        {userRole === 'admin' && pendingRegistrations > 0 && (
-                            <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                                <h3 className="text-amber-400 font-bold mb-1">Aprovação Necessária</h3>
-                                <p className="text-slate-400 text-xs mb-3">Existem {pendingRegistrations} novos registos pendentes.</p>
-                                <button onClick={() => setActiveTab('equipa-oficina')} className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
-                                    Rever Pedidos
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+
+                        {
+                            userRole === 'admin' && pendingRegistrations > 0 && (
+                                <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                                    <h3 className="text-amber-400 font-bold mb-1">Aprovação Necessária</h3>
+                                    <p className="text-slate-400 text-xs mb-3">Existem {pendingRegistrations} novos registos pendentes.</p>
+                                    <button onClick={() => setActiveTab('equipa-oficina')} className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
+                                        Rever Pedidos
+                                    </button>
+                                </div>
+                            )
+                        }
+                    </div >
+                </div >
+            </div >
 
         </div >
     );

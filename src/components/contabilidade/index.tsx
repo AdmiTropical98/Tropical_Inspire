@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     Wallet, TrendingDown, DollarSign,
     Calendar, Download, PieChart, BarChart3,
-    ArrowUpRight, FileText, Car, Search, Plus, Edit, Trash2, Fuel
+    ArrowUpRight, FileText, Car, Fuel
 } from 'lucide-react';
 import Faturas from './Faturas';
 import NovaFatura from './NovaFatura';
@@ -64,9 +64,20 @@ export default function Contabilidade() {
                 .select('custo');
             const totalMaint = maintData?.reduce((acc, curr) => acc + (curr.custo || 0), 0) || 0;
 
-            // 4. Expenses - Other (Placeholder for Salaries/Parts if not tracking yet)
-            const totalSalaries = 0;
-            const totalParts = 0;
+            // 4. Expenses - Other & Salaries
+            // Fetch drivers for salary calculation
+            // Fetch drivers for salary calculation
+
+            // Assuming we pay all drivers regardless of status "disponivel", but maybe filtered by "not deleted".
+            // Since we don't have a specific "employed" flag other than existence, we'll sum all.
+            // However, seeing 'activeDrivers' filter in dashboard, maybe we should be consistent.
+            // Let's sum ALL drivers in the table as they are likely the payroll.
+            const { data: allDrivers } = await supabase
+                .from('motoristas')
+                .select('vencimento_base');
+
+            const totalSalaries = allDrivers?.reduce((acc, curr) => acc + (curr.vencimento_base || 0), 0) || 0;
+            const totalParts = 0; // Still no dedicated parts table separate from maintenance generally
             const totalOther = 0;
 
             const totalExpenses = totalFuel + totalMaint + totalSalaries + totalParts + totalOther;

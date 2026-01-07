@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Plus, Search, Pencil, Trash2, Building2, Phone, Mail, MapPin } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import type { Cliente } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export default function Clientes() {
     const { clientes, addCliente, updateCliente, deleteCliente } = useWorkshop();
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -31,7 +33,7 @@ export default function Clientes() {
     };
 
     const handleDelete = (id: string) => {
-        if (confirm('Tem a certeza que deseja eliminar este cliente?')) {
+        if (confirm(t('clients.delete_confirm'))) {
             deleteCliente(id);
         }
     };
@@ -40,7 +42,7 @@ export default function Clientes() {
         e.preventDefault();
 
         if (!formData.nome || !formData.nif) {
-            alert('Nome e NIF são obrigatórios');
+            alert(t('clients.required_fields'));
             return;
         }
 
@@ -65,7 +67,7 @@ export default function Clientes() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="text"
-                        placeholder="Pesquisar clientes (Nome, NIF...)"
+                        placeholder={t('clients.search')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-slate-500"
@@ -80,7 +82,7 @@ export default function Clientes() {
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40"
                 >
                     <Plus className="w-5 h-5" />
-                    Novo Cliente
+                    {t('clients.new')}
                 </button>
             </div>
 
@@ -139,7 +141,7 @@ export default function Clientes() {
                 {filteredClientes.length === 0 && (
                     <div className="col-span-full py-12 text-center text-slate-500">
                         <Building2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                        <p>Nenhum cliente encontrado</p>
+                        <p>{t('clients.empty')}</p>
                     </div>
                 )}
             </div>
@@ -150,7 +152,7 @@ export default function Clientes() {
                     <div className="bg-[#1e293b] w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl overflow-hidden animate-in zoom-in-95">
                         <div className="p-6 border-b border-slate-700 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-white">
-                                {editingCliente ? 'Editar Cliente' : 'Novo Cliente'}
+                                {editingCliente ? t('clients.edit') : t('clients.new')}
                             </h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">
                                 <span className="sr-only">Fechar</span>
