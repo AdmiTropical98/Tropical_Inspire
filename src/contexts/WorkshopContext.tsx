@@ -517,9 +517,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             centro_custo_id: r.centroCustoId,
             obs: r.obs || '',
             status: r.status || 'pendente',
-            criado_por: r.criadoPor
+            criado_por: r.criadoPor,
+            itens: r.itens
         });
-        if (!error) setRequisicoes(prev => [{ ...r, status: r.status || 'pendente' }, ...prev]);
+        if (error) {
+            console.error('Error adding requisition:', error);
+            return;
+        }
+        setRequisicoes(prev => [{ ...r, status: r.status || 'pendente' }, ...prev]);
     };
     const updateRequisicao = async (r: Requisicao) => {
         const { error } = await supabase.from('requisicoes').update({
