@@ -526,7 +526,7 @@ export default function Requisicoes() {
                                         <div>
                                             <p className="text-white font-bold">{fornecedores.find(f => f.id === req.fornecedorId)?.nome || 'Fornecedor'}</p>
                                             <p className="text-xs text-slate-500 flex items-center gap-2">
-                                                {req.data} • {req.itens.length} items
+                                                {req.data} • {(req.itens || []).length} items
                                             </p>
                                         </div>
                                     </div>
@@ -604,7 +604,7 @@ export default function Requisicoes() {
                                                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-slate-400">
                                                     <span className="flex items-center gap-2">
                                                         <Package className="w-4 h-4 text-slate-500" />
-                                                        {req.itens.length} itens
+                                                        {(req.itens || []).length} itens
                                                     </span>
                                                     {viatura && (
                                                         <span className="flex items-center gap-2 text-blue-300/80">
