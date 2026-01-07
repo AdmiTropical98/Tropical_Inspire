@@ -108,7 +108,7 @@ function App() {
 
   if (!isAuthenticated) return <Login />;
 
-  const unreadCount = notifications.filter(n => n.status === 'pending' && n.type !== 'system_alert').length;
+  if (!isAuthenticated) return <Login />;
 
   return (
     <ChatProvider>
@@ -261,11 +261,6 @@ function App() {
               <button onClick={() => setActiveTab('mensagens')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
                 <MessageSquare className="w-5 h-5" />
                 <span className="font-medium">Mensagens</span>
-                {unreadCount > 0 && (
-                  <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {unreadCount}
-                  </span>
-                )}
               </button>
             </div>
           </nav>
@@ -431,11 +426,6 @@ function App() {
                   <button onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                     <MessageSquare className="w-5 h-5" />
                     <span className="font-medium">Mensagens</span>
-                    {unreadCount > 0 && (
-                      <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        {unreadCount}
-                      </span>
-                    )}
                   </button>
                 </div>
 
