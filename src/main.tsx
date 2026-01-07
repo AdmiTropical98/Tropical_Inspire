@@ -7,15 +7,18 @@ import { AuthProvider } from './contexts/AuthContext'
 import { PermissionsProvider } from './contexts/PermissionsContext'
 
 import { WorkshopProvider } from './contexts/WorkshopContext'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <WorkshopProvider>
-      <AuthProvider>
-        <PermissionsProvider>
-          <App />
-        </PermissionsProvider>
-      </AuthProvider>
-    </WorkshopProvider>
+    <ErrorBoundary>
+      <WorkshopProvider>
+        <AuthProvider>
+          <PermissionsProvider>
+            <App />
+          </PermissionsProvider>
+        </AuthProvider>
+      </WorkshopProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )
