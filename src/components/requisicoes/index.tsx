@@ -88,10 +88,13 @@ export default function Requisicoes() {
         const currentYear = new Date().getFullYear().toString().slice(-2);
         const prefix = `${currentYear}/`;
 
-        const yearRequisicoes = requisicoes.filter(r => r.numero && r.numero.startsWith(prefix));
+        const yearRequisicoes = requisicoes.filter(r => {
+            const numStr = String(r.numero || '');
+            return numStr.startsWith(prefix);
+        });
 
         const maxSeq = yearRequisicoes.reduce((max, r) => {
-            const parts = r.numero.split('/');
+            const parts = String(r.numero).split('/');
             if (parts.length === 2) {
                 const seq = parseInt(parts[1], 10);
                 return !isNaN(seq) && seq > max ? seq : max;
@@ -384,11 +387,15 @@ export default function Requisicoes() {
             ? (!r.status || r.status === 'pendente')
             : r.status === 'concluida';
 
-        const matchesSearch = r.numero.toLowerCase().includes(filter.toLowerCase()) ||
-            fornecedores.find(f => f.id === r.fornecedorId)?.nome.toLowerCase().includes(filter.toLowerCase());
+        const numStr = String(r.numero || '');
+        const fornecedor = fornecedores.find(f => f.id === r.fornecedorId);
+        const fornecedorNome = fornecedor ? fornecedor.nome.toLowerCase() : '';
+
+        const matchesSearch = numStr.toLowerCase().includes(filter.toLowerCase()) ||
+            fornecedorNome.includes(filter.toLowerCase());
 
         return matchesStatus && matchesSearch;
-    }).sort((a, b) => b.numero.localeCompare(a.numero));
+    }).sort((a, b) => String(b.numero || '').localeCompare(String(a.numero || '')));
 
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 font-sans">
