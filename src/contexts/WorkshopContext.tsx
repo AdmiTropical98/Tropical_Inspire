@@ -132,7 +132,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (cc) setCentrosCustos(cc.map((item: any) => ({ ...item, id: item.id, nome: item.nome, localizacao: item.localizacao, codigo: item.codigo })));
 
             const { data: r } = await supabase.from('requisicoes').select('*');
-            if (r) setRequisicoes(r.map((item: any) => ({ ...item, fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por })));
+            if (r) setRequisicoes(r.map((item: any) => ({ ...item, numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por })));
 
             // 2. Eva Transports
             const { data: transports } = await supabase.from('eva_transports').select('*');
