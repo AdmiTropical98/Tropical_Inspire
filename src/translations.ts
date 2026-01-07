@@ -74,6 +74,8 @@ export const translations = {
         'modal.confirm': 'CONFIRMAR',
 
         // Requisitions
+        'req.title': 'Requisições',
+        'req.subtitle': 'Gerir pedidos de material e serviços de oficina.',
         'req.new': 'Nova Requisição',
         'req.search': 'Pesquisar por nome ou ID...',
         'req.filter_all': 'Todos',
@@ -465,6 +467,8 @@ export const translations = {
         'modal.confirm': 'CONFIRM',
 
         // Requisitions
+        'req.title': 'Requisitions',
+        'req.subtitle': 'Manage material requests and workshop services.',
         'req.new': 'New Request',
         'req.search': 'Search by name or ID...',
         'req.filter_all': 'All',
