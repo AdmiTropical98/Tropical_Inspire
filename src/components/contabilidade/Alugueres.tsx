@@ -833,6 +833,55 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             };
         });
 
+        // --- VALIDATION: CHECK AVAILABILITY ---
+        const conflicts: string[] = [];
+
+        detailsMap.forEach(newRental => {
+            const newStart = new Date(newRental.dataInicio).getTime();
+            const newEnd = new Date(newRental.dataFim).getTime();
+
+            // Check against all existing invoices
+            invoices.forEach(existingInv => {
+                // Skip if not rental or if it's the one we are editing
+                if (existingInv.tipo !== 'aluguer' || existingInv.id === editingId) return;
+
+                const existingDetails = existingInv.aluguerDetails;
+                if (!existingDetails) return;
+
+                // Check against specific vehicle details in existing invoice
+                if (existingDetails.detalhesViaturas) {
+                    existingDetails.detalhesViaturas.forEach(existingV => {
+                        if (existingV.viaturaId === newRental.viaturaId) {
+                            const exStart = new Date(existingV.dataInicio).getTime();
+                            const exEnd = new Date(existingV.dataFim || existingV.dataInicio).getTime(); // Fallback end
+
+                            // Overlap Check
+                            if (newStart <= exEnd && newEnd >= exStart) {
+                                const vName = viaturas.find(v => v.id === newRental.viaturaId)?.matricula || '???';
+                                const ccName = centrosCustos.find(c => c.id === existingDetails.centroCustoId)?.nome || 'Sem C.Custo';
+                                conflicts.push(`Viatura ${vName} já alugada em ${ccName} (${existingV.dataInicio} a ${existingV.dataFim})`);
+                            }
+                        }
+                    });
+                } else if (existingDetails.viaturasIds?.includes(newRental.viaturaId) || existingDetails.viaturaId === newRental.viaturaId) {
+                    // Fallback for legacy rentals without per-vehicle details
+                    const exStart = new Date(existingDetails.dataInicio).getTime();
+                    const exEnd = new Date(existingDetails.dataFim).getTime();
+
+                    if (newStart <= exEnd && newEnd >= exStart) {
+                        const vName = viaturas.find(v => v.id === newRental.viaturaId)?.matricula || '???';
+                        const ccName = centrosCustos.find(c => c.id === existingDetails.centroCustoId)?.nome || 'Sem C.Custo';
+                        conflicts.push(`Viatura ${vName} já alugada em ${ccName} (${existingDetails.dataInicio} a ${existingDetails.dataFim})`);
+                    }
+                }
+            });
+        });
+
+        if (conflicts.length > 0) {
+            alert(`Conflito de Disponibilidade:\n\n${conflicts.join('\n')}`);
+            return;
+        }
+
         const invoiceItems = detailsMap.map(detail => {
             const v = viaturas.find(vi => vi.id === detail.viaturaId);
             const netTotal = detail.precoDiario * detail.dias;
