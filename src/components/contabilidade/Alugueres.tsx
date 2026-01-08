@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Car, Printer, Trash2, Download, X, FileText } from 'lucide-react';
+import { Plus, Search, Car, Printer, Trash2, Download, X, FileText, Edit } from 'lucide-react'; // Added Edit
 import type { Fatura } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import jsPDF from 'jspdf';
@@ -12,16 +12,18 @@ interface AlugueresProps {
     onDelete: (id: string) => void;
 }
 
-
-
 export default function Alugueres({ invoices, onSaveRental, onDelete }: AlugueresProps) {
     const { viaturas, centrosCustos, clientes } = useWorkshop();
     const [view, setView] = useState<'list' | 'create'>('list');
     const [searchTerm, setSearchTerm] = useState('');
 
     // Rental Form State
+    const [editingId, setEditingId] = useState<string | null>(null); // EDIT MODE ID
     const [clienteId, setClienteId] = useState('');
     const [selectedViaturaIds, setSelectedViaturaIds] = useState<string[]>([]);
+
+    // Custom Reference
+    const [periodoReferencia, setPeriodoReferencia] = useState(''); // YYYY-MM
 
     // Per-vehicle customization state
     const [vehicleSettings, setVehicleSettings] = useState<Record<string, { dias: number, dataInicio: string }>>({});
@@ -39,6 +41,37 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     });
     const [newTemplateName, setNewTemplateName] = useState('');
     const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+
+    // ... (keep handleSaveTemplate, handleLoadTemplate, filteredInvoices, handleAddViatura, handleRemoveViatura, getVehicleSettings, updateVehicleDetails, calculateTotalDaily, calculateGrandTotal) ...
+
+    const handleEdit = (invoice: Fatura) => {
+        setEditingId(invoice.id);
+        setClienteId(invoice.clienteId);
+
+        // Restore Vehicle IDs
+        const details = invoice.aluguerDetails;
+        const vIds = details?.viaturasIds || (details?.viaturaId ? [details?.viaturaId] : []);
+        setSelectedViaturaIds(vIds);
+
+        // Restore Settings
+        const newSettings: Record<string, { dias: number, dataInicio: string }> = {};
+        if (details?.detalhesViaturas) {
+            details.detalhesViaturas.forEach(d => {
+                newSettings[d.viaturaId] = { dias: d.dias, dataInicio: d.dataInicio };
+            });
+        }
+        setVehicleSettings(newSettings);
+
+        // Restore General Defaults (for fallback UI)
+        if (details) {
+            setDataInicio(details.dataInicio);
+            setDias(details.dias);
+            setCentroCustoId(details.centroCustoId || '');
+            setPeriodoReferencia(details.periodoReferencia || '');
+        }
+
+        setView('create');
+    };
 
     const handleSaveTemplate = () => {
         if (!newTemplateName) return;
@@ -58,8 +91,6 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             setVehicleSettings({});
         }
     };
-
-
 
     const filteredInvoices = invoices.filter(inv =>
         (inv.tipo === 'aluguer') &&
@@ -108,91 +139,6 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             const settings = getVehicleSettings(id);
             return acc + ((v?.precoDiario || 0) * settings.dias);
         }, 0);
-    };
-
-    const handleCreateRental = () => {
-        if (!clienteId || selectedViaturaIds.length === 0) {
-            alert('Por favor preencha todos os campos obrigatórios e adicione pelo menos uma viatura.');
-            return;
-        }
-
-        const costCenter = centrosCustos.find(c => c.id === centroCustoId);
-
-        // Prepare vehicle details
-        const detailsMap = selectedViaturaIds.map(vId => {
-            const vehicle = viaturas.find(v => v.id === vId);
-            const settings = getVehicleSettings(vId);
-            const daily = vehicle?.precoDiario || 0;
-            const vehicleTotal = daily * settings.dias;
-
-            return {
-                viaturaId: vId,
-                dias: settings.dias,
-                dataInicio: settings.dataInicio,
-                dataFim: new Date(new Date(settings.dataInicio).getTime() + settings.dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                precoDiario: daily,
-                total: vehicleTotal,
-                vehicle
-            };
-        });
-
-        const rentalSubtotal = detailsMap.reduce((acc, item) => acc + item.total, 0);
-
-        const invoiceItems = detailsMap.map(item => ({
-            id: crypto.randomUUID(),
-            descricao: `Aluguer ${item.vehicle?.marca} ${item.vehicle?.modelo} (${item.vehicle?.matricula}) - ${item.dias} dias${costCenter ? ` - ${costCenter.nome}` : ''}`,
-            quantidade: item.dias,
-            precoUnitario: item.precoDiario,
-            taxaImposto: 23,
-            total: item.total * 1.23
-        }));
-
-        const subtotal = rentalSubtotal;
-        const tax = subtotal * 0.23;
-        const total = subtotal + tax;
-
-        // Use the first vehicle as "primary" for backward compatibility
-        const primaryViaturaId = selectedViaturaIds[0];
-        const primaryStats = detailsMap[0];
-
-        const newInvoice: Fatura = {
-            id: crypto.randomUUID(),
-            numero: `REG 2024/${(invoices.length + 100).toString()}`,
-            data: dataInicio,
-            vencimento: new Date(new Date(dataInicio).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            clienteId,
-            status: 'rascunho',
-            tipo: 'aluguer',
-            aluguerDetails: {
-                viaturaId: primaryViaturaId,
-                viaturasIds: selectedViaturaIds,
-                dias: dias, // Keep global "dias" as reference or use max? Using base for now.
-                dataInicio: dataInicio,
-                dataFim: new Date(new Date(dataInicio).getTime() + dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                centroCustoId,
-                detalhesViaturas: detailsMap.map(d => ({
-                    viaturaId: d.viaturaId,
-                    dias: d.dias,
-                    dataInicio: d.dataInicio,
-                    dataFim: d.dataFim,
-                    precoDiario: d.precoDiario
-                }))
-            },
-            subtotal,
-            imposto: tax,
-            desconto: 0,
-            total,
-            itens: invoiceItems
-        };
-
-        onSaveRental(newInvoice);
-        setView('list');
-        // Reset form
-        setClienteId('');
-        setSelectedViaturaIds([]);
-        setCentroCustoId('');
-        setDias(1);
-        setVehicleSettings({});
     };
 
     const formatCurrency = (val: number) => {
@@ -814,6 +760,86 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         }
     };
 
+    const handleCreateRental = () => {
+        if (!clienteId || selectedViaturaIds.length === 0) {
+            alert('Por favor, selecione um cliente e pelo menos uma viatura.');
+            return;
+        }
+
+        const detailsMap = selectedViaturaIds.map(vid => {
+            const v = viaturas.find(vi => vi.id === vid);
+            const settings = vehicleSettings[vid];
+            return {
+                viaturaId: vid,
+                dias: settings?.dias || 1,
+                dataInicio: settings?.dataInicio || new Date().toISOString().split('T')[0],
+                dataFim: new Date(new Date(settings?.dataInicio || new Date()).getTime() + (settings?.dias || 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                precoDiario: v?.precoDiario || 0
+            };
+        });
+
+        const invoiceItems = detailsMap.map(detail => {
+            const v = viaturas.find(vi => vi.id === detail.viaturaId);
+            return {
+                descricao: `${v?.marca} ${v?.modelo} (${v?.matricula}) - ${detail.dias} dias`,
+                quantidade: 1,
+                precoUnitario: detail.precoDiario * detail.dias,
+                total: detail.precoDiario * detail.dias
+            };
+        });
+
+        const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
+        const amountVat = subtotal * 0.23;
+        const total = subtotal + amountVat;
+
+        const startDates = detailsMap.map(d => new Date(d.dataInicio).getTime());
+        const endDates = detailsMap.map(d => new Date(d.dataFim).getTime());
+
+        // Use Custom Reference OR Format based on Date
+        const referenceToSave = periodoReferencia || '';
+
+        const rentalData: Fatura = {
+            id: editingId || crypto.randomUUID(), // Use existing ID if editing
+            numero: editingId ? (invoices.find(i => i.id === editingId)?.numero || 'REG ERR') : `REG 2024/${invoices.filter(i => i.tipo === 'aluguer').length + 100}`,
+            data: new Date().toISOString().split('T')[0], // Invoice Date
+            vencimento: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            clienteId,
+            status: 'emitida',
+            itens: invoiceItems,
+            subtotal,
+            imposto: amountVat,
+            desconto: 0,
+            total,
+            tipo: 'aluguer',
+            aluguerDetails: {
+                viaturaId: selectedViaturaIds[0], // Primary for legacy compatibility
+                viaturasIds: selectedViaturaIds,
+                dias: detailsMap.reduce((sum, d) => sum + d.dias, 0), // Sum of all vehicle days
+                dataInicio: new Date(Math.min(...startDates)).toISOString().split('T')[0],
+                dataFim: new Date(Math.max(...endDates)).toISOString().split('T')[0],
+                centroCustoId: centroCustoId || undefined,
+                periodoReferencia: referenceToSave, // Save Custom Reference
+                detalhesViaturas: detailsMap.map(d => ({
+                    viaturaId: d.viaturaId,
+                    dias: d.dias,
+                    dataInicio: d.dataInicio,
+                    dataFim: d.dataFim,
+                    precoDiario: d.precoDiario
+                }))
+            }
+        };
+
+        onSaveRental(rentalData);
+        setView('list');
+        // Reset Form
+        setEditingId(null);
+        setClienteId('');
+        setSelectedViaturaIds([]);
+        setVehicleSettings({});
+        setCentroCustoId('');
+        setPeriodoReferencia('');
+    };
+
     if (view === 'create') {
         return (
             <div className="space-y-6 max-w-4xl mx-auto">
@@ -839,6 +865,30 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                 <option value="">Selecione o Cliente</option>
                                 {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                             </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400">Centro de Custo (Opcional)</label>
+                            <select
+                                value={centroCustoId}
+                                onChange={(e) => setCentroCustoId(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                            >
+                                <option value="">Selecione o Centro de Custo</option>
+                                {centrosCustos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Reference Month Input */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400">Mês/Ano de Referência (Opcional)</label>
+                            <input
+                                type="month"
+                                value={periodoReferencia}
+                                onChange={(e) => setPeriodoReferencia(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                            />
+                            <p className="text-xs text-slate-500">Opcional: Selecione manualmenente se diferente da data atual.</p>
                         </div>
 
                         <div className="space-y-2">
@@ -1084,7 +1134,9 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                 return (
                                     <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors group">
                                         <td className="px-6 py-4 font-medium text-white group-hover:text-amber-400 transition-colors">
-                                            Referente a {new Date(inv.data).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                                            {inv.aluguerDetails?.periodoReferencia
+                                                ? `Referente a ${(new Date(inv.aluguerDetails.periodoReferencia + '-01')).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}`
+                                                : `Referente a ${new Date(inv.data).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}`}
                                         </td>
                                         <td className="px-6 py-4 text-slate-300">
                                             {inv.aluguerDetails?.viaturasIds ? (
@@ -1109,50 +1161,43 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                         <td className="px-6 py-4 text-slate-300">
                                             {clientes.find(c => c.id === inv.clienteId)?.nome || inv.clienteId}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-300">
-                                            {inv.aluguerDetails?.dias} dias
-                                            <span className="block text-xs text-slate-500">
-                                                {inv.aluguerDetails?.dataInicio}
-                                            </span>
+                                        <td className="px-6 py-4 text-slate-400">
+                                            {new Date(inv.aluguerDetails?.dataInicio || inv.data).toLocaleDateString('pt-PT')} <span className="mx-1 text-slate-600">→</span> {new Date(inv.aluguerDetails?.dataFim || inv.vencimento).toLocaleDateString('pt-PT')}
                                         </td>
-                                        <td className="px-6 py-4 text-right font-medium text-white">
-                                            {formatCurrency(inv.total)}
+                                        <td className="px-6 py-4 text-right font-medium text-emerald-400">
+                                            {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(inv.total)}
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${inv.status === 'paga'
-                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                                    }`}>
-                                                    {inv.status.toUpperCase()}
-                                                </span>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-center gap-2">
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        generateRentalContract(inv);
-                                                    }}
-                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
-                                                    title="Gerar Contrato"
+                                                    title="Editar"
+                                                    onClick={() => handleEdit(inv)}
+                                                    className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
                                                 >
-                                                    <FileText className="w-4 h-4" />
+                                                    <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        generateRentalPDF(inv);
-                                                    }}
-                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
-                                                    title="Baixar PDF"
+                                                    title="Transferir Fatura"
+                                                    onClick={() => generateInvoicePDF(inv)}
+                                                    className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    title="Imprimir Contrato"
+                                                    onClick={() => generateRentalContract(inv)}
+                                                    className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-colors"
                                                 >
                                                     <Printer className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onDelete(inv.id);
+                                                    title="Apagar"
+                                                    onClick={() => {
+                                                        if (window.confirm('Tem a certeza que deseja apagar este registo?')) {
+                                                            onDelete(inv.id);
+                                                        }
                                                     }}
-                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                                                    title="Eliminar"
+                                                    className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>

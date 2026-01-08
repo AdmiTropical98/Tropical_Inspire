@@ -341,6 +341,7 @@ export interface Fatura {
         dataInicio: string;
         dataFim: string;
         centroCustoId?: string;
+        periodoReferencia?: string; // YYYY-MM
         detalhesViaturas?: {
             viaturaId: string;
             dias: number;

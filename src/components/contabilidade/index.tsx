@@ -356,9 +356,12 @@ export default function Contabilidade() {
     // New function to handle Rental Saving to Supabase
     const handleSaveRental = async (inv: Fatura) => {
         try {
-            const newId = crypto.randomUUID();
-            const { error } = await supabase.from('faturas').insert({
-                id: newId,
+            // If inv.id exists use it, otherwise generate new
+            const isNew = !invoices.find(i => i.id === inv.id);
+            const idToSave = isNew ? crypto.randomUUID() : inv.id;
+
+            const { error } = await supabase.from('faturas').upsert({
+                id: idToSave,
                 numero: inv.numero,
                 data: inv.data,
                 vencimento: inv.vencimento,
@@ -374,10 +377,15 @@ export default function Contabilidade() {
 
             if (error) throw error;
 
+            // Sync Items: Delete all for this factura first, then re-insert
+            if (!isNew) {
+                await supabase.from('itens_fatura').delete().eq('fatura_id', idToSave);
+            }
+
             // Insert Items
             if (inv.itens && inv.itens.length > 0) {
                 const { error: itemsError } = await supabase.from('itens_fatura').insert(inv.itens.map((item: any) => ({
-                    fatura_id: newId,
+                    fatura_id: idToSave,
                     descricao: item.descricao,
                     quantidade: item.quantidade,
                     preco_unitario: item.precoUnitario,
