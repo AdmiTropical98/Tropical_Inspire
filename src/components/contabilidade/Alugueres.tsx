@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Car, Printer, Trash2, Download } from 'lucide-react';
+import { Plus, Search, Car, Printer, Trash2, Download, X } from 'lucide-react';
 import type { Fatura } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import jsPDF from 'jspdf';
@@ -20,11 +20,12 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
     // Rental Form State
     const [clienteId, setClienteId] = useState('');
-    const [viaturaId, setViaturaId] = useState('');
+    const [selectedViaturaIds, setSelectedViaturaIds] = useState<string[]>([]);
+    const [tempViaturaId, setTempViaturaId] = useState(''); // For the dropdown select before adding
     const [centroCustoId, setCentroCustoId] = useState('');
     const [dataInicio, setDataInicio] = useState(new Date().toISOString().split('T')[0]);
     const [dias, setDias] = useState(1);
-    const [precoDiario, setPrecoDiario] = useState(0);
+
 
     const filteredInvoices = invoices.filter(inv =>
         (inv.tipo === 'aluguer') &&
@@ -32,38 +33,69 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             inv.status.includes(searchTerm.toLowerCase()))
     );
 
-    const handleViaturaSelect = (id: string) => {
-        setViaturaId(id);
-        const v = viaturas.find(vi => vi.id === id);
-        if (v && v.precoDiario) {
-            setPrecoDiario(v.precoDiario);
+    const handleAddViatura = () => {
+        if (tempViaturaId && !selectedViaturaIds.includes(tempViaturaId)) {
+            setSelectedViaturaIds([...selectedViaturaIds, tempViaturaId]);
+            setTempViaturaId('');
         }
     };
 
+    const handleRemoveViatura = (id: string) => {
+        setSelectedViaturaIds(selectedViaturaIds.filter(vId => vId !== id));
+    };
+
+    const calculateTotalDaily = () => {
+        return selectedViaturaIds.reduce((acc, id) => {
+            const v = viaturas.find(vi => vi.id === id);
+            return acc + (v?.precoDiario || 0);
+        }, 0);
+    };
+
     const handleCreateRental = () => {
-        if (!clienteId || !viaturaId || dias <= 0 || precoDiario <= 0) {
-            alert('Por favor preencha todos os campos obrigatórios.');
+        if (!clienteId || selectedViaturaIds.length === 0 || dias <= 0) {
+            alert('Por favor preencha todos os campos obrigatórios e adicione pelo menos uma viatura.');
             return;
         }
 
-        const vehicle = viaturas.find(v => v.id === viaturaId);
         const costCenter = centrosCustos.find(c => c.id === centroCustoId);
-        const total = (dias * precoDiario) * 1.23; // Including 23% Tax
-        const subtotal = dias * precoDiario;
-        const tax = subtotal * 0.23;
 
-        const description = `Aluguer ${vehicle?.marca} ${vehicle?.modelo} (${vehicle?.matricula})${costCenter ? ` - ${costCenter.nome}` : ''}`;
+        // Calculate totals based on ALL vehicles
+        let rentalSubtotal = 0;
+        const invoiceItems = selectedViaturaIds.map(vId => {
+            const vehicle = viaturas.find(v => v.id === vId);
+            const daily = vehicle?.precoDiario || 0;
+            const vehicleTotal = daily * dias;
+            rentalSubtotal += vehicleTotal;
+
+            return {
+                id: crypto.randomUUID(),
+                descricao: `Aluguer ${vehicle?.marca} ${vehicle?.modelo} (${vehicle?.matricula})${costCenter ? ` - ${costCenter.nome}` : ''}`,
+                quantidade: dias,
+                precoUnitario: daily,
+                taxaImposto: 23,
+                total: vehicleTotal * 1.23 // Item total with tax
+            };
+        });
+
+        const subtotal = rentalSubtotal;
+        const tax = subtotal * 0.23;
+        const total = subtotal + tax;
+
+        // Use the first vehicle as "primary" for backward compatibility if needed, 
+        // but prefer storing the array.
+        const primaryViaturaId = selectedViaturaIds[0];
 
         const newInvoice: Fatura = {
             id: crypto.randomUUID(),
-            numero: `FT 2024/${(invoices.length + 100).toString()}`, // Temporary numbering
+            numero: `REG 2024/${(invoices.length + 100).toString()}`, // Changed to REG for Registration
             data: dataInicio,
-            vencimento: new Date(new Date(dataInicio).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 days
+            vencimento: new Date(new Date(dataInicio).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             clienteId,
-            status: 'emitida',
+            status: 'rascunho', // DRAFT / REGISTERED
             tipo: 'aluguer',
             aluguerDetails: {
-                viaturaId,
+                viaturaId: primaryViaturaId,
+                viaturasIds: selectedViaturaIds, // New field
                 dias,
                 dataInicio,
                 dataFim: new Date(new Date(dataInicio).getTime() + dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -73,21 +105,14 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             imposto: tax,
             desconto: 0,
             total,
-            itens: [{
-                id: crypto.randomUUID(),
-                descricao: description,
-                quantidade: dias,
-                precoUnitario: precoDiario,
-                taxaImposto: 23,
-                total: total // Note: Item total usually has separate field for tax but simplified here
-            }]
+            itens: invoiceItems
         };
 
         onSaveRental(newInvoice);
         setView('list');
         // Reset form
         setClienteId('');
-        setViaturaId('');
+        setSelectedViaturaIds([]);
         setCentroCustoId('');
         setDias(1);
     };
@@ -169,21 +194,42 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
             // Column 2: Vehicle Info
             const col2X = 70;
-            const vehicle = viaturas.find(v => v.id === invoice.aluguerDetails?.viaturaId);
+            const viaturasIds = invoice.aluguerDetails?.viaturasIds;
+            const singleViaturaId = invoice.aluguerDetails?.viaturaId;
 
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(100);
-            doc.text('VIATURA', col2X, yPos);
+            doc.text(viaturasIds && viaturasIds.length > 1 ? 'VIATURAS' : 'VIATURA', col2X, yPos);
 
-            if (vehicle) {
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(11);
-                doc.setTextColor(0);
-                doc.text(`${vehicle.marca} ${vehicle.modelo}`, col2X, yPos + 6);
-                doc.setFontSize(10);
-                doc.setTextColor(80);
-                doc.text(vehicle.matricula, col2X, yPos + 11);
+            if (viaturasIds && viaturasIds.length > 0) {
+                let currentY = yPos + 6;
+                viaturasIds.forEach((vid: string) => {
+                    const v = viaturas.find(vi => vi.id === vid);
+                    if (v) {
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        doc.text(`${v.marca} ${v.modelo}`, col2X, currentY);
+                        doc.setFontSize(8);
+                        doc.setTextColor(80);
+                        doc.text(v.matricula, col2X + 35, currentY); // Offset plate slightly
+                        currentY += 5;
+                    }
+                });
+            } else if (singleViaturaId) {
+                const vehicle = viaturas.find(v => v.id === singleViaturaId);
+                if (vehicle) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.setTextColor(0);
+                    doc.text(`${vehicle.marca} ${vehicle.modelo}`, col2X, yPos + 6);
+                    doc.setFontSize(10);
+                    doc.setTextColor(80);
+                    doc.text(vehicle.matricula, col2X, yPos + 11);
+                } else {
+                    doc.text('N/A', col2X, yPos + 6);
+                }
             } else {
                 doc.text('N/A', col2X, yPos + 6);
             }
@@ -464,7 +510,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     </button>
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <Car className="w-6 h-6 text-amber-500" />
-                        Novo Aluguer de Viatura
+                        Registar Novo Aluguer
                     </h2>
                 </div>
 
@@ -483,15 +529,48 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-400">Viatura</label>
-                            <select
-                                value={viaturaId}
-                                onChange={(e) => handleViaturaSelect(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
-                            >
-                                <option value="">Selecione a Viatura</option>
-                                {viaturas.map(v => <option key={v.id} value={v.id}>{v.marca} {v.modelo} - {v.matricula}</option>)}
-                            </select>
+                            <label className="text-sm font-medium text-slate-400">Viaturas</label>
+                            <div className="flex gap-2">
+                                <select
+                                    value={tempViaturaId}
+                                    onChange={(e) => setTempViaturaId(e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                                >
+                                    <option value="">Adicionar Viatura...</option>
+                                    {viaturas.map(v => <option key={v.id} value={v.id}>{v.marca} {v.modelo} - {v.matricula}</option>)}
+                                </select>
+                                <button
+                                    onClick={handleAddViatura}
+                                    disabled={!tempViaturaId}
+                                    className="bg-slate-800 hover:bg-slate-700 text-white px-4 rounded-lg border border-slate-700 disabled:opacity-50"
+                                >
+                                    <Plus className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Selected Vehicles List */}
+                            <div className="mt-3 space-y-2">
+                                {selectedViaturaIds.map(id => {
+                                    const v = viaturas.find(vi => vi.id === id);
+                                    return (
+                                        <div key={id} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div>
+                                                <p className="text-white font-medium">{v?.marca} {v?.modelo}</p>
+                                                <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveViatura(id)}
+                                                className="text-slate-400 hover:text-red-400 transition-colors"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                                {selectedViaturaIds.length === 0 && (
+                                    <p className="text-sm text-slate-500 italic">Nenhuma viatura selecionada</p>
+                                )}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -516,14 +595,10 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Diária (€)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={precoDiario}
-                                    onChange={(e) => setPrecoDiario(Number(e.target.value))}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
-                                />
+                                <label className="text-sm font-medium text-slate-400">Total Diário (€)</label>
+                                <div className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-slate-300">
+                                    {formatCurrency(calculateTotalDaily())}
+                                </div>
                             </div>
                         </div>
 
@@ -543,13 +618,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     <div className="pt-6 border-t border-slate-700 flex justify-between items-center">
                         <div className="text-right">
                             <p className="text-slate-400 text-sm">Total Estimado</p>
-                            <p className="text-2xl font-bold text-amber-500">{formatCurrency((dias * precoDiario) * 1.23)}</p>
+                            <p className="text-2xl font-bold text-amber-500">{formatCurrency((dias * calculateTotalDaily()) * 1.23)}</p>
                         </div>
                         <button
                             onClick={handleCreateRental}
                             className="bg-amber-600 hover:bg-amber-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-amber-500/20 transition-all transform hover:scale-105"
                         >
-                            Emitir Fatura de Aluguer
+                            Registar Aluguer
                         </button>
                     </div>
                 </div>
@@ -610,8 +685,24 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                             {inv.numero}
                                         </td>
                                         <td className="px-6 py-4 text-slate-300">
-                                            {vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Viatura N/A'}
-                                            <span className="block text-xs text-slate-500">{vehicle?.matricula}</span>
+                                            {inv.aluguerDetails?.viaturasIds ? (
+                                                <div className="space-y-1">
+                                                    {inv.aluguerDetails.viaturasIds.map((vid: string) => {
+                                                        const v = viaturas.find(vi => vi.id === vid);
+                                                        return v ? (
+                                                            <div key={vid} className="text-xs">
+                                                                <span className="text-slate-300">{v.marca} {v.modelo}</span>
+                                                                <span className="text-slate-500 ml-1">({v.matricula})</span>
+                                                            </div>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Viatura N/A'}
+                                                    <span className="block text-xs text-slate-500">{vehicle?.matricula}</span>
+                                                </>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-slate-300">
                                             {clientes.find(c => c.id === inv.clienteId)?.nome || inv.clienteId}

@@ -320,6 +320,7 @@ export interface Fatura {
     tipo?: 'geral' | 'aluguer';
     aluguerDetails?: {
         viaturaId: string;
+        viaturasIds?: string[]; // New: support multiple vehicles
         dias: number;
         dataInicio: string;
         dataFim: string;
