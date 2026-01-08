@@ -908,7 +908,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 updateServico,
                 deleteServico,
                 avaliacoes,
-                addAvaliacao,
                 refreshData
             }}
         >
