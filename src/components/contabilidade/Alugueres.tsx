@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus, Search, Car, Printer, Trash2, Download, X } from 'lucide-react';
+import { Plus, Search, Car, Printer, Trash2, Download, X, FileText } from 'lucide-react';
 import type { Fatura } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import VehicleSelectionModal from './VehicleSelectionModal';
 
 interface AlugueresProps {
     invoices: Fatura[];
@@ -25,6 +26,33 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     const [centroCustoId, setCentroCustoId] = useState('');
     const [dataInicio, setDataInicio] = useState(new Date().toISOString().split('T')[0]);
     const [dias, setDias] = useState(1);
+    const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
+
+    // Templates State
+    const [templates, setTemplates] = useState<{ name: string, vehicleIds: string[] }[]>(() => {
+        const saved = localStorage.getItem('rental_templates');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [newTemplateName, setNewTemplateName] = useState('');
+    const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+
+    const handleSaveTemplate = () => {
+        if (!newTemplateName) return;
+        const newTemplate = { name: newTemplateName, vehicleIds: selectedViaturaIds };
+        const updated = [...templates, newTemplate];
+        setTemplates(updated);
+        localStorage.setItem('rental_templates', JSON.stringify(updated));
+        setNewTemplateName('');
+        setShowSaveTemplate(false);
+    };
+
+    const handleLoadTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const template = templates.find(t => t.name === e.target.value);
+        if (template) {
+            setSelectedViaturaIds(template.vehicleIds);
+        }
+    };
+
 
 
     const filteredInvoices = invoices.filter(inv =>
@@ -501,6 +529,156 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         }
     };
 
+    const generateRentalContract = async (invoice: Fatura) => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
+
+        const loadImage = (src: string): Promise<HTMLImageElement> => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+            });
+        };
+
+        try {
+            // --- HEADER ---
+            try {
+                const logoImg = await loadImage('/logo.png');
+                const logoWidth = 40;
+                const scaleFactor = logoWidth / logoImg.naturalWidth;
+                const logoHeight = logoImg.naturalHeight * scaleFactor;
+
+                doc.addImage(logoImg, 'PNG', 15, 10, logoWidth, logoHeight);
+            } catch (e) {
+                // Fallback text if logo fails
+                doc.setFontSize(20);
+                doc.setTextColor(20, 60, 140);
+                doc.text('ALGARTEMPO', 15, 20);
+            }
+
+            // Company Info (Right aligned)
+            doc.setFontSize(9);
+            doc.setTextColor(80);
+            doc.text('ALGARTEMPO - Gestão de Frota, Lda.', pageWidth - 15, 15, { align: 'right' });
+            doc.text('NIF: 500 000 000', pageWidth - 15, 20, { align: 'right' });
+            doc.text('Estrada Nacional 125, Almancil', pageWidth - 15, 25, { align: 'right' });
+
+            // Title
+            doc.setFontSize(18);
+            doc.setTextColor(0);
+            doc.setFont('helvetica', 'bold');
+            doc.text('CONTRATO DE ALUGUER', pageWidth / 2, 45, { align: 'center' });
+
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Nº Contrato: ${invoice.numero}`, pageWidth / 2, 52, { align: 'center' });
+
+            // --- PARTIES ---
+            let yPos = 70;
+
+            // PRIMEIRO OUTORGANTE
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('ENTRE:', 15, yPos);
+            yPos += 7;
+
+            doc.text('PRIMEIRO OUTORGANTE: ALGARTEMPO - Gestão de Frota, Lda.', 15, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Adiante designado por "LOCADOR".', 15, yPos + 5);
+
+            // SEGUNDO OUTORGANTE
+            yPos += 15;
+            const client = clientes.find(c => c.id === invoice.clienteId);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`E O SEGUNDO OUTORGANTE: ${client?.nome || '...................................................'}`, 15, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`NIF: ${client?.nif || '...................'}`, 15, yPos + 5);
+            doc.text('Adiante designado por "LOCATÁRIO".', 15, yPos + 10);
+
+            yPos += 20;
+            doc.text('É celebrado o presente contrato de aluguer de viatura(s) sem condutor, que se rege pelas seguintes cláusulas:', 15, yPos);
+
+            // --- DETAILS ---
+            yPos += 15;
+            doc.setFont('helvetica', 'bold');
+            doc.text('1. OBJETO DO ALUGUER (VIATURAS)', 15, yPos);
+            yPos += 7;
+
+            const viaturasIds = invoice.aluguerDetails?.viaturasIds || (invoice.aluguerDetails?.viaturaId ? [invoice.aluguerDetails?.viaturaId] : []);
+
+            if (viaturasIds.length > 0) {
+                viaturasIds.forEach(vid => {
+                    const v = viaturas.find(vi => vi.id === vid);
+                    if (v) {
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(`• ${v.marca} ${v.modelo} - Matrícula: ${v.matricula}`, 20, yPos);
+                        yPos += 6;
+                    }
+                });
+            } else {
+                doc.text('• Nenhuma viatura especificada', 20, yPos);
+                yPos += 6;
+            }
+
+            // --- DATES ---
+            yPos += 5;
+            doc.setFont('helvetica', 'bold');
+            doc.text('2. PERÍODO DE ALUGUER', 15, yPos);
+            yPos += 7;
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Início: ${new Date(invoice.aluguerDetails?.dataInicio || '').toLocaleDateString('pt-PT')}`, 20, yPos);
+            doc.text(`Fim Previsto: ${new Date(invoice.aluguerDetails?.dataFim || '').toLocaleDateString('pt-PT')}`, 80, yPos);
+            doc.text(`Duração: ${invoice.aluguerDetails?.dias} dias`, 140, yPos);
+
+            // --- CONDITIONS PLACEHOLDER ---
+            yPos += 15;
+            doc.setFont('helvetica', 'bold');
+            doc.text('3. CONDIÇÕES GERAIS', 15, yPos);
+            yPos += 7;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+
+            const clauses = [
+                "a) O Locatário recebe a(s) viatura(s) em perfeito estado de funcionamento e conservação.",
+                "b) O Locatário compromete-se a não utilizar a viatura para fins ilícitos ou transporte de mercadorias proibidas.",
+                "c) O combustível é da responsabilidade do Locatário.",
+                "d) Em caso de acidente, o Locatário deve comunicar imediatamente ao Locador e às autoridades competentes.",
+                "e) O atraso na devolução implicará o pagamento de dias adicionais à taxa em vigor.",
+                "f) O Locador não se responsabiliza por bens deixados no interior da viatura.",
+                "g) Qualquer multa ou infração de trânsito durante o período é da inteira responsabilidade do Locatário."
+            ];
+
+            clauses.forEach(clause => {
+                doc.text(clause, 20, yPos, { maxWidth: pageWidth - 40 });
+                yPos += 6;
+            });
+
+            // --- SIGNATURES ---
+            const signY = pageHeight - 50;
+
+            doc.setFontSize(10);
+            doc.text('Feito em duplicado e assinado,', 15, signY - 20);
+            doc.text(`Almancil, ${new Date().toLocaleDateString('pt-PT')}`, 15, signY - 15);
+
+            doc.setLineWidth(0.5);
+            doc.line(20, signY, 90, signY);
+            doc.line(120, signY, 190, signY);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('O LOCADOR', 35, signY + 5);
+            doc.text('O LOCATÁRIO', 135, signY + 5);
+
+            doc.save(`Contrato_Aluguer_${invoice.numero.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+
+        } catch (error) {
+            console.error('Erro ao gerar contrato:', error);
+            alert('Erro ao gerar contrato');
+        }
+    };
+
     if (view === 'create') {
         return (
             <div className="space-y-6 max-w-4xl mx-auto">
@@ -548,6 +726,14 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                 </button>
                             </div>
 
+                            <button
+                                onClick={() => setIsSelectionModalOpen(true)}
+                                className="w-full mt-2 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 py-2 rounded-lg border border-slate-700 border-dashed transition-all text-sm font-medium"
+                            >
+                                <Car className="w-4 h-4" />
+                                Selecionar Múltiplas Viaturas
+                            </button>
+
                             {/* Selected Vehicles List */}
                             <div className="mt-3 space-y-2">
                                 {selectedViaturaIds.map(id => {
@@ -569,6 +755,45 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                 })}
                                 {selectedViaturaIds.length === 0 && (
                                     <p className="text-sm text-slate-500 italic">Nenhuma viatura selecionada</p>
+                                )}
+                            </div>
+
+                            {/* Templates Control */}
+                            <div className="mt-4 pt-4 border-t border-slate-800">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Kits / Templates</label>
+                                <div className="flex gap-2 mb-2">
+                                    <select
+                                        onChange={handleLoadTemplate}
+                                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
+                                    >
+                                        <option value="">Carregar Kit Salvo...</option>
+                                        {templates.map(t => <option key={t.name} value={t.name}>{t.name} ({t.vehicleIds.length} viaturas)</option>)}
+                                    </select>
+                                    <button
+                                        onClick={() => setShowSaveTemplate(!showSaveTemplate)}
+                                        disabled={selectedViaturaIds.length === 0}
+                                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 text-sm disabled:opacity-50"
+                                    >
+                                        {showSaveTemplate ? 'Cancelar' : 'Salvar Kit'}
+                                    </button>
+                                </div>
+
+                                {showSaveTemplate && (
+                                    <div className="flex gap-2 animate-in slide-in-from-top-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Nome do Kit (ex: Frota Verão)"
+                                            value={newTemplateName}
+                                            onChange={(e) => setNewTemplateName(e.target.value)}
+                                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-blue-500"
+                                        />
+                                        <button
+                                            onClick={handleSaveTemplate}
+                                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-medium"
+                                        >
+                                            Salvar
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -628,6 +853,16 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                         </button>
                     </div>
                 </div>
+                <VehicleSelectionModal
+                    isOpen={isSelectionModalOpen}
+                    onClose={() => setIsSelectionModalOpen(false)}
+                    viaturas={viaturas}
+                    selectedIds={selectedViaturaIds}
+                    onConfirm={(ids) => {
+                        setSelectedViaturaIds(ids);
+                        setIsSelectionModalOpen(false);
+                    }}
+                />
             </div>
         );
     }
@@ -724,6 +959,16 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                                     }`}>
                                                     {inv.status.toUpperCase()}
                                                 </span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        generateRentalContract(inv);
+                                                    }}
+                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                                                    title="Gerar Contrato"
+                                                >
+                                                    <FileText className="w-4 h-4" />
+                                                </button>
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
