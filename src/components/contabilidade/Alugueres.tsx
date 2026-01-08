@@ -336,18 +336,40 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             yPos += 50;
 
             // --- TABLE ---
-            const days = invoice.aluguerDetails?.dias || 0;
-            const dailyRate = invoice.itens[0]?.precoUnitario || 0;
+            // Use invoice.itens directly as they are already broken down by vehicle in handleCreateRental
+            const tableBody = invoice.itens?.map(item => [
+                item.descricao,
+                `${item.quantidade} dias`,
+                formatCurrency(item.precoUnitario),
+                `${item.taxaImposto}%`,
+                formatCurrency(item.total) // Note: item.total in handleCreateRental already includes tax, but let's be careful. 
+                // Wait, item.total in handleCreateRental is (daily * days * 1.23). 
+                // The column header says "TOTAL LÍQUIDO" (Net Total)? Or Total with Tax?
+                // The previous code showed `formatCurrency(invoice.subtotal)` in the total line, so the main table probably expects Net?
+                // The headers are DESCRIÇÃO | PERÍODO | DIÁRIA | TAXA | TOTAL LÍQUIDO.
+                // "Total Líquido" usually means Net. 
+                // Let's recalculate Net for the row: (qty * price)
+            ]) || [];
 
-            const tableBody = [
-                [
+            if (tableBody.length === 0) {
+                // Fallback if no items
+                const days = invoice.aluguerDetails?.dias || 0;
+                const dailyRate = invoice.itens?.[0]?.precoUnitario || 0;
+                tableBody.push([
                     'Aluguer de Viatura',
                     `${days} dias`,
                     formatCurrency(dailyRate),
                     '23%',
                     formatCurrency(invoice.subtotal)
-                ]
-            ];
+                ]);
+            } else {
+                // Correct the "Total Líquido" column to be Net
+                tableBody.forEach((row, index) => {
+                    const item = invoice.itens![index];
+                    // Column 4 (index 4) should be Net Total
+                    row[4] = formatCurrency(item.quantidade * item.precoUnitario);
+                });
+            }
 
             autoTable(doc, {
                 startY: yPos,
@@ -429,7 +451,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     };
 
     const generateCostCenterReport = async () => {
-        const doc = new jsPDF();
+        const doc = new jsPDF({ orientation: 'landscape' });
         const pageWidth = doc.internal.pageSize.width;
 
         const loadImage = (src: string): Promise<HTMLImageElement> => {
