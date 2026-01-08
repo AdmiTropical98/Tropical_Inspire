@@ -1182,7 +1182,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                                 </button>
                                                 <button
                                                     title="Transferir Fatura"
-                                                    onClick={() => generateInvoicePDF(inv)}
+                                                    onClick={() => generateRentalPDF(inv)}
                                                     className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-colors"
                                                 >
                                                     <Download className="w-4 h-4" />
