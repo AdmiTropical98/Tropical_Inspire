@@ -616,7 +616,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                         6: { cellWidth: 'auto', halign: 'right' } // Total (Fill rest)
                     },
                     margin: { left: 10, right: 10 },
-                    tableWidth: 'auto'
+                    tableWidth: 'auto',
                     didParseCell: (data) => {
                         // Bold the subtotal row
                         if (data.row.index === bodyData.length - 1) {
@@ -627,7 +627,6 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                             }
                         }
                     },
-                    margin: { left: 10, right: 10 }
                 });
 
                 currentY = (doc as any).lastAutoTable.finalY + 15;
