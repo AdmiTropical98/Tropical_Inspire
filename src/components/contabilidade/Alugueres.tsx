@@ -523,11 +523,16 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                             const refMonthStr = refDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
                             const capitalRef = refMonthStr.charAt(0).toUpperCase() + refMonthStr.slice(1);
 
+                            // Calculate Start/End of Reference Month
+                            const startRef = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+                            const endRef = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0);
+                            const dateRangeStr = `${startRef.toLocaleDateString('pt-PT')} -> ${endRef.toLocaleDateString('pt-PT')}`;
+
                             const netVal = vehicleTotal / 1.23;
                             const vatVal = vehicleTotal - netVal;
 
                             bodyData.push([
-                                new Date(pdfInv.data).toLocaleDateString(),
+                                dateRangeStr,
                                 capitalRef,
                                 v ? v.matricula : 'Viatura Removida',
                                 formatCurrency(netVal),
@@ -545,8 +550,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                         const refMonthStr = refDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
                         const capitalRef = refMonthStr.charAt(0).toUpperCase() + refMonthStr.slice(1);
 
+                        // Calculate Start/End of Reference Month
+                        const startRef = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+                        const endRef = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0);
+                        const dateRangeStr = `${startRef.toLocaleDateString('pt-PT')} -> ${endRef.toLocaleDateString('pt-PT')}`;
+
                         bodyData.push([
-                            new Date(pdfInv.data).toLocaleDateString(),
+                            dateRangeStr,
                             capitalRef,
                             'Sem Viatura',
                             formatCurrency(netVal),
@@ -581,9 +591,9 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                         halign: 'left'
                     },
                     columnStyles: {
-                        0: { cellWidth: 25 },
-                        1: { cellWidth: 40 },
-                        2: { cellWidth: 40 },
+                        0: { cellWidth: 45 },
+                        1: { cellWidth: 35 },
+                        2: { cellWidth: 35 },
                         3: { cellWidth: 30, halign: 'right' },
                         4: { cellWidth: 30, halign: 'right' },
                         5: { cellWidth: 30, halign: 'right' }
