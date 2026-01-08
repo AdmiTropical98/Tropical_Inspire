@@ -530,11 +530,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
                             const netVal = vehicleTotal / 1.23;
                             const vatVal = vehicleTotal - netVal;
+                            const days = details ? details.dias : (pdfInv.aluguerDetails?.dias || 0);
 
                             bodyData.push([
                                 dateRangeStr,
                                 capitalRef,
                                 v ? v.matricula : 'Viatura Removida',
+                                days,
                                 formatCurrency(netVal),
                                 formatCurrency(vatVal),
                                 formatCurrency(vehicleTotal)
@@ -554,11 +556,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                         const startRef = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
                         const endRef = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0);
                         const dateRangeStr = `${startRef.toLocaleDateString('pt-PT')} -> ${endRef.toLocaleDateString('pt-PT')}`;
+                        const days = pdfInv.aluguerDetails?.dias || 0;
 
                         bodyData.push([
                             dateRangeStr,
                             capitalRef,
                             'Sem Viatura',
+                            days,
                             formatCurrency(netVal),
                             formatCurrency(vatVal),
                             formatCurrency(pdfInv.total)
@@ -573,6 +577,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     '',
                     '',
                     'SUBTOTAL',
+                    '',
                     formatCurrency(groupNet),
                     formatCurrency(groupVat),
                     formatCurrency(group.total)
@@ -581,7 +586,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                 // Render Table for this CC
                 autoTable(doc, {
                     startY: currentY,
-                    head: [['DATA', 'MÊS REF.', 'VIATURA', 'VALOR LIQ.', 'IVA (23%)', 'TOTAL']],
+                    head: [['DATA', 'MÊS REF.', 'VIATURA', 'DIAS', 'VALOR LIQ.', 'IVA (23%)', 'TOTAL']],
                     body: bodyData,
                     theme: 'striped',
                     headStyles: {
@@ -593,10 +598,11 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     columnStyles: {
                         0: { cellWidth: 45 },
                         1: { cellWidth: 35 },
-                        2: { cellWidth: 35 },
-                        3: { cellWidth: 30, halign: 'right' },
+                        2: { cellWidth: 30 },
+                        3: { cellWidth: 15, halign: 'center' },
                         4: { cellWidth: 30, halign: 'right' },
-                        5: { cellWidth: 30, halign: 'right' }
+                        5: { cellWidth: 30, halign: 'right' },
+                        6: { cellWidth: 30, halign: 'right' }
                     },
                     didParseCell: (data) => {
                         // Bold the subtotal row
