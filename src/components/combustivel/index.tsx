@@ -2,8 +2,9 @@ import { useState } from 'react';
 import {
     Fuel, Droplets, History, Check, Truck,
     Gauge, Trash2, LayoutTemplate, BarChart3,
-    Zap, Settings
+    Zap, Settings, Upload, Download, FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
@@ -17,7 +18,8 @@ export default function Combustivel() {
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'abastecer' | 'tanque' | 'historico'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'abastecer' | 'tanque' | 'historico' | 'bp'>('overview');
+    const [bpTransactions, setBpTransactions] = useState<any[]>([]); // Temp state for BP imports
 
     // Fuel Form State
     const [refuelForm, setRefuelForm] = useState({
@@ -153,6 +155,32 @@ export default function Combustivel() {
         }
     };
 
+    const handleDownloadBPTemplate = () => {
+        const headers = ['Data', 'Hora', 'Estacao', 'Matricula', 'Produto', 'Quantidade', 'PrecoUnit', 'Total'];
+        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "BP_Template");
+        XLSX.writeFile(wb, "Template_Abastecimentos_BP.xlsx");
+    };
+
+    const handleImportBP = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            const bstr = evt.target?.result;
+            const wb = XLSX.read(bstr, { type: 'binary' });
+            const wsname = wb.SheetNames[0];
+            const ws = wb.Sheets[wsname];
+            const data = XLSX.utils.sheet_to_json(ws);
+            setBpTransactions(data);
+            alert(`${data.length} registos importados com sucesso!`);
+        };
+        reader.readAsBinaryString(file);
+        e.target.value = ''; // Reset input
+    };
+
     const percentage = (fuelTank.currentLevel / fuelTank.capacity) * 100;
 
     // Get recent transactions for the sidebar
@@ -192,6 +220,7 @@ export default function Combustivel() {
                     { id: 'overview', icon: LayoutTemplate, label: 'Visão Geral', color: 'yellow' },
                     { id: 'abastecer', icon: Fuel, label: 'Registar Abastecimento', color: 'yellow' },
                     { id: 'tanque', icon: Droplets, label: 'Gestão de Tanque', color: 'emerald' },
+                    { id: 'bp', icon: FileSpreadsheet, label: 'Cartões BP', color: 'green' },
                     { id: 'historico', icon: History, label: 'Histórico Completo', color: 'blue' },
                 ].map(tab => (
                     <button
@@ -657,6 +686,90 @@ export default function Combustivel() {
                                         })}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+
+                    {/* BP TAB */}
+                    {activeTab === 'bp' && (
+                        <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl animate-in slide-in-from-right-4">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-green-600/10 flex items-center justify-center text-green-500">
+                                        <FileSpreadsheet className="w-5 h-5" />
+                                    </div>
+                                    Gestão de Abastecimentos BP
+                                </h3>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleDownloadBPTemplate}
+                                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm border border-slate-700 transition-colors"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Template
+                                    </button>
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            accept=".xlsx, .xls"
+                                            onChange={handleImportBP}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm transition-colors shadow-lg shadow-green-900/20">
+                                            <Upload className="w-4 h-4" />
+                                            Importar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {bpTransactions.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-separate border-spacing-y-2">
+                                        <thead>
+                                            <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                                <th className="pb-4 pl-4">Data</th>
+                                                <th className="pb-4">Viatura</th>
+                                                <th className="pb-4">Estação</th>
+                                                <th className="pb-4">Produto</th>
+                                                <th className="pb-4 text-right">Qtd (L)</th>
+                                                <th className="pb-4 text-right">Total (€)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-sm">
+                                            {bpTransactions.map((row, idx) => (
+                                                <tr key={idx} className="bg-slate-800/10 hover:bg-slate-800/30 transition-all">
+                                                    <td className="p-4 rounded-l-xl font-mono text-slate-400 text-xs border-y border-l border-white/5">
+                                                        {row.Data} <span className="text-slate-600">{row.Hora}</span>
+                                                    </td>
+                                                    <td className="p-4 border-y border-white/5 text-white font-bold">
+                                                        {row.Matricula}
+                                                    </td>
+                                                    <td className="p-4 border-y border-white/5 text-slate-300">
+                                                        {row.Estacao}
+                                                    </td>
+                                                    <td className="p-4 border-y border-white/5 text-slate-400">
+                                                        {row.Produto}
+                                                    </td>
+                                                    <td className="p-4 text-right border-y border-white/5 text-white font-mono">
+                                                        {Number(row.Quantidade).toFixed(2)}
+                                                    </td>
+                                                    <td className="p-4 rounded-r-xl text-right border-y border-r border-white/5 text-green-400 font-bold">
+                                                        {Number(row.Total).toFixed(2)} €
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 bg-slate-900/20 rounded-3xl border border-dashed border-slate-700">
+                                    <FileSpreadsheet className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                                    <p className="text-slate-500">Nenhum dado importado.</p>
+                                    <p className="text-xs text-slate-600 mt-1">
+                                        Baixe o template, preencha os dados e importe o ficheiro Excel.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
