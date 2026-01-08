@@ -137,6 +137,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const { data: r } = await supabase.from('requisicoes').select('*');
             if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por })));
 
+            const { data: av } = await supabase.from('avaliacoes').select('*');
+            if (av) setAvaliacoes(av.map((item: any) => ({
+                id: item.id,
+                motoristaId: item.motorista_id,
+                adminId: item.admin_id,
+                periodo: item.periodo,
+                pontuacao: item.pontuacao,
+                criterios: item.criterios,
+                obs: item.obs,
+                dataAvaliacao: item.data_avaliacao
+            })));
+
             // 2. Eva Transports
             const { data: transports } = await supabase.from('eva_transports').select('*');
             const { data: days } = await supabase.from('eva_transport_days').select('*');
@@ -875,6 +887,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 addServico,
                 updateServico,
                 deleteServico,
+                avaliacoes,
+                addAvaliacao,
                 refreshData
             }}
         >
