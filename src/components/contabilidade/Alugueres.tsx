@@ -511,20 +511,47 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         doc.text(ccName.toUpperCase(), 10, currentY);
         currentY += 8;
 
-        // Prepare table data for this group
-        const bodyData = group.items.map(pdfInv => {
-            const clientName = clientes.find(c => c.id === pdfInv.clienteId)?.nome || 'Desconhecido';
-            const mainVehicle = viaturas.find(v => v.id === pdfInv.aluguerDetails?.viaturaId);
-            const vehicleStr = mainVehicle
-                ? `${mainVehicle.marca} ${mainVehicle.modelo} (${mainVehicle.matricula})`
-                : (pdfInv.aluguerDetails?.viaturasIds?.length ? `${pdfInv.aluguerDetails.viaturasIds.length} Viaturas` : 'N/A');
 
-            return [
-                new Date(pdfInv.data).toLocaleDateString(),
-                clientName,
-                vehicleStr,
-                formatCurrency(pdfInv.total)
-            ];
+        // Prepare table data for this group
+        const bodyData: any[][] = [];
+
+        group.items.forEach(pdfInv => {
+            const clientName = clientes.find(c => c.id === pdfInv.clienteId)?.nome || 'Desconhecido';
+            const vehicleIds = pdfInv.aluguerDetails?.viaturasIds || (pdfInv.aluguerDetails?.viaturaId ? [pdfInv.aluguerDetails?.viaturaId] : []);
+
+            if (vehicleIds.length > 0) {
+                vehicleIds.forEach(vid => {
+                    const v = viaturas.find(veh => veh.id === vid);
+                    const details = pdfInv.aluguerDetails?.detalhesViaturas?.find(d => d.viaturaId === vid);
+
+                    let vehicleTotal = 0;
+                    if (details) {
+                        // Calculate specific total for this vehicle: (daily * days) * 1.23 (tax)
+                        vehicleTotal = (details.precoDiario * details.dias) * 1.23;
+                    } else if (v && pdfInv.aluguerDetails?.dias) {
+                        // Fallback logic
+                        vehicleTotal = (v.precoDiario * pdfInv.aluguerDetails.dias) * 1.23;
+                    }
+
+                    // If for some reason we can't calculate per vehicle (e.g. manual edit), we might need to distribute?
+                    // But for now, reliance on calculated values is safer.
+
+                    bodyData.push([
+                        new Date(pdfInv.data).toLocaleDateString(),
+                        clientName,
+                        v ? `${v.marca} ${v.modelo} (${v.matricula})` : 'Viatura Removida',
+                        formatCurrency(vehicleTotal)
+                    ]);
+                });
+            } else {
+                // Fallback if no vehicles listed (legacy?)
+                bodyData.push([
+                    new Date(pdfInv.data).toLocaleDateString(),
+                    clientName,
+                    'Sem Viatura Especificada',
+                    formatCurrency(pdfInv.total)
+                ]);
+            }
         });
 
         // Add Subtotal Row
@@ -538,7 +565,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         // Render Table for this CC
         autoTable(doc, {
             startY: currentY,
-            head: [['DATA', 'CLIENTE', 'VIATURA(S)', 'VALOR']],
+            head: [['DATA', 'CLIENTE', 'VIATURA', 'VALOR']],
             body: bodyData,
             theme: 'striped',
             headStyles: {
