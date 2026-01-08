@@ -22,6 +22,10 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     // Rental Form State
     const [clienteId, setClienteId] = useState('');
     const [selectedViaturaIds, setSelectedViaturaIds] = useState<string[]>([]);
+
+    // Per-vehicle customization state
+    const [vehicleSettings, setVehicleSettings] = useState<Record<string, { dias: number, dataInicio: string }>>({});
+
     const [tempViaturaId, setTempViaturaId] = useState(''); // For the dropdown select before adding
     const [centroCustoId, setCentroCustoId] = useState('');
     const [dataInicio, setDataInicio] = useState(new Date().toISOString().split('T')[0]);
@@ -50,6 +54,8 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         const template = templates.find(t => t.name === e.target.value);
         if (template) {
             setSelectedViaturaIds(template.vehicleIds);
+            // Reset individual settings when loading template
+            setVehicleSettings({});
         }
     };
 
@@ -70,6 +76,23 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
     const handleRemoveViatura = (id: string) => {
         setSelectedViaturaIds(selectedViaturaIds.filter(vId => vId !== id));
+        const newSettings = { ...vehicleSettings };
+        delete newSettings[id];
+        setVehicleSettings(newSettings);
+    };
+
+    const getVehicleSettings = (id: string) => {
+        return vehicleSettings[id] || { dias: dias, dataInicio: dataInicio };
+    };
+
+    const updateVehicleDetails = (id: string, field: 'dias' | 'dataInicio', value: string | number) => {
+        setVehicleSettings(prev => ({
+            ...prev,
+            [id]: {
+                ...getVehicleSettings(id),
+                [field]: value
+            }
+        }));
     };
 
     const calculateTotalDaily = () => {
@@ -79,55 +102,81 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         }, 0);
     };
 
+    const calculateGrandTotal = () => {
+        return selectedViaturaIds.reduce((acc, id) => {
+            const v = viaturas.find(vi => vi.id === id);
+            const settings = getVehicleSettings(id);
+            return acc + ((v?.precoDiario || 0) * settings.dias);
+        }, 0);
+    };
+
     const handleCreateRental = () => {
-        if (!clienteId || selectedViaturaIds.length === 0 || dias <= 0) {
+        if (!clienteId || selectedViaturaIds.length === 0) {
             alert('Por favor preencha todos os campos obrigatórios e adicione pelo menos uma viatura.');
             return;
         }
 
         const costCenter = centrosCustos.find(c => c.id === centroCustoId);
 
-        // Calculate totals based on ALL vehicles
-        let rentalSubtotal = 0;
-        const invoiceItems = selectedViaturaIds.map(vId => {
+        // Prepare vehicle details
+        const detailsMap = selectedViaturaIds.map(vId => {
             const vehicle = viaturas.find(v => v.id === vId);
+            const settings = getVehicleSettings(vId);
             const daily = vehicle?.precoDiario || 0;
-            const vehicleTotal = daily * dias;
-            rentalSubtotal += vehicleTotal;
+            const vehicleTotal = daily * settings.dias;
 
             return {
-                id: crypto.randomUUID(),
-                descricao: `Aluguer ${vehicle?.marca} ${vehicle?.modelo} (${vehicle?.matricula})${costCenter ? ` - ${costCenter.nome}` : ''}`,
-                quantidade: dias,
-                precoUnitario: daily,
-                taxaImposto: 23,
-                total: vehicleTotal * 1.23 // Item total with tax
+                viaturaId: vId,
+                dias: settings.dias,
+                dataInicio: settings.dataInicio,
+                dataFim: new Date(new Date(settings.dataInicio).getTime() + settings.dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                precoDiario: daily,
+                total: vehicleTotal,
+                vehicle
             };
         });
+
+        const rentalSubtotal = detailsMap.reduce((acc, item) => acc + item.total, 0);
+
+        const invoiceItems = detailsMap.map(item => ({
+            id: crypto.randomUUID(),
+            descricao: `Aluguer ${item.vehicle?.marca} ${item.vehicle?.modelo} (${item.vehicle?.matricula}) - ${item.dias} dias${costCenter ? ` - ${costCenter.nome}` : ''}`,
+            quantidade: item.dias,
+            precoUnitario: item.precoDiario,
+            taxaImposto: 23,
+            total: item.total * 1.23
+        }));
 
         const subtotal = rentalSubtotal;
         const tax = subtotal * 0.23;
         const total = subtotal + tax;
 
-        // Use the first vehicle as "primary" for backward compatibility if needed, 
-        // but prefer storing the array.
+        // Use the first vehicle as "primary" for backward compatibility
         const primaryViaturaId = selectedViaturaIds[0];
+        const primaryStats = detailsMap[0];
 
         const newInvoice: Fatura = {
             id: crypto.randomUUID(),
-            numero: `REG 2024/${(invoices.length + 100).toString()}`, // Changed to REG for Registration
+            numero: `REG 2024/${(invoices.length + 100).toString()}`,
             data: dataInicio,
             vencimento: new Date(new Date(dataInicio).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             clienteId,
-            status: 'rascunho', // DRAFT / REGISTERED
+            status: 'rascunho',
             tipo: 'aluguer',
             aluguerDetails: {
                 viaturaId: primaryViaturaId,
-                viaturasIds: selectedViaturaIds, // New field
-                dias,
-                dataInicio,
+                viaturasIds: selectedViaturaIds,
+                dias: dias, // Keep global "dias" as reference or use max? Using base for now.
+                dataInicio: dataInicio,
                 dataFim: new Date(new Date(dataInicio).getTime() + dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                centroCustoId
+                centroCustoId,
+                detalhesViaturas: detailsMap.map(d => ({
+                    viaturaId: d.viaturaId,
+                    dias: d.dias,
+                    dataInicio: d.dataInicio,
+                    dataFim: d.dataFim,
+                    precoDiario: d.precoDiario
+                }))
             },
             subtotal,
             imposto: tax,
@@ -143,6 +192,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         setSelectedViaturaIds([]);
         setCentroCustoId('');
         setDias(1);
+        setVehicleSettings({});
     };
 
     const formatCurrency = (val: number) => {
@@ -738,18 +788,50 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                             <div className="mt-3 space-y-2">
                                 {selectedViaturaIds.map(id => {
                                     const v = viaturas.find(vi => vi.id === id);
+                                    const settings = getVehicleSettings(id);
+
                                     return (
-                                        <div key={id} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-                                            <div>
-                                                <p className="text-white font-medium">{v?.marca} {v?.modelo}</p>
-                                                <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
+                                        <div key={id} className="flex flex-col gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-white font-medium">{v?.marca} {v?.modelo}</p>
+                                                    <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleRemoveViatura(id)}
+                                                    className="text-slate-400 hover:text-red-400 transition-colors"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => handleRemoveViatura(id)}
-                                                className="text-slate-400 hover:text-red-400 transition-colors"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
+
+                                            <div className="flex gap-2 text-sm pt-2 border-t border-slate-700/50">
+                                                <div className="flex-1">
+                                                    <label className="text-xs text-slate-500 mb-1 block">Data Início</label>
+                                                    <input
+                                                        type="date"
+                                                        value={settings.dataInicio}
+                                                        onChange={(e) => updateVehicleDetails(id, 'dataInicio', e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                                                    />
+                                                </div>
+                                                <div className="w-24">
+                                                    <label className="text-xs text-slate-500 mb-1 block">Dias</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={settings.dias}
+                                                        onChange={(e) => updateVehicleDetails(id, 'dias', Number(e.target.value))}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                                                    />
+                                                </div>
+                                                <div className="w-24 text-right">
+                                                    <label className="text-xs text-slate-500 mb-1 block">Subtotal</label>
+                                                    <div className="py-1 text-amber-500 font-medium">
+                                                        {formatCurrency((v?.precoDiario || 0) * settings.dias)}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -843,7 +925,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     <div className="pt-6 border-t border-slate-700 flex justify-between items-center">
                         <div className="text-right">
                             <p className="text-slate-400 text-sm">Total Estimado</p>
-                            <p className="text-2xl font-bold text-amber-500">{formatCurrency((dias * calculateTotalDaily()) * 1.23)}</p>
+                            <p className="text-2xl font-bold text-amber-500">{formatCurrency((calculateGrandTotal()) * 1.23)}</p>
                         </div>
                         <button
                             onClick={handleCreateRental}

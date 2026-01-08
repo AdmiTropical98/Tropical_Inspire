@@ -341,6 +341,13 @@ export interface Fatura {
         dataInicio: string;
         dataFim: string;
         centroCustoId?: string;
+        detalhesViaturas?: {
+            viaturaId: string;
+            dias: number;
+            dataInicio: string;
+            dataFim: string;
+            precoDiario: number;
+        }[];
     };
     cliente?: Cliente;
 }
