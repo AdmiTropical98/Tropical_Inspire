@@ -99,6 +99,22 @@ export interface Multa {
     obs?: string;
 }
 
+export interface Avaliacao {
+    id: string;
+    motoristaId: string;
+    adminId: string;
+    periodo: string; // "YYYY-MM"
+    pontuacao: number; // 0-5
+    criterios: {
+        pontualidade: number;
+        apresentacao: number;
+        cuidadoViatura: number;
+        comportamento: number;
+    };
+    obs: string;
+    dataAvaliacao: string;
+}
+
 export interface Ausencia {
     id: string;
     inicio: string;

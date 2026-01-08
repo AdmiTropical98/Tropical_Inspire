@@ -35,13 +35,14 @@ import Contabilidade from './components/contabilidade';
 import Clientes from './components/clientes';
 import PermissionsManager from './components/dashboard/PermissionsManager'; // Import PermissionsManager
 import Relatorios from './components/relatorios'; // Import Relatorios
+import AvaliacaoMotorista from './components/avaliacao'; // Import AvaliacaoMotorista
 
 function App() {
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao'>('dashboard');
 
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
@@ -99,6 +100,7 @@ function App() {
       case 'contabilidade': return <Contabilidade />;
       case 'clientes': return <Clientes />;
       case 'relatorios': return <Relatorios />;
+      case 'avaliacao': return <AvaliacaoMotorista />;
       case 'external': return <ExternalServices />;
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
@@ -244,6 +246,13 @@ function App() {
                 <button onClick={() => setActiveTab('relatorios')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'relatorios' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
                   <BarChart3 className="w-5 h-5" />
                   <span className="font-medium">Relatórios</span>
+                </button>
+              )}
+
+              {userRole === 'admin' && (
+                <button onClick={() => setActiveTab('avaliacao')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'avaliacao' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
+                  <UserCog className="w-5 h-5" />
+                  <span className="font-medium">Avaliação Drivers</span>
                 </button>
               )}
 
@@ -413,6 +422,14 @@ function App() {
                   )}
 
                   {userRole === 'admin' && (
+                    <button onClick={() => { setActiveTab('avaliacao'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'avaliacao' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <UserCog className="w-5 h-5" />
+                      <span className="font-medium">Avaliação Drivers</span>
+                    </button>
+                  )}
+
+                  {userRole === 'admin' && (
+                    // ... existing admin menu ...
                     <button onClick={() => { setActiveTab('permissions'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'permissions' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                       <Shield className="w-5 h-5" />
                       <span className="font-medium">Permissões</span>

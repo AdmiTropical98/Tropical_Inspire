@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao } from '../types';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js'; // For temp admin creation
 
@@ -62,6 +62,8 @@ interface WorkshopContextType {
     addServico: (s: Servico) => Promise<void>;
     updateServico: (s: Servico) => Promise<void>;
     deleteServico: (id: string) => Promise<void>;
+    avaliacoes: Avaliacao[];
+    addAvaliacao: (a: Avaliacao) => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -92,6 +94,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [oficinaUsers, setOficinaUsers] = useState<OficinaUser[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+    const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
 
 
 
