@@ -11,7 +11,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 export default function Combustivel() {
     const {
-        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, tankRefills, registerTankRefill, deleteFuelTransaction, setPumpTotalizer, centrosCustos, deleteTankRefill
+        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, tankRefills, registerTankRefill, deleteFuelTransaction, setPumpTotalizer, centrosCustos, deleteTankRefill, updateFuelTank
     } = useWorkshop();
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
@@ -39,6 +39,41 @@ export default function Combustivel() {
     // Calibration State
     const [isCalibrating, setIsCalibrating] = useState(false);
     const [calibrationValue, setCalibrationValue] = useState('');
+
+    // Tank Edit State
+    const [isEditingTank, setIsEditingTank] = useState(false);
+    const [editTankForm, setEditTankForm] = useState({
+        capacity: '',
+        currentLevel: ''
+    });
+
+    const handleEditTank = () => {
+        setEditTankForm({
+            capacity: fuelTank.capacity.toString(),
+            currentLevel: fuelTank.currentLevel.toString()
+        });
+        setIsEditingTank(true);
+    };
+
+    const saveTankChanges = (e: React.FormEvent) => {
+        e.preventDefault();
+        const newCapacity = Number(editTankForm.capacity);
+        const newLevel = Number(editTankForm.currentLevel);
+
+        if (isNaN(newCapacity) || isNaN(newLevel)) {
+            alert('Por favor insira valores válidos.');
+            return;
+        }
+
+        updateFuelTank({
+            ...fuelTank,
+            capacity: newCapacity,
+            currentLevel: newLevel
+        });
+
+        setIsEditingTank(false);
+        alert('Dados do tanque atualizados com sucesso!');
+    };
 
     const handleRegisterRefuel = (e: React.FormEvent) => {
         e.preventDefault();
@@ -637,7 +672,18 @@ export default function Combustivel() {
                                 <Fuel className="w-10 h-10 text-yellow-500" />
                             </div>
                             <h3 className="font-bold text-xl text-white">Tanque Principal</h3>
-                            <p className="text-sm text-slate-400">Gasóleo Rodoviário</p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-sm text-slate-400">Gasóleo Rodoviário</p>
+                                {hasAccess(userRole, 'combustivel_calibrate') && (
+                                    <button
+                                        onClick={handleEditTank}
+                                        className="p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors"
+                                        title="Editar Capacidade/Nível"
+                                    >
+                                        <Settings className="w-3 h-3" />
+                                    </button>
+                                )}
+                            </div>
 
                             <div className="flex gap-2 mt-4">
                                 <span className={`text-xs border px-3 py-1 rounded-full capitalize flex items-center gap-1 ${percentage < 20 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
@@ -702,6 +748,55 @@ export default function Combustivel() {
                 </div>
 
             </div>
+
+            {/* Edit Tank Modal */}
+            {isEditingTank && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                        <h3 className="text-xl font-bold text-white mb-4">Editar Tanque</h3>
+                        <form onSubmit={saveTankChanges} className="space-y-4">
+                            <div>
+                                <label className="text-xs text-slate-400 font-bold uppercase">Capacidade Total (L)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    value={editTankForm.capacity}
+                                    onChange={e => setEditTankForm({ ...editTankForm, capacity: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-400 font-bold uppercase">Nível Atual (L)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    value={editTankForm.currentLevel}
+                                    onChange={e => setEditTankForm({ ...editTankForm, currentLevel: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                />
+                                <p className="text-[10px] text-yellow-500 mt-1">
+                                    Atenção: Alterar manualmente o nível pode dessincronizar o histórico de abastecimentos.
+                                </p>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditingTank(false)}
+                                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-bold transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold transition-colors"
+                                >
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
