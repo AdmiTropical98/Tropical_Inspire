@@ -518,7 +518,7 @@ export default function Requisicoes() {
                             {requisicoes.slice(0, 5).map(req => (
                                 <div key={req.id} className="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-slate-700/50">
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-mono font-bold text-lg
+                                        <div className={`px-3 py-2 rounded-xl flex items-center justify-center font-mono font-bold text-sm
                                             ${req.status === 'concluida' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-700 text-slate-300'}
                                         `}>
                                             R:{req.numero}
