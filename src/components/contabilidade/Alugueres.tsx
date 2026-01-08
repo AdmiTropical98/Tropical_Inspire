@@ -523,9 +523,20 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                             const refMonthStr = refDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
                             const capitalRef = refMonthStr.charAt(0).toUpperCase() + refMonthStr.slice(1);
 
-                            // Calculate Start/End of Reference Month
-                            const startRef = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
-                            const endRef = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0);
+                            // Calculate Start/End based on specific vehicle details if available
+                            let startRef: Date;
+                            let endRef: Date;
+
+                            if (details && details.dataInicio) {
+                                startRef = new Date(details.dataInicio);
+                                endRef = new Date(startRef);
+                                endRef.setDate(startRef.getDate() + (details.dias - 1));
+                            } else {
+                                // Fallback to Reference Month logic
+                                startRef = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+                                endRef = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0);
+                            }
+
                             const dateRangeStr = `${startRef.toLocaleDateString('pt-PT')} -> ${endRef.toLocaleDateString('pt-PT')}`;
 
                             const netVal = vehicleTotal / 1.23;
@@ -596,14 +607,16 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                         halign: 'left'
                     },
                     columnStyles: {
-                        0: { cellWidth: 45 },
-                        1: { cellWidth: 35 },
-                        2: { cellWidth: 30 },
-                        3: { cellWidth: 15, halign: 'center' },
-                        4: { cellWidth: 30, halign: 'right' },
-                        5: { cellWidth: 30, halign: 'right' },
-                        6: { cellWidth: 30, halign: 'right' }
+                        0: { cellWidth: 50 }, // Data (Date Range)
+                        1: { cellWidth: 40 }, // Mes Ref
+                        2: { cellWidth: 35 }, // Viatura
+                        3: { cellWidth: 20, halign: 'center' }, // Dias
+                        4: { cellWidth: 40, halign: 'right' }, // Liq
+                        5: { cellWidth: 35, halign: 'right' }, // IVA
+                        6: { cellWidth: 'auto', halign: 'right' } // Total (Fill rest)
                     },
+                    margin: { left: 10, right: 10 },
+                    tableWidth: 'auto'
                     didParseCell: (data) => {
                         // Bold the subtotal row
                         if (data.row.index === bodyData.length - 1) {
