@@ -386,11 +386,11 @@ export default function Contabilidade() {
             if (inv.itens && inv.itens.length > 0) {
                 const { error: itemsError } = await supabase.from('itens_fatura').insert(inv.itens.map((item: any) => ({
                     fatura_id: idToSave,
-                    descricao: item.descricao,
-                    quantidade: item.quantidade,
-                    preco_unitario: item.precoUnitario,
-                    taxa_imposto: item.taxaImposto,
-                    total: item.total
+                    descricao: item.descricao || 'Item sem descrição',
+                    quantidade: item.quantidade ?? 1,
+                    preco_unitario: item.precoUnitario ?? 0,
+                    taxa_imposto: item.taxaImposto ?? 23,
+                    total: item.total ?? 0
                 })));
                 if (itemsError) throw itemsError;
             }
