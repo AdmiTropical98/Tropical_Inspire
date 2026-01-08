@@ -133,6 +133,7 @@ export default function Contabilidade() {
             const mappedInvoices = data.map((inv: any) => ({
                 ...inv,
                 clienteId: inv.cliente_id,
+                aluguerDetails: inv.aluguer_details, // Map from snake_case column
                 itens: inv.itens.map((item: any) => ({
                     ...item,
                     precoUnitario: item.preco_unitario,
@@ -352,6 +353,50 @@ export default function Contabilidade() {
         }
     };
 
+    // New function to handle Rental Saving to Supabase
+    const handleSaveRental = async (inv: Fatura) => {
+        try {
+            const newId = crypto.randomUUID();
+            const { error } = await supabase.from('faturas').insert({
+                id: newId,
+                numero: inv.numero,
+                data: inv.data,
+                vencimento: inv.vencimento,
+                cliente_id: inv.clienteId,
+                status: 'emitida',
+                subtotal: inv.subtotal,
+                imposto: inv.imposto,
+                total: inv.total,
+                tipo: 'aluguer',
+                aluguer_details: inv.aluguerDetails, // Save the JSON object
+                notas: inv.notas || ''
+            });
+
+            if (error) throw error;
+
+            // Insert Items
+            if (inv.itens && inv.itens.length > 0) {
+                const { error: itemsError } = await supabase.from('itens_fatura').insert(inv.itens.map((item: any) => ({
+                    fatura_id: newId,
+                    descricao: item.descricao,
+                    quantidade: item.quantidade,
+                    preco_unitario: item.precoUnitario,
+                    taxa_imposto: item.taxaImposto,
+                    total: item.total
+                })));
+                if (itemsError) throw itemsError;
+            }
+
+            // Update local state by fetching fresh data
+            fetchInvoices();
+            fetchDashboardData();
+            setActiveTab('alugueres');
+        } catch (error: any) {
+            console.error('Error saving rental:', error);
+            alert('Erro ao guardar aluguer: ' + error.message);
+        }
+    };
+
     const handleDownloadInvoice = async (invoice: Fatura) => {
         // ... same PDF generation logic ...
         // For brevity preserving the massive block logic from original file would be huge here.
@@ -480,10 +525,7 @@ export default function Contabilidade() {
                     <Alugueres
                         invoices={invoices}
                         onDelete={handleDeleteInvoice}
-                        onSaveRental={(inv) => {
-                            setInvoices([inv, ...invoices]);
-                            setActiveTab('alugueres'); // Stay on rentals tab
-                        }}
+                        onSaveRental={handleSaveRental}
                     />
                 ) : (
                     <>
