@@ -874,6 +874,26 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     if (!error) setAdminUsers(prev => prev.filter(u => u.id !== id));
                 },
 
+                addAvaliacao: async (avaliacao: Avaliacao) => {
+                    const { data, error } = await supabase.from('avaliacoes').insert([{
+                        motorista_id: avaliacao.motoristaId,
+                        admin_id: avaliacao.adminId,
+                        periodo: avaliacao.periodo,
+                        pontuacao: avaliacao.pontuacao,
+                        criterios: avaliacao.criterios,
+                        obs: avaliacao.obs,
+                        data_avaliacao: avaliacao.dataAvaliacao
+                    }]).select().single();
+
+                    if (!error && data) {
+                        setAvaliacoes(prev => [...prev, {
+                            ...avaliacao,
+                            id: data.id
+                        }]);
+                    } else if (error) {
+                        console.error('Error adding avaliacao:', error);
+                    }
+                },
                 addNotification,
                 updateNotification,
                 updateFuelTank,
