@@ -780,15 +780,19 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
         const invoiceItems = detailsMap.map(detail => {
             const v = viaturas.find(vi => vi.id === detail.viaturaId);
+            const netTotal = detail.precoDiario * detail.dias;
             return {
+                id: crypto.randomUUID(),
                 descricao: `${v?.marca} ${v?.modelo} (${v?.matricula}) - ${detail.dias} dias`,
                 quantidade: 1,
-                precoUnitario: detail.precoDiario * detail.dias,
-                total: detail.precoDiario * detail.dias
+                precoUnitario: netTotal,
+                taxaImposto: 23,
+                total: netTotal * 1.23
             };
         });
 
-        const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
+        // Calculate totals from detailsMap (Net Values)
+        const subtotal = detailsMap.reduce((sum, item) => sum + (item.precoDiario * item.dias), 0);
         const amountVat = subtotal * 0.23;
         const total = subtotal + amountVat;
 
