@@ -102,7 +102,11 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
 
         fetchPermissions();
 
-        // Subscribe to changes for real-time updates
+        // Realtime subscription disabled to prevent double-toggle issue
+        // The optimistic update already provides instant feedback
+        // Users can refresh the page to see changes made by others
+
+        /*
         const channel = supabase
             .channel('app_settings_changes')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings' }, (payload) => {
@@ -122,6 +126,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         return () => {
             supabase.removeChannel(channel);
         };
+        */
     }, []);
 
     const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => {
