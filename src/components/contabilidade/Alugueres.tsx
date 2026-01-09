@@ -1364,3 +1364,4 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         </div >
     );
 }
+// Force update timestamp: 2026-01-09 01:06
