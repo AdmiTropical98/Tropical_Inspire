@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Car, Printer, Trash2, Download, X, FileText, Edit } from 'lucide-react'; // Added Edit
+import { Plus, Search, Car, Printer, Trash2, Download, X, Edit, ChevronDown, ChevronUp } from 'lucide-react'; // Added ChevronDown, ChevronUp
 import type { Fatura } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import jsPDF from 'jspdf';
@@ -75,6 +75,19 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     const [newTemplateName, setNewTemplateName] = useState('');
     const [showSaveTemplate, setShowSaveTemplate] = useState(false);
 
+    // Grouping State
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+    const toggleGroup = (groupId: string) => {
+        const newExpanded = new Set(expandedGroups);
+        if (newExpanded.has(groupId)) {
+            newExpanded.delete(groupId);
+        } else {
+            newExpanded.add(groupId);
+        }
+        setExpandedGroups(newExpanded);
+    };
+
     // ... (keep handleSaveTemplate, handleLoadTemplate, filteredInvoices, handleAddViatura, handleRemoveViatura, getVehicleSettings, updateVehicleDetails, calculateTotalDaily, calculateGrandTotal) ...
 
     const handleEdit = (invoice: Fatura) => {
@@ -130,6 +143,42 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         (inv.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
             inv.status.includes(searchTerm.toLowerCase()))
     );
+
+    // Group rentals by Client and Month
+    const groupedRentals = (() => {
+        const groups: Record<string, {
+            id: string;
+            clienteId: string;
+            periodoReferencia: string;
+            rawDate: Date; // for sorting
+            invoices: Fatura[];
+            total: number;
+        }> = {};
+
+        filteredInvoices.forEach(inv => {
+            const ref = inv.aluguerDetails?.periodoReferencia || '';
+            // If no ref, use invoice date month
+            const monthKey = ref || inv.data.substring(0, 7); // YYYY-MM
+
+            const key = `${inv.clienteId}-${monthKey}`;
+
+            if (!groups[key]) {
+                const dateObj = ref ? new Date(ref + '-01') : new Date(inv.data);
+                groups[key] = {
+                    id: key,
+                    clienteId: inv.clienteId,
+                    periodoReferencia: monthKey,
+                    rawDate: dateObj,
+                    invoices: [],
+                    total: 0
+                };
+            }
+            groups[key].invoices.push(inv);
+            groups[key].total += inv.total;
+        });
+
+        return Object.values(groups).sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
+    })();
 
     const handleAddViatura = () => {
         if (tempViaturaId && !selectedViaturaIds.includes(tempViaturaId)) {
@@ -535,7 +584,6 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                 const bodyData: any[][] = [];
 
                 group.items.forEach(pdfInv => {
-                    const clientName = clientes.find(c => c.id === pdfInv.clienteId)?.nome || 'Desconhecido';
                     const vehicleIds = pdfInv.aluguerDetails?.viaturasIds || (pdfInv.aluguerDetails?.viaturaId ? [pdfInv.aluguerDetails?.viaturaId] : []);
 
                     if (vehicleIds.length > 0) {
@@ -549,7 +597,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                 vehicleTotal = (details.precoDiario * details.dias) * 1.23;
                             } else if (v && pdfInv.aluguerDetails?.dias) {
                                 // Fallback logic
-                                vehicleTotal = (v.precoDiario * pdfInv.aluguerDetails.dias) * 1.23;
+                                vehicleTotal = ((v.precoDiario || 0) * pdfInv.aluguerDetails.dias) * 1.23;
                             }
 
                             // Format Reference Month
@@ -1263,91 +1311,149 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                 <table className="w-full text-sm text-left">
                     <thead className="bg-slate-800/50 text-slate-400 uppercase text-xs font-semibold">
                         <tr>
+                            <th className="px-6 py-4 w-12"></th>
                             <th className="px-6 py-4">Referência</th>
-                            <th className="px-6 py-4">Viatura</th>
                             <th className="px-6 py-4">Cliente</th>
-                            <th className="px-6 py-4">Período</th>
-                            <th className="px-6 py-4 text-right">Valor</th>
-                            <th className="px-6 py-4 text-center">Status</th>
+                            <th className="px-6 py-4">Faturas</th>
+                            <th className="px-6 py-4 text-right">Total Grupo</th>
+                            <th className="px-6 py-4 text-right">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                        {filteredInvoices.length > 0 ? (
-                            filteredInvoices.map((inv) => {
-                                const vehicle = viaturas.find(v => v.id === inv.aluguerDetails?.viaturaId);
+                        {groupedRentals.length > 0 ? (
+                            groupedRentals.map((group) => {
+                                const isExpanded = expandedGroups.has(group.id);
+                                const clientName = clientes.find(c => c.id === group.clienteId)?.nome || 'Cliente Desconhecido';
+
+                                // Format Month
+                                const dateObj = new Date(group.periodoReferencia + '-01');
+                                // fallback if invalid date string (e.g. if we just used YYYY-MM)
+                                const isValidDate = !isNaN(dateObj.getTime());
+                                const displayDate = isValidDate
+                                    ? dateObj.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+                                    : group.periodoReferencia;
+
+                                const displayRef = `Referente a ${displayDate}`;
+
                                 return (
-                                    <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors group">
-                                        <td className="px-6 py-4 font-medium text-white group-hover:text-amber-400 transition-colors">
-                                            {inv.aluguerDetails?.periodoReferencia
-                                                ? `Referente a ${(new Date(inv.aluguerDetails.periodoReferencia + '-01')).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}`
-                                                : `Referente a ${new Date(inv.data).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}`}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-300">
-                                            {inv.aluguerDetails?.viaturasIds ? (
-                                                <div className="space-y-1">
-                                                    {inv.aluguerDetails.viaturasIds.map((vid: string) => {
-                                                        const v = viaturas.find(vi => vi.id === vid);
-                                                        return v ? (
-                                                            <div key={vid} className="text-xs">
-                                                                <span className="text-slate-300">{v.marca} {v.modelo}</span>
-                                                                <span className="text-slate-500 ml-1">({v.matricula})</span>
+                                    <>
+                                        {/* GROUP ROW */}
+                                        <tr key={group.id} className="bg-slate-800/20 hover:bg-slate-800/40 transition-colors border-b border-slate-700/50">
+                                            <td className="px-6 py-4 text-center">
+                                                <button
+                                                    onClick={() => toggleGroup(group.id)}
+                                                    className="p-1 hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-white"
+                                                >
+                                                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 font-bold text-white tracking-wide">
+                                                {displayRef.charAt(0).toUpperCase() + displayRef.slice(1)}
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-300 font-medium">
+                                                {clientName}
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-400">
+                                                {group.invoices.length} fatura(s)
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-bold text-emerald-400 text-lg">
+                                                {formatCurrency(group.total)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                {/* Group Actions could go here maybe simple print all? for now empty */}
+                                            </td>
+                                        </tr>
+
+                                        {/* DETAIL ROWS */}
+                                        {isExpanded && group.invoices.map(inv => {
+                                            const vehicle = viaturas.find(v => v.id === inv.aluguerDetails?.viaturaId);
+                                            return (
+                                                <tr key={inv.id} className="bg-slate-900/30 hover:bg-slate-800/30 transition-colors animate-in fade-in slide-in-from-top-1 border-b border-slate-800/50">
+                                                    <td className="px-6 py-4 pl-12 border-l-4 border-slate-800" colSpan={6}>
+                                                        <div className="grid grid-cols-12 items-center gap-4">
+                                                            <div className="col-span-3">
+                                                                <p className="text-xs text-slate-500 uppercase font-bold">Viatura(s)</p>
+                                                                <div className="text-slate-300 mt-1">
+                                                                    {inv.aluguerDetails?.viaturasIds ? (
+                                                                        <div className="space-y-1">
+                                                                            {inv.aluguerDetails.viaturasIds.map((vid: string) => {
+                                                                                const v = viaturas.find(vi => vi.id === vid);
+                                                                                return v ? (
+                                                                                    <div key={vid} className="text-sm flex items-center gap-2">
+                                                                                        <span>{v.marca} {v.modelo}</span>
+                                                                                        <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{v.matricula}</span>
+                                                                                    </div>
+                                                                                ) : null;
+                                                                            })}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-sm flex items-center gap-2">
+                                                                            <span>{vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Viatura N/A'}</span>
+                                                                            {vehicle && <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{vehicle.matricula}</span>}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        ) : null;
-                                                    })}
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    {vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Viatura N/A'}
-                                                    <span className="block text-xs text-slate-500">{vehicle?.matricula}</span>
-                                                </>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-300">
-                                            {clientes.find(c => c.id === inv.clienteId)?.nome || inv.clienteId}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-400">
-                                            {new Date(inv.aluguerDetails?.dataInicio || inv.data).toLocaleDateString('pt-PT')} <span className="mx-1 text-slate-600">→</span> {new Date(inv.aluguerDetails?.dataFim || inv.vencimento).toLocaleDateString('pt-PT')}
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-medium text-emerald-400">
-                                            {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(inv.total)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button
-                                                    title="Editar"
-                                                    onClick={() => handleEdit(inv)}
-                                                    className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    title="Transferir Fatura"
-                                                    onClick={() => generateRentalPDF(inv)}
-                                                    className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-colors"
-                                                >
-                                                    <Download className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    title="Imprimir Contrato"
-                                                    onClick={() => generateRentalContract(inv)}
-                                                    className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-colors"
-                                                >
-                                                    <Printer className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    title="Apagar"
-                                                    onClick={() => {
-                                                        if (window.confirm('Tem a certeza que deseja apagar este registo?')) {
-                                                            onDelete(inv.id);
-                                                        }
-                                                    }}
-                                                    className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+
+                                                            <div className="col-span-3">
+                                                                <p className="text-xs text-slate-500 uppercase font-bold">Período</p>
+                                                                <p className="text-slate-400 text-sm mt-1">
+                                                                    {new Date(inv.aluguerDetails?.dataInicio || inv.data).toLocaleDateString('pt-PT')}
+                                                                    <span className="mx-2 text-slate-600">→</span>
+                                                                    {new Date(inv.aluguerDetails?.dataFim || inv.vencimento).toLocaleDateString('pt-PT')}
+                                                                </p>
+                                                                {inv.aluguerDetails?.dias && (
+                                                                    <p className="text-xs text-slate-500 mt-0.5">{inv.aluguerDetails.dias} dias</p>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="col-span-2 text-right">
+                                                                <p className="text-xs text-slate-500 uppercase font-bold">Valor</p>
+                                                                <p className="text-emerald-400 font-medium text-sm mt-1">
+                                                                    {formatCurrency(inv.total)}
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="col-span-4 flex justify-end gap-2">
+                                                                <button
+                                                                    title="Editar"
+                                                                    onClick={() => handleEdit(inv)}
+                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
+                                                                >
+                                                                    <Edit className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    title="Fatura PDF"
+                                                                    onClick={() => generateRentalPDF(inv)}
+                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                                >
+                                                                    <Download className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    title="Contrato PDF"
+                                                                    onClick={() => generateRentalContract(inv)}
+                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                                >
+                                                                    <Printer className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    title="Apagar"
+                                                                    onClick={() => {
+                                                                        if (window.confirm('Tem a certeza que deseja apagar este registo?')) {
+                                                                            onDelete(inv.id);
+                                                                        }
+                                                                    }}
+                                                                    className="p-2 bg-slate-800 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </>
                                 );
                             })
                         ) : (

@@ -579,7 +579,7 @@ export default function Contabilidade() {
             {
                 activeTab === 'faturas' ? (
                     <Faturas
-                        invoices={invoices}
+                        invoices={invoices.filter(i => i.tipo !== 'aluguer')}
                         onCreateNew={() => setView('create')}
                         onDelete={handleDeleteInvoice}
                         onDownload={handleDownloadInvoice}
