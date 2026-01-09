@@ -335,46 +335,71 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const registerRefuel = async (transaction: FuelTransaction) => {
         const currentPMP = fuelTank.averagePrice || 0;
         const totalCost = transaction.liters * currentPMP;
-        const transactionWithCost = {
+
+        let finalStatus = transaction.status || 'pending';
+        let pumpCounterAfter = 0;
+
+        // If explicitly confirmed (Dual Auth), calculate tank updates immediately
+        if (finalStatus === 'confirmed') {
+            const currentTotalizer = fuelTank.pumpTotalizer || 0;
+            pumpCounterAfter = currentTotalizer + transaction.liters;
+            const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
+
+            // Update Tank immediately
+            await updateFuelTank({
+                ...fuelTank,
+                currentLevel: newLevel,
+                pumpTotalizer: pumpCounterAfter
+            });
+        }
+
+        const transactionToSave = {
             ...transaction,
+            status: finalStatus,
             pricePerLiter: currentPMP,
-            totalCost: totalCost
+            totalCost: totalCost,
+            pumpCounterAfter: finalStatus === 'confirmed' ? pumpCounterAfter : undefined
         };
 
         const { error } = await supabase.from('fuel_transactions').insert({
-            id: transactionWithCost.id,
-            driver_id: transactionWithCost.driverId,
-            vehicle_id: transactionWithCost.vehicleId,
-            liters: transactionWithCost.liters,
-            km: transactionWithCost.km,
-            staff_id: transactionWithCost.staffId,
-            staff_name: transactionWithCost.staffName,
-            status: 'pending',
-            timestamp: transactionWithCost.timestamp,
-            price_per_liter: transactionWithCost.pricePerLiter,
-            total_cost: transactionWithCost.totalCost,
-            centro_custo_id: transactionWithCost.centroCustoId
+            id: transactionToSave.id,
+            driver_id: transactionToSave.driverId,
+            vehicle_id: transactionToSave.vehicleId,
+            liters: transactionToSave.liters,
+            km: transactionToSave.km,
+            staff_id: transactionToSave.staffId,
+            staff_name: transactionToSave.staffName,
+            status: transactionToSave.status,
+            timestamp: transactionToSave.timestamp,
+            price_per_liter: transactionToSave.pricePerLiter,
+            total_cost: transactionToSave.totalCost,
+            centro_custo_id: transactionToSave.centroCustoId,
+            pump_counter_after: transactionToSave.pumpCounterAfter
         });
 
         if (!error) {
-            setFuelTransactions(prev => [transactionWithCost, ...prev]);
-            addNotification({
-                id: crypto.randomUUID(),
-                type: 'fuel_confirmation_request',
-                data: {
-                    liters: transaction.liters,
-                    km: transaction.km,
-                    vehicleId: transaction.vehicleId, // or Plate
-                    licensePlate: transaction.vehicleId,
-                    staffId: transaction.staffId
-                },
-                status: 'pending',
-                response: {
-                    driverId: transaction.driverId,
-                    serviceId: transaction.id
-                },
-                timestamp: new Date().toISOString()
-            });
+            setFuelTransactions(prev => [transactionToSave, ...prev]);
+
+            // Only send notification if PENDING
+            if (finalStatus === 'pending') {
+                addNotification({
+                    id: crypto.randomUUID(),
+                    type: 'fuel_confirmation_request',
+                    data: {
+                        liters: transaction.liters,
+                        km: transaction.km,
+                        vehicleId: transaction.vehicleId, // or Plate
+                        licensePlate: transaction.vehicleId,
+                        staffId: transaction.staffId
+                    },
+                    status: 'pending',
+                    response: {
+                        driverId: transaction.driverId,
+                        serviceId: transaction.id
+                    },
+                    timestamp: new Date().toISOString()
+                });
+            }
         }
     };
 
