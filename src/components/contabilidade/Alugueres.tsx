@@ -509,8 +509,12 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     ? 'Sem Centro de Custo Definido'
                     : centrosCustos.find(c => c.id === ccId)?.nome || 'Centro de Custo Removido';
 
-                // Check page break
-                if (currentY + 30 > doc.internal.pageSize.height) {
+                // Check page break: Force new page for each Cost Center (except the first one)
+                if (entries.indexOf([ccId, group]) > 0) {
+                    doc.addPage();
+                    currentY = 20;
+                } else if (currentY + 30 > doc.internal.pageSize.height) {
+                    // Safety check for the very first one if header pushed it down too much (unlikely but safe)
                     doc.addPage();
                     currentY = 20;
                 }
