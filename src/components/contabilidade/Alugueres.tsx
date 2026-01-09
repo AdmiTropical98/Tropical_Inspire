@@ -144,13 +144,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             inv.status.includes(searchTerm.toLowerCase()))
     );
 
-    // Group rentals by Client and Month
+    // Group rentals by Client and Month (Consolidated)
     const groupedRentals = (() => {
         const groups: Record<string, {
             id: string;
             clienteId: string;
             periodoReferencia: string;
-            centroCustoId: string;
+            centroCustoIds: Set<string>; // Changed to Set
             rawDate: Date; // for sorting
             invoices: Fatura[];
             total: number;
@@ -158,11 +158,11 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
         filteredInvoices.forEach(inv => {
             const ref = inv.aluguerDetails?.periodoReferencia || '';
-            // If no ref, use invoice date month
             const monthKey = ref || inv.data.substring(0, 7); // YYYY-MM
-
             const ccId = inv.aluguerDetails?.centroCustoId || 'uncategorized';
-            const key = `${inv.clienteId}-${monthKey}-${ccId}`;
+
+            // Key based ONLY on Client and Month
+            const key = `${inv.clienteId}-${monthKey}`;
 
             if (!groups[key]) {
                 const dateObj = ref ? new Date(ref + '-01') : new Date(inv.data);
@@ -170,13 +170,14 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     id: key,
                     clienteId: inv.clienteId,
                     periodoReferencia: monthKey,
-                    centroCustoId: ccId,
+                    centroCustoIds: new Set(),
                     rawDate: dateObj,
                     invoices: [],
                     total: 0
                 };
             }
             groups[key].invoices.push(inv);
+            groups[key].centroCustoIds.add(ccId);
             groups[key].total += inv.total;
         });
 
@@ -1328,9 +1329,18 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                             groupedRentals.map((group) => {
                                 const isExpanded = expandedGroups.has(group.id);
                                 const clientName = clientes.find(c => c.id === group.clienteId)?.nome || 'Cliente Desconhecido';
-                                const ccName = group.centroCustoId === 'uncategorized'
-                                    ? 'Sem Centro de Custo'
-                                    : centrosCustos.find(c => c.id === group.centroCustoId)?.nome || 'C.Custo Removido';
+
+                                let ccName = '';
+                                if (group.centroCustoIds.size > 1) {
+                                    ccName = 'Vários Centros de Custo';
+                                } else if (group.centroCustoIds.size === 1) {
+                                    const id = Array.from(group.centroCustoIds)[0];
+                                    ccName = id === 'uncategorized'
+                                        ? 'Sem Centro de Custo'
+                                        : centrosCustos.find(c => c.id === id)?.nome || 'C.Custo Removido';
+                                } else {
+                                    ccName = 'N/A';
+                                }
 
                                 // Format Month
                                 const dateObj = new Date(group.periodoReferencia + '-01');
