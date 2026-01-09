@@ -150,8 +150,11 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
 
         if (error) {
             console.error('Error updating permissions in DB:', error);
-            // Revert optimistic update? Or just alert. For now simple logging.
-            alert('Falha ao gravar permissões. Verifique a ligação.');
+            // Revert optimistic update on real error
+            setPermissions(prev => ({
+                ...prev,
+                [role]: currentRolePermissions
+            }));
         }
     };
 
