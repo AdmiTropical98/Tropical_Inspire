@@ -1314,7 +1314,8 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                             <th className="px-6 py-4 w-12"></th>
                             <th className="px-6 py-4">Referência</th>
                             <th className="px-6 py-4">Cliente</th>
-                            <th className="px-6 py-4">Faturas</th>
+                            <th className="px-6 py-4">Centro de Custo</th>
+                            <th className="px-6 py-4">Relatórios</th>
                             <th className="px-6 py-4 text-right">Total Grupo</th>
                             <th className="px-6 py-4 text-right">Ações</th>
                         </tr>
@@ -1369,7 +1370,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                             const vehicle = viaturas.find(v => v.id === inv.aluguerDetails?.viaturaId);
                                             return (
                                                 <tr key={inv.id} className="bg-slate-900/30 hover:bg-slate-800/30 transition-colors animate-in fade-in slide-in-from-top-1 border-b border-slate-800/50">
-                                                    <td className="px-6 py-4 pl-12 border-l-4 border-slate-800" colSpan={6}>
+                                                    <td className="px-6 py-4 pl-12 border-l-4 border-slate-800" colSpan={7}>
                                                         <div className="grid grid-cols-12 items-center gap-4">
                                                             <div className="col-span-3">
                                                                 <p className="text-xs text-slate-500 uppercase font-bold">Viatura(s)</p>
