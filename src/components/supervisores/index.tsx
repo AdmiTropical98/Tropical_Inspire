@@ -44,9 +44,11 @@ export default function Supervisores() {
             pin: randomPin,
             dataRegisto: new Date().toISOString().split('T')[0]
         });
+
         setNewSupervisor({ nome: '', email: '', telemovel: '', foto: '' });
         setPhotoPreview('');
-        alert(`${t('supervisors.success_create')} PIN: ${randomPin}`);
+
+        alert(`Supervisor criado com sucesso!\n\nPIN: ${randomPin}\n\nO supervisor pode entrar usando:\n- E-mail ou Telemóvel\n- PIN: ${randomPin}`);
     };
 
     const handleDeleteSupervisor = (id: string, name: string) => {

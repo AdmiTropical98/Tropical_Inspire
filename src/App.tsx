@@ -12,7 +12,7 @@ import { ChatProvider } from './contexts/ChatContext';
 
 // Components
 import Login from './components/Login';
-import ResetPassword from './components/ResetPassword'; // Import ResetPassword
+import ResetPassword from './components/ResetPassword';
 import Dashboard from './components/dashboard';
 import { supabase } from './lib/supabase'; // Import Supabase client
 import Fornecedores from './components/fornecedores';
@@ -47,7 +47,7 @@ function App() {
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false); // State for password reset mode
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Listen for Password Recovery Event
   useEffect(() => {
@@ -107,8 +107,6 @@ function App() {
   };
 
   if (isResettingPassword) return <ResetPassword />;
-
-  if (!isAuthenticated) return <Login />;
 
   if (!isAuthenticated) return <Login />;
 
