@@ -35,6 +35,13 @@
   }
 }
 
+/* Hide Browser Default Password Icons (Edge/Chrome/Safari) */
+input::-ms-reveal,
+input::-ms-clear,
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;

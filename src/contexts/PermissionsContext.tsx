@@ -81,86 +81,71 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     useEffect(() => {
         const fetchPermissions = async () => {
             try {
-                const { data, error } = await supabase.from('app_settings').select('key, value').in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina']);
+                const { data, error } = await supabase
+                    .from('app_settings')
+                    .select('key, value')
+                    .in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina']);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error fetching permissions:', error);
+                    return;
+                }
 
-                if (data) {
-                    const newPermissions = { ...DEFAULT_PERMISSIONS };
-                    data.forEach((item: any) => {
-                        if (item.key === 'permissions_supervisor') newPermissions.supervisor = item.value;
-                        if (item.key === 'permissions_motorista') newPermissions.motorista = item.value;
-                        if (item.key === 'permissions_oficina') newPermissions.oficina = item.value;
+                if (data && data.length > 0) {
+                    setPermissions(prev => {
+                        const nextPerms = { ...prev };
+                        data.forEach((item: any) => {
+                            if (item.key === 'permissions_supervisor' && Array.isArray(item.value)) {
+                                nextPerms.supervisor = item.value;
+                            }
+                            if (item.key === 'permissions_motorista' && Array.isArray(item.value)) {
+                                nextPerms.motorista = item.value;
+                            }
+                            if (item.key === 'permissions_oficina' && Array.isArray(item.value)) {
+                                nextPerms.oficina = item.value;
+                            }
+                        });
+                        return nextPerms;
                     });
-                    setPermissions(newPermissions);
                 }
             } catch (err) {
-                console.error('Error fetching permissions from DB:', err);
-                // Fallback to defaults is already set via initial state
+                console.error('Unexpected error fetching permissions:', err);
             }
         };
 
         fetchPermissions();
-
-        // Realtime subscription disabled to prevent double-toggle issue
-        // The optimistic update already provides instant feedback
-        // Users can refresh the page to see changes made by others
-
-        /*
-        const channel = supabase
-            .channel('app_settings_changes')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings' }, (payload) => {
-                const { key, value } = payload.new as any;
-                if (['permissions_supervisor', 'permissions_motorista', 'permissions_oficina'].includes(key)) {
-                    setPermissions(prev => {
-                        const updated = { ...prev };
-                        if (key === 'permissions_supervisor') updated.supervisor = value;
-                        if (key === 'permissions_motorista') updated.motorista = value;
-                        if (key === 'permissions_oficina') updated.oficina = value;
-                        return updated;
-                    });
-                }
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-        */
     }, []);
 
     const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => {
-        const currentRolePermissions = permissions[role];
-        let newRolePermissions: PermissionModule[];
+        // Use functional state to ensure we have the absolute latest permissions
+        setPermissions(prev => {
+            const currentPerms = [...(prev[role] || [])];
+            let nextPerms: typeof currentPerms;
 
-        if (hasAccess) {
-            if (!currentRolePermissions.includes(module)) {
-                newRolePermissions = [...currentRolePermissions, module];
+            if (hasAccess) {
+                nextPerms = currentPerms.includes(module) ? currentPerms : [...currentPerms, module];
             } else {
-                newRolePermissions = currentRolePermissions;
+                nextPerms = currentPerms.filter(p => p !== module);
             }
-        } else {
-            newRolePermissions = currentRolePermissions.filter(p => p !== module);
-        }
 
-        // Optimistic Update
-        setPermissions(prev => ({
-            ...prev,
-            [role]: newRolePermissions
-        }));
+            const updatedAll = { ...prev, [role]: nextPerms };
 
-        // Persist to DB
-        const dbKey = `permissions_${role}`;
-        const { error } = await supabase.from('app_settings').upsert({ key: dbKey, value: newRolePermissions });
+            // Persist to DB immediately
+            const dbKey = `permissions_${role}`;
+            supabase
+                .from('app_settings')
+                .upsert({ key: dbKey, value: nextPerms }, { onConflict: 'key' })
+                .then(({ error }) => {
+                    if (error) {
+                        console.error(`Error saving ${dbKey}:`, error);
+                        // Optional: Revert state on failure
+                    } else {
+                        console.log(`Successfully saved ${dbKey}`);
+                    }
+                });
 
-        if (error) {
-            console.error('Error updating permissions in DB:', error);
-            // Revert optimistic update on real error
-            setPermissions(prev => ({
-                ...prev,
-                [role]: currentRolePermissions
-            }));
-        }
+            return updatedAll;
+        });
     };
 
     const hasAccess = (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | null, module: PermissionModule): boolean => {
