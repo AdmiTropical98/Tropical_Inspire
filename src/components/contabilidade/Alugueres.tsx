@@ -1044,7 +1044,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
                                 >
                                     <option value="">Adicionar Viatura...</option>
-                                    {viaturas.map(v => <option key={v.id} value={v.id}>{v.marca} {v.modelo} - {v.matricula}</option>)}
+                                    {filteredDisplayViaturas.map(v => <option key={v.id} value={v.id}>{v.marca} {v.modelo} - {v.matricula}</option>)}
                                 </select>
                                 <button
                                     onClick={handleAddViatura}
@@ -1217,7 +1217,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                 <VehicleSelectionModal
                     isOpen={isSelectionModalOpen}
                     onClose={() => setIsSelectionModalOpen(false)}
-                    viaturas={viaturas}
+                    viaturas={filteredDisplayViaturas}
                     selectedIds={selectedViaturaIds}
                     onConfirm={(ids) => {
                         setSelectedViaturaIds(ids);
