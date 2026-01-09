@@ -81,73 +81,54 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     useEffect(() => {
         const fetchPermissions = async () => {
             try {
-                const { data, error } = await supabase.from('app_settings').select('key, value').in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina']);
+                const { data, error } = await supabase
+                    .from('app_settings')
+                    .select('key, value')
+                    .in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina']);
 
                 if (error) throw error;
 
-                if (data) {
-                    const newPermissions = { ...DEFAULT_PERMISSIONS };
-                    data.forEach((item: any) => {
-                        if (item.key === 'permissions_supervisor') newPermissions.supervisor = item.value;
-                        if (item.key === 'permissions_motorista') newPermissions.motorista = item.value;
-                        if (item.key === 'permissions_oficina') newPermissions.oficina = item.value;
+                if (data && data.length > 0) {
+                    setPermissions(prev => {
+                        const newPermissions = { ...prev };
+                        data.forEach((item: any) => {
+                            if (item.key === 'permissions_supervisor' && Array.isArray(item.value)) {
+                                newPermissions.supervisor = item.value;
+                            }
+                            if (item.key === 'permissions_motorista' && Array.isArray(item.value)) {
+                                newPermissions.motorista = item.value;
+                            }
+                            if (item.key === 'permissions_oficina' && Array.isArray(item.value)) {
+                                newPermissions.oficina = item.value;
+                            }
+                        });
+                        return newPermissions;
                     });
-                    setPermissions(newPermissions);
                 }
             } catch (err) {
                 console.error('Error fetching permissions from DB:', err);
-                // Fallback to defaults is already set via initial state
             }
         };
 
         fetchPermissions();
-
-        // Realtime subscription disabled to prevent double-toggle issue
-        // The optimistic update already provides instant feedback
-        // Users can refresh the page to see changes made by others
-
-        /*
-        const channel = supabase
-            .channel('app_settings_changes')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings' }, (payload) => {
-                const { key, value } = payload.new as any;
-                if (['permissions_supervisor', 'permissions_motorista', 'permissions_oficina'].includes(key)) {
-                    setPermissions(prev => {
-                        const updated = { ...prev };
-                        if (key === 'permissions_supervisor') updated.supervisor = value;
-                        if (key === 'permissions_motorista') updated.motorista = value;
-                        if (key === 'permissions_oficina') updated.oficina = value;
-                        return updated;
-                    });
-                }
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-        */
     }, []);
 
     const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => {
-        // Save previous state for rollback
-        const previousPermissions = { ...permissions };
+        const currentRolePerms = [...(permissions[role] || [])];
 
-        // Calculate new permissions based on latest state
-        let updatedRolePermissions: PermissionModule[] = [];
+        // Calculate new state
+        let nextRolePerms: PermissionModule[];
+        if (hasAccess) {
+            nextRolePerms = currentRolePerms.includes(module) ? currentRolePerms : [...currentRolePerms, module];
+        } else {
+            nextRolePerms = currentRolePerms.filter(p => p !== module);
+        }
 
-        setPermissions(prev => {
-            const currentPerms = prev[role] || [];
-            if (hasAccess) {
-                updatedRolePermissions = currentPerms.includes(module) ? currentPerms : [...currentPerms, module];
-            } else {
-                updatedRolePermissions = currentPerms.filter(p => p !== module);
-            }
-            return {
-                ...prev,
-                [role]: updatedRolePermissions
-            };
-        });
+        // Optimistic Update
+        setPermissions(prev => ({
+            ...prev,
+            [role]: nextRolePerms
+        }));
 
         // Persist to DB
         const dbKey = `permissions_${role}`;
@@ -155,20 +136,18 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
             const { error } = await supabase
                 .from('app_settings')
                 .upsert(
-                    { key: dbKey, value: updatedRolePermissions },
+                    { key: dbKey, value: nextRolePerms },
                     { onConflict: 'key' }
                 );
 
             if (error) {
-                console.error('Error updating permissions in DB:', error);
-                // Revert state on error
-                setPermissions(previousPermissions);
-                alert(`Erro ao salvar permissão: ${error.message}`);
+                console.error('Error saving permissions:', error);
+                setPermissions(prev => ({ ...prev, [role]: currentRolePerms }));
+                alert(`Erro ao gravar: ${error.message}`);
             }
-        } catch (err) {
-            console.error('Unexpected error updating permissions:', err);
-            setPermissions(previousPermissions);
-            alert('Ocorreu um erro inesperado ao salvar as permissões.');
+        } catch (err: any) {
+            console.error('Fatal error saving permissions:', err);
+            setPermissions(prev => ({ ...prev, [role]: currentRolePerms }));
         }
     };
 
