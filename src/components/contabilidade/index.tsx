@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import {
     Wallet, TrendingDown, DollarSign,
     Calendar, Download, PieChart, BarChart3,
-    ArrowUpRight, FileText, Car, Fuel, CreditCard,
-    Receipt, RefreshCcw, X
+    ArrowUpRight, FileText, CreditCard,
+    Receipt, RefreshCcw
 } from 'lucide-react';
 import Faturas from './Faturas';
 import NovaFatura from './NovaFatura';
@@ -16,7 +16,7 @@ import { formatCurrency } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Fatura } from '../../types';
+import type { Fatura } from '../../types';
 
 function ContabilidadeContent() {
     // Only get what actually exists in the context
@@ -164,7 +164,8 @@ function ContabilidadeContent() {
                         </div>
                     </div>
                 );
-            case 'receitas': return <Alugueres />; // Assuming Alugueres is standalone enough
+
+            case 'receitas': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} />;
             case 'despesas': return <ExpensesList />;
             case 'fixos': return <FixedCostsManager />;
             case 'relatorios':
@@ -178,30 +179,41 @@ function ContabilidadeContent() {
                     onView={(inv: Fatura) => alert(inv.numero)}
                 />;
             case 'faturas': return <Faturas invoices={invoices} onCreateNew={() => setView('create')} onDelete={handleDeleteInvoice} onDownload={handleDownloadInvoice} onEdit={handleEditInvoice} onView={() => { }} />;
-            case 'alugueres': return <Alugueres />;
+            case 'alugueres': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} />;
             default: return null;
         }
     };
 
+
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 p-8 pt-24 space-y-8">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
                     <h1 className="text-4xl font-black text-white tracking-tight mb-2">Gestão Financeira</h1>
                     <p className="text-slate-400 text-lg">Visão 360º das finanças.</p>
                 </div>
-                <div className="flex bg-slate-800 p-1.5 rounded-xl border border-slate-700/50 overflow-x-auto">
-                    {[
-                        { id: 'dashboard', label: 'Visão Geral', icon: PieChart },
-                        { id: 'receitas', label: 'Alugueres (Vendas)', icon: ArrowUpRight },
-                        { id: 'despesas', label: 'Despesas', icon: Receipt },
-                        { id: 'fixos', label: 'Fixos', icon: RefreshCcw },
-                        { id: 'relatorios', label: 'Faturas/Docs', icon: FileText },
-                    ].map(tab => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
-                            <tab.icon className="w-4 h-4" /> {tab.label}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={generateCostCenterReport}
+                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl font-medium border border-slate-700 transition-all shadow-lg hidden md:flex"
+                    >
+                        <Download className="w-4 h-4" />
+                        Relatório
+                    </button>
+
+                    <div className="flex bg-slate-800 p-1.5 rounded-xl border border-slate-700/50 overflow-x-auto">
+                        {[
+                            { id: 'dashboard', label: 'Visão Geral', icon: PieChart },
+                            { id: 'receitas', label: 'Alugueres', icon: ArrowUpRight },
+                            { id: 'despesas', label: 'Despesas', icon: Receipt },
+                            { id: 'fixos', label: 'Fixos', icon: RefreshCcw },
+                            { id: 'relatorios', label: 'Faturas', icon: FileText },
+                        ].map(tab => (
+                            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+                                <tab.icon className="w-4 h-4" /> {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
             {renderContent()}
