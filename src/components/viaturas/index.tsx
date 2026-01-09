@@ -133,60 +133,63 @@ export default function Viaturas() {
                 <p className="text-slate-400">{t('subtitle.vehicles')}</p>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-                <button
-                    onClick={() => setActiveTab('overview')}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
-                    ${activeTab === 'overview'
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30'
-                            : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-                >
-                    <LayoutTemplate className="w-4 h-4" />
-                    Visão Geral
-                </button>
-                <button
-                    onClick={() => setActiveTab('list')}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
-                    ${activeTab === 'list'
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30'
-                            : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-                >
-                    <List className="w-4 h-4" />
-                    Lista de Viaturas
-                </button>
-                <button
-                    onClick={() => setActiveTab('create')}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
-                    ${activeTab === 'create'
-                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-500/30'
-                            : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-                >
-                    <PlusCircle className="w-4 h-4" />
-                    Nova Viatura
-                </button>
-            </div>
-
-            {/* Actions Bar - New */}
-            <div className="flex justify-end gap-3 mb-6">
-                <button
-                    onClick={handleDownloadTemplate}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm border border-slate-700 transition-colors"
-                >
-                    <Download className="w-4 h-4" />
-                    Baixar Template
-                </button>
-                <div className="relative">
-                    <input
-                        type="file"
-                        accept=".xlsx, .xls"
-                        onChange={handleFileUpload}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm transition-colors shadow-lg shadow-emerald-900/20">
-                        <Upload className="w-4 h-4" />
-                        Importar Excel
+            {/* Navigation & Actions Toolbar */}
+            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-8">
+                {/* Tabs */}
+                <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                    <button
+                        onClick={() => setActiveTab('overview')}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
+                        ${activeTab === 'overview'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30'
+                                : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
+                    >
+                        <LayoutTemplate className="w-4 h-4" />
+                        Visão Geral
                     </button>
+                    <button
+                        onClick={() => setActiveTab('list')}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
+                        ${activeTab === 'list'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30'
+                                : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
+                    >
+                        <List className="w-4 h-4" />
+                        Lista de Viaturas
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('create')}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
+                        ${activeTab === 'create'
+                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-500/30'
+                                : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
+                    >
+                        <PlusCircle className="w-4 h-4" />
+                        Nova Viatura
+                    </button>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleDownloadTemplate}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm border border-slate-700 transition-colors whitespace-nowrap"
+                    >
+                        <Download className="w-4 h-4" />
+                        Baixar Template
+                    </button>
+                    <div className="relative">
+                        <input
+                            type="file"
+                            accept=".xlsx, .xls"
+                            onChange={handleFileUpload}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm transition-colors shadow-lg shadow-emerald-900/20 whitespace-nowrap">
+                            <Upload className="w-4 h-4" />
+                            Importar Excel
+                        </button>
+                    </div>
                 </div>
             </div>
 
