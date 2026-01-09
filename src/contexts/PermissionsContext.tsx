@@ -130,36 +130,45 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     }, []);
 
     const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => {
-        const currentRolePermissions = permissions[role];
-        let newRolePermissions: PermissionModule[];
+        // Save previous state for rollback
+        const previousPermissions = { ...permissions };
 
-        if (hasAccess) {
-            if (!currentRolePermissions.includes(module)) {
-                newRolePermissions = [...currentRolePermissions, module];
+        // Calculate new permissions based on latest state
+        let updatedRolePermissions: PermissionModule[] = [];
+
+        setPermissions(prev => {
+            const currentPerms = prev[role] || [];
+            if (hasAccess) {
+                updatedRolePermissions = currentPerms.includes(module) ? currentPerms : [...currentPerms, module];
             } else {
-                newRolePermissions = currentRolePermissions;
+                updatedRolePermissions = currentPerms.filter(p => p !== module);
             }
-        } else {
-            newRolePermissions = currentRolePermissions.filter(p => p !== module);
-        }
-
-        // Optimistic Update
-        setPermissions(prev => ({
-            ...prev,
-            [role]: newRolePermissions
-        }));
+            return {
+                ...prev,
+                [role]: updatedRolePermissions
+            };
+        });
 
         // Persist to DB
         const dbKey = `permissions_${role}`;
-        const { error } = await supabase.from('app_settings').upsert({ key: dbKey, value: newRolePermissions });
+        try {
+            const { error } = await supabase
+                .from('app_settings')
+                .upsert(
+                    { key: dbKey, value: updatedRolePermissions },
+                    { onConflict: 'key' }
+                );
 
-        if (error) {
-            console.error('Error updating permissions in DB:', error);
-            // Revert optimistic update on real error
-            setPermissions(prev => ({
-                ...prev,
-                [role]: currentRolePermissions
-            }));
+            if (error) {
+                console.error('Error updating permissions in DB:', error);
+                // Revert state on error
+                setPermissions(previousPermissions);
+                alert(`Erro ao salvar permissão: ${error.message}`);
+            }
+        } catch (err) {
+            console.error('Unexpected error updating permissions:', err);
+            setPermissions(previousPermissions);
+            alert('Ocorreu um erro inesperado ao salvar as permissões.');
         }
     };
 
