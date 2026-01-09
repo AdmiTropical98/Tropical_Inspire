@@ -62,6 +62,14 @@ export default function Contabilidade() {
                 .select('custo');
             const totalMaint = maintData?.reduce((acc, curr) => acc + (curr.custo || 0), 0) || 0;
 
+            // 4. Expenses - Requisitions (New)
+            const { data: reqData } = await supabase
+                .from('requisicoes')
+                .select('custo')
+                .eq('status', 'concluida')
+                .not('custo', 'is', null);
+            const totalReqs = reqData?.reduce((acc, curr) => acc + (curr.custo || 0), 0) || 0;
+
             // 4. Expenses - Other & Salaries
             // Fetch drivers for salary calculation
             // Fetch drivers for salary calculation
@@ -75,7 +83,7 @@ export default function Contabilidade() {
                 .select('vencimento_base');
 
             const totalSalaries = allDrivers?.reduce((acc, curr) => acc + (curr.vencimento_base || 0), 0) || 0;
-            const totalExpenses = totalFuel + totalMaint + totalSalaries;
+            const totalExpenses = totalFuel + totalMaint + totalSalaries + totalReqs;
 
             setFinancialStats({
                 totalRevenue,
@@ -88,6 +96,7 @@ export default function Contabilidade() {
                 { category: 'Combustível', value: totalFuel, color: 'bg-blue-500' },
                 { category: 'Manutenção', value: totalMaint, color: 'bg-red-500' },
                 { category: 'Salários', value: totalSalaries, color: 'bg-emerald-500' },
+                { category: 'Requisições', value: totalReqs, color: 'bg-amber-500' },
             ]);
 
             // 5. Top Cost Centers Aggregation
@@ -122,18 +131,35 @@ export default function Contabilidade() {
     };
 
     const fetchInvoices = async () => {
-        const { data, error } = await supabase
+        // 1. Fetch Sales Invoices
+        const { data: salesData, error: salesError } = await supabase
             .from('faturas')
             .select(`
                 *,
                 itens:itens_fatura(*)
             `);
 
-        if (data) {
-            const mappedInvoices = data.map((inv: any) => ({
+        if (salesError) console.error('Error fetching sales invoices:', salesError);
+
+        // 2. Fetch Purchase Invoices (Requisitions)
+        const { data: reqData, error: reqError } = await supabase
+            .from('requisicoes')
+            .select('*')
+            .eq('status', 'concluida')
+            .not('fatura', 'is', null);
+
+        if (reqError) console.error('Error fetching requisitions:', reqError);
+
+        // 3. Fetch Suppliers to map names
+        const { data: suppliers } = await supabase.from('fornecedores').select('id, nome');
+
+        let allInvoices: Fatura[] = [];
+
+        if (salesData) {
+            const mappedSales = salesData.map((inv: any) => ({
                 ...inv,
                 clienteId: inv.cliente_id,
-                aluguerDetails: inv.aluguer_details, // Map from snake_case column
+                aluguerDetails: inv.aluguer_details,
                 itens: inv.itens.map((item: any) => ({
                     ...item,
                     precoUnitario: item.preco_unitario,
@@ -141,9 +167,40 @@ export default function Contabilidade() {
                     faturaId: item.fatura_id
                 }))
             }));
-            setInvoices(mappedInvoices);
+            allInvoices = [...allInvoices, ...mappedSales];
         }
-        if (error) console.error('Error fetching invoices:', error);
+
+        if (reqData) {
+            const mappedReqs = reqData.map((req: any) => {
+                const supplier = suppliers?.find((s: any) => s.id === req.fornecedor_id);
+                const supplierName = supplier ? supplier.nome : 'Fornecedor Desconhecido';
+
+                // Map Requisition to Fatura structure
+                return {
+                    id: req.id,
+                    numero: req.fatura || 'N/A', // The External Invoice Number
+                    data: req.data, // Purchase Date
+                    vencimento: req.data, // Assuming immediate for now or same date
+                    clienteId: 'EXPENSE', // Special ID to identify as Expense
+                    cliente: { nome: supplierName } as any, // Mock Client for display
+                    status: 'paga' as const, // Confirmed requisitions are treated as paid/processed
+                    subtotal: req.custo || 0,
+                    imposto: 0, // Usually included in total or not tracked separately for simple requisitions
+                    desconto: 0,
+                    total: (req.custo || 0) * -1, // Negative to represent Expense
+                    notas: `Requisição Interna: ${req.numero} - ${req.obs || ''}`,
+                    tipo: 'geral' as const,
+                    itens: [], // We could map req items here if needed
+                    isExpense: true // Custom flag for UI
+                };
+            });
+            allInvoices = [...allInvoices, ...mappedReqs];
+        }
+
+        // Sort by date desc
+        allInvoices.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+
+        setInvoices(allInvoices);
     };
 
     const formatCurrency = (val: number) => {

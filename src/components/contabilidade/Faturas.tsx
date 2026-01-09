@@ -83,12 +83,16 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
                                     {invoice.numero}
                                 </td>
                                 <td className="px-6 py-4 text-slate-300">
-                                    {clientes.find(c => c.id === invoice.clienteId)?.nome || 'Cliente Desconhecido'}
+                                    {invoice.isExpense
+                                        ? (invoice.cliente?.nome || 'Fornecedor')
+                                        : (clientes.find(c => c.id === invoice.clienteId)?.nome || 'Cliente Desconhecido')}
                                 </td>
                                 <td className="px-6 py-4 text-slate-400">{invoice.data}</td>
                                 <td className="px-6 py-4 text-slate-400">{invoice.vencimento}</td>
                                 <td className="px-6 py-4 text-right font-medium text-white">
-                                    {formatCurrency(invoice.total)}
+                                    <span className={invoice.total < 0 ? 'text-red-400' : 'text-emerald-400'}>
+                                        {formatCurrency(invoice.total)}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(invoice.status)}`}>

@@ -39,7 +39,7 @@ interface WorkshopContextType {
     addRequisicao: (r: Requisicao) => void;
     updateRequisicao: (r: Requisicao) => void;
     deleteRequisicao: (id: string) => void;
-    toggleRequisicaoStatus: (id: string) => void;
+    toggleRequisicaoStatus: (id: string, fatura?: string, custo?: number) => void;
     addCentroCusto: (cc: CentroCusto) => void; // NEW
     deleteCentroCusto: (id: string) => void; // NEW
     addEvaTransport: (t: EvaTransport) => void;
@@ -135,7 +135,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (cc) setCentrosCustos(cc.map((item: any) => ({ ...item, id: item.id, nome: item.nome, localizacao: item.localizacao, codigo: item.codigo })));
 
             const { data: r } = await supabase.from('requisicoes').select('*');
-            if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por })));
+            if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por, custo: item.custo })));
 
             const { data: av } = await supabase.from('avaliacoes').select('*');
             if (av) setAvaliacoes(av.map((item: any) => ({
@@ -559,15 +559,26 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!error) setRequisicoes(prev => prev.filter(r => r.id !== id));
     };
 
-    const toggleRequisicaoStatus = async (id: string, fatura?: string) => {
+    const toggleRequisicaoStatus = async (id: string, fatura?: string, custo?: number) => {
         const r = requisicoes.find(req => req.id === id);
         if (r) {
             const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
-            const { error } = await supabase.from('requisicoes').update({ status: newStatus }).eq('id', id);
+            const updates: any = { status: newStatus };
+            if (newStatus === 'concluida') {
+                if (fatura) updates.fatura = fatura;
+                if (custo) updates.custo = custo;
+            }
+
+            const { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
             if (!error) {
                 setRequisicoes(prev => prev.map(req => {
                     if (req.id === id) {
-                        return { ...req, status: newStatus, fatura: (newStatus === 'concluida' && fatura) ? fatura : req.fatura };
+                        return {
+                            ...req,
+                            status: newStatus,
+                            fatura: (newStatus === 'concluida' && fatura) ? fatura : req.fatura,
+                            custo: (newStatus === 'concluida' && custo) ? custo : req.custo
+                        };
                     }
                     return req;
                 }));

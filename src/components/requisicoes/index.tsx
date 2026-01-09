@@ -39,6 +39,7 @@ export default function Requisicoes() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [invoiceNumber, setInvoiceNumber] = useState('');
+    const [invoiceAmount, setInvoiceAmount] = useState('');
 
     // Statistics for Overview
     const stats = {
@@ -51,21 +52,29 @@ export default function Requisicoes() {
     const handleOpenConfirm = (id: string) => {
         setConfirmingId(id);
         setInvoiceNumber('');
+        setInvoiceAmount('');
         setShowConfirmModal(true);
     };
 
     const handleConfirmRequisition = (e: React.FormEvent) => {
         e.preventDefault();
         if (!confirmingId) return;
-        if (!invoiceNumber.trim()) {
-            alert(t('req.valid.invoice_required'));
+        if (!invoiceNumber.trim() || !invoiceAmount.trim()) {
+            alert(t('req.valid.invoice_required')); // Ensure translation handles both or generic message
             return;
         }
 
-        toggleRequisicaoStatus(confirmingId);
+        const amount = parseFloat(invoiceAmount.replace(',', '.'));
+        if (isNaN(amount)) {
+            alert('Valor inválido');
+            return;
+        }
+
+        toggleRequisicaoStatus(confirmingId, invoiceNumber, amount);
         setShowConfirmModal(false);
         setConfirmingId(null);
         setInvoiceNumber('');
+        setInvoiceAmount('');
     };
 
     const addItem = () => {
@@ -883,7 +892,7 @@ export default function Requisicoes() {
                         <p className="text-slate-400 text-sm mb-6">{t('req.confirm.subtitle')}</p>
 
                         <form onSubmit={handleConfirmRequisition}>
-                            <div className="mb-8">
+                            <div className="mb-4">
                                 <label className="block text-xs font-bold text-emerald-500 uppercase mb-2">
                                     {t('req.confirm.invoice_label')} <span className="text-red-500">*</span>
                                 </label>
@@ -895,6 +904,20 @@ export default function Requisicoes() {
                                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-4 text-white focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-xl"
                                     value={invoiceNumber}
                                     onChange={e => setInvoiceNumber(e.target.value)}
+                                />
+                            </div>
+                            <div className="mb-8">
+                                <label className="block text-xs font-bold text-emerald-500 uppercase mb-2">
+                                    Valor Total (€) <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    placeholder="0.00"
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-4 text-white focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-xl"
+                                    value={invoiceAmount}
+                                    onChange={e => setInvoiceAmount(e.target.value)}
                                 />
                             </div>
 

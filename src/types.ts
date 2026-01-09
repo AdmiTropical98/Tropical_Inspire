@@ -76,6 +76,7 @@ export interface Requisicao {
     obs: string;
     status?: 'pendente' | 'concluida';
     fatura?: string;
+    custo?: number; // Invoice Amount
     criadoPor?: string; // Name of the user who created it
 }
 
@@ -351,6 +352,7 @@ export interface Fatura {
         }[];
     };
     cliente?: Cliente;
+    isExpense?: boolean;
 }
 
 export interface AdminUser {
