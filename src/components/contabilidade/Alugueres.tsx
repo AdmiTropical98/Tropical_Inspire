@@ -14,6 +14,34 @@ interface AlugueresProps {
 
 export default function Alugueres({ invoices, onSaveRental, onDelete }: AlugueresProps) {
     const { viaturas, centrosCustos, clientes } = useWorkshop();
+
+    // Filter duplicates: Keep only used vehicles if duplicates exist
+    const filteredDisplayViaturas = (() => {
+        const activeViaturaIds = new Set(
+            invoices
+                .filter(i => i.tipo === 'aluguer' && i.aluguerDetails)
+                .flatMap(i => {
+                    const details = i.aluguerDetails!;
+                    return [...(details.viaturasIds || []), details.viaturaId].filter(Boolean);
+                })
+        );
+
+        const byPlate: Record<string, typeof viaturas> = {};
+        viaturas.forEach(v => {
+            if (!byPlate[v.matricula]) byPlate[v.matricula] = [];
+            byPlate[v.matricula].push(v);
+        });
+
+        return Object.values(byPlate).flatMap(group => {
+            if (group.length === 1) return group;
+            // If duplicates, keep only those with history
+            const used = group.filter(v => activeViaturaIds.has(v.id));
+            if (used.length > 0) return used;
+            // If none used, keep the last one (assuming newest) or just the first
+            return [group[group.length - 1]];
+        });
+    })();
+
     const [view, setView] = useState<'list' | 'create'>('list');
     const [searchTerm, setSearchTerm] = useState('');
 
