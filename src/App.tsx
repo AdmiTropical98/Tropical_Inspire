@@ -12,7 +12,8 @@ import { ChatProvider } from './contexts/ChatContext';
 
 // Components
 import Login from './components/Login';
-import ResetPassword from './components/ResetPassword'; // Import ResetPassword
+import ResetPassword from './components/ResetPassword';
+import SetupSupervisor from './components/SetupSupervisor';
 import Dashboard from './components/dashboard';
 import { supabase } from './lib/supabase'; // Import Supabase client
 import Fornecedores from './components/fornecedores';
@@ -47,7 +48,8 @@ function App() {
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false); // State for password reset mode
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isSettingUpSupervisor, setIsSettingUpSupervisor] = useState(false);
 
   // Listen for Password Recovery Event
   useEffect(() => {
@@ -56,6 +58,12 @@ function App() {
         setIsResettingPassword(true);
       }
     });
+
+    // Check for Supervisor Setup Link
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('setup_supervisor') === 'true') {
+      setIsSettingUpSupervisor(true);
+    }
 
     return () => {
       subscription.unsubscribe();
@@ -107,6 +115,7 @@ function App() {
   };
 
   if (isResettingPassword) return <ResetPassword />;
+  if (isSettingUpSupervisor) return <SetupSupervisor />;
 
   if (!isAuthenticated) return <Login />;
 

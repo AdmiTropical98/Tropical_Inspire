@@ -178,7 +178,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (motoristas) setMotoristas(motoristas.map((m: any) => ({ ...m, vencimentoBase: m.vencimento_base, valorHora: m.valor_hora, dataRegisto: m.data_registo, cartaConducao: m.carta_conducao, blockedPermissions: m.blocked_permissions, turnoInicio: m.turno_inicio, turnoFim: m.turno_fim })));
 
             const { data: sups } = await supabase.from('supervisores').select('*');
-            if (sups) setSupervisors(sups.map((s: any) => ({ ...s, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
+            if (sups) setSupervisors(sups.map((s: any) => ({ ...s, password: s.password, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
 
             const { data: oficina } = await supabase.from('oficina_users').select('*');
             if (oficina) setOficinaUsers(oficina.map((u: any) => ({ ...u, blockedPermissions: u.blocked_permissions, dataRegisto: u.data_registo })));
@@ -657,6 +657,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             email: s.email,
             telemovel: s.telemovel,
             pin: s.pin,
+            password: s.password,
             status: s.status,
             blocked_permissions: s.blockedPermissions
         });
@@ -669,6 +670,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             email: s.email,
             telemovel: s.telemovel,
             pin: s.pin,
+            password: s.password,
             status: s.status,
             blocked_permissions: s.blockedPermissions
         }).eq('id', s.id);

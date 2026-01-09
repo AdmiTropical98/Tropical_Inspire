@@ -30,23 +30,51 @@ export default function Supervisores() {
         }
     };
 
-    const handleCreateSupervisor = (e: React.FormEvent) => {
+    const handleCreateSupervisor = async (e: React.FormEvent) => {
         e.preventDefault();
         const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+        const setupUrl = `${window.location.origin}/?setup_supervisor=true&email=${encodeURIComponent(newSupervisor.email)}&pin=${randomPin}`;
 
+        // Create supervisor in database
         addSupervisor({
             id: crypto.randomUUID(),
             nome: newSupervisor.nome,
             email: newSupervisor.email,
             telemovel: newSupervisor.telemovel,
             foto: newSupervisor.foto,
-            status: 'active',
+            status: 'pending',
             pin: randomPin,
             dataRegisto: new Date().toISOString().split('T')[0]
         });
+
+        // Send email via Supabase Edge Function
+        try {
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-supervisor-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    supervisorName: newSupervisor.nome,
+                    supervisorEmail: newSupervisor.email,
+                    pin: randomPin,
+                    setupUrl: setupUrl
+                })
+            });
+
+            if (response.ok) {
+                alert(`Supervisor criado com sucesso!\n\nUm e-mail foi enviado para ${newSupervisor.email} com as instruções de ativação.\n\nPIN: ${randomPin}\nLink: ${setupUrl}`);
+            } else {
+                throw new Error('Falha ao enviar e-mail');
+            }
+        } catch (error) {
+            console.error('Erro ao enviar e-mail:', error);
+            alert(`Supervisor criado, mas houve um erro ao enviar o e-mail.\n\nPor favor, envie manualmente:\n\nPIN: ${randomPin}\nLink: ${setupUrl}`);
+        }
+
         setNewSupervisor({ nome: '', email: '', telemovel: '', foto: '' });
         setPhotoPreview('');
-        alert(`${t('supervisors.success_create')} PIN: ${randomPin}`);
     };
 
     const handleDeleteSupervisor = (id: string, name: string) => {

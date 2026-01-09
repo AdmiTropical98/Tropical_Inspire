@@ -174,6 +174,7 @@ CREATE TABLE IF NOT EXISTS public.supervisores (
     email TEXT,
     telemovel TEXT,
     pin TEXT,
+    password TEXT,
     status TEXT DEFAULT 'active',
     blocked_permissions JSONB,
     data_registo TIMESTAMP WITH TIME ZONE DEFAULT now()
