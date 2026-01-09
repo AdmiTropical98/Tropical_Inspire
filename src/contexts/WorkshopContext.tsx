@@ -28,6 +28,11 @@ interface WorkshopContextType {
     deleteFuelTransaction: (id: string) => void;
     deleteTankRefill: (id: string) => void;
 
+    // Manual Hours
+    manualHours: import('../types').ManualHourRecord[];
+    addManualHourRecord: (record: import('../types').ManualHourRecord) => Promise<void>;
+    deleteManualHourRecord: (id: string) => Promise<void>;
+
     addFornecedor: (f: Fornecedor) => void;
     deleteFornecedor: (id: string) => void;
     addCliente: (c: Cliente) => void;
@@ -222,8 +227,55 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 createdAt: a.created_at
             })));
 
+            // 7. Manual Hours
+            const { data: mh } = await supabase.from('manual_hours').select('*');
+            if (mh) setManualHours(mh.map((item: any) => ({
+                id: item.id,
+                motoristaId: item.motorista_id,
+                adminId: item.admin_id,
+                date: item.date,
+                startTime: item.start_time,
+                endTime: item.end_time,
+                breakDuration: item.break_duration,
+                obs: item.obs,
+                createdAt: item.created_at
+            })));
+
         } catch (error) {
             console.error('Error refreshing data:', error);
+        }
+    };
+
+    // Manual Hours Implementation
+    const [manualHours, setManualHours] = useState<import('../types').ManualHourRecord[]>([]);
+
+    const addManualHourRecord = async (record: import('../types').ManualHourRecord) => {
+        const { error } = await supabase.from('manual_hours').insert({
+            id: record.id,
+            motorista_id: record.motoristaId,
+            admin_id: record.adminId,
+            date: record.date,
+            start_time: record.startTime,
+            end_time: record.endTime,
+            break_duration: record.breakDuration,
+            obs: record.obs
+        });
+
+        if (!error) {
+            setManualHours(prev => [...prev, record]);
+        } else {
+            console.error("Error adding manual hour:", error);
+            alert("Erro ao registar hora: " + error.message);
+        }
+    };
+
+    const deleteManualHourRecord = async (id: string) => {
+        const { error } = await supabase.from('manual_hours').delete().eq('id', id);
+        if (!error) {
+            setManualHours(prev => prev.filter(mh => mh.id !== id));
+        } else {
+            console.error("Error deleting manual hour:", error);
+            alert("Erro ao apagar hora: " + error.message);
         }
     };
 
@@ -946,7 +998,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 updateServico,
                 deleteServico,
                 avaliacoes,
-                refreshData
+                refreshData,
+                manualHours,
+                addManualHourRecord,
+                deleteManualHourRecord
             }}
         >
             {children}

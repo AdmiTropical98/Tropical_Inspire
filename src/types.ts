@@ -394,3 +394,15 @@ export interface RolePermissions {
     can_delete_records: boolean;
     can_view_reports: boolean;
 }
+
+export interface ManualHourRecord {
+    id: string;
+    motoristaId: string;
+    adminId?: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    breakDuration: number;
+    obs?: string;
+    createdAt?: string;
+}
