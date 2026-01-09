@@ -534,17 +534,44 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (trans) {
             const { error } = await supabase.from('fuel_transactions').delete().eq('id', id);
             if (!error) {
-                // Revert logic (optional, but good for consistency)
-                // Keeping it simple: just remove from list. 
-                // If we want to revert tank levels we'd need complex logic.
-                // For now, assume admin fixes tank manually if needed.
+                // If the transaction was confirmed, revert the tank changes
+                if (trans.status === 'confirmed') {
+                    const currentTotalizer = fuelTank.pumpTotalizer || 0;
+                    const reversedTotalizer = Math.max(0, currentTotalizer - trans.liters);
+                    const reversedLevel = Math.min(fuelTank.capacity, fuelTank.currentLevel + trans.liters);
+
+                    await updateFuelTank({
+                        ...fuelTank,
+                        currentLevel: reversedLevel,
+                        pumpTotalizer: reversedTotalizer
+                    });
+                }
                 setFuelTransactions(prev => prev.filter(t => t.id !== id));
+            } else {
+                alert('Erro ao apagar abastecimento: ' + error.message);
             }
         }
     };
+
     const deleteTankRefill = async (id: string) => {
-        const { error } = await supabase.from('tank_refills').delete().eq('id', id);
-        if (!error) setTankRefills(prev => prev.filter(t => t.id !== id));
+        const refill = tankRefills.find(r => r.id === id);
+        if (refill) {
+            const { error } = await supabase.from('tank_refills').delete().eq('id', id);
+            if (!error) {
+                // Revert tank level (Fuel In -> Revert by removing liters)
+                const reversedLevel = Math.max(0, fuelTank.currentLevel - refill.litersAdded);
+
+                await updateFuelTank({
+                    ...fuelTank,
+                    currentLevel: reversedLevel
+                    // We do not revert PMP or Totalizer here as it's complex/ambiguous for Supplies
+                });
+
+                setTankRefills(prev => prev.filter(t => t.id !== id));
+            } else {
+                alert('Erro ao apagar entrada de combustível: ' + error.message);
+            }
+        }
     };
     const addFornecedor = async (f: Fornecedor) => {
         const { error } = await supabase.from('fornecedores').insert(f);
