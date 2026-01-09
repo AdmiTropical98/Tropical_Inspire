@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Expense, Fatura, FinancialSummary } from '../types';
+import type { Expense, Fatura, FinancialSummary } from '../types';
 
 interface FinancialContextType {
     expenses: Expense[];

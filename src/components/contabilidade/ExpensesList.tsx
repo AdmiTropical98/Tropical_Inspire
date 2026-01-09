@@ -5,9 +5,51 @@ import { Search, Filter, Plus, FileText, ArrowUpRight, ArrowDownRight, Calendar 
 import { formatCurrency } from '../../utils/format';
 
 export default function ExpensesList() {
-    const { expenses, isLoading } = useFinancial();
+    const { expenses, isLoading, addExpense, deleteExpense } = useFinancial();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('all');
+
+    // New Expense State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newExpense, setNewExpense] = useState({
+        description: '',
+        amount: 0,
+        category: 'variavel',
+        date: new Date().toISOString().split('T')[0],
+        paid: false,
+        recurring: false,
+        cost_center_id: ''
+    });
+
+    const handleAdd = async () => {
+        try {
+            await addExpense({
+                description: newExpense.description,
+                amount: Number(newExpense.amount),
+                category: newExpense.category as any,
+                date: newExpense.date,
+                paid: newExpense.paid,
+                recurring: newExpense.recurring,
+                cost_center_id: newExpense.cost_center_id || undefined
+            });
+            setIsModalOpen(false);
+            setNewExpense({
+                description: '',
+                amount: 0,
+                category: 'variavel',
+                date: new Date().toISOString().split('T')[0],
+                paid: false,
+                recurring: false,
+                cost_center_id: ''
+            });
+        } catch (error) {
+            alert('Erro ao adicionar despesa');
+        }
+    };
+
+    const handleExport = () => {
+        alert('Funcionalidade de exportação em breve.');
+    };
 
     // Sort logic
     const [sortField, setSortField] = useState<'date' | 'amount'>('date');
@@ -42,11 +84,17 @@ export default function ExpensesList() {
                 </div>
 
                 <div className="flex gap-2">
-                    <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-emerald-900/20 transition-all">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-emerald-900/20 transition-all"
+                    >
                         <Plus className="w-4 h-4" />
                         Nova Despesa
                     </button>
-                    <button className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-all">
+                    <button
+                        onClick={handleExport}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+                    >
                         <FileText className="w-4 h-4" />
                         Exportar
                     </button>
@@ -132,8 +180,15 @@ export default function ExpensesList() {
                                         <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-bold uppercase">Pendente</span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="text-slate-400 hover:text-white text-sm">Editar</button>
+                                <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity flex justify-end gap-2">
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm('Eliminar esta despesa?')) deleteExpense(expense.id);
+                                        }}
+                                        className="text-red-400 hover:text-red-300 text-sm transition-colors"
+                                    >
+                                        Remover
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -147,6 +202,83 @@ export default function ExpensesList() {
                     </div>
                 )}
             </div>
+
+            {/* Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md p-6 shadow-2xl">
+                        <h3 className="text-xl font-bold text-white mb-4">Nova Despesa</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-slate-400 mb-1">Descrição</label>
+                                <input
+                                    type="text"
+                                    value={newExpense.description}
+                                    onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">Valor (€)</label>
+                                    <input
+                                        type="number"
+                                        value={newExpense.amount}
+                                        onChange={(e) => setNewExpense({ ...newExpense, amount: Number(e.target.value) })}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">Data</label>
+                                    <input
+                                        type="date"
+                                        value={newExpense.date}
+                                        onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-slate-400 mb-1">Categoria</label>
+                                <select
+                                    value={newExpense.category}
+                                    onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                >
+                                    <option value="variavel">Variável</option>
+                                    <option value="salario">Salário</option>
+                                    <option value="imposto">Imposto</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={newExpense.paid}
+                                    onChange={(e) => setNewExpense({ ...newExpense, paid: e.target.checked })}
+                                    id="paid-check"
+                                    className="rounded bg-slate-900 border-slate-700"
+                                />
+                                <label htmlFor="paid-check" className="text-slate-300 text-sm">Despesa já paga?</label>
+                            </div>
+                            <div className="flex items-center gap-4 mt-6">
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleAdd}
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg"
+                                >
+                                    Salvar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

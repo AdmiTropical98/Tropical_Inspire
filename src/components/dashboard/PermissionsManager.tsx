@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { usePermissions, PermissionModule, RolePermissions } from '../../contexts/PermissionsContext';
+import { usePermissions } from '../../contexts/PermissionsContext';
+import type { PermissionModule, RolePermissions } from '../../contexts/PermissionsContext';
 import { Shield, Save, RotateCcw, Lock, Users, Wrench, User } from 'lucide-react';
 
 const MODULES: { id: PermissionModule; label: string; category: string }[] = [

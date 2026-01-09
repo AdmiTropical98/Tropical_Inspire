@@ -385,3 +385,12 @@ export interface FinancialSummary {
     expenseBreakdown: { category: string; value: number; color: string }[];
     topCostCenters: { id: string; nome: string; total: number }[];
 }
+
+export interface RolePermissions {
+    id: string;
+    role: 'admin' | 'gestor' | 'motorista' | 'mecanico';
+    can_view_financials: boolean;
+    can_manage_users: boolean;
+    can_delete_records: boolean;
+    can_view_reports: boolean;
+}

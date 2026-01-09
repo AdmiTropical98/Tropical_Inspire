@@ -3,18 +3,43 @@ import React, { useState } from 'react';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { Plus, Trash2, Edit2, CheckCircle, RefreshCcw } from 'lucide-react';
 import { formatCurrency } from '../../utils/format';
-import { Expense } from '../../types';
+import type { Expense } from '../../types';
 
 export default function FixedCostsManager() {
     const { expenses, addExpense, deleteExpense, updateExpense } = useFinancial();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newCost, setNewCost] = useState({
+        description: '',
+        amount: 0,
+        recurrence_period: 'monthly' as 'monthly' | 'yearly',
+        date: new Date().toISOString().split('T')[0]
+    });
 
     // Filter only fixed/recurring expenses
-    // Note: In a real app we might have a separate table for "Recurring Definitions" vs "Instanced Expenses".
-    // For this MVP, we will treat existing expenses marked as 'recurring' as the definitions OR instance list.
-    // Ideally, we want a list of "Active Subscriptions/Bills".
-    // Let's filter by category='fixo' and recurring=true.
-
     const fixedCosts = expenses.filter(e => e.category === 'fixo' && e.recurring);
+
+    const handleAdd = async () => {
+        try {
+            await addExpense({
+                description: newCost.description,
+                amount: Number(newCost.amount),
+                category: 'fixo',
+                date: newCost.date,
+                paid: false, // Default to unpaid until paid
+                recurring: true,
+                recurrence_period: newCost.recurrence_period
+            });
+            setIsModalOpen(false);
+            setNewCost({
+                description: '',
+                amount: 0,
+                recurrence_period: 'monthly',
+                date: new Date().toISOString().split('T')[0]
+            });
+        } catch (error) {
+            alert('Erro ao adicionar custo fixo');
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -38,7 +63,10 @@ export default function FixedCostsManager() {
                         <h3 className="text-lg font-bold text-white">Custos Recorrentes</h3>
                         <p className="text-slate-400 text-sm">Gerir rendas, subscrições e contas mensais.</p>
                     </div>
-                    <button className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all"
+                    >
                         <Plus className="w-4 h-4" />
                         Adicionar Novo
                     </button>
@@ -93,6 +121,63 @@ export default function FixedCostsManager() {
                     )}
                 </div>
             </div>
+
+            {/* Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md p-6 shadow-2xl">
+                        <h3 className="text-xl font-bold text-white mb-4">Novo Custo Fixo</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-slate-400 mb-1">Descrição (ex: Renda, Internet)</label>
+                                <input
+                                    type="text"
+                                    value={newCost.description}
+                                    onChange={(e) => setNewCost({ ...newCost, description: e.target.value })}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">Valor (€)</label>
+                                    <input
+                                        type="number"
+                                        value={newCost.amount}
+                                        onChange={(e) => setNewCost({ ...newCost, amount: Number(e.target.value) })}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">Recorrência</label>
+                                    <select
+                                        value={newCost.recurrence_period}
+                                        onChange={(e) => setNewCost({ ...newCost, recurrence_period: e.target.value as any })}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                    >
+                                        <option value="monthly">Mensal</option>
+                                        <option value="yearly">Anual</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 mt-6">
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleAdd}
+                                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg"
+                                >
+                                    Salvar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
