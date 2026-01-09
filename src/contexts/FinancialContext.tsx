@@ -1,0 +1,192 @@
+
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { Expense, Fatura, FinancialSummary } from '../types';
+
+interface FinancialContextType {
+    expenses: Expense[];
+    invoices: Fatura[];
+    summary: FinancialSummary;
+    isLoading: boolean;
+    refreshData: () => Promise<void>;
+    addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+    updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
+    deleteExpense: (id: string) => Promise<void>;
+}
+
+const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
+
+export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [invoices, setInvoices] = useState<Fatura[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [summary, setSummary] = useState<FinancialSummary>({
+        totalRevenue: 0,
+        totalExpenses: 0,
+        netProfit: 0,
+        pendingPayments: 0,
+        expenseBreakdown: [],
+        topCostCenters: []
+    });
+
+    const refreshData = async () => {
+        setIsLoading(true);
+        try {
+            await Promise.all([
+                fetchExpenses(),
+                fetchInvoices(),
+                calculateSummary()
+            ]);
+        } catch (error) {
+            console.error('Error refreshing financial data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchExpenses = async () => {
+        // Fetch explicit expenses
+        const { data: dbExpenses } = await supabase.from('expenses').select('*');
+        const explicitExpenses: Expense[] = dbExpenses || [];
+
+        // Fetch Implicit Expenses from other modules
+        // 1. Fuel
+        const { data: fuel } = await supabase.from('fuel_transactions').select('*');
+        const fuelExpenses: Expense[] = (fuel || []).map((f: any) => ({
+            id: `fuel-${f.id}`,
+            category: 'variavel',
+            description: `Abastecimento - ${f.vehicleId || 'Viatura'}`,
+            amount: f.total_cost || 0,
+            date: f.timestamp,
+            paid: true, // Assumed paid instantly via card usually
+            recurring: false,
+            cost_center_id: f.centro_custo_id
+        }));
+
+        // 2. Maintenance
+        const { data: maint } = await supabase.from('viaturas_manutencoes').select('*');
+        const maintExpenses: Expense[] = (maint || []).map((m: any) => ({
+            id: `maint-${m.id}`,
+            category: 'variavel',
+            description: `Manutenção - ${m.tipo}`,
+            amount: m.custo || 0,
+            date: m.data,
+            paid: true,
+            recurring: false,
+            // no CC usually on maint table directly, would need join, ignoring for MVP
+        }));
+
+        // 3. Requisitions (Confirmed)
+        const { data: reqs } = await supabase.from('requisicoes').select('*').eq('status', 'concluida').not('custo', 'is', null);
+        const reqExpenses: Expense[] = (reqs || []).map((r: any) => ({
+            id: `req-${r.id}`,
+            category: 'variavel',
+            description: `Requisição #${r.numero} - ${r.fornecedorId}`, // Should map supplier name
+            amount: r.custo || 0,
+            date: r.data,
+            paid: false, // Often on credit
+            recurring: false,
+            cost_center_id: r.centroCustoId
+        }));
+
+        // 4. Salaries (Estimated - simple separate entry per driver per month logic would be complex here, 
+        // so for now we might just aggregate checks or Manual Salary Entries. 
+        // PROPOSAL: Don't auto-generate salary rows yet, let user add them as Fixed Expense or generated monthly.
+        // For now, only explicit + fuel + maint + reqs.
+
+        setExpenses([...explicitExpenses, ...fuelExpenses, ...maintExpenses, ...reqExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    };
+
+    const fetchInvoices = async () => {
+        const { data } = await supabase.from('faturas').select('*').order('data', { ascending: false });
+        if (data) setInvoices(data);
+    };
+
+    const calculateSummary = async () => {
+        // Calculation logic triggers after state updates or we do it inline with data we just fetched.
+        // Since fetchExpenses logic is complex, let's reuse the calculated arrays if possible or simpler: rely on `expenses` state in useEffect?
+        // Better: calculate immediately with newly fetched data
+    };
+
+    // Actually, calculateSummary needs the data. Let's make refreshData do the heavy lifting.
+
+    // Refactored refreshData logic inside:
+    useEffect(() => {
+        const load = async () => {
+            // ... Fetch Logic duplicated for clarity or extracted
+            // Let's implement full logic in next step or use simple version here.
+            await refreshData();
+        };
+        load();
+    }, []);
+
+    // Helper to calc stats from current lists (which might be empty initially)
+    useEffect(() => {
+        if (!invoices.length && !expenses.length) return;
+
+        const totalRevenue = invoices.reduce((acc, curr) => acc + (curr.total || 0), 0);
+        const totalExpensesVal = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+        const pending = invoices.filter(i => i.status !== 'paga' && i.status !== 'anulada').reduce((acc, curr) => acc + (curr.total || 0), 0);
+
+        // Breakdown
+        const breakdown = [
+            { category: 'Combustível', value: expenses.filter(e => e.id.startsWith('fuel-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-blue-500' },
+            { category: 'Manutenção', value: expenses.filter(e => e.id.startsWith('maint-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-red-500' },
+            { category: 'Requisições', value: expenses.filter(e => e.id.startsWith('req-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-amber-500' },
+            { category: 'Fixos/Outros', value: expenses.filter(e => !e.id.match(/^(fuel|maint|req)-/)).reduce((sum, e) => sum + e.amount, 0), color: 'bg-indigo-500' },
+        ];
+
+        // Top CC
+        const ccStats: Record<string, number> = {};
+        expenses.forEach(e => {
+            if (e.cost_center_id) {
+                ccStats[e.cost_center_id] = (ccStats[e.cost_center_id] || 0) + e.amount;
+            }
+        });
+
+        // This requires CC names. For now just IDs or fetch them.
+        // Simplified:
+        const topCostCenters = Object.entries(ccStats).map(([id, total]) => ({ id, nome: 'Loading...', total })).sort((a, b) => b.total - a.total).slice(0, 5);
+
+        setSummary({
+            totalRevenue,
+            totalExpenses: totalExpensesVal,
+            netProfit: totalRevenue - totalExpensesVal,
+            pendingPayments: pending,
+            expenseBreakdown: breakdown,
+            topCostCenters
+        });
+
+    }, [invoices, expenses]);
+
+
+    const addExpense = async (expense: Omit<Expense, 'id'>) => {
+        const { error } = await supabase.from('expenses').insert(expense);
+        if (error) throw error;
+        await refreshData();
+    };
+
+    const updateExpense = async (id: string, updates: Partial<Expense>) => {
+        const { error } = await supabase.from('expenses').update(updates).eq('id', id);
+        if (error) throw error;
+        await refreshData();
+    };
+
+    const deleteExpense = async (id: string) => {
+        const { error } = await supabase.from('expenses').delete().eq('id', id);
+        if (error) throw error;
+        await refreshData();
+    };
+
+    return (
+        <FinancialContext.Provider value={{ expenses, invoices, summary, isLoading, refreshData, addExpense, updateExpense, deleteExpense }}>
+            {children}
+        </FinancialContext.Provider>
+    );
+};
+
+export const useFinancial = () => {
+    const context = useContext(FinancialContext);
+    if (!context) throw new Error('useFinancial must be used within a FinancialProvider');
+    return context;
+};

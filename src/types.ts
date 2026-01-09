@@ -362,3 +362,26 @@ export interface AdminUser {
     role: 'admin';
     createdAt: string;
 }
+
+export interface Expense {
+    id: string;
+    category: 'fixo' | 'variavel' | 'imposto' | 'salario' | 'outro';
+    description: string;
+    amount: number;
+    date: string;
+    paid: boolean;
+    recurring: boolean;
+    recurrence_period?: 'monthly' | 'yearly';
+    cost_center_id?: string;
+    receipt_url?: string;
+    created_at?: string;
+}
+
+export interface FinancialSummary {
+    totalRevenue: number;
+    totalExpenses: number;
+    netProfit: number;
+    pendingPayments: number;
+    expenseBreakdown: { category: string; value: number; color: string }[];
+    topCostCenters: { id: string; nome: string; total: number }[];
+}
