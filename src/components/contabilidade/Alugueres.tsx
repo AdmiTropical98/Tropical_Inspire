@@ -150,6 +150,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             id: string;
             clienteId: string;
             periodoReferencia: string;
+            centroCustoId: string;
             rawDate: Date; // for sorting
             invoices: Fatura[];
             total: number;
@@ -160,7 +161,8 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             // If no ref, use invoice date month
             const monthKey = ref || inv.data.substring(0, 7); // YYYY-MM
 
-            const key = `${inv.clienteId}-${monthKey}`;
+            const ccId = inv.aluguerDetails?.centroCustoId || 'uncategorized';
+            const key = `${inv.clienteId}-${monthKey}-${ccId}`;
 
             if (!groups[key]) {
                 const dateObj = ref ? new Date(ref + '-01') : new Date(inv.data);
@@ -168,6 +170,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     id: key,
                     clienteId: inv.clienteId,
                     periodoReferencia: monthKey,
+                    centroCustoId: ccId,
                     rawDate: dateObj,
                     invoices: [],
                     total: 0
@@ -1325,6 +1328,9 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                             groupedRentals.map((group) => {
                                 const isExpanded = expandedGroups.has(group.id);
                                 const clientName = clientes.find(c => c.id === group.clienteId)?.nome || 'Cliente Desconhecido';
+                                const ccName = group.centroCustoId === 'uncategorized'
+                                    ? 'Sem Centro de Custo'
+                                    : centrosCustos.find(c => c.id === group.centroCustoId)?.nome || 'C.Custo Removido';
 
                                 // Format Month
                                 const dateObj = new Date(group.periodoReferencia + '-01');
@@ -1354,8 +1360,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                             <td className="px-6 py-4 text-slate-300 font-medium">
                                                 {clientName}
                                             </td>
+                                            <td className="px-6 py-4 text-slate-300">
+                                                <span className="bg-slate-700/50 px-2 py-1 rounded text-xs border border-slate-600">
+                                                    {ccName}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-4 text-slate-400">
-                                                {group.invoices.length} fatura(s)
+                                                {group.invoices.length} relatório(s)
                                             </td>
                                             <td className="px-6 py-4 text-right font-bold text-emerald-400 text-lg">
                                                 {formatCurrency(group.total)}
