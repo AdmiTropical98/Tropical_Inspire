@@ -47,13 +47,15 @@ export default function Combustivel() {
     const [isEditingTank, setIsEditingTank] = useState(false);
     const [editTankForm, setEditTankForm] = useState({
         capacity: '',
-        currentLevel: ''
+        currentLevel: '',
+        averagePrice: ''
     });
 
     const handleEditTank = () => {
         setEditTankForm({
             capacity: fuelTank.capacity.toString(),
-            currentLevel: fuelTank.currentLevel.toString()
+            currentLevel: fuelTank.currentLevel.toString(),
+            averagePrice: (fuelTank.averagePrice || 0).toString()
         });
         setIsEditingTank(true);
     };
@@ -62,8 +64,9 @@ export default function Combustivel() {
         e.preventDefault();
         const newCapacity = Number(editTankForm.capacity);
         const newLevel = Number(editTankForm.currentLevel);
+        const newPrice = Number(editTankForm.averagePrice);
 
-        if (isNaN(newCapacity) || isNaN(newLevel)) {
+        if (isNaN(newCapacity) || isNaN(newLevel) || isNaN(newPrice)) {
             alert('Por favor insira valores válidos.');
             return;
         }
@@ -71,7 +74,8 @@ export default function Combustivel() {
         updateFuelTank({
             ...fuelTank,
             capacity: newCapacity,
-            currentLevel: newLevel
+            currentLevel: newLevel,
+            averagePrice: newPrice
         });
 
         setIsEditingTank(false);
@@ -431,7 +435,7 @@ export default function Combustivel() {
                                                 <span className="text-xs font-bold uppercase">Preço Médio</span>
                                             </div>
                                             <p className="text-white font-bold text-2xl">
-                                                {tankRefills.length > 0 ? (tankRefills.reduce((acc, curr) => acc + (curr.pricePerLiter || 0), 0) / tankRefills.length).toFixed(3) : '---'}
+                                                {(fuelTank.averagePrice || 0).toFixed(3)}
                                             </p>
                                             <p className="text-xs text-slate-500 mt-2">€ / Litro</p>
                                         </div>
@@ -968,6 +972,17 @@ export default function Combustivel() {
                                 <p className="text-[10px] text-yellow-500 mt-1">
                                     Atenção: Alterar manualmente o nível pode dessincronizar o histórico de abastecimentos.
                                 </p>
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-400 font-bold uppercase">Preço Médio (€/L)</label>
+                                <input
+                                    type="number"
+                                    step="0.001"
+                                    required
+                                    value={editTankForm.averagePrice}
+                                    onChange={e => setEditTankForm({ ...editTankForm, averagePrice: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                />
                             </div>
                             <div className="flex gap-3 mt-6">
                                 <button
