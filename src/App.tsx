@@ -66,8 +66,8 @@ function App() {
   useEffect(() => {
     if (isAuthenticated) {
       if (userRole === 'motorista') setActiveTab('central-motorista');
-      else if (userRole === 'oficina') setActiveTab('equipa-oficina');
-      else if (userRole === 'supervisor') setActiveTab('supervisores');
+      else if (userRole === 'oficina') setActiveTab('dashboard');
+      else if (userRole === 'supervisor') setActiveTab('dashboard');
       else setActiveTab('dashboard');
     }
   }, [isAuthenticated, userRole]);
