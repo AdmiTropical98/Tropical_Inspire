@@ -130,11 +130,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return true;
             }
         } else if (type === 'supervisor') {
-            const supervisor = supervisors.find(s =>
-                s.email.toLowerCase() === identifier.toLowerCase() &&
-                s.password === credential &&
-                s.status === 'active'
-            );
+            // Remove all non-numeric characters from input
+            const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
+
+            const supervisor = supervisors.find(s => {
+                // Remove all non-numeric characters from stored phone
+                const cleanPhone = (s.telemovel || '').replace(/[^0-9]/g, '');
+
+                // Check if one ends with the other (to handle +351 vs no +351)
+                const phoneMatch = (cleanPhone !== '' && cleanIdentifier !== '') &&
+                    (cleanPhone.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanPhone));
+
+                const emailMatch = s.email && s.email.toLowerCase() === identifier.toLowerCase();
+
+                return (phoneMatch || emailMatch) && s.pin === credential && s.status === 'active';
+            });
 
             if (supervisor) {
                 localStorage.setItem('isAuthenticated', 'true');
