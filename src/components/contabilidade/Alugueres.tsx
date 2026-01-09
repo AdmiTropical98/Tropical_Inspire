@@ -28,17 +28,22 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
         const byPlate: Record<string, typeof viaturas> = {};
         viaturas.forEach(v => {
-            if (!byPlate[v.matricula]) byPlate[v.matricula] = [];
-            byPlate[v.matricula].push(v);
+            const plate = v.matricula.trim().toUpperCase();
+            if (!byPlate[plate]) byPlate[plate] = [];
+            byPlate[plate].push(v);
         });
 
-        return Object.values(byPlate).flatMap(group => {
-            if (group.length === 1) return group;
-            // If duplicates, keep only those with history
+        return Object.values(byPlate).map(group => {
+            if (group.length === 1) return group[0];
+
+            // If duplicates, prioritize those with specific rental history
             const used = group.filter(v => activeViaturaIds.has(v.id));
-            if (used.length > 0) return used;
-            // If none used, keep the last one (assuming newest) or just the first
-            return [group[group.length - 1]];
+
+            // If we have used ones, pick the last one (assuming newest/most relevant)
+            if (used.length > 0) return used[used.length - 1];
+
+            // If none used, keep the last one from the original group
+            return group[group.length - 1];
         });
     })();
 
