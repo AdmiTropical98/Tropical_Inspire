@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { Plus, Search, Car, Printer, Trash2, Download, X, Edit, ChevronDown, ChevronUp } from 'lucide-react'; // Added ChevronDown, ChevronUp
 import type { Fatura } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -1387,94 +1387,128 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                         </tr>
 
                                         {/* DETAIL ROWS */}
-                                        {isExpanded && group.invoices.map(inv => {
-                                            const vehicle = viaturas.find(v => v.id === inv.aluguerDetails?.viaturaId);
-                                            return (
-                                                <tr key={inv.id} className="bg-slate-900/30 hover:bg-slate-800/30 transition-colors animate-in fade-in slide-in-from-top-1 border-b border-slate-800/50">
-                                                    <td className="px-6 py-4 pl-12 border-l-4 border-slate-800" colSpan={7}>
-                                                        <div className="grid grid-cols-12 items-center gap-4">
-                                                            <div className="col-span-3">
-                                                                <p className="text-xs text-slate-500 uppercase font-bold">Viatura(s)</p>
-                                                                <div className="text-slate-300 mt-1">
-                                                                    {inv.aluguerDetails?.viaturasIds ? (
-                                                                        <div className="space-y-1">
-                                                                            {inv.aluguerDetails.viaturasIds.map((vid: string) => {
-                                                                                const v = viaturas.find(vi => vi.id === vid);
-                                                                                return v ? (
-                                                                                    <div key={vid} className="text-sm flex items-center gap-2">
-                                                                                        <span>{v.marca} {v.modelo}</span>
-                                                                                        <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{v.matricula}</span>
-                                                                                    </div>
-                                                                                ) : null;
-                                                                            })}
+                                        {/* DETAIL ROWS */}
+                                        {isExpanded && (() => {
+                                            // Group invoices by Cost Center within this Reference Group
+                                            const invoicesByCC: Record<string, Fatura[]> = {};
+                                            group.invoices.forEach(inv => {
+                                                const ccId = inv.aluguerDetails?.centroCustoId || 'uncategorized';
+                                                if (!invoicesByCC[ccId]) invoicesByCC[ccId] = [];
+                                                invoicesByCC[ccId].push(inv);
+                                            });
+
+                                            return Object.entries(invoicesByCC).map(([ccId, ccInvoices]) => {
+                                                const ccName = ccId === 'uncategorized'
+                                                    ? 'Sem Centro de Custo'
+                                                    : centrosCustos.find(c => c.id === ccId)?.nome || 'C.Custo Removido';
+
+                                                return (
+                                                    <Fragment key={ccId}>
+                                                        {/* COST CENTER SUB-HEADER */}
+                                                        {invoicesByCC && Object.keys(invoicesByCC).length > 1 && (
+                                                            <tr className="bg-slate-800/40 border-b border-slate-700/50">
+                                                                <td colSpan={7} className="px-6 py-2">
+                                                                    <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-wider pl-12 border-l-4 border-slate-700">
+                                                                        <div className="bg-slate-700 w-2 h-2 rounded-full"></div>
+                                                                        {ccName} ({ccInvoices.length})
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+
+                                                        {/* INVOICES LIST FOR THIS CC */}
+                                                        {ccInvoices.map(inv => {
+                                                            const vehicle = viaturas.find(v => v.id === inv.aluguerDetails?.viaturaId);
+                                                            return (
+                                                                <tr key={inv.id} className="bg-slate-900/30 hover:bg-slate-800/30 transition-colors animate-in fade-in slide-in-from-top-1 border-b border-slate-800/50">
+                                                                    <td className="px-6 py-4 pl-12 border-l-4 border-slate-800" colSpan={7}>
+                                                                        <div className="grid grid-cols-12 items-center gap-4">
+                                                                            <div className="col-span-4">
+                                                                                <p className="text-xs text-slate-500 uppercase font-bold">Viatura(s)</p>
+                                                                                <div className="text-slate-300 mt-1">
+                                                                                    {inv.aluguerDetails?.viaturasIds ? (
+                                                                                        <div className="space-y-1">
+                                                                                            {inv.aluguerDetails.viaturasIds.map((vid: string) => {
+                                                                                                const v = viaturas.find(vi => vi.id === vid);
+                                                                                                return v ? (
+                                                                                                    <div key={vid} className="text-sm flex items-center gap-2">
+                                                                                                        <span>{v.marca} {v.modelo}</span>
+                                                                                                        <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{v.matricula}</span>
+                                                                                                    </div>
+                                                                                                ) : null;
+                                                                                            })}
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="text-sm flex items-center gap-2">
+                                                                                            <span>{vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Viatura N/A'}</span>
+                                                                                            {vehicle && <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{vehicle.matricula}</span>}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="col-span-3">
+                                                                                <p className="text-xs text-slate-500 uppercase font-bold">Período</p>
+                                                                                <p className="text-slate-400 text-sm mt-1">
+                                                                                    {new Date(inv.aluguerDetails?.dataInicio || inv.data).toLocaleDateString('pt-PT')}
+                                                                                    <span className="mx-2 text-slate-600">→</span>
+                                                                                    {new Date(inv.aluguerDetails?.dataFim || inv.vencimento).toLocaleDateString('pt-PT')}
+                                                                                </p>
+                                                                                {inv.aluguerDetails?.dias && (
+                                                                                    <p className="text-xs text-slate-500 mt-0.5">{inv.aluguerDetails.dias} dias</p>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <div className="col-span-2 text-right">
+                                                                                <p className="text-xs text-slate-500 uppercase font-bold">Valor</p>
+                                                                                <p className="text-emerald-400 font-medium text-sm mt-1">
+                                                                                    {formatCurrency(inv.total)}
+                                                                                </p>
+                                                                            </div>
+
+                                                                            <div className="col-span-3 flex justify-end gap-2">
+                                                                                <button
+                                                                                    title="Editar"
+                                                                                    onClick={() => handleEdit(inv)}
+                                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
+                                                                                >
+                                                                                    <Edit className="w-4 h-4" />
+                                                                                </button>
+                                                                                <button
+                                                                                    title="Fatura PDF"
+                                                                                    onClick={() => generateRentalPDF(inv)}
+                                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                                                >
+                                                                                    <Download className="w-4 h-4" />
+                                                                                </button>
+                                                                                <button
+                                                                                    title="Contrato PDF"
+                                                                                    onClick={() => generateRentalContract(inv)}
+                                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                                                >
+                                                                                    <Printer className="w-4 h-4" />
+                                                                                </button>
+                                                                                <button
+                                                                                    title="Apagar"
+                                                                                    onClick={() => {
+                                                                                        if (window.confirm('Tem a certeza que deseja apagar este registo?')) {
+                                                                                            onDelete(inv.id);
+                                                                                        }
+                                                                                    }}
+                                                                                    className="p-2 bg-slate-800 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                                                                                >
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                </button>
+                                                                            </div>
                                                                         </div>
-                                                                    ) : (
-                                                                        <div className="text-sm flex items-center gap-2">
-                                                                            <span>{vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Viatura N/A'}</span>
-                                                                            {vehicle && <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{vehicle.matricula}</span>}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="col-span-3">
-                                                                <p className="text-xs text-slate-500 uppercase font-bold">Período</p>
-                                                                <p className="text-slate-400 text-sm mt-1">
-                                                                    {new Date(inv.aluguerDetails?.dataInicio || inv.data).toLocaleDateString('pt-PT')}
-                                                                    <span className="mx-2 text-slate-600">→</span>
-                                                                    {new Date(inv.aluguerDetails?.dataFim || inv.vencimento).toLocaleDateString('pt-PT')}
-                                                                </p>
-                                                                {inv.aluguerDetails?.dias && (
-                                                                    <p className="text-xs text-slate-500 mt-0.5">{inv.aluguerDetails.dias} dias</p>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="col-span-2 text-right">
-                                                                <p className="text-xs text-slate-500 uppercase font-bold">Valor</p>
-                                                                <p className="text-emerald-400 font-medium text-sm mt-1">
-                                                                    {formatCurrency(inv.total)}
-                                                                </p>
-                                                            </div>
-
-                                                            <div className="col-span-4 flex justify-end gap-2">
-                                                                <button
-                                                                    title="Editar"
-                                                                    onClick={() => handleEdit(inv)}
-                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
-                                                                >
-                                                                    <Edit className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    title="Fatura PDF"
-                                                                    onClick={() => generateRentalPDF(inv)}
-                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
-                                                                >
-                                                                    <Download className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    title="Contrato PDF"
-                                                                    onClick={() => generateRentalContract(inv)}
-                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
-                                                                >
-                                                                    <Printer className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    title="Apagar"
-                                                                    onClick={() => {
-                                                                        if (window.confirm('Tem a certeza que deseja apagar este registo?')) {
-                                                                            onDelete(inv.id);
-                                                                        }
-                                                                    }}
-                                                                    className="p-2 bg-slate-800 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </Fragment>
+                                                );
+                                            });
+                                        })()}
                                     </>
                                 );
                             })
