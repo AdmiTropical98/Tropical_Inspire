@@ -9,6 +9,7 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { supabase } from '../../lib/supabase';
 
 export default function Combustivel() {
     const {
@@ -77,25 +78,97 @@ export default function Combustivel() {
         alert('Dados do tanque atualizados com sucesso!');
     };
 
-    const handleRegisterRefuel = (e: React.FormEvent) => {
+    // Dual Authentication State
+    const [authModal, setAuthModal] = useState({
+        isOpen: false,
+        step: 1, // 1: Admin/Staff Auth, 2: Driver Auth
+        adminPassword: '',
+        driverPin: '',
+        error: ''
+    });
+
+    const handleInitiateRefuel = (e: React.FormEvent) => {
         e.preventDefault();
-
-        registerRefuel({
-            id: crypto.randomUUID(),
-            driverId: refuelForm.driverId,
-            vehicleId: refuelForm.vehicleId,
-            centroCustoId: refuelForm.centroCustoId,
-            liters: Number(refuelForm.liters),
-            km: Number(refuelForm.km),
-            staffId: currentUser?.id || 'admin',
-            staffName: currentUser?.nome || 'Administrador',
-            status: 'pending',
-            timestamp: new Date().toISOString()
+        setAuthModal({
+            isOpen: true,
+            step: 1,
+            adminPassword: '',
+            driverPin: '',
+            error: ''
         });
+    };
 
-        setRefuelForm({ driverId: '', vehicleId: '', liters: '', km: '', centroCustoId: '' });
-        alert('Pedido de confirmação enviado ao motorista!');
-        setActiveTab('overview');
+    const handleDualAuth = async () => {
+        setAuthModal(prev => ({ ...prev, error: '' }));
+
+        // Step 1: Admin/Staff Authentication
+        if (authModal.step === 1) {
+            if (userRole === 'admin') {
+                // Verify Admin Password via Supabase Auth
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: currentUser?.email || 'admin@admin.com', // Fallback if currentUser is somehow null but role is admin
+                    password: authModal.adminPassword
+                });
+
+                if (error || !data.user) {
+                    setAuthModal(prev => ({ ...prev, error: 'Password incorreta.' }));
+                    return;
+                }
+            } else if (userRole === 'oficina') {
+                // Verify Office Staff PIN
+                // TypeScript needs to know currentUser has a pin. 'oficinaUser' type usually has it.
+                // We'll assume currentUser is correct type if role is oficina.
+                if ((currentUser as any)?.pin !== authModal.adminPassword) {
+                    setAuthModal(prev => ({ ...prev, error: 'PIN incorreto.' }));
+                    return;
+                }
+            } else {
+                // Supervisors?? Typically don't register fuel, but if they do, use password
+                // For now, assume success or block? Let's check password if they have it
+                // Supervisors use password in AuthContext
+                if ((currentUser as any)?.password !== authModal.adminPassword) {
+                    setAuthModal(prev => ({ ...prev, error: 'Password incorreta.' }));
+                    return;
+                }
+            }
+
+            // If success, move to step 2
+            setAuthModal(prev => ({ ...prev, step: 2, error: '' }));
+            return;
+        }
+
+        // Step 2: Driver Authentication
+        if (authModal.step === 2) {
+            const driver = motoristas.find(m => m.id === refuelForm.driverId);
+            if (!driver) {
+                setAuthModal(prev => ({ ...prev, error: 'Motorista não encontrado.' }));
+                return;
+            }
+
+            if (driver.pin !== authModal.driverPin) {
+                setAuthModal(prev => ({ ...prev, error: 'PIN do motorista incorreto.' }));
+                return;
+            }
+
+            // Both Verified! Register Refuel
+            registerRefuel({
+                id: crypto.randomUUID(),
+                driverId: refuelForm.driverId,
+                vehicleId: refuelForm.vehicleId,
+                centroCustoId: refuelForm.centroCustoId,
+                liters: Number(refuelForm.liters),
+                km: Number(refuelForm.km),
+                staffId: currentUser?.id || 'admin',
+                staffName: currentUser?.nome || 'Administrador',
+                status: 'confirmed', // Automatically confirmed
+                timestamp: new Date().toISOString()
+            });
+
+            setRefuelForm({ driverId: '', vehicleId: '', liters: '', km: '', centroCustoId: '' });
+            setAuthModal({ isOpen: false, step: 1, adminPassword: '', driverPin: '', error: '' });
+            alert('Abastecimento registado e confirmado com sucesso!');
+            setActiveTab('overview');
+        }
     };
 
     const handleRegisterSupply = (e: React.FormEvent) => {
@@ -410,7 +483,7 @@ export default function Combustivel() {
                                 {t('fuel.form.title')}
                             </h3>
 
-                            <form onSubmit={handleRegisterRefuel} className="space-y-6">
+                            <form onSubmit={handleInitiateRefuel} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">{t('fuel.form.driver')}</label>
@@ -907,6 +980,82 @@ export default function Combustivel() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Dual Auth Modal */}
+            {authModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+                        <button
+                            onClick={() => setAuthModal({ isOpen: false, step: 1, adminPassword: '', driverPin: '', error: '' })}
+                            className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white transition-colors"
+                        >
+                            <Trash2 className="w-5 h-5 rotate-45" />
+                        </button>
+
+                        <div className="text-center mb-8">
+                            <div className="w-16 h-16 bg-yellow-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-yellow-500 border border-yellow-500/20">
+                                {authModal.step === 1 ? <Fuel className="w-8 h-8" /> : <Truck className="w-8 h-8" />}
+                            </div>
+                            <h3 className="text-2xl font-bold text-white">
+                                {authModal.step === 1 ? 'Confirmação de Staff' : 'Confirmação do Motorista'}
+                            </h3>
+                            <p className="text-slate-400 mt-2">
+                                {authModal.step === 1
+                                    ? `Por favor insira ${userRole === 'admin' ? 'sua password' : 'seu PIN'} para continuar.`
+                                    : 'Por favor, peça ao motorista para inserir o PIN dele.'}
+                            </p>
+                        </div>
+
+                        <div className="space-y-6">
+                            {authModal.step === 1 ? (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                                        {userRole === 'admin' ? 'Password de Administrador' : 'PIN de Acesso'}
+                                    </label>
+                                    <input
+                                        type={userRole === 'admin' ? 'password' : 'password'}
+                                        inputMode={userRole === 'admin' ? 'text' : 'numeric'}
+                                        value={authModal.adminPassword}
+                                        onChange={e => setAuthModal(prev => ({ ...prev, adminPassword: e.target.value, error: '' }))}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white text-center text-2xl font-mono tracking-widest focus:border-yellow-500/50 outline-none transition-all"
+                                        placeholder={userRole === 'admin' ? '••••••••' : '••••'}
+                                        autoFocus
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                                        PIN do Motorista
+                                    </label>
+                                    <input
+                                        type="password"
+                                        inputMode="numeric"
+                                        value={authModal.driverPin}
+                                        onChange={e => setAuthModal(prev => ({ ...prev, driverPin: e.target.value, error: '' }))}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white text-center text-2xl font-mono tracking-widest focus:border-yellow-500/50 outline-none transition-all"
+                                        placeholder="••••"
+                                        maxLength={4}
+                                        autoFocus
+                                    />
+                                </div>
+                            )}
+
+                            {authModal.error && (
+                                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center animate-shake">
+                                    {authModal.error}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleDualAuth}
+                                className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl transition-all shadow-lg shadow-yellow-500/20 active:scale-[0.98]"
+                            >
+                                {authModal.step === 1 ? 'Continuar' : 'Confirmar Abastecimento'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
