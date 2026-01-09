@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import {
     Wallet, TrendingDown, DollarSign,
-    Calendar, Download, PieChart, BarChart3,
+    Download, PieChart, BarChart3,
     ArrowUpRight, FileText, CreditCard,
     Receipt, RefreshCcw
 } from 'lucide-react';
