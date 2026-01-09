@@ -86,27 +86,30 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
                     .select('key, value')
                     .in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina']);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error fetching permissions:', error);
+                    return;
+                }
 
                 if (data && data.length > 0) {
                     setPermissions(prev => {
-                        const newPermissions = { ...prev };
+                        const nextPerms = { ...prev };
                         data.forEach((item: any) => {
                             if (item.key === 'permissions_supervisor' && Array.isArray(item.value)) {
-                                newPermissions.supervisor = item.value;
+                                nextPerms.supervisor = item.value;
                             }
                             if (item.key === 'permissions_motorista' && Array.isArray(item.value)) {
-                                newPermissions.motorista = item.value;
+                                nextPerms.motorista = item.value;
                             }
                             if (item.key === 'permissions_oficina' && Array.isArray(item.value)) {
-                                newPermissions.oficina = item.value;
+                                nextPerms.oficina = item.value;
                             }
                         });
-                        return newPermissions;
+                        return nextPerms;
                     });
                 }
             } catch (err) {
-                console.error('Error fetching permissions from DB:', err);
+                console.error('Unexpected error fetching permissions:', err);
             }
         };
 
@@ -114,41 +117,35 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     }, []);
 
     const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => {
-        const currentRolePerms = [...(permissions[role] || [])];
+        // Use functional state to ensure we have the absolute latest permissions
+        setPermissions(prev => {
+            const currentPerms = [...(prev[role] || [])];
+            let nextPerms: typeof currentPerms;
 
-        // Calculate new state
-        let nextRolePerms: PermissionModule[];
-        if (hasAccess) {
-            nextRolePerms = currentRolePerms.includes(module) ? currentRolePerms : [...currentRolePerms, module];
-        } else {
-            nextRolePerms = currentRolePerms.filter(p => p !== module);
-        }
-
-        // Optimistic Update
-        setPermissions(prev => ({
-            ...prev,
-            [role]: nextRolePerms
-        }));
-
-        // Persist to DB
-        const dbKey = `permissions_${role}`;
-        try {
-            const { error } = await supabase
-                .from('app_settings')
-                .upsert(
-                    { key: dbKey, value: nextRolePerms },
-                    { onConflict: 'key' }
-                );
-
-            if (error) {
-                console.error('Error saving permissions:', error);
-                setPermissions(prev => ({ ...prev, [role]: currentRolePerms }));
-                alert(`Erro ao gravar: ${error.message}`);
+            if (hasAccess) {
+                nextPerms = currentPerms.includes(module) ? currentPerms : [...currentPerms, module];
+            } else {
+                nextPerms = currentPerms.filter(p => p !== module);
             }
-        } catch (err: any) {
-            console.error('Fatal error saving permissions:', err);
-            setPermissions(prev => ({ ...prev, [role]: currentRolePerms }));
-        }
+
+            const updatedAll = { ...prev, [role]: nextPerms };
+
+            // Persist to DB immediately
+            const dbKey = `permissions_${role}`;
+            supabase
+                .from('app_settings')
+                .upsert({ key: dbKey, value: nextPerms }, { onConflict: 'key' })
+                .then(({ error }) => {
+                    if (error) {
+                        console.error(`Error saving ${dbKey}:`, error);
+                        // Optional: Revert state on failure
+                    } else {
+                        console.log(`Successfully saved ${dbKey}`);
+                    }
+                });
+
+            return updatedAll;
+        });
     };
 
     const hasAccess = (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | null, module: PermissionModule): boolean => {
