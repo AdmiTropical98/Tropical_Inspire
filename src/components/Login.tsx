@@ -160,21 +160,21 @@ export default function Login() {
 
 
     return (
-        <div className="h-screen w-full bg-[#0f172a] flex flex-col items-center justify-start p-4 pt-8 relative overflow-y-auto overflow-x-hidden transition-all duration-500 custom-scrollbar">
+        <div className="h-screen w-full bg-[#0f172a] flex flex-col items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden transition-all duration-500 custom-scrollbar">
             {/* Background Effects */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-900/10 blur-[120px] rounded-full"></div>
             </div>
 
-            <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0">
+            <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0 -mt-10">
                 <img
                     src="/logo-new.png"
                     alt="Logotipo"
-                    className="h-96 w-auto object-contain drop-shadow-2xl"
+                    className="h-64 w-auto object-contain drop-shadow-2xl"
                 />
 
-                <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-24">
+                <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-16">
                     <div className="text-center mb-8">
                         <h1 className="text-3xl font-bold text-white mb-2">Bem-vindo</h1>
                         <p className="text-slate-400">Selecione o seu perfil para entrar</p>
