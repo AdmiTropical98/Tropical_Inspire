@@ -104,13 +104,18 @@ export default function Combustivel() {
         // Step 1: Admin/Staff Authentication
         if (authModal.step === 1) {
             if (userRole === 'admin') {
+                // Fetch the actual logged-in user's email from the session
+                const { data: { user } } = await supabase.auth.getUser();
+                const adminEmail = user?.email || currentUser?.email || 'admin@admin.com';
+
                 // Verify Admin Password via Supabase Auth
                 const { data, error } = await supabase.auth.signInWithPassword({
-                    email: currentUser?.email || 'admin@admin.com', // Fallback if currentUser is somehow null but role is admin
+                    email: adminEmail,
                     password: authModal.adminPassword
                 });
 
                 if (error || !data.user) {
+                    console.error("Auth Error:", error);
                     setAuthModal(prev => ({ ...prev, error: 'Password incorreta.' }));
                     return;
                 }
