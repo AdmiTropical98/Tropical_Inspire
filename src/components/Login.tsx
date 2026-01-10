@@ -167,11 +167,11 @@ export default function Login() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-900/10 blur-[120px] rounded-full"></div>
             </div>
 
-            <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0">
+            <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0 mt-5">
                 <img
                     src="/logo-new.png"
                     alt="Logotipo"
-                    className="h-20 w-auto object-contain drop-shadow-2xl relative z-20"
+                    className="h-24 w-auto object-contain drop-shadow-2xl relative z-20"
                 />
 
                 <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 mt-4 relative z-10">
