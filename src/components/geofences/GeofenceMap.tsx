@@ -1,6 +1,6 @@
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Circle, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import L from 'leaflet';
 import type { CartrackGeofence, CartrackVehicle } from '../../services/cartrack';
 
@@ -15,7 +15,7 @@ let DefaultIcon = L.icon({
     iconAnchor: [12, 41]
 });
 
-// Car Icon for Vehicles
+// ... createCarIcon ...
 const createCarIcon = (heading: number, status: string) => L.divIcon({
     html: `<div style="transform: rotate(${heading}deg);" class="${status === 'moving' ? 'text-green-600' : 'text-slate-600'} drop-shadow-lg filter">
              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="2">
@@ -34,12 +34,45 @@ interface GeofenceMapProps {
     vehicles?: CartrackVehicle[];
 }
 
+// Component to handle auto-focus
+function AutoFitBounds({ geofences, vehicles }: { geofences: CartrackGeofence[], vehicles: CartrackVehicle[] }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (geofences.length === 0 && vehicles.length === 0) return;
+
+        const bounds = L.latLngBounds([]);
+
+        // Add Geofences to bounds
+        geofences.forEach(geo => {
+            if (geo.coordinates.length > 0) {
+                geo.coordinates.forEach(coord => {
+                    bounds.extend([coord.lat, coord.lng]);
+                });
+            }
+        });
+
+        // Add Vehicles to bounds
+        vehicles.forEach(vehicle => {
+            bounds.extend([vehicle.latitude, vehicle.longitude]);
+        });
+
+        if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+    }, [geofences, vehicles, map]);
+
+    return null;
+}
+
 export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapProps) {
     const [position] = useState<[number, number]>([38.7223, -9.1393]); // Lisbon default
 
     return (
         <div className="h-[600px] w-full rounded-2xl overflow-hidden border border-slate-700 shadow-xl relative z-0 bg-slate-100">
             <MapContainer center={position} zoom={12} scrollWheelZoom={true} className="h-full w-full">
+                <AutoFitBounds geofences={geofences} vehicles={vehicles} />
+
                 <TileLayer
                     attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
