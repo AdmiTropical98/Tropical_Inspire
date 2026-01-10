@@ -145,6 +145,12 @@ function App() {
             <div className="pt-4 pb-2">
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Operações</p>
 
+              {/* Geofences / Cartrack Integration - Moved to top for visibility */}
+              <button onClick={() => setActiveTab('geofences')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
+                <MapPin className="w-5 h-5" />
+                <span className="font-medium">Geofences</span>
+              </button>
+
               {hasAccess(userRole, 'escalas') && (
                 <button onClick={() => setActiveTab('escalas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'escalas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
                   <Calendar className="w-5 h-5" />
@@ -193,12 +199,6 @@ function App() {
                   <span className="font-medium">Transportes EVA</span>
                 </button>
               )}
-
-              {/* Geofences / Cartrack Integration */}
-              <button onClick={() => setActiveTab('geofences')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                <MapPin className="w-5 h-5" />
-                <span className="font-medium">Geofences</span>
-              </button>
             </div>
 
             {/* GESTÃO / ADMIN */}
