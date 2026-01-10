@@ -77,6 +77,7 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
       case 'overview':
+        return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
       case 'admin_users':
         return <UsersPage />;
       case 'permissions':
