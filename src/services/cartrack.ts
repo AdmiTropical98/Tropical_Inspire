@@ -1,5 +1,5 @@
 export const CARTRACK_USER = 'ALGA00012';
-export const CARTRACK_PASS = 'd395112ab45cf4a2cfa734a478e699b6964b4281fa47aebc069ce0793cfd1b45';
+export const CARTRACK_PASS = 'Tropical_Inspire98';
 export const BASE_URL = 'https://fleetapi-pt.cartrack.com/rest';
 
 // Types for Geofence Data
@@ -33,11 +33,13 @@ export interface CartrackVehicle {
 const parseWKT = (wkt: string): { lat: number, lng: number }[] => {
     if (!wkt) return [];
     try {
-        const coordsMatch = wkt.match(/\(\((.*)\)\)/);
+        // Handle POLYGON ((...)) or other WKT variants
+        const coordsMatch = wkt.match(/\(\((.*)\)\)/) || wkt.match(/\((.*)\)/);
         if (!coordsMatch) return [];
 
         return coordsMatch[1].split(',').map(pair => {
-            const [lng, lat] = pair.trim().split(/\s+/).map(Number);
+            const cleanPair = pair.trim();
+            const [lng, lat] = cleanPair.split(/\s+/).map(Number);
             return { lat, lng };
         }).filter(p => !isNaN(p.lat) && !isNaN(p.lng));
     } catch (e) {
@@ -92,21 +94,6 @@ export const CartrackService = {
                 headers: { 'Authorization': `Basic ${auth}` },
             });
 
-            // Fallback for legacy or different accounts
-            if (!response.ok) {
-                response = await fetch(`${BASE_URL}/stats`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Basic ${auth}` },
-                });
-            }
-
-            if (!response.ok) {
-                response = await fetch(`${BASE_URL}/vehicles`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Basic ${auth}` },
-                });
-            }
-
             if (!response.ok) throw new Error(`Cartrack Vehicles Error: ${response.status}`);
 
             const data = await response.json();
@@ -119,17 +106,17 @@ export const CartrackService = {
 };
 
 const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
-    // Logging for debug
-    console.log('CARTRACK_RAW_VEHICLES:', data);
-
     const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
     if (!Array.isArray(items)) return [];
 
     return items
         .map((item: any, index: number) => {
-            const latValue = item.latitude || item.lat || item.loc_lat || item.y || 0;
-            const lngValue = item.longitude || item.lng || item.lon || item.loc_lng || item.x || 0;
-            const speed = parseFloat(item.speed || item.vel || 0);
+            // Check for nested location object or direct fields
+            const loc = item.location || item;
+
+            const latValue = loc.latitude || loc.lat || item.latitude || item.lat || 0;
+            const lngValue = loc.longitude || loc.lng || loc.lon || item.longitude || item.lng || item.lon || 0;
+            const speed = parseFloat(item.speed || item.vel || loc.speed || 0);
 
             return {
                 id: String(item.id || item.vehicle_id || item.vehicleId || index),
@@ -139,7 +126,7 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 longitude: parseFloat(lngValue),
                 speed: speed,
                 heading: parseFloat(item.bearing || item.heading || item.direction || 0),
-                updatedAt: item.updated_at || item.last_update || item.timestamp || new Date().toISOString(),
+                updatedAt: item.updated_at || item.last_update || item.timestamp || item.location?.ts || new Date().toISOString(),
                 status: (speed > 0 ? 'moving' : (item.ignition ? 'idle' : 'stopped')) as 'moving' | 'stopped' | 'idle',
                 ignition: !!(item.ignition || item.ign)
             };
@@ -148,8 +135,6 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
 };
 
 const mapCartrackDataToGeofences = (data: any, defaultType: 'POLYGON' | 'CIRCLE'): CartrackGeofence[] => {
-    console.log(`CARTRACK_RAW_${defaultType}S:`, data);
-
     const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
     if (!Array.isArray(items)) return [];
 
@@ -168,7 +153,7 @@ const mapCartrackDataToGeofences = (data: any, defaultType: 'POLYGON' | 'CIRCLE'
             coords = [{ lat: parseFloat(item.latitude), lng: parseFloat(item.longitude) }];
             type = 'CIRCLE';
         }
-        // Handle legacy points array
+        // Handle fallback points array
         else if (Array.isArray(item.points)) {
             coords = item.points.map((p: any) => {
                 if (Array.isArray(p)) return { lat: parseFloat(p[0]), lng: parseFloat(p[1]) };
@@ -183,7 +168,7 @@ const mapCartrackDataToGeofences = (data: any, defaultType: 'POLYGON' | 'CIRCLE'
             type: type,
             coordinates: coords,
             radius: radius ? parseFloat(radius) : (type === 'CIRCLE' ? 100 : undefined),
-            color: item.colour || item.color || '#3b82f6'
+            color: item.colour || item.color || (index % 2 === 0 ? '#3b82f6' : '#8b5cf6')
         };
     }).filter(g => g.coordinates.length > 0);
 };
