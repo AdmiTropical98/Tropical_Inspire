@@ -30,7 +30,7 @@ const createCarIcon = (heading: number, status: 'moving' | 'stopped' | 'idle') =
         html: `
             <div style="transform: rotate(${heading}deg); transition: transform 0.3s ease;">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" fill="white" fill-opacity="0.8" />
+                    <circle cx="12" cy="12" r="10" fill="white" fill-opacity="0.9" />
                     <path d="M12 2L15 8H9L12 2Z" fill="${color}" />
                     <rect x="10" y="8" width="4" height="10" rx="1" fill="${color}" />
                 </svg>
@@ -72,7 +72,10 @@ function AutoFitBounds({ geofences, vehicles }: { geofences: CartrackGeofence[],
         });
 
         if (hasValidPoints && bounds.isValid()) {
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            // Apply bounds with a slight delay to ensure container is ready
+            setTimeout(() => {
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            }, 100);
         }
     }, [geofences, vehicles, map]);
 
@@ -83,10 +86,13 @@ function AutoFitBounds({ geofences, vehicles }: { geofences: CartrackGeofence[],
 function MapResizer() {
     const map = useMap();
     useEffect(() => {
-        const timer = setTimeout(() => {
-            map.invalidateSize();
-        }, 500);
-        return () => clearTimeout(timer);
+        // Run multiple times to ensure layout settlement
+        const timers = [100, 500, 1000, 2000].map(ms =>
+            setTimeout(() => {
+                map.invalidateSize();
+            }, ms)
+        );
+        return () => timers.forEach(t => clearTimeout(t));
     }, [map]);
     return null;
 }
@@ -95,15 +101,15 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
     const [position] = useState<[number, number]>([38.8000, -9.1000]);
 
     return (
-        <div className="h-[600px] w-full rounded-2xl overflow-hidden border border-slate-700 shadow-xl relative z-0 bg-slate-900 border-2">
+        <div className="h-[600px] w-full rounded-2xl overflow-hidden border border-slate-700 shadow-xl relative z-0 bg-slate-900">
             <MapContainer center={position} zoom={11} scrollWheelZoom={true} className="h-full w-full">
                 <MapResizer />
                 <AutoFitBounds geofences={geofences} vehicles={vehicles} />
 
-                {/* Clean Professional Tile Layer: CartoDB Voyager */}
+                {/* Standard OSM style as fallback if Voyager fails, but Voyager is better */}
                 <TileLayer
-                    attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
                 {/* Geofences Rendering */}
@@ -119,7 +125,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                             >
                                 <Popup>
                                     <div className="font-bold text-slate-800">{geo.name}</div>
-                                    <div className="text-xs text-slate-500">Geofence (Polígono)</div>
+                                    <div className="text-xs text-slate-500">Área Geográfica</div>
                                 </Popup>
                             </Polygon>
                         );
@@ -134,7 +140,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                         >
                             <Popup>
                                 <div className="font-bold text-slate-800">{geo.name}</div>
-                                <div className="text-xs text-slate-500">POI (Circular)</div>
+                                <div className="text-xs text-slate-500">Localização</div>
                             </Popup>
                         </Circle>
                     );
@@ -156,7 +162,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                                     <div className="flex justify-between gap-4">
                                         <span>Estado:</span>
                                         <span className={`font-bold ${vehicle.status === 'moving' ? 'text-green-600' : 'text-slate-500'}`}>
-                                            {vehicle.status === 'moving' ? 'Em Movimento' : (vehicle.status === 'idle' ? 'Relanti' : 'Parado')}
+                                            {vehicle.status === 'moving' ? 'Em Movimento' : (vehicle.status === 'idle' ? 'Em Relanti' : 'Parado')}
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -164,7 +170,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                                         <span className="font-medium">{vehicle.speed} km/h</span>
                                     </div>
                                     <div className="text-[10px] text-slate-400 mt-2 text-right">
-                                        Atualizado: {new Date(vehicle.updatedAt).toLocaleTimeString()}
+                                        Última atualização: {new Date(vehicle.updatedAt).toLocaleTimeString()}
                                     </div>
                                 </div>
                             </div>
@@ -172,7 +178,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                     </Marker>
                 ))}
 
-                <Marker position={position}>
+                <Marker position={position} opacity={0.5}>
                     <Popup>Oficina Central</Popup>
                 </Marker>
             </MapContainer>
