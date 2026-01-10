@@ -2,8 +2,11 @@ import { MapPin, RefreshCw, AlertCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import GeofenceMap from './GeofenceMap';
 import { CartrackService, type CartrackGeofence } from '../../services/cartrack';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Geofences() {
+    const { userRole } = useAuth();
+    console.log('Geofences mounted, userRole:', userRole);
     const [geofences, setGeofences] = useState<CartrackGeofence[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
