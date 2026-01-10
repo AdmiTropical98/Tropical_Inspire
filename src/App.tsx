@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, UserCog, Bus, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
-  BarChart3
+  BarChart3, MapPin
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -36,13 +36,14 @@ import Clientes from './components/clientes';
 import PermissionsManager from './components/dashboard/PermissionsManager'; // Import PermissionsManager
 import Relatorios from './components/relatorios'; // Import Relatorios
 import AvaliacaoMotorista from './components/avaliacao'; // Import AvaliacaoMotorista
+import Geofences from './components/geofences'; // Import Geofences component
 
 function App() {
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences'>('dashboard');
 
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
@@ -101,6 +102,7 @@ function App() {
       case 'clientes': return <Clientes />;
       case 'relatorios': return <Relatorios />;
       case 'avaliacao': return <AvaliacaoMotorista />;
+      case 'geofences': return <Geofences />;
       case 'external': return <ExternalServices />;
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
@@ -191,6 +193,12 @@ function App() {
                   <span className="font-medium">Transportes EVA</span>
                 </button>
               )}
+
+              {/* Geofences / Cartrack Integration */}
+              <button onClick={() => setActiveTab('geofences')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
+                <MapPin className="w-5 h-5" />
+                <span className="font-medium">Geofences</span>
+              </button>
             </div>
 
             {/* GESTÃO / ADMIN */}
@@ -364,6 +372,11 @@ function App() {
                       <span className="font-medium">Transportes EVA</span>
                     </button>
                   )}
+
+                  <button onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                    <MapPin className="w-5 h-5" />
+                    <span className="font-medium">Geofences</span>
+                  </button>
                 </div>
 
                 {/* GESTÃO / ADMIN */}
@@ -450,7 +463,8 @@ function App() {
                 {/* Add more links if needed, or keep it simple for now */}
               </nav>
             </div>
-          )}
+          )
+          }
 
           <div className="flex-1 overflow-hidden relative w-full flex flex-col min-h-0">
             {renderContent()}
