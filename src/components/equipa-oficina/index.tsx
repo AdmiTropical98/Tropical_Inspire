@@ -213,10 +213,16 @@ export default function EquipaOficina() {
                                     type="text"
                                     required
                                     value={newOficinaUser.pin}
-                                    onChange={e => setNewOficinaUser({ ...newOficinaUser, pin: e.target.value })}
+                                    onChange={e => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                        setNewOficinaUser({ ...newOficinaUser, pin: val });
+                                    }}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-orange-500 outline-none mt-1 font-mono tracking-widest text-center transition-all hover:border-slate-700"
-                                    placeholder="0000"
-                                    maxLength={4}
+                                    placeholder="000000"
+                                    pattern="\d{6}"
+                                    minLength={6}
+                                    maxLength={6}
+                                    title="O PIN deve ter exatamente 6 dígitos numéricos"
                                 />
                             </div>
                         </div>
