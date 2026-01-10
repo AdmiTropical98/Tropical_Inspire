@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { User, Shield, Wrench, Bus, Search, Filter, Clock, MoreVertical, CheckCircle2, XCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { User, CheckCircle2, XCircle, Plus, Edit, Trash2, Shield, Wrench, Bus, Search, Filter } from 'lucide-react';
+import UserFormModal from './modals/UserFormModal';
 
 export default function UsersPage() {
-    const { motoristas, supervisors, oficinaUsers, adminUsers } = useWorkshop();
-    const { currentUser } = useAuth(); // To highlight self
+    const { motoristas, supervisors, oficinaUsers, adminUsers } = useWorkshop(); // To highlight self
     const [searchTerm, setSearchTerm] = useState('');
     const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'admin' | 'motorista' | 'oficina' | 'supervisor'>('all');
 
@@ -28,7 +27,17 @@ export default function UsersPage() {
             role: 'motorista' as const,
             status: (u.status === 'disponivel' || u.status === 'ocupado') ? 'active' : 'inactive',
             lastAccess: null,
-            avatar: u.foto
+            avatar: u.foto,
+            // Extended fields for edit
+            telemovel: u.contacto,
+            cartaConducao: u.cartaConducao,
+            vencimentoBase: u.vencimentoBase,
+            valorHora: u.valorHora,
+            turnoInicio: u.turnoInicio,
+            turnoFim: u.turnoFim,
+            folgas: u.folgas,
+            pin: u.pin,
+            blockedPermissions: u.blockedPermissions
         }));
 
         const mechanics = oficinaUsers.map(u => ({
@@ -38,7 +47,9 @@ export default function UsersPage() {
             role: 'oficina' as const,
             status: u.status === 'active' ? 'active' : 'inactive',
             lastAccess: null,
-            avatar: u.foto
+            avatar: u.foto,
+            pin: u.pin,
+            blockedPermissions: u.blockedPermissions
         }));
 
         const sups = supervisors.map(u => ({
@@ -48,7 +59,11 @@ export default function UsersPage() {
             role: 'supervisor' as const,
             status: u.status === 'active' ? 'active' : 'inactive',
             lastAccess: null,
-            avatar: u.foto
+            avatar: u.foto,
+            telemovel: u.telemovel,
+            pin: u.pin,
+            password: u.password,
+            blockedPermissions: u.blockedPermissions
         }));
 
         return [...admins, ...drivers, ...mechanics, ...sups];
@@ -73,6 +88,25 @@ export default function UsersPage() {
         }
     };
 
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+
+    const { deleteMotorista, deleteSupervisor, deleteOficinaUser } = useWorkshop();
+
+    const handleDelete = async (user: any) => {
+        if (!confirm(`Tem a certeza que deseja eliminar o utilizador ${user.nome}?`)) return;
+
+        try {
+            if (user.role === 'motorista') await deleteMotorista(user.id);
+            else if (user.role === 'supervisor') await deleteSupervisor(user.id);
+            else if (user.role === 'oficina') await deleteOficinaUser(user.id);
+            else if (user.role === 'admin') alert('Admins não podem ser apagados por aqui.');
+        } catch (error) {
+            console.error('Error deleting:', error);
+            alert('Erro ao apagar utilizador.');
+        }
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6 min-h-full pb-24">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -90,10 +124,13 @@ export default function UsersPage() {
                         <span className="block text-xs text-slate-500 uppercase font-bold">Total</span>
                         <span className="text-xl font-bold text-white">{allUsers.length}</span>
                      </div>
-                     <div className="bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-700/50">
-                        <span className="block text-xs text-slate-500 uppercase font-bold">Ativos</span>
-                        <span className="text-xl font-bold text-emerald-500">{allUsers.filter(u => u.status === 'active').length}</span>
-                     </div>
+                    <button
+                        onClick={() => { setSelectedUser(null); setIsModalOpen(true); }}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Novo Utilizador
+                    </button>
                 </div>
             </div>
 
@@ -136,7 +173,7 @@ export default function UsersPage() {
                                 <th className="px-6 py-4">Utilizador</th>
                                 <th className="px-6 py-4">Função</th>
                                 <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Último Acesso</th>
+                                <th className="px-6 py-4 text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/30">
@@ -175,9 +212,21 @@ export default function UsersPage() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 text-slate-500 text-sm">
-                                                <Clock className="w-3 h-3" />
-                                                <span>--</span>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => { setSelectedUser(user); setIsModalOpen(true); }}
+                                                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(user)}
+                                                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    title="Eliminar"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -193,6 +242,12 @@ export default function UsersPage() {
                     </table>
                 </div>
             </div>
+
+            <UserFormModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                user={selectedUser}
+            />
         </div>
     );
 }
