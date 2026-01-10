@@ -21,10 +21,9 @@ export default function CentralMotorista() {
         updateMotorista
     } = useWorkshop();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'horas' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos'>('overview');
 
     // Forms State
-    const [hoursForm, setHoursForm] = useState({ date: new Date().toISOString().split('T')[0], start: '', end: '', break: '60' });
     const [requestForm, setRequestForm] = useState({ type: 'ferias', description: '' });
     const [reportForm, setReportForm] = useState({ type: 'acidente', description: '' });
 
@@ -156,11 +155,6 @@ export default function CentralMotorista() {
         .filter(s => s.motoristaId === currentUser?.id)
         .sort((a, b) => new Date(a.hora).getTime() - new Date(b.hora).getTime());
 
-    const handleSubmitHours = (e: React.FormEvent) => {
-        e.preventDefault();
-        alert('Horas registadas com sucesso (Simulação)');
-        setHoursForm({ ...hoursForm, start: '', end: '' });
-    };
 
     const handleSubmitRequest = (e: React.FormEvent) => {
         e.preventDefault();
@@ -227,7 +221,6 @@ export default function CentralMotorista() {
                     { id: 'overview', icon: LayoutTemplate, label: 'Visão Geral', color: 'blue' },
                     { id: 'escala', icon: Calendar, label: 'Minha Escala', color: 'blue' },
                     { id: 'viatura', icon: Car, label: 'Minha Viatura', color: 'indigo' },
-                    { id: 'horas', icon: Clock, label: t('central.tab.hours'), color: 'blue' },
                     { id: 'pedidos', icon: Share2, label: t('central.tab.requests'), color: 'purple' },
                     { id: 'abastecimentos', icon: Fuel, label: 'Abastecimentos', color: 'orange' },
                     { id: 'recibos', icon: FileText, label: t('central.tab.payslips'), color: 'emerald' },
@@ -384,10 +377,6 @@ export default function CentralMotorista() {
                                     <div className="text-2xl font-bold text-white">{myServicesCount}</div>
                                 </div>
                                 <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/30">
-                                    <div className="text-slate-400 text-xs mb-1">Horas Totais</div>
-                                    <div className="text-2xl font-bold text-white">168h</div>
-                                </div>
-                                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/30">
                                     <div className="text-slate-400 text-xs mb-1">Avaliação</div>
                                     <div className="text-2xl font-bold text-amber-500 flex items-center gap-1">
                                         4.9 <span className="text-xs text-slate-500 font-normal">/ 5.0</span>
@@ -410,66 +399,6 @@ export default function CentralMotorista() {
                         </div>
                     )}
 
-                    {activeTab === 'horas' && (
-                        <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                                <Clock className="w-5 h-5 text-blue-400" />
-                                {t('central.hours.title')}
-                            </h3>
-                            <form onSubmit={handleSubmitHours} className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('common.date')}</label>
-                                        <input
-                                            type="date"
-                                            required
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={hoursForm.date}
-                                            onChange={(e) => setHoursForm({ ...hoursForm, date: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-400 mb-1">Pausa (minutos)</label>
-                                        <input
-                                            type="number"
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={hoursForm.break}
-                                            onChange={(e) => setHoursForm({ ...hoursForm, break: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('central.hours.start')}</label>
-                                        <input
-                                            type="time"
-                                            required
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={hoursForm.start}
-                                            onChange={(e) => setHoursForm({ ...hoursForm, start: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('central.hours.end')}</label>
-                                        <input
-                                            type="time"
-                                            required
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={hoursForm.end}
-                                            onChange={(e) => setHoursForm({ ...hoursForm, end: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex justify-end pt-2">
-                                    <button
-                                        type="submit"
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
-                                    >
-                                        <Check className="w-4 h-4" />
-                                        {t('common.save')}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
 
                     {activeTab === 'abastecimentos' && (
                         <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
