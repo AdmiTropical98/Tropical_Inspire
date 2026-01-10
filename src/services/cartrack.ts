@@ -53,9 +53,7 @@ export const CartrackService = {
 
             if (!response.ok) {
                 console.warn('Cartrack API Error:', response.status, response.statusText);
-                // For demonstration/fallback if API fails (likely due to CORS or wrong endpoint)
-                console.info('Falling back to mock data due to API error.');
-                return MOCK_GEOFENCES;
+                throw new Error(`Cartrack API Error: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -63,22 +61,24 @@ export const CartrackService = {
 
         } catch (error) {
             console.error('Failed to fetch from Cartrack:', error);
-            return MOCK_GEOFENCES; // Fallback to mock for now
+            throw error; // Propagate error to UI
         }
     }
 };
 
 // Helper: Map raw API data to our interface
-// (This needs to be adjusted once we see the real JSON response)
-const mapCartrackDataToGeofences = (data: any[]): CartrackGeofence[] => {
-    if (!Array.isArray(data)) return [];
+const mapCartrackDataToGeofences = (data: any): CartrackGeofence[] => {
+    // Handle { data: [...] } or { rows: [...] } wrappers
+    const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
 
-    return data.map((item: any, index: number) => ({
-        id: item.id || `geo-${index}`,
-        name: item.name || 'Sem nome',
-        type: item.shape === 'polygon' ? 'POLYGON' : 'CIRCLE',
-        coordinates: item.points || [],
-        radius: item.radius || 0,
-        color: 'blue'
+    if (!Array.isArray(items)) return [];
+
+    return items.map((item: any, index: number) => ({
+        id: item.id ? String(item.id) : `geo-${index}`,
+        name: item.name || item.description || 'Sem nome',
+        type: (item.shape && item.shape.toLowerCase().includes('poly')) ? 'POLYGON' : 'CIRCLE',
+        coordinates: item.points || (item.latitude && item.longitude ? [{ lat: parseFloat(item.latitude), lng: parseFloat(item.longitude) }] : []),
+        radius: item.radius ? parseFloat(item.radius) : 100,
+        color: item.color || '#3b82f6' // Default blue
     }));
 };

@@ -19,7 +19,7 @@ export default function Geofences() {
             setGeofences(data);
         } catch (err) {
             console.error(err);
-            setError('Falha ao carregar geofences. A usar dados locais se disponíveis.');
+            setError(err instanceof Error ? err.message : 'Falha ao carregar geofences da Cartrack. Verifique a consola para mais detalhes.');
         } finally {
             setLoading(false);
         }
