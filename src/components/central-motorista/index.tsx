@@ -618,10 +618,7 @@ export default function CentralMotorista() {
                         <p className="text-slate-400 text-sm mb-4">Motorista Profissional</p>
 
                         <div className="w-full grid grid-cols-2 gap-2 text-center text-sm">
-                            <div className="bg-slate-900/50 p-2 rounded-lg">
-                                <span className="block text-slate-500 text-xs uppercase">ID</span>
-                                <span className="font-mono text-white">{currentUser?.id?.slice(0, 6)}...</span>
-                            </div>
+                            {/* ID Removed as requested */}
                             <div className="bg-slate-900/50 p-2 rounded-lg">
                                 <span className="block text-slate-500 text-xs uppercase">Carta</span>
                                 <span className="font-mono text-white">B, C</span>
