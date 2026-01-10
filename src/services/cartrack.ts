@@ -12,8 +12,22 @@ export interface CartrackGeofence {
     color?: string; // Optional color
 }
 
+// Types for Vehicle Data
+export interface CartrackVehicle {
+    id: string;
+    registration: string; // License Plate
+    name: string;
+    latitude: number;
+    longitude: number;
+    speed: number;
+    heading: number; // Direction (0-360)
+    updatedAt: string;
+    status: 'moving' | 'stopped' | 'idle';
+    ignition: boolean;
+}
+
 // Mock Data for "My Office" and "Drop-off Zone"
-const MOCK_GEOFENCES: CartrackGeofence[] = [];
+// const MOCK_GEOFENCES: CartrackGeofence[] = [];
 
 export const CartrackService = {
     /**
@@ -45,7 +59,55 @@ export const CartrackService = {
             console.error('Failed to fetch from Cartrack:', error);
             throw error; // Propagate error to UI
         }
+    },
+
+    /**
+     * Fetch real-time vehicle positions
+     */
+    getVehicles: async (): Promise<CartrackVehicle[]> => {
+        try {
+            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+            // Endpoint might be /vehicles or /positions. Trying /vehicles based on standard patterns.
+            const response = await fetch(`${BASE_URL}/vehicles`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${auth}`
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Cartrack Vehicles API Error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return mapCartrackDataToVehicles(data);
+        } catch (error) {
+            console.error('Failed to fetch vehicles:', error);
+            throw error;
+        }
     }
+};
+
+// ... existing code ...
+
+// Helper: Map raw API data to Vehicle interface
+const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
+    const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
+    if (!Array.isArray(items)) return [];
+
+    return items.map((item: any) => ({
+        id: String(item.id || item.vehicle_id),
+        registration: item.registration || item.plate || 'N/A',
+        name: item.name || item.registration || 'Viatura',
+        latitude: parseFloat(item.latitude || item.lat || 0),
+        longitude: parseFloat(item.longitude || item.lng || item.lon || 0),
+        speed: parseFloat(item.speed || 0),
+        heading: parseFloat(item.heading || item.direction || 0),
+        updatedAt: item.updated_at || item.last_update || new Date().toISOString(),
+        status: (parseFloat(item.speed || 0) > 0) ? 'moving' : (item.ignition ? 'idle' : 'stopped'),
+        ignition: !!item.ignition
+    }));
 };
 
 // Helper: Map raw API data to our interface
