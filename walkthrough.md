@@ -86,3 +86,18 @@ I have successfully linked Requisitions to the Accounting invoices view, treatin
 - `src/components/Contabilidade/FixedCostsManager.tsx` [NEW]
 - `src/components/Contabilidade/Faturas.tsx`
 - `src/components/Contabilidade/Alugueres.tsx`
+
+# Deployment Fix
+
+I have corrected the GitHub Actions deployment workflow to target the correct directory on the Hostinger FTP server.
+
+## Problem
+The deployment was failing because the FTP `server-dir` was configured to `./` instead of the required `public_html/`.
+
+## Solution
+Updated `.github/workflows/deploy.yml`:
+- Changed `server-dir` from `./` to `public_html/`.
+
+## Verification
+- Use the **Link to Deployment** provided by GitHub Actions (or check the website).
+- Verify that the **Geofences** tab is now visible in the application sidebar, confirming the new code (including the geofences feature) has been successfully deployed.
