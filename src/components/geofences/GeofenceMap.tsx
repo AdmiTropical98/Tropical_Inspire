@@ -42,22 +42,29 @@ function AutoFitBounds({ geofences, vehicles }: { geofences: CartrackGeofence[],
         if (geofences.length === 0 && vehicles.length === 0) return;
 
         const bounds = L.latLngBounds([]);
+        let hasValidPoints = false;
 
         // Add Geofences to bounds
         geofences.forEach(geo => {
             if (geo.coordinates.length > 0) {
                 geo.coordinates.forEach(coord => {
-                    bounds.extend([coord.lat, coord.lng]);
+                    if (coord.lat !== 0 && coord.lng !== 0) {
+                        bounds.extend([coord.lat, coord.lng]);
+                        hasValidPoints = true;
+                    }
                 });
             }
         });
 
         // Add Vehicles to bounds
         vehicles.forEach(vehicle => {
-            bounds.extend([vehicle.latitude, vehicle.longitude]);
+            if (vehicle.latitude !== 0 && vehicle.longitude !== 0) {
+                bounds.extend([vehicle.latitude, vehicle.longitude]);
+                hasValidPoints = true;
+            }
         });
 
-        if (bounds.isValid()) {
+        if (hasValidPoints && bounds.isValid()) {
             map.fitBounds(bounds, { padding: [50, 50] });
         }
     }, [geofences, vehicles, map]);
@@ -69,14 +76,22 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
     const [position] = useState<[number, number]>([38.7223, -9.1393]); // Lisbon default
 
     return (
-        <div className="h-[600px] w-full rounded-2xl overflow-hidden border border-slate-700 shadow-xl relative z-0 bg-slate-100">
+        <div className="h-[600px] w-full rounded-2xl overflow-hidden border border-slate-700 shadow-xl relative z-0 bg-slate-900">
             <MapContainer center={position} zoom={12} scrollWheelZoom={true} className="h-full w-full">
                 <AutoFitBounds geofences={geofences} vehicles={vehicles} />
 
+                {/* Satellite Map (Esri World Imagery) */}
+                <TileLayer
+                    attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                />
+
+                {/* Street Labels Overlay (Hybrid look) */}
                 <TileLayer
                     attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
                 />
+
 
                 {/* Geofences */}
                 {geofences.map((geo) => {

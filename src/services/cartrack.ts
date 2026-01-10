@@ -93,21 +93,33 @@ export const CartrackService = {
 
 // Helper: Map raw API data to Vehicle interface
 const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
+    // Debug logging to see actual API structure
+    console.log('Raw Vehicle Data:', data);
+
     const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
     if (!Array.isArray(items)) return [];
 
-    return items.map((item: any) => ({
-        id: String(item.id || item.vehicle_id),
-        registration: item.registration || item.plate || 'N/A',
-        name: item.name || item.registration || 'Viatura',
-        latitude: parseFloat(item.latitude || item.lat || 0),
-        longitude: parseFloat(item.longitude || item.lng || item.lon || 0),
-        speed: parseFloat(item.speed || 0),
-        heading: parseFloat(item.heading || item.direction || 0),
-        updatedAt: item.updated_at || item.last_update || new Date().toISOString(),
-        status: (parseFloat(item.speed || 0) > 0) ? 'moving' : (item.ignition ? 'idle' : 'stopped'),
-        ignition: !!item.ignition
-    }));
+    return items
+        .map((item: any) => {
+            // Try multiple field variations found in different API versions
+            const lat = parseFloat(item.latitude || item.lat || item.loc_lat || item.y || 0);
+            const lng = parseFloat(item.longitude || item.lng || item.loc_lng || item.x || 0);
+            const speed = parseFloat(item.speed || item.vel || 0);
+
+            return {
+                id: String(item.id || item.vehicle_id || item.vehicleId),
+                registration: item.registration || item.plate || item.label || 'N/A',
+                name: item.name || item.registration || 'Viatura',
+                latitude: lat,
+                longitude: lng,
+                speed: speed,
+                heading: parseFloat(item.heading || item.direction || item.bearing || 0),
+                updatedAt: item.updated_at || item.last_update || item.timestamp || new Date().toISOString(),
+                status: (speed > 0) ? 'moving' : (item.ignition ? 'idle' : 'stopped'),
+                ignition: !!(item.ignition || item.ign)
+            };
+        })
+        .filter(v => v.latitude !== 0 && v.longitude !== 0); // Remove vehicles with invalid coords
 };
 
 // Helper: Map raw API data to our interface
