@@ -178,7 +178,8 @@ export interface OficinaUser {
     id: string;
     nome: string;
     foto?: string;
-    email: string;
+    email?: string;
+    telemovel: string; // Required for login
     pin: string;
     status: 'active' | 'blocked';
     blockedPermissions?: string[];

@@ -53,6 +53,7 @@ export default function UsersPage() {
             status: u.status === 'active' ? 'active' : 'inactive',
             lastAccess: null,
             avatar: u.foto,
+            telemovel: u.telemovel, // NEW
             pin: u.pin,
             blockedPermissions: u.blockedPermissions
         }));

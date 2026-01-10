@@ -146,6 +146,7 @@ export default function Login() {
                 id: crypto.randomUUID(),
                 nome: 'Oficina de Teste',
                 email: 'oficina.teste@tropical.com',
+                telemovel: '900000002', // NEW
                 pin: '1234',
                 status: 'active'
             });
@@ -230,7 +231,7 @@ export default function Login() {
 
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
-                                {role === 'motorista' ? 'Telemóvel ou Email' : 'Email'}
+                                {(role === 'motorista' || role === 'oficina') ? 'Telemóvel' : 'Email'}
                             </label>
                             <div className="relative group">
                                 {role === 'admin' ? (
@@ -238,7 +239,7 @@ export default function Login() {
                                 ) : role === 'supervisor' ? (
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
                                 ) : role === 'oficina' ? (
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-orange-400 transition-colors" />
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-orange-400 transition-colors" />
                                 ) : (
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                                 )}
@@ -251,8 +252,7 @@ export default function Login() {
                                     placeholder={
                                         role === 'admin' ? "admin@algartempo.com" :
                                             role === 'supervisor' ? "supervisor@algartempo.com" :
-                                                role === 'oficina' ? "oficina@algartempo.com" :
-                                                    "Telemóvel ou Email"
+                                                "Telemóvel"
                                     }
                                 />
                             </div>
@@ -279,7 +279,7 @@ export default function Login() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-12 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
                                     placeholder={role === 'admin' || role === 'supervisor' ? "••••••••" : "0000"}
-                                    maxLength={(role === 'motorista' || role === 'oficina') ? (role === 'oficina' ? 4 : 6) : undefined}
+                                    maxLength={(role === 'motorista' || role === 'oficina') ? 6 : undefined}
                                 />
                                 <button
                                     type="button"

@@ -188,7 +188,8 @@ CREATE TABLE IF NOT EXISTS public.oficina_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nome TEXT NOT NULL,
     foto TEXT,
-    email TEXT,
+    email TEXT, -- Optional now
+    telemovel TEXT, -- NEW: For login
     pin TEXT,
     status TEXT DEFAULT 'active',
     blocked_permissions JSONB,

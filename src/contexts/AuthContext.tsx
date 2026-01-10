@@ -153,11 +153,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return false;
         } else if (type === 'oficina') {
             // Oficina Login (Dynamic)
-            const staff = oficinaUsers.find(u =>
-                u.email.toLowerCase() === identifier.toLowerCase() &&
-                u.pin === credential &&
-                u.status === 'active'
-            );
+            const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
+
+            const staff = oficinaUsers.find(u => {
+                // Remove all non-numeric characters from stored phone
+                const cleanPhone = (u.telemovel || '').replace(/[^0-9]/g, '');
+
+                // Check if one ends with the other (to handle +351 vs no +351)
+                const phoneMatch = (cleanPhone !== '' && cleanIdentifier !== '') &&
+                    (cleanPhone.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanPhone));
+
+                // Fallback to email if needed (legacy)
+                const emailMatch = u.email && u.email.toLowerCase() === identifier.toLowerCase();
+
+                return (phoneMatch || emailMatch) && u.pin === credential && u.status === 'active';
+            });
 
             if (staff) {
                 localStorage.setItem('isAuthenticated', 'true');

@@ -791,6 +791,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             nome: u.nome,
             foto: u.foto,
             email: u.email,
+            telemovel: u.telemovel, // NEW
             pin: u.pin,
             status: u.status,
             blocked_permissions: u.blockedPermissions
@@ -802,6 +803,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             nome: u.nome,
             foto: u.foto,
             email: u.email,
+            telemovel: u.telemovel, // NEW
             pin: u.pin,
             status: u.status,
             blocked_permissions: u.blockedPermissions

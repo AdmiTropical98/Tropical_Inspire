@@ -165,6 +165,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     nome: baseData.nome,
                     email: baseData.email,
                     foto: baseData.foto,
+                    telemovel: baseData.telemovel, // NEW
                     pin: baseData.pin,
                     status: baseData.status === 'active' ? 'active' : 'blocked',
                     blockedPermissions: baseData.blockedPermissions
@@ -256,32 +257,29 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     required
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
-                                <input 
-                                    type="email"
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.email}
-                                    onChange={e => setFormData({...formData, email: e.target.value})}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">Foto URL</label>
-                                <input 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.foto}
-                                    onChange={e => setFormData({...formData, foto: e.target.value})}
-                                    placeholder="https://"
-                                />
-                            </div>
-                            {(role === 'supervisor' || role === 'motorista') && (
+                            {(role === 'admin' || role === 'supervisor') && (
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">Telemóvel</label>
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">Email {role === 'admin' && '*'}</label>
+                                    <input
+                                        type="email"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.email}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                        required={role === 'admin'}
+                                        placeholder={role === 'admin' || role === 'supervisor' ? "email@exemplo.com" : "Opcional"}
+                                    />
+                                </div>
+                            )}
+
+                            {(role === 'supervisor' || role === 'motorista' || role === 'oficina') && (
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">Telemóvel *</label>
                                     <input 
                                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={formData.telemovel}
                                         onChange={e => setFormData({...formData, telemovel: e.target.value})}
+                                        required
+                                        placeholder="912 345 678"
                                     />
                                 </div>
                             )}
