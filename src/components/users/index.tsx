@@ -112,34 +112,71 @@ export default function UsersPage() {
 
     return (
         <div className="h-full overflow-y-auto custom-scrollbar p-6 max-w-7xl mx-auto space-y-6 pb-24">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Dashboard Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+                    <div>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Usuários</p>
+                        <p className="text-2xl font-bold text-white mt-1">{allUsers.length}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                        <User className="w-5 h-5 text-blue-400" />
+                    </div>
+                </div>
+
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+                    <div>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Supervisores</p>
+                        <p className="text-2xl font-bold text-white mt-1">{supervisors.length}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                        <Shield className="w-5 h-5 text-purple-400" />
+                    </div>
+                </div>
+
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+                    <div>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Motoristas</p>
+                        <p className="text-2xl font-bold text-white mt-1">{motoristas.length}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                        <Bus className="w-5 h-5 text-emerald-400" />
+                    </div>
+                </div>
+
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+                    <div>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Oficina</p>
+                        <p className="text-2xl font-bold text-white mt-1">{oficinaUsers.length}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                        <Wrench className="w-5 h-5 text-orange-400" />
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <User className="w-8 h-8 text-blue-500" />
                         Gestão de Usuários
                     </h1>
-                    <p className="text-slate-400">Todos os utilizadores ativos na plataforma</p>
+                    <p className="text-slate-400 text-sm">Gerencie todos os membros da equipa e suas funções.</p>
                 </div>
                 
-                {/* Stats */}
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                     <button
                         onClick={() => refreshData()}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-xl border border-slate-700 transition-colors"
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl border border-slate-700 transition-colors"
                         title="Atualizar Lista"
                     >
                         <RotateCw className="w-5 h-5" />
                     </button>
-                    <div className="bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-700/50 hidden md:block">
-                        <span className="block text-xs text-slate-500 uppercase font-bold">Total</span>
-                        <span className="text-xl font-bold text-white">{allUsers.length}</span>
-                     </div>
                     <button
                         onClick={() => { setSelectedUser(null); setIsModalOpen(true); }}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2"
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0"
                     >
                         <Plus className="w-5 h-5" />
-                        <span className="hidden md:inline">Novo Utilizador</span>
+                        <span>Novo Utilizador</span>
                     </button>
                 </div>
             </div>

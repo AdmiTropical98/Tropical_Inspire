@@ -300,7 +300,7 @@ function App() {
           {(activeTab === 'dashboard' || activeTab === 'overview' || activeTab === 'admin_users' || activeTab === 'permissions' || activeTab === 'transportes-eva' || activeTab === 'central-motorista') && ( // Show header for proper tabs
             <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                GestãoFrota <span className="text-xs text-white/50 block">v1.9.1 (Permissions Fix)</span>
+                GestãoFrota <span className="text-xs text-white/50 block">v1.9.2 (UI Update)</span>
               </h1>
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
                 <Menu className="w-6 h-6" />

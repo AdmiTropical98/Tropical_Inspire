@@ -220,8 +220,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     {!user && (
                         <div className="grid grid-cols-4 gap-4">
                             {[
-                                { id: 'admin', label: 'Administrador', desc: 'Acesso Total' },
-                                { id: 'supervisor', label: 'Sub-Admin', desc: 'Gestão / Supervisor' },
+                                { id: 'supervisor', label: 'Supervisor', desc: 'Gestão / Supervisor' },
                                 { id: 'motorista', label: 'Motorista', desc: 'App Móvel' },
                                 { id: 'oficina', label: 'Oficina', desc: 'Mecânico' }
                             ].map(r => (
