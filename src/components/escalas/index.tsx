@@ -391,7 +391,7 @@ export default function Escalas() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#0f172a] relative overflow-hidden">
+        <div className="flex flex-col h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
 
             {/* HEADER TOOLBAR */}
             <div className="h-auto md:h-20 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0 gap-4 md:gap-0">
@@ -545,15 +545,15 @@ export default function Escalas() {
             </div>
 
             {/* MAIN CONTENT AREA */}
-            <div className="flex-1 flex overflow-hidden relative">
+            <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative h-auto md:h-full">
 
                 {viewMode === 'cards' ? (
                     /* CARD VIEW (Existing) */
                     <>
-                        <div className={`flex-1 overflow-hidden p-0 transition-colors duration-300
+                        <div className={`flex-1 md:overflow-hidden p-0 transition-colors duration-300
                     ${isDistributeMode ? 'bg-[#1e293b]/20' : ''}
                 `}>
-                            <div className="h-full flex flex-col">
+                            <div className="h-auto md:h-full flex flex-col">
                                 {/* Status Filters */}
                                 <div className="flex items-center gap-2 mb-4 px-4 md:px-8 mt-4 md:mt-8 overflow-x-auto pb-2 shrink-0 scrollbar-hide">
                                     <button
@@ -586,7 +586,7 @@ export default function Escalas() {
                                 </div>
 
                                 {/* Drivers Swimlanes */}
-                                <div className="flex-1 min-h-0 flex gap-4 md:gap-6 overflow-x-auto pb-6 px-4 snap-x">
+                                <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-4 md:gap-6 md:overflow-x-auto pb-6 px-4 snap-y md:snap-x">
                                     {filteredMotoristas.map(driver => {
                                         // Calculate Driver Stats
                                         const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
@@ -611,7 +611,7 @@ export default function Escalas() {
                                                     e.currentTarget.style.backgroundColor = '';
                                                     handleDropService(driver.id);
                                                 }}
-                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col h-full shrink-0 w-[85vw] md:w-[450px] snap-center group transition-all duration-200
+                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col shrink-0 w-full md:w-[450px] snap-center group transition-all duration-200 h-auto md:h-full
                                             ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
                                             border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
                                             ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}

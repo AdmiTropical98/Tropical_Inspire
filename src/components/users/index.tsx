@@ -1,10 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { User, CheckCircle2, XCircle, Plus, Edit, Trash2, Shield, Wrench, Bus, Search, Filter } from 'lucide-react';
+import { User, CheckCircle2, XCircle, Plus, Edit, Trash2, Shield, Wrench, Bus, Search, Filter, RotateCw } from 'lucide-react';
 import UserFormModal from './modals/UserFormModal';
 
 export default function UsersPage() {
-    const { motoristas, supervisors, oficinaUsers, adminUsers } = useWorkshop(); // To highlight self
+    const {
+        motoristas, supervisors, oficinaUsers, adminUsers,
+        deleteMotorista, deleteSupervisor, deleteOficinaUser, deleteAdminUser,
+        refreshData
+    } = useWorkshop();
+
     const [searchTerm, setSearchTerm] = useState('');
     const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'admin' | 'motorista' | 'oficina' | 'supervisor'>('all');
 
@@ -91,8 +96,6 @@ export default function UsersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any>(null);
 
-    const { deleteMotorista, deleteSupervisor, deleteOficinaUser } = useWorkshop();
-
     const handleDelete = async (user: any) => {
         if (!confirm(`Tem a certeza que deseja eliminar o utilizador ${user.nome}?`)) return;
 
@@ -100,7 +103,7 @@ export default function UsersPage() {
             if (user.role === 'motorista') await deleteMotorista(user.id);
             else if (user.role === 'supervisor') await deleteSupervisor(user.id);
             else if (user.role === 'oficina') await deleteOficinaUser(user.id);
-            else if (user.role === 'admin') alert('Admins não podem ser apagados por aqui.');
+            else if (user.role === 'admin') await deleteAdminUser(user.id);
         } catch (error) {
             console.error('Error deleting:', error);
             alert('Erro ao apagar utilizador.');
@@ -108,7 +111,7 @@ export default function UsersPage() {
     };
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6 min-h-full pb-24">
+        <div className="h-full overflow-y-auto custom-scrollbar p-6 max-w-7xl mx-auto space-y-6 pb-24">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -120,7 +123,14 @@ export default function UsersPage() {
                 
                 {/* Stats */}
                 <div className="flex gap-4">
-                     <div className="bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-700/50">
+                    <button
+                        onClick={() => refreshData()}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-xl border border-slate-700 transition-colors"
+                        title="Atualizar Lista"
+                    >
+                        <RotateCw className="w-5 h-5" />
+                    </button>
+                    <div className="bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-700/50 hidden md:block">
                         <span className="block text-xs text-slate-500 uppercase font-bold">Total</span>
                         <span className="text-xl font-bold text-white">{allUsers.length}</span>
                      </div>
@@ -129,7 +139,7 @@ export default function UsersPage() {
                         className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2"
                     >
                         <Plus className="w-5 h-5" />
-                        Novo Utilizador
+                        <span className="hidden md:inline">Novo Utilizador</span>
                     </button>
                 </div>
             </div>

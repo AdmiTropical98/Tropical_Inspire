@@ -45,7 +45,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
     const { 
         addMotorista, updateMotorista, 
         addSupervisor, updateSupervisor,
-        addOficinaUser, updateOficinaUser
+        addOficinaUser, updateOficinaUser,
+        createAdminUser
     } = useWorkshop();
 
     const [role, setRole] = useState<UserRole>(initialRole);
@@ -171,8 +172,21 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                 if (user) await updateOficinaUser(mechData as any);
                 else await addOficinaUser(mechData as any);
             } else if (role === 'admin') {
-                alert('Criação de Admin deve ser feita via Supabase Auth diretamente por segurança.');
-                // Placeholder
+                if (user) {
+                    // Editing existing admin (just name/role usually, rarely email/password via this form)
+                    // For now, assume we just update what we can or alert
+                    alert('Edição de administrador ainda não está totalmente suportada na API. Contacte o suporte.');
+                } else {
+                    // Create New Admin
+                    if (!baseData.password || baseData.password.length < 6) {
+                        alert('Password deve ter pelo menos 6 caracteres.');
+                        return;
+                    }
+                    const result = await createAdminUser(baseData.email, baseData.password, baseData.nome);
+                    if (!result.success) {
+                        throw new Error(result.error);
+                    }
+                }
             }
             
             onClose();
@@ -205,18 +219,24 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     {/* Role Selector (Only on Created) */}
                     {!user && (
                         <div className="grid grid-cols-4 gap-4">
-                            {['admin', 'motorista', 'oficina', 'supervisor'].map(r => (
+                            {[
+                                { id: 'admin', label: 'Administrador', desc: 'Acesso Total' },
+                                { id: 'supervisor', label: 'Sub-Admin', desc: 'Gestão / Supervisor' },
+                                { id: 'motorista', label: 'Motorista', desc: 'App Móvel' },
+                                { id: 'oficina', label: 'Oficina', desc: 'Mecânico' }
+                            ].map(r => (
                                 <button
-                                    key={r}
+                                    key={r.id}
                                     type="button"
-                                    onClick={() => setRole(r as UserRole)}
-                                    className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all capitalize
-                                        ${role === r 
+                                    onClick={() => setRole(r.id as UserRole)}
+                                    className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all
+                                        ${role === r.id 
                                             ? 'bg-blue-600/20 border-blue-500 text-white' 
                                             : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
                                         }`}
                                 >
-                                    <span className="font-bold text-sm">{r}</span>
+                                    <span className="font-bold text-sm">{r.label}</span>
+                                    <span className="text-[10px] opacity-70">{r.desc}</span>
                                 </button>
                             ))}
                         </div>
@@ -285,7 +305,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     maxLength={6}
                                 />
                             </div>
-                            {role === 'supervisor' && (
+                            {(role === 'supervisor' || role === 'admin') && (
                                 <div>
                                     <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
                                     <input 
