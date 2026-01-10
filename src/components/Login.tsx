@@ -171,10 +171,10 @@ export default function Login() {
                 <img
                     src="/logo-new.png"
                     alt="Logotipo"
-                    className="h-40 w-auto object-contain drop-shadow-2xl relative z-20"
+                    className="h-28 w-auto object-contain drop-shadow-2xl relative z-20"
                 />
 
-                <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-20 relative z-10">
+                <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-10 relative z-10">
                     <div className="text-center mb-8">
                         <h1 className="text-3xl font-bold text-white mb-2">Bem-vindo</h1>
                         <p className="text-slate-400">Selecione o seu perfil para entrar</p>
