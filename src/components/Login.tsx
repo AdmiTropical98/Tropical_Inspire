@@ -160,9 +160,9 @@ export default function Login() {
 
 
     return (
-        <div className="h-screen w-full bg-[#0f172a] flex flex-col items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden transition-all duration-500 custom-scrollbar">
+        <div className="min-h-[100dvh] w-full bg-[#0f172a] flex flex-col items-center justify-center p-4 relative transition-all duration-500 custom-scrollbar py-12 sm:py-0">
             {/* Background Effects */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+            <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-900/10 blur-[120px] rounded-full"></div>
             </div>
