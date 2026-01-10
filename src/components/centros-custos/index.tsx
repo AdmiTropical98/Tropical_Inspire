@@ -1,10 +1,11 @@
+// Force Deployment
 import React, { useState } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { Plus, Trash2, Building2, MapPin } from 'lucide-react';
 import type { CentroCusto } from '../../types';
 
 export default function CentrosCustos() {
-    const { centrosCustos, addCentroCusto, deleteCentroCusto } = useWorkshop();
+    const { centrosCustos, addCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes } = useWorkshop();
     const [showForm, setShowForm] = useState(false);
 
     // Form State
@@ -54,32 +55,56 @@ export default function CentrosCustos() {
                         <p className="text-slate-400">Nenhum centro de custo registado</p>
                     </div>
                 ) : (
-                    centrosCustos.map(cc => (
-                        <div key={cc.id} className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 relative group">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-blue-500/10 rounded-xl">
-                                        <Building2 className="w-6 h-6 text-blue-400" />
+                    centrosCustos.map(cc => {
+                        // Calculate Expenses
+                        const fuelExpenses = fuelTransactions
+                            .filter(t => t.centroCustoId === cc.id)
+                            .reduce((sum, t) => sum + (t.totalCost || 0), 0);
+
+                        const reqExpenses = requisicoes
+                            .filter(r => r.centroCustoId === cc.id)
+                            .reduce((sum, r) => sum + (r.custo || 0), 0);
+
+                        const totalExpenses = fuelExpenses + reqExpenses;
+
+                        return (
+                            <div key={cc.id} className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-blue-500/10 rounded-xl">
+                                            <Building2 className="w-6 h-6 text-blue-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-white">{cc.nome}</h3>
+                                            {cc.localizacao && (
+                                                <div className="flex items-center gap-2 text-slate-400 mt-1 text-sm">
+                                                    <MapPin className="w-3 h-3" />
+                                                    <span>{cc.localizacao}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white">{cc.nome}</h3>
-                                        {cc.localizacao && (
-                                            <div className="flex items-center gap-2 text-slate-400 mt-1 text-sm">
-                                                <MapPin className="w-3 h-3" />
-                                                <span>{cc.localizacao}</span>
-                                            </div>
-                                        )}
+                                    <button
+                                        onClick={() => deleteCentroCusto(cc.id)}
+                                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-700/50">
+                                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Despesa Total</p>
+                                    <p className="text-2xl font-bold text-white">
+                                        {totalExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                                    </p>
+                                    <div className="flex gap-4 mt-2 text-xs text-slate-400">
+                                        <span>Combustível: {fuelExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                        <span>Requisições: {reqExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => deleteCentroCusto(cc.id)}
-                                    className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
