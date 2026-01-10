@@ -1062,7 +1062,6 @@ export default function Combustivel() {
                                         onChange={e => setAuthModal(prev => ({ ...prev, driverPin: e.target.value, error: '' }))}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white text-center text-2xl font-mono tracking-widest focus:border-yellow-500/50 outline-none transition-all"
                                         placeholder="••••••"
-                                        maxLength={6}
                                         autoFocus
                                     />
                                 </div>
