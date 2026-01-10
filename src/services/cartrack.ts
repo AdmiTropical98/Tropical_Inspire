@@ -26,38 +26,35 @@ export interface CartrackVehicle {
     ignition: boolean;
 }
 
-// Mock Data for "My Office" and "Drop-off Zone"
-// const MOCK_GEOFENCES: CartrackGeofence[] = [];
-
 export const CartrackService = {
     /**
-     * Fetch all geofences from Cartrack
+     * Fetch all geofences/POIs from Cartrack
      */
     getGeofences: async (): Promise<CartrackGeofence[]> => {
         try {
-            // Encode credentials for Basic Auth
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
 
-            // Try '/geofences' which is common standard, if fails we might need to look up documentation for specific endpoint like '/pois'
-            const response = await fetch(`${BASE_URL}/geofences`, {
+            // Try /pois first
+            let response = await fetch(`${BASE_URL}/pois`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${auth}`
-                },
+                headers: { 'Authorization': `Basic ${auth}` },
             });
 
             if (!response.ok) {
-                console.warn('Cartrack API Error:', response.status, response.statusText);
-                throw new Error(`Cartrack API Error: ${response.status} ${response.statusText}`);
+                // Fallback
+                response = await fetch(`${BASE_URL}/geofences`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Basic ${auth}` },
+                });
             }
+
+            if (!response.ok) throw new Error(`Cartrack Geofences Error: ${response.status}`);
 
             const data = await response.json();
             return mapCartrackDataToGeofences(data);
-
         } catch (error) {
-            console.error('Failed to fetch from Cartrack:', error);
-            throw error; // Propagate error to UI
+            console.error('Failed to fetch geofences:', error);
+            throw error;
         }
     },
 
@@ -67,18 +64,21 @@ export const CartrackService = {
     getVehicles: async (): Promise<CartrackVehicle[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            // Endpoint might be /vehicles or /positions. Trying /vehicles based on standard patterns.
-            const response = await fetch(`${BASE_URL}/vehicles`, {
+
+            // Try /stats for real-time info
+            let response = await fetch(`${BASE_URL}/stats`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${auth}`
-                },
+                headers: { 'Authorization': `Basic ${auth}` },
             });
 
             if (!response.ok) {
-                throw new Error(`Cartrack Vehicles API Error: ${response.status} ${response.statusText}`);
+                response = await fetch(`${BASE_URL}/vehicles`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Basic ${auth}` },
+                });
             }
+
+            if (!response.ok) throw new Error(`Cartrack Vehicles Error: ${response.status}`);
 
             const data = await response.json();
             return mapCartrackDataToVehicles(data);
@@ -89,25 +89,18 @@ export const CartrackService = {
     }
 };
 
-// ... existing code ...
-
-// Helper: Map raw API data to Vehicle interface
 const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
-    // Debug logging to see actual API structure
-    console.log('Raw Vehicle Data:', data);
-
     const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
     if (!Array.isArray(items)) return [];
 
     return items
-        .map((item: any) => {
-            // Try multiple field variations found in different API versions
-            const lat = parseFloat(item.latitude || item.lat || item.loc_lat || item.y || 0);
-            const lng = parseFloat(item.longitude || item.lng || item.loc_lng || item.x || 0);
+        .map((item: any, index: number) => {
+            const lat = parseFloat(item.latitude || item.lat || item.loc_lat || item.loc_y || item.y || 0);
+            const lng = parseFloat(item.longitude || item.lng || item.lon || item.loc_lng || item.loc_x || item.x || 0);
             const speed = parseFloat(item.speed || item.vel || 0);
 
             return {
-                id: String(item.id || item.vehicle_id || item.vehicleId),
+                id: String(item.id || item.vehicle_id || item.vehicleId || index),
                 registration: item.registration || item.plate || item.label || 'N/A',
                 name: item.name || item.registration || 'Viatura',
                 latitude: lat,
@@ -115,26 +108,39 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 speed: speed,
                 heading: parseFloat(item.heading || item.direction || item.bearing || 0),
                 updatedAt: item.updated_at || item.last_update || item.timestamp || new Date().toISOString(),
-                status: (speed > 0) ? 'moving' : (item.ignition ? 'idle' : 'stopped'),
+                status: (speed > 0 ? 'moving' : (item.ignition ? 'idle' : 'stopped')) as 'moving' | 'stopped' | 'idle',
                 ignition: !!(item.ignition || item.ign)
             };
         })
-        .filter(v => v.latitude !== 0 && v.longitude !== 0); // Remove vehicles with invalid coords
+        .filter(v => v.latitude !== 0 && v.longitude !== 0);
 };
 
-// Helper: Map raw API data to our interface
 const mapCartrackDataToGeofences = (data: any): CartrackGeofence[] => {
-    // Handle { data: [...] } or { rows: [...] } wrappers
     const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
-
     if (!Array.isArray(items)) return [];
 
-    return items.map((item: any, index: number) => ({
-        id: item.id ? String(item.id) : `geo-${index}`,
-        name: item.name || item.description || 'Sem nome',
-        type: (item.shape && item.shape.toLowerCase().includes('poly')) ? 'POLYGON' : 'CIRCLE',
-        coordinates: item.points || (item.latitude && item.longitude ? [{ lat: parseFloat(item.latitude), lng: parseFloat(item.longitude) }] : []),
-        radius: item.radius ? parseFloat(item.radius) : 100,
-        color: item.color || '#3b82f6' // Default blue
-    }));
+    return items.map((item: any, index: number) => {
+        let points: { lat: number, lng: number }[] = [];
+
+        if (Array.isArray(item.points)) {
+            points = item.points.map((p: any) => {
+                if (Array.isArray(p)) return { lat: parseFloat(p[0]), lng: parseFloat(p[1]) };
+                return {
+                    lat: parseFloat(p.lat || p.latitude || p.y || 0),
+                    lng: parseFloat(p.lng || p.lon || p.longitude || p.x || 0)
+                };
+            });
+        } else if (item.latitude && (item.longitude || item.lon)) {
+            points = [{ lat: parseFloat(item.latitude), lng: parseFloat(item.longitude || item.lon) }];
+        }
+
+        return {
+            id: String(item.id || index),
+            name: item.name || item.description || 'Sem nome',
+            type: (item.shape && item.shape.toLowerCase().includes('poly')) ? 'POLYGON' : 'CIRCLE',
+            coordinates: points,
+            radius: item.radius ? parseFloat(item.radius) : 100,
+            color: item.color || (index % 2 === 0 ? '#3b82f6' : '#8b5cf6')
+        };
+    });
 };
