@@ -18,8 +18,7 @@ export default function UserProfileMenu() {
     };
 
     const getDisplayName = () => {
-        if (userRole === 'admin') return 'Miguel Madeira';
-        return currentUser?.nome || 'Utilizador';
+        return currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Utilizador');
     };
 
     const getStatusColor = (status: string) => {
