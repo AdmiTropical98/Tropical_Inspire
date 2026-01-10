@@ -1,0 +1,16 @@
+name: 🕵️ Investigate FTP
+on:
+  push:
+    paths:
+      - '.github/workflows/investigate.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔎 Install LFTP
+        run: sudo apt-get install lftp
+
+      - name: 🕵️ List All Files (Debug)
+        run: |
+          lftp -c "open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; ls -R"
