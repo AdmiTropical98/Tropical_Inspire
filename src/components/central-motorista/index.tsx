@@ -4,36 +4,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import {
     LayoutTemplate, Clock, FileText, Share2, AlertTriangle,
-    Send, Upload, Download, Car, Gauge, Shield, Sun, Navigation, Calendar,
+    Send, Car, Sun, Navigation, Calendar,
     Check, Fuel, Settings2
 } from 'lucide-react';
 import MyScheduleView from './MyScheduleView';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import DraggableZone from '../common/DraggableZone';
+import { useLayout } from '../../contexts/LayoutContext';
 
 
-// Sortable Wrapper Component
-function SortableItem(props: any) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-    } = useSortable({ id: props.id });
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={props.className}>
-            {props.children}
-        </div>
-    );
-}
 
 export default function CentralMotorista() {
     const { t } = useTranslation();
@@ -55,48 +34,16 @@ export default function CentralMotorista() {
 
     const [weather, setWeather] = useState<{ temp: number; desc: string } | null>(null);
 
-    // Edit Mode (Layout)
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [dashboardItems, setDashboardItems] = useState([
-        { id: 'shift', title: 'Start Shift' },
-        { id: 'next-service', title: 'Next Service' },
-        { id: 'vehicle', title: 'Vehicle' },
-        { id: 'weather', title: 'Weather' }
-    ]);
+    // Layout Context
+    const { isEditMode, toggleEditMode } = useLayout();
 
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
+    // ... items definitions for Dashboard ...
 
-    const handleDragEnd = (event: any) => {
-        const { active, over } = event;
-        if (active.id !== over.id) {
-            setDashboardItems((items) => {
-                const oldIndex = items.findIndex(i => i.id === active.id);
-                const newIndex = items.findIndex(i => i.id === over.id);
-                return arrayMove(items, oldIndex, newIndex);
-            });
-        }
-    };
 
-    // Load layout preference
-    useEffect(() => {
-        const storedLayout = localStorage.getItem('mobile_layout_preference');
-        if (storedLayout) {
-            try {
-                const saved = JSON.parse(storedLayout);
-                // Ensure all keys exist
-                const merged = saved.length === 4 ? saved : dashboardItems;
-                setDashboardItems(merged);
-            } catch (e) { console.error("Layout load error", e) }
-        }
-    }, []);
+    // ...
 
-    const saveLayout = () => {
-        localStorage.setItem('mobile_layout_preference', JSON.stringify(dashboardItems));
-        setIsEditMode(false);
-    };
+
+
 
 
     // Shift Edit State
@@ -259,6 +206,143 @@ export default function CentralMotorista() {
         setReportForm({ ...reportForm, description: '' });
     };
 
+    // Dashboard Widgets
+    const dashboardWidgets = [
+        {
+            id: 'next-service', content: (
+                <div className={`bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 h-full flex flex-col`}>
+                    <div className="flex items-center gap-2 text-slate-400 mb-2">
+                        <Navigation className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase">Próximo Serviço</span>
+                    </div>
+                    {nextService ? (
+                        <>
+                            <p className="text-white font-bold text-lg">{nextService.hora}</p>
+                            <p className="text-xs text-slate-500 truncate">{nextService.origem} &rarr; {nextService.destino}</p>
+                        </>
+                    ) : (
+                        <p className="text-slate-500 text-sm italic mt-auto">Sem serviços</p>
+                    )}
+                </div>
+            )
+        },
+        {
+            id: 'vehicle', content: (
+                <div className={`bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 h-full flex flex-col`}>
+                    <div className="flex items-center gap-2 text-slate-400 mb-2">
+                        <Car className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase">Viatura</span>
+                    </div>
+                    {myVehicle ? (
+                        <>
+                            <p className="text-white font-bold text-lg">{myVehicle.matricula}</p>
+                            <p className="text-xs text-slate-500 truncate">{myVehicle.modelo}</p>
+                        </>
+                    ) : (
+                        <p className="text-slate-500 text-sm italic mt-auto">N/A</p>
+                    )}
+                </div>
+            )
+        },
+        {
+            id: 'weather', content: (
+                <div className={`bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 h-full flex flex-col`}>
+                    <div className="flex items-center gap-2 text-slate-400 mb-2">
+                        <Sun className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase">Meteorologia</span>
+                    </div>
+                    {weather ? (
+                        <>
+                            <p className="text-white font-bold text-lg">{weather.temp}°C</p>
+                            <p className="text-xs text-slate-500 capitalize">{weather.desc}</p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-white font-bold text-lg">--°C</p>
+                            <p className="text-xs text-slate-500 mt-auto">A carregar...</p>
+                        </>
+                    )}
+                </div>
+            )
+        },
+        {
+            id: 'shift', content: (
+                <div className={`bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 relative group h-full flex flex-col`}>
+                    <div className="flex items-center gap-2 text-slate-400 mb-2">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase">Turno</span>
+                    </div>
+                    {/* Note: In Edit Mode DraggableZone disables interaction, so we can only edit shift when NOT in edit mode */}
+                    {!isEditMode && (
+                        <button
+                            onClick={() => setEditingShift(true)}
+                            className="absolute top-2 right-2 p-1.5 bg-slate-800 rounded-lg text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+                            style={{ zIndex: 50 }}
+                        >
+                            <Settings2 className="w-3 h-3" />
+                        </button>
+                    )}
+
+                    {editingShift ? (
+                        <div className="flex flex-col gap-2 mt-auto relative z-50">
+                            <div className="flex items-center gap-1">
+                                <input
+                                    type="time"
+                                    value={tempShift.start}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={e => setTempShift({ ...tempShift, start: e.target.value })}
+                                    className="bg-slate-800 text-white text-xs rounded p-1 w-full outline-none border border-slate-700 focus:border-blue-500"
+                                />
+                                <span className="text-slate-500">-</span>
+                                <input
+                                    type="time"
+                                    value={tempShift.end}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={e => setTempShift({ ...tempShift, end: e.target.value })}
+                                    className="bg-slate-800 text-white text-xs rounded p-1 w-full outline-none border border-slate-700 focus:border-blue-500"
+                                />
+                            </div>
+                            <div className="flex gap-1 justify-end">
+                                <button onClick={() => setEditingShift(false)} className="px-2 py-1 bg-slate-700 rounded text-[10px] text-white">Cancelar</button>
+                                <button onClick={saveShift} className="px-2 py-1 bg-blue-600 rounded text-[10px] text-white">Gravar</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-white font-bold text-lg">{tempShift.start} - {tempShift.end}</p>
+                            <p className="text-xs text-slate-500 mt-auto">Horário Regular</p>
+                        </>
+                    )}
+                </div>
+            )
+        }
+    ];
+
+    // Navigation Tabs
+    const navTabs = [
+        { id: 'overview', icon: LayoutTemplate, label: 'Visão Geral', color: 'blue' },
+        { id: 'escala', icon: Calendar, label: 'Minha Escala', color: 'blue' },
+        { id: 'viatura', icon: Car, label: 'Minha Viatura', color: 'indigo' },
+        { id: 'pedidos', icon: Share2, label: t('central.tab.requests'), color: 'purple' },
+        { id: 'abastecimentos', icon: Fuel, label: 'Abastecimentos', color: 'orange' },
+        { id: 'recibos', icon: FileText, label: t('central.tab.payslips'), color: 'emerald' },
+        { id: 'reportar', icon: AlertTriangle, label: t('central.tab.report'), color: 'red' }
+    ].map(tab => ({
+        id: tab.id,
+        content: (
+            <button
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
+                ${activeTab === tab.id
+                        ? `bg-${tab.color}-600 text-white shadow-lg shadow-${tab.color}-900/20 ring-2 ring-${tab.color}-500/30`
+                        : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
+            >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+            </button>
+        )
+    }));
+
     return (
         <div className="h-full overflow-y-auto custom-scrollbar max-w-7xl mx-auto p-4 md:p-8 font-sans pb-24">
             {/* Header with improved styling */}
@@ -284,30 +368,13 @@ export default function CentralMotorista() {
                 </div>
             </div>
 
-            {/* Navigation Tabs - Modern Pill Design */}
-            <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-                {[
-                    { id: 'overview', icon: LayoutTemplate, label: 'Visão Geral', color: 'blue' },
-                    { id: 'escala', icon: Calendar, label: 'Minha Escala', color: 'blue' },
-                    { id: 'viatura', icon: Car, label: 'Minha Viatura', color: 'indigo' },
-                    { id: 'pedidos', icon: Share2, label: t('central.tab.requests'), color: 'purple' },
-                    { id: 'abastecimentos', icon: Fuel, label: 'Abastecimentos', color: 'orange' },
-                    { id: 'recibos', icon: FileText, label: t('central.tab.payslips'), color: 'emerald' },
-                    { id: 'reportar', icon: AlertTriangle, label: t('central.tab.report'), color: 'red' }
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
-                        ${activeTab === tab.id
-                                ? `bg-${tab.color}-600 text-white shadow-lg shadow-${tab.color}-900/20 ring-2 ring-${tab.color}-500/30`
-                                : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-                    >
-                        <tab.icon className="w-4 h-4" />
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
+            {/* Navigation Tabs - Modern Pill Design - Customizable */}
+            <DraggableZone
+                zoneId="central_tabs"
+                items={navTabs}
+                className="mb-8 overflow-x-auto pb-2 scrollbar-hide"
+                layout="flex"
+            />
 
             {/* Content Area */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
@@ -345,146 +412,20 @@ export default function CentralMotorista() {
                                         </div>
                                     </div>
 
-                                    {/* Mobile Edit Button */}
-                                    <div className="flex md:hidden justify-end mb-4">
-                                        {isEditMode ? (
-                                            <button onClick={saveLayout} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold animate-pulse">
-                                                Gravar Layout
-                                            </button>
-                                        ) : (
-                                            <button onClick={() => setIsEditMode(true)} className="bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs border border-slate-700">
-                                                Editar Layout
-                                            </button>
-                                        )}
+                                    {/* Mobile Edit Button - Now toggles Global context */}
+                                    <div className="flex justify-end mb-4">
+                                        <button
+                                            onClick={toggleEditMode}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isEditMode ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
+                                        >
+                                            {isEditMode ? 'Terminar Edição' : 'Personalizar Layout'}
+                                        </button>
                                     </div>
 
-                                    <DndContext
-                                        sensors={sensors}
-                                        collisionDetection={closestCenter}
-                                        onDragEnd={handleDragEnd}
-                                    >
-                                        <SortableContext
-                                            items={dashboardItems}
-                                            strategy={rectSortingStrategy}
-                                        >
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                {dashboardItems.map(item => {
-                                                    // Widget Rendering Logic
-                                                    let content = null;
-
-                                                    if (item.id === 'next-service') {
-                                                        content = (
-                                                            <div className={`bg-slate-900/50 p-4 rounded-2xl border ${isEditMode ? 'border-blue-500 border-dashed animate-pulse' : 'border-slate-700/50'} h-full flex flex-col`}>
-                                                                <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                                                    <Navigation className="w-4 h-4" />
-                                                                    <span className="text-xs font-bold uppercase">Próximo Serviço</span>
-                                                                </div>
-                                                                {nextService ? (
-                                                                    <>
-                                                                        <p className="text-white font-bold text-lg">{nextService.hora}</p>
-                                                                        <p className="text-xs text-slate-500 truncate">{nextService.origem} &rarr; {nextService.destino}</p>
-                                                                    </>
-                                                                ) : (
-                                                                    <p className="text-slate-500 text-sm italic mt-auto">Sem serviços</p>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    } else if (item.id === 'vehicle') {
-                                                        content = (
-                                                            <div className={`bg-slate-900/50 p-4 rounded-2xl border ${isEditMode ? 'border-blue-500 border-dashed animate-pulse' : 'border-slate-700/50'} h-full flex flex-col`}>
-                                                                <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                                                    <Car className="w-4 h-4" />
-                                                                    <span className="text-xs font-bold uppercase">Viatura</span>
-                                                                </div>
-                                                                {myVehicle ? (
-                                                                    <>
-                                                                        <p className="text-white font-bold text-lg">{myVehicle.matricula}</p>
-                                                                        <p className="text-xs text-slate-500 truncate">{myVehicle.modelo}</p>
-                                                                    </>
-                                                                ) : (
-                                                                    <p className="text-slate-500 text-sm italic mt-auto">N/A</p>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    } else if (item.id === 'weather') {
-                                                        content = (
-                                                            <div className={`bg-slate-900/50 p-4 rounded-2xl border ${isEditMode ? 'border-blue-500 border-dashed animate-pulse' : 'border-slate-700/50'} h-full flex flex-col`}>
-                                                                <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                                                    <Sun className="w-4 h-4" />
-                                                                    <span className="text-xs font-bold uppercase">Meteorologia</span>
-                                                                </div>
-                                                                {weather ? (
-                                                                    <>
-                                                                        <p className="text-white font-bold text-lg">{weather.temp}°C</p>
-                                                                        <p className="text-xs text-slate-500 capitalize">{weather.desc}</p>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <p className="text-white font-bold text-lg">--°C</p>
-                                                                        <p className="text-xs text-slate-500 mt-auto">A carregar...</p>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    } else if (item.id === 'shift') {
-                                                        content = (
-                                                            <div className={`bg-slate-900/50 p-4 rounded-2xl border ${isEditMode ? 'border-blue-500 border-dashed animate-pulse' : 'border-slate-700/50'} relative group h-full flex flex-col`}>
-                                                                {!isEditMode && (
-                                                                    <button
-                                                                        onClick={() => setEditingShift(true)}
-                                                                        className="absolute top-2 right-2 p-1.5 bg-slate-800 rounded-lg text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
-                                                                    >
-                                                                        <Settings2 className="w-3 h-3" />
-                                                                    </button>
-                                                                )}
-                                                                <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                                                    <Clock className="w-4 h-4" />
-                                                                    <span className="text-xs font-bold uppercase">Turno</span>
-                                                                </div>
-
-                                                                {editingShift ? (
-                                                                    <div className="flex flex-col gap-2 mt-auto">
-                                                                        <div className="flex items-center gap-1">
-                                                                            <input
-                                                                                type="time"
-                                                                                value={tempShift.start}
-                                                                                onChange={e => setTempShift({ ...tempShift, start: e.target.value })}
-                                                                                className="bg-slate-800 text-white text-xs rounded p-1 w-full outline-none border border-slate-700 focus:border-blue-500"
-                                                                            />
-                                                                            <span className="text-slate-500">-</span>
-                                                                            <input
-                                                                                type="time"
-                                                                                value={tempShift.end}
-                                                                                onChange={e => setTempShift({ ...tempShift, end: e.target.value })}
-                                                                                className="bg-slate-800 text-white text-xs rounded p-1 w-full outline-none border border-slate-700 focus:border-blue-500"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="flex gap-1 justify-end">
-                                                                            <button onClick={() => setEditingShift(false)} className="px-2 py-1 bg-slate-700 rounded text-[10px] text-white">Cancelar</button>
-                                                                            <button onClick={saveLayout} className="px-2 py-1 bg-blue-600 rounded text-[10px] text-white">Gravar</button>
-                                                                        </div>
-                                                                    </div>
-                                                                ) : (
-                                                                    <>
-                                                                        <p className="text-white font-bold text-lg">{tempShift.start} - {tempShift.end}</p>
-                                                                        <p className="text-xs text-slate-500 mt-auto">Horário Regular</p>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    }
-
-                                                    // Use Sortable Item Only if Edit Mode is Active? Or always allow but disable drag effectively?
-                                                    // DnD Kit allows conditional drag. But let's wrap always for simplicity in DOM structure
-                                                    if (isEditMode) {
-                                                        return <SortableItem key={item.id} id={item.id} className="touch-none">{content}</SortableItem>;
-                                                    } else {
-                                                        return <div key={item.id}>{content}</div>;
-                                                    }
-                                                })}
-                                            </div>
-                                        </SortableContext>
-                                    </DndContext>
+                                    <DraggableZone
+                                        zoneId="central_driver_overview"
+                                        items={dashboardWidgets}
+                                    />
 
                                 </div>
                             </div>

@@ -38,6 +38,7 @@ import AvaliacaoMotorista from './components/avaliacao'; // Import AvaliacaoMoto
 import Geofences from './components/geofences'; // Import Geofences component
 import UsersPage from './components/users'; // Import UsersPage
 import Permissoes from './components/permissoes';
+import { LayoutProvider } from './contexts/LayoutContext';
 
 function App() {
   const { isAuthenticated, userRole } = useAuth();
@@ -115,8 +116,10 @@ function App() {
   if (!isAuthenticated) return <Login />;
 
   return (
-    <ChatProvider>
+    <LayoutProvider>
+      <ChatProvider>
       <div className="flex bg-black h-[100dvh] text-slate-200 font-sans overflow-hidden">
+
         {/* Force deploy correction */}
 
         {/* SIDEBAR */}
@@ -506,6 +509,7 @@ function App() {
         }
       </div >
     </ChatProvider >
+    </LayoutProvider>
   );
 }
 

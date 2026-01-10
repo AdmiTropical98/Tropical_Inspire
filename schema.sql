@@ -292,3 +292,13 @@ CREATE TABLE IF NOT EXISTS public.eva_transport_days (
 ALTER TABLE public.eva_transport_days ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public Access" ON public.eva_transport_days FOR ALL USING (true) WITH CHECK (true);
 ALTER PUBLICATION supabase_realtime ADD TABLE public.eva_transport_days;
+
+-- 20. User Layouts
+CREATE TABLE IF NOT EXISTS public.user_layouts (
+    user_id UUID PRIMARY KEY,
+    layout_data JSONB,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+ALTER TABLE public.user_layouts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public Access" ON public.user_layouts FOR ALL USING (true) WITH CHECK (true);
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_layouts;
