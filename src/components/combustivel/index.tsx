@@ -110,7 +110,9 @@ export default function Combustivel() {
             if (userRole === 'admin') {
                 // Fetch the actual logged-in user's email from the session
                 const { data: { user } } = await supabase.auth.getUser();
-                const adminEmail = user?.email || currentUser?.email || 'admin@admin.com';
+                const adminEmail = user?.email || (currentUser as any)?.email || 'admin@admin.com';
+
+                console.log("Verifying password for:", adminEmail);
 
                 // Verify Admin Password via Supabase Auth
                 const { data, error } = await supabase.auth.signInWithPassword({
@@ -120,7 +122,10 @@ export default function Combustivel() {
 
                 if (error || !data.user) {
                     console.error("Auth Error:", error);
-                    setAuthModal(prev => ({ ...prev, error: 'Password incorreta.' }));
+                    const errorMsg = error?.message === 'Invalid login credentials'
+                        ? 'Password incorreta.'
+                        : 'Erro de autenticação. Tente novamente.';
+                    setAuthModal(prev => ({ ...prev, error: errorMsg }));
                     return;
                 }
             } else if (userRole === 'oficina') {

@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useWorkshop } from './WorkshopContext';
-import type { Motorista, Supervisor, OficinaUser } from '../types';
+import type { Motorista, Supervisor, OficinaUser, AdminUser } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
     isAuthenticated: boolean;
     userRole: 'admin' | 'motorista' | 'supervisor' | 'oficina' | null;
-    currentUser: Motorista | Supervisor | OficinaUser | null;
+    currentUser: Motorista | Supervisor | OficinaUser | AdminUser | null;
     userStatus: 'online' | 'absent' | 'offline';
     language: 'pt' | 'en';
     login: (type: 'admin' | 'motorista' | 'supervisor' | 'oficina', identifier: string, credential: string) => Promise<boolean>;
@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { motoristas, supervisors, oficinaUsers } = useWorkshop();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userRole, setUserRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | null>(null);
-    const [currentUser, setCurrentUser] = useState<Motorista | Supervisor | OficinaUser | null>(null);
+    const [currentUser, setCurrentUser] = useState<Motorista | Supervisor | OficinaUser | AdminUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // New State for UI Preferences
@@ -32,42 +32,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [userPhoto, setUserPhoto] = useState<string | undefined>(undefined);
 
     useEffect(() => {
-        const storedAuth = localStorage.getItem('isAuthenticated');
-        const storedRole = localStorage.getItem('userRole');
-        const storedUser = localStorage.getItem('currentUser');
-        const storedStatus = localStorage.getItem('userStatus');
-        const storedLang = localStorage.getItem('appLanguage');
+        const initAuth = async () => {
+            const storedAuth = localStorage.getItem('isAuthenticated');
+            const storedRole = localStorage.getItem('userRole');
+            const storedUser = localStorage.getItem('currentUser');
+            const storedStatus = localStorage.getItem('userStatus');
+            const storedLang = localStorage.getItem('appLanguage');
 
-        if (storedAuth === 'true') {
-            if (storedRole) {
-                setIsAuthenticated(true);
-                setUserRole(storedRole as any);
-                if (storedRole === 'admin') {
-                    const adminPhoto = localStorage.getItem('adminPhoto');
-                    if (adminPhoto) setUserPhoto(adminPhoto);
+            if (storedAuth === 'true') {
+                if (storedRole) {
+                    setIsAuthenticated(true);
+                    setUserRole(storedRole as any);
+
+                    let currentUserLoaded = false;
+
+                    if (storedUser) {
+                        try {
+                            const parsedUser = JSON.parse(storedUser);
+                            setCurrentUser(parsedUser);
+                            if (parsedUser.foto) setUserPhoto(parsedUser.foto);
+                            currentUserLoaded = true;
+                        } catch (e) {
+                            console.error("Error parsing stored user", e);
+                        }
+                    }
+
+                    if (storedRole === 'admin') {
+                        const adminPhoto = localStorage.getItem('adminPhoto');
+                        if (adminPhoto) setUserPhoto(adminPhoto);
+
+                        // Attempts to recover AdminUser from Supabase if not in localStorage to fix "Dual Auth" issues
+                        if (!currentUserLoaded) {
+                            const { data } = await supabase.auth.getUser();
+                            if (data.user) {
+                                const adminUser: AdminUser = {
+                                    id: data.user.id,
+                                    email: data.user.email || '',
+                                    role: 'admin',
+                                    nome: 'Administrador',
+                                    createdAt: new Date().toISOString()
+                                };
+                                setCurrentUser(adminUser);
+                                localStorage.setItem('currentUser', JSON.stringify(adminUser));
+                            }
+                        }
+                    }
+                } else {
+                    // Invalid state cleanup
+                    localStorage.removeItem('isAuthenticated');
+                    localStorage.removeItem('userRole');
+                    localStorage.removeItem('currentUser');
+                    setIsAuthenticated(false);
+                    setUserRole(null);
+                    setCurrentUser(null);
+                    setUserPhoto(undefined);
                 }
-                if (storedUser) {
-                    const parsedUser = JSON.parse(storedUser);
-                    setCurrentUser(parsedUser);
-                    if (parsedUser.foto) setUserPhoto(parsedUser.foto);
-                }
-            } else {
-                // Invalid state cleanup
-                localStorage.removeItem('isAuthenticated');
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('currentUser');
-                // localStorage.removeItem('adminPhoto'); // Keep admin photo?
-                setIsAuthenticated(false);
-                setUserRole(null);
-                setCurrentUser(null);
-                setUserPhoto(undefined);
             }
-        }
 
-        if (storedStatus) setUserStatus(storedStatus as any);
-        if (storedLang) setLanguage(storedLang as any);
+            if (storedStatus) setUserStatus(storedStatus as any);
+            if (storedLang) setLanguage(storedLang as any);
 
-        setIsLoading(false);
+            setIsLoading(false);
+        };
+
+        initAuth();
     }, []);
 
     const updateStatus = (status: 'online' | 'absent' | 'offline') => {
@@ -101,11 +129,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
 
             if (!error && data.user) {
+                // Construct Admin User Object
+                const adminUser: AdminUser = {
+                    id: data.user.id,
+                    email: identifier,
+                    role: 'admin',
+                    nome: 'Administrador',
+                    createdAt: new Date().toISOString()
+                };
+
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', 'admin');
+                localStorage.setItem('currentUser', JSON.stringify(adminUser)); // Save Admin User!
+
                 setIsAuthenticated(true);
                 setUserRole('admin');
-                setCurrentUser(null);
+                setCurrentUser(adminUser);
+
                 const adminPhoto = localStorage.getItem('adminPhoto');
                 if (adminPhoto) setUserPhoto(adminPhoto);
                 return true;
