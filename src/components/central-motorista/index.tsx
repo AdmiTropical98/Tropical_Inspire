@@ -617,7 +617,7 @@ export default function CentralMotorista() {
                         <h3 className="text-xl font-bold text-white mb-1">{currentUser?.nome}</h3>
                         <p className="text-slate-400 text-sm mb-4">Motorista Profissional</p>
 
-                        <div className="w-full grid grid-cols-2 gap-2 text-center text-sm">
+                        <div className="w-full grid grid-cols-1 gap-2 text-center text-sm">
                             {/* ID Removed as requested */}
                             <div className="bg-slate-900/50 p-2 rounded-lg">
                                 <span className="block text-slate-500 text-xs uppercase">Carta</span>
