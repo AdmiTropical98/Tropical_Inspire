@@ -5,7 +5,7 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
-    DragEndEvent
+    type DragEndEvent
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -16,6 +16,10 @@ import {
 import { SortableWidget } from './SortableWidget';
 import { supabase } from '../../lib/supabase';
 import { useState, useEffect } from 'react'; // Ensure useState/useEffect are imported
+import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../contexts/PermissionsContext';
+import { useWorkshop } from '../../contexts/WorkshopContext';
+import AdminManagement from './AdminManagement';
 
 import {
     User, AlertTriangle, TrendingUp,
@@ -222,7 +226,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                                 Ver Escalas <ChevronRight className="w-4 h-4 ml-1" />
                             </button>
                         </div>
-                         {/* Fleet Breakdown */}
+                        {/* Fleet Breakdown */}
                         {hasAccess(userRole, 'viaturas') && (
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                                 <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
@@ -256,7 +260,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                                     </div>
                                 </div>
                             </div>
-                         )}
+                        )}
                         {/* Recent Services List Stub */}
                         <div className="space-y-3">
                             {activeServices === 0 ? (
@@ -283,13 +287,13 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                             )}
                         </div>
                     </div>
-                 );
+                );
 
             case 'quick_access':
                 return (
                     <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 h-full">
                         <h2 className="text-lg font-bold text-white mb-4">Acesso Rápido</h2>
-                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             {hasAccess(userRole, 'requisicoes') && (
                                 <ActionButton icon={Clock} label="Nova Requisição" color="blue" onClick={() => setActiveTab('requisicoes')} />
                             )}
@@ -304,7 +308,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                             )}
                         </div>
                     </div>
-                 );
+                );
 
             case 'activity_feed':
                 return (
@@ -314,7 +318,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                             <Bell className="w-4 h-4 text-slate-400" />
                         </div>
 
-                         <div className="space-y-1">
+                        <div className="space-y-1">
                             {notifications.length === 0 ? (
                                 <p className="text-slate-500 text-sm text-center py-10">Sem atividade recente.</p>
                             ) : (
@@ -330,14 +334,14 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                             )}
                         </div>
 
-                         {userRole === 'admin' && pendingRegistrations > 0 && (
-                                <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                                    <h3 className="text-amber-400 font-bold mb-1">Aprovação Necessária</h3>
-                                    <p className="text-slate-400 text-xs mb-3">Existem {pendingRegistrations} novos registos pendentes.</p>
-                                    <button onClick={() => setActiveTab('equipa-oficina')} className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
-                                        Rever Pedidos
-                                    </button>
-                                </div>
+                        {userRole === 'admin' && pendingRegistrations > 0 && (
+                            <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                                <h3 className="text-amber-400 font-bold mb-1">Aprovação Necessária</h3>
+                                <p className="text-slate-400 text-xs mb-3">Existem {pendingRegistrations} novos registos pendentes.</p>
+                                <button onClick={() => setActiveTab('equipa-oficina')} className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
+                                    Rever Pedidos
+                                </button>
+                            </div>
                         )}
                     </div>
                 );
