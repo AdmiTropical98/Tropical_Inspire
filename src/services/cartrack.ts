@@ -26,72 +26,90 @@ export interface CartrackVehicle {
     ignition: boolean;
 }
 
+/**
+ * Utility to parse WKT POLYGON((lng lat, lng lat, ...))
+ * Cartrack typically uses (longitude latitude) order in WKT
+ */
+const parseWKT = (wkt: string): { lat: number, lng: number }[] => {
+    if (!wkt) return [];
+    try {
+        const coordsMatch = wkt.match(/\(\((.*)\)\)/);
+        if (!coordsMatch) return [];
+
+        return coordsMatch[1].split(',').map(pair => {
+            const [lng, lat] = pair.trim().split(/\s+/).map(Number);
+            return { lat, lng };
+        }).filter(p => !isNaN(p.lat) && !isNaN(p.lng));
+    } catch (e) {
+        console.warn('Failed to parse WKT:', wkt, e);
+        return [];
+    }
+};
+
 export const CartrackService = {
     /**
-     * Fetch all geofences/POIs from Cartrack
+     * Fetch all geofences and POIs from Cartrack
      */
     getGeofences: async (): Promise<CartrackGeofence[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
 
-            // Try different endpoints for Geofences/POIs
-            const endpoints = ['/geofences', '/pois', '/circles', '/polygons'];
-            let data = null;
-            let lastError = null;
+            // Fetch Geofences and POIs in parallel
+            const [geoRes, poiRes] = await Promise.all([
+                fetch(`${BASE_URL}/geofences`, { headers: { 'Authorization': `Basic ${auth}` } }),
+                fetch(`${BASE_URL}/pois`, { headers: { 'Authorization': `Basic ${auth}` } })
+            ]);
 
-            for (const ep of endpoints) {
-                try {
-                    const response = await fetch(`${BASE_URL}${ep}`, {
-                        method: 'GET',
-                        headers: { 'Authorization': `Basic ${auth}` },
-                    });
-                    if (response.ok) {
-                        data = await response.json();
-                        const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
-                        if (items.length > 0) break;
-                    }
-                } catch (e) {
-                    lastError = e;
-                }
+            let allGeofences: CartrackGeofence[] = [];
+
+            if (geoRes.ok) {
+                const geoData = await geoRes.json();
+                allGeofences = [...allGeofences, ...mapCartrackDataToGeofences(geoData, 'POLYGON')];
             }
 
-            if (!data) throw new Error(lastError || 'Falha ao buscar geofences');
-            return mapCartrackDataToGeofences(data);
+            if (poiRes.ok) {
+                const poiData = await poiRes.json();
+                allGeofences = [...allGeofences, ...mapCartrackDataToGeofences(poiData, 'CIRCLE')];
+            }
+
+            return allGeofences;
         } catch (error) {
-            console.error('Failed to fetch geofences:', error);
+            console.error('Failed to fetch geofences/pois:', error);
             throw error;
         }
     },
 
     /**
-     * Fetch real-time vehicle positions
+     * Fetch real-time vehicle positions using the official /vehicles/status endpoint
      */
     getVehicles: async (): Promise<CartrackVehicle[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
 
-            // Try stats first (often contains bulk latest positions)
-            const endpoints = ['/stats', '/vehicles', '/positions', '/last_positions'];
-            let data = null;
-            let lastError = null;
+            // Primary endpoint for real-time data
+            let response = await fetch(`${BASE_URL}/vehicles/status`, {
+                method: 'GET',
+                headers: { 'Authorization': `Basic ${auth}` },
+            });
 
-            for (const ep of endpoints) {
-                try {
-                    const response = await fetch(`${BASE_URL}${ep}`, {
-                        method: 'GET',
-                        headers: { 'Authorization': `Basic ${auth}` },
-                    });
-                    if (response.ok) {
-                        data = await response.json();
-                        const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
-                        if (items.length > 0) break;
-                    }
-                } catch (e) {
-                    lastError = e;
-                }
+            // Fallback for legacy or different accounts
+            if (!response.ok) {
+                response = await fetch(`${BASE_URL}/stats`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Basic ${auth}` },
+                });
             }
 
-            if (!data) throw new Error(lastError || 'Falha ao buscar veículos');
+            if (!response.ok) {
+                response = await fetch(`${BASE_URL}/vehicles`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Basic ${auth}` },
+                });
+            }
+
+            if (!response.ok) throw new Error(`Cartrack Vehicles Error: ${response.status}`);
+
+            const data = await response.json();
             return mapCartrackDataToVehicles(data);
         } catch (error) {
             console.error('Failed to fetch vehicles:', error);
@@ -101,7 +119,7 @@ export const CartrackService = {
 };
 
 const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
-    // Logging for debug in browser console
+    // Logging for debug
     console.log('CARTRACK_RAW_VEHICLES:', data);
 
     const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
@@ -109,25 +127,19 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
 
     return items
         .map((item: any, index: number) => {
-            // Check main object and nested position objects
-            const pos = item.last_position || item.position || item.gps || item;
-
-            const latValue = pos.latitude || pos.lat || pos.loc_lat || pos.loc_y || pos.y || item.latitude || item.lat;
-            const lngValue = pos.longitude || pos.lng || pos.lon || pos.loc_lng || pos.loc_x || pos.x || item.longitude || item.lng || item.lon;
-
-            const lat = parseFloat(latValue || 0);
-            const lng = parseFloat(lngValue || 0);
-            const speed = parseFloat(item.speed || item.vel || pos.speed || 0);
+            const latValue = item.latitude || item.lat || item.loc_lat || item.y || 0;
+            const lngValue = item.longitude || item.lng || item.lon || item.loc_lng || item.x || 0;
+            const speed = parseFloat(item.speed || item.vel || 0);
 
             return {
-                id: String(item.id || item.vehicle_id || item.vehicleId || item.imei || index),
+                id: String(item.id || item.vehicle_id || item.vehicleId || index),
                 registration: item.registration || item.plate || item.label || 'N/A',
                 name: item.name || item.registration || item.label || 'Viatura',
-                latitude: lat,
-                longitude: lng,
+                latitude: parseFloat(latValue),
+                longitude: parseFloat(lngValue),
                 speed: speed,
-                heading: parseFloat(item.heading || item.direction || item.bearing || 0),
-                updatedAt: item.updated_at || item.last_update || item.timestamp || item.ts || new Date().toISOString(),
+                heading: parseFloat(item.bearing || item.heading || item.direction || 0),
+                updatedAt: item.updated_at || item.last_update || item.timestamp || new Date().toISOString(),
                 status: (speed > 0 ? 'moving' : (item.ignition ? 'idle' : 'stopped')) as 'moving' | 'stopped' | 'idle',
                 ignition: !!(item.ignition || item.ign)
             };
@@ -135,42 +147,43 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
         .filter(v => v.latitude !== 0 && v.longitude !== 0);
 };
 
-const mapCartrackDataToGeofences = (data: any): CartrackGeofence[] => {
-    console.log('CARTRACK_RAW_GEOFENCES:', data);
+const mapCartrackDataToGeofences = (data: any, defaultType: 'POLYGON' | 'CIRCLE'): CartrackGeofence[] => {
+    console.log(`CARTRACK_RAW_${defaultType}S:`, data);
 
     const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
     if (!Array.isArray(items)) return [];
 
     return items.map((item: any, index: number) => {
         let coords: { lat: number, lng: number }[] = [];
+        let type: 'POLYGON' | 'CIRCLE' = defaultType;
+        let radius = item.radius || item.geo_radius;
 
-        // Handle variations of points array
-        const rawPoints = item.points || item.coordinates || item.shape_points || item.geometry?.coordinates;
-
-        if (Array.isArray(rawPoints)) {
-            coords = rawPoints.map((p: any) => {
+        // Handle WKT Polygon
+        if (item.polygon) {
+            coords = parseWKT(item.polygon);
+            type = 'POLYGON';
+        }
+        // Handle POI Point
+        else if (item.latitude && item.longitude) {
+            coords = [{ lat: parseFloat(item.latitude), lng: parseFloat(item.longitude) }];
+            type = 'CIRCLE';
+        }
+        // Handle legacy points array
+        else if (Array.isArray(item.points)) {
+            coords = item.points.map((p: any) => {
                 if (Array.isArray(p)) return { lat: parseFloat(p[0]), lng: parseFloat(p[1]) };
-                return {
-                    lat: parseFloat(p.lat || p.latitude || p.y || 0),
-                    lng: parseFloat(p.lng || p.lon || p.longitude || p.x || 0)
-                };
-            }).filter(p => p.lat !== 0 && p.lng !== 0);
-        } else {
-            // Check for single point
-            const lat = item.latitude || item.lat || item.loc_lat || item.y;
-            const lng = item.longitude || item.lng || item.lon || item.loc_lng || item.x;
-            if (lat && lng) {
-                coords = [{ lat: parseFloat(lat), lng: parseFloat(lng) }];
-            }
+                return { lat: parseFloat(p.lat || p.latitude), lng: parseFloat(p.lng || p.longitude) };
+            });
+            type = 'POLYGON';
         }
 
         return {
-            id: String(item.id || index),
+            id: String(item.geofence_id || item.poi_id || item.id || index),
             name: item.name || item.description || item.label || 'Sem nome',
-            type: (item.shape && item.shape.toLowerCase().includes('poly')) ? 'POLYGON' : 'CIRCLE',
+            type: type,
             coordinates: coords,
-            radius: item.radius ? parseFloat(item.radius) : (item.type === 'POI' ? 100 : 0),
-            color: item.color || (index % 2 === 0 ? '#3b82f6' : '#8b5cf6')
+            radius: radius ? parseFloat(radius) : (type === 'CIRCLE' ? 100 : undefined),
+            color: item.colour || item.color || '#3b82f6'
         };
-    });
+    }).filter(g => g.coordinates.length > 0);
 };
