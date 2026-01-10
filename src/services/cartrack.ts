@@ -1,5 +1,6 @@
-export const CARTRACK_API_KEY = 'd395112ab45cf4a2cfa734a478e699b6964b4281fa47aebc069ce0793cfd1b45';
-export const BASE_URL = 'https://api.cartrack.com'; // Potentially https://api-pt.cartrack.com
+export const CARTRACK_USER = 'ALGA00012';
+export const CARTRACK_PASS = 'd395112ab45cf4a2cfa734a478e699b6964b4281fa47aebc069ce0793cfd1b45';
+export const BASE_URL = 'https://fleetapi-pt.cartrack.com/rest'; // REST API base
 
 // Types for Geofence Data
 export interface CartrackGeofence {
@@ -12,28 +13,7 @@ export interface CartrackGeofence {
 }
 
 // Mock Data for "My Office" and "Drop-off Zone"
-const MOCK_GEOFENCES: CartrackGeofence[] = [
-    {
-        id: '1',
-        name: 'Oficina Central (Mock)',
-        type: 'CIRCLE',
-        coordinates: [{ lat: 38.7223, lng: -9.1393 }],
-        radius: 500,
-        color: 'red'
-    },
-    {
-        id: '2',
-        name: 'Zona Industrial (Mock)',
-        type: 'POLYGON',
-        coordinates: [
-            { lat: 38.7436, lng: -9.1601 },
-            { lat: 38.7450, lng: -9.1550 },
-            { lat: 38.7410, lng: -9.1550 },
-            { lat: 38.7400, lng: -9.1600 }
-        ],
-        color: 'green'
-    }
-];
+const MOCK_GEOFENCES: CartrackGeofence[] = [];
 
 export const CartrackService = {
     /**
@@ -41,13 +21,15 @@ export const CartrackService = {
      */
     getGeofences: async (): Promise<CartrackGeofence[]> => {
         try {
-            // Note: This is a best-guess implementation based on standard REST patterns vs Cartrack docs.
-            // We might need to adjust the endpoint '/geofences' or '/pois' based on specific regional API.
+            // Encode credentials for Basic Auth
+            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+
+            // Try '/geofences' which is common standard, if fails we might need to look up documentation for specific endpoint like '/pois'
             const response = await fetch(`${BASE_URL}/geofences`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Api-Key': CARTRACK_API_KEY,
+                    'Authorization': `Basic ${auth}`
                 },
             });
 
