@@ -1,5 +1,5 @@
 export const CARTRACK_USER = 'ALGA00012';
-export const CARTRACK_PASS = 'Tropical_Inspire98';
+export const CARTRACK_PASS = 'd395112ab45cf4a2cfa734a478e699b6964b4281fa47aebc069ce0793cfd1b45';
 export const BASE_URL = 'https://fleetapi-pt.cartrack.com/rest';
 
 // Types for Geofence Data
@@ -56,10 +56,10 @@ export const CartrackService = {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
 
-            // Fetch Geofences and POIs in parallel
+            // Fetch Geofences and POIs in parallel, requesting 100 items to avoid pagination issues
             const [geoRes, poiRes] = await Promise.all([
-                fetch(`${BASE_URL}/geofences`, { headers: { 'Authorization': `Basic ${auth}` } }),
-                fetch(`${BASE_URL}/pois`, { headers: { 'Authorization': `Basic ${auth}` } })
+                fetch(`${BASE_URL}/geofences?per_page=100`, { headers: { 'Authorization': `Basic ${auth}` } }),
+                fetch(`${BASE_URL}/pois?per_page=100`, { headers: { 'Authorization': `Basic ${auth}` } })
             ]);
 
             let allGeofences: CartrackGeofence[] = [];
@@ -88,15 +88,28 @@ export const CartrackService = {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
 
-            // Primary endpoint for real-time data
-            let response = await fetch(`${BASE_URL}/vehicles/status`, {
-                method: 'GET',
-                headers: { 'Authorization': `Basic ${auth}` },
-            });
+            // Try vehicles/status (modern) then stats (fallback)
+            const endpoints = ['/vehicles/status', '/stats', '/vehicles'];
+            let data = null;
 
-            if (!response.ok) throw new Error(`Cartrack Vehicles Error: ${response.status}`);
+            for (const ep of endpoints) {
+                try {
+                    const response = await fetch(`${BASE_URL}${ep}?per_page=100`, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Basic ${auth}` },
+                    });
+                    if (response.ok) {
+                        data = await response.json();
+                        const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
+                        if (items.length > 0) break;
+                    }
+                } catch (e) {
+                    console.warn(`Endpoint ${ep} failed:`, e);
+                }
+            }
 
-            const data = await response.json();
+            if (!data) throw new Error('Falha ao obter dados das viaturas da Cartrack');
+
             return mapCartrackDataToVehicles(data);
         } catch (error) {
             console.error('Failed to fetch vehicles:', error);
