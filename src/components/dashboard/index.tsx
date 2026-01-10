@@ -15,8 +15,11 @@ import {
 } from '@dnd-kit/sortable';
 import { SortableWidget } from './SortableWidget';
 import { supabase } from '../../lib/supabase';
-import { useState, useEffect } from 'react'; // Ensure useState/useEffect are imported
-
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../contexts/PermissionsContext';
+import { useWorkshop } from '../../contexts/WorkshopContext';
+import AdminManagement from './AdminManagement';
 import {
     User, AlertTriangle, TrendingUp,
     Clock, Bus, Wrench, CheckCircle2, ChevronRight, Fuel,
