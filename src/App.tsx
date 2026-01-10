@@ -122,7 +122,7 @@ function App() {
           <div className="p-6 border-b border-slate-800/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src="/logo-camper.png" alt="Tropical Inspire" className="w-12 h-12 object-contain" />
-              <span className="font-bold text-xl tracking-tight text-white">Gestão<span className="text-blue-500">Frota</span> v1.4 (Geofences)</span>
+              <span className="font-bold text-xl tracking-tight text-white">Gestão<span className="text-blue-500">Frota</span> v1.5 (DEBUG)</span>
             </div>
           </div>
 
@@ -290,7 +290,7 @@ function App() {
           {(activeTab === 'dashboard' || activeTab === 'overview' || activeTab === 'admin_users' || activeTab === 'permissions' || activeTab === 'transportes-eva' || activeTab === 'central-motorista') && ( // Show header for proper tabs
             <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                GestãoFrota
+                GestãoFrota <span className="text-xs text-white/50 block">v1.5 (DEBUG)</span>
               </h1>
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
                 <Menu className="w-6 h-6" />
@@ -302,7 +302,7 @@ function App() {
           {isMobileMenuOpen && (
             <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 animate-in slide-in-from-right duration-300">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-white">Menu</h2>
+                <h2 className="text-2xl font-bold text-white">Menu <span className="text-sm font-normal text-slate-500">v1.5</span></h2>
                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
                   <X className="w-6 h-6" />
                 </button>

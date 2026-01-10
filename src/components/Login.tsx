@@ -323,6 +323,8 @@ export default function Login() {
 
                     <p className="mt-8 text-center text-xs text-slate-600">
                         &copy; 2025 Algartempo Frota. Todos os direitos reservados.
+                        <br />
+                        <span className="opacity-50">v1.5 (DEBUG)</span>
                     </p>
 
                     <div className="mt-4 flex justify-center">
