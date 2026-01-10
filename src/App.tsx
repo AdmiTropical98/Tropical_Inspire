@@ -122,7 +122,7 @@ function App() {
           <div className="p-6 border-b border-slate-800/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src="/logo-camper.png" alt="Tropical Inspire" className="w-12 h-12 object-contain" />
-              <span className="font-bold text-xl tracking-tight text-white">Gestão<span className="text-blue-500">Frota</span> v1.3</span>
+              <span className="font-bold text-xl tracking-tight text-white">Gestão<span className="text-blue-500">Frota</span> v1.4 (Geofences)</span>
             </div>
           </div>
 
