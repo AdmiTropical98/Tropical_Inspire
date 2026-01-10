@@ -33,10 +33,10 @@ import TransportesEva from './components/transportes-eva';
 import UserProfileMenu from './components/common/UserProfileMenu';
 import Contabilidade from './components/contabilidade';
 import Clientes from './components/clientes';
-import PermissionsManager from './components/dashboard/PermissionsManager'; // Import PermissionsManager
 import Relatorios from './components/relatorios'; // Import Relatorios
 import AvaliacaoMotorista from './components/avaliacao'; // Import AvaliacaoMotorista
 import Geofences from './components/geofences'; // Import Geofences component
+import UsersPage from './components/users'; // Import UsersPage
 
 function App() {
   const { isAuthenticated, userRole } = useAuth();
@@ -77,8 +77,8 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
       case 'overview':
-      case 'admin_users': // Add cases handled by Dashboard
-        return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+      case 'admin_users':
+        return <UsersPage />;
       case 'permissions':
         return (
           <div className="p-6 max-w-7xl mx-auto">
@@ -204,6 +204,14 @@ function App() {
             {/* GESTÃO / ADMIN */}
             <div className="pt-4 pb-2">
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Administração</p>
+
+              {/* Gestão de Usuários - NEW */}
+              {userRole === 'admin' && (
+                <button onClick={() => setActiveTab('admin_users')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'admin_users' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} `}>
+                  <Users className="w-5 h-5" />
+                  <span className="font-medium">Gestão de Usuários</span>
+                </button>
+              )}
 
               {hasAccess(userRole, 'equipa-oficina') && (
                 <button onClick={() => setActiveTab('equipa-oficina')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'equipa-oficina' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>

@@ -19,7 +19,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import AdminManagement from './AdminManagement';
+
 import {
     User, AlertTriangle, TrendingUp,
     Clock, Bus, Wrench, CheckCircle2, ChevronRight, Fuel,
@@ -130,7 +130,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
     const [isEditingLayout, setIsEditingLayout] = useState(false);
     const [layout, setLayout] = useState<string[]>([
         'stats_services', 'stats_fleet', 'stats_drivers', 'stats_alerts',
-        'live_ops', 'quick_access', 'activity_feed', 'admin_management'
+        'live_ops', 'quick_access', 'activity_feed'
     ]);
     const [originalLayout, setOriginalLayout] = useState<string[]>([]);
     const sensors = useSensors(
@@ -345,13 +345,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                     </div>
                 );
 
-            case 'admin_management':
-                if (userRole !== 'admin') return null;
-                return (
-                    <div className="bg-[#1e293b]/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 h-full">
-                        <AdminManagement />
-                    </div>
-                );
+
 
             default: return null;
         }
