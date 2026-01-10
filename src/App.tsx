@@ -37,6 +37,7 @@ import Relatorios from './components/relatorios'; // Import Relatorios
 import AvaliacaoMotorista from './components/avaliacao'; // Import AvaliacaoMotorista
 import Geofences from './components/geofences'; // Import Geofences component
 import UsersPage from './components/users'; // Import UsersPage
+import Permissoes from './components/permissoes';
 
 function App() {
   const { isAuthenticated, userRole } = useAuth();
@@ -83,7 +84,7 @@ function App() {
       case 'permissions':
         return (
           <div className="p-6 max-w-7xl mx-auto">
-            <PermissionsManager />
+            <Permissoes />
           </div>
         );
       case 'escalas': return <Escalas />;

@@ -109,3 +109,28 @@ input::-webkit-credentials-auto-fill-button {
 .animate-fade-in {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Login Page Specific Scrollbar - Pequeno, Discreto e Moderno */
+.login-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
+.login-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.login-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.login-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 20px;
+  transition: background 0.2s ease;
+}
+
+.login-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
