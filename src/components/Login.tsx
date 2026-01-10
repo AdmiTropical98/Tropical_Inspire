@@ -171,7 +171,7 @@ export default function Login() {
                 <img
                     src="/logo-new.png"
                     alt="Logotipo"
-                    className="h-16 w-auto object-contain drop-shadow-2xl relative z-20"
+                    className="h-20 w-auto object-contain drop-shadow-2xl relative z-20"
                 />
 
                 <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 mt-4 relative z-10">
