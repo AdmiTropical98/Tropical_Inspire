@@ -236,7 +236,7 @@ export const CartrackService = {
                 try {
                     // Force higher limit to get all vehicles
                     const separator = ep.includes('?') ? '&' : '?';
-                    const url = `${CARTRACK_API_URL}${ep}${separator}per_page=100`;
+                    const url = `${BASE_URL}${ep}${separator}per_page=100`;
                     console.log(`Trying endpoint: ${url}`);
 
                     const response = await fetch(url, {
