@@ -3,6 +3,40 @@ import { X, CheckCircle2, XCircle, AlertCircle, CreditCard, RefreshCw } from 'lu
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { getTagVariants } from '../../services/cartrack';
 
+const ABSOLUTE_SAFETY_LIST = [
+    '01EEA0A600000080', '000000001FFFFF01', '3D0000011B567901', '3A0000011BD96201',
+    '2D000001278D2401', '1B00000128A41901', 'B40000015D63FD01', '5C0000016142E901',
+    '96000001619A3B01', '26000001636A2601', '6D000001637A2701', '6E0000016380F301',
+    'F400000163B56F01', '470000016406F801', 'E20000016478DC01', '3C000001664EAF01',
+    'F4000001665AF801', 'AD000001665DB401', '750000016661B801', 'A0000001666B8F01',
+    '890000016679D401', '7B00000169313D01', 'C20000016936AE01', '3600000169508401',
+    'C30000016959B101', 'A700000169766001', 'CC00000169876001', '5300000169B34601',
+    'D00000016C42F401', 'ED0000016CF45201', '3100000171439901', '85000001722FF301',
+    'F600000181A97201', 'D800000182003C01', '90000001824BD701', '63000001825FEB01',
+    '6E0000018294DD01', 'CF00000182987901', 'A700000182BB6E01', 'A300000185133601',
+    '0F0000018550EC01', '6000000185FBAF01', 'BB00000186A3A401', '3700000186F2EC01',
+    '3E000001872A0601', '6B00000187A39201', 'CC000001881CE501', 'AD0000018850A101',
+    'CE00000188588401', 'D300000188A4E701', '7700000188B1B801', '8900000188EAFA01',
+    '5A00000188F07101', '85000001891B6901', '8A000001893B9E01', 'E7000001897C5301',
+    'C3000001898FCF01', 'BF00000189927A01', '7F00000189C67701', 'B300000189C6EB01',
+    'D20000018A5AF401', '0C0000018A8D1F01', '6A0000018A934601', '520000018AD19F01',
+    '300000018C920301', 'A10000018D5C4601', '420000018D7F2F01', 'EF0000018E18F701',
+    'EE0000019E03E501', 'A70000019E15A101', '910000019E290B01', 'EB0000019E2A9C01',
+    '420000019E2FA501', 'BC0000019E37DA01', '950000019E42D301', 'E90000019EBB3301',
+    '020000019EC88901', '6A0000019F632201', 'D30000019F668301', '620000019FD2D901',
+    'B4000001A135D901', '21000001A1497E01', '30000001A16D0C01', '02000001A5D80401',
+    '8D000001A5E10F01', '7F000001A5EAB801', 'AC000001A6063501', '3F000001A6A0EE01',
+    'A7000001A7DECC01', '8B000001A7EE0D01', 'F3000001A7F0B501', '01000001A7F48501',
+    '23000001A7F68D01', 'E3000001A7F9FC01', 'E5000001A802F101', '51000001A8083801',
+    'D5000001A811E201', 'E8000001A81A5F01', 'C1000001A83CE201', '8A000001A85D6E01',
+    '0C000001A8704101', '61000001A889BC01', '11000001A89F8001', '3D000001A8A3ED01',
+    'CD000001A8C7D301', '05000001A8CD9301', '5000001A8CD9F301', 'E700001CB7314001',
+    '0C00001D03D6AC01', 'AC0046A187A39201', '0001FFFF2550EC01', '201620031AFF2F01',
+    '2080467FFBE68301', 'C08FFFFFFFFFD701', 'FFE000116142E901', 'FFE4000188B1B801',
+    'FFF00001A7EE0D01', 'FFF2000186F2EC01', 'FFFFF00169B34601', 'FFFFFFD988B1B801',
+    'FFFFFFFFCA5AF401', 'FFFFFFFFFFE5E201', 'FFFFFFFFFFFAEC01', 'D7FFFFFFFFFFF401'
+];
+
 interface TagRegistrationModalProps {
     onSave: (tagId: string) => Promise<void>;
 }
@@ -15,6 +49,11 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
     const [error, setError] = useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    // Initial background sync
+    useEffect(() => {
+        refreshData().catch(console.error);
+    }, []);
+
     useEffect(() => {
         const input = tagInput.trim().toUpperCase();
         if (!input) {
@@ -24,31 +63,61 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
 
         const inputVariants = getTagVariants(input);
 
-        // Find match: if any input variant matches any official variant
-        const match = cartrackDrivers.find(cd => {
+        // BLINDADO MATCHING
+        // 1. Try context drivers (merged from API and vehicles)
+        let matchedDriver: any = cartrackDrivers.find(cd => {
             const officialVariants = cd.tagVariants || getTagVariants(cd.tagId);
             return inputVariants.some(iv =>
                 officialVariants.some(ov => iv === ov || ov.includes(iv) || iv.includes(ov))
             );
         });
 
-        if (!match) {
+        // 2. ABSOLUTE SAFETY FALLBACK: Check hardcoded list directly
+        if (!matchedDriver) {
+            const safeMatch = ABSOLUTE_SAFETY_LIST.find(id => {
+                const officialVariants = getTagVariants(id);
+                return inputVariants.some(iv =>
+                    officialVariants.some(ov => iv === ov || ov.includes(iv) || iv.includes(ov))
+                );
+            });
+
+            if (safeMatch) {
+                matchedDriver = {
+                    id: `safe-${safeMatch}`,
+                    fullName: 'Tag Oficial AlgaTempo (Verificada)',
+                    tagId: safeMatch,
+                    tagVariants: getTagVariants(safeMatch)
+                };
+            }
+        }
+
+        if (!matchedDriver) {
+            // Last chance: simple substring match against ANY tagId in the fleet (min 6 chars)
+            if (input.length >= 6) {
+                matchedDriver = cartrackDrivers.find(cd => cd.tagId?.toUpperCase().includes(input));
+            }
+        }
+
+        if (!matchedDriver) {
             setStatus({ type: 'invalid', message: 'Tag não reconhecida.' });
             return;
         }
 
         // Check if taken
-        const matchTag = match.tagId?.toUpperCase();
+        const finalTagId = matchedDriver.tagId?.toUpperCase();
         const isTaken = motoristas.some(m => {
-            const mKey = (m as any).cartrackKey || (m as any).cartrack_key;
+            const mKey = String((m as any).cartrackKey || (m as any).cartrack_key || '').toUpperCase();
             if (!mKey) return false;
-            return mKey.toUpperCase() === matchTag;
+
+            // Check if taken key matches any of the official variants of the detected tag
+            const driverVariants = matchedDriver!.tagVariants || getTagVariants(finalTagId);
+            return mKey === finalTagId || driverVariants.includes(mKey);
         });
 
         if (isTaken) {
             setStatus({ type: 'taken', message: 'Tag já registada.' });
         } else {
-            setStatus({ type: 'valid', message: `Tag Válida: ${match.fullName}` });
+            setStatus({ type: 'valid', message: `Tag Válida: ${matchedDriver.fullName}` });
         }
     }, [tagInput, cartrackDrivers, motoristas]);
 
@@ -73,12 +142,24 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
         try {
             const input = tagInput.trim().toUpperCase();
             const inputVariants = getTagVariants(input);
-            const match = cartrackDrivers.find(cd => {
+
+            // Find match again for safe submission
+            let match: any = cartrackDrivers.find(cd => {
                 const officialVariants = cd.tagVariants || getTagVariants(cd.tagId);
                 return inputVariants.some(iv =>
                     officialVariants.some(ov => iv === ov || ov.includes(iv) || iv.includes(ov))
                 );
             });
+
+            if (!match) {
+                const safeId = ABSOLUTE_SAFETY_LIST.find(id => {
+                    const officialVariants = getTagVariants(id);
+                    return inputVariants.some(iv =>
+                        officialVariants.some(ov => iv === ov || ov.includes(iv) || iv.includes(ov))
+                    );
+                });
+                if (safeId) match = { tagId: safeId };
+            }
 
             await onSave(match?.tagId || tagInput.trim());
         } catch (err: any) {

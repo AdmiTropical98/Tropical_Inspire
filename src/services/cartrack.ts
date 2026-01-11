@@ -81,17 +81,21 @@ export const getTagVariants = (rawTagId?: string | null): string[] => {
     }
 
     // 4. Handle 16-char hex IDs (e.g. 3D000001A8A3ED01)
-    if (tag.length >= 12) {
-        // Pattern 1: Central part (skipping first and last 2 chars) - very common for RFID
+    if (tag.length >= 10) {
+        // Pattern 1: Central part (skipping first and last 2-4 chars)
         if (tag.length >= 14) {
             const central = tag.substring(2, tag.length - 2);
             variants.add(central);
             const cleanCentral = central.replace(/^0+/, '');
             if (cleanCentral.length >= 4) variants.add(cleanCentral);
+
+            // Sub-central
+            const mid8 = tag.substring(4, 12);
+            if (mid8.length >= 6) variants.add(mid8);
         }
 
         // Pattern 2: Multi-length suffixes
-        [12, 10, 8, 6].forEach(len => {
+        [14, 12, 10, 8, 6, 4].forEach(len => {
             if (tag.length >= len) {
                 const suffix = tag.substring(tag.length - len);
                 variants.add(suffix);
@@ -101,7 +105,7 @@ export const getTagVariants = (rawTagId?: string | null): string[] => {
         });
 
         // Pattern 3: Middle extraction if there's a padding of zeros
-        const midMatch = tag.match(/^[0-9A-F]{2,4}0+([0-9A-F]{4,10})[0-9A-F]{2,4}$/);
+        const midMatch = tag.match(/^[0-9A-F]{2,6}0+([0-9A-F]{4,10})[0-9A-F]{1,4}$/);
         if (midMatch) {
             variants.add(midMatch[1]);
             variants.add(midMatch[1].replace(/^0+/, ''));
@@ -267,7 +271,7 @@ export const CartrackService = {
                 'A7000001A7DECC01', '8B000001A7EE0D01', 'F3000001A7F0B501', '01000001A7F48501',
                 '23000001A7F68D01', 'E3000001A7F9FC01', 'E5000001A802F101', '51000001A8083801',
                 'D5000001A811E201', 'E8000001A81A5F01', 'C1000001A83CE201', '8A000001A85D6E01',
-                '0C00001A8704101', '61000001A889BC01', '11000001A89F8001', '3D000001A8A3ED01',
+                '0C000001A8704101', '61000001A889BC01', '11000001A89F8001', '3D000001A8A3ED01',
                 'CD000001A8C7D301', '05000001A8CD9301', '5000001A8CD9F301', 'E700001CB7314001',
                 '0C00001D03D6AC01', 'AC0046A187A39201', '0001FFFF2550EC01', '201620031AFF2F01',
                 '2080467FFBE68301', 'C08FFFFFFFFFD701', 'FFE000116142E901', 'FFE4000188B1B801',
