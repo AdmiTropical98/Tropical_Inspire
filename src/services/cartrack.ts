@@ -35,6 +35,7 @@ export interface CartrackDriver {
     lastName: string;
     fullName: string;
     tagId?: string;
+    cleanedTagId?: string;
     customFields?: Record<string, string>;
 }
 
@@ -48,6 +49,34 @@ export interface CartrackGeofenceVisit {
     exitTimestamp: string | null;
     durationSeconds: number | null;
 }
+
+/**
+ * Utility to clean a Tag ID to its most significant part
+ */
+export const cleanTagId = (rawTagId?: string | null): string | undefined => {
+    if (!rawTagId) return undefined;
+    let tag = rawTagId.trim().toUpperCase();
+
+    // 1. If it's a UUID style (0000-01A7F485), take the last part
+    if (tag.includes('-')) {
+        tag = tag.split('-').pop() || tag;
+    }
+
+    // 2. Remove leading zeros
+    tag = tag.replace(/^0+/, '');
+
+    // 3. Handle specific Cartrack format like F300001A7F48501 -> 1A7F485
+    // Most physical tags have 7 or 8 hex chars. 
+    // If the tag is long (e.g. 15-16 chars), we check for the common prefix/suffix
+    if (tag.length >= 14 && (tag.startsWith('F3') || tag.startsWith('1B') || tag.startsWith('20'))) {
+        // Try to extract center part if it looks like a hex block
+        // This is a bit heuristic but based on the user's image pattern
+        // where tags like F300001A7F48501 seem to contain the ID in the middle.
+        // For now, let's keep it simple and just do the base cleaning unless we are sure.
+    }
+
+    return tag || undefined;
+};
 
 /**
  * Utility to parse WKT POLYGON((lng lat, lng lat, ...))
@@ -156,14 +185,18 @@ export const CartrackService = {
             const result = await response.json();
             const items = result.data || result.rows || result || [];
 
-            return items.map((item: any) => ({
-                id: String(item.id),
-                firstName: item.first_name,
-                lastName: item.last_name,
-                fullName: `${item.first_name} ${item.last_name}`.trim(),
-                tagId: item.tag_id || item.identification_tag_id,
-                customFields: item.custom_fields
-            }));
+            return items.map((item: any) => {
+                const rawTag = item.tag_id || item.identification_tag_id;
+                return {
+                    id: String(item.id),
+                    firstName: item.first_name,
+                    lastName: item.last_name,
+                    fullName: `${item.first_name} ${item.last_name}`.trim(),
+                    tagId: rawTag,
+                    cleanedTagId: cleanTagId(rawTag),
+                    customFields: item.custom_fields
+                };
+            });
         } catch (error) {
             console.error('Failed to fetch drivers:', error);
             return [];
@@ -258,8 +291,7 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 item.rfid ||
                 item.tag_number;
 
-            // Trim UUID-style tags to their last part (e.g., 0000-01A7F485 -> 01A7F485)
-            const tagId = rawTagId ? (rawTagId.includes('-') ? rawTagId.split('-').pop()?.replace(/^0+/, '') : rawTagId) : undefined;
+            const tagId = cleanTagId(rawTagId);
 
             const driverId = item.drivers?.[0]?.driver_id ||
                 item.drivers?.[0]?.id ||
