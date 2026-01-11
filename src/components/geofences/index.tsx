@@ -5,7 +5,7 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { CartrackService } from '../../services/cartrack';
 
 export default function Geofences() {
-    const { geofenceVisits, refreshData } = useWorkshop();
+    const { geofenceVisits, refreshData, motoristas } = useWorkshop();
 
     const [geofences, setGeofences] = useState<any[]>([]);
     const [vehicles, setVehicles] = useState<any[]>([]);
@@ -36,7 +36,29 @@ export default function Geofences() {
 
             // Handle Vehicles
             if (vehiclesData.status === 'fulfilled') {
-                setVehicles(vehiclesData.value);
+                const rawVehicles = vehiclesData.value;
+                const enriched = rawVehicles.map((v: any) => {
+                    const localM = motoristas.find(m =>
+                        (m.cartrackId && m.cartrackId === v.driverId) ||
+                        (m.currentVehicle === v.registration)
+                    );
+
+                    let displayName = v.driverName;
+                    if (localM) {
+                        displayName = localM.nome;
+                        if (localM.cartrackKey) {
+                            displayName += ` (${localM.cartrackKey})`;
+                        }
+                    } else if (v.driverName === v.registration) {
+                        displayName = 'Sem Motorista';
+                    }
+
+                    return {
+                        ...v,
+                        driverName: displayName
+                    };
+                });
+                setVehicles(enriched);
             }
 
             if (geoData.status === 'rejected' && vehiclesData.status === 'rejected') {
@@ -162,7 +184,7 @@ export default function Geofences() {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <span className="font-bold text-slate-200 group-hover:text-white transition-colors">{vehicle.registration}</span>
-                                                <p className="text-[10px] text-slate-500 mt-0.5 truncate max-w-[120px]">{vehicle.name}</p>
+                                                <p className="text-[10px] text-blue-400 mt-0.5 truncate max-w-[150px] font-medium">{vehicle.driverName || 'Sem Motorista'}</p>
                                             </div>
                                             <div className="flex flex-col items-end">
                                                 <div className={`w-2 h-2 rounded-full ${vehicle.status === 'moving' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-600'}`}></div>

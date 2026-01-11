@@ -192,8 +192,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 supabase.from('motoristas').select('*')
             ]);
 
-            setCartrackVehicles(cVehicles);
-
             if (dbMotoristas) {
                 const updatedMotoristas = await Promise.all(dbMotoristas.map(async (m: any) => {
                     // 1. Try to find missing cartrackId by matching cartrackKey with Cartrack Driver tag
@@ -229,7 +227,33 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     };
                 }));
 
+                // Enrich Cartrack Vehicles with local data (Name/Key)
+                const enrichedVehicles = cVehicles.map(v => {
+                    const localM = updatedMotoristas.find(m =>
+                        (m.cartrackId && m.cartrackId === v.driverId) ||
+                        (m.currentVehicle === v.registration)
+                    );
+
+                    let displayName = v.driverName;
+                    if (localM) {
+                        displayName = localM.nome;
+                        if (localM.cartrackKey) {
+                            displayName += ` (${localM.cartrackKey})`;
+                        }
+                    } else if (v.driverName === v.registration) {
+                        displayName = 'Sem Motorista';
+                    }
+
+                    return {
+                        ...v,
+                        driverName: displayName
+                    };
+                });
+
                 setMotoristas(updatedMotoristas);
+                setCartrackVehicles(enrichedVehicles);
+            } else {
+                setCartrackVehicles(cVehicles);
             }
 
             const { data: sups } = await supabase.from('supervisores').select('*');
