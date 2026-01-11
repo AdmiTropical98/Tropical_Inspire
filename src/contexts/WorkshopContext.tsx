@@ -19,6 +19,7 @@ interface WorkshopContextType {
     setServicos: React.Dispatch<React.SetStateAction<any[]>>;
     geofences: CartrackGeofence[];
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
+    cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
     // Fuel
     fuelTank: FuelTank;
     fuelTransactions: FuelTransaction[];
@@ -86,6 +87,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [centrosCustos, setCentrosCustos] = useState<CentroCusto[]>([]);
     const [geofences, setGeofences] = useState<CartrackGeofence[]>([]);
     const [geofenceVisits, setGeofenceVisits] = useState<CartrackGeofenceVisit[]>([]); // NEW
+    const [cartrackVehicles, setCartrackVehicles] = useState<import('../services/cartrack').CartrackVehicle[]>([]);
 
 
 
@@ -184,18 +186,51 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             }
 
             // 3. Team
-            const { data: motoristas } = await supabase.from('motoristas').select('*');
-            if (motoristas) setMotoristas(motoristas.map((m: any) => ({
-                ...m,
-                vencimentoBase: m.vencimento_base,
-                valorHora: m.valor_hora,
-                dataRegisto: m.data_registo,
-                cartaConducao: m.carta_conducao,
-                blockedPermissions: m.blocked_permissions,
-                turnoInicio: m.turno_inicio,
-                turnoFim: m.turno_fim,
-                cartrackKey: m.cartrack_key
-            })));
+            const [cDrivers, cVehicles, { data: dbMotoristas }] = await Promise.all([
+                CartrackService.getDrivers(),
+                CartrackService.getVehicles(),
+                supabase.from('motoristas').select('*')
+            ]);
+
+            setCartrackVehicles(cVehicles);
+
+            if (dbMotoristas) {
+                const updatedMotoristas = await Promise.all(dbMotoristas.map(async (m: any) => {
+                    // 1. Try to find missing cartrackId by matching cartrackKey with Cartrack Driver tag
+                    let currentCartrackId = m.cartrack_id;
+                    if (!currentCartrackId && m.cartrack_key) {
+                        const matchedCDriver = cDrivers.find(cd => cd.tagId === m.cartrack_key);
+                        if (matchedCDriver) {
+                            currentCartrackId = matchedCDriver.id;
+                            // Persist to DB silently
+                            await supabase.from('motoristas').update({ cartrack_id: matchedCDriver.id }).eq('id', m.id);
+                        }
+                    }
+
+                    // 2. Find if this driver is currently in a vehicle according to Cartrack
+                    const activeVehicle = cVehicles.find(v =>
+                        (currentCartrackId && v.driverId === currentCartrackId) ||
+                        v.driverName?.toLowerCase() === m.nome.toLowerCase()
+                    );
+
+                    return {
+                        ...m,
+                        vencimentoBase: m.vencimento_base,
+                        valorHora: m.valor_hora,
+                        dataRegisto: m.data_registo,
+                        cartaConducao: m.carta_conducao,
+                        blockedPermissions: m.blocked_permissions,
+                        turnoInicio: m.turno_inicio,
+                        turnoFim: m.turno_fim,
+                        cartrackKey: m.cartrack_key,
+                        cartrackId: currentCartrackId,
+                        currentVehicle: activeVehicle?.registration || m.current_vehicle,
+                        status: activeVehicle ? 'ocupado' : (m.status || 'disponivel')
+                    };
+                }));
+
+                setMotoristas(updatedMotoristas);
+            }
 
             const { data: sups } = await supabase.from('supervisores').select('*');
             if (sups) setSupervisors(sups.map((s: any) => ({ ...s, password: s.password, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
@@ -1065,6 +1100,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 updateServico,
                 deleteServico,
                 avaliacoes,
+                cartrackVehicles, // NEW
                 geofences,
                 geofenceVisits, // NEW
                 refreshData,

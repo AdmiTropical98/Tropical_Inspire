@@ -103,6 +103,8 @@ CREATE TABLE IF NOT EXISTS public.motoristas (
     turno_inicio TEXT,
     turno_fim TEXT,
     cartrack_key TEXT,
+    cartrack_id TEXT,
+    current_vehicle TEXT,
     data_registo TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.motoristas ENABLE ROW LEVEL SECURITY;

@@ -189,8 +189,8 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                                 <div className="font-bold text-lg text-slate-900 border-b pb-2 mb-2 flex justify-between items-center">
                                     <span>{vehicle.registration}</span>
                                     <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-tighter ${vehicle.status === 'moving' ? 'bg-green-100 text-green-700' :
-                                            vehicle.status === 'idle' ? 'bg-orange-100 text-orange-700' :
-                                                'bg-slate-100 text-slate-700'
+                                        vehicle.status === 'idle' ? 'bg-orange-100 text-orange-700' :
+                                            'bg-slate-100 text-slate-700'
                                         }`}>
                                         {vehicle.status === 'moving' ? 'Em Movimento' : vehicle.status === 'idle' ? 'Em Relanti' : 'Parado'}
                                     </span>
@@ -198,7 +198,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                                 <div className="space-y-2 text-xs text-slate-700">
                                     <div className="flex justify-between items-center">
                                         <span className="text-slate-500">Motorista:</span>
-                                        <span className="font-semibold text-slate-900">{vehicle.name}</span>
+                                        <span className="font-semibold text-slate-900">{vehicle.driverName || vehicle.name}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-slate-500">Velocidade:</span>

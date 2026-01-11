@@ -24,6 +24,17 @@ export interface CartrackVehicle {
     updatedAt: string;
     status: 'moving' | 'stopped' | 'idle';
     ignition: boolean;
+    driverName?: string;
+    driverId?: string;
+}
+
+export interface CartrackDriver {
+    id: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    tagId?: string;
+    customFields?: Record<string, string>;
 }
 
 export interface CartrackGeofenceVisit {
@@ -99,8 +110,8 @@ export const CartrackService = {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
 
-            // Try vehicles/status (modern) then stats (fallback)
-            const endpoints = ['/vehicles/status', '/stats', '/vehicles'];
+            // Try vehicles/activity (best for driver info) then status then others
+            const endpoints = ['/vehicles/activity', '/vehicles/status', '/stats', '/vehicles'];
             let data = null;
 
             for (const ep of endpoints) {
@@ -125,6 +136,36 @@ export const CartrackService = {
         } catch (error) {
             console.error('Failed to fetch vehicles:', error);
             throw error;
+        }
+    },
+
+    /**
+     * Fetch all drivers from Cartrack
+     */
+    getDrivers: async (): Promise<CartrackDriver[]> => {
+        try {
+            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+            const response = await fetch(`${BASE_URL}/drivers?per_page=100`, {
+                method: 'GET',
+                headers: { 'Authorization': `Basic ${auth}` },
+            });
+
+            if (!response.ok) return [];
+
+            const result = await response.json();
+            const items = result.data || result.rows || result || [];
+
+            return items.map((item: any) => ({
+                id: String(item.id),
+                firstName: item.first_name,
+                lastName: item.last_name,
+                fullName: `${item.first_name} ${item.last_name}`.trim(),
+                tagId: item.tag_id || item.identification_tag_id,
+                customFields: item.custom_fields
+            }));
+        } catch (error) {
+            console.error('Failed to fetch drivers:', error);
+            return [];
         }
     },
 
@@ -194,7 +235,9 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 heading: parseFloat(item.bearing || item.heading || item.direction || 0),
                 updatedAt: item.updated_at || item.last_update || item.timestamp || item.location?.ts || new Date().toISOString(),
                 status: (speed > 0 ? 'moving' : (item.ignition ? 'idle' : 'stopped')) as 'moving' | 'stopped' | 'idle',
-                ignition: !!(item.ignition || item.ign)
+                ignition: !!(item.ignition || item.ign),
+                driverName: item.drivers?.[0]?.first_name ? `${item.drivers[0].first_name} ${item.drivers[0].last_name}`.trim() : item.driver_name,
+                driverId: item.drivers?.[0]?.driver_id || item.driver_id
             };
         })
         .filter(v => v.latitude !== 0 && v.longitude !== 0);

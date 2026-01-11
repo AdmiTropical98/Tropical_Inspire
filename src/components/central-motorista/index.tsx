@@ -10,6 +10,7 @@ import {
 import MyScheduleView from './MyScheduleView';
 import DraggableZone from '../common/DraggableZone';
 import { useLayout } from '../../contexts/LayoutContext';
+import NavigationApp from './NavigationApp';
 
 
 
@@ -23,10 +24,11 @@ export default function CentralMotorista() {
         addNotification,
         updateNotification,
         confirmRefuel,
-        updateMotorista
+        updateMotorista,
+        cartrackVehicles
     } = useWorkshop();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos' | 'navegacao'>('overview');
 
     // Forms State
     const [requestForm, setRequestForm] = useState({ type: 'ferias', description: '' });
@@ -84,7 +86,7 @@ export default function CentralMotorista() {
 
     useEffect(() => {
         // Simple check: if we have ANY pending fuel request, force open tab.
-        const pendingFuel = notifications.find(n =>
+        const pendingFuel = notifications.find((n: any) =>
             n.type === 'fuel_confirmation_request' &&
             n.status === 'pending' &&
             (n.response?.driverId === currentUser?.id || !n.response?.driverId)
@@ -150,8 +152,8 @@ export default function CentralMotorista() {
 
     // 1. My Requests (Filtered from System Alerts for now, ideally strictly typed)
     const myRequests = notifications
-        .filter(n => n.type === 'system_alert' && n.data.message?.includes(currentUser?.nome || ''))
-        .map(n => ({
+        .filter((n: any) => n.type === 'system_alert' && n.data.message?.includes(currentUser?.nome || ''))
+        .map((n: any) => ({
             id: n.id,
             type: n.data.title?.replace('Novo Pedido: ', '') || 'Outros',
             date: new Date(n.timestamp).toLocaleDateString(),
@@ -166,20 +168,20 @@ export default function CentralMotorista() {
     const myVehicle: any = null;
 
     // 3. Stats
-    const myServicesCount = servicos.filter(s => s.motoristaId === currentUser?.id).length;
+    const myServicesCount = servicos.filter((s: any) => s.motoristaId === currentUser?.id).length;
     // Rating not yet implemented in DB, defaulting to placeholder or 0
     // @ts-ignore
     const myRating = currentUser?.rating || 0; // Assuming rating might be added to user type later
 
     // 4. Next Service
     const nextService = servicos
-        .filter(s => s.motoristaId === currentUser?.id && !s.concluido)
-        .sort((a, b) => new Date(a.hora).getTime() - new Date(b.hora).getTime())[0];
+        .filter((s: any) => s.motoristaId === currentUser?.id && !s.concluido)
+        .sort((a: any, b: any) => new Date(a.hora).getTime() - new Date(b.hora).getTime())[0];
 
     // 5. My Schedule (Future services)
     const mySchedule = servicos
-        .filter(s => s.motoristaId === currentUser?.id)
-        .sort((a, b) => new Date(a.hora).getTime() - new Date(b.hora).getTime());
+        .filter((s: any) => s.motoristaId === currentUser?.id)
+        .sort((a: any, b: any) => new Date(a.hora).getTime() - new Date(b.hora).getTime());
 
 
     const handleSubmitRequest = (e: React.FormEvent) => {
@@ -335,6 +337,7 @@ export default function CentralMotorista() {
         { id: 'viatura', icon: Car, label: 'Minha Viatura', color: 'indigo' },
         { id: 'pedidos', icon: Share2, label: t('central.tab.requests'), color: 'purple' },
         { id: 'abastecimentos', icon: Fuel, label: 'Abastecimentos', color: 'orange' },
+        { id: 'navegacao', icon: Navigation, label: 'Navegação', color: 'blue' },
         { id: 'recibos', icon: FileText, label: t('central.tab.payslips'), color: 'emerald' },
         { id: 'reportar', icon: AlertTriangle, label: t('central.tab.report'), color: 'red' }
     ].map(tab => ({
@@ -397,6 +400,19 @@ export default function CentralMotorista() {
                             onBack={() => setActiveTab('overview')}
                         />
                     </div>
+                )}
+
+                {/* NEW TAB: NAVEGACAO - FULL SCREEN OVERLAY */}
+                {activeTab === 'navegacao' && (
+                    <NavigationApp
+                        driverLocation={(() => {
+                            const myCV = (currentUser as any)?.currentVehicle;
+                            const v = cartrackVehicles.find(cv => cv.registration === myCV);
+                            return v ? [v.latitude, v.longitude] : [38.7223, -9.1393];
+                        })()}
+                        destination={nextService?.destino}
+                        onBack={() => setActiveTab('overview')}
+                    />
                 )}
 
 
@@ -480,7 +496,7 @@ export default function CentralMotorista() {
                                 Confirmação de Abastecimentos
                             </h3>
 
-                            {notifications.filter(n =>
+                            {notifications.filter((n: any) =>
                                 n.type === 'fuel_confirmation_request' &&
                                 n.status === 'pending' &&
                                 (n.response?.driverId === currentUser?.id || !n.response?.driverId)
@@ -490,11 +506,11 @@ export default function CentralMotorista() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {notifications.filter(n =>
+                                    {notifications.filter((n: any) =>
                                         n.type === 'fuel_confirmation_request' &&
                                         n.status === 'pending' &&
                                         (n.response?.driverId === currentUser?.id || !n.response?.driverId)
-                                    ).map(n => (
+                                    ).map((n: any) => (
                                         <div key={n.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="p-3 bg-orange-500/10 rounded-lg text-orange-500">
@@ -711,7 +727,7 @@ export default function CentralMotorista() {
                             <Share2 className="w-4 h-4" /> Meus Pedidos
                         </h3>
                         <div className="space-y-3">
-                            {myRequests.length > 0 ? myRequests.map(req => (
+                            {myRequests.length > 0 ? myRequests.map((req: any) => (
                                 <div key={req.id} className="bg-slate-900/50 p-3 rounded-lg flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-2 h-2 rounded-full ${req.status === 'approved' ? 'bg-emerald-500' : req.status === 'rejected' ? 'bg-red-500' : 'bg-amber-500'}`}></div>
