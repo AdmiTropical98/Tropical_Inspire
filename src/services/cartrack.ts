@@ -226,6 +226,18 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
             const lngValue = loc.longitude || loc.lng || loc.lon || item.longitude || item.lng || item.lon || 0;
             const speed = parseFloat(item.speed || item.vel || loc.speed || 0);
 
+            const isIgnition = (item.ignition === true || item.ignition === 1 || item.ignition === '1' || item.ignition === 'true' || item.ignition === 'on' ||
+                item.ign === true || item.ign === 1 || item.ign === '1' || item.ign === 'true' || item.ign === 'on');
+
+            let finalStatus: 'moving' | 'stopped' | 'idle' = 'stopped';
+            if (speed > 5) {
+                finalStatus = 'moving';
+            } else if (isIgnition) {
+                finalStatus = 'idle';
+            } else {
+                finalStatus = 'stopped';
+            }
+
             return {
                 id: String(item.id || item.vehicle_id || item.vehicleId || index),
                 registration: item.registration || item.plate || item.label || 'N/A',
@@ -235,8 +247,8 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 speed: speed,
                 heading: parseFloat(item.bearing || item.heading || item.direction || 0),
                 updatedAt: item.updated_at || item.last_update || item.timestamp || item.location?.ts || new Date().toISOString(),
-                status: (speed > 0 ? 'moving' : (item.ignition ? 'idle' : 'stopped')) as 'moving' | 'stopped' | 'idle',
-                ignition: !!(item.ignition || item.ign),
+                status: finalStatus,
+                ignition: isIgnition,
                 driverName: item.drivers?.[0]?.first_name ? `${item.drivers[0].first_name} ${item.drivers[0].last_name}`.trim() : (item.driver_name || item.driver?.name || item.current_driver?.name),
                 driverId: item.drivers?.[0]?.driver_id || item.drivers?.[0]?.id || item.driver_id || item.driver?.id || item.current_driver_id || item.current_driver?.id,
                 tagId: item.drivers?.[0]?.tag_id || item.drivers?.[0]?.identification_tag_id || item.tag_id || item.current_tag_id || item.identification_tag_id

@@ -62,14 +62,13 @@ export default function Geofences() {
                         (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
                     );
 
-                    let displayName = resolvedName || 'Sem Motorista';
+                    let displayName = 'Sem Motorista';
                     if (localM) {
                         displayName = localM.nome;
-                        if (localM.cartrackKey) {
-                            displayName += ` (${localM.cartrackKey})`;
-                        }
-                    } else if (resolvedName && (normalizePlate(resolvedName) === normalizePlate(v.registration))) {
-                        displayName = 'Sem Motorista';
+                    } else if (!isPlateName && resolvedName) {
+                        displayName = resolvedName;
+                    } else if (v.tagId) {
+                        displayName = `Tag: ${v.tagId}`;
                     }
 
                     if (v.registration.includes('ZZ')) {
@@ -167,73 +166,104 @@ export default function Geofences() {
 
             {/* Content Display */}
             {activeTab === 'map' ? (
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* Map Section */}
-                    <div className="lg:col-span-3 space-y-4">
-                        <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-4 min-h-[600px]">
-                            <GeofenceMap geofences={geofences} vehicles={vehicles} />
-                        </div>
-
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
+                    {/* Sidebar / List Section */}
+                    <div className="xl:col-span-3 space-y-6 flex flex-col">
                         {/* Compact Stats */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-                                <div className="text-slate-400 text-xs uppercase font-bold tracking-wider">Total Viaturas</div>
-                                <div className="text-2xl font-bold text-white mt-1">{vehicles.length}</div>
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="bg-slate-900/40 backdrop-blur-md p-5 rounded-2xl border border-slate-800/50 shadow-xl group hover:border-blue-500/30 transition-all">
+                                <div className="flex justify-between items-center">
+                                    <div className="text-slate-400 text-[10px] uppercase font-black tracking-[0.2em]">Frota Total</div>
+                                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                        <Car className="w-4 h-4 text-blue-500" />
+                                    </div>
+                                </div>
+                                <div className="text-3xl font-black text-white mt-2 font-mono">{vehicles.length}</div>
                             </div>
-                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-                                <div className="text-slate-400 text-xs uppercase font-bold tracking-wider">Em Movimento</div>
-                                <div className="text-2xl font-bold text-green-500 mt-1">
+
+                            <div className="bg-slate-900/40 backdrop-blur-md p-5 rounded-2xl border border-slate-800/50 shadow-xl group hover:border-green-500/30 transition-all">
+                                <div className="flex justify-between items-center">
+                                    <div className="text-slate-400 text-[10px] uppercase font-black tracking-[0.2em]">Em Movimento</div>
+                                    <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                                        <RefreshCw className="w-4 h-4 text-green-500 animate-spin-slow" />
+                                    </div>
+                                </div>
+                                <div className="text-3xl font-black text-green-500 mt-2 font-mono">
                                     {vehicles.filter(v => v.status === 'moving').length}
                                 </div>
                             </div>
-                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-                                <div className="text-slate-400 text-xs uppercase font-bold tracking-wider">Geofences Atuais</div>
-                                <div className="text-2xl font-bold text-blue-500 mt-1">{geofences.length}</div>
+                        </div>
+
+                        {/* Vehicles List */}
+                        <div className="bg-slate-950/50 backdrop-blur-md border border-slate-800/50 rounded-3xl p-6 flex-1 h-[600px] overflow-hidden flex flex-col shadow-2xl">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                    <Layers className="w-5 h-5 text-blue-500" />
+                                    Estado da Frota
+                                </h3>
+                                <span className="text-[10px] font-bold bg-slate-800 text-slate-400 px-2 py-1 rounded">LIVE</span>
+                            </div>
+
+                            <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                                {vehicles.sort((a, b) => a.registration.localeCompare(b.registration)).map(vehicle => (
+                                    <div key={vehicle.id} className="p-4 bg-slate-900/80 rounded-2xl border border-slate-800/50 hover:border-blue-500/50 hover:bg-slate-800/80 transition-all cursor-pointer group relative overflow-hidden">
+                                        {vehicle.status === 'moving' && (
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.3)]"></div>
+                                        )}
+                                        <div className="flex justify-between items-start">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono font-black text-xl text-white tracking-tighter">{vehicle.registration}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${vehicle.status === 'moving' ? 'bg-green-500' : vehicle.status === 'idle' ? 'bg-orange-500' : 'bg-slate-600'}`}></div>
+                                                    <p className="text-[11px] text-slate-400 font-bold uppercase truncate max-w-[140px]">{vehicle.driverName || 'Sem Motorista'}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${vehicle.status === 'moving' ? 'bg-green-500/10 text-green-500' :
+                                                    vehicle.status === 'idle' ? 'bg-orange-500/10 text-orange-500' :
+                                                        'bg-slate-800 text-slate-500'
+                                                    }`}>
+                                                    {vehicle.status === 'moving' ? 'RUN' : vehicle.status === 'idle' ? 'IDLE' : 'STOP'}
+                                                </span>
+                                                <span className="text-xs font-black text-blue-400/80 font-mono tracking-tighter">{Math.round(vehicle.speed)} KM/H</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Sidebar / List Section */}
-                    <div className="lg:col-span-1 space-y-6">
-                        {/* Vehicles List */}
-                        <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 h-[400px] overflow-y-auto custom-scrollbar text-white">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                <Car className="w-5 h-5 text-blue-400" />
-                                Viaturas
-                            </h3>
-                            <div className="space-y-3">
-                                {vehicles.sort((a, b) => a.registration.localeCompare(b.registration)).map(vehicle => (
-                                    <div key={vehicle.id} className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/50 hover:border-blue-500/50 transition-all cursor-pointer group">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <span className="font-bold text-slate-200 group-hover:text-white transition-colors">{vehicle.registration}</span>
-                                                <p className="text-[10px] text-blue-400 mt-0.5 truncate max-w-[150px] font-medium">{vehicle.driverName || 'Sem Motorista'}</p>
-                                            </div>
-                                            <div className="flex flex-col items-end">
-                                                <div className={`w-2 h-2 rounded-full ${vehicle.status === 'moving' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-600'}`}></div>
-                                                <span className="text-[10px] text-slate-500 mt-1 font-mono">{Math.round(vehicle.speed)} km/h</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                    {/* Map Section */}
+                    <div className="xl:col-span-9 flex flex-col gap-6">
+                        <div className="bg-slate-950/20 backdrop-blur-sm border border-slate-800/50 rounded-3xl p-1.5 shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-4 right-4 z-10 flex gap-2">
+                                <div className="px-3 py-1.5 bg-slate-950/80 backdrop-blur-md rounded-xl border border-slate-700/50 text-[10px] font-black text-white flex items-center gap-2 shadow-2xl">
+                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                    REAL-TIME OVERVIEW
+                                </div>
                             </div>
+                            <GeofenceMap geofences={geofences} vehicles={vehicles} />
                         </div>
 
-                        {/* Geofences List */}
-                        <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 h-[250px] overflow-y-auto custom-scrollbar text-white">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                <Layers className="w-5 h-5 text-purple-400" />
-                                Geofences
-                            </h3>
-                            <div className="space-y-3">
-                                {geofences.map(geo => (
-                                    <div key={geo.id} className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/50 hover:border-purple-500/30 transition-all cursor-pointer">
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-medium text-slate-300 text-xs truncate max-w-[150px]">{geo.name}</span>
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: geo.color || '#3b82f6' }}></div>
-                                        </div>
-                                    </div>
-                                ))}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="bg-slate-900/40 backdrop-blur-md p-6 rounded-3xl border border-slate-800/50">
+                                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Geofences Ativas</div>
+                                <div className="text-3xl font-black text-purple-500 mt-2 font-mono">{geofences.length}</div>
+                            </div>
+                            <div className="bg-slate-900/40 backdrop-blur-md p-6 rounded-3xl border border-slate-800/50">
+                                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Tempo de Uptime</div>
+                                <div className="text-3xl font-black text-white mt-2 font-mono">99.8%</div>
+                            </div>
+                            <div className="bg-slate-900/40 backdrop-blur-md p-6 rounded-3xl border border-slate-800/50">
+                                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Sinal de Rede</div>
+                                <div className="text-3xl font-black text-blue-500 mt-2 font-mono">EXCELLENT</div>
+                            </div>
+                            <div className="bg-slate-900/40 backdrop-blur-md p-6 rounded-3xl border border-slate-800/50">
+                                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Última Escala</div>
+                                <div className="text-3xl font-black text-white mt-2 font-mono">--</div>
                             </div>
                         </div>
                     </div>

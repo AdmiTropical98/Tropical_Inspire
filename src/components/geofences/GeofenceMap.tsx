@@ -21,23 +21,63 @@ interface GeofenceMapProps {
     vehicles?: CartrackVehicle[];
 }
 
-// Custom icon for car with rotation
-const createCarIcon = (heading: number, status: 'moving' | 'stopped' | 'idle') => {
+// Custom icon for car with rotation and license plate label
+const createCarIcon = (registration: string, heading: number, status: 'moving' | 'stopped' | 'idle') => {
     const color = status === 'moving' ? '#22c55e' : (status === 'idle' ? '#f59e0b' : '#64748b');
+    const isMoving = status === 'moving';
 
     return L.divIcon({
-        className: 'custom-car-icon',
+        className: 'custom-car-marker',
         html: `
-            <div style="transform: rotate(${heading}deg); transition: transform 0.3s ease;">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="11" fill="white" fill-opacity="0.95" stroke="${color}" stroke-width="2" />
-                    <path d="M12 3L16 9H8L12 3Z" fill="${color}" />
-                    <rect x="10" y="9" width="4" height="9" rx="1.5" fill="${color}" />
-                </svg>
+            <div class="marker-container" style="display: flex; flex-direction: column; align-items: center; position: relative;">
+                <div class="plate-label" style="
+                    background: white; 
+                    color: #1e293b; 
+                    padding: 2px 6px; 
+                    border-radius: 4px; 
+                    font-size: 10px; 
+                    font-weight: 800; 
+                    border: 1.5px solid ${color};
+                    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+                    margin-bottom: 4px;
+                    white-space: nowrap;
+                    font-family: 'Inter', sans-serif;
+                ">${registration}</div>
+                
+                <div style="transform: rotate(${heading}deg); transition: transform 0.3s ease; position: relative;">
+                    ${isMoving ? `<div class="pulse-effect" style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 40px;
+                        height: 40px;
+                        background: ${color}22;
+                        border-radius: 50%;
+                        animation: pulse 2s infinite;
+                        z-index: -1;
+                    "></div>` : ''}
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" fill="white" fill-opacity="0.95" stroke="${color}" stroke-width="2.5" />
+                        <!-- Car body -->
+                        <path d="M20 10L24 16H16L20 10Z" fill="${color}" />
+                        <rect x="17.5" y="16" width="5" height="12" rx="1.5" fill="${color}" />
+                        <!-- Headlights -->
+                        <circle cx="17.5" cy="12" r="1" fill="${color}" fill-opacity="0.5" />
+                        <circle cx="22.5" cy="12" r="1" fill="${color}" fill-opacity="0.5" />
+                    </svg>
+                </div>
+                
+                <style>
+                    @keyframes pulse {
+                        0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+                        100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+                    }
+                </style>
             </div>
         `,
-        iconSize: [34, 34],
-        iconAnchor: [17, 17]
+        iconSize: [80, 80],
+        iconAnchor: [40, 55]
     });
 };
 
@@ -112,7 +152,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
     const [center] = useState<[number, number]>([38.7223, -9.1393]); // Lisbon default
 
     return (
-        <div className="h-[600px] w-full rounded-2xl overflow-hidden border border-slate-700 shadow-2xl relative z-0 bg-slate-900">
+        <div className="h-[800px] w-full rounded-3xl overflow-hidden border border-slate-800 shadow-2xl relative z-0 bg-slate-950">
             <MapContainer
                 center={center}
                 zoom={12}
@@ -182,11 +222,11 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                     <Marker
                         key={vehicle.id}
                         position={[vehicle.latitude, vehicle.longitude]}
-                        icon={createCarIcon(vehicle.heading, vehicle.status)}
+                        icon={createCarIcon(vehicle.registration, vehicle.heading, vehicle.status)}
                     >
-                        <Popup>
-                            <div className="p-2 min-w-[200px]">
-                                <div className="font-bold text-lg text-slate-900 border-b pb-2 mb-2 flex justify-between items-center">
+                        <Popup className="custom-popup">
+                            <div className="p-3 min-w-[220px] bg-white/10 backdrop-blur-md rounded-xl">
+                                <div className="font-black text-xl text-slate-900 border-b-2 border-slate-100 pb-2 mb-3 flex justify-between items-center">
                                     <span>{vehicle.registration}</span>
                                     <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-tighter ${vehicle.status === 'moving' ? 'bg-green-100 text-green-700' :
                                         vehicle.status === 'idle' ? 'bg-orange-100 text-orange-700' :

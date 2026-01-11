@@ -257,14 +257,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
                     );
 
-                    let displayName = resolvedName || 'Sem Motorista';
+                    let displayName = 'Sem Motorista';
                     if (localM) {
                         displayName = localM.nome;
-                        if (localM.cartrackKey) {
-                            displayName += ` (${localM.cartrackKey})`;
-                        }
-                    } else if (resolvedName && (normalizePlate(resolvedName) === normalizePlate(v.registration))) {
-                        displayName = 'Sem Motorista';
+                    } else if (!isPlateName && resolvedName) {
+                        displayName = resolvedName;
+                    } else if (v.tagId) {
+                        displayName = `Tag: ${v.tagId}`;
                     }
 
                     if (v.registration.includes('ZZ')) {
