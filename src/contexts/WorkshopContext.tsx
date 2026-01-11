@@ -572,7 +572,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Manual Hours Implementation
-    const [manualHours, setManualHours] = useState<import('../types').ManualHourRecord[]>([]);
+    // Manual Hours Implementation
 
     const addManualHourRecord = async (record: import('../types').ManualHourRecord) => {
         const { error } = await supabase.from('manual_hours').insert({
