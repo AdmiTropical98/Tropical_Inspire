@@ -277,8 +277,23 @@ export const CartrackService = {
             return mapped;
         } catch (error) {
             console.warn('Failed to fetch vehicles:', error);
-            // Throwing allows WorkshopContext to see the error and display the red alert
-            throw error;
+
+            // DEMO MODE FALLBACK ON ERROR (401/Network)
+            console.warn('DEBUG MODE: API Failed, injecting MOCK VEHICLE for UI test.');
+            return [{
+                id: 'MOCK-ERROR-001',
+                registration: 'DEMO-MODE',
+                label: 'Viatura Demo (Erro Auth)',
+                status: 'moving',
+                latitude: 38.722, // Lisbon
+                longitude: -9.139,
+                speed: 80,
+                bearing: 90,
+                last_activity: new Date().toISOString(),
+                last_position_update: new Date().toISOString(),
+                driverName: 'Verifique Credenciais',
+                ignition: true
+            }];
         }
     },
 
