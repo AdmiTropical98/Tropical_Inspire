@@ -28,6 +28,9 @@ export interface CartrackVehicle {
     driverName?: string;
     driverKey?: string;
     tagId?: string;
+    driverId?: number | string; // Corrected field
+    status?: string; // Corrected field
+    fuelType?: string; // Corrected optional/required
     ignition?: boolean;
     odometer?: number;
     last_position_update?: string;

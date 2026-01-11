@@ -901,7 +901,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             alert('Aviso: A atualização parece não ter sido persistida. Verifique as permissões.');
         }
 
-        setMotoristas(prev => prev.map(current => current.id === m.id ? m : current));
+        // Force full refresh to ensure all enrichments (currentVehicle, status) are re-calculated correctly and persistence is confirmed
+        await refreshData();
     };
     const deleteMotorista = async (id: string) => {
         const { error, count } = await supabase.from('motoristas').delete({ count: 'exact' }).eq('id', id);
