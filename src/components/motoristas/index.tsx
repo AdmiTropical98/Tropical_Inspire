@@ -458,9 +458,9 @@ export default function Motoristas() {
                                     <div
                                         key={motorista.id}
                                         onClick={() => setSelectedDriver(motorista)}
-                                        className={`flex ${viewMode === 'grid' ? 'flex-col' : 'flex-row'} items-center ${viewMode === 'grid' ? 'justify-center' : 'justify-between'} p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl group hover:border-blue-500/20 transition-all hover:bg-slate-800/50 cursor-pointer hover:shadow-lg hover:shadow-blue-500/5`}
+                                        className={`flex ${viewMode === 'grid' ? 'flex-col justify-center' : 'flex-col md:flex-row justify-between'} items-center p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl group hover:border-blue-500/20 transition-all hover:bg-slate-800/50 cursor-pointer hover:shadow-lg hover:shadow-blue-500/5`}
                                     >
-                                        <div className={`flex items-center gap-4 ${viewMode === 'grid' ? 'flex-col text-center' : 'flex-1 min-w-0 mr-4'}`}>
+                                        <div className={`flex items-center gap-4 w-full ${viewMode === 'grid' ? 'flex-col text-center' : 'flex-row md:flex-1 min-w-0 mb-4 md:mb-0 md:mr-4'}`}>
                                             <div className="relative">
                                                 <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
                                                     {motorista.foto ? (
@@ -507,7 +507,7 @@ export default function Motoristas() {
                                         </div>
 
                                         {viewMode === 'list' && (
-                                            <div className="flex items-center gap-2 shrink-0">
+                                            <div className="flex w-full md:w-auto justify-between md:justify-end items-center gap-2 shrink-0">
                                                 {motorista.pin && (
                                                     <div className="hidden xl:flex items-center gap-2 mr-2 bg-slate-950/50 px-3 py-1.5 rounded-lg border border-slate-800/50">
                                                         <span className="font-mono text-xs text-slate-400">PIN:</span>

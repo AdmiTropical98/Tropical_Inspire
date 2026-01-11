@@ -631,7 +631,7 @@ export default function Requisicoes() {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3 self-end md:self-center">
+                                        <div className="flex flex-wrap justify-end items-center gap-3 self-end md:self-center">
                                             <button
                                                 onClick={() => generatePDF(req)}
                                                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-200 bg-blue-900/20 hover:bg-blue-800/30 border border-blue-500/20 rounded-xl transition-colors"
