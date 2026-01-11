@@ -251,7 +251,7 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 ignition: isIgnition,
                 driverName: item.drivers?.[0]?.first_name ? `${item.drivers[0].first_name} ${item.drivers[0].last_name}`.trim() : (item.driver_name || item.driver?.name || item.current_driver?.name),
                 driverId: item.drivers?.[0]?.driver_id || item.drivers?.[0]?.id || item.driver_id || item.driver?.id || item.current_driver_id || item.current_driver?.id,
-                tagId: item.drivers?.[0]?.tag_id || item.drivers?.[0]?.identification_tag_id || item.tag_id || item.current_tag_id || item.identification_tag_id
+                tagId: item.drivers?.[0]?.tag_id || item.drivers?.[0]?.identification_tag_id || item.drivers?.[0]?.driver_tag || item.tag_id || item.current_tag_id || item.identification_tag_id || item.driver_tag || item.tag
             };
         })
         .filter(v => v.latitude !== 0 && v.longitude !== 0);

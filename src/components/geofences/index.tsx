@@ -23,7 +23,7 @@ export default function Geofences() {
         else setLoading(true);
 
         setError(null);
-        const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
+        const normalizePlate = (p?: string | null) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
         try {
             const [geoData, vehiclesData] = await Promise.allSettled([
                 CartrackService.getGeofences(),
@@ -39,9 +39,13 @@ export default function Geofences() {
                 const rawVehicles = vehiclesData.value;
                 const enriched = rawVehicles.map((v: any) => {
                     let resolvedName = v.driverName;
-                    const isPlateName = !resolvedName || normalizePlate(resolvedName) === normalizePlate(v.registration);
 
-                    if (isPlateName && (v.driverId || v.tagId)) {
+                    const isProperName = (name?: string | null) => {
+                        if (!name || name === 'N/A' || name === 'Sem Motorista') return false;
+                        return normalizePlate(name) !== normalizePlate(v.registration);
+                    };
+
+                    if (!isProperName(resolvedName) && (v.driverId || v.tagId)) {
                         const cd = cDrivers.find(d =>
                             (v.driverId && String(d.id) === String(v.driverId)) ||
                             (v.tagId && d.tagId === v.tagId)
@@ -60,10 +64,12 @@ export default function Geofences() {
                     let displayName = 'Sem Motorista';
                     if (localM) {
                         displayName = localM.nome;
-                    } else if (!isPlateName && resolvedName) {
-                        displayName = resolvedName;
+                    } else if (isProperName(resolvedName)) {
+                        displayName = resolvedName!;
                     } else if (v.tagId) {
                         displayName = `Tag: ${v.tagId}`;
+                    } else if (v.driverId && String(v.driverId).length > 5) {
+                        displayName = `ID: ${v.driverId}`;
                     }
 
                     return { ...v, driverName: displayName };
