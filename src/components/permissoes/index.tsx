@@ -16,6 +16,15 @@ interface PermissionGroup {
 
 const PERMISSION_GROUPS: PermissionGroup[] = [
     {
+        id: 'geral',
+        labelKey: 'menu.general',
+        permissions: [
+            { id: 'dashboard', labelKey: 'menu.dashboard' },
+            { id: 'mensagens', labelKey: 'menu.messages' },
+            { id: 'geofences', labelKey: 'menu.geofences' }
+        ]
+    },
+    {
         id: 'requisicoes',
         labelKey: 'menu.requisitions',
         permissions: [
@@ -38,6 +47,11 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
         id: 'fornecedores',
         labelKey: 'menu.suppliers',
         permissions: [{ id: 'fornecedores', labelKey: 'menu.suppliers' }]
+    },
+    {
+        id: 'clientes',
+        labelKey: 'menu.clients',
+        permissions: [{ id: 'clientes', labelKey: 'menu.clients' }]
     },
     {
         id: 'equipa-oficina',
@@ -76,6 +90,23 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
             { id: 'combustivel', labelKey: 'menu.fuel' },
             { id: 'combustivel_calibrate', labelKey: 'fuel.entry.calibrate' },
             { id: 'combustivel_edit_history', labelKey: 'fuel.action.history' }
+        ]
+    },
+    {
+        id: 'admin_financas',
+        labelKey: 'menu.admin',
+        permissions: [
+            { id: 'contabilidade', labelKey: 'menu.accounting' },
+            { id: 'centros_custos', labelKey: 'menu.cost_centers' },
+            { id: 'relatorios', labelKey: 'menu.reports' }
+        ]
+    },
+    {
+        id: 'extras',
+        labelKey: 'menu.extras',
+        permissions: [
+            { id: 'central_motorista', labelKey: 'menu.driver_central' },
+            { id: 'plataformas_externas', labelKey: 'menu.external_platforms' }
         ]
     }
 ];
@@ -162,8 +193,8 @@ export default function Permissoes() {
                                             </td>
 
                                             {/* Role Toggles */}
-                                            {['supervisor', 'oficina', 'motorista'].map((role) => {
-                                                const isActive = permissions[role as any].includes(perm.id);
+                                            {(['supervisor', 'oficina', 'motorista'] as const).map((role) => {
+                                                const isActive = permissions[role].includes(perm.id);
                                                 const colorClass = role === 'supervisor' ? 'bg-purple-500' : role === 'oficina' ? 'bg-orange-500' : 'bg-emerald-500';
 
                                                 return (

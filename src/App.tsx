@@ -79,6 +79,7 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
       case 'overview':
+        if (!hasAccess(userRole, 'dashboard')) return <div className="p-8 text-center text-slate-500">Acesso negado ao Dashboard. Selecione outra opção no menu.</div>;
         return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
       case 'admin_users':
         return <UsersPage />;
@@ -133,11 +134,14 @@ function App() {
 
           <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
             {/* MAIN MENU */}
+              {/* MAIN MENU */}
             {/* Using basic role check or assumes 'dashboard' is mostly public/default */}
-            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} `}>
-              <LayoutDashboard className="w-5 h-5" />
-              <span className="font-medium">Dashboard</span>
-            </button>
+              {hasAccess(userRole, 'dashboard') && (
+                <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} `}>
+                  <LayoutDashboard className="w-5 h-5" />
+                  <span className="font-medium">Dashboard</span>
+                </button>
+              )}
 
             {hasAccess(userRole, 'central_motorista') && (
               <button onClick={() => setActiveTab('central-motorista')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'central-motorista' ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} `}>
@@ -151,10 +155,12 @@ function App() {
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Operações</p>
 
               {/* Geofences / Cartrack Integration - Moved to top for visibility */}
-              <button onClick={() => setActiveTab('geofences')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                <MapPin className="w-5 h-5" />
-                <span className="font-medium">Geofences</span>
-              </button>
+                {hasAccess(userRole, 'geofences') && (
+                  <button onClick={() => setActiveTab('geofences')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
+                    <MapPin className="w-5 h-5" />
+                    <span className="font-medium">Geofences</span>
+                  </button>
+                )}
 
               {hasAccess(userRole, 'escalas') && (
                 <button onClick={() => setActiveTab('escalas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'escalas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
@@ -286,10 +292,12 @@ function App() {
             {/* COMUNICAÇÃO */}
             <div className="pt-4 pb-2">
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Comunicação</p>
-              <button onClick={() => setActiveTab('mensagens')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                <MessageSquare className="w-5 h-5" />
-                <span className="font-medium">Mensagens</span>
-              </button>
+                {hasAccess(userRole, 'mensagens') && (
+                  <button onClick={() => setActiveTab('mensagens')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
+                    <MessageSquare className="w-5 h-5" />
+                    <span className="font-medium">Mensagens</span>
+                  </button>
+                )}
             </div>
           </nav>
 
@@ -321,10 +329,12 @@ function App() {
                 </button>
               </div>
               <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
-                <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <LayoutDashboard className="w-5 h-5" />
-                  <span className="font-medium">Dashboard</span>
-                </button>
+                  {hasAccess(userRole, 'dashboard') && (
+                    <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                      <LayoutDashboard className="w-5 h-5" />
+                      <span className="font-medium">Dashboard</span>
+                    </button>
+                  )}
 
                 {hasAccess(userRole, 'central_motorista') && (
                   <button onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'central-motorista' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -386,10 +396,12 @@ function App() {
                     </button>
                   )}
 
-                  <button onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                    <MapPin className="w-5 h-5" />
-                    <span className="font-medium">Geofences</span>
-                  </button>
+                    {hasAccess(userRole, 'geofences') && (
+                      <button onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                        <MapPin className="w-5 h-5" />
+                        <span className="font-medium">Geofences</span>
+                      </button>
+                    )}
                 </div>
 
                 {/* GESTÃO / ADMIN */}
@@ -464,10 +476,12 @@ function App() {
                 {/* COMUNICAÇÃO */}
                 <div className="pt-4 pb-2">
                   <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Comunicação</p>
-                  <button onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                    <MessageSquare className="w-5 h-5" />
-                    <span className="font-medium">Mensagens</span>
-                  </button>
+                    {hasAccess(userRole, 'mensagens') && (
+                      <button onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                        <MessageSquare className="w-5 h-5" />
+                        <span className="font-medium">Mensagens</span>
+                      </button>
+                    )}
                 </div>
 
                 <div className="pt-8 mt-auto pb-4">

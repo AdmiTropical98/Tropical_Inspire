@@ -16,7 +16,10 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'plataformas_externas' |
     'clientes' |
     'relatorios' |
-    'contabilidade';
+    'contabilidade' |
+    'dashboard' |
+    'mensagens' |
+    'geofences';
 
 export interface RolePermissions {
     supervisor: PermissionModule[];
@@ -46,7 +49,11 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'centros_custos',
         'plataformas_externas',
         'relatorios',
-        'contabilidade'
+        'relatorios',
+        'contabilidade',
+        'dashboard',
+        'mensagens',
+        'geofences'
     ],
     motorista: [
         'requisicoes', 'requisicoes_edit', 'requisicoes_delete', // Allow blocking if granted
@@ -59,7 +66,10 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'combustivel', 'combustivel_calibrate', 'combustivel_edit_history',
         'central_motorista',
         'centros_custos',
-        'plataformas_externas'
+        'plataformas_externas',
+        'dashboard',
+        'mensagens',
+        'geofences'
     ],
     oficina: [
         'viaturas',
@@ -69,7 +79,8 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'escalas', 'escalas_import', 'escalas_print', 'escalas_create', 'escalas_urgent', 'escalas_view_pending',
         'horas', 'hours_view_costs',
         'motoristas', 'fornecedores', 'equipa-oficina', 'plataformas_externas',
-        'supervisores', 'clientes', 'relatorios'
+        'supervisores', 'clientes', 'relatorios',
+        'dashboard', 'mensagens', 'geofences'
     ]
 };
 
