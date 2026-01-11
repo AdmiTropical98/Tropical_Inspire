@@ -153,33 +153,42 @@ const parseWKT = (wkt: string): { lat: number, lng: number }[] => {
 };
 
 const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
-    const items = Array.isArray(data) ? data : (data.data || data.rows || data.vehicles || []);
+    if (!data || !data.data) return [];
 
-    return items.map((item: any) => {
-        // Determine structure
-        const lastPos = item.last_pos || item.last_position || item;
-        const driver = item.driver || item.driver_details || {};
-        const identification = item.identification || item.identification_tag || {};
+    return data.data.map((item: any) => {
+        // Location mapping: Look for item.location (from /status), item.last_pos, or item root
+        const loc = item.location || item.last_pos || item.last_position || item;
+
+        // Driver Name Construction
+        let driverName = 'Sem Condutor';
+        if (item.driver) {
+            if (item.driver.first_name || item.driver.last_name) {
+                driverName = [item.driver.first_name, item.driver.last_name].filter(Boolean).join(' ');
+            } else if (item.driver.full_name) {
+                driverName = item.driver.full_name;
+            } else if (item.driver.name) {
+                driverName = item.driver.name;
+            }
+        }
 
         return {
-            id: String(item.id || item.vehicle_id),
-            registration: item.registration || item.placa || item.label || 'S/ Matricula',
-            label: item.label || item.registration || 'S/ Nome',
-            make: item.make || '',
-            model: item.model || '',
-            latitude: Number(lastPos.latitude || lastPos.lat || 0),
-            longitude: Number(lastPos.longitude || lastPos.lng || 0),
-            speed: Number(lastPos.speed || 0),
-            bearing: Number(lastPos.bearing || lastPos.course || 0),
-            last_activity: lastPos.last_activity || lastPos.timestamp || new Date().toISOString(),
-            ignition: lastPos.ignition === true || lastPos.ignition === 1,
-            odometer: Number(item.odometer || 0),
-            driverName: driver.full_name || driver.name || (driver.first_name ? `${driver.first_name} ${driver.last_name || ''}`.trim() : ''),
-            driverKey: driver.driver_id || driver.id || '',
-            tagId: item.tag_id || item.identification_tag_id || item.last_identification_tag_id || identification.tag_id || identification.id || item.tag,
-            last_position_update: lastPos.timestamp || lastPos.last_activity
+            id: String(item.vehicle_id || item.id),
+            registration: item.registration || item.name || 'Sem Matrícula',
+            // Use label if present, otherwise registration
+            label: item.vehicle_name || item.registration || 'Sem Nome',
+            status: item.ignition ? 'moving' : (item.idling ? 'idle' : 'stopped'),
+            latitude: Number(loc.latitude || loc.lat || 0),
+            longitude: Number(loc.longitude || loc.lng || 0),
+            speed: Number(item.speed || loc.speed || 0),
+            bearing: Number(item.bearing || loc.heading || loc.bearing || 0),
+            last_activity: item.event_ts || item.last_activity || new Date().toISOString(),
+            last_position_update: loc.updated || item.last_position_update || new Date().toISOString(),
+            address: loc.position_description || item.address || '',
+            driverName: driverName,
+            ignition: !!item.ignition,
+            tagId: item.last_identification_tag_id || '' // Mapeando a tag corretamente
         };
-    }); // Changed: Removed .filter(v => v.latitude !== 0) to debug if data exists but has 0 coords
+    });
 };
 
 // DEBUG VAR
@@ -217,34 +226,45 @@ export const CartrackService = {
     getVehicles: async (): Promise<CartrackVehicle[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            // Changed order: Prioritize /vehicles (standard) over specific activity/status endpoints
-            const endpoints = ['/vehicles', '/vehicles/activity', '/vehicles/status', '/stats'];
+            // FIXED: Prioritize /vehicles/status which contains 'location' object with coords
+            const endpoints = ['/vehicles/status', '/vehicles', '/vehicles/activity', '/stats'];
             let data = null;
 
             console.log('Fetching Cartrack Vehicles...');
 
             for (const ep of endpoints) {
                 try {
-                    console.log(`Trying endpoint: ${ep}`);
-                    const response = await fetch(`${BASE_URL}${ep}?per_page=100`, {
-                        method: 'GET',
-                        headers: { 'Authorization': `Basic ${auth}` },
+                    // Force higher limit to get all vehicles
+                    const separator = ep.includes('?') ? '&' : '?';
+                    const url = `${CARTRACK_API_URL}${ep}${separator}per_page=100`;
+                    console.log(`Trying endpoint: ${url}`);
+
+                    const response = await fetch(url, {
+                        headers: { 'Authorization': `Basic ${auth}` }
                     });
 
                     if (response.ok) {
                         data = await response.json();
-                        debugLastResponse = { endpoint: ep, status: response.status, data: data }; // DEBUG CAPTURE
-
-                        const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || data?.vehicles || []);
-                        console.log(`Endpoint ${ep} success. Items: ${items.length}`);
-                        if (items.length > 0) break;
+                        debugLastResponse = { endpoint: ep, status: response.status, data: data };
+                        // Validate if this endpoint actually returned useful data (e.g. has list)
+                        if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
+                            // Check if it has location data (heuristic)
+                            const firstItem = data.data[0];
+                            if (firstItem.location || firstItem.last_pos || firstItem.latitude) {
+                                console.log(`Endpoint ${ep} returned valid vehicle data with location candidates.`);
+                                break;
+                            } else {
+                                console.log(`Endpoint ${ep} returned data but missing location fields, trying next...`);
+                                // Don't break, try to find a better endpoint unless this is the only one
+                                // Specifically, /vehicles has no location, so we want to skip it if possible if /vehicles/status fails
+                            }
+                        }
                     } else {
-                        console.warn(`Endpoint ${ep} returned ${response.status}`);
                         debugLastResponse = { endpoint: ep, status: response.status, error: 'Not OK' };
+                        console.warn(`Endpoint ${ep} failed: ${response.status}`);
                     }
                 } catch (e) {
-                    console.warn(`Endpoint ${ep} failed:`, e);
-                    debugLastResponse = { endpoint: ep, error: String(e) };
+                    console.warn(`Error fetching ${ep}`, e);
                 }
             }
 
