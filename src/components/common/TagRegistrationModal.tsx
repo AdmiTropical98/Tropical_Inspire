@@ -13,6 +13,8 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
     const [status, setStatus] = useState<{ type: 'idle' | 'valid' | 'invalid' | 'taken', message?: string }>({ type: 'idle' });
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [hasSyncedAtLeastOnce, setHasSyncedAtLeastOnce] = useState(false);
 
     useEffect(() => {
         const input = tagInput.trim().toUpperCase();
@@ -29,11 +31,12 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
             const cleanedOfficial = cd.cleanedTagId || '';
 
             // Match exactly or if one is a significant part of the other
+            // OR if both produce the same core ID (cleaned)
             return rawOfficial === input ||
-                cleanedOfficial === cleanedInput ||
+                (cleanedInput && cleanedOfficial === cleanedInput) ||
                 (rawOfficial.includes(input) && input.length >= 6) ||
-                (input.includes(cleanedOfficial) && cleanedOfficial.length >= 6) ||
-                (input.includes(rawOfficial) && rawOfficial.length >= 6);
+                (cleanedOfficial && input.includes(cleanedOfficial) && cleanedOfficial.length >= 6) ||
+                (rawOfficial && input.includes(rawOfficial) && rawOfficial.length >= 6);
         });
 
         if (!match) {
@@ -46,7 +49,7 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
         const isTaken = motoristas.some(m => {
             const mKey = (m as any).cartrackKey || (m as any).cartrack_key;
             const mCleaned = cleanTagId(mKey);
-            return mCleaned === cleanedOfficialMatch;
+            return mCleaned && mCleaned === cleanedOfficialMatch;
         });
 
         if (isTaken) {
@@ -56,8 +59,22 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
         }
     }, [tagInput, cartrackDrivers, motoristas]);
 
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        setError(null);
+        try {
+            await refreshData();
+            setHasSyncedAtLeastOnce(true);
+        } catch (e) {
+            setError('Falha ao sincronizar dados da Cartrack.');
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        // Allow save if valid OR if the user manually forces it (if we decide to allow it)
         if (status.type !== 'valid') return;
 
         setIsSaving(true);
@@ -68,11 +85,12 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
             const match = cartrackDrivers.find(cd => {
                 const rawOfficial = (cd.tagId || '').toUpperCase();
                 const cleanedOfficial = cd.cleanedTagId || '';
+                const cleanedInput = cleanTagId(input);
                 return rawOfficial === input ||
-                    cleanedOfficial === cleanTagId(input) ||
+                    (cleanedInput && cleanedOfficial === cleanedInput) ||
                     (rawOfficial.includes(input) && input.length >= 6) ||
-                    (input.includes(cleanedOfficial) && cleanedOfficial.length >= 6) ||
-                    (input.includes(rawOfficial) && rawOfficial.length >= 6);
+                    (cleanedOfficial && input.includes(cleanedOfficial) && cleanedOfficial.length >= 6) ||
+                    (rawOfficial && input.includes(rawOfficial) && rawOfficial.length >= 6);
             });
 
             await onSave(match?.tagId || tagInput.trim());
@@ -104,7 +122,7 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
                                     type="text"
                                     value={tagInput}
                                     onChange={(e) => setTagInput(e.target.value)}
-                                    placeholder="Ex: 1A7F485"
+                                    placeholder="Ex: 3D000001..."
                                     className={`w-full bg-slate-950 border rounded-2xl px-6 py-5 text-white text-xl font-mono focus:outline-none transition-all placeholder:text-slate-800 ${status.type === 'valid' ? 'border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20' :
                                         status.type === 'idle' ? 'border-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' :
                                             'border-red-500/50 focus:ring-2 focus:ring-red-500/20'
@@ -141,31 +159,48 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
                             </div>
                         )}
 
-                        {error && (
-                            <div className="space-y-3">
+                        <div className="space-y-3">
+                            {error && (
                                 <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 animate-in shake duration-300">
                                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                     <p className="text-sm font-medium">{error}</p>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => refreshData()}
-                                    className="w-full text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold tracking-widest transition-colors"
-                                >
-                                    Sincronizar com a Cartrack agora
-                                </button>
-                            </div>
-                        )}
+                            )}
 
-                        {status.type === 'invalid' && !error && (
                             <button
                                 type="button"
-                                onClick={() => refreshData()}
-                                className="w-full py-2 text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold tracking-widest transition-colors mb-2"
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                className="w-full py-2 text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold tracking-widest transition-colors disabled:opacity-50"
                             >
-                                Não encontras a tua tag? Tenta Sincronizar
+                                {isRefreshing ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <div className="w-3 h-3 border-2 border-slate-500 border-t-white rounded-full animate-spin"></div>
+                                        Sincronizando com Cartrack...
+                                    </span>
+                                ) : (
+                                    'Não encontras a tua tag? Tenta Sincronizar'
+                                )}
                             </button>
-                        )}
+
+                            {status.type === 'invalid' && !isRefreshing && tagInput.length >= 8 && (
+                                <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                                    <p className="text-[10px] text-blue-400/80 leading-relaxed text-center font-medium italic">
+                                        Dica: A sincronização pode demorar alguns segundos. Se acabaste de receber a tag na Cartrack, aguarda um momento.
+                                    </p>
+                                </div>
+                            )}
+
+                            {status.type === 'invalid' && hasSyncedAtLeastOnce && /^[0-9A-F]{14,16}$/i.test(tagInput.trim()) && (
+                                <button
+                                    type="button"
+                                    onClick={() => setStatus({ type: 'valid', message: 'Validado Manualmente (Confirmada)' })}
+                                    className="w-full py-4 rounded-2xl border border-dashed border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/5 transition-all mt-2 animate-in fade-in slide-in-from-top-2"
+                                >
+                                    Minha Tag está correta (Forçar)
+                                </button>
+                            )}
+                        </div>
 
                         <button
                             type="submit"

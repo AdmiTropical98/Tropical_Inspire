@@ -66,12 +66,18 @@ export const cleanTagId = (rawTagId?: string | null): string | undefined => {
     tag = tag.replace(/^0+/, '');
 
     // 3. Handle 16-char hex IDs common in Cartrack (e.g. 3D000001A8A3ED01)
-    if (tag.length >= 14) {
-        // Pattern: [Prefix] + Zeros + [Body] + [Suffix]
-        // Often starts with XX000001 and ends with 01
-        const match = tag.match(/^[0-9A-F]{2}000001([0-9A-F]+)([0-9A-F]{2})$/);
-        if (match) {
-            return match[1]; // The core ID
+    if (tag.length >= 12) {
+        // Pattern: [Start] + [Zeros/Padding] + [Body] + [Ending]
+        // Very common: starts with 3D or similar, has a bunch of zeros, then the ID, then 01 or similar.
+        // Let's try to find the "middle" part if there are at least 3 zeros in a row.
+        const midMatch = tag.match(/[0-9A-F]{2}0+([0-9A-F]{4,10})[0-9A-F]{2}$/);
+        if (midMatch) {
+            return midMatch[1];
+        }
+
+        // Alternative: just take the central 6-8 characters if it's very long
+        if (tag.length >= 14) {
+            return tag.substring(tag.length - 10, tag.length - 2).replace(/^0+/, '');
         }
     }
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao } from '../types';
-import { CartrackService, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
+import { CartrackService, cleanTagId, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
@@ -294,7 +294,29 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 setMotoristas(updatedMotoristas);
                 setCartrackVehicles(enrichedVehicles);
-                setCartrackDrivers(cDrivers);
+
+                // FINAL SAFETY: Merge tags found in vehicles into the drivers list
+                // This handles cases where a tag is known to the system (swiped in a car) 
+                // but not explicitly linked to a "Driver" object in the API
+                const finalDrivers = [...cDrivers];
+                const existingDriverTags = new Set(cDrivers.map(d => d.tagId?.toUpperCase()).filter(Boolean));
+
+                cVehicles.forEach(v => {
+                    if (v.tagId && !existingDriverTags.has(v.tagId.toUpperCase())) {
+                        const cleanTag = v.tagId.toUpperCase();
+                        finalDrivers.push({
+                            id: `vehicle-tag-${cleanTag}`,
+                            firstName: 'Motorista',
+                            lastName: 'Viatura',
+                            fullName: `Motorista (Tag ${cleanTag.slice(-6)})`,
+                            tagId: cleanTag,
+                            cleanedTagId: cleanTagId(cleanTag)
+                        } as any);
+                        existingDriverTags.add(cleanTag);
+                    }
+                });
+
+                setCartrackDrivers(finalDrivers);
             } else {
                 setCartrackVehicles(cVehicles);
                 setCartrackDrivers(cDrivers);
