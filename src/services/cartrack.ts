@@ -174,9 +174,9 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
             last_activity: lastPos.last_activity || lastPos.timestamp || new Date().toISOString(),
             ignition: lastPos.ignition === true || lastPos.ignition === 1,
             odometer: Number(item.odometer || 0),
-            driverName: driver.full_name || driver.name || '',
+            driverName: driver.full_name || driver.name || (driver.first_name ? `${driver.first_name} ${driver.last_name || ''}`.trim() : ''),
             driverKey: driver.driver_id || driver.id || '',
-            tagId: item.tag_id || item.identification_tag_id || identification.tag_id || identification.id || item.tag,
+            tagId: item.tag_id || item.identification_tag_id || item.last_identification_tag_id || identification.tag_id || identification.id || item.tag,
             last_position_update: lastPos.timestamp || lastPos.last_activity
         };
     }); // Changed: Removed .filter(v => v.latitude !== 0) to debug if data exists but has 0 coords
