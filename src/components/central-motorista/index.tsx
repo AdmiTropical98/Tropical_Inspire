@@ -12,6 +12,7 @@ import DraggableZone from '../common/DraggableZone';
 import { useLayout } from '../../contexts/LayoutContext';
 import NavigationApp from './NavigationApp';
 import TagRegistrationModal from '../common/TagRegistrationModal';
+import { supabase } from '../../lib/supabase';
 
 
 
@@ -84,11 +85,14 @@ export default function CentralMotorista() {
     const handleTagSave = async (tagId: string) => {
         try {
             if (currentUser && userRole === 'motorista') {
-                const updatedDriver = {
-                    ...currentUser as any,
-                    cartrackKey: tagId
-                };
-                await updateMotorista(updatedDriver);
+                // Direct update to prevent overwriting other fields with potentially incomplete local state
+                const { error } = await supabase
+                    .from('motoristas')
+                    .update({ cartrack_key: tagId })
+                    .eq('id', currentUser.id);
+
+                if (error) throw error;
+
                 await refreshCurrentUser();
                 setShowTagModal(false);
                 // AuthContext updated, reload ensures everything (like WorkshopContext) is fresh
