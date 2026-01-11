@@ -21,6 +21,7 @@ interface WorkshopContextType {
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
     cartrackDrivers: import('../services/cartrack').CartrackDriver[];
+    cartrackError: string | null;
     // Fuel
     fuelTank: FuelTank;
     fuelTransactions: FuelTransaction[];
@@ -90,6 +91,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [geofenceVisits, setGeofenceVisits] = useState<CartrackGeofenceVisit[]>([]); // NEW
     const [cartrackVehicles, setCartrackVehicles] = useState<import('../services/cartrack').CartrackVehicle[]>([]);
     const [cartrackDrivers, setCartrackDrivers] = useState<import('../services/cartrack').CartrackDriver[]>([]);
+    const [cartrackError, setCartrackError] = useState<string | null>(null);
 
 
 
@@ -135,6 +137,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const refreshData = async () => {
         try {
+            setCartrackError(null);
             // 1. Core Data
             const { data: f } = await supabase.from('fornecedores').select('*');
             if (f) setFornecedores(f);
@@ -225,7 +228,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     else console.warn('Cartrack Drivers fetch failed:', driversResult.reason);
 
                     if (vehiclesResult.status === 'fulfilled') cVehicles = vehiclesResult.value;
-                    else console.warn('Cartrack Vehicles fetch failed:', vehiclesResult.reason);
+                    else {
+                        console.warn('Cartrack Vehicles fetch failed:', vehiclesResult.reason);
+                        setCartrackError(`Falha na Cartrack: ${vehiclesResult.reason?.message || 'Erro de conexão'}`);
+                    }
 
                     // If Cartrack succeeded, perform enrichment
                     if (cDrivers && cVehicles) {
@@ -1231,6 +1237,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 deleteServico,
                 avaliacoes,
                 cartrackVehicles,
+                cartrackDrivers,
+                cartrackError,
                 geofences,
                 geofenceVisits,
                 refreshData,

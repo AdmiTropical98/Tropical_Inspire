@@ -5,7 +5,7 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { CartrackService } from '../../services/cartrack';
 
 export default function Geofences() {
-    const { geofenceVisits, refreshData, motoristas } = useWorkshop();
+    const { geofenceVisits, refreshData, motoristas, cartrackError } = useWorkshop();
 
     const [geofences, setGeofences] = useState<any[]>([]);
     const [vehicles, setVehicles] = useState<any[]>([]);
@@ -14,7 +14,7 @@ export default function Geofences() {
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // Error handled by context
     const [searchTerm, setSearchTerm] = useState('');
     const refreshInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -84,7 +84,7 @@ export default function Geofences() {
 
         } catch (err) {
             console.error(err);
-            setError(err instanceof Error ? err.message : 'Falha ao comunicar com a Cartrack.');
+            // setError(err instanceof Error ? err.message : 'Falha ao comunicar com a Cartrack.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -164,10 +164,13 @@ export default function Geofences() {
                 </div>
             </div>
 
-            {error && (
-                <div className="mx-4 p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-4 text-red-500">
+            {cartrackError && (
+                <div className="mx-4 p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-4 text-red-500 animate-pulse">
                     <AlertCircle className="w-6 h-6" />
-                    <p className="font-black text-xs uppercase tracking-widest">{error}</p>
+                    <div>
+                        <p className="font-black text-xs uppercase tracking-widest">ERRO DE CONEXÃO CARTRACK</p>
+                        <p className="text-xs font-mono mt-1 opacity-70">{cartrackError}</p>
+                    </div>
                 </div>
             )}
 
@@ -303,15 +306,15 @@ export default function Geofences() {
                                             </td>
                                             <td className="px-8 py-6 bg-black/30 border-y border-white/5 group-hover:bg-blue-600/10 transition-colors">
                                                 <div className="flex flex-col">
-                                                    <span className="text-emerald-400 font-mono text-base font-black">{visit.enterTimestamp.split(' ')[1]}</span>
-                                                    <span className="text-[9px] text-slate-700 font-bold uppercase mt-1">{visit.enterTimestamp.split(' ')[0]}</span>
+                                                    <span className="text-emerald-400 font-mono text-base font-black">{visit.entryTime.split(' ')[1]}</span>
+                                                    <span className="text-[9px] text-slate-700 font-bold uppercase mt-1">{visit.entryTime.split(' ')[0]}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 bg-black/30 border-y border-white/5 group-hover:bg-blue-600/10 transition-colors">
-                                                {visit.exitTimestamp ? (
+                                                {visit.exitTime ? (
                                                     <div className="flex flex-col opacity-40">
-                                                        <span className="text-slate-400 font-mono text-base font-black">{visit.exitTimestamp.split(' ')[1]}</span>
-                                                        <span className="text-[9px] text-slate-800 font-bold uppercase mt-1">{visit.exitTimestamp.split(' ')[0]}</span>
+                                                        <span className="text-slate-400 font-mono text-base font-black">{visit.exitTime.split(' ')[1]}</span>
+                                                        <span className="text-[9px] text-slate-800 font-bold uppercase mt-1">{visit.exitTime.split(' ')[0]}</span>
                                                     </div>
                                                 ) : (
                                                     <span className="px-3 py-1 bg-blue-600 text-white text-[9px] font-black rounded-lg uppercase tracking-widest shadow-[0_0_15px_rgba(37,99,235,0.4)]">No Local</span>
