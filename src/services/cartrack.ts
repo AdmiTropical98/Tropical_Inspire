@@ -65,14 +65,14 @@ export const cleanTagId = (rawTagId?: string | null): string | undefined => {
     // 2. Remove leading zeros
     tag = tag.replace(/^0+/, '');
 
-    // 3. Handle specific Cartrack format like F300001A7F48501 -> 1A7F485
-    // Most physical tags have 7 or 8 hex chars. 
-    // If the tag is long (e.g. 15-16 chars), we check for the common prefix/suffix
-    if (tag.length >= 14 && (tag.startsWith('F3') || tag.startsWith('1B') || tag.startsWith('20'))) {
-        // Try to extract center part if it looks like a hex block
-        // This is a bit heuristic but based on the user's image pattern
-        // where tags like F300001A7F48501 seem to contain the ID in the middle.
-        // For now, let's keep it simple and just do the base cleaning unless we are sure.
+    // 3. Handle 16-char hex IDs common in Cartrack (e.g. 3D000001A8A3ED01)
+    if (tag.length >= 14) {
+        // Pattern: [Prefix] + Zeros + [Body] + [Suffix]
+        // Often starts with XX000001 and ends with 01
+        const match = tag.match(/^[0-9A-F]{2}000001([0-9A-F]+)([0-9A-F]{2})$/);
+        if (match) {
+            return match[1]; // The core ID
+        }
     }
 
     return tag || undefined;
@@ -175,17 +175,40 @@ export const CartrackService = {
     getDrivers: async (): Promise<CartrackDriver[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            const response = await fetch(`${BASE_URL}/drivers?per_page=100`, {
-                method: 'GET',
-                headers: { 'Authorization': `Basic ${auth}` },
-            });
+            let allDrivers: any[] = [];
+            let page = 1;
+            let totalPages = 1;
 
-            if (!response.ok) return [];
+            do {
+                const response = await fetch(`${BASE_URL}/drivers?per_page=100&page=${page}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Basic ${auth}` },
+                });
 
-            const result = await response.json();
-            const items = result.data || result.rows || result || [];
+                if (!response.ok) break;
 
-            return items.map((item: any) => {
+                const result = await response.json();
+                const items = result.data || result.rows || result || [];
+
+                // Add items to the list
+                if (Array.isArray(items)) {
+                    allDrivers = [...allDrivers, ...items];
+                }
+
+                // Check for pagination info
+                if (result.meta?.pagination?.total_pages) {
+                    totalPages = result.meta.pagination.total_pages;
+                } else if (items.length === 100) {
+                    // Heuristic: if we got exactly 100, try next page
+                    totalPages = page + 1;
+                } else {
+                    totalPages = page;
+                }
+
+                page++;
+            } while (page <= totalPages && page < 10); // Safety limit 1000 drivers
+
+            return allDrivers.map((item: any) => {
                 const rawTag = item.tag_id || item.identification_tag_id;
                 return {
                     id: String(item.id),

@@ -27,10 +27,13 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
         const match = cartrackDrivers.find(cd => {
             const rawOfficial = (cd.tagId || '').toUpperCase();
             const cleanedOfficial = cd.cleanedTagId || '';
-            // Match exactly or if official contains the input (for shorter key numbers)
+
+            // Match exactly or if one is a significant part of the other
             return rawOfficial === input ||
                 cleanedOfficial === cleanedInput ||
-                (rawOfficial.includes(input) && input.length >= 6);
+                (rawOfficial.includes(input) && input.length >= 6) ||
+                (input.includes(cleanedOfficial) && cleanedOfficial.length >= 6) ||
+                (input.includes(rawOfficial) && rawOfficial.length >= 6);
         });
 
         if (!match) {
@@ -64,9 +67,12 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
             const input = tagInput.trim().toUpperCase();
             const match = cartrackDrivers.find(cd => {
                 const rawOfficial = (cd.tagId || '').toUpperCase();
+                const cleanedOfficial = cd.cleanedTagId || '';
                 return rawOfficial === input ||
-                    (cd.cleanedTagId === cleanTagId(input)) ||
-                    (rawOfficial.includes(input) && input.length >= 6);
+                    cleanedOfficial === cleanTagId(input) ||
+                    (rawOfficial.includes(input) && input.length >= 6) ||
+                    (input.includes(cleanedOfficial) && cleanedOfficial.length >= 6) ||
+                    (input.includes(rawOfficial) && rawOfficial.length >= 6);
             });
 
             await onSave(match?.tagId || tagInput.trim());
