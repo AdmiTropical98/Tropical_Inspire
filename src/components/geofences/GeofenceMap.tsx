@@ -19,6 +19,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 interface GeofenceMapProps {
     geofences: CartrackGeofence[];
     vehicles?: CartrackVehicle[];
+    selectedVehicle?: CartrackVehicle | null;
 }
 
 // Custom icon for car with rotation and license plate label
@@ -153,7 +154,24 @@ function MapResizer() {
     return null;
 }
 
-export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapProps) {
+// Component to focus on a specific vehicle
+function MapFocus({ vehicle }: { vehicle: CartrackVehicle | null }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (vehicle && vehicle.latitude && vehicle.longitude) {
+            console.log('Map: Focusing on vehicle', vehicle.registration);
+            map.setView([vehicle.latitude, vehicle.longitude], 18, {
+                animate: true,
+                duration: 1.5
+            });
+        }
+    }, [vehicle, map]);
+
+    return null;
+}
+
+export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle = null }: GeofenceMapProps) {
     const [center] = useState<[number, number]>([38.7223, -9.1393]); // Lisbon default
 
     return (
@@ -166,6 +184,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
             >
                 <MapResizer />
                 <AutoFitBounds geofences={geofences} vehicles={vehicles} />
+                <MapFocus vehicle={selectedVehicle} />
 
                 {/* High Contrast Professional Tile Layer (Voyager) */}
                 <TileLayer

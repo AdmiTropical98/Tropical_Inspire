@@ -10,6 +10,7 @@ export default function Geofences() {
     const [geofences, setGeofences] = useState<any[]>([]);
     const [vehicles, setVehicles] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState<'map' | 'history'>('map');
+    const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -93,6 +94,7 @@ export default function Geofences() {
 
     const handleRefresh = async () => {
         setRefreshing(true);
+        setSelectedVehicle(null);
         await Promise.all([fetchData(true), refreshData()]);
         setRefreshing(false);
     };
@@ -101,6 +103,14 @@ export default function Geofences() {
         visit.registration.toLowerCase().includes(searchTerm.toLowerCase()) ||
         visit.geofenceName.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const enrichedVisits = filteredVisits.map(visit => {
+        const matchingVehicle = vehicles.find(v => v.registration === visit.registration);
+        return {
+            ...visit,
+            driverName: matchingVehicle?.driverName || 'N/A'
+        };
+    });
 
     return (
         <div className="p-4 md:p-8 w-full mx-auto space-y-6 min-h-screen bg-[#0a0a0f]">
@@ -169,11 +179,23 @@ export default function Geofences() {
                         {/* THE SCROLLABLE LIST - FORCED CUSTOM SCROLLBAR */}
                         <div className="flex-1 overflow-y-scroll p-4 space-y-2 bg-[#0a0a0f] custom-scrollbar-forced">
                             {vehicles.sort((a, b) => a.registration.localeCompare(b.registration)).map(vehicle => (
-                                <div key={vehicle.id} className="p-4 bg-[#161625] rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all cursor-pointer group hover:bg-[#1a1a2e]">
+                                <div
+                                    key={vehicle.id}
+                                    onClick={() => setSelectedVehicle(vehicle)}
+                                    className={`p-4 rounded-2xl border transition-all cursor-pointer group hover:bg-[#1a1a2e] ${selectedVehicle?.id === vehicle.id
+                                        ? 'bg-blue-600/20 border-blue-500'
+                                        : 'bg-[#161625] border-white/5 hover:border-blue-500/30'
+                                        }`}
+                                >
                                     <div className="flex justify-between items-center">
                                         <div className="min-w-0">
                                             <div className="font-mono font-black text-xl text-white group-hover:text-blue-400 transition-colors uppercase leading-none tracking-tighter">{vehicle.registration}</div>
-                                            <p className="text-[9px] text-slate-500 font-black uppercase truncate mt-2 tracking-widest">{vehicle.driverName || 'Sem Motorista'}</p>
+                                            <div className="flex items-center gap-1.5 mt-2">
+                                                <div className="p-1 bg-slate-800 rounded text-slate-400 group-hover:text-blue-400 transition-colors">
+                                                    <Car className="w-2.5 h-2.5" />
+                                                </div>
+                                                <p className="text-[10px] text-white font-black uppercase truncate tracking-widest">{vehicle.driverName || 'Sem Motorista'}</p>
+                                            </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
                                             <div className={`text-[8px] font-black px-2 py-0.5 rounded-md ${vehicle.status === 'moving' ? 'bg-green-500/10 text-green-400' :
@@ -194,7 +216,7 @@ export default function Geofences() {
 
                     {/* MAP SECTION - FULL WIDTH STRETCH */}
                     <div className="flex-1 bg-[#161625] rounded-[40px] border border-white/5 p-2 shadow-2xl relative overflow-hidden group">
-                        <GeofenceMap geofences={geofences} vehicles={vehicles} />
+                        <GeofenceMap geofences={geofences} vehicles={vehicles} selectedVehicle={selectedVehicle} />
 
                         {/* Floating Status */}
                         <div className="absolute top-6 right-6 z-[1000] flex gap-3">
@@ -238,6 +260,7 @@ export default function Geofences() {
                                 <thead>
                                     <tr>
                                         <th className="px-8 py-4 text-slate-700 font-black text-[9px] uppercase tracking-[0.3em]">Viatura</th>
+                                        <th className="px-8 py-4 text-slate-700 font-black text-[9px] uppercase tracking-[0.3em]">Motorista</th>
                                         <th className="px-8 py-4 text-slate-700 font-black text-[9px] uppercase tracking-[0.3em]">Zona / Geofence</th>
                                         <th className="px-8 py-4 text-slate-700 font-black text-[9px] uppercase tracking-[0.3em]">Entrada</th>
                                         <th className="px-8 py-4 text-slate-700 font-black text-[9px] uppercase tracking-[0.3em]">Saída</th>
@@ -245,7 +268,7 @@ export default function Geofences() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredVisits.map(visit => (
+                                    {enrichedVisits.map(visit => (
                                         <tr key={visit.id} className="group transition-all">
                                             <td className="px-8 py-6 bg-black/30 rounded-l-3xl border-y border-l border-white/5 group-hover:bg-blue-600/10 transition-colors">
                                                 <div className="flex items-center gap-4">
@@ -254,6 +277,9 @@ export default function Geofences() {
                                                     </div>
                                                     <span className="font-mono font-black text-white text-xl uppercase tracking-tighter">{visit.registration}</span>
                                                 </div>
+                                            </td>
+                                            <td className="px-8 py-6 bg-black/30 border-y border-white/5 group-hover:bg-blue-600/10 transition-colors">
+                                                <span className="text-white font-black text-xs uppercase tracking-widest">{visit.driverName}</span>
                                             </td>
                                             <td className="px-8 py-6 bg-black/30 border-y border-white/5 group-hover:bg-blue-600/10 transition-colors">
                                                 <div className="flex items-center gap-3 text-white font-bold">
