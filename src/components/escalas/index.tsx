@@ -404,21 +404,24 @@ export default function Escalas() {
                 />
 
                 {/* Left: Date & Stats */}
-                <div className="flex flex-row items-center justify-between md:justify-start gap-2 md:gap-8 w-full md:w-auto">
-                    <div className="flex flex-col shrink-0">
-                        <div className="flex items-center gap-1.5 text-blue-400 mb-0.5">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">Hoje</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between md:justify-start gap-4 w-full md:w-auto">
+                    <div className="flex flex-col shrink-0 w-full sm:w-auto">
+                        <div className="flex items-center justify-between sm:justify-start gap-1.5 text-blue-400 mb-0.5">
+                            <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Hoje</span>
+                            </div>
+                            {/* Mobile-only date next to label if needed, or keep standard */}
                         </div>
-                        <h2 className="text-sm md:text-lg font-bold text-white capitalize leading-none truncate max-w-[140px] md:max-w-none">
-                            {new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        <h2 className="text-lg font-bold text-white capitalize leading-none truncate w-full sm:max-w-none">
+                            {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'short' })}
                         </h2>
                     </div>
 
                     <div className="hidden md:block h-10 w-px bg-white/10" />
 
                     {/* Stats */}
-                    <div className="flex items-center justify-end gap-3 md:gap-6 flex-1 md:flex-none">
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-4 md:gap-6 border-t border-white/5 pt-2 sm:border-0 sm:pt-0">
                         <div className="flex flex-col items-center">
                             <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Serviços</span>
                             <span className="text-sm md:text-lg font-bold text-white leading-tight">{totalServices}</span>

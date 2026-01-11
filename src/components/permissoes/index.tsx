@@ -162,8 +162,74 @@ export default function Permissoes() {
                 </div>
             </div>
 
-            {/* Matrix View */}
-            <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+            {/* Mobile View (Cards) */}
+            <div className="md:hidden space-y-6">
+                {PERMISSION_GROUPS.map((group) => {
+                    const GroupIcon = group.icon;
+                    return (
+                        <div key={group.id} className="bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl overflow-hidden p-4">
+                            {/* Group Header */}
+                            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/5">
+                                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                                    <GroupIcon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white text-lg">{t(group.labelKey)}</h3>
+                                    {group.descriptionKey && <p className="text-xs text-slate-400">{t(group.descriptionKey)}</p>}
+                                </div>
+                            </div>
+
+                            {/* Permissions List */}
+                            <div className="space-y-6">
+                                {group.permissions.map((perm) => (
+                                    <div key={perm.id} className="space-y-3">
+                                        <div>
+                                            <div className="font-medium text-slate-200">{t(perm.labelKey)}</div>
+                                            {perm.descriptionKey && <div className="text-xs text-slate-500">{t(perm.descriptionKey)}</div>}
+                                        </div>
+
+                                        {/* Toggles Grid */}
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {(['supervisor', 'oficina', 'motorista'] as const).map((role) => {
+                                                const isActive = permissions[role].includes(perm.id);
+                                                const roleLabel = role === 'supervisor' ? 'Sup' : role === 'oficina' ? 'Ofc' : 'Mot';
+
+                                                const colorClass = role === 'supervisor' ? 'bg-purple-500'
+                                                    : role === 'oficina' ? 'bg-orange-500'
+                                                        : 'bg-emerald-500';
+
+                                                return (
+                                                    <div key={`${role}-${perm.id}`} className="flex flex-col items-center gap-2 bg-slate-900/50 p-2 rounded-lg border border-white/5">
+                                                        <span className={`text-[10px] font-bold uppercase ${role === 'supervisor' ? 'text-purple-400' :
+                                                                role === 'oficina' ? 'text-orange-400' :
+                                                                    'text-emerald-400'
+                                                            }`}>
+                                                            {roleLabel}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => togglePermission(role, perm.id)}
+                                                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-all duration-200 focus:outline-none ${isActive ? colorClass : 'bg-slate-700'
+                                                                }`}
+                                                        >
+                                                            <span
+                                                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${isActive ? 'translate-x-5' : 'translate-x-0.5'
+                                                                    }`}
+                                                            />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Desktop View (Table) */}
+            <div className="hidden md:block bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
