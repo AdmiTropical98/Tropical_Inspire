@@ -24,23 +24,19 @@ export default function Geofences() {
         setError(null);
         const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
         try {
-            // Fetch both in parallel
             const [geoData, vehiclesData] = await Promise.allSettled([
                 CartrackService.getGeofences(),
                 CartrackService.getVehicles()
             ]);
 
-            // Handle Geofences
             if (geoData.status === 'fulfilled') {
                 setGeofences(geoData.value);
             }
 
-            // Handle Vehicles
             if (vehiclesData.status === 'fulfilled') {
                 const cDrivers = (await CartrackService.getDrivers()) || [];
                 const rawVehicles = vehiclesData.value;
                 const enriched = rawVehicles.map((v: any) => {
-                    // 1. Fallback to cDrivers list if name missing in status
                     let resolvedName = v.driverName;
                     const isPlateName = !resolvedName || normalizePlate(resolvedName) === normalizePlate(v.registration);
 
@@ -50,12 +46,10 @@ export default function Geofences() {
                             (v.tagId && d.tagId === v.tagId)
                         );
                         if (cd) {
-                            console.log(`Geofences: Found driver match for ${v.registration}: ${cd.fullName}`);
                             resolvedName = cd.fullName;
                         }
                     }
 
-                    // 2. Try to find matching motorista from context (enriched in refreshData)
                     const localM = motoristas.find(m =>
                         (m.cartrackId && String(m.cartrackId) === String(v.driverId)) ||
                         (m.cartrackKey && v.tagId && m.cartrackKey === v.tagId) ||
@@ -71,14 +65,7 @@ export default function Geofences() {
                         displayName = `Tag: ${v.tagId}`;
                     }
 
-                    if (v.registration.includes('ZZ')) {
-                        console.log('Geofences Debug ZZ:', { reg: v.registration, driverId: v.driverId, tagId: v.tagId, resolvedName, displayName });
-                    }
-
-                    return {
-                        ...v,
-                        driverName: displayName
-                    };
+                    return { ...v, driverName: displayName };
                 });
                 setVehicles(enriched);
             }
@@ -98,7 +85,6 @@ export default function Geofences() {
 
     useEffect(() => {
         fetchData();
-        // Auto-refresh vehicles every 30 seconds
         refreshInterval.current = setInterval(() => fetchData(true), 30000);
         return () => {
             if (refreshInterval.current) clearInterval(refreshInterval.current);
@@ -117,29 +103,31 @@ export default function Geofences() {
     );
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto space-y-8">
+        <div className="p-8 max-w-[1700px] mx-auto space-y-8 min-h-screen">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                        <MapPin className="w-8 h-8 text-blue-500" />
+                    <h1 className="text-3xl font-black text-white flex items-center gap-3 tracking-tight">
+                        <div className="p-2 bg-blue-600 rounded-2xl shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                            <MapPin className="w-6 h-6 text-white" />
+                        </div>
                         Frota em Tempo Real
                     </h1>
-                    <p className="text-slate-400 mt-1">Monitorização de viaturas e geofences via Cartrack.</p>
+                    <p className="text-slate-500 font-bold mt-1 text-sm uppercase tracking-widest">Controlo Logístico Integrado</p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 mr-2">
+                    <div className="flex bg-[#1e1e2d] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
                         <button
                             onClick={() => setActiveTab('map')}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                            className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 uppercase tracking-widest ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                         >
                             <Layers className="w-4 h-4" />
                             Mapa
                         </button>
                         <button
                             onClick={() => setActiveTab('history')}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'history' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                            className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 uppercase tracking-widest ${activeTab === 'history' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                         >
                             <History className="w-4 h-4" />
                             Histórico
@@ -149,138 +137,88 @@ export default function Geofences() {
                     <button
                         onClick={handleRefresh}
                         disabled={loading || refreshing}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors border border-slate-700 disabled:opacity-50"
+                        className="flex items-center gap-2 px-6 py-3 bg-[#1e1e2d] text-white rounded-2xl hover:bg-slate-800 transition-all border border-white/10 disabled:opacity-50 font-black text-xs uppercase tracking-widest shadow-xl"
                     >
                         <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                        <span>{refreshing ? 'A atualizar...' : 'Atualizar'}</span>
+                        <span>{refreshing ? 'Sincronizar...' : 'Atualizar'}</span>
                     </button>
                 </div>
             </div>
 
             {error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500">
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500 animate-pulse">
                     <AlertCircle className="w-5 h-5" />
-                    <p>{error}</p>
+                    <p className="font-bold text-sm tracking-tight">{error}</p>
                 </div>
             )}
 
-            {/* Content Display */}
             {activeTab === 'map' ? (
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full bg-slate-950/20 p-2 rounded-[40px]">
-                    {/* Sidebar / List Section */}
-                    <div className="xl:col-span-3 space-y-6 flex flex-col">
-                        {/* Compact Stats Grid */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500">
-                                <div className="absolute -right-2 -top-2 w-16 h-16 bg-blue-500/10 blur-2xl rounded-full group-hover:bg-blue-500/20 transition-all"></div>
-                                <div className="flex justify-between items-center relative z-10">
-                                    <div className="text-slate-500 text-[9px] uppercase font-black tracking-[0.2em]">Frota</div>
-                                    <Car className="w-3.5 h-3.5 text-blue-500" />
-                                </div>
-                                <div className="text-3xl font-black text-white mt-1 font-mono tracking-tighter">{vehicles.length}</div>
-                            </div>
-
-                            <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group hover:border-green-500/30 transition-all duration-500">
-                                <div className="absolute -right-2 -top-2 w-16 h-16 bg-green-500/10 blur-2xl rounded-full group-hover:bg-green-500/20 transition-all"></div>
-                                <div className="flex justify-between items-center relative z-10">
-                                    <div className="text-slate-500 text-[9px] uppercase font-black tracking-[0.2em]">Online</div>
-                                    <RefreshCw className="w-3.5 h-3.5 text-green-500 animate-spin-slow" />
-                                </div>
-                                <div className="text-3xl font-black text-green-500 mt-1 font-mono tracking-tighter">
-                                    {vehicles.filter(v => v.status === 'moving').length}
-                                </div>
-                            </div>
+                <div className="flex flex-col xl:flex-row gap-8 items-start">
+                    {/* SIDEBAR - DEFINITIVE SCROLL FIX */}
+                    <div className="w-full xl:w-[400px] h-[700px] bg-[#1e1e2d] rounded-[32px] border border-white/10 shadow-2xl flex flex-col overflow-hidden">
+                        <div className="p-6 border-b border-white/5 bg-slate-900/40 flex items-center justify-between">
+                            <h3 className="text-[11px] font-black text-white/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                Transmissão em Direto
+                            </h3>
+                            <div className="px-2 py-0.5 bg-blue-500/10 rounded-md text-[8px] font-black text-blue-400 border border-blue-500/20 uppercase">Live</div>
                         </div>
 
-                        {/* Vehicles List */}
-                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[32px] p-6 flex-1 h-[600px] overflow-hidden flex flex-col shadow-2xl">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-sm font-black text-white/90 flex items-center gap-2 uppercase tracking-widest">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
-                                    Transmissão Live
-                                </h3>
-                                <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-0.5 rounded-full border border-white/5">
-                                    <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></div>
-                                    <span className="text-[9px] font-black text-slate-400">ACTIVE</span>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2.5 overflow-y-auto pr-2 custom-scrollbar flex-1">
-                                {vehicles.sort((a, b) => a.registration.localeCompare(b.registration)).map(vehicle => (
-                                    <div key={vehicle.id} className="p-4 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-blue-500/30 hover:bg-slate-900/60 transition-all duration-300 cursor-pointer group relative overflow-hidden">
-                                        <div className="flex justify-between items-center">
-                                            <div className="space-y-0.5">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono font-black text-lg text-white tracking-tighter group-hover:text-blue-400 transition-colors uppercase">{vehicle.registration}</span>
-                                                </div>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase truncate max-w-[140px] tracking-tight">{vehicle.driverName || 'Sem Motorista'}</p>
+                        {/* THE SCROLLABLE LIST */}
+                        <div className="flex-1 overflow-y-scroll p-4 space-y-3 bg-[#161625] custom-visible-scrollbar">
+                            {vehicles.sort((a, b) => a.registration.localeCompare(b.registration)).map(vehicle => (
+                                <div key={vehicle.id} className="p-4 bg-[#1e1e2d] rounded-2xl border border-white/5 hover:border-blue-500/40 transition-all cursor-pointer group shadow-lg">
+                                    <div className="flex justify-between items-start">
+                                        <div className="min-w-0">
+                                            <div className="font-mono font-black text-xl text-white group-hover:text-blue-400 transition-colors uppercase leading-none">{vehicle.registration}</div>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase truncate mt-1.5 tracking-tight group-hover:text-slate-400">{vehicle.driverName || 'Sem Motorista'}</p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className={`text-[9px] font-black px-2 py-0.5 rounded-md ${vehicle.status === 'moving' ? 'bg-green-500/10 text-green-400' :
+                                                    vehicle.status === 'idle' ? 'bg-orange-500/10 text-orange-400' :
+                                                        'bg-white/5 text-slate-500'
+                                                }`}>
+                                                {vehicle.status === 'moving' ? 'ANDAR' : vehicle.status === 'idle' ? 'IDLE' : 'PARADO'}
                                             </div>
-                                            <div className="flex flex-col items-end gap-1.5">
-                                                <div className={`text-[8px] font-black px-2 py-0.5 rounded-md ${vehicle.status === 'moving' ? 'bg-green-500/10 text-green-500' :
-                                                        vehicle.status === 'idle' ? 'bg-orange-500/10 text-orange-500' :
-                                                            'bg-slate-800 text-slate-500'
-                                                    }`}>
-                                                    {vehicle.status === 'moving' ? 'MOVING' : vehicle.status === 'idle' ? 'IDLE' : 'STOPPED'}
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-xs font-black text-white font-mono">{Math.round(vehicle.speed)}</span>
-                                                    <span className="text-[8px] font-bold text-slate-600">KM/H</span>
-                                                </div>
+                                            <div className="font-mono font-black text-xs text-white">
+                                                {Math.round(vehicle.speed)} <span className="text-[8px] text-slate-600 ml-0.5 uppercase">km/h</span>
                                             </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Map Section */}
-                    <div className="xl:col-span-9 flex flex-col gap-6">
-                        <div className="bg-slate-900 border border-white/10 rounded-[40px] p-2 shadow-2xl relative overflow-hidden group">
-                            <div className="absolute bottom-6 left-6 z-10">
-                                <div className="px-4 py-2 bg-slate-950/90 backdrop-blur-xl rounded-2xl border border-white/10 text-[10px] font-black text-white flex items-center gap-3 shadow-2xl">
-                                    <div className="flex gap-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500/50 animate-pulse delay-75"></div>
-                                    </div>
-                                    TRACKING SIGNAL OPTIMIZED
-                                </div>
-                            </div>
-                            <GeofenceMap geofences={geofences} vehicles={vehicles} />
-                        </div>
-
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                            {[
-                                { label: 'Geofences', value: geofences.length, color: 'text-purple-400' },
-                                { label: 'Uptime', value: '99.9%', color: 'text-emerald-400' },
-                                { label: 'Latency', value: '14ms', color: 'text-blue-400' },
-                                { label: 'Satellites', value: 'Active', color: 'text-amber-400' }
-                            ].map((stat, i) => (
-                                <div key={i} className="bg-slate-900/40 backdrop-blur-md p-6 rounded-3xl border border-white/5 hover:border-white/10 transition-all">
-                                    <div className="text-slate-500 text-[9px] font-black uppercase tracking-[.25em]">{stat.label}</div>
-                                    <div className={`text-2xl font-black mt-2 font-mono tracking-tighter ${stat.color}`}>{stat.value}</div>
                                 </div>
                             ))}
                         </div>
                     </div>
+
+                    {/* MAP SECTION - DEFINITIVE LANDSCAPE */}
+                    <div className="flex-1 w-full h-[700px] bg-[#1e1e2d] rounded-[40px] border border-white/10 p-2 shadow-2xl relative overflow-hidden group">
+                        <GeofenceMap geofences={geofences} vehicles={vehicles} />
+                        <div className="absolute bottom-6 left-6 z-[1000] pointer-events-none">
+                            <div className="px-4 py-2 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-white/10 text-[9px] font-black text-white flex items-center gap-3 shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                                <span className="uppercase tracking-widest text-slate-400">Sinal:</span>
+                                <span className="text-white text-[11px] font-mono">EXCELLENT</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             ) : (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                    <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-3xl p-6">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
+                    <div className="bg-[#1e1e2d] backdrop-blur-sm border border-white/10 rounded-[32px] p-8 shadow-2xl">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                             <div>
-                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <h3 className="text-2xl font-black text-white flex items-center gap-3 tracking-tight uppercase">
                                     <History className="w-6 h-6 text-blue-500" />
-                                    Histórico de Passagens (Últimas 24h)
+                                    Histórico de Atividade
                                 </h3>
-                                <p className="text-slate-400 text-sm mt-1">Registos de entrada e saída em áreas monitorizadas.</p>
+                                <p className="text-slate-500 text-sm font-bold mt-1 uppercase tracking-tight">Registo detalhado das últimas 24 horas</p>
                             </div>
-                            <div className="relative w-full md:w-80">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <div className="relative w-full md:w-96 group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                                 <input
                                     type="text"
                                     placeholder="Procurar matrícula ou local..."
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                    className="w-full bg-[#161625] border border-white/5 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:ring-2 focus:ring-blue-500/50 transition-all outline-none font-bold placeholder:text-slate-700"
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                 />
@@ -290,60 +228,68 @@ export default function Geofences() {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="border-b border-slate-800">
-                                        <th className="px-4 py-4 text-slate-500 font-bold text-xs uppercase tracking-wider">Viatura</th>
-                                        <th className="px-4 py-4 text-slate-500 font-bold text-xs uppercase tracking-wider">Local (Geofence)</th>
-                                        <th className="px-4 py-4 text-slate-500 font-bold text-xs uppercase tracking-wider">Entrada</th>
-                                        <th className="px-4 py-4 text-slate-500 font-bold text-xs uppercase tracking-wider">Saída</th>
-                                        <th className="px-4 py-4 text-slate-500 font-bold text-xs uppercase tracking-wider">Duração</th>
+                                    <tr className="border-b border-white/5">
+                                        <th className="px-6 py-5 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em]">Viatura</th>
+                                        <th className="px-6 py-5 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em]">Localização</th>
+                                        <th className="px-6 py-5 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em]">Check-In</th>
+                                        <th className="px-6 py-5 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em]">Check-Out</th>
+                                        <th className="px-6 py-5 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em]">Duração</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-800/50">
+                                <tbody className="divide-y divide-white/5">
                                     {filteredVisits.map(visit => (
-                                        <tr key={visit.id} className="hover:bg-slate-800/30 transition-colors">
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
-                                                        <Car className="w-4 h-4" />
+                                        <tr key={visit.id} className="hover:bg-blue-500/[0.02] transition-colors group">
+                                            <td className="px-6 py-5">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                                        <Car className="w-5 h-5" />
                                                     </div>
-                                                    <span className="font-bold text-slate-200 uppercase">{visit.registration}</span>
+                                                    <span className="font-black text-white uppercase tracking-tighter text-lg">{visit.registration}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4 uppercase">
-                                                <div className="flex items-center gap-2 text-slate-300">
-                                                    <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                                                    <span className="font-medium">{visit.geofenceName}</span>
+                                            <td className="px-6 py-5 uppercase">
+                                                <div className="flex items-center gap-2.5 text-slate-300">
+                                                    <MapPin className="w-4 h-4 text-slate-600" />
+                                                    <span className="font-bold tracking-tight text-sm">{visit.geofenceName}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-2 text-emerald-400 font-mono text-sm">
-                                                    <Clock className="w-3.5 h-3.5" />
+                                            <td className="px-6 py-5">
+                                                <div className="flex items-center gap-2.5 text-emerald-400 font-mono text-sm font-black">
+                                                    <Clock className="w-4 h-4 opacity-50" />
                                                     {visit.enterTimestamp.split(' ')[1]}
-                                                    <span className="text-[10px] text-slate-500 ml-1">{visit.enterTimestamp.split(' ')[0]}</span>
+                                                    <span className="text-[10px] text-slate-600 ml-1 font-bold">{visit.enterTimestamp.split(' ')[0]}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4">
+                                            <td className="px-6 py-5">
                                                 {visit.exitTimestamp ? (
-                                                    <div className="flex items-center gap-2 text-slate-400 font-mono text-sm">
-                                                        <ArrowRight className="w-3.5 h-3.5" />
+                                                    <div className="flex items-center gap-2.5 text-slate-500 font-mono text-sm font-black">
+                                                        <ArrowRight className="w-4 h-4 opacity-30" />
                                                         {visit.exitTimestamp.split(' ')[1]}
-                                                        <span className="text-[10px] text-slate-600 ml-1">{visit.exitTimestamp.split(' ')[0]}</span>
+                                                        <span className="text-[10px] text-slate-700 ml-1 font-bold">{visit.exitTimestamp.split(' ')[0]}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-md border border-blue-500/20">NO LOCAL</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                                        <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black rounded-lg border border-blue-500/20 uppercase tracking-widest">Ativo</span>
+                                                    </div>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <span className="text-slate-400 text-sm font-medium">
-                                                    {visit.durationSeconds ? `${Math.floor(visit.durationSeconds / 60)} min` : '--'}
+                                            <td className="px-6 py-5">
+                                                <span className="text-slate-400 text-sm font-black tracking-tighter">
+                                                    {visit.durationSeconds ? `${Math.floor(visit.durationSeconds / 60)}m ${visit.durationSeconds % 60}s` : '--'}
                                                 </span>
                                             </td>
                                         </tr>
                                     ))}
                                     {filteredVisits.length === 0 && (
                                         <tr>
-                                            <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
-                                                Nenhum registo de passagem encontrado nas últimas 24h.
+                                            <td colSpan={5} className="px-6 py-20 text-center">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-slate-700">
+                                                        <History className="w-8 h-8" />
+                                                    </div>
+                                                    <span className="text-slate-600 font-black text-xs uppercase tracking-widest">Sem registos encontrados nas últimas 24h</span>
+                                                </div>
                                             </td>
                                         </tr>
                                     )}
@@ -353,6 +299,36 @@ export default function Geofences() {
                     </div>
                 </div>
             )}
+
+            <style>{`
+                /* DEFINITIVE HIGH-CONTRAST SCROLLBAR */
+                .custom-visible-scrollbar::-webkit-scrollbar {
+                    width: 14px !important;
+                    display: block !important;
+                }
+                .custom-visible-scrollbar::-webkit-scrollbar-track {
+                    background: #161625 !important;
+                    border-left: 1px solid rgba(255,255,255,0.05);
+                }
+                .custom-visible-scrollbar::-webkit-scrollbar-thumb {
+                    background: #3b82f6 !important;
+                    border: 3px solid #161625 !important;
+                    border-radius: 10px;
+                    min-height: 50px !important;
+                    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+                }
+                .custom-visible-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #60a5fa !important;
+                }
+                
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .animate-spin-slow {
+                    animation: spin-slow 12s linear infinite;
+                }
+            `}</style>
         </div>
     );
 }
