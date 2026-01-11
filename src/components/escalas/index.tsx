@@ -394,7 +394,7 @@ export default function Escalas() {
         <div className="flex flex-col h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
 
             {/* HEADER TOOLBAR */}
-            <div className="h-auto md:h-20 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between p-2 md:px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0 gap-3 md:gap-0">
+            <div className="h-auto md:min-h-20 border-b border-white/5 flex flex-wrap md:flex-nowrap items-center justify-between p-3 md:px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0 gap-4">
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -404,16 +404,13 @@ export default function Escalas() {
                 />
 
                 {/* Left: Date & Stats */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between md:justify-start gap-4 w-full md:w-auto">
-                    <div className="flex flex-col shrink-0 w-full sm:w-auto">
-                        <div className="flex items-center justify-between sm:justify-start gap-1.5 text-blue-400 mb-0.5">
-                            <div className="flex items-center gap-1.5">
-                                <Calendar className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider">Hoje</span>
-                            </div>
-                            {/* Mobile-only date next to label if needed, or keep standard */}
+                <div className="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div className="flex flex-col shrink-0">
+                        <div className="flex items-center gap-1.5 text-blue-400 mb-0.5">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Hoje</span>
                         </div>
-                        <h2 className="text-lg font-bold text-white capitalize leading-none truncate w-full sm:max-w-none">
+                        <h2 className="text-lg font-bold text-white capitalize leading-none truncate max-w-[200px] md:max-w-none">
                             {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'short' })}
                         </h2>
                     </div>
@@ -421,7 +418,7 @@ export default function Escalas() {
                     <div className="hidden md:block h-10 w-px bg-white/10" />
 
                     {/* Stats */}
-                    <div className="flex items-center justify-between w-full sm:w-auto gap-4 md:gap-6 border-t border-white/5 pt-2 sm:border-0 sm:pt-0">
+                    <div className="flex items-center gap-4 md:gap-6">
                         <div className="flex flex-col items-center">
                             <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Serviços</span>
                             <span className="text-sm md:text-lg font-bold text-white leading-tight">{totalServices}</span>
@@ -430,8 +427,10 @@ export default function Escalas() {
                             <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Concluído</span>
                             <span className="text-sm md:text-lg font-bold text-emerald-400 leading-tight">{progressPercentage}%</span>
                         </div>
+
+                        {/* Pendentes Indicator - Mobile Only (Compact) / Desktop (Full) */}
                         <div
-                            className="flex flex-col items-center relative cursor-pointer md:cursor-default"
+                            className="flex flex-col items-center relative cursor-pointer"
                             onClick={() => setIsPendingSidebarOpen(true)}
                         >
                             <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Pendentes</span>
@@ -442,8 +441,8 @@ export default function Escalas() {
                 </div>
 
                 {/* Right: Actions & Tools */}
-                <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-end flex-1 md:flex-none">
-                    <div className="relative flex-1 min-w-[120px] md:w-64 max-w-xs">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto justify-end">
+                    <div className="relative flex-1 md:flex-none md:w-64 min-w-[140px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input
                             type="text"
@@ -454,7 +453,7 @@ export default function Escalas() {
                         />
                     </div>
 
-                    {/* Cost Center Filter */}
+                    {/* Cost Center Filter - Desktop Only */}
                     <div className="hidden xl:block w-48">
                         <select
                             value={selectedCentroCusto}
@@ -468,81 +467,88 @@ export default function Escalas() {
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {/* Distribute Mode Toggle */}
-                        {hasAccess(userRole, 'escalas_create') && (
-                            <button
-                                onClick={() => setIsDistributeMode(!isDistributeMode)}
-                                className={`p-2 rounded-lg border transition-colors ${isDistributeMode
-                                    ? 'bg-blue-600 border-blue-500 text-white animate-pulse'
-                                    : 'bg-[#1e293b] border-white/5 text-slate-300 hover:bg-slate-700'
-                                    }`}
-                                title="Modo de Distribuição Rápida"
-                            >
-                                <MousePointer2 className="w-5 h-5" />
-                            </button>
-                        )}
-                        {/* Mobile Pending Details Toggle */}
-                        {hasAccess(userRole, 'escalas_view_pending') && (
-                            <button
-                                onClick={() => setIsPendingSidebarOpen(!isPendingSidebarOpen)}
-                                className="md:hidden p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 relative"
-                            >
-                                <LayoutList className="w-5 h-5" />
-                                {pendentes.length > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-[10px] font-bold text-black rounded-full flex items-center justify-center">
-                                        {pendentes.length}
-                                    </span>
-                                )}
-                            </button>
-                        )}
-
-                        {hasAccess(userRole, 'escalas_import') && (
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
-                                title="Importar Excel"
-                            >
-                                <Upload className="w-5 h-5" />
-                            </button>
-                        )}
-
-                        {hasAccess(userRole, 'escalas_create') && (
-                            <button
-                                onClick={() => setShowNewServiceModal(true)}
-                                className="hidden md:flex bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold items-center gap-2 transition-all shadow-lg hover:shadow-blue-600/20"
-                            >
-                                <Plus className="w-4 h-4" />
-                                <span>Novo Serviço</span>
-                            </button>
-                        )}
-
-                        {hasAccess(userRole, 'escalas_create') && (
-                            <div className="flex bg-[#1e293b] rounded-lg p-1 border border-white/5">
+                    <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0">
+                        {/* Action Buttons Group */}
+                        <div className="flex gap-2">
+                            {/* Distribute Mode */}
+                            {hasAccess(userRole, 'escalas_create') && (
                                 <button
-                                    onClick={() => setViewMode('cards')}
-                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
-                                    title="Vista de Cartões"
+                                    onClick={() => setIsDistributeMode(!isDistributeMode)}
+                                    className={`p-2 rounded-lg border transition-colors ${isDistributeMode
+                                        ? 'bg-blue-600 border-blue-500 text-white animate-pulse'
+                                        : 'bg-[#1e293b] border-white/5 text-slate-300 hover:bg-slate-700'
+                                        }`}
+                                    title="Modo de Distribuição Rápida"
                                 >
-                                    <LayoutGrid className="w-4 h-4" />
+                                    <MousePointer2 className="w-5 h-5" />
                                 </button>
-                                <button
-                                    onClick={() => setViewMode('table')}
-                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
-                                    title="Vista de Tabela"
-                                >
-                                    <TableIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
+                            )}
 
-                        <button
-                            onClick={() => setShowUrgentModal(true)}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all"
-                        >
-                            <AlertTriangle className="w-4 h-4" />
-                            <span className="hidden md:inline">Urgência</span>
-                        </button>
+                            {/* Mobile Pending Details Toggle */}
+                            {hasAccess(userRole, 'escalas_view_pending') && (
+                                <button
+                                    onClick={() => setIsPendingSidebarOpen(!isPendingSidebarOpen)}
+                                    className="md:hidden p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 relative"
+                                >
+                                    <LayoutList className="w-5 h-5" />
+                                    {pendentes.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-[10px] font-bold text-black rounded-full flex items-center justify-center">
+                                            {pendentes.length}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
+
+                            {hasAccess(userRole, 'escalas_import') && (
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
+                                    title="Importar Excel"
+                                >
+                                    <Upload className="w-5 h-5" />
+                                </button>
+                            )}
+
+                            {/* View Toggles */}
+                            {hasAccess(userRole, 'escalas_create') && (
+                                <div className="flex bg-[#1e293b] rounded-lg p-1 border border-white/5">
+                                    <button
+                                        onClick={() => setViewMode('cards')}
+                                        className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                        title="Vista de Cartões"
+                                    >
+                                        <LayoutGrid className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('table')}
+                                        className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                        title="Vista de Tabela"
+                                    >
+                                        <TableIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-2">
+                            {hasAccess(userRole, 'escalas_create') && (
+                                <button
+                                    onClick={() => setShowNewServiceModal(true)}
+                                    className="flex bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-bold items-center gap-2 transition-all shadow-lg hover:shadow-blue-600/20 whitespace-nowrap"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Novo</span>
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => setShowUrgentModal(true)}
+                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
+                            >
+                                <AlertTriangle className="w-4 h-4" />
+                                <span className="hidden sm:inline">Urgência</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
