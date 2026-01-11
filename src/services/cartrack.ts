@@ -1,4 +1,5 @@
-import { CARTRACK_USER, CARTRACK_PASS } from '../config';
+const CARTRACK_USER = 'ALGA00012';
+const CARTRACK_PASS = 'd395112ab45cf4a2cfa734a47';
 
 const BASE_URL = 'https://fleetapi-pt.cartrack.com/rest';
 
@@ -167,7 +168,7 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
             tagId: item.tag_id || item.identification_tag_id || identification.tag_id || identification.id || item.tag,
             last_position_update: lastPos.timestamp || lastPos.last_activity
         };
-    }).filter(v => v.latitude !== 0);
+    }).filter((v: CartrackVehicle) => v.latitude !== 0);
 };
 
 export const CartrackService = {
