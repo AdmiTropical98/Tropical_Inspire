@@ -176,12 +176,18 @@ export default function Geofences() {
             )}
 
             {/* DEBUG PANEL */}
-            <div className="mx-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
-                <p className="text-[10px] font-black uppercase text-blue-500 mb-2">Debug API Raw Response</p>
-                <pre className="text-[10px] text-blue-400 font-mono overflow-x-auto whitespace-pre-wrap">
-                    {debugInfo ? JSON.stringify(debugInfo, null, 2) : 'No data captured yet...'}
-                </pre>
-            </div>
+            {/* DEBUG PANEL - COLLAPSED BY DEFAULT */}
+            <details className="mx-4 mb-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl group">
+                <summary className="p-4 cursor-pointer list-none flex items-center justify-between text-[10px] font-black uppercase text-blue-500">
+                    <span>Debug API Raw Response ({debugInfo?.status || 'No Data'})</span>
+                    <span className="opacity-50 group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div className="px-4 pb-4">
+                    <pre className="text-[10px] text-blue-400 font-mono overflow-auto whitespace-pre-wrap max-h-60 bg-black/20 p-2 rounded-lg border border-white/5">
+                        {debugInfo ? JSON.stringify(debugInfo, null, 2) : 'No data captured yet...'}
+                    </pre>
+                </div>
+            </details>
 
             {activeTab === 'map' ? (
                 <div className="flex flex-col xl:flex-row gap-6 px-4 h-[calc(100vh-220px)] min-h-[750px] w-full items-stretch">
