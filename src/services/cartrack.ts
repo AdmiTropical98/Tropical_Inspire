@@ -1,7 +1,9 @@
 const CARTRACK_USER = 'ALGA00012';
 const CARTRACK_PASS = 'd395112ab45cf4a2cfa734a47';
 
-const BASE_URL = 'https://fleetapi-pt.cartrack.com/rest';
+const BASE_URL = import.meta.env.DEV
+    ? '/api/cartrack'
+    : 'https://fleetapi-pt.cartrack.com/rest';
 
 export interface CartrackGeofence {
     id: string;
@@ -246,8 +248,9 @@ export const CartrackService = {
             console.log(`Mapped ${mapped.length} vehicles.`);
             return mapped;
         } catch (error) {
-            console.warn('Failed to fetch vehicles (returning empty):', error);
-            return [];
+            console.warn('Failed to fetch vehicles:', error);
+            // Throwing allows WorkshopContext to see the error and display the red alert
+            throw error;
         }
     },
 
