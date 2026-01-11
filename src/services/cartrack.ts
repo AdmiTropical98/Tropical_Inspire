@@ -186,7 +186,7 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
             address: loc.position_description || item.address || '',
             driverName: driverName,
             ignition: !!item.ignition,
-            tagId: item.last_identification_tag_id || '' // Mapeando a tag corretamente
+            tagId: cleanTagId(item.last_identification_tag_id) || '' // Limpa o ID da tag (remove 0000-0000...)
         };
     });
 };
