@@ -357,17 +357,17 @@ export default function CentralMotorista() {
     }));
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar max-w-7xl mx-auto p-4 md:p-8 font-sans pb-24">
+        <div className="h-full overflow-y-auto custom-scrollbar w-full max-w-7xl mx-auto p-3 md:p-8 font-sans pb-24 overflow-x-hidden">
             {/* Header with improved styling */}
-            <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+            <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="w-full">
+                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
                             <LayoutTemplate className="w-6 h-6 text-blue-500" />
                         </div>
-                        {t('central.title')}
+                        <span className="break-words">{t('central.title')}</span>
                     </h1>
-                    <p className="text-slate-400">{t('central.subtitle')}</p>
+                    <p className="text-slate-400 text-sm">{t('central.subtitle')}</p>
                 </div>
 
                 {/* Live Date/Time Widget */}
@@ -382,15 +382,17 @@ export default function CentralMotorista() {
             </div>
 
             {/* Navigation Tabs - Modern Pill Design - Customizable */}
-            <DraggableZone
-                zoneId="central_tabs"
-                items={navTabs}
-                className="mb-8 overflow-x-auto pb-2 scrollbar-hide"
-                layout="flex"
-            />
+            <div className="w-full max-w-[100vw] overflow-hidden">
+                <DraggableZone
+                    zoneId="central_tabs"
+                    items={navTabs}
+                    className="mb-8 overflow-x-auto pb-2 scrollbar-hide flex w-full"
+                    layout="flex"
+                />
+            </div>
 
             {/* Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
 
                 {/* NEW TAB: ESCALA - FULL WIDTH IF ACTIVE */}
                 {activeTab === 'escala' && (
@@ -417,25 +419,23 @@ export default function CentralMotorista() {
 
 
                 {/* Main Action Panel */}
-                <div className={`lg:col-span-2 space-y-6 ${activeTab === 'escala' ? 'hidden' : ''}`}>
+                <div className={`lg:col-span-2 space-y-6 ${activeTab === 'escala' ? 'hidden' : ''} w-full`}>
 
                     {/* NEW TAB: OVERVIEW */}
                     {activeTab === 'overview' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-
-
                             {/* Hero Status Card */}
-                            <div className="bg-gradient-to-br from-blue-900/40 to-slate-900/40 border border-blue-500/10 rounded-3xl p-6 relative overflow-hidden">
+                            <div className="bg-gradient-to-br from-blue-900/40 to-slate-900/40 border border-blue-500/10 rounded-3xl p-4 md:p-6 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
                                 <div className="relative z-10">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-white mb-1">Olá, {currentUser?.nome?.split(' ')[0] || (userRole === 'admin' ? 'Miguel' : 'Motorista')}</h2>
-                                            <p className="text-slate-400">Pronto para o serviço de hoje?</p>
+                                    <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4">
+                                        <div className="max-w-full">
+                                            <h2 className="text-xl md:text-2xl font-bold text-white mb-1 truncate">Olá, {currentUser?.nome?.split(' ')[0] || (userRole === 'admin' ? 'Miguel' : 'Motorista')}</h2>
+                                            <p className="text-slate-400 text-sm">Pronto para o serviço de hoje?</p>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                                        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full self-start">
                                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                             <span className="text-xs font-bold text-emerald-400 uppercase">Online</span>
                                         </div>
@@ -460,20 +460,20 @@ export default function CentralMotorista() {
                             </div>
 
                             {/* Quick Stats Grid */}
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/30">
-                                    <div className="text-slate-400 text-xs mb-1">Serviços Hoje</div>
-                                    <div className="text-2xl font-bold text-white">{myServicesCount}</div>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                                <div className="bg-slate-800/40 p-3 md:p-4 rounded-xl border border-slate-700/30">
+                                    <div className="text-slate-400 text-[10px] md:text-xs mb-1">Serviços Hoje</div>
+                                    <div className="text-xl md:text-2xl font-bold text-white">{myServicesCount}</div>
                                 </div>
-                                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/30">
-                                    <div className="text-slate-400 text-xs mb-1">Avaliação</div>
-                                    <div className="text-2xl font-bold text-amber-500 flex items-center gap-1">
-                                        4.9 <span className="text-xs text-slate-500 font-normal">/ 5.0</span>
+                                <div className="bg-slate-800/40 p-3 md:p-4 rounded-xl border border-slate-700/30">
+                                    <div className="text-slate-400 text-[10px] md:text-xs mb-1">Avaliação</div>
+                                    <div className="text-xl md:text-2xl font-bold text-amber-500 flex items-center gap-1">
+                                        4.9 <span className="text-[10px] md:text-xs text-slate-500 font-normal">/ 5.0</span>
                                     </div>
                                 </div>
-                                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/30">
-                                    <div className="text-slate-400 text-xs mb-1">Faltas</div>
-                                    <div className="text-2xl font-bold text-green-500">0</div>
+                                <div className="bg-slate-800/40 p-3 md:p-4 rounded-xl border border-slate-700/30">
+                                    <div className="text-slate-400 text-[10px] md:text-xs mb-1">Faltas</div>
+                                    <div className="text-xl md:text-2xl font-bold text-green-500">0</div>
                                 </div>
                             </div>
                         </div>

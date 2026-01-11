@@ -14,7 +14,7 @@ export default function EquipaOficina() {
     const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [photoPreview, setPhotoPreview] = useState<string>('');
-    const [newOficinaUser, setNewOficinaUser] = useState({ nome: '', email: '', pin: '', foto: '' });
+    const [newOficinaUser, setNewOficinaUser] = useState({ nome: '', telemovel: '', pin: '', foto: '' });
     const [permissionUser, setPermissionUser] = useState<OficinaUser | null>(null);
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,16 +32,23 @@ export default function EquipaOficina() {
 
     const handleCreateOficinaUser = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Basic Phone Validation
+        if (!/^\d{9,}$/.test(newOficinaUser.telemovel)) {
+            alert(t('team.form.phone_error') || 'O telemóvel deve ter pelo menos 9 dígitos.');
+            return;
+        }
+
         addOficinaUser({
             id: crypto.randomUUID(),
             nome: newOficinaUser.nome,
-            email: newOficinaUser.email,
+            telemovel: newOficinaUser.telemovel,
             pin: newOficinaUser.pin,
             foto: newOficinaUser.foto,
             status: 'active',
             dataRegisto: new Date().toISOString().split('T')[0]
         });
-        setNewOficinaUser({ nome: '', email: '', pin: '', foto: '' });
+        setNewOficinaUser({ nome: '', telemovel: '', pin: '', foto: '' });
         setPhotoPreview('');
         alert(t('team.success_create'));
     };
@@ -54,14 +61,16 @@ export default function EquipaOficina() {
 
     const handleSharePin = (user: OficinaUser, type: 'whatsapp' | 'sms') => {
         const message = `${t('drivers.pin_share')} ${user.pin}.`;
-        const phone = prompt(t('login.pin_request.phone') + ':', '');
-        if (!phone) return;
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        const phone = user.telemovel ? user.telemovel.replace(/[^0-9]/g, '') : '';
+        if (!phone) {
+            alert('Utilizador sem telemóvel definido.');
+            return;
+        }
 
         if (type === 'whatsapp') {
-            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         } else {
-            window.open(`sms:${cleanPhone}?body=${encodeURIComponent(message)}`, '_self');
+            window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
         }
     };
 
@@ -77,7 +86,7 @@ export default function EquipaOficina() {
     const filteredItems = useMemo(() => {
         let filtered = oficinaUsers.filter(u =>
             u.nome.toLowerCase().includes(filter.toLowerCase()) ||
-            (u.email && u.email.toLowerCase().includes(filter.toLowerCase()))
+            (u.telemovel && u.telemovel.includes(filter))
         );
 
         if (statusFilter !== 'all') {
@@ -197,14 +206,16 @@ export default function EquipaOficina() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t('team.form.email')}</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Telemóvel</label>
                                 <input
-                                    type="email"
+                                    type="tel"
                                     required
-                                    value={newOficinaUser.email}
-                                    onChange={e => setNewOficinaUser({ ...newOficinaUser, email: e.target.value })}
+                                    value={newOficinaUser.telemovel}
+                                    onChange={e => setNewOficinaUser({ ...newOficinaUser, telemovel: e.target.value })}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-orange-500 outline-none mt-1 transition-all hover:border-slate-700"
-                                    placeholder="email@algartempo.com"
+                                    placeholder="912 345 678"
+                                    pattern="[0-9]{9,}"
+                                    title="Mínimo 9 dígitos"
                                 />
                             </div>
                             <div>
@@ -261,7 +272,7 @@ export default function EquipaOficina() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 h-4 w-4" />
                             <input
                                 type="text"
-                                placeholder={t('drivers.search')}
+                                placeholder="Pesquisar..."
                                 value={filter}
                                 onChange={e => setFilter(e.target.value)}
                                 className="w-full pl-9 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:border-orange-500 outline-none transition-all"
@@ -311,7 +322,7 @@ export default function EquipaOficina() {
                                         </div>
                                         <div className={viewMode === 'grid' ? 'w-full' : ''}>
                                             <p className="text-white font-medium text-sm">{user.nome}</p>
-                                            <p className="text-xs text-slate-500">{user.email}</p>
+                                            <p className="text-xs text-slate-500">{user.telemovel || 'Sem contacto'}</p>
                                         </div>
                                     </div>
                                     {viewMode === 'list' && (

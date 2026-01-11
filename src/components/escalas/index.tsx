@@ -661,7 +661,7 @@ export default function Escalas() {
                                                                         setActiveDriverMenuId(null);
                                                                     }}
                                                                 />
-                                                                <div className="absolute right-0 top-full mt-2 w-48 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                                                                <div className="absolute right-0 top-full mt-2 w-32 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
                                                                     <div className="p-1">
                                                                         <button
                                                                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
