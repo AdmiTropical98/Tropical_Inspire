@@ -247,31 +247,31 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                     >
                         <Popup className="custom-popup">
                             <div className="p-3 min-w-[220px]">
-                                <div className="font-black text-xl text-white border-b border-white/10 pb-2 mb-3 flex justify-between items-center">
+                                <div className="font-black text-xl text-slate-900 border-b border-slate-100 pb-2 mb-3 flex justify-between items-center">
                                     <span>{vehicle.registration}</span>
-                                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-tighter ${vehicle.status === 'moving' ? 'bg-green-500/20 text-green-400' :
-                                        vehicle.status === 'idle' ? 'bg-orange-500/20 text-orange-400' :
-                                            'bg-slate-700/50 text-slate-400'
+                                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-tighter ${vehicle.status === 'moving' ? 'bg-green-100 text-green-700' :
+                                        vehicle.status === 'idle' ? 'bg-orange-100 text-orange-700' :
+                                            'bg-slate-100 text-slate-500'
                                         }`}>
                                         {vehicle.status === 'moving' ? 'Em Movimento' : vehicle.status === 'idle' ? 'Em Relanti' : 'Parado'}
                                     </span>
                                 </div>
-                                <div className="space-y-2 text-xs text-slate-300">
+                                <div className="space-y-2 text-xs text-slate-600">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Motorista</span>
-                                        <span className="font-black text-white">{vehicle.driverName || vehicle.name}</span>
+                                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Motorista</span>
+                                        <span className="font-black text-slate-900">{vehicle.driverName || vehicle.name}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Velocidade</span>
-                                        <span className="font-black text-white font-mono">{Math.round(vehicle.speed)} km/h</span>
+                                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Velocidade</span>
+                                        <span className="font-black text-slate-900 font-mono">{Math.round(vehicle.speed)} km/h</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Ignição</span>
-                                        <span className={`font-black ${vehicle.ignition ? 'text-green-400' : 'text-red-400'}`}>
+                                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Ignição</span>
+                                        <span className={`font-black ${vehicle.ignition ? 'text-green-600' : 'text-red-500'}`}>
                                             {vehicle.ignition ? 'Ligada' : 'Desligada'}
                                         </span>
                                     </div>
-                                    <div className="text-[9px] text-slate-500 mt-3 pt-2 border-t border-white/5 text-right italic font-medium">
+                                    <div className="text-[9px] text-slate-400 mt-3 pt-2 border-t border-slate-50 text-right italic font-medium">
                                         Atualizado: {new Date(vehicle.updatedAt).toLocaleTimeString()}
                                     </div>
                                 </div>
