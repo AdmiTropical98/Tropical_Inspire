@@ -404,43 +404,43 @@ export default function Escalas() {
                 />
 
                 {/* Left: Date & Stats */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between md:justify-start gap-3 md:gap-8 w-full md:w-auto">
-                    <div className="flex flex-col">
-                        <div className="flex items-center gap-2 text-blue-400 mb-0.5">
-                            <Calendar className="w-4 h-4" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Hoje</span>
+                <div className="flex flex-row items-center justify-between md:justify-start gap-2 md:gap-8 w-full md:w-auto">
+                    <div className="flex flex-col shrink-0">
+                        <div className="flex items-center gap-1.5 text-blue-400 mb-0.5">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Hoje</span>
                         </div>
-                        <h2 className="text-base md:text-lg font-bold text-white capitalize leading-none truncate max-w-[200px] md:max-w-none">
-                            {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        <h2 className="text-sm md:text-lg font-bold text-white capitalize leading-none truncate max-w-[140px] md:max-w-none">
+                            {new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}
                         </h2>
                     </div>
 
                     <div className="hidden md:block h-10 w-px bg-white/10" />
 
                     {/* Stats */}
-                    <div className="flex items-center justify-between w-full md:w-auto gap-2 md:gap-6">
+                    <div className="flex items-center justify-end gap-3 md:gap-6 flex-1 md:flex-none">
                         <div className="flex flex-col items-center">
-                            <span className="text-[10px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Serviços</span>
-                            <span className="text-base md:text-lg font-bold text-white">{totalServices}</span>
+                            <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Serviços</span>
+                            <span className="text-sm md:text-lg font-bold text-white leading-tight">{totalServices}</span>
                         </div>
                         <div className="flex flex-col items-center">
-                            <span className="text-[10px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Concluído</span>
-                            <span className="text-base md:text-lg font-bold text-emerald-400">{progressPercentage}%</span>
+                            <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Concluído</span>
+                            <span className="text-sm md:text-lg font-bold text-emerald-400 leading-tight">{progressPercentage}%</span>
                         </div>
                         <div
                             className="flex flex-col items-center relative cursor-pointer md:cursor-default"
                             onClick={() => setIsPendingSidebarOpen(true)}
                         >
-                            <span className="text-[10px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Pendentes</span>
-                            <span className={`text-base md:text-lg font-bold ${pendentes.length > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{pendentes.length}</span>
-                            {pendentes.length > 0 && <span className="absolute -top-1 -right-2 w-2 h-2 bg-amber-500 rounded-full animate-pulse" />}
+                            <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Pendentes</span>
+                            <span className={`text-sm md:text-lg font-bold leading-tight ${pendentes.length > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{pendentes.length}</span>
+                            {pendentes.length > 0 && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />}
                         </div>
                     </div>
                 </div>
 
                 {/* Right: Actions & Tools */}
-                <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-end">
-                    <div className="relative flex-1 md:w-64 max-w-xs">
+                <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-end flex-1 md:flex-none">
+                    <div className="relative flex-1 min-w-[120px] md:w-64 max-w-xs">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input
                             type="text"
@@ -555,10 +555,10 @@ export default function Escalas() {
                 `}>
                             <div className="h-auto md:h-full flex flex-col">
                                 {/* Status Filters */}
-                                <div className="flex items-center gap-2 mb-2 md:mb-4 px-2 md:px-8 mt-2 md:mt-8 overflow-x-auto pb-2 shrink-0 scrollbar-hide">
+                                <div className="flex items-center gap-2 mb-2 px-2 md:px-8 mt-2 md:mt-6 overflow-x-auto pb-1 shrink-0 scrollbar-hide">
                                     <button
                                         onClick={() => setFilterStatus('all')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
                                             ? 'bg-blue-600 text-white border-blue-500'
                                             : 'bg-[#1e293b] text-slate-400 border-white/5 hover:border-white/10'
                                             }`}
@@ -567,7 +567,7 @@ export default function Escalas() {
                                     </button>
                                     <button
                                         onClick={() => setFilterStatus('available')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all border ${filterStatus === 'available'
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'available'
                                             ? 'bg-emerald-600 text-white border-emerald-500'
                                             : 'bg-[#1e293b] text-emerald-400 border-white/5 hover:border-white/10'
                                             }`}
@@ -576,7 +576,7 @@ export default function Escalas() {
                                     </button>
                                     <button
                                         onClick={() => setFilterStatus('busy')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all border ${filterStatus === 'busy'
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'busy'
                                             ? 'bg-amber-600 text-white border-amber-500'
                                             : 'bg-[#1e293b] text-amber-400 border-white/5 hover:border-white/10'
                                             }`}
@@ -586,7 +586,7 @@ export default function Escalas() {
                                 </div>
 
                                 {/* Drivers Swimlanes */}
-                                <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-3 md:gap-6 md:overflow-x-auto pb-6 px-2 md:px-4 snap-y md:snap-x">
+                                <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-3 md:gap-6 md:overflow-x-auto pb-24 md:pb-6 px-2 md:px-4 snap-y md:snap-x">
                                     {filteredMotoristas.map(driver => {
                                         // Calculate Driver Stats
                                         const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
@@ -597,7 +597,6 @@ export default function Escalas() {
                                                 onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
                                                 onDragOver={(e) => {
                                                     e.preventDefault();
-                                                    e.currentTarget.style.borderColor = '#3b82f6';
                                                     e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
                                                 }}
                                                 onDragLeave={(e) => {
@@ -605,13 +604,8 @@ export default function Escalas() {
                                                     e.currentTarget.style.borderColor = '';
                                                     e.currentTarget.style.backgroundColor = '';
                                                 }}
-                                                onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    e.currentTarget.style.borderColor = '';
-                                                    e.currentTarget.style.backgroundColor = '';
-                                                    handleDropService(driver.id);
-                                                }}
-                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col shrink-0 w-full md:w-[450px] snap-center group transition-all duration-200 h-auto md:h-full
+                                                // Removed hardcoded width, allowing flex-grow and proper shrinking
+                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col shrink-0 w-full md:w-[420px] lg:w-[450px] snap-center group transition-all duration-200 h-auto md:h-full
                                             ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
                                             border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
                                             ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
@@ -619,26 +613,26 @@ export default function Escalas() {
                                             >
 
                                                 {/* Card Header */}
-                                                <div className="p-4 bg-slate-900/50 border-b border-white/5 flex items-center justify-between rounded-t-2xl">
+                                                <div className="p-3 bg-slate-900/50 border-b border-white/5 flex items-center justify-between rounded-t-2xl">
                                                     <div className="flex items-center gap-3">
                                                         <div className="relative">
                                                             {driver.foto ? (
-                                                                <img src={driver.foto} alt={driver.nome} className="w-10 h-10 rounded-full object-cover border-2 border-slate-700" />
+                                                                <img src={driver.foto} alt={driver.nome} className="w-9 h-9 rounded-full object-cover border-2 border-slate-700" />
                                                             ) : (
-                                                                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
+                                                                    <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
                                                                     {driver.nome.charAt(0)}
                                                                 </div>
                                                             )}
-                                                            <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-[#1e293b] rounded-full shadow-sm
+                                                            <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-[#1e293b] rounded-full shadow-sm
                                                     ${driver.status === 'disponivel' ? 'bg-emerald-500' :
-                                                                    driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
+                                                                driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
                                                 `}></div>
                                                         </div>
                                                         <div>
-                                                            <h3 className="font-bold text-white text-base leading-tight">{driver.nome}</h3>
-                                                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                                            <h3 className="font-bold text-white text-sm md:text-base leading-tight">{driver.nome}</h3>
+                                                            <div className="flex items-center gap-3 mt-0.5 text-[10px] md:text-xs text-slate-400">
                                                                 <span className="flex items-center gap-1.5">
-                                                                    <MapPin className="w-3 h-3 text-blue-400" />
+                                                                    <MapPin className="w-2.5 h-2.5 text-blue-400" />
                                                                     {driverServices.length} {t('schedule.trips')}
                                                                 </span>
                                                             </div>
@@ -734,14 +728,14 @@ export default function Escalas() {
                                                                         // RENDER SINGLE SERVICE (Legacy)
                                                                         const service = firstService;
                                                                         return (
-                                                                            <div key={service.id} className="relative z-10 flex gap-4 group/item">
+                                                                            <div key={service.id} className="relative z-10 flex gap-2 md:gap-4 group/item">
                                                                                 {/* Time Column */}
-                                                                                <div className="flex flex-col items-center gap-1.5 min-w-[4.5rem] pt-0.5">
-                                                                                    <span className="text-sm font-bold text-white font-mono bg-slate-800/80 px-2 py-1 rounded border border-white/5 shadow-sm">
+                                                                                <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
+                                                                                    <span className="text-[11px] md:text-sm font-bold text-white font-mono bg-slate-800/80 px-1.5 md:px-2 py-0.5 md:py-1 rounded border border-white/5 shadow-sm">
                                                                                         {service.hora}
                                                                                     </span>
                                                                                     {service.voo && (
-                                                                                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30">
+                                                                                        <span className="px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30 max-w-full truncate">
                                                                                             {service.voo}
                                                                                         </span>
                                                                                     )}
@@ -785,10 +779,10 @@ export default function Escalas() {
                                                                     } else {
                                                                         // RENDER GROUP CARD
                                                                         return (
-                                                                            <div key={groupKey} className="relative z-10 flex gap-4">
+                                                                            <div key={groupKey} className="relative z-10 flex gap-2 md:gap-4">
                                                                                 {/* Time Column */}
-                                                                                <div className="flex flex-col items-center gap-1.5 min-w-[4.5rem] pt-0.5">
-                                                                                    <span className="text-sm font-bold text-white font-mono bg-blue-600 px-2 py-1 rounded border border-blue-400/30 shadow-lg shadow-blue-900/20">
+                                                                                <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
+                                                                                    <span className="text-[11px] md:text-sm font-bold text-white font-mono bg-blue-600 px-1.5 md:px-2 py-0.5 md:py-1 rounded border border-blue-400/30 shadow-lg shadow-blue-900/20">
                                                                                         {firstService.hora}
                                                                                     </span>
                                                                                     <div className="w-px h-full bg-blue-500/20 mx-auto my-1"></div>
