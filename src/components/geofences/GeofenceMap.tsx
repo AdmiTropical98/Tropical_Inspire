@@ -23,7 +23,7 @@ interface GeofenceMapProps {
 
 // Custom icon for car with rotation and license plate label
 const createCarIcon = (registration: string, heading: number, status: 'moving' | 'stopped' | 'idle') => {
-    const color = status === 'moving' ? '#22c55e' : (status === 'idle' ? '#f59e0b' : '#64748b');
+    const color = status === 'moving' ? '#22c55e' : (status === 'idle' ? '#f59e0b' : '#94a3b8');
     const isMoving = status === 'moving';
 
     return L.divIcon({
@@ -31,53 +31,64 @@ const createCarIcon = (registration: string, heading: number, status: 'moving' |
         html: `
             <div class="marker-container" style="display: flex; flex-direction: column; align-items: center; position: relative;">
                 <div class="plate-label" style="
-                    background: white; 
-                    color: #1e293b; 
-                    padding: 2px 6px; 
+                    background: rgba(15, 23, 42, 0.9); 
+                    color: white; 
+                    padding: 1px 5px; 
                     border-radius: 4px; 
-                    font-size: 10px; 
-                    font-weight: 800; 
-                    border: 1.5px solid ${color};
-                    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-                    margin-bottom: 4px;
+                    font-size: 9px; 
+                    font-weight: 700; 
+                    border: 1px solid ${color}44;
+                    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                    margin-bottom: 2px;
                     white-space: nowrap;
-                    font-family: 'Inter', sans-serif;
+                    font-family: 'JetBrains Mono', 'Inter', monospace;
+                    letter-spacing: -0.02em;
+                    backdrop-filter: blur(2px);
                 ">${registration}</div>
                 
-                <div style="transform: rotate(${heading}deg); transition: transform 0.3s ease; position: relative;">
+                <div style="transform: rotate(${heading}deg); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); position: relative; width: 32px; height: 32px; display: flex; items-center; justify-center;">
                     ${isMoving ? `<div class="pulse-effect" style="
                         position: absolute;
                         top: 50%;
                         left: 50%;
                         transform: translate(-50%, -50%);
-                        width: 40px;
-                        height: 40px;
-                        background: ${color}22;
+                        width: 32px;
+                        height: 32px;
+                        border: 2px solid ${color};
                         border-radius: 50%;
-                        animation: pulse 2s infinite;
-                        z-index: -1;
+                        animation: ring-pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+                        opacity: 0;
                     "></div>` : ''}
-                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="20" cy="20" r="18" fill="white" fill-opacity="0.95" stroke="${color}" stroke-width="2.5" />
-                        <!-- Car body -->
-                        <path d="M20 10L24 16H16L20 10Z" fill="${color}" />
-                        <rect x="17.5" y="16" width="5" height="12" rx="1.5" fill="${color}" />
-                        <!-- Headlights -->
-                        <circle cx="17.5" cy="12" r="1" fill="${color}" fill-opacity="0.5" />
-                        <circle cx="22.5" cy="12" r="1" fill="${color}" fill-opacity="0.5" />
-                    </svg>
+                    
+                    <div style="
+                        width: 24px;
+                        height: 24px;
+                        background: ${isMoving ? color : 'white'};
+                        border-radius: 50%;
+                        border: 2px solid ${isMoving ? 'white' : color};
+                        box-shadow: 0 0 15px ${color}66;
+                        display: flex;
+                        align-items: center;
+                        justify-center;
+                        position: relative;
+                        z-index: 2;
+                    ">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${isMoving ? 'white' : color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 19V5M5 12l7-7 7 7"/>
+                        </svg>
+                    </div>
                 </div>
                 
                 <style>
-                    @keyframes pulse {
-                        0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
-                        100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+                    @keyframes ring-pulse {
+                        0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
                     }
                 </style>
             </div>
         `,
-        iconSize: [80, 80],
-        iconAnchor: [40, 55]
+        iconSize: [60, 60],
+        iconAnchor: [30, 45]
     });
 };
 
@@ -164,9 +175,25 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
 
                 {/* High Contrast Professional Tile Layer (Voyager) */}
                 <TileLayer
-                    attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 />
+
+                <style>{`
+                    .leaflet-container {
+                        background: #020617 !important;
+                    }
+                    .custom-popup .leaflet-popup-content-wrapper {
+                        background: rgba(15, 23, 42, 0.9) !important;
+                        backdrop-filter: blur(8px);
+                        color: white !important;
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 16px;
+                    }
+                    .custom-popup .leaflet-popup-tip {
+                        background: rgba(15, 23, 42, 0.9) !important;
+                    }
+                `}</style>
 
                 {/* Geofences Rendering */}
                 {geofences.map((geo) => {
@@ -225,33 +252,33 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                         icon={createCarIcon(vehicle.registration, vehicle.heading, vehicle.status)}
                     >
                         <Popup className="custom-popup">
-                            <div className="p-3 min-w-[220px] bg-white/10 backdrop-blur-md rounded-xl">
-                                <div className="font-black text-xl text-slate-900 border-b-2 border-slate-100 pb-2 mb-3 flex justify-between items-center">
+                            <div className="p-3 min-w-[220px]">
+                                <div className="font-black text-xl text-white border-b border-white/10 pb-2 mb-3 flex justify-between items-center">
                                     <span>{vehicle.registration}</span>
-                                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-tighter ${vehicle.status === 'moving' ? 'bg-green-100 text-green-700' :
-                                        vehicle.status === 'idle' ? 'bg-orange-100 text-orange-700' :
-                                            'bg-slate-100 text-slate-700'
+                                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-tighter ${vehicle.status === 'moving' ? 'bg-green-500/20 text-green-400' :
+                                        vehicle.status === 'idle' ? 'bg-orange-500/20 text-orange-400' :
+                                            'bg-slate-700/50 text-slate-400'
                                         }`}>
                                         {vehicle.status === 'moving' ? 'Em Movimento' : vehicle.status === 'idle' ? 'Em Relanti' : 'Parado'}
                                     </span>
                                 </div>
-                                <div className="space-y-2 text-xs text-slate-700">
+                                <div className="space-y-2 text-xs text-slate-300">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-500">Motorista:</span>
-                                        <span className="font-semibold text-slate-900">{vehicle.driverName || vehicle.name}</span>
+                                        <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Motorista</span>
+                                        <span className="font-black text-white">{vehicle.driverName || vehicle.name}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-500">Velocidade:</span>
-                                        <span className="font-semibold text-slate-900">{Math.round(vehicle.speed)} km/h</span>
+                                        <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Velocidade</span>
+                                        <span className="font-black text-white font-mono">{Math.round(vehicle.speed)} km/h</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-500">Ignição:</span>
-                                        <span className={`font-bold ${vehicle.ignition ? 'text-green-600' : 'text-red-500'}`}>
+                                        <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Ignição</span>
+                                        <span className={`font-black ${vehicle.ignition ? 'text-green-400' : 'text-red-400'}`}>
                                             {vehicle.ignition ? 'Ligada' : 'Desligada'}
                                         </span>
                                     </div>
-                                    <div className="text-[10px] text-slate-400 mt-3 pt-2 border-t text-right italic">
-                                        Atualizado há instantes: {new Date(vehicle.updatedAt).toLocaleTimeString()}
+                                    <div className="text-[9px] text-slate-500 mt-3 pt-2 border-t border-white/5 text-right italic font-medium">
+                                        Atualizado: {new Date(vehicle.updatedAt).toLocaleTimeString()}
                                     </div>
                                 </div>
                             </div>
