@@ -82,27 +82,29 @@ export const getTagVariants = (rawTagId?: string | null): string[] => {
 
     // 4. Handle 16-char hex IDs (e.g. 3D000001A8A3ED01)
     if (tag.length >= 12) {
-        // Pattern 1: [XX] + Zeros + [Body] + [YY]
-        const midMatch = tag.match(/^[0-9A-F]{2}0+([0-9A-F]{4,10})[0-9A-F]{2}$/);
-        if (midMatch) {
-            variants.add(midMatch[1]);
-            variants.add(midMatch[1].replace(/^0+/, ''));
-        }
-
-        // Pattern 2: Central part for 14-16 chars
+        // Pattern 1: Central part (skipping first and last 2 chars) - very common for RFID
         if (tag.length >= 14) {
-            const central = tag.substring(tag.length - 10, tag.length - 2);
+            const central = tag.substring(2, tag.length - 2);
             variants.add(central);
             const cleanCentral = central.replace(/^0+/, '');
             if (cleanCentral.length >= 4) variants.add(cleanCentral);
         }
 
-        // Pattern 3: Last 8 chars (standard RFID/Fob)
-        if (tag.length >= 8) {
-            const last8 = tag.substring(tag.length - 8);
-            variants.add(last8);
-            const cleanLast8 = last8.replace(/^0+/, '');
-            if (cleanLast8.length >= 4) variants.add(cleanLast8);
+        // Pattern 2: Multi-length suffixes
+        [12, 10, 8, 6].forEach(len => {
+            if (tag.length >= len) {
+                const suffix = tag.substring(tag.length - len);
+                variants.add(suffix);
+                const cleanSuffix = suffix.replace(/^0+/, '');
+                if (cleanSuffix.length >= 4) variants.add(cleanSuffix);
+            }
+        });
+
+        // Pattern 3: Middle extraction if there's a padding of zeros
+        const midMatch = tag.match(/^[0-9A-F]{2,4}0+([0-9A-F]{4,10})[0-9A-F]{2,4}$/);
+        if (midMatch) {
+            variants.add(midMatch[1]);
+            variants.add(midMatch[1].replace(/^0+/, ''));
         }
     }
 
