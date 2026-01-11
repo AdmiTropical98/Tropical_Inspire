@@ -1,0 +1,60 @@
+{
+  "vehicle_id": 39848343,
+  "registration": "16-UO-20",
+  "engine_type": null,
+  "chassis_number": "W0VJ7D608JV626663",
+  "event_ts": "2026-01-11 14:22:06+00",
+  "bearing": 90,
+  "speed": 170,
+  "ignition": true,
+  "idling": false,
+  "odometer": 380821060,
+  "clock": 12586152,
+  "altitude": 32,
+  "rpm": 3866,
+  "road_speed": 120,
+  "vext": "12.480",
+  "temp1": null,
+  "temp2": null,
+  "temp3": null,
+  "temp4": null,
+  "last_identification_tag_id": "00000000-0000-0000-E001-000001A7F485",
+  "io_panic": "LOW",
+  "io_disarm": "LOW",
+  "dynamic1": 176,
+  "dynamic2": 110,
+  "dynamic3": 24,
+  "dynamic4": 196,
+  "input_state": 40657,
+  "input_state2": 1075314690,
+  "input_state3": null,
+  "central_locking_status": null,
+  "tcu_percentage": 100,
+  "driver": {
+    "driver_id": "3f9fce26-c47a-11f0-b2e1-506b8da4721a",
+    "first_name": "JOÃO LISBOA",
+    "last_name": null,
+    "id_number": null,
+    "license_number": null,
+    "driver_id_tag": null,
+    "phone_number": null
+  },
+  "fuel": {
+    "updated": "2026-01-11 14:20:00+00",
+    "level": 39,
+    "precentage_left": 47,
+    "total_consumed": 663
+  },
+  "electric": {
+    "battery_percentage_left": null,
+    "battery_ts": null
+  },
+  "location": {
+    "updated": "2026-01-11 14:22:06+00",
+    "longitude": -8.592718,
+    "latitude": 37.183442,
+    "gps_fix_type": 3,
+    "position_description": "Via Infante de Sagres, 8500 Portimão, Portugal",
+    "geofence_ids": []
+  }
+}
