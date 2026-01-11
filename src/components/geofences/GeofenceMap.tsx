@@ -31,54 +31,47 @@ const createCarIcon = (registration: string, heading: number, status: 'moving' |
         html: `
             <div class="marker-container" style="display: flex; flex-direction: column; align-items: center; position: relative;">
                 <div class="plate-label" style="
-                    background: rgba(15, 23, 42, 0.95); 
+                    background: #1e293b; 
                     color: white; 
-                    padding: 1px 4px; 
-                    border-radius: 3px; 
-                    font-size: 8px; 
+                    padding: 2px 6px; 
+                    border-radius: 4px; 
+                    font-size: 10px; 
                     font-weight: 900; 
-                    border: 1px solid ${color}66;
-                    box-shadow: 0 0 15px rgba(0,0,0,0.8);
-                    margin-bottom: 1px;
+                    border: 2px solid ${color};
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+                    margin-bottom: 4px;
                     white-space: nowrap;
-                    font-family: 'JetBrains Mono', monospace;
-                    backdrop-filter: blur(4px);
+                    font-family: 'Inter', sans-serif;
                     z-index: 10;
-                    letter-spacing: -0.05em;
+                    letter-spacing: -0.02em;
                 ">${registration}</div>
                 
-                <div style="transform: rotate(${heading}deg); transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; position: relative;">
+                <div style="transform: rotate(${heading}deg); transition: transform 0.6s ease-in-out; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; position: relative;">
                     ${isMoving ? `
                     <div style="
                         position: absolute;
-                        width: 48px;
-                        height: 48px;
-                        border: 1px solid ${color}44;
+                        width: 50px;
+                        height: 50px;
+                        border: 3px solid ${color};
                         border-radius: 50%;
-                        animation: ring-expand 2s infinite ease-out;
-                    "></div>
-                    <div style="
-                        position: absolute;
-                        width: 24px;
-                        height: 24px;
-                        background: radial-gradient(circle, ${color}66 0%, transparent 70%);
-                        border-radius: 50%;
+                        animation: ring-expand 2.5s infinite;
+                        opacity: 0;
                     "></div>
                     ` : ''}
                     
                     <div style="
-                        width: 14px;
-                        height: 14px;
-                        background: ${isMoving ? color : '#1e293b'};
-                        border: 2px solid ${isMoving ? 'white' : color};
+                        width: 26px;
+                        height: 26px;
+                        background: ${color};
+                        border: 3px solid white;
                         border-radius: 50%;
-                        box-shadow: 0 0 10px ${color}88;
+                        box-shadow: 0 0 20px ${color}aa;
                         z-index: 5;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                     ">
-                        <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="${isMoving ? 'white' : color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 19V5M5 12l7-7 7 7"/>
                         </svg>
                     </div>
@@ -86,14 +79,14 @@ const createCarIcon = (registration: string, heading: number, status: 'moving' |
                 
                 <style>
                     @keyframes ring-expand {
-                        0% { transform: scale(0.4); opacity: 1; }
-                        100% { transform: scale(1.2); opacity: 0; }
+                        0% { transform: scale(0.5); opacity: 0.8; }
+                        100% { transform: scale(1.4); opacity: 0; }
                     }
                 </style>
             </div>
         `,
-        iconSize: [50, 50],
-        iconAnchor: [25, 35]
+        iconSize: [60, 60],
+        iconAnchor: [30, 45]
     });
 };
 
@@ -181,22 +174,18 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
                 {/* High Contrast Professional Tile Layer (Voyager) */}
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                 />
 
                 <style>{`
                     .leaflet-container {
-                        background: #020617 !important;
+                        background: #cbd5e1 !important;
                     }
                     .custom-popup .leaflet-popup-content-wrapper {
-                        background: rgba(15, 23, 42, 0.9) !important;
-                        backdrop-filter: blur(8px);
-                        color: white !important;
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 16px;
-                    }
-                    .custom-popup .leaflet-popup-tip {
-                        background: rgba(15, 23, 42, 0.9) !important;
+                        background: #ffffff !important;
+                        color: #1e293b !important;
+                        border-radius: 12px;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
                     }
                 `}</style>
 
