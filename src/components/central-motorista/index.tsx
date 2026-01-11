@@ -18,7 +18,7 @@ import TagRegistrationModal from '../common/TagRegistrationModal';
 
 export default function CentralMotorista() {
     const { t } = useTranslation();
-    const { currentUser, userRole, userPhoto } = useAuth();
+    const { currentUser, userRole, userPhoto, refreshCurrentUser } = useAuth();
     const {
         servicos,
         notifications,
@@ -89,9 +89,9 @@ export default function CentralMotorista() {
                     cartrackKey: tagId
                 };
                 await updateMotorista(updatedDriver);
+                await refreshCurrentUser();
                 setShowTagModal(false);
-                // AuthContext update would be ideal here, but WorkshopContext usually re-fetches
-                // We reload to ensure AuthContext picks up the new key from localStorage/DB
+                // AuthContext updated, reload ensures everything (like WorkshopContext) is fresh
                 window.location.reload();
             }
         } catch (err) {
