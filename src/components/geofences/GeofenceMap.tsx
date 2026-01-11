@@ -29,58 +29,54 @@ const createCarIcon = (registration: string, heading: number, status: 'moving' |
     return L.divIcon({
         className: 'custom-car-marker',
         html: `
-            <div class="marker-container" style="display: flex; flex-direction: column; align-items: center; position: relative;">
-                <div class="plate-label" style="
-                    background: #1e293b; 
+            <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
+                <div style="
+                    background: #1e1e2d; 
                     color: white; 
-                    padding: 2px 6px; 
-                    border-radius: 4px; 
-                    font-size: 10px; 
+                    padding: 2px 8px; 
+                    border-radius: 6px; 
+                    font-size: 11px; 
+                    font-family: 'JetBrains Mono', monospace;
                     font-weight: 900; 
-                    border: 2px solid ${color};
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-                    margin-bottom: 4px;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+                    margin-bottom: 5px;
                     white-space: nowrap;
-                    font-family: 'Inter', sans-serif;
                     z-index: 10;
-                    letter-spacing: -0.02em;
+                    letter-spacing: -0.5px;
                 ">${registration}</div>
                 
-                <div style="transform: rotate(${heading}deg); transition: transform 0.6s ease-in-out; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; position: relative;">
-                    ${isMoving ? `
+                <div style="transform: rotate(${heading}deg); transition: transform 0.6s ease; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; position: relative;">
+                    ${isMoving ? `<div class="pulse-ring"></div>` : ''}
                     <div style="
-                        position: absolute;
-                        width: 50px;
-                        height: 50px;
-                        border: 3px solid ${color};
-                        border-radius: 50%;
-                        animation: ring-expand 2.5s infinite;
-                        opacity: 0;
-                    "></div>
-                    ` : ''}
-                    
-                    <div style="
-                        width: 26px;
-                        height: 26px;
+                        width: 22px;
+                        height: 22px;
                         background: ${color};
                         border: 3px solid white;
                         border-radius: 50%;
-                        box-shadow: 0 0 20px ${color}aa;
+                        box-shadow: 0 0 15px ${color}80;
                         z-index: 5;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                     ">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 19V5M5 12l7-7 7 7"/>
-                        </svg>
+                        <div style="width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 7px solid white; margin-top: -3px;"></div>
                     </div>
                 </div>
                 
                 <style>
-                    @keyframes ring-expand {
-                        0% { transform: scale(0.5); opacity: 0.8; }
-                        100% { transform: scale(1.4); opacity: 0; }
+                    .pulse-ring {
+                        position: absolute;
+                        width: 50px;
+                        height: 50px;
+                        border: 4px solid ${color};
+                        border-radius: 50%;
+                        animation: ring-pulse 2s infinite;
+                        opacity: 0;
+                    }
+                    @keyframes ring-pulse {
+                        0% { transform: scale(0.4); opacity: 0.8; }
+                        100% { transform: scale(1.3); opacity: 0; }
                     }
                 </style>
             </div>
@@ -161,7 +157,7 @@ export default function GeofenceMap({ geofences, vehicles = [] }: GeofenceMapPro
     const [center] = useState<[number, number]>([38.7223, -9.1393]); // Lisbon default
 
     return (
-        <div className="h-[800px] w-full rounded-3xl overflow-hidden border border-slate-800 shadow-2xl relative z-0 bg-slate-950">
+        <div className="h-full w-full rounded-[32px] overflow-hidden border border-white/5 shadow-2xl relative z-0 bg-[#0a0a0f]">
             <MapContainer
                 center={center}
                 zoom={12}
