@@ -100,6 +100,9 @@ CREATE TABLE IF NOT EXISTS public.motoristas (
     valor_hora NUMERIC,
     folgas JSONB,
     blocked_permissions JSONB,
+    turno_inicio TEXT,
+    turno_fim TEXT,
+    cartrack_key TEXT,
     data_registo TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.motoristas ENABLE ROW LEVEL SECURITY;
