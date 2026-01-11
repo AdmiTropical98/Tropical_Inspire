@@ -22,7 +22,7 @@ export default function Geofences() {
         if (isRefresh) setRefreshing(true);
         else setLoading(true);
 
-        setError(null);
+        // Error cleared by context refresh
         const normalizePlate = (p?: string | null) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
         try {
             const [geoData, vehiclesData] = await Promise.allSettled([
