@@ -62,11 +62,16 @@ export default function Geofences() {
                     );
 
                     let displayName = 'Sem Motorista';
+                    const hasTag = !!v.tagId;
+                    const nameIsProper = isProperName(resolvedName);
+
                     if (localM) {
                         displayName = localM.nome;
-                    } else if (isProperName(resolvedName)) {
+                    } else if (nameIsProper && hasTag) {
+                        displayName = `${resolvedName} (Tag: ${v.tagId})`;
+                    } else if (nameIsProper) {
                         displayName = resolvedName!;
-                    } else if (v.tagId) {
+                    } else if (hasTag) {
                         displayName = `Tag: ${v.tagId}`;
                     } else if (v.driverId) {
                         displayName = `ID: ${v.driverId}`;
