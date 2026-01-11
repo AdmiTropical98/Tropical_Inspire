@@ -156,6 +156,125 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('appLanguage', lang);
     };
 
+    const login = async (type: 'admin' | 'motorista' | 'supervisor' | 'oficina', identifier: string, credential: string) => {
+        if (type === 'admin') {
+            // Supabase Auth for Admin
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: identifier,
+                password: credential
+            });
+
+            if (!error && data.user) {
+                // Construct Admin User Object
+                const adminUser: AdminUser = {
+                    id: data.user.id,
+                    email: identifier,
+                    role: 'admin',
+                    nome: 'Administrador',
+                    createdAt: new Date().toISOString()
+                };
+
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('userRole', 'admin');
+                localStorage.setItem('currentUser', JSON.stringify(adminUser)); // Save Admin User!
+
+                setIsAuthenticated(true);
+                setUserRole('admin');
+                setCurrentUser(adminUser);
+
+                const adminPhoto = localStorage.getItem('adminPhoto');
+                if (adminPhoto) setUserPhoto(adminPhoto);
+                return true;
+            }
+            return false;
+        } else if (type === 'oficina') {
+            // Oficina Login (Dynamic)
+            const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
+
+            const staff = oficinaUsers.find(u => {
+                // Remove all non-numeric characters from stored phone
+                const cleanPhone = (u.telemovel || '').replace(/[^0-9]/g, '');
+
+                // Check if one ends with the other (to handle +351 vs no +351)
+                const phoneMatch = (cleanPhone !== '' && cleanIdentifier !== '') &&
+                    (cleanPhone.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanPhone));
+
+                // Fallback to email if needed (legacy)
+                const emailMatch = u.email && u.email.toLowerCase() === identifier.toLowerCase();
+
+                return (phoneMatch || emailMatch) && u.pin === credential && u.status === 'active';
+            });
+
+            if (staff) {
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('userRole', 'oficina');
+                localStorage.setItem('currentUser', JSON.stringify(staff));
+                setIsAuthenticated(true);
+                setUserRole('oficina');
+                setCurrentUser(staff);
+                if (staff.foto) setUserPhoto(staff.foto);
+                return true;
+            }
+        } else if (type === 'supervisor') {
+            // Remove all non-numeric characters from input
+            const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
+
+            const supervisor = supervisors.find(s => {
+                // Remove all non-numeric characters from stored phone
+                const cleanPhone = (s.telemovel || '').replace(/[^0-9]/g, '');
+
+                // Check if one ends with the other (to handle +351 vs no +351)
+                const phoneMatch = (cleanPhone !== '' && cleanIdentifier !== '') &&
+                    (cleanPhone.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanPhone));
+
+                const emailMatch = s.email && s.email.toLowerCase() === identifier.toLowerCase();
+
+                return (phoneMatch || emailMatch) && s.pin === credential && s.status === 'active';
+            });
+
+            if (supervisor) {
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('userRole', 'supervisor');
+                localStorage.setItem('currentUser', JSON.stringify(supervisor));
+                setIsAuthenticated(true);
+                setUserRole('supervisor');
+                setCurrentUser(supervisor);
+                if (supervisor.foto) setUserPhoto(supervisor.foto);
+                return true;
+            }
+
+        } else if (type === 'motorista') {
+            // Remove all non-numeric characters from input
+            const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
+
+            const driver = motoristas.find(m => {
+                // Remove all non-numeric characters from stored contact
+                const cleanContact = m.contacto.replace(/[^0-9]/g, '');
+
+                // Check if one ends with the other (to handle +351 vs no +351)
+                // e.g. 351912345678 ends with 912345678 -> Match
+                const contactMatch = (cleanContact !== '' && cleanIdentifier !== '') &&
+                    (cleanContact.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanContact));
+
+                const emailMatch = m.email && m.email.toLowerCase() === identifier.toLowerCase();
+
+                return (contactMatch || emailMatch) && m.pin === credential;
+            });
+
+            if (driver) {
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('userRole', 'motorista');
+                localStorage.setItem('currentUser', JSON.stringify(driver));
+                setIsAuthenticated(true);
+                setUserRole('motorista');
+                setCurrentUser(driver);
+                if (driver.foto) setUserPhoto(driver.foto);
+                return true;
+            }
+        }
+        return false;
+    };
+
     const updateUserPhoto = (photo: string) => {
         setUserPhoto(photo);
         if (userRole === 'admin') {
