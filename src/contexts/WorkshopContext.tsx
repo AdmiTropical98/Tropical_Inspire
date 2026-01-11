@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao } from '../types';
-import { CartrackService, type CartrackGeofence } from '../services/cartrack';
+import { CartrackService, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
@@ -17,7 +17,8 @@ interface WorkshopContextType {
     notifications: Notification[];
     servicos: any[];
     setServicos: React.Dispatch<React.SetStateAction<any[]>>;
-    geofences: CartrackGeofence[]; // NEW
+    geofences: CartrackGeofence[];
+    geofenceVisits: CartrackGeofenceVisit[]; // NEW
     // Fuel
     fuelTank: FuelTank;
     fuelTransactions: FuelTransaction[];
@@ -83,7 +84,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [viaturas, setViaturas] = useState<Viatura[]>([]);
     const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
     const [centrosCustos, setCentrosCustos] = useState<CentroCusto[]>([]);
-    const [geofences, setGeofences] = useState<CartrackGeofence[]>([]); // NEW
+    const [geofences, setGeofences] = useState<CartrackGeofence[]>([]);
+    const [geofenceVisits, setGeofenceVisits] = useState<CartrackGeofenceVisit[]>([]); // NEW
 
 
 
@@ -244,12 +246,25 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 createdAt: item.created_at
             })));
 
-            // 8. Cartrack Geofences
             try {
                 const geoData = await CartrackService.getGeofences();
                 if (geoData) setGeofences(geoData);
+
+                // Fetch visits for the last 24 hours
+                const now = new Date();
+                const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+                // Format: YYYY-MM-DD HH:mm:ss
+                const formatDate = (date: Date) => {
+                    const pad = (n: number) => n.toString().padStart(2, '0');
+                    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+                        `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+                };
+
+                const visits = await CartrackService.getGeofenceVisits(formatDate(yesterday), formatDate(now));
+                if (visits) setGeofenceVisits(visits);
             } catch (e) {
-                console.warn('Silent fail: could not fetch Cartrack geofences for context suggestion:', e);
+                console.warn('Silent fail: could not fetch Cartrack geofences/visits for context:', e);
             }
 
         } catch (error) {
@@ -1038,7 +1053,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 updateServico,
                 deleteServico,
                 avaliacoes,
-                geofences, // NEW
+                geofences,
+                geofenceVisits, // NEW
                 refreshData,
                 manualHours,
                 addManualHourRecord,

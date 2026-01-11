@@ -26,6 +26,17 @@ export interface CartrackVehicle {
     ignition: boolean;
 }
 
+export interface CartrackGeofenceVisit {
+    id: string;
+    vehicleId: number;
+    registration: string;
+    geofenceId: string;
+    geofenceName: string;
+    enterTimestamp: string;
+    exitTimestamp: string | null;
+    durationSeconds: number | null;
+}
+
 /**
  * Utility to parse WKT POLYGON((lng lat, lng lat, ...))
  * Cartrack typically uses (longitude latitude) order in WKT
@@ -114,6 +125,48 @@ export const CartrackService = {
         } catch (error) {
             console.error('Failed to fetch vehicles:', error);
             throw error;
+        }
+    },
+
+    /**
+     * Fetch geofence visits for a specific time range (max 24h)
+     */
+    getGeofenceVisits: async (startDate: string, endDate: string): Promise<CartrackGeofenceVisit[]> => {
+        try {
+            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+            // Use encodeURIComponent for the filter parameters
+            const params = new URLSearchParams();
+            params.append('filter[enter_timestamp]', startDate);
+            params.append('filter[exit_timestamp]', endDate);
+            params.append('per_page', '100');
+
+            const response = await fetch(`${BASE_URL}/geofences/visits?${params.toString()}`, {
+                method: 'GET',
+                headers: { 'Authorization': `Basic ${auth}` },
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                console.error('Visits API Error:', err);
+                return [];
+            }
+
+            const result = await response.json();
+            const items = result.data || [];
+
+            return items.map((item: any) => ({
+                id: String(item.id),
+                vehicleId: item.vehicle_id,
+                registration: item.registration,
+                geofenceId: item.geofence_id,
+                geofenceName: item.geofence_name,
+                enterTimestamp: item.enter_timestamp,
+                exitTimestamp: item.exit_timestamp,
+                durationSeconds: item.duration_total
+            }));
+        } catch (error) {
+            console.error('Failed to fetch geofence visits:', error);
+            return [];
         }
     }
 };
