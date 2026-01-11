@@ -11,6 +11,7 @@ import MyScheduleView from './MyScheduleView';
 import DraggableZone from '../common/DraggableZone';
 import { useLayout } from '../../contexts/LayoutContext';
 import NavigationApp from './NavigationApp';
+import TagRegistrationModal from '../common/TagRegistrationModal';
 
 
 
@@ -53,15 +54,51 @@ export default function CentralMotorista() {
     const [tempShift, setTempShift] = useState({ start: '08:00', end: '17:00' });
 
 
-    useState(() => {
+    // State for Tag Registration Modal
+    const [showTagModal, setShowTagModal] = useState(false);
+
+    useEffect(() => {
+        // Show modal if driver has no tag registered (check both camelCase and snake_case)
+        if (userRole === 'motorista' && currentUser) {
+            const driver = currentUser as any;
+            const hasTag = (driver.cartrackKey && driver.cartrackKey.trim() !== '') ||
+                (driver.cartrack_key && driver.cartrack_key.trim() !== '');
+
+            if (!hasTag) {
+                setShowTagModal(true);
+            }
+        }
+    }, [userRole, currentUser]);
+
+    useEffect(() => {
         // Init tempShift from current user
-        if (currentUser && 'turnoInicio' in currentUser) {
+        if (currentUser && ('turnoInicio' in currentUser || 'turno_inicio' in currentUser)) {
+            const driver = currentUser as any;
             setTempShift({
-                start: (currentUser as any).turnoInicio || '08:00',
-                end: (currentUser as any).turnoFim || '17:00'
+                start: driver.turnoInicio || driver.turno_inicio || '08:00',
+                end: driver.turnoFim || driver.turno_fim || '17:00'
             });
         }
-    });
+    }, [currentUser]);
+
+    const handleTagSave = async (tagId: string) => {
+        try {
+            if (currentUser && userRole === 'motorista') {
+                const updatedDriver = {
+                    ...currentUser as any,
+                    cartrackKey: tagId
+                };
+                await updateMotorista(updatedDriver);
+                setShowTagModal(false);
+                // AuthContext update would be ideal here, but WorkshopContext usually re-fetches
+                // We reload to ensure AuthContext picks up the new key from localStorage/DB
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error("Error saving tag:", err);
+            throw err; // Let modal handle error display
+        }
+    };
 
     // Auto-open Fuel Tab via Effect - Watch for pending requests
     const [lastSeenNotificationCount, setLastSeenNotificationCount] = useState(0);
@@ -390,6 +427,9 @@ export default function CentralMotorista() {
                     layout="flex"
                 />
             </div>
+
+            {/* Tag Registration Modal */}
+            {showTagModal && <TagRegistrationModal onSave={handleTagSave} />}
 
             {/* Content Area */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
