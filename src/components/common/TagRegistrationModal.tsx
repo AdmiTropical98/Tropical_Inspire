@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { CreditCard, Save, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, CheckCircle2, XCircle, AlertCircle, CreditCard, RefreshCw } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { cleanTagId } from '../../services/cartrack';
+import { getTagVariants } from '../../services/cartrack';
 
 interface TagRegistrationModalProps {
     onSave: (tagId: string) => Promise<void>;
@@ -14,7 +14,6 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [hasSyncedAtLeastOnce, setHasSyncedAtLeastOnce] = useState(false);
 
     useEffect(() => {
         const input = tagInput.trim().toUpperCase();
@@ -23,20 +22,14 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
             return;
         }
 
-        const cleanedInput = cleanTagId(input);
+        const inputVariants = getTagVariants(input);
 
-        // Find if this tag matches ANY official Cartrack tag (raw or cleaned)
+        // Find match: if any input variant matches any official variant
         const match = cartrackDrivers.find(cd => {
-            const rawOfficial = (cd.tagId || '').toUpperCase();
-            const cleanedOfficial = cd.cleanedTagId || '';
-
-            // Match exactly or if one is a significant part of the other
-            // OR if both produce the same core ID (cleaned)
-            return rawOfficial === input ||
-                (cleanedInput && cleanedOfficial === cleanedInput) ||
-                (rawOfficial.includes(input) && input.length >= 6) ||
-                (cleanedOfficial && input.includes(cleanedOfficial) && cleanedOfficial.length >= 6) ||
-                (rawOfficial && input.includes(rawOfficial) && rawOfficial.length >= 6);
+            const officialVariants = cd.tagVariants || getTagVariants(cd.tagId);
+            return inputVariants.some(iv =>
+                officialVariants.some(ov => iv === ov || ov.includes(iv) || iv.includes(ov))
+            );
         });
 
         if (!match) {
@@ -45,11 +38,11 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
         }
 
         // Check if taken
-        const cleanedOfficialMatch = cleanTagId(match.tagId);
+        const matchTag = match.tagId?.toUpperCase();
         const isTaken = motoristas.some(m => {
             const mKey = (m as any).cartrackKey || (m as any).cartrack_key;
-            const mCleaned = cleanTagId(mKey);
-            return mCleaned && mCleaned === cleanedOfficialMatch;
+            if (!mKey) return false;
+            return mKey.toUpperCase() === matchTag;
         });
 
         if (isTaken) {
@@ -64,7 +57,6 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
         setError(null);
         try {
             await refreshData();
-            setHasSyncedAtLeastOnce(true);
         } catch (e) {
             setError('Falha ao sincronizar dados da Cartrack.');
         } finally {
@@ -74,23 +66,18 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Allow save if valid OR if the user manually forces it (if we decide to allow it)
         if (status.type !== 'valid') return;
 
         setIsSaving(true);
         setError(null);
         try {
-            // Find the full official tag to save
             const input = tagInput.trim().toUpperCase();
+            const inputVariants = getTagVariants(input);
             const match = cartrackDrivers.find(cd => {
-                const rawOfficial = (cd.tagId || '').toUpperCase();
-                const cleanedOfficial = cd.cleanedTagId || '';
-                const cleanedInput = cleanTagId(input);
-                return rawOfficial === input ||
-                    (cleanedInput && cleanedOfficial === cleanedInput) ||
-                    (rawOfficial.includes(input) && input.length >= 6) ||
-                    (cleanedOfficial && input.includes(cleanedOfficial) && cleanedOfficial.length >= 6) ||
-                    (rawOfficial && input.includes(rawOfficial) && rawOfficial.length >= 6);
+                const officialVariants = cd.tagVariants || getTagVariants(cd.tagId);
+                return inputVariants.some(iv =>
+                    officialVariants.some(ov => iv === ov || ov.includes(iv) || iv.includes(ov))
+                );
             });
 
             await onSave(match?.tagId || tagInput.trim());
@@ -122,7 +109,7 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
                                     type="text"
                                     value={tagInput}
                                     onChange={(e) => setTagInput(e.target.value)}
-                                    placeholder="Ex: 3D000001..."
+                                    placeholder="Ex: 3D00... ou 0500..."
                                     className={`w-full bg-slate-950 border rounded-2xl px-6 py-5 text-white text-xl font-mono focus:outline-none transition-all placeholder:text-slate-800 ${status.type === 'valid' ? 'border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20' :
                                         status.type === 'idle' ? 'border-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' :
                                             'border-red-500/50 focus:ring-2 focus:ring-red-500/20'
@@ -152,7 +139,7 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
                                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
                                     <CheckCircle2 className="w-5 h-5 text-blue-400" />
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Motorista Detetado</p>
                                     <p className="text-white font-bold">{status.message.split(': ')[1]}</p>
                                 </div>
@@ -171,35 +158,17 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
                                 type="button"
                                 onClick={handleRefresh}
                                 disabled={isRefreshing}
-                                className="w-full py-2 text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold tracking-widest transition-colors disabled:opacity-50"
+                                className="w-full py-2 text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold tracking-widest transition-colors disabled:opacity-50 group flex items-center justify-center gap-2"
                             >
                                 {isRefreshing ? (
-                                    <span className="flex items-center justify-center gap-2">
-                                        <div className="w-3 h-3 border-2 border-slate-500 border-t-white rounded-full animate-spin"></div>
+                                    <>
+                                        <RefreshCw className="w-3 h-3 animate-spin" />
                                         Sincronizando com Cartrack...
-                                    </span>
+                                    </>
                                 ) : (
                                     'Não encontras a tua tag? Tenta Sincronizar'
                                 )}
                             </button>
-
-                            {status.type === 'invalid' && !isRefreshing && tagInput.length >= 8 && (
-                                <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
-                                    <p className="text-[10px] text-blue-400/80 leading-relaxed text-center font-medium italic">
-                                        Dica: A sincronização pode demorar alguns segundos. Se acabaste de receber a tag na Cartrack, aguarda um momento.
-                                    </p>
-                                </div>
-                            )}
-
-                            {status.type === 'invalid' && hasSyncedAtLeastOnce && /^[0-9A-F]{14,16}$/i.test(tagInput.trim()) && (
-                                <button
-                                    type="button"
-                                    onClick={() => setStatus({ type: 'valid', message: 'Validado Manualmente (Confirmada)' })}
-                                    className="w-full py-4 rounded-2xl border border-dashed border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-widest hover:bg-emerald-500/5 transition-all mt-2 animate-in fade-in slide-in-from-top-2"
-                                >
-                                    Minha Tag está correta (Forçar)
-                                </button>
-                            )}
                         </div>
 
                         <button
@@ -208,20 +177,19 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
                             className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-5 rounded-2xl shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-3 text-lg"
                         >
                             {isSaving ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
                                 <>
-                                    <Save className="w-5 h-5" />
+                                    <CheckCircle2 className="w-6 h-6" />
                                     Gravar e Continuar
                                 </>
                             )}
                         </button>
                     </form>
                 </div>
-
-                <div className="bg-slate-950/50 p-4 border-t border-slate-800/50">
-                    <p className="text-[10px] text-slate-600 text-center uppercase tracking-tighter">
-                        Tropical Inspire &bull; Gestão de Frota
+                <div className="px-8 py-4 bg-slate-950/50 border-t border-slate-800/50 flex justify-center">
+                    <p className="text-[10px] text-slate-600 font-medium uppercase tracking-tight">
+                        Tropical Inspire • Gestão de Frota
                     </p>
                 </div>
             </div>

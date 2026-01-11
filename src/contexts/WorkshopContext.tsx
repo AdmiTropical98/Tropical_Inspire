@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao } from '../types';
-import { CartrackService, cleanTagId, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
+import { CartrackService, cleanTagId, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
@@ -310,7 +310,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             lastName: 'Viatura',
                             fullName: `Motorista (Tag ${cleanTag.slice(-6)})`,
                             tagId: cleanTag,
-                            cleanedTagId: cleanTagId(cleanTag)
+                            tagVariants: getTagVariants(cleanTag)
                         } as any);
                         existingDriverTags.add(cleanTag);
                     }
