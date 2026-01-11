@@ -148,7 +148,7 @@ export default function Permissoes() {
 
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-6 pb-24 space-y-8">
+        <div className="absolute inset-0 w-full var-scroll-container overflow-y-auto custom-scrollbar p-4 md:p-6 pb-24 space-y-6 md:space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
