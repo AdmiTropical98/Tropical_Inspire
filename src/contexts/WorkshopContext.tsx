@@ -20,6 +20,7 @@ interface WorkshopContextType {
     geofences: CartrackGeofence[];
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
+    cartrackDrivers: import('../services/cartrack').CartrackDriver[];
     // Fuel
     fuelTank: FuelTank;
     fuelTransactions: FuelTransaction[];
@@ -88,6 +89,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [geofences, setGeofences] = useState<CartrackGeofence[]>([]);
     const [geofenceVisits, setGeofenceVisits] = useState<CartrackGeofenceVisit[]>([]); // NEW
     const [cartrackVehicles, setCartrackVehicles] = useState<import('../services/cartrack').CartrackVehicle[]>([]);
+    const [cartrackDrivers, setCartrackDrivers] = useState<import('../services/cartrack').CartrackDriver[]>([]);
 
 
 
@@ -292,8 +294,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 setMotoristas(updatedMotoristas);
                 setCartrackVehicles(enrichedVehicles);
+                setCartrackDrivers(cDrivers);
             } else {
                 setCartrackVehicles(cVehicles);
+                setCartrackDrivers(cDrivers);
             }
 
             const { data: sups } = await supabase.from('supervisores').select('*');
@@ -1042,6 +1046,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 notifications,
                 servicos,
                 setServicos,
+                cartrackDrivers,
                 fuelTank,           // NEW
                 fuelTransactions,   // NEW
                 addFornecedor,
@@ -1164,9 +1169,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 updateServico,
                 deleteServico,
                 avaliacoes,
-                cartrackVehicles, // NEW
+                cartrackVehicles,
                 geofences,
-                geofenceVisits, // NEW
+                geofenceVisits,
                 refreshData,
                 manualHours,
                 addManualHourRecord,
