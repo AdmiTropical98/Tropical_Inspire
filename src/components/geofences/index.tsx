@@ -22,6 +22,7 @@ export default function Geofences() {
         else setLoading(true);
 
         setError(null);
+        const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
         try {
             // Fetch both in parallel
             const [geoData, vehiclesData] = await Promise.allSettled([
@@ -38,18 +39,19 @@ export default function Geofences() {
             if (vehiclesData.status === 'fulfilled') {
                 const rawVehicles = vehiclesData.value;
                 const enriched = rawVehicles.map((v: any) => {
+                    // Try to find matching motorista from context (enriched in refreshData)
                     const localM = motoristas.find(m =>
-                        (m.cartrackId && m.cartrackId === v.driverId) ||
-                        (m.currentVehicle === v.registration)
+                        (m.cartrackId && String(m.cartrackId) === String(v.driverId)) ||
+                        (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
                     );
 
-                    let displayName = v.driverName;
+                    let displayName = v.driverName || 'Sem Motorista';
                     if (localM) {
                         displayName = localM.nome;
                         if (localM.cartrackKey) {
                             displayName += ` (${localM.cartrackKey})`;
                         }
-                    } else if (v.driverName === v.registration) {
+                    } else if (v.driverName && (normalizePlate(v.driverName) === normalizePlate(v.registration))) {
                         displayName = 'Sem Motorista';
                     }
 

@@ -186,6 +186,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             }
 
             // 3. Team
+            const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
             const [cDrivers, cVehicles, { data: dbMotoristas }] = await Promise.all([
                 CartrackService.getDrivers(),
                 CartrackService.getVehicles(),
@@ -207,8 +208,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                     // 2. Find if this driver is currently in a vehicle according to Cartrack
                     const activeVehicle = cVehicles.find(v =>
-                        (currentCartrackId && v.driverId === currentCartrackId) ||
-                        v.driverName?.toLowerCase() === m.nome.toLowerCase()
+                        (currentCartrackId && String(v.driverId) === String(currentCartrackId)) ||
+                        (v.driverName && v.driverName.toLowerCase() === m.nome.toLowerCase()) ||
+                        (m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle))
                     );
 
                     return {
@@ -230,17 +232,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 // Enrich Cartrack Vehicles with local data (Name/Key)
                 const enrichedVehicles = cVehicles.map(v => {
                     const localM = updatedMotoristas.find(m =>
-                        (m.cartrackId && m.cartrackId === v.driverId) ||
-                        (m.currentVehicle === v.registration)
+                        (m.cartrackId && String(m.cartrackId) === String(v.driverId)) ||
+                        (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
                     );
 
-                    let displayName = v.driverName;
+                    let displayName = v.driverName || 'Sem Motorista';
                     if (localM) {
                         displayName = localM.nome;
                         if (localM.cartrackKey) {
                             displayName += ` (${localM.cartrackKey})`;
                         }
-                    } else if (v.driverName === v.registration) {
+                    } else if (v.driverName && (normalizePlate(v.driverName) === normalizePlate(v.registration))) {
                         displayName = 'Sem Motorista';
                     }
 
