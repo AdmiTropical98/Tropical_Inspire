@@ -62,9 +62,14 @@ export default function Geofences() {
                     );
 
                     let displayName = 'Sem Motorista';
+
+                    // Only show Cartrack driver if vehicle is moving/idle OR has an active tag swipe
+                    // This prevents "João Lisboa" (or any last known driver) from sticking to parked cars
+                    const shouldShowCartrackDriver = v.status !== 'stopped' || !!v.tagId;
+
                     if (localM) {
                         displayName = localM.nome;
-                    } else if (isProperName(resolvedName)) {
+                    } else if (shouldShowCartrackDriver && isProperName(resolvedName)) {
                         displayName = resolvedName!;
                     }
 
