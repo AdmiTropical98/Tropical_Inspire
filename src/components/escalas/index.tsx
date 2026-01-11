@@ -29,7 +29,8 @@ interface NewServiceState {
 export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
-        addServico, updateServico, deleteServico, deleteMotorista, updateMotorista, geofences
+        addServico, updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
+        runComplianceCheck, complianceStats
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -628,13 +629,13 @@ export default function Escalas() {
                                                             {driver.foto ? (
                                                                 <img src={driver.foto} alt={driver.nome} className="w-9 h-9 rounded-full object-cover border-2 border-slate-700" />
                                                             ) : (
-                                                                    <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
+                                                                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
                                                                     {driver.nome.charAt(0)}
                                                                 </div>
                                                             )}
                                                             <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-[#1e293b] rounded-full shadow-sm
                                                     ${driver.status === 'disponivel' ? 'bg-emerald-500' :
-                                                                driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
+                                                                    driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
                                                 `}></div>
                                                         </div>
                                                         <div>
@@ -737,10 +738,18 @@ export default function Escalas() {
                                                                         // RENDER SINGLE SERVICE (Legacy)
                                                                         const service = firstService;
                                                                         return (
+                                                                        const compliance = complianceStats?.[service.id];
+                                                                        const complianceColor = compliance?.status === 'success'
+                                                                            ? 'border-emerald-500 bg-emerald-500/10'
+                                                                            : compliance?.status === 'failed'
+                                                                                ? 'border-red-500 bg-red-500/10'
+                                                                                : 'border-white/5 hover:border-blue-500/30';
+
+                                                                        return (
                                                                             <div key={service.id} className="relative z-10 flex gap-2 md:gap-4 group/item">
                                                                                 {/* Time Column */}
                                                                                 <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
-                                                                                    <span className="text-[11px] md:text-sm font-bold text-white font-mono bg-slate-800/80 px-1.5 md:px-2 py-0.5 md:py-1 rounded border border-white/5 shadow-sm">
+                                                                                    <span className={`text-[11px] md:text-sm font-bold text-white font-mono px-1.5 md:px-2 py-0.5 md:py-1 rounded border shadow-sm ${compliance?.status === 'success' ? 'bg-emerald-600 border-emerald-400' : compliance?.status === 'failed' ? 'bg-red-600 border-red-400' : 'bg-slate-800/80 border-white/5'}`}>
                                                                                         {service.hora}
                                                                                     </span>
                                                                                     {service.voo && (
@@ -751,7 +760,7 @@ export default function Escalas() {
                                                                                 </div>
 
                                                                                 {/* Content Card */}
-                                                                                <div className="flex-1 bg-slate-800/40 hover:bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-lg p-2 flex flex-col gap-1.5 transition-all relative overflow-hidden">
+                                                                                <div className={`flex-1 ${complianceColor} hover:bg-slate-800/60 border rounded-lg p-2 flex flex-col gap-1.5 transition-all relative overflow-hidden`}>
                                                                                     <button
                                                                                         onClick={(e) => {
                                                                                             e.stopPropagation();
@@ -770,6 +779,13 @@ export default function Escalas() {
                                                                                             </span>
                                                                                             {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
                                                                                                 <span className="text-[9px] text-slate-500 italic line-clamp-1">{service.obs}</span>
+                                                                                            )}
+                                                                                            {/* COMPLIANCE MESSAGE */}
+                                                                                            {compliance && (
+                                                                                                <div className={`flex items-center gap-1 text-[10px] font-bold mt-0.5 ${compliance.status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                                                    {compliance.status === 'success' ? <CheckSquare className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                                                                                                    <span>{compliance.message}</span>
+                                                                                                </div>
                                                                                             )}
                                                                                         </div>
                                                                                     </div>
