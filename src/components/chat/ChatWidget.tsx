@@ -85,9 +85,8 @@ export default function ChatWidget() {
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
-            {/* Chat Window */}
             {isOpen && (
-                <div className="mb-4 w-96 h-[500px] bg-[#1e293b] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto">
+                <div className="mb-4 w-[90vw] sm:w-96 h-[500px] bg-[#1e293b] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto">
                     {/* Header */}
                     <div className="bg-slate-900/50 p-4 border-b border-slate-700 flex items-center justify-between">
                         {selectedUser ? (
