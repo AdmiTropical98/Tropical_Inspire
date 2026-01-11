@@ -216,10 +216,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 // Attempt Cartrack Enrichment (Safe Mode)
                 try {
-                    [cDrivers, cVehicles] = await Promise.all([
+                    const [driversResult, vehiclesResult] = await Promise.allSettled([
                         CartrackService.getDrivers(),
                         CartrackService.getVehicles()
                     ]);
+
+                    if (driversResult.status === 'fulfilled') cDrivers = driversResult.value;
+                    else console.warn('Cartrack Drivers fetch failed:', driversResult.reason);
+
+                    if (vehiclesResult.status === 'fulfilled') cVehicles = vehiclesResult.value;
+                    else console.warn('Cartrack Vehicles fetch failed:', vehiclesResult.reason);
 
                     // If Cartrack succeeded, perform enrichment
                     if (cDrivers && cVehicles) {
