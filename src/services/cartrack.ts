@@ -26,6 +26,7 @@ export interface CartrackVehicle {
     ignition: boolean;
     driverName?: string;
     driverId?: string;
+    tagId?: string;
 }
 
 export interface CartrackDriver {
@@ -236,8 +237,9 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 updatedAt: item.updated_at || item.last_update || item.timestamp || item.location?.ts || new Date().toISOString(),
                 status: (speed > 0 ? 'moving' : (item.ignition ? 'idle' : 'stopped')) as 'moving' | 'stopped' | 'idle',
                 ignition: !!(item.ignition || item.ign),
-                driverName: item.drivers?.[0]?.first_name ? `${item.drivers[0].first_name} ${item.drivers[0].last_name}`.trim() : item.driver_name,
-                driverId: item.drivers?.[0]?.driver_id || item.driver_id
+                driverName: item.drivers?.[0]?.first_name ? `${item.drivers[0].first_name} ${item.drivers[0].last_name}`.trim() : (item.driver_name || item.driver?.name || item.current_driver?.name),
+                driverId: item.drivers?.[0]?.driver_id || item.drivers?.[0]?.id || item.driver_id || item.driver?.id || item.current_driver_id || item.current_driver?.id,
+                tagId: item.drivers?.[0]?.tag_id || item.drivers?.[0]?.identification_tag_id || item.tag_id || item.current_tag_id || item.identification_tag_id
             };
         })
         .filter(v => v.latitude !== 0 && v.longitude !== 0);

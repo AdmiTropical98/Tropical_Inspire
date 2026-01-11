@@ -42,14 +42,23 @@ export default function Geofences() {
                 const enriched = rawVehicles.map((v: any) => {
                     // 1. Fallback to cDrivers list if name missing in status
                     let resolvedName = v.driverName;
-                    if ((!resolvedName || normalizePlate(resolvedName) === normalizePlate(v.registration)) && v.driverId) {
-                        const cd = cDrivers.find(d => String(d.id) === String(v.driverId));
-                        if (cd) resolvedName = cd.fullName;
+                    const isPlateName = !resolvedName || normalizePlate(resolvedName) === normalizePlate(v.registration);
+
+                    if (isPlateName && (v.driverId || v.tagId)) {
+                        const cd = cDrivers.find(d =>
+                            (v.driverId && String(d.id) === String(v.driverId)) ||
+                            (v.tagId && d.tagId === v.tagId)
+                        );
+                        if (cd) {
+                            console.log(`Geofences: Found driver match for ${v.registration}: ${cd.fullName}`);
+                            resolvedName = cd.fullName;
+                        }
                     }
 
                     // 2. Try to find matching motorista from context (enriched in refreshData)
                     const localM = motoristas.find(m =>
                         (m.cartrackId && String(m.cartrackId) === String(v.driverId)) ||
+                        (m.cartrackKey && v.tagId && m.cartrackKey === v.tagId) ||
                         (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
                     );
 
@@ -61,6 +70,10 @@ export default function Geofences() {
                         }
                     } else if (resolvedName && (normalizePlate(resolvedName) === normalizePlate(v.registration))) {
                         displayName = 'Sem Motorista';
+                    }
+
+                    if (v.registration.includes('ZZ')) {
+                        console.log('Geofences Debug ZZ:', { reg: v.registration, driverId: v.driverId, tagId: v.tagId, resolvedName, displayName });
                     }
 
                     return {

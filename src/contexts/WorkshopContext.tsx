@@ -230,17 +230,30 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 }));
 
                 // Enrich Cartrack Vehicles with local data or Cartrack Driver List fallback
+                console.log('Enriching vehicles:', cVehicles.length, 'drivers:', cDrivers.length);
                 const enrichedVehicles = cVehicles.map(v => {
-                    // 1. If v.driverName is missing but we have v.driverId, try to find in cDrivers
+                    // 1. If v.driverName is missing but we have v.driverId or v.tagId, try to find in cDrivers
                     let resolvedName = v.driverName;
-                    if ((!resolvedName || normalizePlate(resolvedName) === normalizePlate(v.registration)) && v.driverId) {
-                        const cd = cDrivers.find(d => String(d.id) === String(v.driverId));
-                        if (cd) resolvedName = cd.fullName;
+                    const isPlateName = !resolvedName || normalizePlate(resolvedName) === normalizePlate(v.registration);
+
+                    if (isPlateName && (v.driverId || v.tagId)) {
+                        const cd = cDrivers.find(d =>
+                            (v.driverId && String(d.id) === String(v.driverId)) ||
+                            (v.tagId && d.tagId === v.tagId)
+                        );
+
+                        if (cd) {
+                            console.log(`Found driver match in cDrivers for ${v.registration}: ${cd.fullName} ${v.tagId ? '(via Tag)' : ''}`);
+                            resolvedName = cd.fullName;
+                        } else {
+                            console.warn(`Could not resolve driver ID ${v.driverId}/Tag ${v.tagId} in cDrivers list for ${v.registration}`);
+                        }
                     }
 
                     // 2. Try to find local motorista for better naming/keys
                     const localM = updatedMotoristas.find(m =>
                         (m.cartrackId && String(m.cartrackId) === String(v.driverId)) ||
+                        (m.cartrackKey && v.tagId && m.cartrackKey === v.tagId) ||
                         (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
                     );
 
@@ -252,6 +265,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         }
                     } else if (resolvedName && (normalizePlate(resolvedName) === normalizePlate(v.registration))) {
                         displayName = 'Sem Motorista';
+                    }
+
+                    if (v.registration.includes('ZZ')) {
+                        console.log('Debug ZZ:', {
+                            reg: v.registration,
+                            driverId: v.driverId,
+                            resolvedName,
+                            localFound: !!localM,
+                            displayName
+                        });
                     }
 
                     return {
