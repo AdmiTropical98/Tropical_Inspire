@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao } from '../types';
+import { CartrackService, type CartrackGeofence } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
-import { createClient } from '@supabase/supabase-js'; // For temp admin creation
+import { createClient } from '@supabase/supabase-js';
 
 interface WorkshopContextType {
     fornecedores: Fornecedor[];
@@ -16,6 +17,7 @@ interface WorkshopContextType {
     notifications: Notification[];
     servicos: any[];
     setServicos: React.Dispatch<React.SetStateAction<any[]>>;
+    geofences: CartrackGeofence[]; // NEW
     // Fuel
     fuelTank: FuelTank;
     fuelTransactions: FuelTransaction[];
@@ -81,6 +83,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [viaturas, setViaturas] = useState<Viatura[]>([]);
     const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
     const [centrosCustos, setCentrosCustos] = useState<CentroCusto[]>([]);
+    const [geofences, setGeofences] = useState<CartrackGeofence[]>([]); // NEW
 
 
 
@@ -240,6 +243,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 obs: item.obs,
                 createdAt: item.created_at
             })));
+
+            // 8. Cartrack Geofences
+            try {
+                const geoData = await CartrackService.getGeofences();
+                if (geoData) setGeofences(geoData);
+            } catch (e) {
+                console.warn('Silent fail: could not fetch Cartrack geofences for context suggestion:', e);
+            }
 
         } catch (error) {
             console.error('Error refreshing data:', error);
@@ -1027,6 +1038,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 updateServico,
                 deleteServico,
                 avaliacoes,
+                geofences, // NEW
                 refreshData,
                 manualHours,
                 addManualHourRecord,
