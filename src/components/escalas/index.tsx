@@ -29,7 +29,7 @@ interface NewServiceState {
 export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
-        addServico, updateServico, deleteServico, deleteMotorista, updateMotorista
+        addServico, updateServico, deleteServico, deleteMotorista, updateMotorista, geofences
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -1373,6 +1373,7 @@ export default function Escalas() {
                                         <input
                                             type="text"
                                             required
+                                            list="geofences-list"
                                             placeholder="Onde apanhar..."
                                             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={newService.origem}
@@ -1384,6 +1385,7 @@ export default function Escalas() {
                                         <input
                                             type="text"
                                             required
+                                            list="geofences-list"
                                             placeholder="Destino..."
                                             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={newService.destino}
@@ -1449,6 +1451,7 @@ export default function Escalas() {
                                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.diff_dest')}</label>
                                                     <input
                                                         type="text"
+                                                        list="geofences-list"
                                                         placeholder="Opcional..."
                                                         className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                                         value={newService.destinoRegresso}
@@ -1528,6 +1531,7 @@ export default function Escalas() {
                                         <input
                                             type="text"
                                             required
+                                            list="geofences-list"
                                             placeholder="Onde está..."
                                             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
                                             value={urgentData.origem}
@@ -1539,6 +1543,7 @@ export default function Escalas() {
                                         <input
                                             type="text"
                                             required
+                                            list="geofences-list"
                                             placeholder="Para onde vai..."
                                             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
                                             value={urgentData.destino}
@@ -1579,7 +1584,12 @@ export default function Escalas() {
                     </div>
                 )
             }
-
+            {/* Datalist for geofences suggestions */}
+            <datalist id="geofences-list">
+                {geofences.map(geo => (
+                    <option key={geo.id} value={geo.name} />
+                ))}
+            </datalist>
         </div >
     );
 }
