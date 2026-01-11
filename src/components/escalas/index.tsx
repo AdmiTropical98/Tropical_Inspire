@@ -394,7 +394,7 @@ export default function Escalas() {
         <div className="flex flex-col h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
 
             {/* HEADER TOOLBAR */}
-            <div className="h-auto md:h-20 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0 gap-4 md:gap-0">
+            <div className="h-auto md:h-20 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between p-2 md:px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0 gap-3 md:gap-0">
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -404,13 +404,13 @@ export default function Escalas() {
                 />
 
                 {/* Left: Date & Stats */}
-                <div className="flex flex-row items-center justify-between md:justify-start gap-4 md:gap-8 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between md:justify-start gap-3 md:gap-8 w-full md:w-auto">
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2 text-blue-400 mb-0.5">
                             <Calendar className="w-4 h-4" />
                             <span className="text-xs font-bold uppercase tracking-wider">Hoje</span>
                         </div>
-                        <h2 className="text-lg font-bold text-white capitalize leading-none truncate max-w-[200px] md:max-w-none">
+                        <h2 className="text-base md:text-lg font-bold text-white capitalize leading-none truncate max-w-[200px] md:max-w-none">
                             {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </h2>
                     </div>
@@ -418,7 +418,7 @@ export default function Escalas() {
                     <div className="hidden md:block h-10 w-px bg-white/10" />
 
                     {/* Stats */}
-                    <div className="flex items-center justify-between w-full md:w-auto gap-4 md:gap-6">
+                    <div className="flex items-center justify-between w-full md:w-auto gap-2 md:gap-6">
                         <div className="flex flex-col items-center">
                             <span className="text-[10px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Serviços</span>
                             <span className="text-base md:text-lg font-bold text-white">{totalServices}</span>
@@ -555,7 +555,7 @@ export default function Escalas() {
                 `}>
                             <div className="h-auto md:h-full flex flex-col">
                                 {/* Status Filters */}
-                                <div className="flex items-center gap-2 mb-4 px-4 md:px-8 mt-4 md:mt-8 overflow-x-auto pb-2 shrink-0 scrollbar-hide">
+                                <div className="flex items-center gap-2 mb-2 md:mb-4 px-2 md:px-8 mt-2 md:mt-8 overflow-x-auto pb-2 shrink-0 scrollbar-hide">
                                     <button
                                         onClick={() => setFilterStatus('all')}
                                         className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
@@ -586,7 +586,7 @@ export default function Escalas() {
                                 </div>
 
                                 {/* Drivers Swimlanes */}
-                                <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-4 md:gap-6 md:overflow-x-auto pb-6 px-4 snap-y md:snap-x">
+                                <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-3 md:gap-6 md:overflow-x-auto pb-6 px-2 md:px-4 snap-y md:snap-x">
                                     {filteredMotoristas.map(driver => {
                                         // Calculate Driver Stats
                                         const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
