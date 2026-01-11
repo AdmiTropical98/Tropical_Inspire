@@ -248,8 +248,23 @@ export const CartrackService = {
             }
 
             if (!data) {
-                console.warn('Cartrack vehicles endpoint returned no data');
-                return [];
+                console.warn('Cartrack vehicles endpoint returned no data (likely 401/403).');
+                // DEBUG: FORCE MOCK DATA IF EMPTY/FAILED
+                console.warn('DEBUG MODE: API Failed (No Data), injecting MOCK VEHICLE for UI test.');
+                return [{
+                    id: 'MOCK-ERROR-002',
+                    registration: 'DEMO-DATA',
+                    label: 'Viatura Demo (Sem Dados)',
+                    status: 'moving',
+                    latitude: 38.722, // Lisbon
+                    longitude: -9.139,
+                    speed: 60,
+                    bearing: 180,
+                    last_activity: new Date().toISOString(),
+                    last_position_update: new Date().toISOString(),
+                    driverName: 'Sem Dados API',
+                    ignition: true
+                }];
             }
 
             const mapped = mapCartrackDataToVehicles(data);
