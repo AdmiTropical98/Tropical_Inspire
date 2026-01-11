@@ -1,13 +1,13 @@
-import { Calendar, Info, CheckCircle, Clock, User } from 'lucide-react';
-import { useTranslation } from '../../hooks/useTranslation';
-import { Servico } from '../../types';
+import { Calendar, Info, CheckCircle, Clock, User, ArrowLeft } from 'lucide-react';
+import { type Servico } from '../../types';
 
 interface MyScheduleViewProps {
     services: Servico[];
+    onBack?: () => void;
 }
 
-export default function MyScheduleView({ services }: MyScheduleViewProps) {
-    const { t } = useTranslation();
+export default function MyScheduleView({ services, onBack }: MyScheduleViewProps) {
+
 
     // Group services by date
     const groupedServices = services.reduce((groups, service) => {
@@ -16,8 +16,6 @@ export default function MyScheduleView({ services }: MyScheduleViewProps) {
 
         try {
             // Handle cases where 'hora' is full ISO, or we need to combine data+hora
-            // Assuming service.hora is the main time field. If service.data exists, it might be the day.
-            // For safety, let's try to parse 'hora' first.
             let dateObj = new Date(service.hora);
 
             // If invalid date (e.g. just HH:mm), try to use today's date + time
@@ -56,9 +54,23 @@ export default function MyScheduleView({ services }: MyScheduleViewProps) {
     });
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+        <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0">
+            {/* Mobile Header with Back Button */}
+            <div className="md:hidden flex items-center gap-3 bg-slate-800/80 backdrop-blur-md p-4 sticky top-0 z-50 border-b border-slate-700/50 -mx-4 px-4 shadow-lg">
+                <button
+                    onClick={onBack}
+                    className="p-2 -ml-2 hover:bg-slate-700/50 rounded-full transition-colors text-slate-300"
+                >
+                    <ArrowLeft className="w-6 h-6" />
+                </button>
+                <div>
+                    <h2 className="text-lg font-bold text-white leading-tight">Minha Escala</h2>
+                    <p className="text-xs text-slate-400">Serviços Atribuídos</p>
+                </div>
+            </div>
+
+            {/* Desktop Header */}
+            <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                 <div>
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-blue-400" />
@@ -80,7 +92,7 @@ export default function MyScheduleView({ services }: MyScheduleViewProps) {
             </div>
 
             {services.length === 0 ? (
-                <div className="bg-slate-800/30 rounded-2xl p-12 text-center border border-slate-700/50 border-dashed">
+                <div className="bg-slate-800/30 rounded-2xl p-12 text-center border border-slate-700/50 border-dashed mt-8 md:mt-0">
                     <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Calendar className="w-8 h-8 text-slate-500" />
                     </div>
@@ -90,13 +102,13 @@ export default function MyScheduleView({ services }: MyScheduleViewProps) {
                     </p>
                 </div>
             ) : (
-                <div className="space-y-8">
+                    <div className="space-y-6 md:space-y-8">
                         {sortedGroupKeys.map(date => (
-                        <div key={date} className="space-y-4">
-                            {/* Date Header */}
-                            <div className="flex items-center gap-3 sticky top-0 z-10 bg-[#0f172a]/95 backdrop-blur py-2">
+                            <div key={date} className="space-y-3 md:space-y-4">
+                                {/* Date Header - Sticky on Desktop, Inline on Mobile */}
+                                <div className="flex items-center gap-3 py-2 px-2 md:sticky md:top-0 md:bg-[#0f172a]/95 md:backdrop-blur md:z-10">
                                 <span className="h-px flex-1 bg-gradient-to-r from-blue-500/50 to-transparent"></span>
-                                <h3 className="text-sm font-bold text-white uppercase tracking-wider px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                                    <h3 className="text-xs md:text-sm font-bold text-white uppercase tracking-wider px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full whitespace-nowrap">
                                     {date}
                                 </h3>
                                 <span className="h-px flex-1 bg-gradient-to-l from-blue-500/50 to-transparent"></span>
@@ -162,7 +174,7 @@ export default function MyScheduleView({ services }: MyScheduleViewProps) {
                                                                 <CheckCircle className="w-3.5 h-3.5" /> Concluído
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-bold border border-amber-500/20">
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-bold border border-amber-500/20">
                                                                 <Clock className="w-3.5 h-3.5" /> Agendado
                                                             </span>
                                                         )}
@@ -174,60 +186,94 @@ export default function MyScheduleView({ services }: MyScheduleViewProps) {
                                 </div>
                             </div>
 
-                            {/* Mobile Card View (Visible on Mobile) */}
+                                {/* Mobile Card View (Enhanced & Explanatory) */}
                             <div className="md:hidden grid gap-4">
                                 {groupedServices[date].map(service => (
                                     <div
                                         key={service.id}
-                                        className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 shadow-lg relative overflow-hidden"
+                                        className="bg-slate-800 rounded-2xl border border-slate-700 shadow-xl overflow-hidden"
                                     >
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${service.concluido ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                                        {/* Status Header Strip */}
+                                        <div className={`h-1.5 w-full ${service.concluido ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-amber-500 to-orange-400'}`}></div>
 
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="bg-slate-900 p-2 rounded-lg border border-slate-700 text-center min-w-[60px]">
-                                                    <span className="block text-lg font-bold text-white leading-none">
-                                                        {new Date(service._parsedDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-1.5 text-blue-400 font-medium text-sm">
-                                                        <User className="w-3.5 h-3.5" />
-                                                        {service.passageiro || 'Passageiro'}
+                                        <div className="p-4 space-y-4">
+                                            {/* Time & Status Row */}
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700 shadow-inner flex flex-col items-center min-w-[70px]">
+                                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hora</span>
+                                                        <span className="text-xl font-black text-white tracking-tight">
+                                                            {new Date(service._parsedDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
                                                     </div>
-                                                    <span className={`text-[10px] font-bold uppercase tracking-wider py-0.5 px-2 rounded-full ${service.concluido ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-500'}`}>
-                                                        {service.concluido ? 'Viagem Realizada' : 'Para Realizar'}
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Estado do Serviço</span>
+                                                        {service.concluido ? (
+                                                            <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
+                                                                <CheckCircle className="w-4 h-4" />
+                                                                <span>Concluído</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
+                                                                <Clock className="w-4 h-4" />
+                                                                <span>Agendado</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="space-y-3 pl-2">
-                                            <div className="relative">
+                                            {/* Passenger Row */}
+                                            <div className="bg-slate-700/30 rounded-xl p-3 flex items-center gap-3 border border-slate-700/50">
+                                                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                                                    <User className="w-5 h-5 text-blue-400" />
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Passageiro</span>
+                                                    <span className="text-white font-bold text-base truncate block">{service.passageiro || 'Nome não indicado'}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Route Timeline */}
+                                            <div className="relative pl-2 py-1">
                                                 {/* Connecting Line */}
-                                                <div className="absolute left-[5px] top-2 bottom-2 w-px bg-slate-700"></div>
+                                                <div className="absolute left-[9px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-purple-600 opacity-30"></div>
 
-                                                <div className="flex items-start gap-3 mb-3">
-                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 relative z-10 ring-4 ring-slate-800"></div>
-                                                    <div>
-                                                        <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Origem</span>
-                                                        <p className="text-white leading-tight">{service.origem}</p>
+                                                <div className="space-y-6">
+                                                    {/* Origin */}
+                                                    <div className="relative flex gap-3">
+                                                        <div className="w-5 h-5 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block mb-0.5">De (Origem)</span>
+                                                            <p className="text-slate-200 font-medium leading-tight text-sm">{service.origem}</p>
+                                                        </div>
                                                     </div>
-                                                </div>
 
-                                                <div className="flex items-start gap-3">
-                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 relative z-10 ring-4 ring-slate-800"></div>
-                                                    <div>
-                                                        <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Destino</span>
-                                                        <p className="text-white font-medium leading-tight">{service.destino}</p>
+                                                    {/* Destination */}
+                                                    <div className="relative flex gap-3">
+                                                        <div className="w-5 h-5 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider block mb-0.5">Para (Destino)</span>
+                                                            <p className="text-white font-bold leading-tight text-sm">{service.destino}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
 
+                                            {/* Footer / Obs */}
                                             {service.obs && (
-                                                <div className="mt-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 flex gap-2">
-                                                    <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
-                                                    <p className="text-xs text-slate-400 italic">"{service.obs}"</p>
+                                                <div className="mt-2 pt-3 border-t border-slate-700/50">
+                                                    <div className="flex gap-2 text-slate-400">
+                                                        <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                                                        <div className="text-xs italic">
+                                                            <span className="font-bold not-italic text-slate-500 mr-1">Obs:</span>
+                                                            {service.obs}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

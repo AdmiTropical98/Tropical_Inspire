@@ -64,11 +64,26 @@ export default function CentralMotorista() {
     // Auto-open Fuel Tab via Effect - Watch for pending requests
     const [lastSeenNotificationCount, setLastSeenNotificationCount] = useState(0);
 
+    // Mobile Navigation Handling (Back Button)
+    useEffect(() => {
+        if (activeTab === 'escala') {
+            // Push state when entering 'escala'
+            window.history.pushState({ tab: 'escala' }, '', '#escala');
+        }
+
+        const handlePopState = (event: PopStateEvent) => {
+            // If we are in 'escala' and user hits back, we go back to 'overview'
+            if (activeTab === 'escala') {
+                setActiveTab('overview');
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [activeTab]);
+
     useEffect(() => {
         // Simple check: if we have ANY pending fuel request, force open tab.
-        // Or cleaner: only if we haven't seen it yet? 
-        // User said: "envie, ele receba um alerta em que abre automaticamente"
-        // So checking pending status on every update is safest to ensure they see it.
         const pendingFuel = notifications.find(n =>
             n.type === 'fuel_confirmation_request' &&
             n.status === 'pending' &&
@@ -76,11 +91,6 @@ export default function CentralMotorista() {
         );
 
         if (pendingFuel && activeTab !== 'abastecimentos') {
-            // To avoid locking the user if they want to leave, we could use a timestamp check or just do it once per new ID?
-            // For now, let's just do it if it's pending. If it's annoying we can refine.
-            // Actually, if I navigate away, it will pull me back.
-            // Let's use a "acknowledged" state locally for this session?
-            // Or better: only if notifications length changed?
             if (notifications.length > lastSeenNotificationCount) {
                 setActiveTab('abastecimentos');
             }
@@ -382,7 +392,10 @@ export default function CentralMotorista() {
                 {/* NEW TAB: ESCALA - FULL WIDTH IF ACTIVE */}
                 {activeTab === 'escala' && (
                     <div className="lg:col-span-3">
-                        <MyScheduleView services={mySchedule} />
+                        <MyScheduleView
+                            services={mySchedule}
+                            onBack={() => setActiveTab('overview')}
+                        />
                     </div>
                 )}
 
