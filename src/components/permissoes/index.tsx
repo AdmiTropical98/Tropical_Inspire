@@ -25,9 +25,9 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
         labelKey: 'menu.general',
         icon: Globe,
         permissions: [
-            { id: 'dashboard', labelKey: 'menu.dashboard', descriptionKey: 'permission.description.dashboard' },
-            { id: 'mensagens', labelKey: 'menu.messages', descriptionKey: 'permission.description.messages' },
-            { id: 'geofences', labelKey: 'menu.geofences', descriptionKey: 'permission.description.geofences' }
+            { id: 'dashboard', labelKey: 'menu.dashboard' },
+            { id: 'mensagens', labelKey: 'menu.messages' },
+            { id: 'geofences', labelKey: 'menu.geofences' }
         ]
     },
     {

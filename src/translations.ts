@@ -1,7 +1,10 @@
 export const translations = {
     pt: {
         // Menu / Sidebar
-        'menu.dashboard': 'Página Principal',
+        'menu.general': 'Geral',
+        'menu.dashboard': 'Dashboard',
+        'menu.messages': 'Mensagens',
+        'menu.geofences': 'Geofences',
         'menu.main': 'Menu Principal',
         'menu.requisitions': 'Requisições',
         'menu.drivers': 'Motoristas',
