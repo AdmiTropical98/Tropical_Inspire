@@ -51,7 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             vencimentoBase: data.vencimento_base,
                             valorHora: data.valor_hora,
                             turnoInicio: data.turno_inicio,
-                            turnoFim: data.turno_fim
+                            turnoFim: data.turno_fim,
+                            cartaConducao: data.carta_conducao,
+                            dataRegisto: data.data_registo,
+                            blockedPermissions: data.blocked_permissions,
+                            status: data.status || 'disponivel',
+                            currentVehicle: data.current_vehicle
                         };
                     }
 
@@ -99,7 +104,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                         vencimentoBase: data.vencimento_base,
                                         valorHora: data.valor_hora,
                                         turnoInicio: data.turno_inicio,
-                                        turnoFim: data.turno_fim
+                                        turnoFim: data.turno_fim,
+                                        cartaConducao: data.carta_conducao,
+                                        dataRegisto: data.data_registo,
+                                        blockedPermissions: data.blocked_permissions,
+                                        status: data.status || 'disponivel',
+                                        currentVehicle: data.current_vehicle
                                     };
                                 }
                                 setCurrentUser(refreshed);
