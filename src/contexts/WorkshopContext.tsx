@@ -258,20 +258,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     );
 
                     let displayName = 'Sem Motorista';
-                    const hasTag = !!v.tagId;
-                    const nameIsProper = isProperName(resolvedName);
-
                     if (localM) {
                         displayName = localM.nome;
-                    } else if (nameIsProper && hasTag) {
-                        displayName = `${resolvedName} (Tag: ${v.tagId})`;
-                    } else if (nameIsProper) {
+                    } else if (isProperName(resolvedName)) {
                         displayName = resolvedName!;
-                    } else if (hasTag) {
-                        displayName = `Tag: ${v.tagId}`;
-                    } else if (v.driverId) {
-                        displayName = `ID: ${v.driverId}`;
                     }
+
+                    return {
+                        ...v,
+                        driverName: displayName
+                    };
 
                     if (v.registration.includes('ZZ')) {
                         console.log('Debug ZZ:', {

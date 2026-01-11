@@ -272,9 +272,16 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                                     </span>
                                 </div>
                                 <div className="space-y-2 text-xs text-slate-600">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Motorista</span>
-                                        <span className="font-black text-slate-900">{vehicle.driverName || vehicle.name}</span>
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mt-1">Motorista</span>
+                                        <div className="flex flex-col items-end">
+                                            <span className="font-black text-slate-900 leading-tight">{vehicle.driverName || 'Sem Motorista'}</span>
+                                            {vehicle.tagId && (
+                                                <span className="text-[10px] text-blue-500 font-mono font-bold uppercase tracking-tighter mt-1 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                                    Tag: {vehicle.tagId}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Velocidade</span>

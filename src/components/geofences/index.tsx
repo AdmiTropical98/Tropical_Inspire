@@ -62,19 +62,10 @@ export default function Geofences() {
                     );
 
                     let displayName = 'Sem Motorista';
-                    const hasTag = !!v.tagId;
-                    const nameIsProper = isProperName(resolvedName);
-
                     if (localM) {
                         displayName = localM.nome;
-                    } else if (nameIsProper && hasTag) {
-                        displayName = `${resolvedName} (Tag: ${v.tagId})`;
-                    } else if (nameIsProper) {
+                    } else if (isProperName(resolvedName)) {
                         displayName = resolvedName!;
-                    } else if (hasTag) {
-                        displayName = `Tag: ${v.tagId}`;
-                    } else if (v.driverId) {
-                        displayName = `ID: ${v.driverId}`;
                     }
 
                     return { ...v, driverName: displayName };
@@ -205,7 +196,14 @@ export default function Geofences() {
                                                 <div className="p-1 bg-slate-800 rounded text-slate-400 group-hover:text-blue-400 transition-colors">
                                                     <Car className="w-2.5 h-2.5" />
                                                 </div>
-                                                <p className="text-[10px] text-white font-black uppercase truncate tracking-widest">{vehicle.driverName || 'Sem Motorista'}</p>
+                                                <div className="flex flex-col">
+                                                    <p className="text-[10px] text-white font-black uppercase truncate tracking-widest leading-tight">{vehicle.driverName || 'Sem Motorista'}</p>
+                                                    {vehicle.tagId && (
+                                                        <p className="text-[8px] text-blue-400 font-mono font-bold mt-1 uppercase tracking-tighter bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 w-fit">
+                                                            Tag: {vehicle.tagId}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
