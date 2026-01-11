@@ -231,12 +231,15 @@ export const CartrackService = {
                 }
             }
 
-            if (!data) throw new Error('Falha ao obter dados das viaturas da Cartrack');
+            if (!data) {
+                console.warn('Cartrack vehicles endpoint returned no data');
+                return [];
+            }
 
             return mapCartrackDataToVehicles(data);
         } catch (error) {
-            console.error('Failed to fetch vehicles:', error);
-            throw error;
+            console.warn('Failed to fetch vehicles (returning empty):', error);
+            return [];
         }
     },
 
