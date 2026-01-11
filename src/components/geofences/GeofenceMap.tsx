@@ -31,64 +31,69 @@ const createCarIcon = (registration: string, heading: number, status: 'moving' |
         html: `
             <div class="marker-container" style="display: flex; flex-direction: column; align-items: center; position: relative;">
                 <div class="plate-label" style="
-                    background: rgba(15, 23, 42, 0.9); 
+                    background: rgba(15, 23, 42, 0.95); 
                     color: white; 
-                    padding: 1px 5px; 
-                    border-radius: 4px; 
-                    font-size: 9px; 
-                    font-weight: 700; 
-                    border: 1px solid ${color}44;
-                    box-shadow: 0 0 10px rgba(0,0,0,0.5);
-                    margin-bottom: 2px;
+                    padding: 1px 4px; 
+                    border-radius: 3px; 
+                    font-size: 8px; 
+                    font-weight: 900; 
+                    border: 1px solid ${color}66;
+                    box-shadow: 0 0 15px rgba(0,0,0,0.8);
+                    margin-bottom: 1px;
                     white-space: nowrap;
-                    font-family: 'JetBrains Mono', 'Inter', monospace;
-                    letter-spacing: -0.02em;
-                    backdrop-filter: blur(2px);
+                    font-family: 'JetBrains Mono', monospace;
+                    backdrop-filter: blur(4px);
+                    z-index: 10;
+                    letter-spacing: -0.05em;
                 ">${registration}</div>
                 
-                <div style="transform: rotate(${heading}deg); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); position: relative; width: 32px; height: 32px; display: flex; items-center; justify-center;">
-                    ${isMoving ? `<div class="pulse-effect" style="
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        width: 32px;
-                        height: 32px;
-                        border: 2px solid ${color};
-                        border-radius: 50%;
-                        animation: ring-pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-                        opacity: 0;
-                    "></div>` : ''}
-                    
+                <div style="transform: rotate(${heading}deg); transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; position: relative;">
+                    ${isMoving ? `
                     <div style="
+                        position: absolute;
+                        width: 48px;
+                        height: 48px;
+                        border: 1px solid ${color}44;
+                        border-radius: 50%;
+                        animation: ring-expand 2s infinite ease-out;
+                    "></div>
+                    <div style="
+                        position: absolute;
                         width: 24px;
                         height: 24px;
-                        background: ${isMoving ? color : 'white'};
+                        background: radial-gradient(circle, ${color}66 0%, transparent 70%);
                         border-radius: 50%;
+                    "></div>
+                    ` : ''}
+                    
+                    <div style="
+                        width: 14px;
+                        height: 14px;
+                        background: ${isMoving ? color : '#1e293b'};
                         border: 2px solid ${isMoving ? 'white' : color};
-                        box-shadow: 0 0 15px ${color}66;
+                        border-radius: 50%;
+                        box-shadow: 0 0 10px ${color}88;
+                        z-index: 5;
                         display: flex;
                         align-items: center;
-                        justify-center;
-                        position: relative;
-                        z-index: 2;
+                        justify-content: center;
                     ">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${isMoving ? 'white' : color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="${isMoving ? 'white' : color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 19V5M5 12l7-7 7 7"/>
                         </svg>
                     </div>
                 </div>
                 
                 <style>
-                    @keyframes ring-pulse {
-                        0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
-                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+                    @keyframes ring-expand {
+                        0% { transform: scale(0.4); opacity: 1; }
+                        100% { transform: scale(1.2); opacity: 0; }
                     }
                 </style>
             </div>
         `,
-        iconSize: [60, 60],
-        iconAnchor: [30, 45]
+        iconSize: [50, 50],
+        iconAnchor: [25, 35]
     });
 };
 
