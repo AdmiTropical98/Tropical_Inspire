@@ -6,14 +6,23 @@ import { createClient } from '@supabase/supabase-js';
 
 interface WorkshopContextType {
     fornecedores: Fornecedor[];
+    setFornecedores: React.Dispatch<React.SetStateAction<Fornecedor[]>>;
     viaturas: Viatura[];
+    setViaturas: React.Dispatch<React.SetStateAction<Viatura[]>>;
     clientes: Cliente[];
+    setClientes: React.Dispatch<React.SetStateAction<Cliente[]>>;
     requisicoes: Requisicao[];
+    setRequisicoes: React.Dispatch<React.SetStateAction<Requisicao[]>>;
     centrosCustos: CentroCusto[]; // NEW
+    setCentrosCustos: React.Dispatch<React.SetStateAction<CentroCusto[]>>;
     evaTransports: EvaTransport[];
+    setEvaTransports: React.Dispatch<React.SetStateAction<EvaTransport[]>>;
     motoristas: Motorista[];
+    setMotoristas: React.Dispatch<React.SetStateAction<Motorista[]>>;
     supervisors: Supervisor[];
+    setSupervisors: React.Dispatch<React.SetStateAction<Supervisor[]>>;
     oficinaUsers: OficinaUser[];
+    setOficinaUsers: React.Dispatch<React.SetStateAction<OficinaUser[]>>;
     notifications: Notification[];
     servicos: any[];
     setServicos: React.Dispatch<React.SetStateAction<any[]>>;
