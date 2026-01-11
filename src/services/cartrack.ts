@@ -177,7 +177,7 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
             tagId: item.tag_id || item.identification_tag_id || identification.tag_id || identification.id || item.tag,
             last_position_update: lastPos.timestamp || lastPos.last_activity
         };
-    }).filter((v: CartrackVehicle) => v.latitude !== 0);
+    }); // Changed: Removed .filter(v => v.latitude !== 0) to debug if data exists but has 0 coords
 };
 
 export const CartrackService = {
@@ -215,16 +215,22 @@ export const CartrackService = {
             const endpoints = ['/vehicles/activity', '/vehicles/status', '/stats', '/vehicles'];
             let data = null;
 
+            console.log('Fetching Cartrack Vehicles...');
+
             for (const ep of endpoints) {
                 try {
+                    console.log(`Trying endpoint: ${ep}`);
                     const response = await fetch(`${BASE_URL}${ep}?per_page=100`, {
                         method: 'GET',
                         headers: { 'Authorization': `Basic ${auth}` },
                     });
                     if (response.ok) {
                         data = await response.json();
-                        const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || []);
+                        const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || data?.vehicles || []);
+                        console.log(`Endpoint ${ep} success. Items: ${items.length}`);
                         if (items.length > 0) break;
+                    } else {
+                        console.warn(`Endpoint ${ep} returned ${response.status}`);
                     }
                 } catch (e) {
                     console.warn(`Endpoint ${ep} failed:`, e);
@@ -236,7 +242,9 @@ export const CartrackService = {
                 return [];
             }
 
-            return mapCartrackDataToVehicles(data);
+            const mapped = mapCartrackDataToVehicles(data);
+            console.log(`Mapped ${mapped.length} vehicles.`);
+            return mapped;
         } catch (error) {
             console.warn('Failed to fetch vehicles (returning empty):', error);
             return [];
@@ -359,7 +367,7 @@ export const CartrackService = {
                 };
             }).filter(d => d.fullName !== 'Motorista S/ Nome' || d.tagId);
         } catch (error) {
-            console.error('Failed to fetch drivers:', error);
+            console.warn('Failed to fetch drivers (returning empty):', error);
             return [];
         }
     },
