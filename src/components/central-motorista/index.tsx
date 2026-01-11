@@ -58,11 +58,28 @@ export default function CentralMotorista() {
     const [showTagModal, setShowTagModal] = useState(false);
 
     useEffect(() => {
-        // Show modal if driver has no tag registered
-        if (userRole === 'motorista' && currentUser && !('cartrackKey' in currentUser && (currentUser as any).cartrackKey)) {
-            setShowTagModal(true);
+        // Show modal if driver has no tag registered (check both camelCase and snake_case)
+        if (userRole === 'motorista' && currentUser) {
+            const driver = currentUser as any;
+            const hasTag = (driver.cartrackKey && driver.cartrackKey.trim() !== '') ||
+                (driver.cartrack_key && driver.cartrack_key.trim() !== '');
+
+            if (!hasTag) {
+                setShowTagModal(true);
+            }
         }
     }, [userRole, currentUser]);
+
+    useEffect(() => {
+        // Init tempShift from current user
+        if (currentUser && ('turnoInicio' in currentUser || 'turno_inicio' in currentUser)) {
+            const driver = currentUser as any;
+            setTempShift({
+                start: driver.turnoInicio || driver.turno_inicio || '08:00',
+                end: driver.turnoFim || driver.turno_fim || '17:00'
+            });
+        }
+    }, [currentUser]);
 
     const handleTagSave = async (tagId: string) => {
         try {
