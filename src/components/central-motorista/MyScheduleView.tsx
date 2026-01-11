@@ -1,4 +1,4 @@
-import { Calendar, Info, CheckCircle, Clock, User, ArrowLeft } from 'lucide-react';
+import { Calendar, Info, CheckCircle, Clock, User, Users, ArrowLeft, LogIn, LogOut } from 'lucide-react';
 import { type Servico } from '../../types';
 
 interface MyScheduleViewProps {
@@ -188,9 +188,28 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
 
                                 {/* Mobile Card View (Enhanced & Explanatory) */}
                             <div className="md:hidden grid gap-4">
-                                {groupedServices[date].map(service => (
+                                    {Object.values(groupedServices[date].reduce((acc, service) => {
+                                        // Secondary Grouping: Time + Origin + Destination
+                                        const key = `${service.hora}-${service.origem}-${service.destino}`;
+                                        if (!acc[key]) {
+                                            acc[key] = {
+                                                ...service,
+                                                passengers: [service.passageiro || 'Sem Nome'],
+                                                ids: [service.id],
+                                                isGroup: false
+                                            };
+                                        } else {
+                                            acc[key].passengers.push(service.passageiro || 'Sem Nome');
+                                            acc[key].ids.push(service.id);
+                                            acc[key].isGroup = true;
+                                            // If any in group is NOT concluded, group is NOT concluded (pessimistic)
+                                            // or if ALL are concluded, group is concluded. Let's say if ANY is pending, group is pending.
+                                            if (!service.concluido) acc[key].concluido = false;
+                                        }
+                                        return acc;
+                                    }, {} as Record<string, any>)).map((service: any) => (
                                     <div
-                                        key={service.id}
+                                            key={service.isGroup ? service.ids.join('-') : service.id}
                                         className="bg-slate-800 rounded-2xl border border-slate-700 shadow-xl overflow-hidden"
                                     >
                                         {/* Status Header Strip */}
@@ -223,15 +242,31 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
                                                 </div>
                                             </div>
 
-                                            {/* Passenger Row */}
-                                            <div className="bg-slate-700/30 rounded-xl p-3 flex items-center gap-3 border border-slate-700/50">
-                                                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                                                    <User className="w-5 h-5 text-blue-400" />
-                                                </div>
-                                                <div className="overflow-hidden">
-                                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Passageiro</span>
-                                                    <span className="text-white font-bold text-base truncate block">{service.passageiro || 'Nome não indicado'}</span>
-                                                </div>
+                                                {/* Passenger Row (Single or Multiple) */}
+                                                <div className="bg-slate-700/30 rounded-xl p-3 flex flex-col gap-2 border border-slate-700/50">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                                                            {service.isGroup ? <Users className="w-3 h-3 text-blue-400" /> : <User className="w-3 h-3 text-blue-400" />}
+                                                        </div>
+                                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                            {service.isGroup ? `Passageiros (${service.passengers.length})` : 'Passageiro'}
+                                                        </span>
+                                                    </div>
+
+                                                    {service.isGroup ? (
+                                                        <div className="pl-8 grid gap-1">
+                                                            {service.passengers.map((p: string, idx: number) => (
+                                                                <div key={idx} className="flex items-center gap-2 text-white font-medium text-sm border-b border-white/5 last:border-0 pb-1 last:pb-0">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                                                    {p}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="pl-8">
+                                                            <span className="text-white font-bold text-base truncate block">{service.passageiro || 'Nome não indicado'}</span>
+                                                        </div>
+                                                    )}
                                             </div>
 
                                             {/* Route Timeline */}
@@ -266,14 +301,50 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
 
                                             {/* Footer / Obs */}
                                             {service.obs && (
-                                                <div className="mt-2 pt-3 border-t border-slate-700/50">
-                                                    <div className="flex gap-2 text-slate-400">
-                                                        <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                                                        <div className="text-xs italic">
-                                                            <span className="font-bold not-italic text-slate-500 mr-1">Obs:</span>
-                                                            {service.obs}
-                                                        </div>
-                                                    </div>
+                                                    <div className="mt-3 pt-3 border-t border-slate-700/50">
+                                                        {(() => {
+                                                            const txt = service.obs.toLowerCase();
+                                                            const isEntrada = txt.includes('entrada');
+                                                            const isSaida = txt.includes('saída') || txt.includes('saida');
+
+                                                            if (isEntrada) {
+                                                                return (
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="bg-emerald-500/10 p-2 rounded-lg text-emerald-400 border border-emerald-500/20 shrink-0">
+                                                                            <LogIn className="w-4 h-4" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider block">Entrada</span>
+                                                                            {service.obs.length > 10 && <p className="text-slate-400 text-xs mt-0.5">{service.obs}</p>}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            if (isSaida) {
+                                                                return (
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="bg-rose-500/10 p-2 rounded-lg text-rose-400 border border-rose-500/20 shrink-0">
+                                                                            <LogOut className="w-4 h-4" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-rose-400 text-xs font-bold uppercase tracking-wider block">Saída</span>
+                                                                            {service.obs.length > 10 && <p className="text-slate-400 text-xs mt-0.5">{service.obs}</p>}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            return (
+                                                                <div className="flex gap-2 text-slate-400">
+                                                                    <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                                                                <div className="text-xs">
+                                                                    <span className="font-bold text-slate-500 mr-1 uppercase text-[10px] tracking-wider">Obs:</span>
+                                                                    {service.obs}
+                                                                </div>
+                                                            </div>
+                                                            );
+                                                        })()}
                                                 </div>
                                             )}
                                         </div>
