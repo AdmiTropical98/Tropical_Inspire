@@ -1,5 +1,5 @@
 const CARTRACK_USER = 'ALGA00012';
-const CARTRACK_PASS = 'd395112ab45cf4a2cfa734a47';
+const CARTRACK_PASS = 'd395112ab45cf4a2cfa734a478e699b6964b4281fa47aebc069ce0793cfd1b45';
 
 const BASE_URL = import.meta.env.DEV
     ? '/api/cartrack'
@@ -248,46 +248,13 @@ export const CartrackService = {
             }
 
             if (!data) {
-                console.warn('Cartrack vehicles endpoint returned no data (likely 401/403).');
-                // DEBUG: FORCE MOCK DATA IF EMPTY/FAILED
-                console.warn('DEBUG MODE: API Failed (No Data), injecting MOCK VEHICLE for UI test.');
-                return [{
-                    id: 'MOCK-ERROR-002',
-                    registration: 'DEMO-DATA',
-                    label: 'Viatura Demo (Sem Dados)',
-                    status: 'moving',
-                    latitude: 38.722, // Lisbon
-                    longitude: -9.139,
-                    speed: 60,
-                    bearing: 180,
-                    last_activity: new Date().toISOString(),
-                    last_position_update: new Date().toISOString(),
-                    driverName: 'Sem Dados API',
-                    ignition: true
-                }];
+                console.warn('Cartrack vehicles endpoint returned no data.');
+                return [];
             }
 
             const mapped = mapCartrackDataToVehicles(data);
             console.log(`Mapped ${mapped.length} vehicles.`);
 
-            // DEBUG: FORCE MOCK DATA IF EMPTY
-            if (mapped.length === 0) {
-                console.warn('DEBUG MODE: No vehicles found, injecting MOCK VEHICLE for UI test.');
-                return [{
-                    id: 'MOCK-001',
-                    registration: 'DEBUG-99',
-                    label: 'Viatura Teste',
-                    status: 'moving',
-                    latitude: 38.722, // Lisbon
-                    longitude: -9.139,
-                    speed: 50,
-                    bearing: 0,
-                    last_activity: new Date().toISOString(),
-                    last_position_update: new Date().toISOString(),
-                    driverName: 'Motorista Mock',
-                    ignition: true
-                }];
-            }
 
             return mapped;
         } catch (error) {
