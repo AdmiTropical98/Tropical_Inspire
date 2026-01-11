@@ -217,7 +217,8 @@ export const CartrackService = {
     getVehicles: async (): Promise<CartrackVehicle[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            const endpoints = ['/vehicles/activity', '/vehicles/status', '/stats', '/vehicles'];
+            // Changed order: Prioritize /vehicles (standard) over specific activity/status endpoints
+            const endpoints = ['/vehicles', '/vehicles/activity', '/vehicles/status', '/stats'];
             let data = null;
 
             console.log('Fetching Cartrack Vehicles...');
