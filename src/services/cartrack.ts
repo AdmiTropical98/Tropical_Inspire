@@ -182,6 +182,9 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
     }); // Changed: Removed .filter(v => v.latitude !== 0) to debug if data exists but has 0 coords
 };
 
+// DEBUG VAR
+export let debugLastResponse: any = null;
+
 export const CartrackService = {
     getGeofences: async (): Promise<CartrackGeofence[]> => {
         try {
@@ -226,16 +229,21 @@ export const CartrackService = {
                         method: 'GET',
                         headers: { 'Authorization': `Basic ${auth}` },
                     });
+
                     if (response.ok) {
                         data = await response.json();
+                        debugLastResponse = { endpoint: ep, status: response.status, data: data }; // DEBUG CAPTURE
+
                         const items = Array.isArray(data) ? data : (data?.data || data?.rows || data?.items || data?.vehicles || []);
                         console.log(`Endpoint ${ep} success. Items: ${items.length}`);
                         if (items.length > 0) break;
                     } else {
                         console.warn(`Endpoint ${ep} returned ${response.status}`);
+                        debugLastResponse = { endpoint: ep, status: response.status, error: 'Not OK' };
                     }
                 } catch (e) {
                     console.warn(`Endpoint ${ep} failed:`, e);
+                    debugLastResponse = { endpoint: ep, error: String(e) };
                 }
             }
 
@@ -246,6 +254,26 @@ export const CartrackService = {
 
             const mapped = mapCartrackDataToVehicles(data);
             console.log(`Mapped ${mapped.length} vehicles.`);
+
+            // DEBUG: FORCE MOCK DATA IF EMPTY
+            if (mapped.length === 0) {
+                console.warn('DEBUG MODE: No vehicles found, injecting MOCK VEHICLE for UI test.');
+                return [{
+                    id: 'MOCK-001',
+                    registration: 'DEBUG-99',
+                    label: 'Viatura Teste',
+                    status: 'moving',
+                    latitude: 38.722, // Lisbon
+                    longitude: -9.139,
+                    speed: 50,
+                    bearing: 0,
+                    last_activity: new Date().toISOString(),
+                    last_position_update: new Date().toISOString(),
+                    driverName: 'Motorista Mock',
+                    ignition: true
+                }];
+            }
+
             return mapped;
         } catch (error) {
             console.warn('Failed to fetch vehicles:', error);
