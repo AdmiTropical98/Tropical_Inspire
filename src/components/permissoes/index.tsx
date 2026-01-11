@@ -1,16 +1,21 @@
-import { Shield, User, Wrench } from 'lucide-react';
+import {
+    Shield, User, Wrench, Globe, LayoutDashboard, MessageSquare, MapPin,
+    FileText, Truck, Users, Truck as TruckIcon, UserCog, Building2,
+    Briefcase, BarChart3, Wallet, Clock, Fuel, Calendar, Lock
+} from 'lucide-react';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { PermissionModule } from '../../contexts/PermissionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
-// ... imports
-
 interface PermissionGroup {
     id: string;
     labelKey: string;
+    icon: React.ElementType;
+    descriptionKey?: string;
     permissions: {
         id: PermissionModule;
         labelKey: string;
+        descriptionKey?: string; 
     }[];
 }
 
@@ -18,15 +23,18 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     {
         id: 'geral',
         labelKey: 'menu.general',
+        icon: Globe,
         permissions: [
-            { id: 'dashboard', labelKey: 'menu.dashboard' },
-            { id: 'mensagens', labelKey: 'menu.messages' },
-            { id: 'geofences', labelKey: 'menu.geofences' }
+            { id: 'dashboard', labelKey: 'menu.dashboard', descriptionKey: 'permission.description.dashboard' },
+            { id: 'mensagens', labelKey: 'menu.messages', descriptionKey: 'permission.description.messages' },
+            { id: 'geofences', labelKey: 'menu.geofences', descriptionKey: 'permission.description.geofences' }
         ]
     },
     {
         id: 'requisicoes',
         labelKey: 'menu.requisitions',
+        icon: FileText,
+        descriptionKey: 'permission.description.requisicoes',
         permissions: [
             { id: 'requisicoes', labelKey: 'menu.requisitions' },
             { id: 'requisicoes_edit', labelKey: 'permission.edit' },
@@ -36,36 +44,47 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     {
         id: 'viaturas',
         labelKey: 'menu.vehicles',
+        icon: Truck,
+        descriptionKey: 'permission.description.viaturas',
         permissions: [{ id: 'viaturas', labelKey: 'menu.vehicles' }]
     },
     {
         id: 'motoristas',
         labelKey: 'menu.drivers',
+        icon: UserCog,
+        descriptionKey: 'permission.description.motoristas',
         permissions: [{ id: 'motoristas', labelKey: 'menu.drivers' }]
     },
     {
         id: 'fornecedores',
         labelKey: 'menu.suppliers',
+        icon: Building2,
+        descriptionKey: 'permission.description.fornecedores',
         permissions: [{ id: 'fornecedores', labelKey: 'menu.suppliers' }]
     },
     {
         id: 'clientes',
         labelKey: 'menu.clients',
+        icon: Briefcase,
         permissions: [{ id: 'clientes', labelKey: 'menu.clients' }]
     },
     {
         id: 'equipa-oficina',
         labelKey: 'menu.workshop_team',
+        icon: Wrench,
         permissions: [{ id: 'equipa-oficina', labelKey: 'menu.workshop_team' }]
     },
     {
         id: 'supervisores',
         labelKey: 'menu.supervisors',
+        icon: Shield,
         permissions: [{ id: 'supervisores', labelKey: 'menu.supervisors' }]
     },
     {
         id: 'escalas',
         labelKey: 'menu.schedule',
+        icon: Calendar,
+        descriptionKey: 'permission.description.escalas',
         permissions: [
             { id: 'escalas', labelKey: 'menu.schedule' },
             { id: 'escalas_import', labelKey: 'schedule.action.import' },
@@ -78,6 +97,7 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     {
         id: 'horas',
         labelKey: 'menu.hours',
+        icon: Clock,
         permissions: [
             { id: 'horas', labelKey: 'menu.hours' },
             { id: 'hours_view_costs', labelKey: 'hours.view_costs' }
@@ -86,6 +106,8 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     {
         id: 'combustivel',
         labelKey: 'menu.fuel',
+        icon: Fuel,
+        descriptionKey: 'permission.description.combustivel',
         permissions: [
             { id: 'combustivel', labelKey: 'menu.fuel' },
             { id: 'combustivel_calibrate', labelKey: 'fuel.entry.calibrate' },
@@ -95,6 +117,7 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     {
         id: 'admin_financas',
         labelKey: 'menu.admin',
+        icon: Wallet,
         permissions: [
             { id: 'contabilidade', labelKey: 'menu.accounting' },
             { id: 'centros_custos', labelKey: 'menu.cost_centers' },
@@ -104,6 +127,7 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     {
         id: 'extras',
         labelKey: 'menu.extras',
+        icon: Lock,
         permissions: [
             { id: 'central_motorista', labelKey: 'menu.driver_central' },
             { id: 'plataformas_externas', labelKey: 'menu.external_platforms' }
@@ -172,50 +196,80 @@ export default function Permissoes() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/30">
-                            {PERMISSION_GROUPS.map((group) => (
-                                <>
-                                    {/* Group Header */}
-                                    <tr key={`header-${group.id}`} className="bg-slate-800/30">
-                                        <td colSpan={4} className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wilder flex items-center gap-2">
-                                            <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                                            {t(group.labelKey)}
-                                        </td>
-                                    </tr>
-
-                                    {/* Sub Permissions */}
-                                    {group.permissions.map((perm) => (
-                                        <tr key={perm.id} className="hover:bg-slate-800/30 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-slate-200 font-medium">
-                                                    {perm.id === 'hours_view_costs' ? 'Ver Custos/Valores' : t(perm.labelKey)}
+                            {PERMISSION_GROUPS.map((group) => {
+                                const GroupIcon = group.icon;
+                                return (
+                                    <>
+                                        {/* Group Header */}
+                                        <tr key={`header-${group.id}`} className="bg-slate-800/30">
+                                            <td colSpan={4} className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                                        <GroupIcon className="w-4 h-4 text-blue-400" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+                                                            {t(group.labelKey)}
+                                                        </div>
+                                                        {group.descriptionKey && (
+                                                            <div className="text-xs text-slate-500 mt-0.5">
+                                                                {t(group.descriptionKey)}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="text-xs text-slate-500 mt-0.5 font-mono opacity-50">{perm.id}</div>
                                             </td>
-
-                                            {/* Role Toggles */}
-                                            {(['supervisor', 'oficina', 'motorista'] as const).map((role) => {
-                                                const isActive = permissions[role].includes(perm.id);
-                                                const colorClass = role === 'supervisor' ? 'bg-purple-500' : role === 'oficina' ? 'bg-orange-500' : 'bg-emerald-500';
-
-                                                return (
-                                                    <td key={`${role}-${perm.id}`} className="px-6 py-4 text-center">
-                                                        <button
-                                                            onClick={() => togglePermission(role as any, perm.id)}
-                                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-900 ${isActive ? colorClass : 'bg-slate-700'
-                                                                }`}
-                                                        >
-                                                            <span
-                                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'
-                                                                    }`}
-                                                            />
-                                                        </button>
-                                                    </td>
-                                                );
-                                            })}
                                         </tr>
-                                    ))}
-                                </>
-                            ))}
+
+                                        {/* Sub Permissions */}
+                                        {group.permissions.map((perm) => (
+                                            <tr key={perm.id} className="hover:bg-slate-800/30 transition-colors group">
+                                                <td className="px-6 py-4 pl-16">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm text-slate-300 font-medium group-hover:text-white transition-colors">
+                                                            {t(perm.labelKey)}
+                                                        </span>
+                                                        {perm.descriptionKey && (
+                                                            <span className="text-xs text-slate-500 italic mt-0.5">
+                                                                {t(perm.descriptionKey)}
+                                                            </span>
+                                                        )}
+                                                        {/* Debug ID optional, helpful for Admin but maybe confusing for user. Keeping small. */}
+                                                        {/* <span className="text-[10px] text-slate-600 font-mono mt-0.5 opacity-0 group-hover:opacity-50 transition-opacity">{perm.id}</span> */}
+                                                    </div>
+                                                </td>
+
+                                                {/* Role Toggles */}
+                                                {(['supervisor', 'oficina', 'motorista'] as const).map((role) => {
+                                                    const isActive = permissions[role].includes(perm.id);
+                                                    const colorClass = role === 'supervisor' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.4)]'
+                                                        : role === 'oficina' ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]'
+                                                            : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]';
+
+                                                    const ringClass = role === 'supervisor' ? 'focus:ring-purple-500'
+                                                        : role === 'oficina' ? 'focus:ring-orange-500'
+                                                            : 'focus:ring-emerald-500';
+
+                                                    return (
+                                                        <td key={`${role}-${perm.id}`} className="px-6 py-4 text-center">
+                                                            <button
+                                                                onClick={() => togglePermission(role, perm.id)}
+                                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${isActive ? colorClass : 'bg-slate-700'
+                                                                    } ${ringClass}`}
+                                                            >
+                                                                <span
+                                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${isActive ? 'translate-x-6' : 'translate-x-1'
+                                                                    }`}
+                                                                />
+                                                            </button>
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

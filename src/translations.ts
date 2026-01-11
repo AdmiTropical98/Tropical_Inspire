@@ -212,8 +212,6 @@ export const translations = {
         'fuel.entry.confirm': 'Confirmar Reabastecimento',
         'fuel.entry.history': 'Histórico de Entradas',
         'fuel.entry.registered_by': 'Registado Por',
-        'fuel.entry.calibrate': 'Calibrar Manualmente', // Fixed Key
-        'suppliers.entry.calibrate': 'Calibrar Manualmente',
 
         // Team (Oficina)
         'team.title': 'Equipa de Oficina',
@@ -353,15 +351,23 @@ export const translations = {
         'permissions.role.driver_desc': 'Acesso operacional',
 
         // Granular Permissions (PT)
-        'permission.edit': 'Modificar',
-        'permission.delete': 'Apagar',
-        'schedule.action.import': 'Importar Excel',
-        'schedule.action.pdf': 'PDF por Motorista',
-        'schedule.action.manual': 'Novo Manual',
-        'schedule.action.urgent': 'Pedir Transp. Urgente',
-        'schedule.action.pending': 'Ver Pendentes',
-        'fuel.action.history': 'Alterar/Apagar Histórico',
-        'hours.view_costs': 'Ver Custos e Valores',
+        'permission.edit': 'Modificar Registos',
+        'permission.delete': 'Eliminar Registos',
+        'permission.view_costs': 'Visualizar Custos Financeiros',
+        'permission.description.requisicoes': 'Permite criar e gerir pedidos de material.',
+        'permission.description.viaturas': 'Acesso à frota automóvel e documentos.',
+        'permission.description.motoristas': 'Gestão de fichas de colaboradores.',
+        'permission.description.fornecedores': 'Gestão de contactos externos.',
+        'permission.description.escalas': 'Planeamento de serviços e horários.',
+        'permission.description.combustivel': 'Controlo de abastecimentos e tanque.',
+        'schedule.action.import': 'Importar Ficheiro Excel',
+        'schedule.action.pdf': 'Imprimir Mapas (PDF)',
+        'schedule.action.manual': 'Criar Serviço Manual',
+        'schedule.action.urgent': 'Botão "Pedir Urgência"',
+        'schedule.action.pending': 'Gestão de Pendentes',
+        'fuel.action.history': 'Editar/Apagar Histórico',
+        'fuel.entry.calibrate': 'Calibração de Tanque',
+        'hours.view_costs': 'Ver Valores Monetários (€)',
 
         // Central Motorista
         'central.title': 'Central do Motorista',
