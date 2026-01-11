@@ -99,8 +99,8 @@ function AutoFitBounds({ geofences, vehicles }: { geofences: CartrackGeofence[],
 
         // Add Geofences to bounds
         geofences.forEach(geo => {
-            if (geo.coordinates && geo.coordinates.length > 0) {
-                geo.coordinates.forEach(coord => {
+            if (geo.points && geo.points.length > 0) {
+                geo.points.forEach(coord => {
                     if (coord.lat && coord.lng && coord.lat !== 0 && coord.lng !== 0) {
                         bounds.extend([coord.lat, coord.lng]);
                         hasValidPoints = true;
@@ -186,36 +186,45 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                 <AutoFitBounds geofences={geofences} vehicles={vehicles} />
                 <MapFocus vehicle={selectedVehicle} />
 
-                {/* High Contrast Professional Tile Layer (Voyager) */}
+                {/* Waze-like Tile Layer (Voyager) */}
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                 />
 
                 <style>{`
                     .leaflet-container {
-                        background: #cbd5e1 !important;
+                        background: #f8fafc !important;
                     }
                     .custom-popup .leaflet-popup-content-wrapper {
                         background: #ffffff !important;
                         color: #1e293b !important;
                         border-radius: 12px;
                         box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
+                        border: 2px solid white;
+                    }
+                    .custom-car-marker {
+                        transition: all 0.5s ease;
+                        z-index: 1000 !important;
                     }
                 `}</style>
 
                 {/* Geofences Rendering */}
                 {geofences.map((geo) => {
-                    if (!geo.coordinates || geo.coordinates.length === 0) return null;
+                    const points = geo.points || [];
+                    if (points.length === 0) return null;
 
-                    if (geo.type === 'POLYGON') {
+                    // Naive check: if radius is present and points < 3, treat as Circle (POI), else Polygon
+                    const isPolygon = points.length > 2;
+
+                    if (isPolygon) {
                         return (
                             <Polygon
                                 key={geo.id}
-                                positions={geo.coordinates.map(c => [c.lat, c.lng])}
+                                positions={points.map(c => [c.lat, c.lng])}
                                 pathOptions={{
-                                    color: geo.color || '#3b82f6',
-                                    fillColor: geo.color || '#3b82f6',
+                                    color: '#3b82f6', // Default color, as geo.color excludes from type
+                                    fillColor: '#3b82f6',
                                     fillOpacity: 0.3,
                                     weight: 3,
                                     dashArray: '5, 10'
@@ -234,11 +243,11 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                     return (
                         <Circle
                             key={geo.id}
-                            center={[geo.coordinates[0].lat, geo.coordinates[0].lng]}
+                            center={[points[0].lat, points[0].lng]}
                             radius={geo.radius || 200}
                             pathOptions={{
-                                color: geo.color || '#8b5cf6',
-                                fillColor: geo.color || '#8b5cf6',
+                                color: '#8b5cf6',
+                                fillColor: '#8b5cf6',
                                 fillOpacity: 0.3,
                                 weight: 3
                             }}
@@ -254,53 +263,59 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                 })}
 
                 {/* Vehicles Markers */}
-                {vehicles.map(vehicle => (
-                    <Marker
-                        key={vehicle.id}
-                        position={[vehicle.latitude, vehicle.longitude]}
-                        icon={createCarIcon(vehicle.registration, vehicle.heading, vehicle.status)}
-                    >
-                        <Popup className="custom-popup">
-                            <div className="p-3 min-w-[220px]">
-                                <div className="font-black text-xl text-slate-900 border-b border-slate-100 pb-2 mb-3 flex justify-between items-center">
-                                    <span>{vehicle.registration}</span>
-                                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-tighter ${vehicle.status === 'moving' ? 'bg-green-100 text-green-700' :
-                                        vehicle.status === 'idle' ? 'bg-orange-100 text-orange-700' :
-                                            'bg-slate-100 text-slate-500'
-                                        }`}>
-                                        {vehicle.status === 'moving' ? 'Em Movimento' : vehicle.status === 'idle' ? 'Em Relanti' : 'Parado'}
-                                    </span>
-                                </div>
-                                <div className="space-y-2 text-xs text-slate-600">
-                                    <div className="flex justify-between items-start">
-                                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mt-1">Motorista</span>
-                                        <div className="flex flex-col items-end">
-                                            <span className="font-black text-slate-900 leading-tight">{vehicle.driverName || 'Sem Motorista'}</span>
-                                            {vehicle.tagId && (
-                                                <span className="text-[10px] text-blue-500 font-mono font-bold uppercase tracking-tighter mt-1 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                                                    Tag: {vehicle.tagId}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Velocidade</span>
-                                        <span className="font-black text-slate-900 font-mono">{Math.round(vehicle.speed)} km/h</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Ignição</span>
-                                        <span className={`font-black ${vehicle.ignition ? 'text-green-600' : 'text-red-500'}`}>
-                                            {vehicle.ignition ? 'Ligada' : 'Desligada'}
+                {vehicles.map(vehicle => {
+                    // Safety check for valid coordinates
+                    if (!vehicle.latitude || !vehicle.longitude) return null;
+
+                    return (
+                        <Marker
+                            key={vehicle.id}
+                            position={[vehicle.latitude, vehicle.longitude]}
+                            // Use 'bearing' as heading (fallback to 0) e cast status
+                            icon={createCarIcon(vehicle.registration, vehicle.bearing || 0, (vehicle.status as 'moving' | 'stopped' | 'idle') || 'idle')}
+                        >
+                            <Popup className="custom-popup">
+                                <div className="p-3 min-w-[220px]">
+                                    <div className="font-black text-xl text-slate-900 border-b border-slate-100 pb-2 mb-3 flex justify-between items-center">
+                                        <span>{vehicle.registration}</span>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-tighter ${vehicle.status === 'moving' ? 'bg-green-100 text-green-700' :
+                                            vehicle.status === 'idle' ? 'bg-orange-100 text-orange-700' :
+                                                'bg-slate-100 text-slate-500'
+                                            }`}>
+                                            {vehicle.status === 'moving' ? 'Em Movimento' : vehicle.status === 'idle' ? 'Em Relanti' : 'Parado'}
                                         </span>
                                     </div>
-                                    <div className="text-[9px] text-slate-400 mt-3 pt-2 border-t border-slate-50 text-right italic font-medium">
-                                        Atualizado: {new Date(vehicle.updatedAt).toLocaleTimeString()}
+                                    <div className="space-y-2 text-xs text-slate-600">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mt-1">Motorista</span>
+                                            <div className="flex flex-col items-end">
+                                                <span className="font-black text-slate-900 leading-tight">{vehicle.driverName || 'Sem Motorista'}</span>
+                                                {vehicle.tagId && (
+                                                    <span className="text-[10px] text-blue-500 font-mono font-bold uppercase tracking-tighter mt-1 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                                        Tag: {vehicle.tagId}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Velocidade</span>
+                                            <span className="font-black text-slate-900 font-mono">{Math.round(vehicle.speed)} km/h</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Ignição</span>
+                                            <span className={`font-black ${vehicle.ignition ? 'text-green-600' : 'text-red-500'}`}>
+                                                {vehicle.ignition ? 'Ligada' : 'Desligada'}
+                                            </span>
+                                        </div>
+                                        <div className="text-[9px] text-slate-400 mt-3 pt-2 border-t border-slate-50 text-right italic font-medium">
+                                            Atualizado: {new Date(vehicle.last_position_update || vehicle.last_activity || Date.now()).toLocaleTimeString()}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </Popup>
-                    </Marker>
-                ))}
+                            </Popup>
+                        </Marker>
+                    );
+                })}
             </MapContainer>
         </div>
     );
