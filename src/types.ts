@@ -146,6 +146,7 @@ export interface Motorista {
     turnoInicio?: string; // HH:mm
     turnoFim?: string; // HH:mm
     status?: 'disponivel' | 'ocupado' | 'indisponivel' | 'ferias'; // Added missing field
+    cartrackKey?: string; // Cartrack identification key
 }
 
 export interface Servico {

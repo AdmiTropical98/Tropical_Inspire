@@ -2,12 +2,10 @@ import { MapPin, RefreshCw, AlertCircle, Car, Layers, History, Clock, ArrowRight
 import { useEffect, useState, useRef } from 'react';
 import GeofenceMap from './GeofenceMap';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { useAuth } from '../../contexts/AuthContext';
 import { CartrackService } from '../../services/cartrack';
 
 export default function Geofences() {
-    const { geofences: contextGeofences, geofenceVisits, refreshData } = useWorkshop();
-    const { userRole } = useAuth();
+    const { geofenceVisits, refreshData } = useWorkshop();
 
     const [geofences, setGeofences] = useState<any[]>([]);
     const [vehicles, setVehicles] = useState<any[]>([]);

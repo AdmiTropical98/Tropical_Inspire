@@ -209,6 +209,16 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
                                     <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">PIN de Acesso</h4>
                                     <p className="text-emerald-400 font-mono font-bold tracking-widest">{motorista.pin || '---'}</p>
                                 </div>
+                                <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Chave Cartrack</h4>
+                                    <input
+                                        type="text"
+                                        placeholder="A000000..."
+                                        className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-white text-sm w-full font-mono outline-none focus:border-blue-500"
+                                        value={motorista.cartrackKey || ''}
+                                        onChange={e => updateMotorista({ ...motorista, cartrackKey: e.target.value })}
+                                    />
+                                </div>
                                 <div className="col-span-2 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                                     <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Email</h4>
                                     <p className="text-white">{motorista.email || 'Não registado'}</p>

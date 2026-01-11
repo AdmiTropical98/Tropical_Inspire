@@ -25,7 +25,8 @@ export default function Motoristas() {
         vencimentoBase: 0,
         valorHora: 0,
         obs: '',
-        foto: ''
+        foto: '',
+        cartrackKey: ''
     });
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +54,7 @@ export default function Motoristas() {
         };
 
         addMotorista(newMotorista);
-        setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', foto: '' });
+        setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', foto: '', cartrackKey: '' });
         setPhotoPreview('');
         alert(`${t('drivers.success_msg')}: ${newPin} `);
         setSelectedDriver(newMotorista);
@@ -322,6 +323,17 @@ export default function Motoristas() {
                             />
                         </div>
 
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase ml-1">Chave Cartrack</label>
+                            <input
+                                type="text"
+                                value={formData.cartrackKey || ''}
+                                onChange={e => setFormData({ ...formData, cartrackKey: e.target.value })}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700 font-mono"
+                                placeholder="Ex: A0000001666B8F01"
+                            />
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t('drivers.form.salary')}</label>
@@ -414,8 +426,8 @@ export default function Motoristas() {
                                     key={status}
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === status
-                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
                                         }`}
                                 >
                                     {t(`drivers.filter.${status}`)}

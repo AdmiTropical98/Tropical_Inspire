@@ -71,7 +71,7 @@ export default function CentralMotorista() {
             window.history.pushState({ tab: 'escala' }, '', '#escala');
         }
 
-        const handlePopState = (event: PopStateEvent) => {
+        const handlePopState = (_event: PopStateEvent) => {
             // If we are in 'escala' and user hits back, we go back to 'overview'
             if (activeTab === 'escala') {
                 setActiveTab('overview');
@@ -696,6 +696,12 @@ export default function CentralMotorista() {
                                 <span className="block text-slate-500 text-xs uppercase">Carta</span>
                                 <span className="font-mono text-white">B, C</span>
                             </div>
+                            {(currentUser as any)?.cartrackKey && (
+                                <div className="bg-slate-900/50 p-2 rounded-lg border border-blue-500/20">
+                                    <span className="block text-blue-500 text-[10px] font-bold uppercase mb-0.5">Chave Identificação</span>
+                                    <span className="font-mono text-white text-xs">{(currentUser as any).cartrackKey}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 

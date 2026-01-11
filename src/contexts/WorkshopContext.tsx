@@ -185,7 +185,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             // 3. Team
             const { data: motoristas } = await supabase.from('motoristas').select('*');
-            if (motoristas) setMotoristas(motoristas.map((m: any) => ({ ...m, vencimentoBase: m.vencimento_base, valorHora: m.valor_hora, dataRegisto: m.data_registo, cartaConducao: m.carta_conducao, blockedPermissions: m.blocked_permissions, turnoInicio: m.turno_inicio, turnoFim: m.turno_fim })));
+            if (motoristas) setMotoristas(motoristas.map((m: any) => ({
+                ...m,
+                vencimentoBase: m.vencimento_base,
+                valorHora: m.valor_hora,
+                dataRegisto: m.data_registo,
+                cartaConducao: m.carta_conducao,
+                blockedPermissions: m.blocked_permissions,
+                turnoInicio: m.turno_inicio,
+                turnoFim: m.turno_fim,
+                cartrackKey: m.cartrack_key
+            })));
 
             const { data: sups } = await supabase.from('supervisores').select('*');
             if (sups) setSupervisors(sups.map((s: any) => ({ ...s, password: s.password, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
@@ -732,7 +742,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             folgas: m.folgas,
             blocked_permissions: m.blockedPermissions,
             turno_inicio: m.turnoInicio,
-            turno_fim: m.turnoFim
+            turno_fim: m.turnoFim,
+            cartrack_key: m.cartrackKey
         });
         if (!error) setMotoristas(prev => [...prev, m]);
     };
@@ -750,7 +761,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             folgas: m.folgas,
             blocked_permissions: m.blockedPermissions,
             turno_inicio: m.turnoInicio,
-            turno_fim: m.turnoFim
+            turno_fim: m.turnoFim,
+            cartrack_key: m.cartrackKey
         }).eq('id', m.id);
 
         if (error) {
