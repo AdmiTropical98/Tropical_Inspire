@@ -1209,118 +1209,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!error) setEvaTransports(prev => prev.filter(t => t.id !== id));
     };
 
-    // COMPLIANCE LOGIC
-    const [complianceStats, setComplianceStats] = useState<Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>>({});
-
-    const runComplianceCheck = async () => {
-        const todayStr = new Date().toISOString().split('T')[0];
-        console.log("Iniciando verificação de conformidade...");
-
-        const newStats: Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }> = {};
-
-        // 1. Filter active services with drivers
-        const activeServices = servicos.filter(s => s.motoristaId && !s.concluido);
-
-        for (const service of activeServices) {
-            // Find driver and vehicle
-            const driver = motoristas.find(m => m.id === service.motoristaId);
-            if (!driver) {
-                newStats[service.id] = { status: 'pending', message: 'Motorista não encontrado' };
-                continue;
-            }
-
-            // Determine vehicle ID (either from current assignment or Cartrack link)
-            let vehicleId = driver.cartrackId;
-
-            // If explicit cartrackId not found, try to find via currentVehicle plate
-            if (!vehicleId && driver.currentVehicle) {
-                const cv = cartrackVehicles.find(v =>
-                    v.registration.replace(/[^a-zA-Z0-9]/g, '') === driver.currentVehicle?.replace(/[^a-zA-Z0-9]/g, '')
-                );
-                if (cv) vehicleId = cv.id;
-            }
-
-            if (!vehicleId) {
-                newStats[service.id] = { status: 'pending', message: 'Viatura não associada' };
-                continue;
-            }
-
-            try {
-                // Fetch visits for this vehicle (Optimized: only if we have a vehicle)
-                const visits = await CartrackService.getGeofenceVisits(vehicleId);
-
-                // DATA DE HOJE (Filtering visits for today)
-                const todayVisits = visits.filter(v => v.entryTime.startsWith(todayStr));
-
-                // MATCHING LOGIC
-                // 1. Origin
-                const originMatch = todayVisits.find(v =>
-                    v.geofenceName.toLowerCase().includes(service.origem.toLowerCase()) ||
-                    service.origem.toLowerCase().includes(v.geofenceName.toLowerCase())
-                );
-
-                // 2. Destination
-                const destMatch = todayVisits.find(v =>
-                    v.geofenceName.toLowerCase().includes(service.destino.toLowerCase()) ||
-                    service.destino.toLowerCase().includes(v.geofenceName.toLowerCase())
-                );
-
-                // TIME VALIDATION (Simple: +/- 30 mins)
-                // Parse service time
-                const [sh, sm] = service.hora.split(':').map(Number);
-                const serviceTimeMinutes = sh * 60 + sm;
-
-                let status: 'success' | 'failed' | 'pending' = 'pending';
-                let message = '';
-
-                if (service.obs === 'Entrada') {
-                    // Check Origin
-                    if (originMatch) {
-                        const visitTime = new Date(originMatch.entryTime);
-                        const visitMinutes = visitTime.getHours() * 60 + visitTime.getMinutes();
-                        const diff = Math.abs(visitMinutes - serviceTimeMinutes);
-
-                        if (diff <= 45) { // 45 min tolerance
-                            status = 'success';
-                            message = `Validado em ${originMatch.geofenceName}`;
-                        } else {
-                            status = 'failed';
-                            message = `Horário incorreto (${Math.round(diff)} min dif)`;
-                        }
-                    } else {
-                        status = 'failed';
-                        message = `Falha na Origem: ${service.origem}`;
-                    }
-                } else {
-                    // Check Destination (Saída)
-                    if (destMatch) {
-                        const visitTime = new Date(destMatch.entryTime);
-                        const visitMinutes = visitTime.getHours() * 60 + visitTime.getMinutes();
-                        const diff = Math.abs(visitMinutes - serviceTimeMinutes);
-
-                        if (diff <= 45) {
-                            status = 'success';
-                            message = `Validado em ${destMatch.geofenceName}`;
-                        } else {
-                            status = 'failed';
-                            message = `Horário incorreto (${Math.round(diff)} min dif)`;
-                        }
-                    } else {
-                        status = 'failed';
-                        message = `Falha no Destino: ${service.destino}`;
-                    }
-                }
-
-                newStats[service.id] = { status, message };
-
-            } catch (e) {
-                console.error(`Erro validacao servico ${service.id}`, e);
-                newStats[service.id] = { status: 'pending', message: 'Erro na API' };
-            }
-        }
-
-        setComplianceStats(newStats);
-    };
 
     const createAdminUser = async (email: string, password: string, nome: string) => {
         try {
@@ -1406,14 +1294,23 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     return (
         <WorkshopContext.Provider value={{
             fornecedores,
+            setFornecedores,
             viaturas,
+            setViaturas,
             clientes,
+            setClientes,
             requisicoes,
+            setRequisicoes,
             centrosCustos,
+            setCentrosCustos,
             evaTransports,
+            setEvaTransports,
             motoristas,
+            setMotoristas,
             supervisors,
+            setSupervisors,
             oficinaUsers,
+            setOficinaUsers,
             notifications,
             servicos,
             setServicos,
@@ -1460,101 +1357,20 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addOficinaUser,
             updateOficinaUser,
             deleteOficinaUser,
-            password,
-            options: {
-                emailRedirectTo: `${window.location.origin}/`,
-            }
-        });
-
-            if (error) return { success: false, error: error.message };
-
-    if (data.user) {
-        // Insert into admin_users using the MAIN authenticated client (which has permission)
-        const { error: dbError } = await supabase.from('admin_users').insert({
-            id: data.user.id,
-            email: email,
-            nome: nome,
-            role: 'admin'
-        });
-
-        if (dbError) {
-            // Rollback logic could be here (delete user), but let's just report error
-            console.error('Error inserting admin_user:', dbError);
-            return { success: true, error: 'User created in Auth but DB insert failed. ' + dbError.message };
-        }
-
-        // Refresh logic
-        const { data: a } = await supabase.from('admin_users').select('*').eq('id', data.user.id).single();
-        if (a) {
-            setAdminUsers(prev => [...prev, {
-                id: a.id,
-                email: a.email,
-                nome: a.nome,
-                role: a.role,
-                createdAt: a.created_at
-            }]);
-        }
-        return { success: true };
-    }
-    return { success: false, error: 'Unknown error during sign up.' };
-} catch (err: any) {
-    return { success: false, error: err.message };
-}
-            },
-deleteAdminUser: async (id) => {
-    // Note: We can only delete from list. Deleting from Auth requires Service Role (backend).
-    // So we just remove from the list table. The Auth user remains but has no "admin" entry.
-    const { error } = await supabase.from('admin_users').delete().eq('id', id);
-    if (!error) setAdminUsers(prev => prev.filter(u => u.id !== id));
-},
-
-    addAvaliacao: async (avaliacao: Avaliacao) => {
-        const { data, error } = await supabase.from('avaliacoes').insert([{
-            motorista_id: avaliacao.motoristaId,
-            admin_id: avaliacao.adminId,
-            periodo: avaliacao.periodo,
-            pontuacao: avaliacao.pontuacao,
-            criterios: avaliacao.criterios,
-            obs: avaliacao.obs,
-            data_avaliacao: avaliacao.dataAvaliacao
-        }]).select().single();
-
-        if (!error && data) {
-            setAvaliacoes(prev => [...prev, {
-                ...avaliacao,
-                id: data.id
-            }]);
-        } else if (error) {
-            console.error('Error adding avaliacao:', error);
-        }
-    },
-        addNotification,
-        updateNotification,
-        updateFuelTank,
-        registerRefuel,
-        confirmRefuel,
-        tankRefills,
-        registerTankRefill,
-        setPumpTotalizer,
-        deleteFuelTransaction,
-        deleteTankRefill,
-        addServico,
-        updateServico,
-        deleteServico,
-        avaliacoes,
-        cartrackVehicles,
-        cartrackError,
-        geofences,
-        geofenceVisits,
-        refreshData,
-        manualHours,
-        addManualHourRecord,
-        deleteManualHourRecord
-        }}
-    >
-    { children }
-    </WorkshopContext.Provider >
-);
+            createAdminUser,
+            deleteAdminUser,
+            addAvaliacao,
+            adminUsers,
+            avaliacoes,
+            addNotification,
+            updateNotification,
+            refreshData,
+            complianceStats,
+            runComplianceCheck
+        }}>
+            {children}
+        </WorkshopContext.Provider>
+    );
 }
 
 export function useWorkshop() {
