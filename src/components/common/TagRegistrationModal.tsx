@@ -8,7 +8,7 @@ interface TagRegistrationModalProps {
 }
 
 export default function TagRegistrationModal({ onSave }: TagRegistrationModalProps) {
-    const { cartrackDrivers, motoristas } = useWorkshop();
+    const { cartrackDrivers, motoristas, refreshData } = useWorkshop();
     const [tagInput, setTagInput] = useState('');
     const [status, setStatus] = useState<{ type: 'idle' | 'valid' | 'invalid' | 'taken', message?: string }>({ type: 'idle' });
     const [isSaving, setIsSaving] = useState(false);
@@ -142,10 +142,29 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
                         )}
 
                         {error && (
-                            <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 animate-in shake duration-300">
-                                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                                <p className="text-sm font-medium">{error}</p>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 animate-in shake duration-300">
+                                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                    <p className="text-sm font-medium">{error}</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => refreshData()}
+                                    className="w-full text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold tracking-widest transition-colors"
+                                >
+                                    Sincronizar com a Cartrack agora
+                                </button>
                             </div>
+                        )}
+
+                        {status.type === 'invalid' && !error && (
+                            <button
+                                type="button"
+                                onClick={() => refreshData()}
+                                className="w-full py-2 text-[10px] text-slate-500 hover:text-blue-400 uppercase font-bold tracking-widest transition-colors mb-2"
+                            >
+                                Não encontras a tua tag? Tenta Sincronizar
+                            </button>
                         )}
 
                         <button

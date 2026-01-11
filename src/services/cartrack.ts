@@ -175,51 +175,85 @@ export const CartrackService = {
     getDrivers: async (): Promise<CartrackDriver[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            let allDrivers: any[] = [];
+            let allItems: any[] = [];
             let page = 1;
             let totalPages = 1;
 
             do {
-                const response = await fetch(`${BASE_URL}/drivers?per_page=100&page=${page}`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Basic ${auth}` },
-                });
-
-                if (!response.ok) break;
-
-                const result = await response.json();
-                const items = result.data || result.rows || result || [];
-
-                // Add items to the list
-                if (Array.isArray(items)) {
-                    allDrivers = [...allDrivers, ...items];
-                }
-
-                // Check for pagination info
-                if (result.meta?.pagination?.total_pages) {
-                    totalPages = result.meta.pagination.total_pages;
-                } else if (items.length === 100) {
-                    // Heuristic: if we got exactly 100, try next page
-                    totalPages = page + 1;
-                } else {
-                    totalPages = page;
-                }
-
+                try {
+                    const response = await fetch(`${BASE_URL}/drivers?per_page=100&page=${page}`, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Basic ${auth}` },
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        const items = result.data || result.rows || result.drivers || result || [];
+                        if (Array.isArray(items)) {
+                            allItems = [...allItems, ...items];
+                            if (result.meta?.pagination?.total_pages) {
+                                totalPages = result.meta.pagination.total_pages;
+                            } else if (items.length === 100) {
+                                totalPages = page + 1;
+                            }
+                        }
+                    } else { break; }
+                } catch (e) { break; }
                 page++;
-            } while (page <= totalPages && page < 10); // Safety limit 1000 drivers
+            } while (page <= totalPages && page < 10);
 
-            return allDrivers.map((item: any) => {
-                const rawTag = item.tag_id || item.identification_tag_id;
+            // 2. Try Personnel (some API versions use this)
+            try {
+                const pRes = await fetch(`${BASE_URL}/personnel?per_page=100`, {
+                    headers: { 'Authorization': `Basic ${auth}` }
+                });
+                if (pRes.ok) {
+                    const pData = await pRes.json();
+                    const pItems = pData.data || pData.rows || pData.personnel || pData || [];
+                    if (Array.isArray(pItems)) allItems = [...allItems, ...pItems];
+                }
+            } catch { }
+
+            // Fetch secondary tags if possible
+            try {
+                const tRes = await fetch(`${BASE_URL}/identification_tags?per_page=100`, {
+                    headers: { 'Authorization': `Basic ${auth}` }
+                });
+                if (tRes.ok) {
+                    const tData = await tRes.json();
+                    const tItems = tData.data || tData.rows || tData.identification_tags || tData || [];
+                    if (Array.isArray(tItems)) {
+                        tItems.forEach((tg: any) => {
+                            const tid = String(tg.tag_id || tg.id || (typeof tg === 'string' ? tg : ''));
+                            if (tid && !allItems.some(ex => (ex.tag_id || ex.identification_tag_id) === tid)) {
+                                allItems.push({
+                                    id: `tag-${tid}`,
+                                    full_name: `Tag Oficial (${tid.slice(-4)})`,
+                                    tag_id: tid
+                                });
+                            }
+                        });
+                    }
+                }
+            } catch { }
+
+            return allItems.map((item: any) => {
+                const rawTag = item.tag_id ||
+                    item.identification_tag_id ||
+                    item.identification_tag?.tag_id ||
+                    item.tag ||
+                    item.external_id ||
+                    item.driver_identification;
+
                 return {
-                    id: String(item.id),
-                    firstName: item.first_name,
-                    lastName: item.last_name,
-                    fullName: `${item.first_name} ${item.last_name}`.trim(),
-                    tagId: rawTag,
-                    cleanedTagId: cleanTagId(rawTag),
+                    id: String(item.id || item.driver_id || rawTag),
+                    firstName: item.first_name || '',
+                    lastName: item.last_name || '',
+                    fullName: item.full_name || `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Motorista S/ Nome',
+                    tagId: rawTag ? String(rawTag).toUpperCase() : undefined,
+                    cleanedTagId: cleanTagId(rawTag ? String(rawTag) : undefined),
                     customFields: item.custom_fields
                 };
-            });
+            }).filter(d => d.fullName !== 'Motorista S/ Nome' || d.tagId);
         } catch (error) {
             console.error('Failed to fetch drivers:', error);
             return [];
