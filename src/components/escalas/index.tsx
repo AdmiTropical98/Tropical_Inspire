@@ -737,7 +737,6 @@ export default function Escalas() {
                                                                     if (!isGroup) {
                                                                         // RENDER SINGLE SERVICE (Legacy)
                                                                         const service = firstService;
-                                                                        return (
                                                                         const compliance = complianceStats?.[service.id];
                                                                         const complianceColor = compliance?.status === 'success'
                                                                             ? 'border-emerald-500 bg-emerald-500/10'
