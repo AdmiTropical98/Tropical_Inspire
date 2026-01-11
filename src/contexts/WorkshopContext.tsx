@@ -1237,7 +1237,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 deleteServico,
                 avaliacoes,
                 cartrackVehicles,
-                cartrackDrivers,
                 cartrackError,
                 geofences,
                 geofenceVisits,
