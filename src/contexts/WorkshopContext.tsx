@@ -229,20 +229,28 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     };
                 }));
 
-                // Enrich Cartrack Vehicles with local data (Name/Key)
+                // Enrich Cartrack Vehicles with local data or Cartrack Driver List fallback
                 const enrichedVehicles = cVehicles.map(v => {
+                    // 1. If v.driverName is missing but we have v.driverId, try to find in cDrivers
+                    let resolvedName = v.driverName;
+                    if ((!resolvedName || normalizePlate(resolvedName) === normalizePlate(v.registration)) && v.driverId) {
+                        const cd = cDrivers.find(d => String(d.id) === String(v.driverId));
+                        if (cd) resolvedName = cd.fullName;
+                    }
+
+                    // 2. Try to find local motorista for better naming/keys
                     const localM = updatedMotoristas.find(m =>
                         (m.cartrackId && String(m.cartrackId) === String(v.driverId)) ||
                         (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
                     );
 
-                    let displayName = v.driverName || 'Sem Motorista';
+                    let displayName = resolvedName || 'Sem Motorista';
                     if (localM) {
                         displayName = localM.nome;
                         if (localM.cartrackKey) {
                             displayName += ` (${localM.cartrackKey})`;
                         }
-                    } else if (v.driverName && (normalizePlate(v.driverName) === normalizePlate(v.registration))) {
+                    } else if (resolvedName && (normalizePlate(resolvedName) === normalizePlate(v.registration))) {
                         displayName = 'Sem Motorista';
                     }
 
