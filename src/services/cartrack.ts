@@ -238,6 +238,50 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 finalStatus = 'stopped';
             }
 
+            const rawTagId = item.drivers?.[0]?.tag_id ||
+                item.drivers?.[0]?.identification_tag_id ||
+                item.drivers?.[0]?.driver_tag ||
+                item.tag_id ||
+                item.current_tag_id ||
+                item.identification_tag_id ||
+                item.last_identification_tag_id ||
+                item.driver_tag ||
+                item.tag ||
+                item.driver_identification ||
+                item.identification ||
+                item.fob ||
+                item.key_id ||
+                item.current_driver?.tag_id ||
+                item.current_driver?.identification_tag_id ||
+                item.driver_key ||
+                item.key ||
+                item.rfid ||
+                item.tag_number;
+
+            // Trim UUID-style tags to their last part (e.g., 0000-01A7F485 -> 01A7F485)
+            const tagId = rawTagId ? (rawTagId.includes('-') ? rawTagId.split('-').pop()?.replace(/^0+/, '') : rawTagId) : undefined;
+
+            const driverId = item.drivers?.[0]?.driver_id ||
+                item.drivers?.[0]?.id ||
+                item.driver_id ||
+                item.driver?.id ||
+                item.driver?.driver_id ||
+                item.current_driver_id ||
+                item.current_driver?.id ||
+                item.current_driver?.driver_id;
+
+            if (item.registration === '16-UO-20' || item.registration?.includes('16-UO')) {
+                console.log('DEBUG 16-UO-20 RAW:', {
+                    registration: item.registration,
+                    drivers: item.drivers,
+                    current_driver: item.current_driver,
+                    driver_id: item.driver_id,
+                    tag_id: item.tag_id,
+                    identification: item.identification,
+                    raw: item
+                });
+            }
+
             return {
                 id: String(item.id || item.vehicle_id || item.vehicleId || index),
                 registration: item.registration || item.plate || item.label || 'N/A',
@@ -249,9 +293,11 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 updatedAt: item.updated_at || item.last_update || item.timestamp || item.location?.ts || new Date().toISOString(),
                 status: finalStatus,
                 ignition: isIgnition,
-                driverName: item.drivers?.[0]?.first_name ? `${item.drivers[0].first_name} ${item.drivers[0].last_name}`.trim() : (item.driver_name || item.driver?.name || item.current_driver?.name),
-                driverId: item.drivers?.[0]?.driver_id || item.drivers?.[0]?.id || item.driver_id || item.driver?.id || item.current_driver_id || item.current_driver?.id,
-                tagId: item.drivers?.[0]?.tag_id || item.drivers?.[0]?.identification_tag_id || item.tag_id || item.current_tag_id || item.identification_tag_id
+                driverName: item.drivers?.[0]?.first_name ? `${item.drivers[0].first_name} ${item.drivers[0].last_name || ''}`.trim() :
+                    (item.driver?.first_name ? `${item.driver.first_name} ${item.driver.last_name || ''}`.trim() :
+                        (item.driver_name || item.driver?.name || item.current_driver?.name || item.current_driver?.first_name)),
+                driverId,
+                tagId: tagId || undefined
             };
         })
         .filter(v => v.latitude !== 0 && v.longitude !== 0);

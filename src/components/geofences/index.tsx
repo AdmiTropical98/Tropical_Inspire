@@ -23,7 +23,7 @@ export default function Geofences() {
         else setLoading(true);
 
         setError(null);
-        const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
+        const normalizePlate = (p?: string | null) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
         try {
             const [geoData, vehiclesData] = await Promise.allSettled([
                 CartrackService.getGeofences(),
@@ -39,9 +39,13 @@ export default function Geofences() {
                 const rawVehicles = vehiclesData.value;
                 const enriched = rawVehicles.map((v: any) => {
                     let resolvedName = v.driverName;
-                    const isPlateName = !resolvedName || normalizePlate(resolvedName) === normalizePlate(v.registration);
 
-                    if (isPlateName && (v.driverId || v.tagId)) {
+                    const isProperName = (name?: string | null) => {
+                        if (!name || name === 'N/A' || name === 'Sem Motorista') return false;
+                        return normalizePlate(name) !== normalizePlate(v.registration);
+                    };
+
+                    if (!isProperName(resolvedName) && (v.driverId || v.tagId)) {
                         const cd = cDrivers.find(d =>
                             (v.driverId && String(d.id) === String(v.driverId)) ||
                             (v.tagId && d.tagId === v.tagId)
@@ -58,12 +62,15 @@ export default function Geofences() {
                     );
 
                     let displayName = 'Sem Motorista';
+
+                    // Only show Cartrack driver if vehicle is moving/idle OR has an active tag swipe
+                    // This prevents "João Lisboa" (or any last known driver) from sticking to parked cars
+                    const shouldShowCartrackDriver = v.status !== 'stopped' || !!v.tagId;
+
                     if (localM) {
                         displayName = localM.nome;
-                    } else if (!isPlateName && resolvedName) {
-                        displayName = resolvedName;
-                    } else if (v.tagId) {
-                        displayName = `Tag: ${v.tagId}`;
+                    } else if (shouldShowCartrackDriver && isProperName(resolvedName)) {
+                        displayName = resolvedName!;
                     }
 
                     return { ...v, driverName: displayName };
@@ -194,7 +201,14 @@ export default function Geofences() {
                                                 <div className="p-1 bg-slate-800 rounded text-slate-400 group-hover:text-blue-400 transition-colors">
                                                     <Car className="w-2.5 h-2.5" />
                                                 </div>
-                                                <p className="text-[10px] text-white font-black uppercase truncate tracking-widest">{vehicle.driverName || 'Sem Motorista'}</p>
+                                                <div className="flex flex-col">
+                                                    <p className="text-[10px] text-white font-black uppercase truncate tracking-widest leading-tight">{vehicle.driverName || 'Sem Motorista'}</p>
+                                                    {vehicle.tagId && (
+                                                        <p className="text-[8px] text-blue-400 font-mono font-bold mt-1 uppercase tracking-tighter bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 w-fit">
+                                                            Tag: {vehicle.tagId}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
