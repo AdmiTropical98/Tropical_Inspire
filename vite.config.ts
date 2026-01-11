@@ -32,4 +32,14 @@ export default defineConfig({
     })
   ],
   base: '/',
+  server: {
+    proxy: {
+      '/api/cartrack': {
+        target: 'https://fleetapi-pt.cartrack.com/rest',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/cartrack/, ''),
+        secure: false
+      }
+    }
+  }
 })

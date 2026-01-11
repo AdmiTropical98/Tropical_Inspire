@@ -86,6 +86,7 @@ interface WorkshopContextType {
     addAvaliacao: (a: Avaliacao) => Promise<void>;
     complianceStats: Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>;
     runComplianceCheck: () => Promise<void>;
+    runComplianceDemo: () => void;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -235,6 +236,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 newStats[service.id] = { status: 'pending', message: 'Erro na API' };
             }
         }
+
+        setComplianceStats(newStats);
+    };
+
+    const runComplianceDemo = () => {
+        const newStats: Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }> = {};
+        const activeServices = servicos.filter(s => s.motoristaId && !s.concluido).slice(0, 5); // Take first 5
+
+        if (activeServices.length > 0) newStats[activeServices[0].id] = { status: 'success', message: 'Validado em Aeroporto' };
+        if (activeServices.length > 1) newStats[activeServices[1].id] = { status: 'failed', message: 'Falha na Origem: Garagem' };
+        if (activeServices.length > 2) newStats[activeServices[2].id] = { status: 'failed', message: 'Horário incorreto (55 min)' };
+        if (activeServices.length > 3) newStats[activeServices[3].id] = { status: 'success', message: 'Validado em H. Tivoli' };
 
         setComplianceStats(newStats);
     };
@@ -1375,7 +1388,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             updateNotification,
             refreshData,
             complianceStats,
-            runComplianceCheck
+            runComplianceCheck,
+            runComplianceDemo
         }}>
             {children}
         </WorkshopContext.Provider>

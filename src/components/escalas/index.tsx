@@ -30,7 +30,7 @@ export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
         addServico, updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
-        runComplianceCheck, complianceStats
+        runComplianceCheck, complianceStats, runComplianceDemo
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -548,6 +548,13 @@ export default function Escalas() {
                             >
                                 <AlertTriangle className="w-4 h-4" />
                                 <span className="hidden sm:inline">Urgência</span>
+                            </button>
+                            <button
+                                onClick={runComplianceDemo}
+                                className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
+                                title="Gerar dados de exemplo"
+                            >
+                                <span className="hidden sm:inline">Demo</span>
                             </button>
                         </div>
                     </div>
