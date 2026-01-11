@@ -68,7 +68,7 @@ export default function Geofences() {
                         displayName = resolvedName!;
                     } else if (v.tagId) {
                         displayName = `Tag: ${v.tagId}`;
-                    } else if (v.driverId && String(v.driverId).length > 5) {
+                    } else if (v.driverId) {
                         displayName = `ID: ${v.driverId}`;
                     }
 

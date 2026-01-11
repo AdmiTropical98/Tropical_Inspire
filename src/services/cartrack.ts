@@ -238,6 +238,44 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 finalStatus = 'stopped';
             }
 
+            const tagId = item.drivers?.[0]?.tag_id ||
+                item.drivers?.[0]?.identification_tag_id ||
+                item.drivers?.[0]?.driver_tag ||
+                item.tag_id ||
+                item.current_tag_id ||
+                item.identification_tag_id ||
+                item.driver_tag ||
+                item.tag ||
+                item.driver_identification ||
+                item.identification ||
+                item.fob ||
+                item.key_id ||
+                item.current_driver?.identification_tag_id ||
+                item.driver_key ||
+                item.key ||
+                item.rfid ||
+                item.tag_number;
+
+            const driverId = item.drivers?.[0]?.driver_id ||
+                item.drivers?.[0]?.id ||
+                item.driver_id ||
+                item.driver?.id ||
+                item.current_driver_id ||
+                item.current_driver?.id ||
+                item.current_driver?.driver_id;
+
+            if (item.registration === '16-UO-20' || item.registration?.includes('16-UO')) {
+                console.log('DEBUG 16-UO-20 RAW:', {
+                    registration: item.registration,
+                    drivers: item.drivers,
+                    current_driver: item.current_driver,
+                    driver_id: item.driver_id,
+                    tag_id: item.tag_id,
+                    identification: item.identification,
+                    raw: item
+                });
+            }
+
             return {
                 id: String(item.id || item.vehicle_id || item.vehicleId || index),
                 registration: item.registration || item.plate || item.label || 'N/A',
@@ -250,8 +288,8 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
                 status: finalStatus,
                 ignition: isIgnition,
                 driverName: item.drivers?.[0]?.first_name ? `${item.drivers[0].first_name} ${item.drivers[0].last_name}`.trim() : (item.driver_name || item.driver?.name || item.current_driver?.name),
-                driverId: item.drivers?.[0]?.driver_id || item.drivers?.[0]?.id || item.driver_id || item.driver?.id || item.current_driver_id || item.current_driver?.id,
-                tagId: item.drivers?.[0]?.tag_id || item.drivers?.[0]?.identification_tag_id || item.drivers?.[0]?.driver_tag || item.tag_id || item.current_tag_id || item.identification_tag_id || item.driver_tag || item.tag
+                driverId,
+                tagId
             };
         })
         .filter(v => v.latitude !== 0 && v.longitude !== 0);
