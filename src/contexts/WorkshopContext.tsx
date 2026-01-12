@@ -87,6 +87,7 @@ interface WorkshopContextType {
     complianceStats: Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>;
     runComplianceCheck: () => Promise<void>;
     runComplianceDemo: () => void;
+    updateVehicleLocation: (registration: string, lat: number, lng: number) => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -1401,7 +1402,31 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             refreshData,
             complianceStats,
             runComplianceCheck,
-            runComplianceDemo
+            runComplianceDemo, // Fixed duplicate
+            updateVehicleLocation: async (registration: string, lat: number, lng: number) => {
+                try {
+                    // Update Supabase
+                    const { error } = await supabase
+                        .from('viaturas')
+                        .update({
+                            latitude: lat,
+                            longitude: lng,
+                            last_position_update: new Date().toISOString()
+                        })
+                        .eq('matricula', registration);
+
+                    if (error) throw error;
+
+                    // Optimistic update local state
+                    setCartrackVehicles(prev => prev.map(v =>
+                        v.registration === registration
+                            ? { ...v, latitude: lat, longitude: lng, last_position_update: new Date().toISOString() }
+                            : v
+                    ));
+                } catch (err) {
+                    console.error('Error updating vehicle location:', err);
+                }
+            }
         }}>
             {children}
         </WorkshopContext.Provider>

@@ -10,8 +10,10 @@ interface NavigationAppProps {
     destination?: string;
     geofences?: CartrackGeofence[];
     error?: string | null;
+    vehicleRegistration?: string;
     onRetry?: () => void;
     onBack: () => void;
+    onLocationUpdate?: (reg: string, lat: number, lng: number) => void;
 }
 
 // Map Controller with multiple modes
@@ -19,18 +21,31 @@ function MapController({ center, followMe }: { center: [number, number], followM
     const map = useMap();
     useEffect(() => {
         if (followMe) {
-            map.flyTo(center, 18, { animate: true, duration: 1 });
+            // High zoom for '3D' feel
+            map.flyTo(center, 19, { animate: true, duration: 1 });
+            // Slight offset could be added but Leaflet handles center best
         }
     }, [center, followMe, map]);
     return null;
 }
 
-export default function NavigationApp({ driverLocation: initialLocation = [38.7223, -9.1393], destination: initialDestination, geofences = [], error, onRetry, onBack }: NavigationAppProps) {
+export default function NavigationApp({
+    driverLocation: initialLocation = [38.7223, -9.1393],
+    destination: initialDestination,
+    geofences = [],
+    error,
+    vehicleRegistration,
+    onRetry,
+    onBack,
+    onLocationUpdate
+}: NavigationAppProps) {
     // Navigation State
     const [isNavigating, setIsNavigating] = useState(false);
     const [currentPos, setCurrentPos] = useState<[number, number]>(initialLocation);
     const [gpsAccuracy, setGpsAccuracy] = useState<number>(0);
+    const watchIdRef = useRef<number | null>(null);
 
+    // Initial Route State
     const [route, setRoute] = useState<[number, number][]>([]);
     const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
     const [loading, setLoading] = useState(false);
@@ -43,10 +58,38 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
     const [searchTerm, setSearchTerm] = useState('');
 
     // Refs
-    const watchIdRef = useRef<number | null>(null);
     const wakeLockRef = useRef<any>(null);
 
+    // Start GPS Watch
+    useEffect(() => {
+        if ('geolocation' in navigator) {
+            watchIdRef.current = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const { latitude, longitude, accuracy } = pos.coords;
+                    const newPos: [number, number] = [latitude, longitude];
+
+                    setCurrentPos(newPos);
+                    setGpsAccuracy(accuracy);
+
+                    // Share Location
+                    if (vehicleRegistration && onLocationUpdate) {
+                        onLocationUpdate(vehicleRegistration, latitude, longitude);
+                    }
+                },
+                (err) => console.error('GPS Error:', err),
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+            );
+        }
+
+        return () => {
+            if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+        };
+    }, []); // Only on mount
+
     // Filter Geofences
+    // ...
+
+
     // Filter Geofences (RELAXED FOR DEBUGGING)
     const filteredGeofences = geofences.filter(g => {
         const nameMatch = g.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -66,12 +109,12 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
 
         if (lat && lng) {
             setDestCoords([Number(lat), Number(lng)]);
-            setDestinationName(geo.name);
-            setShowSelection(false);
         } else {
-            console.warn('Geofence without coordinates selected:', geo);
-            alert(`Atenção: O local "${geo.name}" não tem coordenadas (Latitude/Longitude) definidas no Cartrack.`);
+            console.warn('Geofence missing coords, falling back to name geocoding:', geo.name);
+            setDestCoords(null); // Clear coords to trigger useEffect fallback
         }
+        setDestinationName(geo.name);
+        setShowSelection(false);
     };
     // ...
     <div className="mt-8 p-4 bg-slate-900/50 rounded text-xs text-left font-mono text-slate-600 overflow-x-auto border border-slate-800 max-h-60 overflow-y-auto">
@@ -102,13 +145,30 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                     if (match && match.latitude && match.longitude) {
                         targetCoords = [Number(match.latitude), Number(match.longitude)];
                         setDestCoords(targetCoords);
+                    } else if (match && match.points && match.points.length > 0) {
+                        targetCoords = [match.points[0].lat, match.points[0].lng];
+                        setDestCoords(targetCoords);
                     } else {
                         // Fallback Geocode
-                        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destinationName + ', Portugal')}`);
-                        const geoData = await geoRes.json();
-                        if (geoData && geoData[0]) {
-                            targetCoords = [parseFloat(geoData[0].lat), parseFloat(geoData[0].lon)];
-                            setDestCoords(targetCoords);
+                        try {
+                            // Try simpler query first: just string clean
+                            const cleanName = destinationName.replace(/_/g, ' ').replace(/-teste/gi, '').trim();
+                            const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanName + ', Portugal')}`);
+                            const geoData = await geoRes.json();
+                            if (geoData && geoData[0]) {
+                                targetCoords = [parseFloat(geoData[0].lat), parseFloat(geoData[0].lon)];
+                                setDestCoords(targetCoords);
+                            } else {
+                                console.warn('Geocoding failed for:', destinationName);
+                                alert(`Não conseguimos encontrar coordenadas para "${destinationName}" nem pesquisando no mapa global. Por favor, reportar ao suporte.`);
+                                setLoading(false);
+                                return;
+                            }
+                        } catch (err) {
+                            console.error("Geocode error", err);
+                            alert(`Erro ao tentar encontrar "${destinationName}". Verifique a sua internet.`);
+                            setLoading(false);
+                            return;
                         }
                     }
                 }

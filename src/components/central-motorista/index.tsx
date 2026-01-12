@@ -476,7 +476,9 @@ export default function CentralMotorista() {
                         destination={nextService?.destino}
                         geofences={geofences}
                         error={useWorkshop().cartrackError}
+                        vehicleRegistration={(currentUser as any)?.currentVehicle}
                         onRetry={useWorkshop().refreshData}
+                        onLocationUpdate={useWorkshop().updateVehicleLocation}
                         onBack={() => setActiveTab('overview')}
                     />
                 )}
