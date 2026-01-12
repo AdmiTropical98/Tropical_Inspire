@@ -339,8 +339,8 @@ export default function NavigationApp({
             <div
                 className={`flex-1 relative w-full z-0 transition-transform duration-1000 ${isNavigating ? 'scale-[1.5] origin-bottom' : ''}`}
                 style={isNavigating ? {
-                    transform: 'perspective(600px) rotateX(60deg) scale(1.4) translateY(-10%)',
-                    transformOrigin: '50% 80%'
+                    transform: 'perspective(700px) rotateX(65deg) scale(3) translateY(-15%)',
+                    transformOrigin: '50% 90%'
                 } : {}}
             >
                 <MapContainer
