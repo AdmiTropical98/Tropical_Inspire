@@ -70,6 +70,13 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences'>('dashboard');
 
+  // Sidebar Visibility Flags
+  const showFleetGroup = hasAccess(userRole, 'central_motorista') || hasAccess(userRole, 'viaturas') || hasAccess(userRole, 'motoristas') || hasAccess(userRole, 'geofences') || userRole === 'admin';
+  const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'requisicoes') || hasAccess(userRole, 'horas') || hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'plataformas_externas');
+  const showFinGroup = hasAccess(userRole, 'contabilidade') || hasAccess(userRole, 'centros_custos') || hasAccess(userRole, 'fornecedores') || hasAccess(userRole, 'clientes') || hasAccess(userRole, 'relatorios');
+  const showSysGroup = hasAccess(userRole, 'equipa-oficina') || hasAccess(userRole, 'supervisores') || userRole === 'admin';
+  const showCommGroup = hasAccess(userRole, 'mensagens');
+
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -171,7 +178,9 @@ function App() {
               )}
 
               {/* GESTÃO DE FROTA */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Gestão de Frota</div>
+              {showFleetGroup && (
+                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Gestão de Frota</div>
+              )}
 
               {hasAccess(userRole, 'central_motorista') && (
                 <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => setActiveTab('central-motorista')} />
@@ -190,7 +199,9 @@ function App() {
               )}
 
               {/* OPERAÇÕES */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Operações</div>
+              {showOpsGroup && (
+                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Operações</div>
+              )}
 
               {hasAccess(userRole, 'escalas') && (
                 <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => setActiveTab('escalas')} />
@@ -209,7 +220,9 @@ function App() {
               )}
 
               {/* FINANCEIRO & ADMIN */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Financeiro & Admin</div>
+              {showFinGroup && (
+                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Financeiro & Admin</div>
+              )}
 
               {hasAccess(userRole, 'contabilidade') && (
                 <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => setActiveTab('contabilidade')} />
@@ -228,7 +241,9 @@ function App() {
               )}
 
               {/* SISTEMA & EQUIPA */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Sistema & Equipa</div>
+              {showSysGroup && (
+                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Sistema & Equipa</div>
+              )}
 
               {hasAccess(userRole, 'equipa-oficina') && (
                 <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => setActiveTab('equipa-oficina')} />
@@ -244,7 +259,9 @@ function App() {
               )}
 
               {/* COMUNICAÇÃO */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Comunicação</div>
+              {showCommGroup && (
+                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Comunicação</div>
+              )}
               {hasAccess(userRole, 'mensagens') && (
                 <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => setActiveTab('mensagens')} badge={notifications.length} />
               )}
@@ -289,7 +306,9 @@ function App() {
                   )}
 
                   {/* GESTÃO DE FROTA */}
-                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Gestão de Frota</div>
+                  {showFleetGroup && (
+                    <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Gestão de Frota</div>
+                  )}
 
                   {hasAccess(userRole, 'central_motorista') && (
                     <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false); }} />
@@ -308,7 +327,9 @@ function App() {
                   )}
 
                   {/* OPERAÇÕES */}
-                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Operações</div>
+                  {showOpsGroup && (
+                    <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Operações</div>
+                  )}
 
                   {hasAccess(userRole, 'escalas') && (
                     <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false); }} />
@@ -327,7 +348,9 @@ function App() {
                   )}
 
                   {/* FINANCEIRO & ADMIN */}
-                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Financeiro & Admin</div>
+                  {showFinGroup && (
+                    <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Financeiro & Admin</div>
+                  )}
 
                   {hasAccess(userRole, 'contabilidade') && (
                     <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => { setActiveTab('contabilidade'); setIsMobileMenuOpen(false); }} />
@@ -346,7 +369,9 @@ function App() {
                   )}
 
                   {/* SISTEMA & EQUIPA */}
-                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Sistema & Equipa</div>
+                  {showSysGroup && (
+                    <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Sistema & Equipa</div>
+                  )}
 
                   {hasAccess(userRole, 'equipa-oficina') && (
                     <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => { setActiveTab('equipa-oficina'); setIsMobileMenuOpen(false); }} />
@@ -362,7 +387,9 @@ function App() {
                   )}
 
                   {/* COMUNICAÇÃO */}
-                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Comunicação</div>
+                  {showCommGroup && (
+                    <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Comunicação</div>
+                  )}
                   {hasAccess(userRole, 'mensagens') && (
                     <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false); }} badge={notifications.length} />
                   )}
