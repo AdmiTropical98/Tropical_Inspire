@@ -47,11 +47,12 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
     const wakeLockRef = useRef<any>(null);
 
     // Filter Geofences
-    // Filter Geofences
-    const filteredGeofences = geofences.filter(g =>
-        g.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        ((g.latitude && g.longitude) || (g.points && g.points.length > 0))
-    );
+    // Filter Geofences (RELAXED FOR DEBUGGING)
+    const filteredGeofences = geofences.filter(g => {
+        const nameMatch = g.name?.toLowerCase().includes(searchTerm.toLowerCase());
+        // For debugging, we accept ANY geofence even without coords, to see what they look like
+        return nameMatch;
+    });
 
     const handleSelectGeofence = (geo: CartrackGeofence) => {
         let lat = geo.latitude;
@@ -67,8 +68,24 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
             setDestCoords([Number(lat), Number(lng)]);
             setDestinationName(geo.name);
             setShowSelection(false);
+        } else {
+            console.warn('Geofence without coordinates selected:', geo);
+            // Optional: alert user or handle error
         }
     };
+    // ...
+    <div className="mt-8 p-4 bg-slate-900/50 rounded text-xs text-left font-mono text-slate-600 overflow-x-auto border border-slate-800 max-h-60 overflow-y-auto">
+        <p className="font-bold text-slate-500 mb-1">Debug Info:</p>
+        <p>Env: {import.meta.env.DEV ? 'DEV' : 'PROD'}</p>
+        <p>Count: {geofences?.length ?? 'undefined'}</p>
+        <p>Filter: {filteredGeofences.length}</p>
+        <p className="whitespace-pre-wrap mt-2 text-[10px] text-slate-500 border-t border-slate-800 pt-2">
+            First Item Sample:
+            {geofences && geofences.length > 0 ? JSON.stringify(geofences[0], null, 2) : ' None'}
+        </p>
+        <p className="mt-2 text-red-400">{error || 'No Error'}</p>
+        <p>Endpoint: {import.meta.env.DEV ? '/api/cartrack' : '/proxy.php?endpoint='}</p>
+    </div>
 
     // Calculate/Recalculate Route
     useEffect(() => {
