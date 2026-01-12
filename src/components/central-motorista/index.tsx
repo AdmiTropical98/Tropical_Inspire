@@ -27,6 +27,7 @@ export default function CentralMotorista() {
         updateNotification,
         confirmRefuel,
         updateMotorista,
+        complianceStats,
         cartrackVehicles
     } = useWorkshop();
 
