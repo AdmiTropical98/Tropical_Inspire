@@ -47,18 +47,45 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
     const wakeLockRef = useRef<any>(null);
 
     // Filter Geofences
-    const filteredGeofences = geofences.filter(g =>
-        g.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        g.latitude && g.longitude
-    );
+    // Filter Geofences (RELAXED FOR DEBUGGING)
+    const filteredGeofences = geofences.filter(g => {
+        const nameMatch = g.name?.toLowerCase().includes(searchTerm.toLowerCase());
+        // For debugging, we accept ANY geofence even without coords, to see what they look like
+        return nameMatch;
+    });
 
     const handleSelectGeofence = (geo: CartrackGeofence) => {
-        if (geo.latitude && geo.longitude) {
-            setDestCoords([Number(geo.latitude), Number(geo.longitude)]);
+        let lat = geo.latitude;
+        let lng = geo.longitude;
+
+        // Fallback to first point of polygon if center is missing
+        if ((!lat || !lng) && geo.points && geo.points.length > 0) {
+            lat = geo.points[0].lat;
+            lng = geo.points[0].lng;
+        }
+
+        if (lat && lng) {
+            setDestCoords([Number(lat), Number(lng)]);
             setDestinationName(geo.name);
             setShowSelection(false);
+        } else {
+            console.warn('Geofence without coordinates selected:', geo);
+            alert(`Atenção: O local "${geo.name}" não tem coordenadas (Latitude/Longitude) definidas no Cartrack.`);
         }
     };
+    // ...
+    <div className="mt-8 p-4 bg-slate-900/50 rounded text-xs text-left font-mono text-slate-600 overflow-x-auto border border-slate-800 max-h-60 overflow-y-auto">
+        <p className="font-bold text-slate-500 mb-1">Debug Info:</p>
+        <p>Env: {import.meta.env.DEV ? 'DEV' : 'PROD'}</p>
+        <p>Count: {geofences?.length ?? 'undefined'}</p>
+        <p>Filter: {filteredGeofences.length}</p>
+        <p className="whitespace-pre-wrap mt-2 text-[10px] text-slate-500 border-t border-slate-800 pt-2">
+            First Item Sample:
+            {geofences && geofences.length > 0 ? JSON.stringify(geofences[0], null, 2) : ' None'}
+        </p>
+        <p className="mt-2 text-red-400">{error || 'No Error'}</p>
+        <p>Endpoint: {import.meta.env.DEV ? '/api/cartrack' : '/proxy.php?endpoint='}</p>
+    </div>
 
     // Calculate/Recalculate Route
     useEffect(() => {
@@ -427,6 +454,14 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                                         Tentar Novamente
                                     </button>
                                 )}
+
+                                <div className="mt-8 p-4 bg-slate-900/50 rounded text-xs text-left font-mono text-slate-600 overflow-x-auto border border-slate-800">
+                                    <p className="font-bold text-slate-500 mb-1">Debug Info:</p>
+                                    <p>Env: {import.meta.env.DEV ? 'DEV' : 'PROD'}</p>
+                                    <p>Geofences: {geofences?.length ?? 'undefined'}</p>
+                                    <p>Error: {error || 'None'}</p>
+                                    <p>Endpoint: {import.meta.env.DEV ? '/api/cartrack' : '/proxy.php?endpoint='}</p>
+                                </div>
                             </div>
                         )}
                     </div>
