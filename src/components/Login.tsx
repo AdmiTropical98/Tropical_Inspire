@@ -170,7 +170,7 @@ export default function Login() {
 
             <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0 mt-12 transform translate-y-6">
                 <img
-                    src="/logo-algar-frota.png"
+                    src="/logo-algar-frota.png?v=3"
                     alt="Algar Frota"
                     className="w-96 h-auto object-contain drop-shadow-2xl relative z-20"
                 />
