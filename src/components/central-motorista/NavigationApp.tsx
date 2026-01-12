@@ -349,12 +349,16 @@ export default function NavigationApp({
                     zoomControl={false}
                     dragging={!isNavigating}
                     touchZoom={!isNavigating}
+                    scrollWheelZoom={!isNavigating}
+                    doubleClickZoom={!isNavigating}
                     className="h-full w-full z-0 outline-none"
                     style={{ background: '#0f172a' }}
                 >
                     <TileLayer
                         attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
                         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
+                        maxNativeZoom={18}
+                        maxZoom={20}
                     />
                     <MapController center={currentPos} followMe={followMe} />
 
