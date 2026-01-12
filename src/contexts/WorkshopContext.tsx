@@ -87,6 +87,7 @@ interface WorkshopContextType {
     complianceStats: Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>;
     runComplianceCheck: () => Promise<void>;
     runComplianceDemo: () => void;
+    updateVehicleLocation: (registration: string, lat: number, lng: number) => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
