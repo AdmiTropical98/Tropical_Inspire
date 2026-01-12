@@ -66,12 +66,12 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
 
         if (lat && lng) {
             setDestCoords([Number(lat), Number(lng)]);
-            setDestinationName(geo.name);
-            setShowSelection(false);
         } else {
-            console.warn('Geofence without coordinates selected:', geo);
-            alert(`Atenção: O local "${geo.name}" não tem coordenadas (Latitude/Longitude) definidas no Cartrack.`);
+            console.warn('Geofence missing coords, falling back to name geocoding:', geo.name);
+            setDestCoords(null); // Clear coords to trigger useEffect fallback
         }
+        setDestinationName(geo.name);
+        setShowSelection(false);
     };
     // ...
     <div className="mt-8 p-4 bg-slate-900/50 rounded text-xs text-left font-mono text-slate-600 overflow-x-auto border border-slate-800 max-h-60 overflow-y-auto">
