@@ -558,846 +558,851 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 createdAt: item.created_at
             })));
 
-            try {
-                const geoData = await CartrackService.getGeofences();
-                if (geoData) setGeofences(geoData);
-
-                // Fetch visits for the last 24 hours
-                const now = new Date();
-                const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-                // Format: YYYY-MM-DD HH:mm:ss
-                const formatDate = (date: Date) => {
-                    const pad = (n: number) => n.toString().padStart(2, '0');
-                    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
-                        `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-                };
-
-                const visits = await CartrackService.getGeofenceVisits(formatDate(yesterday), formatDate(now));
-                if (visits) setGeofenceVisits(visits);
-            } catch (e: any) {
-                console.warn('Silent fail: could not fetch Cartrack geofences/visits for context:', e);
-                setCartrackError(`Erro Geofences: ${e.message || 'Falha API'}`);
-            }
-
-        } catch (error) {
-            console.error('Error refreshing data:', error);
+    \n            // 4. Cartrack Geofences
+    try {
+        const geoData = await CartrackService.getGeofences();
+        if (geoData) {
+            setGeofences(geoData);
+            setCartrackError(null);
         }
-    };
+    } catch (e: any) {
+        console.warn('Silent fail: could not fetch Geofences:', e);
+        setCartrackError(`Erro Geofences: ${e.message || 'Falha API'}`);
+    }
 
-    // Manual Hours Implementation
-    // Manual Hours Implementation
-
-    const addManualHourRecord = async (record: import('../types').ManualHourRecord) => {
-        const { error } = await supabase.from('manual_hours').insert({
-            id: record.id,
-            motorista_id: record.motoristaId,
-            admin_id: record.adminId,
-            date: record.date,
-            start_time: record.startTime,
-            end_time: record.endTime,
-            break_duration: record.breakDuration,
-            obs: record.obs
-        });
-
-        if (!error) {
-            setManualHours(prev => [...prev, record]);
-        } else {
-            console.error("Error adding manual hour:", error);
-            alert("Erro ao registar hora: " + error.message);
-        }
-    };
-
-    const deleteManualHourRecord = async (id: string) => {
-        const { error } = await supabase.from('manual_hours').delete().eq('id', id);
-        if (!error) {
-            setManualHours(prev => prev.filter(mh => mh.id !== id));
-        } else {
-            console.error("Error deleting manual hour:", error);
-            alert("Erro ao apagar hora: " + error.message);
-        }
-    };
-
-    const addServico = async (s: Servico) => {
-        try {
-            console.log('Adding service to DB:', s);
-            const { data, error } = await supabase.from('servicos').insert({
-                id: s.id,
-                motorista_id: s.motoristaId,
-                passageiro: s.passageiro,
-                hora: s.hora,
-                origem: s.origem,
-                destino: s.destino,
-                voo: s.voo,
-                obs: s.obs,
-                concluido: s.concluido,
-                centro_custo_id: s.centroCustoId
-            }).select().single();
-
-            if (error) throw error;
-            console.log('Service added successfully:', data);
-
-            // Update local state with the CONFIRMED data from DB to ensure sync
-            // We map back from DB columns (snake_case) to app types (camelCase) if needed, 
-            // but for simplicity here we assume 's' is correct if DB write succeeded.
-            // Better: use 'data' to reconstruct.
-            const confirmedService: Servico = {
-                ...s,
-                motoristaId: data.motorista_id,
-                centroCustoId: data.centro_custo_id
-            };
-            setServicos(prev => [...prev, confirmedService]);
-        } catch (error: any) {
-            console.error('Error adding service:', error);
-            alert(`Erro ao adicionar serviço: ${error.message || 'Erro desconhecido'}`);
-        }
-    };
-
-    const updateServico = async (s: Servico) => {
-        try {
-            console.log('Updating service:', s.id, s);
-            const { data, error } = await supabase.from('servicos').update({
-                motorista_id: s.motoristaId,
-                passageiro: s.passageiro,
-                hora: s.hora,
-                origem: s.origem,
-                destino: s.destino,
-                voo: s.voo,
-                obs: s.obs,
-                concluido: s.concluido,
-                centro_custo_id: s.centroCustoId
-            }).eq('id', s.id).select();
-
-            if (error) throw error;
-
-            if (!data || data.length === 0) {
-                console.warn('Update succeeded but no rows affected. Service might not exist in DB.');
-                // Create it if it doesn't exist? (Upsert). For now, just warn.
-                // Verify if we should add it?
-                alert('Aviso: Serviço não encontrado na base de dados (pode ter sido apagado). A tentar recriar...');
-                await addServico(s);
-                return;
-            }
-
-            console.log('Service updated:', data);
-            setServicos(prev => prev.map(item => item.id === s.id ? s : item));
-        } catch (error: any) {
-            console.error('Error updating service:', error);
-            alert(`Erro ao atualizar serviço: ${error.message}`);
-        }
-    };
-
-    const deleteServico = async (id: string) => {
-        try {
-            console.log('Deleting service:', id);
-            const { error } = await supabase.from('servicos').delete().eq('id', id);
-            if (error) throw error;
-            console.log('Service deleted');
-            setServicos(prev => prev.filter(s => s.id !== id));
-        } catch (error: any) {
-            console.error('Error deleting service:', error);
-            alert(`Erro ao apagar serviço: ${error.message}`);
-        }
-    };
-
-    useEffect(() => {
-        refreshData();
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
-            if (event === 'SIGNED_IN') {
-                refreshData();
-            }
-        });
-        return () => subscription.unsubscribe();
-    }, []);
-
-    // Fuel Methods
-    const updateFuelTank = async (tank: FuelTank) => {
-        const { error } = await supabase.from('fuel_tank').upsert({
-            id: 'main',
-            capacity: tank.capacity,
-            current_level: tank.currentLevel,
-            pump_totalizer: tank.pumpTotalizer,
-            last_refill_date: tank.lastRefillDate,
-            average_price: tank.averagePrice
-        });
-        if (!error) setFuelTank(tank);
-    };
-
-    const registerRefuel = async (transaction: FuelTransaction) => {
-        const currentPMP = fuelTank.averagePrice || 0;
-        const totalCost = transaction.liters * currentPMP;
-
-        let finalStatus = transaction.status || 'pending';
-        let pumpCounterAfter = 0;
-
-        // If explicitly confirmed (Dual Auth), calculate tank updates immediately
-        if (finalStatus === 'confirmed') {
-            const currentTotalizer = fuelTank.pumpTotalizer || 0;
-            pumpCounterAfter = currentTotalizer + transaction.liters;
-            const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
-
-            // Update Tank immediately
-            await updateFuelTank({
-                ...fuelTank,
-                currentLevel: newLevel,
-                pumpTotalizer: pumpCounterAfter
-            });
-        }
-
-        const transactionToSave = {
-            ...transaction,
-            status: finalStatus,
-            pricePerLiter: currentPMP,
-            totalCost: totalCost,
-            pumpCounterAfter: finalStatus === 'confirmed' ? pumpCounterAfter : undefined
+    // 5. Visits (Non-critical)
+    try {
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const formatDate = (date: Date) => {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+                `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
         };
+        const visits = await CartrackService.getGeofenceVisits(formatDate(yesterday), formatDate(now));
+        if (visits) setGeofenceVisits(visits);
+    } catch (e) {
+        console.warn('Silent fail: could not fetch Visits:', e);
+    }
 
-        const { error } = await supabase.from('fuel_transactions').insert({
-            id: transactionToSave.id,
-            driver_id: transactionToSave.driverId,
-            vehicle_id: transactionToSave.vehicleId,
-            liters: transactionToSave.liters,
-            km: transactionToSave.km,
-            staff_id: transactionToSave.staffId,
-            staff_name: transactionToSave.staffName,
-            status: transactionToSave.status,
-            timestamp: transactionToSave.timestamp,
-            price_per_liter: transactionToSave.pricePerLiter,
-            total_cost: transactionToSave.totalCost,
-            centro_custo_id: transactionToSave.centroCustoId,
-            pump_counter_after: transactionToSave.pumpCounterAfter
-        });
-
-        if (!error) {
-            setFuelTransactions(prev => [transactionToSave, ...prev]);
-
-            // Only send notification if PENDING
-            if (finalStatus === 'pending') {
-                addNotification({
-                    id: crypto.randomUUID(),
-                    type: 'fuel_confirmation_request',
-                    data: {
-                        liters: transaction.liters,
-                        km: transaction.km,
-                        vehicleId: transaction.vehicleId, // or Plate
-                        licensePlate: transaction.vehicleId,
-                        staffId: transaction.staffId
-                    },
-                    status: 'pending',
-                    response: {
-                        driverId: transaction.driverId,
-                        serviceId: transaction.id
-                    },
-                    timestamp: new Date().toISOString()
-                });
-            }
-        }
+} catch (error) {
+    console.error('Error refreshing data:', error);
+}
     };
 
-    const confirmRefuel = async (transactionId: string) => {
-        const transaction = fuelTransactions.find(t => t.id === transactionId);
-        if (transaction && transaction.status === 'pending') {
-            const currentTotalizer = fuelTank.pumpTotalizer || 0;
-            const newTotalizer = currentTotalizer + transaction.liters;
-            const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
+// Manual Hours Implementation
+// Manual Hours Implementation
 
-            // Update Transaction
-            const { error: transError } = await supabase.from('fuel_transactions').update({
-                status: 'confirmed',
-                pump_counter_after: newTotalizer
-            }).eq('id', transactionId);
+const addManualHourRecord = async (record: import('../types').ManualHourRecord) => {
+    const { error } = await supabase.from('manual_hours').insert({
+        id: record.id,
+        motorista_id: record.motoristaId,
+        admin_id: record.adminId,
+        date: record.date,
+        start_time: record.startTime,
+        end_time: record.endTime,
+        break_duration: record.breakDuration,
+        obs: record.obs
+    });
 
-            // Update Tank
-            if (!transError) {
-                await updateFuelTank({
-                    ...fuelTank,
-                    currentLevel: newLevel,
-                    pumpTotalizer: newTotalizer
-                });
+    if (!error) {
+        setManualHours(prev => [...prev, record]);
+    } else {
+        console.error("Error adding manual hour:", error);
+        alert("Erro ao registar hora: " + error.message);
+    }
+};
 
-                setFuelTransactions(prev => prev.map(t => t.id === transactionId ? { ...t, status: 'confirmed', pumpCounterAfter: newTotalizer } : t));
-            }
-            return { error: transError };
+const deleteManualHourRecord = async (id: string) => {
+    const { error } = await supabase.from('manual_hours').delete().eq('id', id);
+    if (!error) {
+        setManualHours(prev => prev.filter(mh => mh.id !== id));
+    } else {
+        console.error("Error deleting manual hour:", error);
+        alert("Erro ao apagar hora: " + error.message);
+    }
+};
+
+const addServico = async (s: Servico) => {
+    try {
+        console.log('Adding service to DB:', s);
+        const { data, error } = await supabase.from('servicos').insert({
+            id: s.id,
+            motorista_id: s.motoristaId,
+            passageiro: s.passageiro,
+            hora: s.hora,
+            origem: s.origem,
+            destino: s.destino,
+            voo: s.voo,
+            obs: s.obs,
+            concluido: s.concluido,
+            centro_custo_id: s.centroCustoId
+        }).select().single();
+
+        if (error) throw error;
+        console.log('Service added successfully:', data);
+
+        // Update local state with the CONFIRMED data from DB to ensure sync
+        // We map back from DB columns (snake_case) to app types (camelCase) if needed, 
+        // but for simplicity here we assume 's' is correct if DB write succeeded.
+        // Better: use 'data' to reconstruct.
+        const confirmedService: Servico = {
+            ...s,
+            motoristaId: data.motorista_id,
+            centroCustoId: data.centro_custo_id
+        };
+        setServicos(prev => [...prev, confirmedService]);
+    } catch (error: any) {
+        console.error('Error adding service:', error);
+        alert(`Erro ao adicionar serviço: ${error.message || 'Erro desconhecido'}`);
+    }
+};
+
+const updateServico = async (s: Servico) => {
+    try {
+        console.log('Updating service:', s.id, s);
+        const { data, error } = await supabase.from('servicos').update({
+            motorista_id: s.motoristaId,
+            passageiro: s.passageiro,
+            hora: s.hora,
+            origem: s.origem,
+            destino: s.destino,
+            voo: s.voo,
+            obs: s.obs,
+            concluido: s.concluido,
+            centro_custo_id: s.centroCustoId
+        }).eq('id', s.id).select();
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            console.warn('Update succeeded but no rows affected. Service might not exist in DB.');
+            // Create it if it doesn't exist? (Upsert). For now, just warn.
+            // Verify if we should add it?
+            alert('Aviso: Serviço não encontrado na base de dados (pode ter sido apagado). A tentar recriar...');
+            await addServico(s);
+            return;
         }
-        return { error: 'Transaction not found or not pending' };
+
+        console.log('Service updated:', data);
+        setServicos(prev => prev.map(item => item.id === s.id ? s : item));
+    } catch (error: any) {
+        console.error('Error updating service:', error);
+        alert(`Erro ao atualizar serviço: ${error.message}`);
+    }
+};
+
+const deleteServico = async (id: string) => {
+    try {
+        console.log('Deleting service:', id);
+        const { error } = await supabase.from('servicos').delete().eq('id', id);
+        if (error) throw error;
+        console.log('Service deleted');
+        setServicos(prev => prev.filter(s => s.id !== id));
+    } catch (error: any) {
+        console.error('Error deleting service:', error);
+        alert(`Erro ao apagar serviço: ${error.message}`);
+    }
+};
+
+useEffect(() => {
+    refreshData();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
+        if (event === 'SIGNED_IN') {
+            refreshData();
+        }
+    });
+    return () => subscription.unsubscribe();
+}, []);
+
+// Fuel Methods
+const updateFuelTank = async (tank: FuelTank) => {
+    const { error } = await supabase.from('fuel_tank').upsert({
+        id: 'main',
+        capacity: tank.capacity,
+        current_level: tank.currentLevel,
+        pump_totalizer: tank.pumpTotalizer,
+        last_refill_date: tank.lastRefillDate,
+        average_price: tank.averagePrice
+    });
+    if (!error) setFuelTank(tank);
+};
+
+const registerRefuel = async (transaction: FuelTransaction) => {
+    const currentPMP = fuelTank.averagePrice || 0;
+    const totalCost = transaction.liters * currentPMP;
+
+    let finalStatus = transaction.status || 'pending';
+    let pumpCounterAfter = 0;
+
+    // If explicitly confirmed (Dual Auth), calculate tank updates immediately
+    if (finalStatus === 'confirmed') {
+        const currentTotalizer = fuelTank.pumpTotalizer || 0;
+        pumpCounterAfter = currentTotalizer + transaction.liters;
+        const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
+
+        // Update Tank immediately
+        await updateFuelTank({
+            ...fuelTank,
+            currentLevel: newLevel,
+            pumpTotalizer: pumpCounterAfter
+        });
+    }
+
+    const transactionToSave = {
+        ...transaction,
+        status: finalStatus,
+        pricePerLiter: currentPMP,
+        totalCost: totalCost,
+        pumpCounterAfter: finalStatus === 'confirmed' ? pumpCounterAfter : undefined
     };
 
-    const registerTankRefill = async (log: TankRefillLog) => {
-        // Calculate new PMP
-        const currentVolume = fuelTank.currentLevel;
-        const currentPrice = fuelTank.averagePrice || 0;
-        const addedVolume = log.litersAdded;
-        const addedPrice = log.pricePerLiter || 0;
-        let newAveragePrice = currentPrice;
-        if (currentVolume + addedVolume > 0) {
-            newAveragePrice = ((currentVolume * currentPrice) + (addedVolume * addedPrice)) / (currentVolume + addedVolume);
+    const { error } = await supabase.from('fuel_transactions').insert({
+        id: transactionToSave.id,
+        driver_id: transactionToSave.driverId,
+        vehicle_id: transactionToSave.vehicleId,
+        liters: transactionToSave.liters,
+        km: transactionToSave.km,
+        staff_id: transactionToSave.staffId,
+        staff_name: transactionToSave.staffName,
+        status: transactionToSave.status,
+        timestamp: transactionToSave.timestamp,
+        price_per_liter: transactionToSave.pricePerLiter,
+        total_cost: transactionToSave.totalCost,
+        centro_custo_id: transactionToSave.centroCustoId,
+        pump_counter_after: transactionToSave.pumpCounterAfter
+    });
+
+    if (!error) {
+        setFuelTransactions(prev => [transactionToSave, ...prev]);
+
+        // Only send notification if PENDING
+        if (finalStatus === 'pending') {
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'fuel_confirmation_request',
+                data: {
+                    liters: transaction.liters,
+                    km: transaction.km,
+                    vehicleId: transaction.vehicleId, // or Plate
+                    licensePlate: transaction.vehicleId,
+                    staffId: transaction.staffId
+                },
+                status: 'pending',
+                response: {
+                    driverId: transaction.driverId,
+                    serviceId: transaction.id
+                },
+                timestamp: new Date().toISOString()
+            });
         }
+    }
+};
 
-        const newLevel = Math.min(fuelTank.capacity, fuelTank.currentLevel + log.litersAdded);
-        const newTotalizer = log.pumpMeterReading > 0 ? log.pumpMeterReading : fuelTank.pumpTotalizer;
+const confirmRefuel = async (transactionId: string) => {
+    const transaction = fuelTransactions.find(t => t.id === transactionId);
+    if (transaction && transaction.status === 'pending') {
+        const currentTotalizer = fuelTank.pumpTotalizer || 0;
+        const newTotalizer = currentTotalizer + transaction.liters;
+        const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
 
-        const { error } = await supabase.from('tank_refills').insert({
-            id: log.id,
-            liters_added: log.litersAdded,
-            level_before: log.levelBefore,
-            level_after: log.levelAfter,
-            total_spent_since_last: log.totalSpentSinceLast,
-            pump_meter_reading: log.pumpMeterReading,
-            system_expected_reading: log.systemExpectedReading,
-            supplier: log.supplier,
-            timestamp: log.timestamp,
-            staff_id: log.staffId,
-            staff_name: log.staffName,
-            price_per_liter: log.pricePerLiter,
-            total_cost: log.totalCost
-        });
+        // Update Transaction
+        const { error: transError } = await supabase.from('fuel_transactions').update({
+            status: 'confirmed',
+            pump_counter_after: newTotalizer
+        }).eq('id', transactionId);
 
-        if (!error) {
+        // Update Tank
+        if (!transError) {
             await updateFuelTank({
                 ...fuelTank,
                 currentLevel: newLevel,
-                pumpTotalizer: newTotalizer,
-                lastRefillDate: log.timestamp,
-                averagePrice: newAveragePrice
+                pumpTotalizer: newTotalizer
             });
-            setTankRefills(prev => [log, ...prev]);
+
+            setFuelTransactions(prev => prev.map(t => t.id === transactionId ? { ...t, status: 'confirmed', pumpCounterAfter: newTotalizer } : t));
         }
-    };
+        return { error: transError };
+    }
+    return { error: 'Transaction not found or not pending' };
+};
 
-    const setPumpTotalizer = async (val: number) => {
-        await updateFuelTank({ ...fuelTank, pumpTotalizer: val });
-    };
+const registerTankRefill = async (log: TankRefillLog) => {
+    // Calculate new PMP
+    const currentVolume = fuelTank.currentLevel;
+    const currentPrice = fuelTank.averagePrice || 0;
+    const addedVolume = log.litersAdded;
+    const addedPrice = log.pricePerLiter || 0;
+    let newAveragePrice = currentPrice;
+    if (currentVolume + addedVolume > 0) {
+        newAveragePrice = ((currentVolume * currentPrice) + (addedVolume * addedPrice)) / (currentVolume + addedVolume);
+    }
 
-    const deleteFuelTransaction = async (id: string) => {
-        const trans = fuelTransactions.find(t => t.id === id);
-        if (trans) {
-            const { error } = await supabase.from('fuel_transactions').delete().eq('id', id);
-            if (!error) {
-                // If the transaction was confirmed, revert the tank changes
-                if (trans.status === 'confirmed') {
-                    const currentTotalizer = fuelTank.pumpTotalizer || 0;
-                    const reversedTotalizer = Math.max(0, currentTotalizer - trans.liters);
-                    const reversedLevel = Math.min(fuelTank.capacity, fuelTank.currentLevel + trans.liters);
+    const newLevel = Math.min(fuelTank.capacity, fuelTank.currentLevel + log.litersAdded);
+    const newTotalizer = log.pumpMeterReading > 0 ? log.pumpMeterReading : fuelTank.pumpTotalizer;
 
-                    await updateFuelTank({
-                        ...fuelTank,
-                        currentLevel: reversedLevel,
-                        pumpTotalizer: reversedTotalizer
-                    });
-                }
-                setFuelTransactions(prev => prev.filter(t => t.id !== id));
-            } else {
-                alert('Erro ao apagar abastecimento: ' + error.message);
-            }
-        }
-    };
+    const { error } = await supabase.from('tank_refills').insert({
+        id: log.id,
+        liters_added: log.litersAdded,
+        level_before: log.levelBefore,
+        level_after: log.levelAfter,
+        total_spent_since_last: log.totalSpentSinceLast,
+        pump_meter_reading: log.pumpMeterReading,
+        system_expected_reading: log.systemExpectedReading,
+        supplier: log.supplier,
+        timestamp: log.timestamp,
+        staff_id: log.staffId,
+        staff_name: log.staffName,
+        price_per_liter: log.pricePerLiter,
+        total_cost: log.totalCost
+    });
 
-    const deleteTankRefill = async (id: string) => {
-        const refill = tankRefills.find(r => r.id === id);
-        if (refill) {
-            const { error } = await supabase.from('tank_refills').delete().eq('id', id);
-            if (!error) {
-                // Revert tank level (Fuel In -> Revert by removing liters)
-                const reversedLevel = Math.max(0, fuelTank.currentLevel - refill.litersAdded);
+    if (!error) {
+        await updateFuelTank({
+            ...fuelTank,
+            currentLevel: newLevel,
+            pumpTotalizer: newTotalizer,
+            lastRefillDate: log.timestamp,
+            averagePrice: newAveragePrice
+        });
+        setTankRefills(prev => [log, ...prev]);
+    }
+};
+
+const setPumpTotalizer = async (val: number) => {
+    await updateFuelTank({ ...fuelTank, pumpTotalizer: val });
+};
+
+const deleteFuelTransaction = async (id: string) => {
+    const trans = fuelTransactions.find(t => t.id === id);
+    if (trans) {
+        const { error } = await supabase.from('fuel_transactions').delete().eq('id', id);
+        if (!error) {
+            // If the transaction was confirmed, revert the tank changes
+            if (trans.status === 'confirmed') {
+                const currentTotalizer = fuelTank.pumpTotalizer || 0;
+                const reversedTotalizer = Math.max(0, currentTotalizer - trans.liters);
+                const reversedLevel = Math.min(fuelTank.capacity, fuelTank.currentLevel + trans.liters);
 
                 await updateFuelTank({
                     ...fuelTank,
-                    currentLevel: reversedLevel
-                    // We do not revert PMP or Totalizer here as it's complex/ambiguous for Supplies
+                    currentLevel: reversedLevel,
+                    pumpTotalizer: reversedTotalizer
                 });
-
-                setTankRefills(prev => prev.filter(t => t.id !== id));
-            } else {
-                alert('Erro ao apagar entrada de combustível: ' + error.message);
             }
-        }
-    };
-    const addFornecedor = async (f: Fornecedor) => {
-        const { error } = await supabase.from('fornecedores').insert(f);
-        if (!error) setFornecedores(prev => [...prev, f]);
-    };
-
-    const deleteFornecedor = async (id: string) => {
-        const { error } = await supabase.from('fornecedores').delete().eq('id', id);
-        if (!error) setFornecedores(prev => prev.filter(f => f.id !== id));
-    };
-
-    const addCliente = async (c: Cliente) => {
-        const { error } = await supabase.from('clientes').insert(c);
-        if (error) console.error('Error inserting client:', error);
-        else setClientes(prev => [...prev, c]);
-    };
-    const updateCliente = async (c: Cliente) => {
-        const { error } = await supabase.from('clientes').update(c).eq('id', c.id);
-        if (!error) setClientes(prev => prev.map(curr => curr.id === c.id ? c : curr));
-    };
-    const deleteCliente = async (id: string) => {
-        const { error } = await supabase.from('clientes').delete().eq('id', id);
-        if (!error) setClientes(prev => prev.filter(c => c.id !== id));
-    };
-
-    const addViatura = async (v: Viatura) => {
-        const { error } = await supabase.from('viaturas').insert({
-            id: v.id,
-            matricula: v.matricula,
-            marca: v.marca,
-            modelo: v.modelo,
-            ano: v.ano,
-            obs: v.obs,
-            preco_diario: v.precoDiario
-        });
-        if (!error) setViaturas(prev => [...prev, v]);
-    };
-    const updateViatura = async (v: Viatura) => {
-        const { error } = await supabase.from('viaturas').update({
-            matricula: v.matricula,
-            marca: v.marca,
-            modelo: v.modelo,
-            ano: v.ano,
-            obs: v.obs,
-            preco_diario: v.precoDiario
-        }).eq('id', v.id);
-        if (!error) setViaturas(prev => prev.map(curr => curr.id === v.id ? v : curr));
-    };
-    const deleteViatura = async (id: string) => {
-        const { error } = await supabase.from('viaturas').delete().eq('id', id);
-        if (!error) setViaturas(prev => prev.filter(v => v.id !== id));
-    };
-
-    const addRequisicao = async (r: Requisicao) => {
-        const { error } = await supabase.from('requisicoes').insert({
-            id: r.id,
-            numero: r.numero,
-            data: r.data,
-            tipo: r.tipo,
-            fornecedor_id: r.fornecedorId,
-            viatura_id: r.viaturaId,
-            centro_custo_id: r.centroCustoId,
-            obs: r.obs || '',
-            status: r.status || 'pendente',
-            criado_por: r.criadoPor,
-            itens: r.itens
-        });
-        if (error) {
-            console.error('Error adding requisition:', error);
-            return;
-        }
-        setRequisicoes(prev => [{ ...r, status: r.status || 'pendente' }, ...prev]);
-    };
-    const updateRequisicao = async (r: Requisicao) => {
-        const { error } = await supabase.from('requisicoes').update({
-            data: r.data,
-            tipo: r.tipo,
-            fornecedor_id: r.fornecedorId,
-            viatura_id: r.viaturaId,
-            centro_custo_id: r.centroCustoId,
-            obs: r.obs || '',
-            status: r.status,
-            criado_por: r.criadoPor
-        }).eq('id', r.id);
-        if (!error) setRequisicoes(prev => prev.map(curr => curr.id === r.id ? r : curr));
-    };
-    const deleteRequisicao = async (id: string) => {
-        const { error } = await supabase.from('requisicoes').delete().eq('id', id);
-        if (!error) setRequisicoes(prev => prev.filter(r => r.id !== id));
-    };
-
-    const toggleRequisicaoStatus = async (id: string, fatura?: string, custo?: number) => {
-        const r = requisicoes.find(req => req.id === id);
-        if (r) {
-            const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
-            const updates: any = { status: newStatus };
-            if (newStatus === 'concluida') {
-                if (fatura) updates.fatura = fatura;
-                if (custo) updates.custo = custo;
-            }
-
-            const { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
-            if (!error) {
-                setRequisicoes(prev => prev.map(req => {
-                    if (req.id === id) {
-                        return {
-                            ...req,
-                            status: newStatus,
-                            fatura: (newStatus === 'concluida' && fatura) ? fatura : req.fatura,
-                            custo: (newStatus === 'concluida' && custo) ? custo : req.custo
-                        };
-                    }
-                    return req;
-                }));
-            }
-        }
-    };
-
-    // Motoristas and others remain local for now as per plan focus
-    const addMotorista = async (m: Motorista) => {
-        const { error } = await supabase.from('motoristas').insert({
-            id: m.id,
-            nome: m.nome,
-            foto: m.foto,
-            contacto: m.contacto,
-            carta_conducao: m.cartaConducao,
-            email: m.email,
-            obs: m.obs,
-            pin: m.pin,
-            vencimento_base: m.vencimentoBase,
-            valor_hora: m.valorHora,
-            folgas: m.folgas,
-            blocked_permissions: m.blockedPermissions,
-            turno_inicio: m.turnoInicio,
-            turno_fim: m.turnoFim,
-            cartrack_key: m.cartrackKey
-        });
-        if (!error) setMotoristas(prev => [...prev, m]);
-    };
-    const updateMotorista = async (m: Motorista) => {
-        const { error } = await supabase.from('motoristas').update({
-            nome: m.nome,
-            foto: m.foto,
-            contacto: m.contacto,
-            carta_conducao: m.cartaConducao,
-            email: m.email,
-            obs: m.obs,
-            pin: m.pin,
-            vencimento_base: m.vencimentoBase,
-            valor_hora: m.valorHora,
-            folgas: m.folgas,
-            blocked_permissions: m.blockedPermissions,
-            turno_inicio: m.turnoInicio,
-            turno_fim: m.turnoFim,
-            cartrack_key: m.cartrackKey
-        }).eq('id', m.id);
-
-        if (error) {
-            console.error("Erro ao atualizar motorista:", error);
-            alert(`Erro ao atualizar: ${error.message}`);
-            throw error;
-        }
-
-        const { data: verify } = await supabase.from('motoristas').select('id').eq('id', m.id).single();
-        if (!verify) {
-            alert('Aviso: A atualização parece não ter sido persistida. Verifique as permissões.');
-        }
-
-        // Force full refresh to ensure all enrichments (currentVehicle, status) are re-calculated correctly and persistence is confirmed
-        await refreshData();
-    };
-    const deleteMotorista = async (id: string) => {
-        const { error, count } = await supabase.from('motoristas').delete({ count: 'exact' }).eq('id', id);
-        if (error) {
-            console.error('Error deleting motorista:', error);
-            alert(`Erro ao apagar: ${error.message}`);
-        } else if (count === 0) {
-            console.warn('Delete count 0 - likely RLS issue');
-            alert('Aviso: Não foi possível apagar o registo (permissões insuficientes ou registo já apagado).');
+            setFuelTransactions(prev => prev.filter(t => t.id !== id));
         } else {
-            setMotoristas(prev => prev.filter(m => m.id !== id));
+            alert('Erro ao apagar abastecimento: ' + error.message);
         }
-    };
+    }
+};
 
-    const addSupervisor = async (s: Supervisor) => {
-        const { error } = await supabase.from('supervisores').insert({
-            id: s.id,
-            nome: s.nome,
-            foto: s.foto,
-            email: s.email,
-            telemovel: s.telemovel,
-            pin: s.pin,
-            password: s.password,
-            status: s.status,
-            blocked_permissions: s.blockedPermissions
-        });
-        if (!error) setSupervisors(prev => [...prev, s]);
-    };
-    const updateSupervisor = async (s: Supervisor) => {
-        const { error } = await supabase.from('supervisores').update({
-            nome: s.nome,
-            foto: s.foto,
-            email: s.email,
-            telemovel: s.telemovel,
-            pin: s.pin,
-            password: s.password,
-            status: s.status,
-            blocked_permissions: s.blockedPermissions
-        }).eq('id', s.id);
-        if (!error) setSupervisors(prev => prev.map(curr => curr.id === s.id ? s : curr));
-    };
-    const deleteSupervisor = async (id: string) => {
-        const { error } = await supabase.from('supervisores').delete().eq('id', id);
-        if (!error) setSupervisors(prev => prev.filter(s => s.id !== id));
-    };
-
-    const addOficinaUser = async (u: OficinaUser) => {
-        const { error } = await supabase.from('oficina_users').insert({
-            id: u.id,
-            nome: u.nome,
-            foto: u.foto,
-            email: u.email,
-            telemovel: u.telemovel, // NEW
-            pin: u.pin,
-            status: u.status,
-            blocked_permissions: u.blockedPermissions
-        });
-        if (!error) setOficinaUsers(prev => [...prev, u]);
-    };
-    const updateOficinaUser = async (u: OficinaUser) => {
-        const { error } = await supabase.from('oficina_users').update({
-            nome: u.nome,
-            foto: u.foto,
-            email: u.email,
-            telemovel: u.telemovel, // NEW
-            pin: u.pin,
-            status: u.status,
-            blocked_permissions: u.blockedPermissions
-        }).eq('id', u.id);
-        if (!error) setOficinaUsers(prev => prev.map(curr => curr.id === u.id ? u : curr));
-    };
-    const deleteOficinaUser = async (id: string) => {
-        const { error } = await supabase.from('oficina_users').delete().eq('id', id);
-        if (!error) setOficinaUsers(prev => prev.filter(u => u.id !== id));
-    };
-
-    const addNotification = async (n: Notification) => {
-        const { error } = await supabase.from('notifications').insert({
-            id: n.id,
-            type: n.type,
-            data: n.data,
-            status: n.status,
-            response: n.response,
-            timestamp: n.timestamp
-        });
-        if (!error) setNotifications(prev => [n, ...prev]);
-    };
-    const updateNotification = async (n: Notification) => {
-        const { error } = await supabase.from('notifications').update({
-            type: n.type,
-            data: n.data,
-            status: n.status,
-            response: n.response,
-            timestamp: n.timestamp
-        }).eq('id', n.id);
+const deleteTankRefill = async (id: string) => {
+    const refill = tankRefills.find(r => r.id === id);
+    if (refill) {
+        const { error } = await supabase.from('tank_refills').delete().eq('id', id);
         if (!error) {
-            setNotifications(prev => prev.map(current => current.id === n.id ? n : current));
-        }
-        return { error };
-    };
+            // Revert tank level (Fuel In -> Revert by removing liters)
+            const reversedLevel = Math.max(0, fuelTank.currentLevel - refill.litersAdded);
 
-    const addCentroCusto = async (cc: CentroCusto) => {
-        const { error } = await supabase.from('centros_custos').insert(cc);
-        if (!error) setCentrosCustos(prev => [...prev, cc]);
-    };
-    const deleteCentroCusto = async (id: string) => {
-        const { error } = await supabase.from('centros_custos').delete().eq('id', id);
-        if (!error) setCentrosCustos(prev => prev.filter(c => c.id !== id));
-    };
-
-    const addEvaTransport = async (t: EvaTransport) => {
-        // Insert Parent
-        const { error: parentError } = await supabase.from('eva_transports').insert({
-            id: t.id,
-            reference_date: t.referenceDate,
-            route: t.route,
-            amount: t.amount,
-            notes: t.notes,
-            logged_by: t.loggedBy,
-            created_at: t.createdAt
-            // year/month handled by DB triggers/defaults or could calculate here
-        });
-
-        if (parentError) {
-            console.error('Error adding Eva Transport:', parentError);
-            return;
-        }
-
-        // Insert Children
-        if (t.days.length > 0) {
-            const daysToInsert = t.days.map(d => ({
-                id: d.id,
-                transport_id: t.id,
-                date: d.date,
-                has_issue: d.hasIssue,
-                issue_type: d.issueType,
-                issue_description: d.issueDescription,
-                issue_severity: d.issueSeverity
-            }));
-            const { error: daysError } = await supabase.from('eva_transport_days').insert(daysToInsert);
-            if (daysError) console.error('Error adding Eva Days:', daysError);
-        }
-
-        setEvaTransports(prev => [t, ...prev]);
-    };
-
-    const deleteEvaTransport = async (id: string) => {
-        const { error } = await supabase.from('eva_transports').delete().eq('id', id);
-        if (!error) setEvaTransports(prev => prev.filter(t => t.id !== id));
-    };
-
-
-    const createAdminUser = async (email: string, password: string, nome: string) => {
-        try {
-            // Create a temporary client to avoid signing out the current user
-            const tempClient = createClient(
-                import.meta.env.VITE_SUPABASE_URL,
-                import.meta.env.VITE_SUPABASE_ANON_KEY,
-                { auth: { persistSession: false } }
-            );
-
-            const { data, error } = await tempClient.auth.signUp({
-                email,
-                password,
-                options: {
-                    emailRedirectTo: `${window.location.origin}/`,
-                }
+            await updateFuelTank({
+                ...fuelTank,
+                currentLevel: reversedLevel
+                // We do not revert PMP or Totalizer here as it's complex/ambiguous for Supplies
             });
 
-            if (error) return { success: false, error: error.message };
+            setTankRefills(prev => prev.filter(t => t.id !== id));
+        } else {
+            alert('Erro ao apagar entrada de combustível: ' + error.message);
+        }
+    }
+};
+const addFornecedor = async (f: Fornecedor) => {
+    const { error } = await supabase.from('fornecedores').insert(f);
+    if (!error) setFornecedores(prev => [...prev, f]);
+};
 
-            if (data.user) {
-                // Insert into admin_users using the MAIN authenticated client (which has permission)
-                const { error: dbError } = await supabase.from('admin_users').insert({
-                    id: data.user.id,
-                    email: email,
-                    nome: nome,
-                    role: 'admin'
-                });
+const deleteFornecedor = async (id: string) => {
+    const { error } = await supabase.from('fornecedores').delete().eq('id', id);
+    if (!error) setFornecedores(prev => prev.filter(f => f.id !== id));
+};
 
-                if (dbError) {
-                    // Rollback logic could be here (delete user), but let's just report error
-                    console.error('Error inserting admin_user:', dbError);
-                    return { success: true, error: 'User created in Auth but DB insert failed. ' + dbError.message };
+const addCliente = async (c: Cliente) => {
+    const { error } = await supabase.from('clientes').insert(c);
+    if (error) console.error('Error inserting client:', error);
+    else setClientes(prev => [...prev, c]);
+};
+const updateCliente = async (c: Cliente) => {
+    const { error } = await supabase.from('clientes').update(c).eq('id', c.id);
+    if (!error) setClientes(prev => prev.map(curr => curr.id === c.id ? c : curr));
+};
+const deleteCliente = async (id: string) => {
+    const { error } = await supabase.from('clientes').delete().eq('id', id);
+    if (!error) setClientes(prev => prev.filter(c => c.id !== id));
+};
+
+const addViatura = async (v: Viatura) => {
+    const { error } = await supabase.from('viaturas').insert({
+        id: v.id,
+        matricula: v.matricula,
+        marca: v.marca,
+        modelo: v.modelo,
+        ano: v.ano,
+        obs: v.obs,
+        preco_diario: v.precoDiario
+    });
+    if (!error) setViaturas(prev => [...prev, v]);
+};
+const updateViatura = async (v: Viatura) => {
+    const { error } = await supabase.from('viaturas').update({
+        matricula: v.matricula,
+        marca: v.marca,
+        modelo: v.modelo,
+        ano: v.ano,
+        obs: v.obs,
+        preco_diario: v.precoDiario
+    }).eq('id', v.id);
+    if (!error) setViaturas(prev => prev.map(curr => curr.id === v.id ? v : curr));
+};
+const deleteViatura = async (id: string) => {
+    const { error } = await supabase.from('viaturas').delete().eq('id', id);
+    if (!error) setViaturas(prev => prev.filter(v => v.id !== id));
+};
+
+const addRequisicao = async (r: Requisicao) => {
+    const { error } = await supabase.from('requisicoes').insert({
+        id: r.id,
+        numero: r.numero,
+        data: r.data,
+        tipo: r.tipo,
+        fornecedor_id: r.fornecedorId,
+        viatura_id: r.viaturaId,
+        centro_custo_id: r.centroCustoId,
+        obs: r.obs || '',
+        status: r.status || 'pendente',
+        criado_por: r.criadoPor,
+        itens: r.itens
+    });
+    if (error) {
+        console.error('Error adding requisition:', error);
+        return;
+    }
+    setRequisicoes(prev => [{ ...r, status: r.status || 'pendente' }, ...prev]);
+};
+const updateRequisicao = async (r: Requisicao) => {
+    const { error } = await supabase.from('requisicoes').update({
+        data: r.data,
+        tipo: r.tipo,
+        fornecedor_id: r.fornecedorId,
+        viatura_id: r.viaturaId,
+        centro_custo_id: r.centroCustoId,
+        obs: r.obs || '',
+        status: r.status,
+        criado_por: r.criadoPor
+    }).eq('id', r.id);
+    if (!error) setRequisicoes(prev => prev.map(curr => curr.id === r.id ? r : curr));
+};
+const deleteRequisicao = async (id: string) => {
+    const { error } = await supabase.from('requisicoes').delete().eq('id', id);
+    if (!error) setRequisicoes(prev => prev.filter(r => r.id !== id));
+};
+
+const toggleRequisicaoStatus = async (id: string, fatura?: string, custo?: number) => {
+    const r = requisicoes.find(req => req.id === id);
+    if (r) {
+        const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
+        const updates: any = { status: newStatus };
+        if (newStatus === 'concluida') {
+            if (fatura) updates.fatura = fatura;
+            if (custo) updates.custo = custo;
+        }
+
+        const { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
+        if (!error) {
+            setRequisicoes(prev => prev.map(req => {
+                if (req.id === id) {
+                    return {
+                        ...req,
+                        status: newStatus,
+                        fatura: (newStatus === 'concluida' && fatura) ? fatura : req.fatura,
+                        custo: (newStatus === 'concluida' && custo) ? custo : req.custo
+                    };
                 }
+                return req;
+            }));
+        }
+    }
+};
 
-                // Refresh logic
-                const { data: a } = await supabase.from('admin_users').select('*').eq('id', data.user.id).single();
-                if (a) {
-                    setAdminUsers(prev => [...prev, {
-                        id: a.id,
-                        email: a.email,
-                        nome: a.nome,
-                        role: a.role,
-                        createdAt: a.created_at
-                    }]);
-                }
-                return { success: true };
+// Motoristas and others remain local for now as per plan focus
+const addMotorista = async (m: Motorista) => {
+    const { error } = await supabase.from('motoristas').insert({
+        id: m.id,
+        nome: m.nome,
+        foto: m.foto,
+        contacto: m.contacto,
+        carta_conducao: m.cartaConducao,
+        email: m.email,
+        obs: m.obs,
+        pin: m.pin,
+        vencimento_base: m.vencimentoBase,
+        valor_hora: m.valorHora,
+        folgas: m.folgas,
+        blocked_permissions: m.blockedPermissions,
+        turno_inicio: m.turnoInicio,
+        turno_fim: m.turnoFim,
+        cartrack_key: m.cartrackKey
+    });
+    if (!error) setMotoristas(prev => [...prev, m]);
+};
+const updateMotorista = async (m: Motorista) => {
+    const { error } = await supabase.from('motoristas').update({
+        nome: m.nome,
+        foto: m.foto,
+        contacto: m.contacto,
+        carta_conducao: m.cartaConducao,
+        email: m.email,
+        obs: m.obs,
+        pin: m.pin,
+        vencimento_base: m.vencimentoBase,
+        valor_hora: m.valorHora,
+        folgas: m.folgas,
+        blocked_permissions: m.blockedPermissions,
+        turno_inicio: m.turnoInicio,
+        turno_fim: m.turnoFim,
+        cartrack_key: m.cartrackKey
+    }).eq('id', m.id);
+
+    if (error) {
+        console.error("Erro ao atualizar motorista:", error);
+        alert(`Erro ao atualizar: ${error.message}`);
+        throw error;
+    }
+
+    const { data: verify } = await supabase.from('motoristas').select('id').eq('id', m.id).single();
+    if (!verify) {
+        alert('Aviso: A atualização parece não ter sido persistida. Verifique as permissões.');
+    }
+
+    // Force full refresh to ensure all enrichments (currentVehicle, status) are re-calculated correctly and persistence is confirmed
+    await refreshData();
+};
+const deleteMotorista = async (id: string) => {
+    const { error, count } = await supabase.from('motoristas').delete({ count: 'exact' }).eq('id', id);
+    if (error) {
+        console.error('Error deleting motorista:', error);
+        alert(`Erro ao apagar: ${error.message}`);
+    } else if (count === 0) {
+        console.warn('Delete count 0 - likely RLS issue');
+        alert('Aviso: Não foi possível apagar o registo (permissões insuficientes ou registo já apagado).');
+    } else {
+        setMotoristas(prev => prev.filter(m => m.id !== id));
+    }
+};
+
+const addSupervisor = async (s: Supervisor) => {
+    const { error } = await supabase.from('supervisores').insert({
+        id: s.id,
+        nome: s.nome,
+        foto: s.foto,
+        email: s.email,
+        telemovel: s.telemovel,
+        pin: s.pin,
+        password: s.password,
+        status: s.status,
+        blocked_permissions: s.blockedPermissions
+    });
+    if (!error) setSupervisors(prev => [...prev, s]);
+};
+const updateSupervisor = async (s: Supervisor) => {
+    const { error } = await supabase.from('supervisores').update({
+        nome: s.nome,
+        foto: s.foto,
+        email: s.email,
+        telemovel: s.telemovel,
+        pin: s.pin,
+        password: s.password,
+        status: s.status,
+        blocked_permissions: s.blockedPermissions
+    }).eq('id', s.id);
+    if (!error) setSupervisors(prev => prev.map(curr => curr.id === s.id ? s : curr));
+};
+const deleteSupervisor = async (id: string) => {
+    const { error } = await supabase.from('supervisores').delete().eq('id', id);
+    if (!error) setSupervisors(prev => prev.filter(s => s.id !== id));
+};
+
+const addOficinaUser = async (u: OficinaUser) => {
+    const { error } = await supabase.from('oficina_users').insert({
+        id: u.id,
+        nome: u.nome,
+        foto: u.foto,
+        email: u.email,
+        telemovel: u.telemovel, // NEW
+        pin: u.pin,
+        status: u.status,
+        blocked_permissions: u.blockedPermissions
+    });
+    if (!error) setOficinaUsers(prev => [...prev, u]);
+};
+const updateOficinaUser = async (u: OficinaUser) => {
+    const { error } = await supabase.from('oficina_users').update({
+        nome: u.nome,
+        foto: u.foto,
+        email: u.email,
+        telemovel: u.telemovel, // NEW
+        pin: u.pin,
+        status: u.status,
+        blocked_permissions: u.blockedPermissions
+    }).eq('id', u.id);
+    if (!error) setOficinaUsers(prev => prev.map(curr => curr.id === u.id ? u : curr));
+};
+const deleteOficinaUser = async (id: string) => {
+    const { error } = await supabase.from('oficina_users').delete().eq('id', id);
+    if (!error) setOficinaUsers(prev => prev.filter(u => u.id !== id));
+};
+
+const addNotification = async (n: Notification) => {
+    const { error } = await supabase.from('notifications').insert({
+        id: n.id,
+        type: n.type,
+        data: n.data,
+        status: n.status,
+        response: n.response,
+        timestamp: n.timestamp
+    });
+    if (!error) setNotifications(prev => [n, ...prev]);
+};
+const updateNotification = async (n: Notification) => {
+    const { error } = await supabase.from('notifications').update({
+        type: n.type,
+        data: n.data,
+        status: n.status,
+        response: n.response,
+        timestamp: n.timestamp
+    }).eq('id', n.id);
+    if (!error) {
+        setNotifications(prev => prev.map(current => current.id === n.id ? n : current));
+    }
+    return { error };
+};
+
+const addCentroCusto = async (cc: CentroCusto) => {
+    const { error } = await supabase.from('centros_custos').insert(cc);
+    if (!error) setCentrosCustos(prev => [...prev, cc]);
+};
+const deleteCentroCusto = async (id: string) => {
+    const { error } = await supabase.from('centros_custos').delete().eq('id', id);
+    if (!error) setCentrosCustos(prev => prev.filter(c => c.id !== id));
+};
+
+const addEvaTransport = async (t: EvaTransport) => {
+    // Insert Parent
+    const { error: parentError } = await supabase.from('eva_transports').insert({
+        id: t.id,
+        reference_date: t.referenceDate,
+        route: t.route,
+        amount: t.amount,
+        notes: t.notes,
+        logged_by: t.loggedBy,
+        created_at: t.createdAt
+        // year/month handled by DB triggers/defaults or could calculate here
+    });
+
+    if (parentError) {
+        console.error('Error adding Eva Transport:', parentError);
+        return;
+    }
+
+    // Insert Children
+    if (t.days.length > 0) {
+        const daysToInsert = t.days.map(d => ({
+            id: d.id,
+            transport_id: t.id,
+            date: d.date,
+            has_issue: d.hasIssue,
+            issue_type: d.issueType,
+            issue_description: d.issueDescription,
+            issue_severity: d.issueSeverity
+        }));
+        const { error: daysError } = await supabase.from('eva_transport_days').insert(daysToInsert);
+        if (daysError) console.error('Error adding Eva Days:', daysError);
+    }
+
+    setEvaTransports(prev => [t, ...prev]);
+};
+
+const deleteEvaTransport = async (id: string) => {
+    const { error } = await supabase.from('eva_transports').delete().eq('id', id);
+    if (!error) setEvaTransports(prev => prev.filter(t => t.id !== id));
+};
+
+
+const createAdminUser = async (email: string, password: string, nome: string) => {
+    try {
+        // Create a temporary client to avoid signing out the current user
+        const tempClient = createClient(
+            import.meta.env.VITE_SUPABASE_URL,
+            import.meta.env.VITE_SUPABASE_ANON_KEY,
+            { auth: { persistSession: false } }
+        );
+
+        const { data, error } = await tempClient.auth.signUp({
+            email,
+            password,
+            options: {
+                emailRedirectTo: `${window.location.origin}/`,
             }
-            return { success: false, error: 'Unknown error during sign up.' };
-        } catch (err: any) {
-            return { success: false, error: err.message };
+        });
+
+        if (error) return { success: false, error: error.message };
+
+        if (data.user) {
+            // Insert into admin_users using the MAIN authenticated client (which has permission)
+            const { error: dbError } = await supabase.from('admin_users').insert({
+                id: data.user.id,
+                email: email,
+                nome: nome,
+                role: 'admin'
+            });
+
+            if (dbError) {
+                // Rollback logic could be here (delete user), but let's just report error
+                console.error('Error inserting admin_user:', dbError);
+                return { success: true, error: 'User created in Auth but DB insert failed. ' + dbError.message };
+            }
+
+            // Refresh logic
+            const { data: a } = await supabase.from('admin_users').select('*').eq('id', data.user.id).single();
+            if (a) {
+                setAdminUsers(prev => [...prev, {
+                    id: a.id,
+                    email: a.email,
+                    nome: a.nome,
+                    role: a.role,
+                    createdAt: a.created_at
+                }]);
+            }
+            return { success: true };
         }
-    };
+        return { success: false, error: 'Unknown error during sign up.' };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+};
 
-    const deleteAdminUser = async (id: string) => {
-        // Note: We can only delete from list. Deleting from Auth requires Service Role (backend).
-        // So we just remove from the list table. The Auth user remains but has no "admin" entry.
-        const { error } = await supabase.from('admin_users').delete().eq('id', id);
-        if (!error) setAdminUsers(prev => prev.filter(u => u.id !== id));
-    };
+const deleteAdminUser = async (id: string) => {
+    // Note: We can only delete from list. Deleting from Auth requires Service Role (backend).
+    // So we just remove from the list table. The Auth user remains but has no "admin" entry.
+    const { error } = await supabase.from('admin_users').delete().eq('id', id);
+    if (!error) setAdminUsers(prev => prev.filter(u => u.id !== id));
+};
 
-    const addAvaliacao = async (avaliacao: Avaliacao) => {
-        const { data, error } = await supabase.from('avaliacoes').insert([{
-            motorista_id: avaliacao.motoristaId,
-            admin_id: avaliacao.adminId,
-            periodo: avaliacao.periodo,
-            pontuacao: avaliacao.pontuacao,
-            criterios: avaliacao.criterios,
-            obs: avaliacao.obs,
-            data_avaliacao: avaliacao.dataAvaliacao
-        }]).select().single();
+const addAvaliacao = async (avaliacao: Avaliacao) => {
+    const { data, error } = await supabase.from('avaliacoes').insert([{
+        motorista_id: avaliacao.motoristaId,
+        admin_id: avaliacao.adminId,
+        periodo: avaliacao.periodo,
+        pontuacao: avaliacao.pontuacao,
+        criterios: avaliacao.criterios,
+        obs: avaliacao.obs,
+        data_avaliacao: avaliacao.dataAvaliacao
+    }]).select().single();
 
-        if (!error && data) {
-            setAvaliacoes(prev => [...prev, {
-                ...avaliacao,
-                id: data.id
-            }]);
-        } else if (error) {
-            console.error('Error adding avaliacao:', error);
-        }
-    };
+    if (!error && data) {
+        setAvaliacoes(prev => [...prev, {
+            ...avaliacao,
+            id: data.id
+        }]);
+    } else if (error) {
+        console.error('Error adding avaliacao:', error);
+    }
+};
 
-    return (
-        <WorkshopContext.Provider value={{
-            fornecedores,
-            setFornecedores,
-            viaturas,
-            setViaturas,
-            clientes,
-            setClientes,
-            requisicoes,
-            setRequisicoes,
-            centrosCustos,
-            setCentrosCustos,
-            evaTransports,
-            setEvaTransports,
-            motoristas,
-            setMotoristas,
-            supervisors,
-            setSupervisors,
-            oficinaUsers,
-            setOficinaUsers,
-            notifications,
-            servicos,
-            setServicos,
-            addServico,
-            updateServico,
-            deleteServico,
-            geofences,
-            geofenceVisits,
-            cartrackVehicles,
-            cartrackDrivers,
-            cartrackError,
-            fuelTank,
-            fuelTransactions,
-            tankRefills,
-            updateFuelTank,
-            registerRefuel,
-            confirmRefuel,
-            registerTankRefill,
-            setPumpTotalizer,
-            deleteFuelTransaction,
-            deleteTankRefill,
-            manualHours,
-            addManualHourRecord,
-            deleteManualHourRecord,
-            addFornecedor,
-            deleteFornecedor,
-            addCliente,
-            updateCliente,
-            deleteCliente,
-            addViatura,
-            updateViatura,
-            deleteViatura,
-            addRequisicao,
-            updateRequisicao,
-            deleteRequisicao,
-            toggleRequisicaoStatus,
-            addCentroCusto,
-            deleteCentroCusto,
-            addEvaTransport,
-            deleteEvaTransport,
-            addMotorista,
-            updateMotorista,
-            deleteMotorista,
-            addSupervisor,
-            updateSupervisor,
-            deleteSupervisor,
-            addOficinaUser,
-            updateOficinaUser,
-            deleteOficinaUser,
-            createAdminUser,
-            deleteAdminUser,
-            addAvaliacao,
-            adminUsers,
-            avaliacoes,
-            addNotification,
-            updateNotification,
-            refreshData,
-            complianceStats,
-            runComplianceCheck,
-            runComplianceDemo
-        }}>
-            {children}
-        </WorkshopContext.Provider>
-    );
+return (
+    <WorkshopContext.Provider value={{
+        fornecedores,
+        setFornecedores,
+        viaturas,
+        setViaturas,
+        clientes,
+        setClientes,
+        requisicoes,
+        setRequisicoes,
+        centrosCustos,
+        setCentrosCustos,
+        evaTransports,
+        setEvaTransports,
+        motoristas,
+        setMotoristas,
+        supervisors,
+        setSupervisors,
+        oficinaUsers,
+        setOficinaUsers,
+        notifications,
+        servicos,
+        setServicos,
+        addServico,
+        updateServico,
+        deleteServico,
+        geofences,
+        geofenceVisits,
+        cartrackVehicles,
+        cartrackDrivers,
+        cartrackError,
+        fuelTank,
+        fuelTransactions,
+        tankRefills,
+        updateFuelTank,
+        registerRefuel,
+        confirmRefuel,
+        registerTankRefill,
+        setPumpTotalizer,
+        deleteFuelTransaction,
+        deleteTankRefill,
+        manualHours,
+        addManualHourRecord,
+        deleteManualHourRecord,
+        addFornecedor,
+        deleteFornecedor,
+        addCliente,
+        updateCliente,
+        deleteCliente,
+        addViatura,
+        updateViatura,
+        deleteViatura,
+        addRequisicao,
+        updateRequisicao,
+        deleteRequisicao,
+        toggleRequisicaoStatus,
+        addCentroCusto,
+        deleteCentroCusto,
+        addEvaTransport,
+        deleteEvaTransport,
+        addMotorista,
+        updateMotorista,
+        deleteMotorista,
+        addSupervisor,
+        updateSupervisor,
+        deleteSupervisor,
+        addOficinaUser,
+        updateOficinaUser,
+        deleteOficinaUser,
+        createAdminUser,
+        deleteAdminUser,
+        addAvaliacao,
+        adminUsers,
+        avaliacoes,
+        addNotification,
+        updateNotification,
+        refreshData,
+        complianceStats,
+        runComplianceCheck,
+        runComplianceDemo
+    }}>
+        {children}
+    </WorkshopContext.Provider>
+);
 }
 
 export function useWorkshop() {

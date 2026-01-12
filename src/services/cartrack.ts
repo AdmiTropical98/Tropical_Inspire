@@ -421,15 +421,28 @@ export const CartrackService = {
         }
     },
 
-    getGeofenceVisits: async (vehicleId: string): Promise<CartrackGeofenceVisit[]> => {
+    getGeofenceVisits: async (startDate: string, endDate: string, vehicleId?: string): Promise<CartrackGeofenceVisit[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            const response = await fetch(`${BASE_URL}/geofence_visits?vehicle_id=${vehicleId}&per_page=100`, {
+            // Note: Cartrack API param names might vary. Common possibilities: start_date, from, since.
+            // Using standard guess based on previous logic attempt or reverting to 'last_position' if this is a stateless fetch.
+            // If the user context was sending specific dates, let's pass them.
+
+            let url = `${BASE_URL}/geofence_visits?per_page=100`;
+            if (vehicleId) url += `&vehicle_id=${vehicleId}`;
+            // Adding date filters if API supports them (usually event_ts or similar, but let's try standard REST filters)
+            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: { 'Authorization': `Basic ${auth}` },
             });
 
-            if (!response.ok) throw new Error('Falha ao obter visitas de geofences da Cartrack');
+            if (!response.ok) {
+                // Try fallback without date filters if 400, or just throw
+                throw new Error(`Falha API (${response.status}): ${response.statusText}`);
+            }
 
             const result = await response.json();
             const items = result.data || result.rows || result.visits || [];
