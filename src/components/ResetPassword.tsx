@@ -79,7 +79,7 @@ export default function ResetPassword() {
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-8">
                     <img
-                        src="/logo-algar-frota.png?v=3"
+                        src="/logo-algar-frota.png?v=4"
                         alt="Algar Frota"
                         className="w-96 h-auto object-contain mx-auto mb-6 drop-shadow-2xl"
                     />
