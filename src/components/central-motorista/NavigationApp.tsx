@@ -70,7 +70,7 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
             setShowSelection(false);
         } else {
             console.warn('Geofence without coordinates selected:', geo);
-            // Optional: alert user or handle error
+            alert(`Atenção: O local "${geo.name}" não tem coordenadas (Latitude/Longitude) definidas no Cartrack.`);
         }
     };
     // ...

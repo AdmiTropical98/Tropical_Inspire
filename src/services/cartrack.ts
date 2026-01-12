@@ -198,7 +198,14 @@ export const CartrackService = {
     getGeofences: async (): Promise<CartrackGeofence[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            const response = await fetch(`${BASE_URL}/geofences?per_page=100`, {
+
+            let url = `${BASE_URL}/geofences`;
+            // Check if BASE_URL already has query params (e.g. proxy)
+            const separator = url.includes('?') ? '&' : '?';
+            // Use extreme limit to get all geofences
+            url += `${separator}per_page=1000`;
+
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: { 'Authorization': `Basic ${auth}` },
             });
