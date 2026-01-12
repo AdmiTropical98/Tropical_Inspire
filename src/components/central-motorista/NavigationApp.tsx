@@ -338,10 +338,10 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                     ) : (
                         <>
                             <button
-                                onClick={onBack}
+                                onClick={() => setShowSelection(true)}
                                 className="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
                             >
-                                <ChevronLeft className="w-5 h-5" />
+                                <Search className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={startNavigation}
