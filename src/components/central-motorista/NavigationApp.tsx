@@ -336,11 +336,19 @@ export default function NavigationApp({
             </div>
 
             {/* Map Area */}
-            <div className="flex-1 relative w-full z-0">
+            <div
+                className={`flex-1 relative w-full z-0 transition-transform duration-1000 ${isNavigating ? 'scale-[1.5] origin-bottom' : ''}`}
+                style={isNavigating ? {
+                    transform: 'perspective(600px) rotateX(40deg) scale(1.2) translateY(-20%)',
+                    transformOrigin: '50% 80%'
+                } : {}}
+            >
                 <MapContainer
                     center={currentPos}
-                    zoom={16}
+                    zoom={18}
                     zoomControl={false}
+                    dragging={!isNavigating}
+                    touchZoom={!isNavigating}
                     className="h-full w-full z-0 outline-none"
                     style={{ background: '#0f172a' }}
                 >
