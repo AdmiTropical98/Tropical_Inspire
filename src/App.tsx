@@ -99,11 +99,11 @@ function App() {
       else if (userRole === 'supervisor') target = 'dashboard';
 
       if (activeTab !== target) {
-        // eslint-disable-next-line
         setActiveTab(target);
       }
     }
-  }, [isAuthenticated, userRole, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, userRole]);
 
   const renderContent = () => {
     switch (activeTab) {
