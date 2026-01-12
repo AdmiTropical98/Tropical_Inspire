@@ -337,10 +337,12 @@ export default function NavigationApp({
 
             {/* Map Area */}
             <div
-                className={`flex-1 relative w-full z-0 transition-transform duration-1000 ${isNavigating ? 'scale-[1.5] origin-bottom' : ''}`}
+                className={`transition-all duration-1000 ease-in-out ${isNavigating
+                        ? 'fixed top-[-50vh] left-[-50vw] w-[200vw] h-[200vh] z-0 origin-bottom'
+                        : 'flex-1 relative w-full z-0'
+                    }`}
                 style={isNavigating ? {
-                    transform: 'perspective(700px) rotateX(65deg) scale(3) translateY(-15%)',
-                    transformOrigin: '50% 90%'
+                    transform: 'perspective(600px) rotateX(70deg) translateY(15%)',
                 } : {}}
             >
                 <MapContainer
