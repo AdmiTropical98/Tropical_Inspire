@@ -47,14 +47,24 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
     const wakeLockRef = useRef<any>(null);
 
     // Filter Geofences
+    // Filter Geofences
     const filteredGeofences = geofences.filter(g =>
-        g.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        g.latitude && g.longitude
+        g.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        ((g.latitude && g.longitude) || (g.points && g.points.length > 0))
     );
 
     const handleSelectGeofence = (geo: CartrackGeofence) => {
-        if (geo.latitude && geo.longitude) {
-            setDestCoords([Number(geo.latitude), Number(geo.longitude)]);
+        let lat = geo.latitude;
+        let lng = geo.longitude;
+
+        // Fallback to first point of polygon if center is missing
+        if ((!lat || !lng) && geo.points && geo.points.length > 0) {
+            lat = geo.points[0].lat;
+            lng = geo.points[0].lng;
+        }
+
+        if (lat && lng) {
+            setDestCoords([Number(lat), Number(lng)]);
             setDestinationName(geo.name);
             setShowSelection(false);
         }
