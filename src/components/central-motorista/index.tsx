@@ -647,7 +647,7 @@ export default function CentralMotorista() {
                             </h3>
                             <form onSubmit={handleSubmitRequest} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('common.type')}</label>
+                                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('central.requests.type_label')}</label>
                                     <select
                                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                         value={requestForm.type}
@@ -655,13 +655,13 @@ export default function CentralMotorista() {
                                     >
                                         <option value="ferias">Férias</option>
                                         <option value="material">Material / Fardamento</option>
-                                        <option value="adiantamento">Adiantamento Salarial</option>
+
                                         <option value="declaracao">Declaração</option>
                                         <option value="outros">Outros</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('common.description')}</label>
+                                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('central.requests.description_label')}</label>
                                     <textarea
                                         required
                                         rows={4}
@@ -677,7 +677,7 @@ export default function CentralMotorista() {
                                         className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
                                     >
                                         <Send className="w-4 h-4" />
-                                        {t('common.submit')}
+                                        {t('central.requests.submit_btn')}
                                     </button>
                                 </div>
                             </form>
