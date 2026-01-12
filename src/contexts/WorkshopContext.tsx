@@ -1402,6 +1402,31 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             complianceStats,
             runComplianceCheck,
             runComplianceDemo
+            runComplianceDemo,
+            updateVehicleLocation: async (registration: string, lat: number, lng: number) => {
+                try {
+                    // Update Supabase
+                    const { error } = await supabase
+                        .from('viaturas')
+                        .update({
+                            latitude: lat,
+                            longitude: lng,
+                            last_position_update: new Date().toISOString()
+                        })
+                        .eq('matricula', registration);
+
+                    if (error) throw error;
+
+                    // Optimistic update local state
+                    setCartrackVehicles(prev => prev.map(v =>
+                        v.registration === registration
+                            ? { ...v, latitude: lat, longitude: lng, last_position_update: new Date().toISOString() }
+                            : v
+                    ));
+                } catch (err) {
+                    console.error('Error updating vehicle location:', err);
+                }
+            }
         }}>
             {children}
         </WorkshopContext.Provider>
