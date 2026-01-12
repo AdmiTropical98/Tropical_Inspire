@@ -383,21 +383,35 @@ export default function CentralMotorista() {
         { id: 'navegacao', icon: Navigation, label: 'Navegação', color: 'blue' },
         { id: 'recibos', icon: FileText, label: t('central.tab.payslips'), color: 'emerald' },
         { id: 'reportar', icon: AlertTriangle, label: t('central.tab.report'), color: 'red' }
-    ].map(tab => ({
-        id: tab.id,
-        content: (
-            <button
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
+    ].map(tab => {
+        const getActiveClasses = (color: string) => {
+            switch (color) {
+                case 'blue': return 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30';
+                case 'indigo': return 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/20 ring-2 ring-indigo-500/30';
+                case 'purple': return 'bg-purple-600 text-white shadow-lg shadow-purple-900/20 ring-2 ring-purple-500/30';
+                case 'orange': return 'bg-orange-600 text-white shadow-lg shadow-orange-900/20 ring-2 ring-orange-500/30';
+                case 'emerald': return 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-500/30';
+                case 'red': return 'bg-red-600 text-white shadow-lg shadow-red-900/20 ring-2 ring-red-500/30';
+                default: return 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30';
+            }
+        };
+
+        return {
+            id: tab.id,
+            content: (
+                <button
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
                 ${activeTab === tab.id
-                        ? `bg-${tab.color}-600 text-white shadow-lg shadow-${tab.color}-900/20 ring-2 ring-${tab.color}-500/30`
-                        : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-            >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-            </button>
-        )
-    }));
+                            ? getActiveClasses(tab.color)
+                            : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
+                >
+                    <tab.icon className="w-4 h-4" />
+                    {tab.label}
+                </button>
+            )
+        };
+    });
 
     return (
         <div className="h-full overflow-y-auto custom-scrollbar w-full max-w-7xl mx-auto p-3 md:p-8 font-sans pb-24 overflow-x-hidden">
