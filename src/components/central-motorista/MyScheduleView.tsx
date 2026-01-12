@@ -396,7 +396,8 @@ export default function MyScheduleView({ services, onBack, complianceStats }: My
                                                 )}
                                             </div>
                                         </div>
-                                    ))}
+                                    )
+                                })}
                             </div>
                         </div>
                     ))}
