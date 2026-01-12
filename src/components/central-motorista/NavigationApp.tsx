@@ -355,8 +355,8 @@ export default function NavigationApp({
                     style={{ background: '#0f172a' }}
                 >
                     <TileLayer
-                        attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-                        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                         maxNativeZoom={18}
                         maxZoom={20}
                     />
@@ -365,7 +365,7 @@ export default function NavigationApp({
                     {route.length > 0 && (
                         <Polyline
                             positions={route}
-                            pathOptions={{ color: isNavigating ? '#8b5cf6' : '#3b82f6', weight: 10, opacity: 0.8, lineJoin: 'round', lineCap: 'round' }}
+                            pathOptions={{ color: isNavigating ? '#22d3ee' : '#3b82f6', weight: 10, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }}
                         />
                     )}
 
