@@ -1,12 +1,13 @@
-import { Calendar, Info, CheckCircle, Clock, User, Users, ArrowLeft, LogIn, LogOut } from 'lucide-react';
+import { Calendar, Info, CheckCircle, Clock, User, Users, ArrowLeft, LogIn, LogOut, CheckSquare, AlertTriangle } from 'lucide-react';
 import { type Servico } from '../../types';
 
 interface MyScheduleViewProps {
     services: Servico[];
     onBack?: () => void;
+    complianceStats?: Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>;
 }
 
-export default function MyScheduleView({ services, onBack }: MyScheduleViewProps) {
+export default function MyScheduleView({ services, onBack, complianceStats }: MyScheduleViewProps) {
 
 
     // Group services by date
@@ -102,13 +103,13 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
                     </p>
                 </div>
             ) : (
-                    <div className="space-y-6 md:space-y-8">
-                        {sortedGroupKeys.map(date => (
-                            <div key={date} className="space-y-3 md:space-y-4">
-                                {/* Date Header - Sticky on Desktop, Inline on Mobile */}
-                                <div className="flex items-center gap-3 py-2 px-2 md:sticky md:top-0 md:bg-[#0f172a]/95 md:backdrop-blur md:z-10">
+                <div className="space-y-6 md:space-y-8">
+                    {sortedGroupKeys.map(date => (
+                        <div key={date} className="space-y-3 md:space-y-4">
+                            {/* Date Header - Sticky on Desktop, Inline on Mobile */}
+                            <div className="flex items-center gap-3 py-2 px-2 md:sticky md:top-0 md:bg-[#0f172a]/95 md:backdrop-blur md:z-10">
                                 <span className="h-px flex-1 bg-gradient-to-r from-blue-500/50 to-transparent"></span>
-                                    <h3 className="text-xs md:text-sm font-bold text-white uppercase tracking-wider px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full whitespace-nowrap">
+                                <h3 className="text-xs md:text-sm font-bold text-white uppercase tracking-wider px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full whitespace-nowrap">
                                     {date}
                                 </h3>
                                 <span className="h-px flex-1 bg-gradient-to-l from-blue-500/50 to-transparent"></span>
@@ -138,11 +139,20 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                                                <User className="w-4 h-4" />
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                                                    <User className="w-4 h-4" />
+                                                                </div>
+                                                                <span className="text-white font-medium">{service.passageiro || 'Não definido'}</span>
                                                             </div>
-                                                            <span className="text-white font-medium">{service.passageiro || 'Não definido'}</span>
+                                                            {/* COMPLIANCE DESKTOP */}
+                                                            {complianceStats?.[service.id] && (
+                                                                <div className={`flex items-center gap-1 text-[10px] font-bold ${complianceStats[service.id].status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                    {complianceStats[service.id].status === 'success' ? <CheckSquare className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                                                                    <span>{complianceStats[service.id].message}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
@@ -174,7 +184,7 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
                                                                 <CheckCircle className="w-3.5 h-3.5" /> Concluído
                                                             </span>
                                                         ) : (
-                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-bold border border-amber-500/20">
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-bold border border-amber-500/20">
                                                                 <Clock className="w-3.5 h-3.5" /> Agendado
                                                             </span>
                                                         )}
@@ -186,61 +196,98 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
                                 </div>
                             </div>
 
-                                {/* Mobile Card View (Enhanced & Explanatory) */}
+                            {/* Mobile Card View (Enhanced & Explanatory) */}
                             <div className="md:hidden grid gap-4">
-                                    {Object.values(groupedServices[date].reduce((acc, service) => {
-                                        // Secondary Grouping: Time + Origin + Destination
-                                        const key = `${service.hora}-${service.origem}-${service.destino}`;
-                                        if (!acc[key]) {
-                                            acc[key] = {
-                                                ...service,
-                                                passengers: [service.passageiro || 'Sem Nome'],
-                                                ids: [service.id],
-                                                isGroup: false
-                                            };
-                                        } else {
-                                            acc[key].passengers.push(service.passageiro || 'Sem Nome');
-                                            acc[key].ids.push(service.id);
-                                            acc[key].isGroup = true;
-                                            // If any in group is NOT concluded, group is NOT concluded (pessimistic)
-                                            // or if ALL are concluded, group is concluded. Let's say if ANY is pending, group is pending.
-                                            if (!service.concluido) acc[key].concluido = false;
-                                        }
-                                        return acc;
-                                    }, {} as Record<string, any>)).map((service: any) => (
-                                    <div
-                                            key={service.isGroup ? service.ids.join('-') : service.id}
-                                        className="bg-slate-800 rounded-2xl border border-slate-700 shadow-xl overflow-hidden"
-                                    >
-                                        {/* Status Header Strip */}
-                                        <div className={`h-1.5 w-full ${service.concluido ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-amber-500 to-orange-400'}`}></div>
+                                {Object.values(groupedServices[date].reduce((acc, service) => {
+                                    // Secondary Grouping: Time + Origin + Destination
+                                    const key = `${service.hora}-${service.origem}-${service.destino}`;
+                                    if (!acc[key]) {
+                                        acc[key] = {
+                                            ...service,
+                                            passengers: [service.passageiro || 'Sem Nome'],
+                                            ids: [service.id],
+                                            isGroup: false
+                                        };
+                                    } else {
+                                        acc[key].passengers.push(service.passageiro || 'Sem Nome');
+                                        acc[key].ids.push(service.id);
+                                        acc[key].isGroup = true;
+                                        // If any in group is NOT concluded, group is NOT concluded (pessimistic)
+                                        // or if ALL are concluded, group is concluded. Let's say if ANY is pending, group is pending.
+                                        if (!service.concluido) acc[key].concluido = false;
+                                    }
+                                    return acc;
+                                }, {} as Record<string, any>)).map((service: any) => {
+                                    // Determine Compliance Status for the Group/Card
+                                    // If it's a group, we check if ANY failed -> Failed. Else if ALL success -> Success.
+                                    let groupComplianceStatus: 'success' | 'failed' | 'pending' | null = null;
+                                    let groupComplianceMsg = '';
 
-                                        <div className="p-4 space-y-4">
-                                            {/* Time & Status Row */}
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700 shadow-inner flex flex-col items-center min-w-[70px]">
-                                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hora</span>
-                                                        <span className="text-xl font-black text-white tracking-tight">
-                                                            {new Date(service._parsedDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Estado do Serviço</span>
-                                                        {service.concluido ? (
-                                                            <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
-                                                                <CheckCircle className="w-4 h-4" />
-                                                                <span>Concluído</span>
+                                    if (complianceStats) {
+                                        const statuses = service.ids.map((id: string) => complianceStats[id]);
+                                        if (statuses.some((s: any) => s?.status === 'failed')) {
+                                            groupComplianceStatus = 'failed';
+                                            groupComplianceMsg = statuses.find((s: any) => s?.status === 'failed')?.message || 'Falha na validação';
+                                        } else if (statuses.every((s: any) => s?.status === 'success')) {
+                                            groupComplianceStatus = 'success';
+                                            groupComplianceMsg = statuses[0]?.message || 'Validado';
+                                        }
+                                    }
+
+                                    const stripColor = groupComplianceStatus === 'success'
+                                        ? 'bg-gradient-to-r from-emerald-500 to-green-400'
+                                        : groupComplianceStatus === 'failed'
+                                            ? 'bg-gradient-to-r from-red-600 to-rose-500'
+                                            : service.concluido
+                                                ? 'bg-gradient-to-r from-blue-500 to-indigo-400'
+                                                : 'bg-gradient-to-r from-amber-500 to-orange-400';
+
+                                    return (
+                                        <div
+                                            key={service.isGroup ? service.ids.join('-') : service.id}
+                                            className={`bg-slate-800 rounded-2xl border ${groupComplianceStatus === 'failed' ? 'border-red-500/50' : 'border-slate-700'} shadow-xl overflow-hidden transition-all`}
+                                        >
+                                            {/* Status Header Strip */}
+                                            <div className={`h-1.5 w-full ${stripColor}`}></div>
+
+                                            <div className="p-4 space-y-4">
+                                                {/* Time & Status Row */}
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex items-center gap-3 w-full">
+                                                        <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700 shadow-inner flex flex-col items-center min-w-[70px]">
+                                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hora</span>
+                                                            <span className="text-xl font-black text-white tracking-tight">
+                                                                {new Date(service._parsedDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col w-full">
+                                                            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Estado do Serviço</span>
+                                                            <div className="flex justify-between items-center w-full pr-2">
+                                                                {service.concluido ? (
+                                                                    <div className="flex items-center gap-1.5 text-blue-400 font-bold text-sm">
+                                                                        <CheckCircle className="w-4 h-4" />
+                                                                        <span>Concluído</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
+                                                                        <Clock className="w-4 h-4" />
+                                                                        <span>Agendado</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* COMPLIANCE BADGE MOBILE */}
+                                                                {groupComplianceStatus && (
+                                                                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
+                                                                    ${groupComplianceStatus === 'success' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}
+                                                                `}>
+                                                                        {groupComplianceStatus === 'success' ? <CheckSquare className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                                                                        <span className="truncate max-w-[100px]">{groupComplianceMsg}</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        ) : (
-                                                            <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
-                                                                <Clock className="w-4 h-4" />
-                                                                <span>Agendado</span>
-                                                            </div>
-                                                        )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
                                                 {/* Passenger Row (Single or Multiple) */}
                                                 <div className="bg-slate-700/30 rounded-xl p-3 flex flex-col gap-2 border border-slate-700/50">
@@ -267,40 +314,40 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
                                                             <span className="text-white font-bold text-base truncate block">{service.passageiro || 'Nome não indicado'}</span>
                                                         </div>
                                                     )}
-                                            </div>
+                                                </div>
 
-                                            {/* Route Timeline */}
-                                            <div className="relative pl-2 py-1">
-                                                {/* Connecting Line */}
-                                                <div className="absolute left-[9px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-purple-600 opacity-30"></div>
+                                                {/* Route Timeline */}
+                                                <div className="relative pl-2 py-1">
+                                                    {/* Connecting Line */}
+                                                    <div className="absolute left-[9px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-purple-600 opacity-30"></div>
 
-                                                <div className="space-y-6">
-                                                    {/* Origin */}
-                                                    <div className="relative flex gap-3">
-                                                        <div className="w-5 h-5 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                                    <div className="space-y-6">
+                                                        {/* Origin */}
+                                                        <div className="relative flex gap-3">
+                                                            <div className="w-5 h-5 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block mb-0.5">De (Origem)</span>
+                                                                <p className="text-slate-200 font-medium leading-tight text-sm">{service.origem}</p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block mb-0.5">De (Origem)</span>
-                                                            <p className="text-slate-200 font-medium leading-tight text-sm">{service.origem}</p>
-                                                        </div>
-                                                    </div>
 
-                                                    {/* Destination */}
-                                                    <div className="relative flex gap-3">
-                                                        <div className="w-5 h-5 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider block mb-0.5">Para (Destino)</span>
-                                                            <p className="text-white font-bold leading-tight text-sm">{service.destino}</p>
+                                                        {/* Destination */}
+                                                        <div className="relative flex gap-3">
+                                                            <div className="w-5 h-5 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider block mb-0.5">Para (Destino)</span>
+                                                                <p className="text-white font-bold leading-tight text-sm">{service.destino}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            {/* Footer / Obs */}
-                                            {service.obs && (
+                                                {/* Footer / Obs */}
+                                                {service.obs && (
                                                     <div className="mt-3 pt-3 border-t border-slate-700/50">
                                                         {(() => {
                                                             const txt = service.obs.toLowerCase();
@@ -338,18 +385,18 @@ export default function MyScheduleView({ services, onBack }: MyScheduleViewProps
                                                             return (
                                                                 <div className="flex gap-2 text-slate-400">
                                                                     <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                                                                <div className="text-xs">
-                                                                    <span className="font-bold text-slate-500 mr-1 uppercase text-[10px] tracking-wider">Obs:</span>
-                                                                    {service.obs}
+                                                                    <div className="text-xs">
+                                                                        <span className="font-bold text-slate-500 mr-1 uppercase text-[10px] tracking-wider">Obs:</span>
+                                                                        {service.obs}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
                                                             );
                                                         })()}
-                                                </div>
-                                            )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
                             </div>
                         </div>
                     ))}

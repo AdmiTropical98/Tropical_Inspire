@@ -443,6 +443,7 @@ export default function CentralMotorista() {
                     <div className="lg:col-span-3">
                         <MyScheduleView
                             services={mySchedule}
+                            complianceStats={complianceStats}
                             onBack={() => setActiveTab('overview')}
                         />
                     </div>
