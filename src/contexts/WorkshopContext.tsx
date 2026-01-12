@@ -1402,7 +1402,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             refreshData,
             complianceStats,
             runComplianceCheck,
-            runComplianceDemo,
+            runComplianceDemo, // Fixed duplicate
             updateVehicleLocation: async (registration: string, lat: number, lng: number) => {
                 try {
                     // Update Supabase
