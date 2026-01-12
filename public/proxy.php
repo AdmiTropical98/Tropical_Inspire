@@ -43,11 +43,33 @@ curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Optional: if certificates fa
 
 // Forward headers (specifically Authorization)
 $headers = [];
-foreach (getallheaders() as $name => $value) {
-    if (stripos($name, 'Authorization') !== false || stripos($name, 'Content-Type') !== false) {
-        $headers[] = "$name: $value";
+
+// Try to get Authorization from specific server vars if getallheaders fails or misses it
+$authHeader = null;
+if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+} elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+    $authHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+}
+
+if ($authHeader) {
+    $headers[] = "Authorization: $authHeader";
+} else {
+    // Fallback standard loop
+    if (function_exists('getallheaders')) {
+        foreach (getallheaders() as $name => $value) {
+            if (stripos($name, 'Authorization') !== false && !$authHeader) {
+                $headers[] = "$name: $value";
+            }
+        }
     }
 }
+
+// Pass Content-Type if present
+if (isset($_SERVER['CONTENT_TYPE'])) {
+    $headers[] = "Content-Type: " . $_SERVER['CONTENT_TYPE'];
+}
+
 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
 $response = curl_exec($ch);
