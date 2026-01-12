@@ -338,7 +338,7 @@ export default function NavigationApp({
             {/* Map Area */}
             <div
                 className={`transition-all duration-1000 ease-in-out ${isNavigating
-                        ? 'fixed top-[-50vh] left-[-50vw] w-[200vw] h-[200vh] z-0 origin-bottom'
+                        ? 'absolute inset-[-50%] w-[200%] h-[200%] z-0 origin-bottom'
                         : 'flex-1 relative w-full z-0'
                     }`}
                 style={isNavigating ? {
@@ -371,7 +371,10 @@ export default function NavigationApp({
                         />
                     )}
 
-                    <Marker position={currentPos} icon={carIcon} />
+                    {/* Show Car only if GPS is valid or we are just previewing */}
+                    {gpsAccuracy > 0 || !isNavigating ? (
+                        <Marker position={currentPos} icon={carIcon} />
+                    ) : null}
 
                     {destCoords && (
                         <Marker position={destCoords} icon={destIcon}>
@@ -387,8 +390,25 @@ export default function NavigationApp({
                     </div>
                 )}
 
+                {/* GPS Waiting Indicator */}
+                {isNavigating && gpsAccuracy === 0 && (
+                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-[500] flex flex-col items-center justify-center p-6 text-center">
+                        <div className="animate-pulse mb-4">
+                            <LocateFixed className="w-16 h-16 text-blue-500" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">A aguardar sinal GPS...</h3>
+                        <p className="text-slate-400">Por favor aguarde enquanto localizamos a sua viatura.</p>
+                        <button
+                            onClick={stopNavigation}
+                            className="mt-6 px-6 py-2 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-700 transition"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                )}
+
                 {/* Recenter Button */}
-                <div className="absolute right-4 bottom-6 z-[1000] flex flex-col gap-3">
+                <div className="absolute right-4 bottom-56 md:bottom-24 z-[1000] flex flex-col gap-3">
                     <button
                         onClick={() => setFollowMe(prev => !prev)}
                         className={`p-3.5 rounded-full shadow-2xl transition-all active:scale-95 ${followMe ? 'bg-blue-600 text-white shadow-blue-900/30' : 'bg-slate-900 text-slate-400 border border-slate-700'}`}
