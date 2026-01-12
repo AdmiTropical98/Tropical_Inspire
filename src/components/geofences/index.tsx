@@ -190,9 +190,9 @@ export default function Geofences() {
             </details>
 
             {activeTab === 'map' ? (
-                <div className="flex flex-col xl:flex-row gap-6 px-4 h-[calc(100vh-220px)] min-h-[750px] w-full items-stretch">
+                <div className="flex flex-col xl:flex-row gap-6 px-4 xl:h-[calc(100vh-220px)] xl:min-h-[750px] h-auto w-full items-stretch">
                     {/* SIDEBAR - DEFINITIVE WIDTH & SCROLL */}
-                    <div className="w-full xl:w-[320px] bg-[#161625] rounded-[32px] border border-white/5 shadow-2xl flex flex-col overflow-hidden">
+                    <div className="w-full xl:w-[320px] h-[400px] xl:h-auto bg-[#161625] rounded-[32px] border border-white/5 shadow-2xl flex flex-col overflow-hidden shrink-0">
                         <div className="p-6 border-b border-white/5 flex items-center justify-between">
                             <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.25em] flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -247,7 +247,7 @@ export default function Geofences() {
                     </div>
 
                     {/* MAP SECTION - FULL WIDTH STRETCH */}
-                    <div className="flex-1 bg-[#161625] rounded-[40px] border border-white/5 p-2 shadow-2xl relative overflow-hidden group">
+                    <div className="w-full xl:flex-1 h-[500px] xl:h-auto bg-[#161625] rounded-[40px] border border-white/5 p-2 shadow-2xl relative overflow-hidden group">
                         <GeofenceMap geofences={geofences} vehicles={vehicles} selectedVehicle={selectedVehicle} />
 
                         {/* Floating Status */}
