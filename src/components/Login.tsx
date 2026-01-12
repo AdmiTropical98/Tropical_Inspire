@@ -170,9 +170,9 @@ export default function Login() {
 
             <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0 mt-12 transform translate-y-6">
                 <img
-                    src="/logo-new.png"
-                    alt="Logotipo"
-                    className="h-24 w-auto object-contain drop-shadow-2xl relative z-20"
+                    src="/logo-algar-frota.png"
+                    alt="Algar Frota"
+                    className="h-32 w-auto object-contain drop-shadow-2xl relative z-20"
                 />
 
                 <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 mt-4 relative z-10">
@@ -239,7 +239,7 @@ export default function Login() {
                                 ) : role === 'supervisor' ? (
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
                                 ) : role === 'oficina' ? (
-                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-orange-400 transition-colors" />
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-orange-400 transition-colors" />
                                 ) : (
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                                 )}

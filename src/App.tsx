@@ -148,17 +148,8 @@ function App() {
 
           {/* SIDEBAR */}
           <aside className="w-72 bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl">
-            <div className="p-6 border-b border-slate-800/60 flex items-center justify-between bg-gradient-to-r from-slate-900/50 to-transparent">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 rounded-full"></div>
-                  <img src="/logo-camper.png" alt="Tropical Inspire" className="w-12 h-12 object-contain relative z-10" />
-                </div>
-                <div>
-                  <span className="font-bold text-xl tracking-tight text-white block leading-none">Gestão<span className="text-blue-500">Frota</span></span>
-                  <span className="text-[10px] text-slate-500 font-medium tracking-wider uppercase">v1.9 (Final Fix)</span>
-                </div>
-              </div>
+            <div className="p-6 border-b border-slate-800/60 flex items-center justify-center bg-gradient-to-r from-slate-900/50 to-transparent">
+              <img src="/logo-algar-frota.png" alt="Gestão Frota" className="h-20 w-auto object-contain" />
             </div>
 
             <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
@@ -262,9 +253,9 @@ function App() {
             {/* Mobile Header - Only visible on mobile */}
             {/* Mobile Header - Only visible on mobile */}
             <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                GestãoFrota <span className="text-xs text-white/50 block">v1.9.2 (UI Update)</span>
-              </h1>
+              <div className="flex items-center">
+                <img src="/logo-algar-frota.png" alt="Gestão Frota" className="h-10 w-auto object-contain" />
+              </div>
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
                 <Menu className="w-6 h-6" />
               </button>

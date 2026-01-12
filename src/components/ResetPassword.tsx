@@ -78,9 +78,9 @@ export default function ResetPassword() {
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-8">
                     <img
-                        src="/logo-new.png"
-                        alt="Logotipo"
-                        className="h-24 w-auto object-contain mx-auto mb-6 drop-shadow-2xl"
+                        src="/logo-algar-frota.png"
+                        alt="Algar Frota"
+                        className="h-32 w-auto object-contain mx-auto mb-6 drop-shadow-2xl"
                     />
                     <h1 className="text-3xl font-bold text-white mb-2">Redefinir Palavra-passe</h1>
                     <p className="text-slate-400">Escolha uma nova palavra-passe segura</p>
