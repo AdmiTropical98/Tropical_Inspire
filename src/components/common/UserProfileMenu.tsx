@@ -1,25 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Check, Camera, User } from 'lucide-react';
-import ImageCropper from './ImageCropper';
+import { LogOut, Check, User, Car, Wrench, UserCog, ClipboardCheck } from 'lucide-react';
 
 interface UserProfileMenuProps {
     onNavigate?: () => void;
 }
 
 export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
-    const { userRole, currentUser, logout, userStatus, updateStatus, language, setLanguage, userPhoto, updateUserPhoto } = useAuth();
+    const { userRole, currentUser, logout, updateStatus: updateContextStatus } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
-    const [tempImage, setTempImage] = useState<string | null>(null);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // Get User Details for Display
-    const getInitials = () => {
-        if (userRole === 'admin') return 'A';
-        if (currentUser?.nome) return currentUser.nome.charAt(0).toUpperCase();
-        return 'U';
-    };
+    const [userStatus, setUserStatus] = useState<'online' | 'absent' | 'busy' | 'offline'>('online');
+    const [language, setLanguage] = useState<'pt' | 'en'>('pt');
+    const menuRef = useRef<HTMLDivElement>(null);
 
     const getDisplayName = () => {
         return currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Utilizador');
@@ -27,10 +19,11 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'online': return 'bg-emerald-500';
-            case 'absent': return 'bg-amber-500';
+            case 'online': return 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
+            case 'absent': return 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]';
+            case 'busy': return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
             case 'offline': return 'bg-red-500';
-            default: return 'bg-emerald-500';
+            default: return 'bg-slate-500';
         }
     };
 
@@ -38,15 +31,41 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
         switch (status) {
             case 'online': return language === 'pt' ? 'Online' : 'Online';
             case 'absent': return language === 'pt' ? 'Ausente' : 'Away';
+            case 'busy': return language === 'pt' ? 'Ocupado' : 'Busy';
             case 'offline': return language === 'pt' ? 'Offline' : 'Offline';
-            default: return 'Online';
+            default: return status;
+        }
+    };
+
+    const getRoleIcon = () => {
+        switch (userRole) {
+            case 'motorista':
+                return <Car className="w-6 h-6 text-white" />;
+            case 'oficina':
+                return <Wrench className="w-6 h-6 text-white" />;
+            case 'supervisor':
+                return <ClipboardCheck className="w-6 h-6 text-white" />;
+            case 'admin':
+                return <UserCog className="w-6 h-6 text-white" />;
+            default:
+                return <User className="w-6 h-6 text-white" />;
+        }
+    };
+
+    const getRoleGradient = () => {
+        switch (userRole) {
+            case 'motorista': return 'from-blue-600 to-cyan-600 shadow-blue-500/20';
+            case 'oficina': return 'from-orange-500 to-amber-500 shadow-orange-500/20';
+            case 'supervisor': return 'from-purple-600 to-indigo-600 shadow-purple-500/20';
+            case 'admin': return 'from-red-600 to-rose-600 shadow-red-500/20';
+            default: return 'from-slate-600 to-slate-500';
         }
     };
 
     // Close on click outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         }
@@ -54,28 +73,24 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setTempImage(reader.result as string);
-                // Clear input so same file can be selected again if cancelled
-                if (fileInputRef.current) fileInputRef.current.value = '';
-            };
-            reader.readAsDataURL(file);
-        }
+    const handleLogout = () => {
+        logout();
     };
 
-    const handleCropComplete = (croppedBase64: string) => {
-        updateUserPhoto(croppedBase64);
-        setTempImage(null);
-    };
-
-    const triggerFileInput = () => {
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
+    const updateStatus = (status: 'online' | 'absent' | 'busy' | 'offline') => {
+        if (status === 'offline') {
+            // Mapping offline to busy or handling it specifically depending on backend requirement
+            // For now, allow UI to show offline
+            setUserStatus('busy'); // Fallback or Keep as is? Original code had 'offline' logic in render but 'busy' in state helper
+            // Actually let's trust the render logic which had 'offline' button
+            setUserStatus('offline' as any);
+        } else {
+            setUserStatus(status);
         }
+        // Map 'busy' to 'online' for backend if needed, or cast if backend supports it but type doesn't
+        const contextStatus = status === 'busy' ? 'online' : status;
+        updateContextStatus(contextStatus as 'online' | 'absent' | 'offline');
+        setIsOpen(false);
     };
 
     const handleProfileClick = () => {
@@ -83,20 +98,15 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
         if (onNavigate) onNavigate();
     };
 
+    if (!userRole) return null;
+
     return (
-        <div className="relative" ref={dropdownRef}>
-            {tempImage && (
-                <ImageCropper
-                    imageSrc={tempImage}
-                    onCancel={() => setTempImage(null)}
-                    onCropComplete={handleCropComplete}
-                />
-            )}
+        <div className="relative" ref={menuRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/50 transition-colors group"
+                className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-white/5 transition-all group"
             >
-                {/* Status Badge */}
+                {/* Status Indicator (Mobile/Compact) */}
                 <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 border bg-opacity-10 
                     ${userStatus === 'online' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
                         userStatus === 'absent' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
@@ -106,41 +116,28 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
                     <span className="text-[10px] font-bold uppercase tracking-wider">{getStatusLabel(userStatus)}</span>
                 </div>
 
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20 overflow-hidden border border-white/10">
-                    {userPhoto ? (
-                        <img src={userPhoto} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                        getInitials()
-                    )}
+                {/* Avatar / Role Icon */}
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center text-white font-bold shadow-lg overflow-hidden border border-white/10`}>
+                    {getRoleIcon()}
+                </div>
+
+                <div className="hidden md:block text-left">
+                    <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">
+                        {getDisplayName()}
+                    </p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">
+                        {userRole}
+                    </p>
                 </div>
             </button>
 
-            {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute bottom-full left-0 mb-4 w-64 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="absolute bottom-full left-0 mb-3 w-64 bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl backdrop-blur-xl z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
 
                     {/* Header */}
-                    <div className="p-3 mb-2 border-b border-slate-700/50 flex items-center gap-3">
-                        <div className="relative group/avatar cursor-pointer" onClick={triggerFileInput}>
-                            <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-slate-600 group-hover/avatar:border-blue-500 transition-colors">
-                                {userPhoto ? (
-                                    <img src={userPhoto} alt="Big Profile" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-lg font-bold text-slate-400">{getInitials()}</span>
-                                )}
-
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                                    <Camera className="w-5 h-5 text-white" />
-                                </div>
-                            </div>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handlePhotoUpload}
-                            />
+                    <div className="p-4 bg-gradient-to-b from-slate-800/50 to-transparent border-b border-slate-700/50 flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center text-white font-bold shadow-lg border border-white/10`}>
+                            {getRoleIcon()}
                         </div>
                         <div>
                             <p className="font-bold text-white text-sm">{getDisplayName()}</p>
@@ -149,8 +146,8 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
                     </div>
 
                     {/* Navigation */}
-                    <div className="mb-2">
-                        <button
+                    <div className="mb-2 p-2">
+                        <button 
                             onClick={handleProfileClick}
                             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-sm text-slate-300 hover:text-white transition-colors mb-1"
                         >
@@ -159,7 +156,7 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
                         </button>
                     </div>
 
-                    <div className="h-px bg-slate-700/50 my-2 mx-3"></div>
+                    <div className="h-px bg-slate-700/50 mx-3"></div>
 
                     {/* Status Selection */}
                     <div className="mb-2">
@@ -183,7 +180,8 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
                                 <div className="w-2 h-2 rounded-full bg-red-500"></div>
                                 <span>Offline</span>
                             </div>
-                            {userStatus === 'offline' && <Check className="w-4 h-4 text-emerald-500" />}
+                            {/* Assuming offline maps to busy or custom state for checkmark */}
+                            {(userStatus === 'offline' || userStatus === 'busy') && <Check className="w-4 h-4 text-emerald-500" />}
                         </button>
                     </div>
 
@@ -212,7 +210,7 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
 
                     {/* Logout */}
                     <button
-                        onClick={logout}
+                        onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm font-medium"
                     >
                         <LogOut className="w-4 h-4" />

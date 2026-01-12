@@ -3,12 +3,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { 
     User, Mail, Phone, Key, CreditCard, Clock, 
-    Save, Camera, Shield, AlertCircle, CheckCircle2 
+    Save, Shield, AlertCircle, CheckCircle2,
+    Car, Wrench, ShieldAlert, ClipboardCheck, UserCog
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 export default function MyProfile() {
-    const { currentUser, userRole, refreshCurrentUser, updateUserPhoto } = useAuth();
+    const { currentUser, userRole, refreshCurrentUser } = useAuth();
     const { updateMotorista, updateSupervisor, updateOficinaUser } = useWorkshop();
     
     // Local state for form
@@ -70,7 +71,6 @@ export default function MyProfile() {
                 } as any);
             } else if (userRole === 'admin') {
                 // Admin updates via Supabase Auth or specific table if exists
-                // For now, let's assume we limit admin self-update or strictly handle it
                 const { error } = await supabase.auth.updateUser({
                     email: formData.email || undefined,
                     password: formData.password || undefined,
@@ -89,24 +89,29 @@ export default function MyProfile() {
         }
     };
 
-    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const getRoleIcon = () => {
+        switch (userRole) {
+            case 'motorista':
+                return <Car className="w-16 h-16 text-white" />;
+            case 'oficina':
+                return <Wrench className="w-16 h-16 text-white" />;
+            case 'supervisor':
+                return <ClipboardCheck className="w-16 h-16 text-white" />;
+            case 'admin':
+                return <UserCog className="w-16 h-16 text-white" />;
+            default:
+                return <User className="w-16 h-16 text-white" />;
+        }
+    };
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-             // Ideally we upload this to Storage and get URL, but strictly following existing pattern
-             // which seems to rely on base64 in some places or `updateUserPhoto` context method
-             // Context `updateUserPhoto` updates state/localstorage. 
-             // Real persistence depends on implementation of `updateUserPhoto` or we need to do it here.
-             // Checking AuthContext, updateUserPhoto sets state and localStorage. 
-             // It does NOT save to DB. We need to save to DB here.
-             
-             const base64 = reader.result as string;
-             updateUserPhoto(base64); // Update UI immediately
-             setFormData((prev: any) => ({ ...prev, foto: base64 })); // Update form state
-        };
-        reader.readAsDataURL(file);
+    const getRoleGradient = () => {
+        switch (userRole) {
+            case 'motorista': return 'from-blue-600 to-cyan-600';
+            case 'oficina': return 'from-orange-500 to-amber-500';
+            case 'supervisor': return 'from-purple-600 to-indigo-600';
+            case 'admin': return 'from-red-600 to-rose-600';
+            default: return 'from-slate-600 to-slate-500';
+        }
     };
 
     if (!currentUser) return null;
@@ -128,19 +133,9 @@ export default function MyProfile() {
                         <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         
                         <div className="relative mb-6">
-                            <div className="w-32 h-32 rounded-full border-4 border-slate-800 shadow-2xl overflow-hidden bg-slate-900 flex items-center justify-center group-hover:border-blue-500/50 transition-colors">
-                                {formData.foto ? (
-                                    <img src={formData.foto} alt="Profile" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-4xl font-bold text-slate-600">
-                                        {formData.nome?.[0]?.toUpperCase()}
-                                    </span>
-                                )}
+                            <div className={`w-32 h-32 rounded-full border-4 border-slate-800 shadow-2xl overflow-hidden bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center`}>
+                                {getRoleIcon()}
                             </div>
-                            <label className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white cursor-pointer hover:bg-blue-500 shadow-lg transition-transform hover:scale-110">
-                                <Camera className="w-5 h-5" />
-                                <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
-                            </label>
                         </div>
 
                         <h2 className="text-xl font-bold text-white mb-1">{formData.nome}</h2>
