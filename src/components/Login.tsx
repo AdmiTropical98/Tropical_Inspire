@@ -161,14 +161,14 @@ export default function Login() {
 
 
     return (
-        <div className="min-h-[100dvh] w-full bg-[#0f172a] flex flex-col items-center justify-center p-4 relative transition-all duration-500 login-scrollbar overflow-y-auto py-12 sm:py-0">
+        <div className="min-h-[100dvh] w-full bg-[#0f172a] flex flex-col items-center p-4 relative transition-all duration-500 login-scrollbar overflow-y-auto py-12">
             {/* Background Effects */}
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-900/10 blur-[120px] rounded-full"></div>
             </div>
 
-            <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0 mt-12 transform translate-y-6">
+            <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0 mt-4 sm:mt-8 mb-8">
                 <img
                     src="/logo-algar-frota.png?v=4"
                     alt="Algar Frota"
