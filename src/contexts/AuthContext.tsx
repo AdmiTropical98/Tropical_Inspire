@@ -196,8 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const cleanPhone = (u.telemovel || '').replace(/[^0-9]/g, '');
                 const phoneMatch = (cleanPhone !== '' && cleanIdentifier !== '') &&
                     (cleanPhone.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanPhone));
-                const emailMatch = u.email && u.email.toLowerCase() === identifier.toLowerCase();
-                return (phoneMatch || emailMatch) && u.pin === credential && u.status === 'active';
+                return phoneMatch && u.pin === credential && u.status === 'active';
             });
 
             if (staff) {

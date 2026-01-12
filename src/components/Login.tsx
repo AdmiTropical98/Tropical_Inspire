@@ -252,7 +252,7 @@ export default function Login() {
                                     placeholder={
                                         role === 'admin' ? "admin@algartempo.com" :
                                             role === 'supervisor' ? "supervisor@algartempo.com" :
-                                                "Telemóvel"
+                                                "Nº de Telemóvel"
                                     }
                                 />
                             </div>
