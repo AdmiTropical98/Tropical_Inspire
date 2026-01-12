@@ -161,7 +161,7 @@ export default function Login() {
 
 
     return (
-        <div className="min-h-[100dvh] w-full bg-[#0f172a] flex flex-col items-center p-4 relative transition-all duration-500 login-scrollbar overflow-y-auto py-12">
+        <div className="h-[100dvh] w-full bg-[#0f172a] flex flex-col items-center p-4 relative transition-all duration-500 login-scrollbar overflow-y-auto py-12">
             {/* Background Effects */}
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
