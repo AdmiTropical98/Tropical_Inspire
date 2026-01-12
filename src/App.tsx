@@ -41,7 +41,7 @@ import Permissoes from './components/permissoes';
 import { LayoutProvider } from './contexts/LayoutContext';
 
 // Sidebar Item Component for consistent styling
-const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: { icon: any, label: string, active: boolean, onClick: () => void, badge?: number }) => (
+const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: { icon: React.ElementType, label: string, active: boolean, onClick: () => void, badge?: number }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-300 relative group overflow-hidden
@@ -77,7 +77,7 @@ function App() {
 
   // Listen for Password Recovery Event
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, _session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setIsResettingPassword(true);
       }
@@ -89,14 +89,21 @@ function App() {
   }, []);
 
   // Initial Tab based on Role
+  // Initial Tab based on Role
   useEffect(() => {
     if (isAuthenticated) {
-      if (userRole === 'motorista') setActiveTab('central-motorista');
-      else if (userRole === 'oficina') setActiveTab('dashboard');
-      else if (userRole === 'supervisor') setActiveTab('dashboard');
-      else setActiveTab('dashboard');
+      let target: typeof activeTab = 'dashboard';
+
+      if (userRole === 'motorista') target = 'central-motorista';
+      else if (userRole === 'oficina') target = 'dashboard';
+      else if (userRole === 'supervisor') target = 'dashboard';
+
+      if (activeTab !== target) {
+        // eslint-disable-next-line
+        setActiveTab(target);
+      }
     }
-  }, [isAuthenticated, userRole]);
+  }, [isAuthenticated, userRole, activeTab]);
 
   const renderContent = () => {
     switch (activeTab) {

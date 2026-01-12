@@ -39,9 +39,10 @@ export default function ResetPassword() {
                 window.location.reload();
             }, 3000);
 
-        } catch (err: any) {
+        } catch (err) {
             console.error('Reset password error:', err);
-            setError(err.message || 'Erro ao atualizar palavra-passe.');
+            const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar palavra-passe.';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
