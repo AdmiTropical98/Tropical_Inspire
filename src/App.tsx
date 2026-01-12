@@ -38,6 +38,7 @@ import AvaliacaoMotorista from './components/avaliacao'; // Import AvaliacaoMoto
 import Geofences from './components/geofences'; // Import Geofences component
 import UsersPage from './components/users'; // Import UsersPage
 import Permissoes from './components/permissoes';
+import MyProfile from './components/profile/MyProfile';
 import { LayoutProvider } from './contexts/LayoutContext';
 
 // Sidebar Item Component for consistent styling
@@ -68,7 +69,7 @@ function App() {
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'meu-perfil'>('dashboard');
 
   // Sidebar Visibility Flags
   const showFleetGroup = hasAccess(userRole, 'central_motorista') || hasAccess(userRole, 'viaturas') || hasAccess(userRole, 'motoristas') || hasAccess(userRole, 'geofences') || userRole === 'admin';
@@ -145,6 +146,7 @@ function App() {
       case 'avaliacao': return <AvaliacaoMotorista />;
       case 'geofences': return <Geofences />;
       case 'external': return <ExternalServices />;
+      case 'meu-perfil': return <MyProfile />;
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
   };
@@ -269,7 +271,7 @@ function App() {
             </nav>
 
             {/* USER PROFILE */}
-            <UserProfileMenu />
+            <UserProfileMenu onNavigate={() => setActiveTab('meu-perfil')} />
           </aside>
 
           {/* MAIN CONTENT */}
@@ -395,7 +397,7 @@ function App() {
                   )}
 
                   <div className="pt-8 mt-auto pb-4">
-                    <UserProfileMenu />
+                    <UserProfileMenu onNavigate={() => { setActiveTab('meu-perfil'); setIsMobileMenuOpen(false); }} />
                   </div>
                 </nav>
               </div>

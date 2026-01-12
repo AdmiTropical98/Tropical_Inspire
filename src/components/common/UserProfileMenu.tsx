@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Check, Camera, Upload } from 'lucide-react';
+import { LogOut, Check, Camera, User } from 'lucide-react';
 import ImageCropper from './ImageCropper';
 
-export default function UserProfileMenu() {
+interface UserProfileMenuProps {
+    onNavigate?: () => void;
+}
+
+export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
     const { userRole, currentUser, logout, userStatus, updateStatus, language, setLanguage, userPhoto, updateUserPhoto } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [tempImage, setTempImage] = useState<string | null>(null);
@@ -74,6 +78,11 @@ export default function UserProfileMenu() {
         }
     };
 
+    const handleProfileClick = () => {
+        setIsOpen(false);
+        if (onNavigate) onNavigate();
+    };
+
     return (
         <div className="relative" ref={dropdownRef}>
             {tempImage && (
@@ -136,11 +145,21 @@ export default function UserProfileMenu() {
                         <div>
                             <p className="font-bold text-white text-sm">{getDisplayName()}</p>
                             <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">{userRole}</p>
-                            <button onClick={triggerFileInput} className="text-[10px] text-blue-400 hover:text-blue-300 mt-0.5 flex items-center gap-1">
-                                <Upload className="w-3 h-3" /> Alterar Foto
-                            </button>
                         </div>
                     </div>
+
+                    {/* Navigation */}
+                    <div className="mb-2">
+                        <button
+                            onClick={handleProfileClick}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-sm text-slate-300 hover:text-white transition-colors mb-1"
+                        >
+                            <User className="w-4 h-4 text-blue-400" />
+                            <span>Meu Perfil</span>
+                        </button>
+                    </div>
+
+                    <div className="h-px bg-slate-700/50 my-2 mx-3"></div>
 
                     {/* Status Selection */}
                     <div className="mb-2">

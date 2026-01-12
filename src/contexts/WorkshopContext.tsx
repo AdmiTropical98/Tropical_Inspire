@@ -558,7 +558,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 createdAt: item.created_at
             })));
 
-    \n            // 4. Cartrack Geofences
+            // 4. Cartrack Geofences
     try {
         const geoData = await CartrackService.getGeofences();
         if (geoData) {
