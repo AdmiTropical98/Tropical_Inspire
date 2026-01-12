@@ -89,27 +89,7 @@ export default function NavigationApp({
     // Filter Geofences
     // ...
 
-    // Navigation State
-    const [isNavigating, setIsNavigating] = useState(false);
-    const [currentPos, setCurrentPos] = useState<[number, number]>(initialLocation);
-    const [gpsAccuracy, setGpsAccuracy] = useState<number>(0);
 
-    const [route, setRoute] = useState<[number, number][]>([]);
-    const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [stats, setStats] = useState({ distance: 0, duration: 0, eta: '' });
-    const [followMe, setFollowMe] = useState(true);
-
-    // Selection State
-    const [destinationName, setDestinationName] = useState(initialDestination || '');
-    const [showSelection, setShowSelection] = useState(!initialDestination);
-    const [searchTerm, setSearchTerm] = useState('');
-
-    // Refs
-    const watchIdRef = useRef<number | null>(null);
-    const wakeLockRef = useRef<any>(null);
-
-    // Filter Geofences
     // Filter Geofences (RELAXED FOR DEBUGGING)
     const filteredGeofences = geofences.filter(g => {
         const nameMatch = g.name?.toLowerCase().includes(searchTerm.toLowerCase());
