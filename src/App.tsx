@@ -155,8 +155,8 @@ function App() {
 
           {/* SIDEBAR */}
           <aside className="w-72 bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl">
-            <div className="py-0 px-2 border-b border-slate-800/60 flex items-center justify-center bg-gradient-to-r from-slate-900/50 to-transparent">
-              <img src="/logo-algar-frota.png" alt="Gestão Frota" className="h-64 w-auto max-w-full object-contain" />
+            <div className="py-4 px-4 border-b border-slate-800/60 flex items-center justify-center bg-gradient-to-r from-slate-900/50 to-transparent">
+              <img src="/logo-algar-frota.png" alt="Gestão Frota" className="w-full h-auto object-contain" />
             </div>
 
             <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
