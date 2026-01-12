@@ -70,7 +70,7 @@ interface WorkshopContextType {
     addSupervisor: (s: Supervisor) => void;
     updateSupervisor: (s: Supervisor) => void;
     deleteSupervisor: (id: string) => void;
-    addOficinaUser: (u: OficinaUser) => void;
+    addOficinaUser: (u: OficinaUser) => Promise<{ error?: any } | void>;
     updateOficinaUser: (u: OficinaUser) => void;
     deleteOficinaUser: (id: string) => void;
     addNotification: (n: Notification) => void;
@@ -1142,12 +1142,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             nome: u.nome,
             foto: u.foto,
             email: u.email,
-            telemovel: u.telemovel, // NEW
+            telemovel: u.telemovel,
             pin: u.pin,
             status: u.status,
             blocked_permissions: u.blockedPermissions
         });
-        if (!error) setOficinaUsers(prev => [...prev, u]);
+        if (error) {
+            console.error('Error adding Oficina User:', error);
+            return { error };
+        }
+        setOficinaUsers(prev => [...prev, u]);
+        return { error: null };
     };
     const updateOficinaUser = async (u: OficinaUser) => {
         const { error } = await supabase.from('oficina_users').update({

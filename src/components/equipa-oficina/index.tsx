@@ -30,7 +30,7 @@ export default function EquipaOficina() {
         }
     };
 
-    const handleCreateOficinaUser = (e: React.FormEvent) => {
+    const handleCreateOficinaUser = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Basic Phone Validation
@@ -39,15 +39,23 @@ export default function EquipaOficina() {
             return;
         }
 
-        addOficinaUser({
+        const result = await addOficinaUser({
             id: crypto.randomUUID(),
             nome: newOficinaUser.nome,
             telemovel: newOficinaUser.telemovel,
             pin: newOficinaUser.pin,
             foto: newOficinaUser.foto,
             status: 'active',
-            dataRegisto: new Date().toISOString().split('T')[0]
+            dataRegisto: new Date().toISOString().split('T')[0],
+            email: '', // Add default empty email if not provided
+            blockedPermissions: [] 
         });
+
+        if (result && result.error) {
+            alert('Erro ao criar utilizador: ' + result.error.message);
+            return;
+        }
+
         setNewOficinaUser({ nome: '', telemovel: '', pin: '', foto: '' });
         setPhotoPreview('');
         alert(t('team.success_create'));

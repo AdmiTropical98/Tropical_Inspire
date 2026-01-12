@@ -171,7 +171,10 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     blockedPermissions: baseData.blockedPermissions
                 };
                 if (user) await updateOficinaUser(mechData as any);
-                else await addOficinaUser(mechData as any);
+                else {
+                    const res = await addOficinaUser(mechData as any);
+                    if (res && res.error) throw res.error;
+                }
             } else if (role === 'admin') {
                 if (user) {
                     // Editing existing admin (just name/role usually, rarely email/password via this form)
