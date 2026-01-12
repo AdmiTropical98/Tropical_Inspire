@@ -6,7 +6,7 @@ export interface Fornecedor {
     contacto: string;
     email: string;
     obs: string;
-    foto?: string; // URL or Base64 string for supplier logo/photo
+    foto?: string; // URL pública da imagem no Supabase Storage
 }
 
 export interface Viatura {
