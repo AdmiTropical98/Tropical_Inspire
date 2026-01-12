@@ -87,7 +87,7 @@ export default function ResetPassword() {
                     <p className="text-slate-400">Escolha uma nova palavra-passe segura</p>
                 </div>
 
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-12 relative z-10">
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-32 relative z-10">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
                             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 text-red-400 text-sm animate-pulse">
