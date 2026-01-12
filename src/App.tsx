@@ -40,6 +40,29 @@ import UsersPage from './components/users'; // Import UsersPage
 import Permissoes from './components/permissoes';
 import { LayoutProvider } from './contexts/LayoutContext';
 
+// Sidebar Item Component for consistent styling
+const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: { icon: any, label: string, active: boolean, onClick: () => void, badge?: number }) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-300 relative group overflow-hidden
+      ${active
+        ? 'text-white bg-gradient-to-r from-blue-600/20 to-transparent border-l-[3px] border-blue-500'
+        : 'text-slate-400 hover:text-white hover:bg-white/5 border-l-[3px] border-transparent'
+      }
+    `}
+  >
+    <Icon className={`w-5 h-5 transition-transform duration-300 ${active ? 'text-blue-400 scale-110' : 'group-hover:text-blue-400 group-hover:scale-110'}`} />
+    <span className="relative z-10">{label}</span>
+    {active && <div className="absolute inset-0 bg-blue-500/5 blur-xl pointer-events-none" />}
+    {badge ? (
+      <span className="ml-auto bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/30">
+        {badge}
+      </span>
+    ) : null}
+  </button>
+);
+
+
 function App() {
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
@@ -124,189 +147,110 @@ function App() {
           {/* Force deploy correction */}
 
           {/* SIDEBAR */}
-          <aside className="w-64 bg-[#0f172a] border-r border-slate-800 flex flex-col hidden md:flex z-50">
-            <div className="p-6 border-b border-slate-800/50 flex items-center justify-between">
+          <aside className="w-72 bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl">
+            <div className="p-6 border-b border-slate-800/60 flex items-center justify-between bg-gradient-to-r from-slate-900/50 to-transparent">
               <div className="flex items-center gap-3">
-                <img src="/logo-camper.png" alt="Tropical Inspire" className="w-12 h-12 object-contain" />
-                <span className="font-bold text-xl tracking-tight text-white">Gestão<span className="text-blue-500">Frota</span> v1.9 (Final Fix)</span>
+                <div className="relative">
+                  <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 rounded-full"></div>
+                  <img src="/logo-camper.png" alt="Tropical Inspire" className="w-12 h-12 object-contain relative z-10" />
+                </div>
+                <div>
+                  <span className="font-bold text-xl tracking-tight text-white block leading-none">Gestão<span className="text-blue-500">Frota</span></span>
+                  <span className="text-[10px] text-slate-500 font-medium tracking-wider uppercase">v1.9 (Final Fix)</span>
+                </div>
               </div>
             </div>
 
-            <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+            <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
               {/* MAIN MENU */}
-              {/* MAIN MENU */}
-              {/* Using basic role check or assumes 'dashboard' is mostly public/default */}
               {hasAccess(userRole, 'dashboard') && (
-                <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} `}>
-                  <LayoutDashboard className="w-5 h-5" />
-                  <span className="font-medium">Dashboard</span>
-                </button>
+                <SidebarItem
+                  icon={LayoutDashboard}
+                  label="Dashboard"
+                  active={activeTab === 'dashboard'}
+                  onClick={() => setActiveTab('dashboard')}
+                />
               )}
 
               {/* GESTÃO DE FROTA */}
-              <div className="pt-6 pb-2">
-                <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Gestão de Frota</p>
+              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Gestão de Frota</div>
 
-                {hasAccess(userRole, 'central_motorista') && (
-                  <button onClick={() => setActiveTab('central-motorista')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'central-motorista' ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} `}>
-                    <UserCog className="w-5 h-5" />
-                    <span className="font-medium">Central Motorista</span>
-                  </button>
-                )}
-
-                {hasAccess(userRole, 'viaturas') && (
-                  <button onClick={() => setActiveTab('viaturas')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'viaturas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Bus className="w-5 h-5" />
-                    <span className="font-medium">Viaturas</span>
-                  </button>
-                )}
-
-                {hasAccess(userRole, 'motoristas') && (
-                  <button onClick={() => setActiveTab('motoristas')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'motoristas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Users className="w-5 h-5" />
-                    <span className="font-medium">Motoristas</span>
-                  </button>
-                )}
-
-                {hasAccess(userRole, 'geofences') && (
-                  <button onClick={() => setActiveTab('geofences')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <MapPin className="w-5 h-5" />
-                    <span className="font-medium">Geofences</span>
-                  </button>
-                )}
-
-                {/* Avaliação - Moved here */}
-                {userRole === 'admin' && (
-                  <button onClick={() => setActiveTab('avaliacao')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'avaliacao' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Award className="w-5 h-5" />
-                    <span className="font-medium">Avaliação Drivers</span>
-                  </button>
-                )}
-              </div>
+              {hasAccess(userRole, 'central_motorista') && (
+                <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => setActiveTab('central-motorista')} />
+              )}
+              {hasAccess(userRole, 'viaturas') && (
+                <SidebarItem icon={Bus} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => setActiveTab('viaturas')} />
+              )}
+              {hasAccess(userRole, 'motoristas') && (
+                <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => setActiveTab('motoristas')} />
+              )}
+              {hasAccess(userRole, 'geofences') && (
+                <SidebarItem icon={MapPin} label="Geofences" active={activeTab === 'geofences'} onClick={() => setActiveTab('geofences')} />
+              )}
+              {userRole === 'admin' && (
+                <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => setActiveTab('avaliacao')} />
+              )}
 
               {/* OPERAÇÕES */}
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Operações</p>
+              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Operações</div>
 
-                {hasAccess(userRole, 'escalas') && (
-                  <button onClick={() => setActiveTab('escalas')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'escalas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Calendar className="w-5 h-5" />
-                    <span className="font-medium">Escalas</span>
-                  </button>
-                )}
+              {hasAccess(userRole, 'escalas') && (
+                <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => setActiveTab('escalas')} />
+              )}
+              {hasAccess(userRole, 'requisicoes') && (
+                <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => setActiveTab('requisicoes')} />
+              )}
+              {hasAccess(userRole, 'horas') && (
+                <SidebarItem icon={Clock} label="Registo Horas" active={activeTab === 'horas'} onClick={() => setActiveTab('horas')} />
+              )}
+              {hasAccess(userRole, 'combustivel') && (
+                <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => setActiveTab('combustivel')} />
+              )}
+              {hasAccess(userRole, 'plataformas_externas') && (
+                <SidebarItem icon={Plane} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => setActiveTab('transportes-eva')} />
+              )}
 
-                {hasAccess(userRole, 'requisicoes') && (
-                  <button onClick={() => setActiveTab('requisicoes')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'requisicoes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <ClipboardCheck className="w-5 h-5" />
-                    <span className="font-medium">Requisições</span>
-                  </button>
-                )}
+              {/* FINANCEIRO & ADMIN */}
+              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Financeiro & Admin</div>
 
-                {hasAccess(userRole, 'horas') && (
-                  <button onClick={() => setActiveTab('horas')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'horas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Clock className="w-5 h-5" />
-                    <span className="font-medium">Registo Horas</span>
-                  </button>
-                )}
+              {hasAccess(userRole, 'contabilidade') && (
+                <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => setActiveTab('contabilidade')} />
+              )}
+              {hasAccess(userRole, 'centros_custos') && (
+                <SidebarItem icon={Building2} label="Centros Custos" active={activeTab === 'centros-custos'} onClick={() => setActiveTab('centros-custos')} />
+              )}
+              {hasAccess(userRole, 'fornecedores') && (
+                <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => setActiveTab('fornecedores')} />
+              )}
+              {hasAccess(userRole, 'clientes') && (
+                <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} />
+              )}
+              {hasAccess(userRole, 'relatorios') && (
+                <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => setActiveTab('relatorios')} />
+              )}
 
-                {hasAccess(userRole, 'combustivel') && (
-                  <button onClick={() => setActiveTab('combustivel')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'combustivel' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Fuel className="w-5 h-5" />
-                    <span className="font-medium">Combustível</span>
-                  </button>
-                )}
+              {/* SISTEMA & EQUIPA */}
+              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Sistema & Equipa</div>
 
-                {hasAccess(userRole, 'plataformas_externas') && (
-                  <button onClick={() => setActiveTab('transportes-eva')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'transportes-eva' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Plane className="w-5 h-5" />
-                    <span className="font-medium">Transportes EVA</span>
-                  </button>
-                )}
-              </div>
-
-              {/* FINANCEIRO & ADMIN - RENAMED */}
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Financeiro & Admin</p>
-
-                {hasAccess(userRole, 'contabilidade') && (
-                  <button onClick={() => setActiveTab('contabilidade')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'contabilidade' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Wallet className="w-5 h-5" />
-                    <span className="font-medium">Contabilidade</span>
-                  </button>
-                )}
-
-                {hasAccess(userRole, 'centros_custos') && (
-                  <button onClick={() => setActiveTab('centros-custos')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'centros-custos' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Building2 className="w-5 h-5" />
-                    <span className="font-medium">Centros Custos</span>
-                  </button>
-                )}
-
-                {hasAccess(userRole, 'fornecedores') && (
-                  <button onClick={() => setActiveTab('fornecedores')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'fornecedores' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Truck className="w-5 h-5" />
-                    <span className="font-medium">Fornecedores</span>
-                  </button>
-                )}
-
-                {hasAccess(userRole, 'clientes') && (
-                  <button onClick={() => setActiveTab('clientes')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'clientes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Briefcase className="w-5 h-5" />
-                    <span className="font-medium">Clientes</span>
-                  </button>
-                )}
-
-                {hasAccess(userRole, 'relatorios') && (
-                  <button onClick={() => setActiveTab('relatorios')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'relatorios' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
-                    <BarChart3 className="w-5 h-5" />
-                    <span className="font-medium">Relatórios</span>
-                  </button>
-                )}
-              </div>
-
-              {/* SISTEMA & EQUIPA - NEW CATEGORY */}
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Sistema & Equipa</p>
-
-                {hasAccess(userRole, 'equipa-oficina') && (
-                  <button onClick={() => setActiveTab('equipa-oficina')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'equipa-oficina' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Hammer className="w-5 h-5" />
-                    <span className="font-medium">Equipa Oficina</span>
-                  </button>
-                )}
-
-                {hasAccess(userRole, 'supervisores') && (
-                  <button onClick={() => setActiveTab('supervisores')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'supervisores' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Eye className="w-5 h-5" />
-                    <span className="font-medium">Supervisores</span>
-                  </button>
-                )}
-
-                {userRole === 'admin' && (
-                  <button onClick={() => setActiveTab('admin_users')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'admin_users' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} `}>
-                    <Users className="w-5 h-5" />
-                    <span className="font-medium">Gestão de Usuários</span>
-                  </button>
-                )}
-
-                {userRole === 'admin' && (
-                  <button onClick={() => setActiveTab('permissions')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${activeTab === 'permissions' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <Shield className="w-5 h-5" />
-                    <span className="font-medium">Permissões</span>
-                  </button>
-                )}
-              </div>
+              {hasAccess(userRole, 'equipa-oficina') && (
+                <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => setActiveTab('equipa-oficina')} />
+              )}
+              {hasAccess(userRole, 'supervisores') && (
+                <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => setActiveTab('supervisores')} />
+              )}
+              {userRole === 'admin' && (
+                <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => setActiveTab('admin_users')} />
+              )}
+              {userRole === 'admin' && (
+                <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => setActiveTab('permissions')} />
+              )}
 
               {/* COMUNICAÇÃO */}
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Comunicação</p>
-                {hasAccess(userRole, 'mensagens') && (
-                  <button onClick={() => setActiveTab('mensagens')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'} `}>
-                    <MessageSquare className="w-5 h-5" />
-                    <span className="font-medium">Mensagens</span>
-                  </button>
-                )}
-              </div>
+              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Comunicação</div>
+              {hasAccess(userRole, 'mensagens') && (
+                <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => setActiveTab('mensagens')} badge={notifications.length} />
+              )}
+
             </nav>
 
             {/* USER PROFILE */}
@@ -336,182 +280,98 @@ function App() {
                     <X className="w-6 h-6" />
                   </button>
                 </div>
-                <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
+                <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar px-3 py-4">
                   {hasAccess(userRole, 'dashboard') && (
-                    <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                      <LayoutDashboard className="w-5 h-5" />
-                      <span className="font-medium">Dashboard</span>
-                    </button>
+                    <SidebarItem
+                      icon={LayoutDashboard}
+                      label="Dashboard"
+                      active={activeTab === 'dashboard'}
+                      onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
+                    />
                   )}
 
                   {/* GESTÃO DE FROTA */}
-                  <div className="pt-6 pb-2">
-                    <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Gestão de Frota</p>
+                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Gestão de Frota</div>
 
-                    {hasAccess(userRole, 'central_motorista') && (
-                      <button onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'central-motorista' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <UserCog className="w-5 h-5" />
-                        <span className="font-medium">Central Motorista</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'viaturas') && (
-                      <button onClick={() => { setActiveTab('viaturas'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'viaturas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Bus className="w-5 h-5" />
-                        <span className="font-medium">Viaturas</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'motoristas') && (
-                      <button onClick={() => { setActiveTab('motoristas'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'motoristas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Users className="w-5 h-5" />
-                        <span className="font-medium">Motoristas</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'geofences') && (
-                      <button onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'geofences' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <MapPin className="w-5 h-5" />
-                        <span className="font-medium">Geofences</span>
-                      </button>
-                    )}
-
-                    {userRole === 'admin' && (
-                      <button onClick={() => { setActiveTab('avaliacao'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'avaliacao' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Award className="w-5 h-5" />
-                        <span className="font-medium">Avaliação Drivers</span>
-                      </button>
-                    )}
-                  </div>
+                  {hasAccess(userRole, 'central_motorista') && (
+                    <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'viaturas') && (
+                    <SidebarItem icon={Bus} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => { setActiveTab('viaturas'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'motoristas') && (
+                    <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => { setActiveTab('motoristas'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'geofences') && (
+                    <SidebarItem icon={MapPin} label="Geofences" active={activeTab === 'geofences'} onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {userRole === 'admin' && (
+                    <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => { setActiveTab('avaliacao'); setIsMobileMenuOpen(false); }} />
+                  )}
 
                   {/* OPERAÇÕES */}
-                  <div className="pt-4 pb-2">
-                    <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Operações</p>
+                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Operações</div>
 
-                    {hasAccess(userRole, 'escalas') && (
-                      <button onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'escalas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Calendar className="w-5 h-5" />
-                        <span className="font-medium">Escalas</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'requisicoes') && (
-                      <button onClick={() => { setActiveTab('requisicoes'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'requisicoes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <ClipboardCheck className="w-5 h-5" />
-                        <span className="font-medium">Requisições</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'horas') && (
-                      <button onClick={() => { setActiveTab('horas'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'horas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Clock className="w-5 h-5" />
-                        <span className="font-medium">Registo Horas</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'combustivel') && (
-                      <button onClick={() => { setActiveTab('combustivel'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'combustivel' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Fuel className="w-5 h-5" />
-                        <span className="font-medium">Combustível</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'plataformas_externas') && (
-                      <button onClick={() => { setActiveTab('transportes-eva'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'transportes-eva' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Plane className="w-5 h-5" />
-                        <span className="font-medium">Transportes EVA</span>
-                      </button>
-                    )}
-                  </div>
+                  {hasAccess(userRole, 'escalas') && (
+                    <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'requisicoes') && (
+                    <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => { setActiveTab('requisicoes'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'horas') && (
+                    <SidebarItem icon={Clock} label="Registo Horas" active={activeTab === 'horas'} onClick={() => { setActiveTab('horas'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'combustivel') && (
+                    <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { setActiveTab('combustivel'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'plataformas_externas') && (
+                    <SidebarItem icon={Plane} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { setActiveTab('transportes-eva'); setIsMobileMenuOpen(false); }} />
+                  )}
 
                   {/* FINANCEIRO & ADMIN */}
-                  <div className="pt-4 pb-2">
-                    <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Financeiro & Admin</p>
+                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Financeiro & Admin</div>
 
-                    {hasAccess(userRole, 'contabilidade') && (
-                      <button onClick={() => { setActiveTab('contabilidade'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'contabilidade' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Wallet className="w-5 h-5" />
-                        <span className="font-medium">Contabilidade</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'centros_custos') && (
-                      <button onClick={() => { setActiveTab('centros-custos'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'centros-custos' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Building2 className="w-5 h-5" />
-                        <span className="font-medium">Centros Custos</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'fornecedores') && (
-                      <button onClick={() => { setActiveTab('fornecedores'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'fornecedores' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Truck className="w-5 h-5" />
-                        <span className="font-medium">Fornecedores</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'clientes') && (
-                      <button onClick={() => { setActiveTab('clientes'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'clientes' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Briefcase className="w-5 h-5" />
-                        <span className="font-medium">Clientes</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'relatorios') && (
-                      <button onClick={() => { setActiveTab('relatorios'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'relatorios' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <BarChart3 className="w-5 h-5" />
-                        <span className="font-medium">Relatórios</span>
-                      </button>
-                    )}
-                  </div>
+                  {hasAccess(userRole, 'contabilidade') && (
+                    <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => { setActiveTab('contabilidade'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'centros_custos') && (
+                    <SidebarItem icon={Building2} label="Centros Custos" active={activeTab === 'centros-custos'} onClick={() => { setActiveTab('centros-custos'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'fornecedores') && (
+                    <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => { setActiveTab('fornecedores'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'clientes') && (
+                    <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'relatorios') && (
+                    <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => { setActiveTab('relatorios'); setIsMobileMenuOpen(false); }} />
+                  )}
 
                   {/* SISTEMA & EQUIPA */}
-                  <div className="pt-4 pb-2">
-                    <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Sistema & Equipa</p>
+                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Sistema & Equipa</div>
 
-                    {hasAccess(userRole, 'equipa-oficina') && (
-                      <button onClick={() => { setActiveTab('equipa-oficina'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'equipa-oficina' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Hammer className="w-5 h-5" />
-                        <span className="font-medium">Equipa Oficina</span>
-                      </button>
-                    )}
-
-                    {hasAccess(userRole, 'supervisores') && (
-                      <button onClick={() => { setActiveTab('supervisores'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'supervisores' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Eye className="w-5 h-5" />
-                        <span className="font-medium">Supervisores</span>
-                      </button>
-                    )}
-
-                    {userRole === 'admin' && (
-                      <button onClick={() => { setActiveTab('admin_users'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'admin_users' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Users className="w-5 h-5" />
-                        <span className="font-medium">Gestão de Usuários</span>
-                      </button>
-                    )}
-
-                    {userRole === 'admin' && (
-                      <button onClick={() => { setActiveTab('permissions'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'permissions' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <Shield className="w-5 h-5" />
-                        <span className="font-medium">Permissões</span>
-                      </button>
-                    )}
-                  </div>
+                  {hasAccess(userRole, 'equipa-oficina') && (
+                    <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => { setActiveTab('equipa-oficina'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'supervisores') && (
+                    <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => { setActiveTab('supervisores'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {userRole === 'admin' && (
+                    <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => { setActiveTab('admin_users'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {userRole === 'admin' && (
+                    <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => { setActiveTab('permissions'); setIsMobileMenuOpen(false); }} />
+                  )}
 
                   {/* COMUNICAÇÃO */}
-                  <div className="pt-4 pb-2">
-                    <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Comunicação</p>
-                    {hasAccess(userRole, 'mensagens') && (
-                      <button onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'mensagens' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                        <MessageSquare className="w-5 h-5" />
-                        <span className="font-medium">Mensagens</span>
-                      </button>
-                    )}
-                  </div>
+                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2 after:h-px after:flex-1 after:bg-slate-800/60">Comunicação</div>
+                  {hasAccess(userRole, 'mensagens') && (
+                    <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false); }} badge={notifications.length} />
+                  )}
 
                   <div className="pt-8 mt-auto pb-4">
                     <UserProfileMenu />
                   </div>
-                  {/* Add more links if needed, or keep it simple for now */}
                 </nav>
               </div>
             )
