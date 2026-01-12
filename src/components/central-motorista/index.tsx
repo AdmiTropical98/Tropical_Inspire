@@ -460,7 +460,9 @@ export default function CentralMotorista() {
                             return v ? [v.latitude, v.longitude] : [38.7223, -9.1393];
                         })()}
                         destination={nextService?.destino}
-                        geofences={useWorkshop().geofences}
+                        geofences={geofences}
+                        error={useWorkshop().cartrackError}
+                        onRetry={useWorkshop().refreshData}
                         onBack={() => setActiveTab('overview')}
                     />
                 )}

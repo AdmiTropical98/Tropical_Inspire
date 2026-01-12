@@ -575,8 +575,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 const visits = await CartrackService.getGeofenceVisits(formatDate(yesterday), formatDate(now));
                 if (visits) setGeofenceVisits(visits);
-            } catch (e) {
+            } catch (e: any) {
                 console.warn('Silent fail: could not fetch Cartrack geofences/visits for context:', e);
+                setCartrackError(`Erro Geofences: ${e.message || 'Falha API'}`);
             }
 
         } catch (error) {

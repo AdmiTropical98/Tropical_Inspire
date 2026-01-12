@@ -9,6 +9,8 @@ interface NavigationAppProps {
     driverLocation?: [number, number];
     destination?: string;
     geofences?: CartrackGeofence[];
+    error?: string | null;
+    onRetry?: () => void;
     onBack: () => void;
 }
 
@@ -23,7 +25,7 @@ function MapController({ center, followMe }: { center: [number, number], followM
     return null;
 }
 
-export default function NavigationApp({ driverLocation: initialLocation = [38.7223, -9.1393], destination: initialDestination, geofences = [], onBack }: NavigationAppProps) {
+export default function NavigationApp({ driverLocation: initialLocation = [38.7223, -9.1393], destination: initialDestination, geofences = [], error, onRetry, onBack }: NavigationAppProps) {
     // Navigation State
     const [isNavigating, setIsNavigating] = useState(false);
     const [currentPos, setCurrentPos] = useState<[number, number]>(initialLocation);
@@ -408,7 +410,23 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                         ))}
                         {filteredGeofences.length === 0 && (
                             <div className="text-center py-10 text-slate-500">
-                                Local não encontrado na lista.
+                                {error ? (
+                                    <div className="mb-4 text-red-400 text-sm">
+                                        <p className="mb-2 font-bold">Erro ao carregar:</p>
+                                        <p>{error}</p>
+                                    </div>
+                                ) : (
+                                    <p>Local não encontrado na lista.</p>
+                                )}
+
+                                {onRetry && (
+                                    <button
+                                        onClick={() => onRetry()}
+                                        className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors"
+                                    >
+                                        Tentar Novamente
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
