@@ -69,7 +69,7 @@ export default function ResetPassword() {
     }
 
     return (
-        <div className="h-[100dvh] bg-[#0f172a] flex flex-col items-center p-4 relative login-scrollbar overflow-y-auto py-12">
+        <div className="h-[100dvh] bg-[#0f172a] flex flex-col items-center p-4 relative login-scrollbar overflow-y-auto py-4">
             {/* Background Effects (Matching Login) */}
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
@@ -77,11 +77,11 @@ export default function ResetPassword() {
             </div>
 
             <div className="w-full max-w-md relative z-10">
-                <div className="text-center mb-8">
+                <div className="text-center mb-2">
                     <img
                         src="/logo-algar-frota.png?v=4"
                         alt="Algar Frota"
-                        className="w-96 h-auto object-contain mx-auto mb-6 drop-shadow-2xl"
+                        className="w-96 h-auto object-contain mx-auto mb-0 drop-shadow-2xl"
                     />
                     <h1 className="text-3xl font-bold text-white mb-2">Redefinir Palavra-passe</h1>
                     <p className="text-slate-400">Escolha uma nova palavra-passe segura</p>
