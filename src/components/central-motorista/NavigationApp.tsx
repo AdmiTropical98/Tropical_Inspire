@@ -339,7 +339,7 @@ export default function NavigationApp({
             <div
                 className={`flex-1 relative w-full z-0 transition-transform duration-1000 ${isNavigating ? 'scale-[1.5] origin-bottom' : ''}`}
                 style={isNavigating ? {
-                    transform: 'perspective(600px) rotateX(40deg) scale(1.2) translateY(-20%)',
+                    transform: 'perspective(600px) rotateX(60deg) scale(1.4) translateY(-10%)',
                     transformOrigin: '50% 80%'
                 } : {}}
             >
@@ -356,7 +356,7 @@ export default function NavigationApp({
                 >
                     <TileLayer
                         attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
+                        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                         maxNativeZoom={18}
                         maxZoom={20}
                     />
@@ -365,7 +365,7 @@ export default function NavigationApp({
                     {route.length > 0 && (
                         <Polyline
                             positions={route}
-                            pathOptions={{ color: isNavigating ? '#10b981' : '#3b82f6', weight: 8, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }}
+                            pathOptions={{ color: isNavigating ? '#8b5cf6' : '#3b82f6', weight: 10, opacity: 0.8, lineJoin: 'round', lineCap: 'round' }}
                         />
                     )}
 
