@@ -1401,7 +1401,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             refreshData,
             complianceStats,
             runComplianceCheck,
-            runComplianceDemo
             runComplianceDemo,
             updateVehicleLocation: async (registration: string, lat: number, lng: number) => {
                 try {
