@@ -200,7 +200,7 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
         iconAnchor: [12, 12]
     });
 
-    // Google Maps Fallback
+    // Google Maps Deep Link
     const openGoogleMaps = () => {
         if (destCoords) {
             window.open(`https://www.google.com/maps/dir/?api=1&destination=${destCoords[0]},${destCoords[1]}`, '_blank');
@@ -209,13 +209,13 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col font-sans overflow-hidden">
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col font-sans h-[100dvh] w-screen overflow-hidden supports-[height:100dvh]:h-[100dvh]">
             {/* Top HUD */}
-            <div className={`absolute top-6 left-1/2 -translate-x-1/2 w-[90%] md:w-[400px] z-[110] transition-all duration-300 ${isNavigating ? 'top-4' : 'top-6'}`}>
-                <div className={`bg-slate-900/90 backdrop-blur-xl border ${isNavigating ? 'border-emerald-500/30' : 'border-blue-500/20'} rounded-2xl p-4 shadow-2xl flex items-center gap-4`}>
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shrink-0 ${isNavigating ? 'bg-emerald-600 shadow-emerald-900/40 animate-pulse' : 'bg-blue-600 shadow-blue-900/40'}`}>
-                        <Navigation className="w-7 h-7 text-white" />
+            <div className={`absolute top-4 left-1/2 -translate-x-1/2 w-[95%] md:w-[400px] z-[10000] transition-all duration-300 pointer-events-none`}>
+                <div className={`bg-slate-900/95 backdrop-blur-xl border ${isNavigating ? 'border-emerald-500/50' : 'border-blue-500/30'} rounded-2xl p-3 shadow-2xl flex items-center gap-3 pointer-events-auto pb-4 pt-3`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shrink-0 ${isNavigating ? 'bg-emerald-600 shadow-emerald-900/40 animate-pulse' : 'bg-blue-600 shadow-blue-900/40'}`}>
+                        <Navigation className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className={`${isNavigating ? 'text-emerald-400' : 'text-blue-400'} text-[10px] font-bold uppercase tracking-wider mb-0.5`}>
@@ -224,7 +224,7 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                         <button
                             disabled={isNavigating}
                             onClick={() => setShowSelection(true)}
-                            className="text-white font-bold text-lg leading-tight truncate hover:text-blue-400 transition-colors text-left w-full disabled:hover:text-white disabled:cursor-default"
+                            className="text-white font-bold text-base leading-tight truncate hover:text-blue-400 transition-colors text-left w-full disabled:hover:text-white disabled:cursor-default"
                         >
                             {destinationName || 'Selecionar Destino...'}
                         </button>
@@ -239,19 +239,20 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                     )}
                 </div>
                 {isNavigating && gpsAccuracy > 50 && (
-                    <div className="mt-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-center text-amber-500 text-xs font-bold animate-pulse">
+                    <div className="mt-2 bg-amber-500/20 border border-amber-500/30 text-amber-200 backdrop-blur-md rounded-lg p-1.5 text-center text-xs font-bold animate-pulse">
                         Sinal GPS Fraco ({Math.round(gpsAccuracy)}m)
                     </div>
                 )}
             </div>
 
             {/* Map Area */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative w-full z-0">
                 <MapContainer
                     center={currentPos}
                     zoom={16}
                     zoomControl={false}
-                    className="h-full w-full"
+                    className="h-full w-full z-0 outline-none"
+                    style={{ background: '#0f172a' }}
                 >
                     <TileLayer
                         attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -262,7 +263,7 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                     {route.length > 0 && (
                         <Polyline
                             positions={route}
-                            pathOptions={{ color: isNavigating ? '#10b981' : '#3b82f6', weight: 6, opacity: 0.8, lineJoin: 'round' }}
+                            pathOptions={{ color: isNavigating ? '#10b981' : '#3b82f6', weight: 8, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }}
                         />
                     )}
 
@@ -277,16 +278,16 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
 
                 {/* Loading Indicator */}
                 {loading && (
-                    <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-sm z-[105] flex items-center justify-center pointer-events-none">
+                    <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-sm z-[500] flex items-center justify-center pointer-events-none">
                         <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent shadow-xl"></div>
                     </div>
                 )}
 
-                {/* Controls */}
-                <div className="absolute right-4 bottom-40 z-[110] flex flex-col gap-3">
+                {/* Recenter Button */}
+                <div className="absolute right-4 bottom-6 z-[1000] flex flex-col gap-3">
                     <button
                         onClick={() => setFollowMe(prev => !prev)}
-                        className={`p-4 rounded-full shadow-2xl transition-all ${followMe ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-400 border border-slate-700'}`}
+                        className={`p-3.5 rounded-full shadow-2xl transition-all active:scale-95 ${followMe ? 'bg-blue-600 text-white shadow-blue-900/30' : 'bg-slate-900 text-slate-400 border border-slate-700'}`}
                     >
                         <LocateFixed className="w-6 h-6" />
                     </button>
@@ -294,40 +295,40 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
             </div>
 
             {/* Bottom HUD - Stats & Actions */}
-            <div className="bg-slate-900/90 backdrop-blur-2xl border-t border-slate-800 p-6 z-[110] pb-10 md:pb-6">
-                <div className="max-w-md mx-auto grid grid-cols-3 gap-4">
-                    <div className="text-center">
+            <div className="bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 p-4 pb-8 md:pb-4 z-[10000] shrink-0 safe-pb">
+                <div className="max-w-md mx-auto grid grid-cols-3 gap-2 mb-4">
+                    <div className="text-center p-2 rounded-xl bg-slate-800/50">
                         <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-1">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Tempo</span>
+                            <Clock className="w-3 h-3" />
+                            <span className="text-[9px] font-bold uppercase tracking-widest">Tempo</span>
                         </div>
-                        <p className="text-white text-xl font-bold">{Math.round(stats.duration)} <span className="text-xs text-slate-500">min</span></p>
+                        <p className="text-white text-lg font-bold leading-none">{Math.round(stats.duration)} <span className="text-[10px] text-slate-500 font-normal">min</span></p>
                     </div>
 
-                    <div className="text-center border-x border-slate-800">
+                    <div className="text-center p-2 rounded-xl bg-slate-800/50 border border-slate-700/50">
                         <div className={`flex items-center justify-center gap-1.5 ${isNavigating ? 'text-emerald-400' : 'text-blue-400'} mb-1`}>
-                            <Compass className="w-3.5 h-3.5" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Chegada</span>
+                            <Compass className="w-3 h-3" />
+                            <span className="text-[9px] font-bold uppercase tracking-widest">Chegada</span>
                         </div>
-                        <p className="text-white text-xl font-bold">
+                        <p className="text-white text-lg font-bold leading-none">
                             {stats.eta || '--:--'}
                         </p>
                     </div>
 
-                    <div className="text-center">
+                    <div className="text-center p-2 rounded-xl bg-slate-800/50">
                         <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Distância</span>
+                            <MapPin className="w-3 h-3" />
+                            <span className="text-[9px] font-bold uppercase tracking-widest">Dist</span>
                         </div>
-                        <p className="text-white text-xl font-bold">{stats.distance.toFixed(1)} <span className="text-xs text-slate-500">km</span></p>
+                        <p className="text-white text-lg font-bold leading-none">{stats.distance.toFixed(1)} <span className="text-[10px] text-slate-500 font-normal">km</span></p>
                     </div>
                 </div>
 
-                <div className="mt-6 flex gap-3">
+                <div className="max-w-md mx-auto flex gap-3">
                     {isNavigating ? (
                         <button
                             onClick={stopNavigation}
-                            className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-lg shadow-red-900/40 transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold rounded-xl shadow-lg shadow-red-900/20 transition-all flex items-center justify-center gap-2"
                         >
                             Terminar Viagem
                         </button>
@@ -335,21 +336,21 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                         <>
                             <button
                                 onClick={onBack}
-                                className="px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl transition-colors flex items-center justify-center gap-2"
+                                className="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={startNavigation}
                                 disabled={!destCoords}
-                                className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg shadow-blue-900/40 transition-colors flex items-center justify-center gap-2"
+                                className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2"
                             >
                                 <Navigation className="w-5 h-5" />
                                 Iniciar Viagem
                             </button>
                             <button
                                 onClick={openGoogleMaps}
-                                className="px-4 py-4 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-2xl transition-colors flex items-center justify-center"
+                                className="px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-colors flex items-center justify-center"
                                 title="Abrir no Google Maps"
                             >
                                 <ExternalLink className="w-5 h-5" />
@@ -361,9 +362,9 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
 
             {/* SELECTION OVERLAY */}
             {showSelection && (
-                <div className="absolute inset-0 z-[120] bg-slate-950 flex flex-col p-6 animate-in slide-in-from-bottom duration-300">
+                <div className="absolute inset-0 z-[10001] bg-slate-950 flex flex-col p-6 animate-in slide-in-from-bottom duration-300">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-white">Onde queres ir?</h2>
+                        <h2 className="text-xl font-bold text-white">Onde queres ir?</h2>
                         {initialDestination || destinationName ? (
                             <button onClick={() => setShowSelection(false)} className="p-2 text-slate-400 hover:text-white">
                                 <ChevronLeft className="w-6 h-6" />
@@ -416,11 +417,14 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
             <style>{`
                 .navigation-car-icon { background: none !important; border: none !important; }
                 .navigation-dest-icon { background: none !important; border: none !important; }
-                .leaflet-container { background: #020617 !important; }
+                .leaflet-container { background: #0f172a !important; width: 100% !important; height: 100% !important; }
+                .leaflet-control-container .leaflet-top, .leaflet-control-container .leaflet-bottom { z-index: 400 !important; }
+                .supports-\[height\:100dvh\]\:h-\[100dvh\] { margin-bottom: env(safe-area-inset-bottom); }
                 @keyframes ping {
                     75%, 100% { transform: scale(2); opacity: 0; }
                 }
             `}</style>
-        </div>
+        </div>,
+        document.body
     );
 }
