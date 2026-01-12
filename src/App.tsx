@@ -148,8 +148,8 @@ function App() {
 
           {/* SIDEBAR */}
           <aside className="w-72 bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl">
-            <div className="p-6 border-b border-slate-800/60 flex items-center justify-center bg-gradient-to-r from-slate-900/50 to-transparent">
-              <img src="/logo-algar-frota.png" alt="Gestão Frota" className="h-36 w-auto object-contain" />
+            <div className="py-2 px-4 border-b border-slate-800/60 flex items-center justify-center bg-gradient-to-r from-slate-900/50 to-transparent">
+              <img src="/logo-algar-frota.png" alt="Gestão Frota" className="h-52 w-auto object-contain" />
             </div>
 
             <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
@@ -254,7 +254,7 @@ function App() {
             {/* Mobile Header - Only visible on mobile */}
             <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
               <div className="flex items-center">
-                <img src="/logo-algar-frota.png" alt="Gestão Frota" className="h-16 w-auto object-contain" />
+                <img src="/logo-algar-frota.png" alt="Gestão Frota" className="h-20 w-auto object-contain" />
               </div>
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
                 <Menu className="w-6 h-6" />
