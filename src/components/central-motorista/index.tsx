@@ -28,7 +28,8 @@ export default function CentralMotorista() {
         confirmRefuel,
         updateMotorista,
         complianceStats,
-        cartrackVehicles
+        cartrackVehicles,
+        geofences
     } = useWorkshop();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos' | 'navegacao'>('overview');
@@ -444,7 +445,7 @@ export default function CentralMotorista() {
                     <div className="lg:col-span-3">
                         <MyScheduleView
                             services={mySchedule}
-                            complianceStats={complianceStats}
+
                             onBack={() => setActiveTab('overview')}
                         />
                     </div>
@@ -459,6 +460,7 @@ export default function CentralMotorista() {
                             return v ? [v.latitude, v.longitude] : [38.7223, -9.1393];
                         })()}
                         destination={nextService?.destino}
+                        geofences={useWorkshop().geofences}
                         onBack={() => setActiveTab('overview')}
                     />
                 )}
