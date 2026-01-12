@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord } from '../types';
 import { CartrackService, cleanTagId, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -1337,6 +1337,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             notifications,
             servicos,
             setServicos,
+            addServico,
+            updateServico,
+            deleteServico,
             geofences,
             geofenceVisits,
             cartrackVehicles,
