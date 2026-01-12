@@ -427,6 +427,14 @@ export default function NavigationApp({ driverLocation: initialLocation = [38.72
                                         Tentar Novamente
                                     </button>
                                 )}
+
+                                <div className="mt-8 p-4 bg-slate-900/50 rounded text-xs text-left font-mono text-slate-600 overflow-x-auto border border-slate-800">
+                                    <p className="font-bold text-slate-500 mb-1">Debug Info:</p>
+                                    <p>Env: {import.meta.env.DEV ? 'DEV' : 'PROD'}</p>
+                                    <p>Geofences: {geofences?.length ?? 'undefined'}</p>
+                                    <p>Error: {error || 'None'}</p>
+                                    <p>Endpoint: {import.meta.env.DEV ? '/api/cartrack' : '/proxy.php?endpoint='}</p>
+                                </div>
                             </div>
                         )}
                     </div>
