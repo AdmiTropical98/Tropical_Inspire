@@ -6,7 +6,7 @@ import type { Notification } from '../types';
 
 export default function Login() {
     const { login } = useAuth();
-    const { addNotification, updateNotification, notifications, addSupervisor, addMotorista, addOficinaUser } = useWorkshop();
+    const { addNotification, updateNotification, notifications, addSupervisor } = useWorkshop();
     const [role, setRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina'>('admin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -118,45 +118,7 @@ export default function Login() {
             setRegError('PIN inválido ou pedido ainda não aprovado pelo administrador.');
         }
     };
-    const handleSeedData = async () => {
-        try {
-            // Seed Supervisor
-            await addSupervisor({
-                id: crypto.randomUUID(),
-                nome: 'Supervisor de Teste',
-                email: 'supervisor.teste@tropical.com',
-                telemovel: '900000001',
-                password: '123456',
-                pin: '123456',
-                status: 'active'
-            });
 
-            // Seed Motorista
-            await addMotorista({
-                id: crypto.randomUUID(),
-                nome: 'Motorista de Teste',
-                contacto: '900000000',
-                pin: '123456',
-                vencimentoBase: 1000,
-                valorHora: 10
-            });
-
-            // Seed Oficina
-            await addOficinaUser({
-                id: crypto.randomUUID(),
-                nome: 'Oficina de Teste',
-                email: 'oficina.teste@tropical.com',
-                telemovel: '900000002', // NEW
-                pin: '1234',
-                status: 'active'
-            });
-
-            alert('Dados de teste criados com sucesso!');
-        } catch (err) {
-            console.error('Erro ao criar dados de teste:', err);
-            alert('Erro ao criar dados de teste.');
-        }
-    };
 
 
 
@@ -327,14 +289,7 @@ export default function Login() {
                         <span className="opacity-50">v1.10 (Fix Auth)</span>
                     </p>
 
-                    <div className="mt-4 flex justify-center">
-                        <button
-                            onClick={handleSeedData}
-                            className="text-[10px] text-slate-800 hover:text-slate-600 transition-colors"
-                        >
-                            Gerar Usuários de Teste (Dev)
-                        </button>
-                    </div>
+
                 </div>
             </div>
 

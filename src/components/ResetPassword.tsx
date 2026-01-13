@@ -36,7 +36,7 @@ export default function ResetPassword() {
             // Optional: helper to clear hash or redirect
             setTimeout(() => {
                 window.location.hash = '';
-                window.location.reload();
+                window.location.href = '/'; // Force redirect to login/home
             }, 3000);
 
         } catch (err) {

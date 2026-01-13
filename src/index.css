@@ -134,3 +134,38 @@ input::-webkit-credentials-auto-fill-button {
 .login-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.4);
 }
+@layer utilities {
+  .animate-bounce-slight {
+    animation: bounce-slight 2s infinite ease-in-out;
+  }
+  .animate-loading-bar {
+    animation: loading-bar 2s infinite linear;
+  }
+}
+
+@keyframes bounce-slight {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+@layer utilities {
+  .animate-fleet-drive {
+    animation: fleet-drive 1.5s infinite linear;
+  }
+  .animate-loading-bar-fast {
+    animation: loading-bar 1s infinite linear;
+  }
+}
+
+@keyframes fleet-drive {
+  0% { transform: translateX(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(200%); opacity: 0; }
+}

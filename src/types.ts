@@ -132,6 +132,7 @@ export interface Motorista {
     contacto: string;
     cartaConducao?: string;
     email?: string;
+    centroCustoId: string;
     obs?: string;
     pin?: string;
     acidentes?: Acidente[];

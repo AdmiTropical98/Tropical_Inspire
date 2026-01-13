@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
-  LayoutDashboard, Users, UserCog, Bus, MessageSquare, Menu, X,
+  LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
-  BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Plane, Award
+  BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award,
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -39,6 +39,7 @@ import Geofences from './components/geofences'; // Import Geofences component
 import UsersPage from './components/users'; // Import UsersPage
 import Permissoes from './components/permissoes';
 import MyProfile from './components/profile/MyProfile';
+import SplashScreen from './components/SplashScreen';
 import { LayoutProvider } from './contexts/LayoutContext';
 
 // Sidebar Item Component for consistent styling
@@ -83,6 +84,7 @@ function AppContent() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Listen for Password Recovery Event
   useEffect(() => {
@@ -150,6 +152,8 @@ function AppContent() {
     }
   };
 
+  if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
+
   if (isResettingPassword) return <ResetPassword />;
 
   if (!isAuthenticated) return <Login />;
@@ -185,7 +189,7 @@ function AppContent() {
             <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => setActiveTab('central-motorista')} />
           )}
           {hasAccess(userRole, 'viaturas') && (
-            <SidebarItem icon={Bus} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => setActiveTab('viaturas')} />
+            <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => setActiveTab('viaturas')} />
           )}
           {hasAccess(userRole, 'motoristas') && (
             <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => setActiveTab('motoristas')} />
@@ -215,7 +219,7 @@ function AppContent() {
             <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => setActiveTab('combustivel')} />
           )}
           {hasAccess(userRole, 'plataformas_externas') && (
-            <SidebarItem icon={Plane} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => setActiveTab('transportes-eva')} />
+            <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => setActiveTab('transportes-eva')} />
           )}
 
           {/* FINANCEIRO & ADMIN */}
@@ -313,7 +317,7 @@ function AppContent() {
                 <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false); }} />
               )}
               {hasAccess(userRole, 'viaturas') && (
-                <SidebarItem icon={Bus} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => { setActiveTab('viaturas'); setIsMobileMenuOpen(false); }} />
+                <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => { setActiveTab('viaturas'); setIsMobileMenuOpen(false); }} />
               )}
               {hasAccess(userRole, 'motoristas') && (
                 <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => { setActiveTab('motoristas'); setIsMobileMenuOpen(false); }} />
@@ -343,7 +347,7 @@ function AppContent() {
                 <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { setActiveTab('combustivel'); setIsMobileMenuOpen(false); }} />
               )}
               {hasAccess(userRole, 'plataformas_externas') && (
-                <SidebarItem icon={Plane} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { setActiveTab('transportes-eva'); setIsMobileMenuOpen(false); }} />
+                <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { setActiveTab('transportes-eva'); setIsMobileMenuOpen(false); }} />
               )}
 
               {/* FINANCEIRO & ADMIN */}
