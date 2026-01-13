@@ -335,15 +335,17 @@ export default function NavigationApp({
                 )}
             </div>
 
-            {/* Map Area */}
+            {/* Map Area - Simplified & Safe 3D */}
             <div
-                className={`transition-all duration-1000 ease-in-out ${isNavigating
-                        ? 'absolute inset-[-50%] w-[200%] h-[200%] z-0 origin-bottom'
-                        : 'flex-1 relative w-full z-0'
-                    }`}
+                className="absolute inset-0 z-0 w-full h-full"
                 style={isNavigating ? {
-                    transform: 'perspective(600px) rotateX(70deg) translateY(15%)',
-                } : {}}
+                    // Safe 3D Effect: Scale up slightly, tilt moderately
+                    transform: 'scale(1.2) perspective(1000px) rotateX(50deg) translateY(-10%)',
+                    transformOrigin: '50% 100%',
+                    transition: 'transform 1s ease-in-out'
+                } : {
+                    transition: 'transform 1s ease-in-out'
+                }}
             >
                 <MapContainer
                     center={currentPos}
@@ -357,7 +359,7 @@ export default function NavigationApp({
                     style={{ background: '#0f172a' }}
                 >
                     <TileLayer
-                        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                        attribution='Tiles &copy; Esri'
                         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                         maxNativeZoom={18}
                         maxZoom={20}
@@ -371,10 +373,8 @@ export default function NavigationApp({
                         />
                     )}
 
-                    {/* Show Car only if GPS is valid or we are just previewing */}
-                    {gpsAccuracy > 0 || !isNavigating ? (
-                        <Marker position={currentPos} icon={carIcon} />
-                    ) : null}
+                    {/* Show Car marker */}
+                    <Marker position={currentPos} icon={carIcon} />
 
                     {destCoords && (
                         <Marker position={destCoords} icon={destIcon}>
