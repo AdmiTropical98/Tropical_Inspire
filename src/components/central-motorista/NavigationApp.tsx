@@ -56,6 +56,7 @@ export default function NavigationApp({
     const [searchTerm, setSearchTerm] = useState('');
 
     // Refs
+    const watchIdRef = useRef<number | null>(null);
     const wakeLockRef = useRef<any>(null);
 
     // Start GPS Watch
