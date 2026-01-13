@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
     Search, Trash2, Car, Calendar, Info, LayoutTemplate,
+    List, PlusCircle, Wrench, AlertTriangle, Fuel, CheckCircle, ArrowRight,
     Upload, Download, Filter
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
