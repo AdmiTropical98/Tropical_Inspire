@@ -335,17 +335,49 @@ export default function NavigationApp({
                 )}
             </div>
 
-            {/* Map Area - Simplified & Safe 3D */}
+            const [hasGpsLock, setHasGpsLock] = useState(false);
+
+            // Initial Route State
+            const [route, setRoute] = useState<[number, number][]>([]);
+    // ...
+
+    // Start GPS Watch
+    useEffect(() => {
+        if ('geolocation' in navigator) {
+                watchIdRef.current = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const { latitude, longitude, accuracy } = pos.coords;
+                        const newPos: [number, number] = [latitude, longitude];
+
+                        setCurrentPos(newPos);
+                        setGpsAccuracy(accuracy);
+                        setHasGpsLock(true); // Mark as locked
+
+                        // Share Location state
+                        if (vehicleRegistration && onLocationUpdate) {
+                            onLocationUpdate(vehicleRegistration, latitude, longitude);
+                        }
+                    },
+                    (err) => console.error('GPS Error:', err),
+                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                );
+        }
+        // ...
+    }, []);
+
+            // ...
+
+            {/* Map Area - Robust Full Screen 3D */}
             <div
-                className={`transition-all duration-1000 ease-in-out ${isNavigating
-                        ? 'absolute top-[-150%] left-[-50%] w-[200%] h-[250%] z-0 origin-bottom'
-                        : 'absolute inset-0 z-0 w-full h-full'
-                    }`}
+                className="fixed inset-0 z-0 w-full h-full"
                 style={isNavigating ? {
-                    // Horizon Fix: 250% Height compressed by 60deg tilt = ~125% screen fill
-                    transform: 'perspective(800px) rotateX(60deg)',
-                    transformOrigin: '50% 100%'
-                } : {}}
+                    // Robust 3D: Scale massively to cover edges, tilt safely
+                    transform: 'scale(2.5) perspective(1000px) rotateX(55deg) translateY(10%)',
+                    transformOrigin: '50% 50%', // Center rotation
+                    transition: 'transform 1s ease-in-out'
+                } : {
+                    transition: 'transform 1s ease-in-out'
+                }}
             >
                 <MapContainer
                     center={currentPos}
@@ -366,6 +398,7 @@ export default function NavigationApp({
                     />
                     <MapController center={currentPos} followMe={followMe} />
 
+                    {/* Only show route if we have lock or purely for preview */}
                     {route.length > 0 && (
                         <Polyline
                             positions={route}
@@ -373,7 +406,6 @@ export default function NavigationApp({
                         />
                     )}
 
-                    {/* Show Car marker */}
                     <Marker position={currentPos} icon={carIcon} />
 
                     {destCoords && (
@@ -390,20 +422,33 @@ export default function NavigationApp({
                     </div>
                 )}
 
-                {/* GPS Waiting Indicator */}
-                {isNavigating && gpsAccuracy === 0 && (
-                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-[500] flex flex-col items-center justify-center p-6 text-center">
-                        <div className="animate-pulse mb-4">
-                            <LocateFixed className="w-16 h-16 text-blue-500" />
+                {/* GPS Waiting Overlay - BLOCKING if no lock during nav */}
+                {isNavigating && !hasGpsLock && (
+                    <div className="absolute inset-0 bg-slate-950 z-[10002] flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+                        <div className="animate-bounce mb-6">
+                            <LocateFixed className="w-20 h-20 text-blue-500" />
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">A aguardar sinal GPS...</h3>
-                        <p className="text-slate-400">Por favor aguarde enquanto localizamos a sua viatura.</p>
-                        <button
-                            onClick={stopNavigation}
-                            className="mt-6 px-6 py-2 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-700 transition"
-                        >
-                            Cancelar
-                        </button>
+                        <h3 className="text-2xl font-bold text-white mb-2">A obter localização...</h3>
+                        <p className="text-slate-400 max-w-xs mx-auto mb-8">Estamos a ligar aos satélites para detetar a sua posição em Quarteira.</p>
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={stopNavigation}
+                                className="px-6 py-3 bg-red-500/10 text-red-400 border border-red-500/50 rounded-xl font-bold hover:bg-red-500 hover:text-white transition"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    // Manual override for testing/desktop
+                                    setHasGpsLock(true);
+                                    // Force set to a generic Algarve coords if needed, or leave current (which is user input)
+                                }}
+                                className="px-6 py-3 bg-slate-800 text-slate-400 border border-slate-700 rounded-xl font-bold hover:bg-slate-700 hover:text-white transition"
+                            >
+                                Ignorar (Teste)
+                            </button>
+                        </div>
                     </div>
                 )}
 
