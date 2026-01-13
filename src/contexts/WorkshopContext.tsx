@@ -596,7 +596,25 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Manual Hours Implementation
-    // Manual Hours Implementation
+
+    const logServiceHistory = async (servicoId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', previousData: any, newData: any) => {
+        try {
+            const storedUser = localStorage.getItem('currentUser');
+            let user = null;
+            if (storedUser) user = JSON.parse(storedUser);
+
+            await supabase.from('servico_history').insert({
+                servico_id: servicoId,
+                action: action,
+                previous_data: previousData,
+                new_data: newData,
+                changed_by: user?.id || 'system',
+                changed_by_name: user?.nome || 'Sistema'
+            });
+        } catch (err) {
+            console.error('Error logging history:', err);
+        }
+    };
 
     const addManualHourRecord = async (record: import('../types').ManualHourRecord) => {
         const { error } = await supabase.from('manual_hours').insert({
@@ -656,6 +674,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 motoristaId: data.motorista_id,
                 centroCustoId: data.centro_custo_id
             };
+
+            await logServiceHistory(s.id, 'CREATE', null, confirmedService);
+
             setServicos(prev => [...prev, confirmedService]);
         } catch (error: any) {
             console.error('Error adding service:', error);
@@ -689,6 +710,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
+            // Find previous state for logging
+            const previousState = servicos.find(item => item.id === s.id);
+            await logServiceHistory(s.id, 'UPDATE', previousState, s);
+
             console.log('Service updated:', data);
             setServicos(prev => prev.map(item => item.id === s.id ? s : item));
         } catch (error: any) {
@@ -700,8 +725,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const deleteServico = async (id: string) => {
         try {
             console.log('Deleting service:', id);
+
+            // Find service before deleting for log
+            const serviceToDelete = servicos.find(item => item.id === id);
+
             const { error } = await supabase.from('servicos').delete().eq('id', id);
             if (error) throw error;
+
+            await logServiceHistory(id, 'DELETE', serviceToDelete, null);
+
             console.log('Service deleted');
             setServicos(prev => prev.filter(s => s.id !== id));
         } catch (error: any) {
