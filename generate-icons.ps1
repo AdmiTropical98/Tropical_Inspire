@@ -2,7 +2,7 @@
 Add-Type -AssemblyName System.Drawing
 
 # Configuration
-$sourcePath = "$PSScriptRoot\public\logo-new-upload.png"
+$sourcePath = "$PSScriptRoot\public\logo-algar-frota.png"
 $bgColorHex = "#0f172a" 
 $sizes = @(192, 512)
 
