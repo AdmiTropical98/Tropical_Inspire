@@ -43,6 +43,7 @@ export default function NavigationApp({
     const [isNavigating, setIsNavigating] = useState(false);
     const [currentPos, setCurrentPos] = useState<[number, number]>(initialLocation);
     const [gpsAccuracy, setGpsAccuracy] = useState<number>(0);
+    const [hasGpsLock, setHasGpsLock] = useState(false);
     const watchIdRef = useRef<number | null>(null);
 
     // Initial Route State
@@ -334,38 +335,6 @@ export default function NavigationApp({
                     </div>
                 )}
             </div>
-
-            const [hasGpsLock, setHasGpsLock] = useState(false);
-
-            // Initial Route State
-            const [route, setRoute] = useState<[number, number][]>([]);
-    // ...
-
-    // Start GPS Watch
-    useEffect(() => {
-        if ('geolocation' in navigator) {
-                watchIdRef.current = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        const { latitude, longitude, accuracy } = pos.coords;
-                        const newPos: [number, number] = [latitude, longitude];
-
-                        setCurrentPos(newPos);
-                        setGpsAccuracy(accuracy);
-                        setHasGpsLock(true); // Mark as locked
-
-                        // Share Location state
-                        if (vehicleRegistration && onLocationUpdate) {
-                            onLocationUpdate(vehicleRegistration, latitude, longitude);
-                        }
-                    },
-                    (err) => console.error('GPS Error:', err),
-                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-                );
-        }
-        // ...
-    }, []);
-
-            // ...
 
             {/* Map Area - Robust Full Screen 3D */}
             <div
