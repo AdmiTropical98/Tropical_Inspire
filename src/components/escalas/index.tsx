@@ -169,6 +169,8 @@ export default function Escalas() {
 
     // Logic & Filters
     const filteredMotoristas = motoristas.filter(m => {
+        if (selectedCentroCusto !== 'all' && m.centroCustoId !== selectedCentroCusto) return false;
+
         if (filterStatus === 'all') return true;
         if (filterStatus === 'available') return m.status === 'disponivel';
         if (filterStatus === 'busy') return m.status === 'ocupado';
@@ -501,13 +503,36 @@ export default function Escalas() {
                             )}
 
                             {hasAccess(userRole, 'escalas_import') && (
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
-                                    title="Importar Excel"
-                                >
-                                    <Upload className="w-5 h-5" />
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const headers = [
+                                                {
+                                                    'Nome do funcionário': 'João Silva',
+                                                    'Origem': 'Albufeira',
+                                                    'Destino': 'Aeroporto Faro',
+                                                    'Horário de apanhar transporte': '08:30',
+                                                    'Horário de saída do serviço': '17:30'
+                                                }
+                                            ];
+                                            const ws = XLSX.utils.json_to_sheet(headers);
+                                            const wb = XLSX.utils.book_new();
+                                            XLSX.utils.book_append_sheet(wb, ws, "Modelo");
+                                            XLSX.writeFile(wb, "modelo_escala.xlsx");
+                                        }}
+                                        className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
+                                        title="Baixar Modelo Excel"
+                                    >
+                                        <TableIcon className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
+                                        title="Importar Excel"
+                                    >
+                                        <Upload className="w-5 h-5" />
+                                    </button>
+                                </div>
                             )}
 
                             {/* View Toggles */}
