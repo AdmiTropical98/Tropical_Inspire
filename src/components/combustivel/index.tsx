@@ -349,17 +349,31 @@ export default function Combustivel() {
                                         </div>
 
                                         <div className="md:col-span-2 grid grid-cols-2 gap-6">
-                                            <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 hover:bg-slate-800/50 transition-all">
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
-                                                        <BarChart3 className="w-5 h-5" />
+                                            {/* AVERAGE PRICE CARD */}
+                                            <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 hover:bg-slate-800/50 transition-all relative group/avg">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
+                                                            <BarChart3 className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-xs font-bold text-slate-400 uppercase">Preço Médio</span>
                                                     </div>
-                                                    <span className="text-xs font-bold text-slate-400 uppercase">Preço Médio</span>
+                                                    {hasAccess(userRole, 'combustivel_edit') && (
+                                                        <button
+                                                            onClick={handleEditTank}
+                                                            className="text-slate-600 hover:text-white transition-colors opacity-0 group-hover/avg:opacity-100"
+                                                        >
+                                                            <Settings className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
-                                                <p className="text-3xl font-black text-white">{(fuelTank.averagePrice || 0).toFixed(3)}</p>
-                                                <p className="text-sm text-slate-500 font-medium mt-1">EUR / Litro</p>
+                                                <div>
+                                                    <p className="text-3xl font-black text-white ml-2">{(fuelTank.averagePrice || 0).toFixed(3)}</p>
+                                                    <p className="text-sm text-slate-500 font-medium mt-1 ml-2">EUR / Litro</p>
+                                                </div>
                                             </div>
 
+                                            {/* COUNTER CARD */}
                                             <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 hover:bg-slate-800/50 transition-all relative group/counter">
                                                 <div className="flex justify-between items-start mb-4">
                                                     <div className="flex items-center gap-3">
@@ -369,7 +383,10 @@ export default function Combustivel() {
                                                         <span className="text-xs font-bold text-slate-400 uppercase">Contador</span>
                                                     </div>
                                                     {hasAccess(userRole, 'combustivel_calibrate') && (
-                                                        <button onClick={handleCalibrateTank} className="text-slate-600 hover:text-white transition-colors opacity-0 group-hover/counter:opacity-100">
+                                                        <button
+                                                            onClick={handleCalibrateTank}
+                                                            className="text-slate-600 hover:text-white transition-colors opacity-0 group-hover/counter:opacity-100"
+                                                        >
                                                             <Settings className="w-4 h-4" />
                                                         </button>
                                                     )}
@@ -389,24 +406,14 @@ export default function Combustivel() {
                                                     </div>
                                                 ) : (
                                                     <div>
-                                                        <p className="text-3xl font-black text-white font-mono tracking-tight">{String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}</p>
-                                                        <p className="text-sm text-slate-500 font-medium mt-1">Litros Totais</p>
+                                                        <p className="text-3xl font-black text-white font-mono tracking-tight ml-2">{String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}</p>
+                                                        <p className="text-sm text-slate-500 font-medium mt-1 ml-2">Litros Totais</p>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Edit Button */}
-                                    {hasAccess(userRole, 'combustivel_edit') && (
-                                        <button
-                                            onClick={handleEditTank}
-                                            className="absolute bottom-8 right-8 text-slate-600 hover:text-white transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-slate-950/50 px-4 py-2 rounded-xl border border-slate-800 hover:border-slate-600"
-                                        >
-                                            <Settings className="w-4 h-4" />
-                                            Configurar Tanque
-                                        </button>
-                                    )}
                                 </div>
 
                                 {/* Action Buttons */}
