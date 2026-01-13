@@ -21,29 +21,17 @@ export default function ChatPage() {
 
     // Build list of chat users
     const getChatUsers = () => {
-        let users: { id: string; name: string; role: string }[] = [];
-        const adminUser = { id: 'admin', name: 'Administrador', role: 'admin' };
+        // Create a flat list of all potential chat participants
+        const allUsers = [
+            { id: 'admin', name: 'Administrador', role: 'admin' },
+            ...supervisors.map(s => ({ id: s.id, name: s.nome, role: 'supervisor' })),
+            ...oficinaUsers.map(o => ({ id: o.id, name: o.nome, role: 'oficina' })),
+            ...motoristas.map(m => ({ id: m.id, name: m.nome, role: 'motorista' }))
+        ];
 
-        if (userRole === 'admin') {
-            users = [
-                ...supervisors.map(s => ({ id: s.id, name: s.nome, role: 'supervisor' })),
-                ...oficinaUsers.map(o => ({ id: o.id, name: o.nome, role: 'oficina' })),
-                ...motoristas.map(m => ({ id: m.id, name: m.nome, role: 'motorista' }))
-            ];
-        } else if (userRole === 'supervisor') {
-            users = [
-                adminUser,
-                ...motoristas.map(m => ({ id: m.id, name: m.nome, role: 'motorista' }))
-            ];
-        } else if (userRole === 'oficina') {
-            users = [adminUser];
-        } else if (userRole === 'motorista') {
-            users = [
-                adminUser,
-                ...supervisors.map(s => ({ id: s.id, name: s.nome, role: 'supervisor' }))
-            ];
-        }
-        return users;
+        // Filter out the current user (myself)
+        // Ensure myId logic is robust before filtering
+        return allUsers.filter(u => u.id !== myId);
     };
 
     const chatUsers = getChatUsers().filter(u =>
@@ -80,7 +68,7 @@ export default function ChatPage() {
     return (
         <div className="flex flex-col h-full bg-[#0f172a] overflow-hidden">
             {/* Header */}
-            <div className={`shrink-0 mb-4 flex justify-between items-center p-4 md:px-0 ${selectedUser ? 'hidden md:flex' : ''}`}>
+            <div className={`shrink-0 mb-4 flex justify-between items-center p-4 md:px-8 ${selectedUser ? 'hidden md:flex' : ''}`}>
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 flex items-center gap-3">
                         <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20">
