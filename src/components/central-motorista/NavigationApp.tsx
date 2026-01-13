@@ -468,38 +468,41 @@ export default function NavigationApp({
                     </div>
                 </div>
 
-                <div className="max-w-md mx-auto flex gap-3">
+                <div className="max-w-md mx-auto w-full">
                     {isNavigating ? (
                         <button
                             onClick={stopNavigation}
-                            className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold rounded-xl shadow-lg shadow-red-900/20 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold rounded-xl shadow-lg shadow-red-900/20 transition-all flex items-center justify-center gap-2"
                         >
+                            <X className="w-5 h-5" />
                             Terminar Viagem
                         </button>
                     ) : (
-                        <>
-                            <button
-                                onClick={() => setShowSelection(true)}
-                                className="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Search className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={startNavigation}
-                                disabled={!destCoords}
-                                className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Navigation className="w-5 h-5" />
-                                Iniciar Viagem
-                            </button>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowSelection(true)}
+                                    className="px-5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center"
+                                >
+                                    <Search className="w-6 h-6" />
+                                </button>
+                                <button
+                                    onClick={startNavigation}
+                                    disabled={!destCoords}
+                                    className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Navigation className="w-5 h-5" />
+                                    Iniciar (App)
+                                </button>
+                            </div>
                             <button
                                 onClick={openGoogleMaps}
-                                className="px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-colors flex items-center justify-center"
-                                title="Abrir no Google Maps"
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all flex items-center justify-center gap-2"
                             >
                                 <ExternalLink className="w-5 h-5" />
+                                Abrir no Google Maps
                             </button>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
