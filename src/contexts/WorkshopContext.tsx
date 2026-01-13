@@ -351,6 +351,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     cartrackKey: m.cartrack_key,
                     cartrackId: m.cartrack_id,
                     currentVehicle: m.current_vehicle,
+                    centroCustoId: m.centro_custo_id,
                     status: m.status || 'disponivel'
                 }));
 
@@ -1055,7 +1056,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             blocked_permissions: m.blockedPermissions,
             turno_inicio: m.turnoInicio,
             turno_fim: m.turnoFim,
-            cartrack_key: m.cartrackKey
+            cartrack_key: m.cartrackKey,
+            centro_custo_id: m.centroCustoId
         });
         if (!error) setMotoristas(prev => [...prev, m]);
     };
@@ -1074,7 +1076,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             blocked_permissions: m.blockedPermissions,
             turno_inicio: m.turnoInicio,
             turno_fim: m.turnoFim,
-            cartrack_key: m.cartrackKey
+            cartrack_key: m.cartrackKey,
+            centro_custo_id: m.centroCustoId
         }).eq('id', m.id);
 
         if (error) {
