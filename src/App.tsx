@@ -152,9 +152,7 @@ function AppContent() {
     }
   };
 
-};
-
-if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
   if (isResettingPassword) return <ResetPassword />;
 
