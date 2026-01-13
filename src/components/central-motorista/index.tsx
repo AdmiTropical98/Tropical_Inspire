@@ -35,7 +35,10 @@ export default function CentralMotorista() {
     const [requestForm, setRequestForm] = useState({ type: 'ferias', description: '' });
     const [reportForm, setReportForm] = useState({ type: 'acidente', description: '' });
 
-    const [weather, setWeather] = useState<{ temp: number; desc: string } | null>(null);
+    const [weather, setWeather] = useState<{
+        current: { temp: number; desc: string; code: number };
+        daily: Array<{ day: string; min: number; max: number; code: number }>
+    } | null>(null);
 
     // Layout Context
     const { isEditMode, toggleEditMode } = useLayout();
@@ -123,18 +126,39 @@ export default function CentralMotorista() {
         setLastSeenNotificationCount(notifications.length);
     }, [notifications, currentUser, activeTab, lastSeenNotificationCount]);
 
-    // Fetch Weather
+    // Fetch Weather including Forecast
     useState(() => {
-        fetch('https://api.open-meteo.com/v1/forecast?latitude=38.7167&longitude=-9.1333&current=temperature_2m,weather_code&timezone=auto')
+        fetch('https://api.open-meteo.com/v1/forecast?latitude=38.7167&longitude=-9.1333&current=temperature_2m,weather_code&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto')
             .then(res => res.json())
             .then(data => {
-                const code = data.current.weather_code;
-                let desc = 'Céu Limpo';
-                if (code > 3) desc = 'Nublado';
-                if (code > 50) desc = 'Chuva';
+                const currentCode = data.current.weather_code;
+
+                const getWeatherDesc = (code: number) => {
+                    if (code === 0) return 'Céu Limpo';
+                    if (code <= 3) return 'Parc. Nublado';
+                    if (code <= 48) return 'Nevoeiro';
+                    if (code <= 55) return 'Chuvisco';
+                    if (code <= 67) return 'Chuva';
+                    if (code <= 77) return 'Neve';
+                    if (code <= 82) return 'Aguaceiros';
+                    if (code <= 99) return 'Trovoada';
+                    return 'Vento';
+                };
+
+                const daily = data.daily.time.slice(1, 4).map((date: string, index: number) => ({
+                    day: new Date(date).toLocaleDateString('pt-PT', { weekday: 'short' }),
+                    min: Math.round(data.daily.temperature_2m_min[index + 1]),
+                    max: Math.round(data.daily.temperature_2m_max[index + 1]),
+                    code: data.daily.weathercode[index + 1]
+                }));
+
                 setWeather({
-                    temp: Math.round(data.current.temperature_2m),
-                    desc
+                    current: {
+                        temp: Math.round(data.current.temperature_2m),
+                        desc: getWeatherDesc(currentCode),
+                        code: currentCode
+                    },
+                    daily
                 });
             })
             .catch(err => console.error('Weather error:', err));
@@ -224,6 +248,14 @@ export default function CentralMotorista() {
         setReportForm({ ...reportForm, description: '' });
     };
 
+    const getWeatherIcon = (code: number, className = "w-6 h-6") => {
+        if (code === 0) return <Sun className={`${className} text-yellow-400`} />;
+        if (code <= 3) return <Sun className={`${className} text-yellow-200`} />; // CloudSun
+        if (code <= 67) return <p className="text-xl">🌧️</p>;
+        if (code <= 99) return <p className="text-xl">⛈️</p>;
+        return <Sun className={className} />;
+    };
+
     const dashboardWidgets = [
         {
             id: 'next-service', content: (
@@ -277,26 +309,56 @@ export default function CentralMotorista() {
         },
         {
             id: 'weather', content: (
-                <div className={`bg-gradient-to-br from-slate-900 to-slate-900/50 p-5 rounded-2xl border border-slate-800 shadow-xl h-full flex flex-col group hover:border-amber-500/30 transition-all`}>
-                    <div className="flex items-center gap-3 text-slate-400 mb-4">
-                        <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
-                            <Sun className="w-4 h-4" />
+                <div className={`relative overflow-hidden bg-gradient-to-br from-[#0083B0] to-[#00B4DB] p-5 rounded-3xl border border-white/10 shadow-2xl h-full flex flex-col text-white`}>
+                    {/* Glossy Overlay */}
+                    <div className="absolute inset-0 bg-white/10 pointer-events-none"></div>
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-300/30 rounded-full blur-3xl"></div>
+
+                    <div className="relative z-10 flex flex-col h-full">
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="text-xs font-bold uppercase tracking-widest text-blue-100">Meteorologia</div>
+                            <div className="text-xs font-medium text-blue-100">{new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric' })}</div>
                         </div>
-                        <span className="text-xs font-bold uppercase tracking-wider">Meteorologia</span>
+
+                        {weather ? (
+                            <div className="flex-1 flex flex-col">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="text-left">
+                                        <span className="text-5xl font-black tracking-tighter drop-shadow-lg">{weather.current.temp}°</span>
+                                        <p className="text-sm font-medium text-blue-100 capitalize mt-1">{weather.current.desc}</p>
+                                    </div>
+                                    <div className="w-16 h-16 drop-shadow-2xl">
+                                        {/* Simple Large Icon Placeholder - In real iOS widget this is a 3D asset */}
+                                        {getWeatherIcon(weather.current.code, "w-16 h-16")}
+                                    </div>
+                                </div>
+
+                                {/* 3 Days Forecast */}
+                                <div className="mt-auto grid grid-cols-3 gap-2 border-t border-white/20 pt-3">
+                                    {weather.daily.map((day, i) => (
+                                        <div key={i} className="flex flex-col items-center text-center">
+                                            <span className="text-[10px] font-bold uppercase text-blue-100 mb-1">{day.day}</span>
+                                            <div className="mb-1 opacity-90 scale-75">
+                                                {getWeatherIcon(day.code, "w-6 h-6")}
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs font-bold">
+                                                <span className="text-blue-100 opacity-70">{day.min}°</span>
+                                                <span>{day.max}°</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center">
+                                <p className="text-xs text-white/70 animate-pulse">A atualizar...</p>
+                            </div>
+                        )}
                     </div>
-                    {weather ? (
-                        <div className="mt-2 text-center">
-                            <p className="text-white font-black text-4xl mb-1">{weather.temp}°</p>
-                            <p className="text-xs font-bold text-amber-500 uppercase tracking-widest">{weather.desc}</p>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center flex-1 text-center">
-                            <p className="text-xs text-slate-500 animate-pulse">A atualizar...</p>
-                        </div>
-                    )}
                 </div>
             )
         },
+
         {
             id: 'shift', content: (
                 <div className={`bg-gradient-to-br from-slate-900 to-slate-900/50 p-5 rounded-2xl border border-slate-800 shadow-xl h-full flex flex-col group hover:border-emerald-500/30 transition-all relative`}>
