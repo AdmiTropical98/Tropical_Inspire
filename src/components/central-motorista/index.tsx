@@ -6,7 +6,7 @@ import {
     LayoutTemplate, Clock, FileText, Share2, AlertTriangle,
     Send, Car, Sun, Navigation, Calendar,
     Check, Fuel, Settings2, ArrowRight,
-    CloudSun, CloudFog, CloudLightning, CloudRain, Snowflake, Moon
+    CloudSun, CloudFog, CloudLightning, CloudRain, Snowflake, Moon, Star
 } from 'lucide-react';
 import MyScheduleView from './MyScheduleView';
 import DraggableZone from '../common/DraggableZone';
@@ -591,11 +591,25 @@ export default function CentralMotorista() {
                                             <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Serviços Hoje</span>
                                             <span className="text-3xl font-black text-white">{myServicesCount}</span>
                                         </div>
-                                        <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between h-24">
-                                            <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Avaliação</span>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-3xl font-black text-amber-500">4.9</span>
-                                                <span className="text-xs text-slate-500 font-bold">/ 5.0</span>
+                                        <div className="bg-gradient-to-br from-amber-900/40 to-yellow-900/20 border border-amber-500/30 rounded-2xl p-4 flex flex-col justify-between h-24 relative overflow-hidden group">
+                                            <div className="absolute inset-0 bg-amber-500/5 pointer-events-none group-hover:bg-amber-500/10 transition-colors"></div>
+                                            <div className="flex justify-between items-start relative z-10">
+                                                <span className="text-amber-200/70 text-xs font-bold uppercase tracking-wider">Avaliação Geral</span>
+                                                <div className="flex gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <Star key={star} className={`w-3 h-3 ${star <= 5 ? 'text-amber-400 fill-amber-400' : 'text-amber-900'}`} />
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-end justify-between relative z-10">
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <span className="text-4xl font-black text-amber-400 tracking-tighter drop-shadow-lg">4.9</span>
+                                                    <span className="text-xs text-amber-500/70 font-bold mb-1">/ 5.0</span>
+                                                </div>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                    Excelente
+                                                </span>
                                             </div>
                                         </div>
                                         <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between h-24">
