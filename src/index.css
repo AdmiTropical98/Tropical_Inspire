@@ -153,3 +153,19 @@ input::-webkit-credentials-auto-fill-button {
   50% { transform: translateX(0); }
   100% { transform: translateX(100%); }
 }
+
+@layer utilities {
+  .animate-fleet-drive {
+    animation: fleet-drive 1.5s infinite linear;
+  }
+  .animate-loading-bar-fast {
+    animation: loading-bar 1s infinite linear;
+  }
+}
+
+@keyframes fleet-drive {
+  0% { transform: translateX(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(200%); opacity: 0; }
+}
