@@ -89,12 +89,67 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             cost_center_id: r.centroCustoId
         }));
 
-        // 4. Salaries (Estimated - simple separate entry per driver per month logic would be complex here, 
-        // so for now we might just aggregate checks or Manual Salary Entries. 
-        // PROPOSAL: Don't auto-generate salary rows yet, let user add them as Fixed Expense or generated monthly.
-        // For now, only explicit + fuel + maint + reqs.
+        // 4. Salaries (Base + Manual Hours)
+        const { data: drivers } = await supabase.from('motoristas').select('*');
+        const { data: manuals } = await supabase.from('manual_hours').select('*');
 
-        setExpenses([...explicitExpenses, ...fuelExpenses, ...maintExpenses, ...reqExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        const salaryExpenses: Expense[] = [];
+        const manualHourExpenses: Expense[] = [];
+
+        if (drivers) {
+            const now = new Date();
+            const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+            // A. Base Salary (Current Month Only for "Run Rate" visualization)
+            drivers.forEach((d: any) => {
+                if (d.vencimento_base && d.vencimento_base > 0 && d.centro_custo_id) {
+                    salaryExpenses.push({
+                        id: `salary-${d.id}-${now.getMonth() + 1}${now.getFullYear()}`,
+                        category: 'salario',
+                        description: `Vencimento Base - ${d.nome}`,
+                        amount: d.vencimento_base,
+                        date: currentMonthStart,
+                        paid: false, // Usually paid at end of month
+                        recurring: true,
+                        recurrence_period: 'monthly',
+                        cost_center_id: d.centro_custo_id
+                    });
+                }
+            });
+
+            // B. Manual Hours
+            if (manuals) {
+                manuals.forEach((m: any) => {
+                    const driver = drivers.find((d: any) => d.id === m.motorista_id);
+                    if (driver && driver.valor_hora && driver.valor_hora > 0) {
+                        // Calculate duration
+                        const start = new Date(`1970-01-01T${m.start_time}`);
+                        const end = new Date(`1970-01-01T${m.end_time}`);
+                        let diffInfo = (end.getTime() - start.getTime()) / (1000 * 60 * 60); // hours
+                        if (diffInfo < 0) diffInfo += 24; // Handle overnight
+
+                        // Subtract break
+                        const duration = diffInfo - ((m.break_duration || 0) / 60);
+
+                        if (duration > 0) {
+                            const cost = duration * driver.valor_hora;
+                            manualHourExpenses.push({
+                                id: `manual-hour-${m.id}`,
+                                category: 'salario', // or 'variavel'
+                                description: `Horas Extras (${m.date}) - ${driver.nome}`,
+                                amount: cost,
+                                date: m.date, // Expense date = work date
+                                paid: false,
+                                recurring: false,
+                                cost_center_id: driver.centro_custo_id
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+        setExpenses([...explicitExpenses, ...fuelExpenses, ...maintExpenses, ...reqExpenses, ...salaryExpenses, ...manualHourExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     };
 
     const fetchInvoices = async () => {
