@@ -250,10 +250,23 @@ export default function CentralMotorista() {
 
     const getWeatherIcon = (code: number, className = "w-6 h-6") => {
         if (code === 0) return <Sun className={`${className} text-yellow-400`} />;
-        if (code <= 3) return <Sun className={`${className} text-yellow-200`} />; // CloudSun
-        if (code <= 67) return <p className="text-xl">🌧️</p>;
-        if (code <= 99) return <p className="text-xl">⛈️</p>;
+        if (code <= 3) return <CloudSun className={`${className} text-yellow-200`} />;
+        if (code <= 48) return <CloudFog className={`${className} text-slate-300`} />;
+        if (code <= 67) return <CloudRain className={`${className} text-blue-300`} />; // Rain
+        if (code <= 77) return <Snowflake className={`${className} text-white`} />; // Snow
+        if (code <= 82) return <CloudRain className={`${className} text-blue-400`} />; // Showers
+        if (code <= 99) return <CloudLightning className={`${className} text-purple-300`} />; // Thunder
         return <Sun className={className} />;
+    };
+
+    const getWeatherBackground = (code: number) => {
+        if (code === 0) return 'from-[#0083B0] to-[#00B4DB]'; // Clear Sky (Blue/Cyan)
+        if (code <= 3) return 'from-slate-500 to-slate-600'; // Cloudy (Grey)
+        if (code <= 48) return 'from-slate-600 to-slate-700'; // Fog (Darker Grey)
+        if (code <= 67) return 'from-slate-700 to-slate-800'; // Rain (Dark Slate)
+        if (code <= 77) return 'from-blue-800 to-slate-800'; // Snow (Cold Dark)
+        if (code <= 99) return 'from-indigo-900 to-slate-900'; // Thunder (Deep Dark Purple/Blue)
+        return 'from-[#0083B0] to-[#00B4DB]';
     };
 
     const dashboardWidgets = [
@@ -309,7 +322,7 @@ export default function CentralMotorista() {
         },
         {
             id: 'weather', content: (
-                <div className={`relative overflow-hidden bg-gradient-to-br from-[#0083B0] to-[#00B4DB] p-5 rounded-3xl border border-white/10 shadow-2xl h-full flex flex-col text-white`}>
+                <div className={`relative overflow-hidden bg-gradient-to-br ${weather ? getWeatherBackground(weather.current.code) : 'from-[#0083B0] to-[#00B4DB]'} p-5 rounded-3xl border border-white/10 shadow-2xl h-full flex flex-col text-white transition-colors duration-1000`}>
                     {/* Glossy Overlay */}
                     <div className="absolute inset-0 bg-white/10 pointer-events-none"></div>
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-300/30 rounded-full blur-3xl"></div>
