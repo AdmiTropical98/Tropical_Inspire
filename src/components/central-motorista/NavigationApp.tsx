@@ -44,9 +44,19 @@ export default function NavigationApp({
     const [currentPos, setCurrentPos] = useState<[number, number]>(initialLocation);
     const [gpsAccuracy, setGpsAccuracy] = useState<number>(0);
     const [hasGpsLock, setHasGpsLock] = useState(false);
-    const watchIdRef = useRef<number | null>(null);
+    const [route, setRoute] = useState<[number, number][]>([]);
+    const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [stats, setStats] = useState({ distance: 0, duration: 0, eta: '' });
+    const [followMe, setFollowMe] = useState(true);
 
-    // ...
+    // Selection State
+    const [destinationName, setDestinationName] = useState(initialDestination || '');
+    const [showSelection, setShowSelection] = useState(!initialDestination);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Refs
+    const wakeLockRef = useRef<any>(null);
 
     // Start GPS Watch
     useEffect(() => {
@@ -83,57 +93,7 @@ export default function NavigationApp({
 
     // ...
 
-    {/* Map Area - Safe & Stable 3D */ }
-    <div
-        className="fixed inset-0 z-0 w-full h-full"
-        style={isNavigating ? {
-            // Safe 3D: Moderate settings that work on all screens
-            transform: 'scale(1.5) perspective(1000px) rotateX(45deg)',
-            transformOrigin: '50% 50%',
-            transition: 'transform 1s ease-in-out'
-        } : {
-            transition: 'transform 1s ease-in-out'
-        }}
     >
-        const [route, setRoute] = useState<[number, number][]>([]);
-        const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
-        const [loading, setLoading] = useState(false);
-        const [stats, setStats] = useState({distance: 0, duration: 0, eta: '' });
-        const [followMe, setFollowMe] = useState(true);
-
-        // Selection State
-        const [destinationName, setDestinationName] = useState(initialDestination || '');
-        const [showSelection, setShowSelection] = useState(!initialDestination);
-        const [searchTerm, setSearchTerm] = useState('');
-
-        // Refs
-        const wakeLockRef = useRef<any>(null);
-
-    // Start GPS Watch
-    useEffect(() => {
-        if ('geolocation' in navigator) {
-                watchIdRef.current = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        const { latitude, longitude, accuracy } = pos.coords;
-                        const newPos: [number, number] = [latitude, longitude];
-
-                        setCurrentPos(newPos);
-                        setGpsAccuracy(accuracy);
-
-                        // Share Location
-                        if (vehicleRegistration && onLocationUpdate) {
-                            onLocationUpdate(vehicleRegistration, latitude, longitude);
-                        }
-                    },
-                    (err) => console.error('GPS Error:', err),
-                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-                );
-        }
-
-        return () => {
-            if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-        };
-    }, []); // Only on mount
 
     // Filter Geofences
     // ...
