@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import {
     Search, Trash2, Car, Calendar, Info, LayoutTemplate,
-    List, PlusCircle, Wrench, AlertTriangle, Fuel, CheckCircle, ArrowRight,
-    Upload, Download
+    Upload, Download, Filter
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -29,10 +28,8 @@ export default function Viaturas() {
         obs: ''
     });
 
-    // Mock Status Logic (Since Viatura type might not have status yet)
-    // In a real app, this would be a field on the Viatura interface.
+    // Mock Status Logic
     const getVehicleStatus = (v: Viatura) => {
-        // Mock logic: If obs contains "avaria" or "oficina", it's maintenance.
         const obsLower = (v.obs || '').toLowerCase();
         if (obsLower.includes('avaria') || obsLower.includes('oficina') || obsLower.includes('parada')) {
             return 'maintenance';
@@ -44,7 +41,6 @@ export default function Viaturas() {
         total: viaturas.length,
         active: viaturas.filter(v => getVehicleStatus(v) === 'active').length,
         maintenance: viaturas.filter(v => getVehicleStatus(v) === 'maintenance').length,
-        // Mock fuel avg
         fuelAvg: '7.8 L/100km'
     };
 
@@ -54,7 +50,7 @@ export default function Viaturas() {
             ...formData,
             id: crypto.randomUUID()
         });
-        setActiveTab('list'); // Go to list after create
+        setActiveTab('list');
         setFormData({ matricula: '', marca: '', modelo: '', ano: '', obs: '' });
     };
 
@@ -80,7 +76,6 @@ export default function Viaturas() {
 
             let importedCount = 0;
             data.forEach((row: any) => {
-                // Basic validation
                 if (row.Matricula && row.Marca) {
                     addViatura({
                         id: crypto.randomUUID(),
@@ -103,7 +98,6 @@ export default function Viaturas() {
             }
         };
         reader.readAsBinaryString(file);
-        // Reset input
         e.target.value = '';
     };
 
@@ -114,377 +108,384 @@ export default function Viaturas() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto p-2 md:p-8 font-sans h-full flex flex-col overflow-y-auto overflow-x-hidden custom-scrollbar">
-            {selectedViatura && (
-                <VehicleProfile
-                    viatura={selectedViatura}
-                    onClose={() => setSelectedViatura(null)}
-                />
-            )}
+        <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
+            {/* Full Page Container */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+                {/* Scrollable Content Area */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 space-y-10">
 
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                        <Car className="w-6 h-6 text-blue-500" />
-                    </div>
-                    {t('vehicles.title')}
-                </h1>
-                <p className="text-slate-400">{t('subtitle.vehicles')}</p>
-            </div>
-
-            {/* Navigation & Actions Toolbar */}
-            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-8">
-                {/* Tabs */}
-                <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                    <button
-                        onClick={() => setActiveTab('overview')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
-                        ${activeTab === 'overview'
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30'
-                                : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-                    >
-                        <LayoutTemplate className="w-4 h-4" />
-                        Visão Geral
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('list')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
-                        ${activeTab === 'list'
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30'
-                                : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-                    >
-                        <List className="w-4 h-4" />
-                        Lista de Viaturas
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('create')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
-                        ${activeTab === 'create'
-                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-500/30'
-                                : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-                    >
-                        <PlusCircle className="w-4 h-4" />
-                        Nova Viatura
-                    </button>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleDownloadTemplate}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm border border-slate-700 transition-colors whitespace-nowrap"
-                    >
-                        <Download className="w-4 h-4" />
-                        Baixar Template
-                    </button>
-                    <div className="relative">
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls"
-                            onChange={handleFileUpload}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    {selectedViatura && (
+                        <VehicleProfile
+                            viatura={selectedViatura}
+                            onClose={() => setSelectedViatura(null)}
                         />
-                        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm transition-colors shadow-lg shadow-emerald-900/20 whitespace-nowrap">
-                            <Upload className="w-4 h-4" />
-                            Importar Excel
-                        </button>
-                    </div>
-                </div>
-            </div>
+                    )}
 
-            {/* CONTENT: OVERVIEW */}
-            {activeTab === 'overview' && (
-                <div className="space-y-8 animate-slide-in-up">
-                    {/* Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                        <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Car className="w-16 h-16 md:w-24 md:h-24 text-blue-500" />
-                            </div>
-                            <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Frota</h3>
-                            <p className="text-2xl md:text-3xl font-bold text-white">{stats.total}</p>
-                            <div className="mt-4 flex items-center gap-2 text-blue-400 text-xs font-bold px-2 py-1 bg-blue-500/10 w-fit rounded-lg">
-                                <CheckCircle className="w-3 h-3" />
-                                {stats.active} Operacionais
-                            </div>
+                    {/* Header Section */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div>
+                            <h1 className="text-4xl font-black text-white tracking-tight mb-2 flex items-center gap-4">
+                                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
+                                    {t('vehicles.title')}
+                                </span>
+                                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-sm font-bold border border-blue-500/20">
+                                    {stats.total}
+                                </span>
+                            </h1>
+                            <p className="text-slate-400 text-lg font-medium max-w-2xl">
+                                {t('subtitle.vehicles')}
+                            </p>
                         </div>
 
-                        <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Wrench className="w-16 h-16 md:w-24 md:h-24 text-amber-500" />
-                            </div>
-                            <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Em Manutenção</h3>
-                            <p className="text-2xl md:text-3xl font-bold text-white">{stats.maintenance}</p>
-                            <div className="mt-4 flex items-center gap-2 text-amber-400 text-xs font-bold px-2 py-1 bg-amber-500/10 w-fit rounded-lg">
-                                <AlertTriangle className="w-3 h-3" />
-                                Requer atenção
-                            </div>
-                        </div>
-
-                        <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Fuel className="w-16 h-16 md:w-24 md:h-24 text-emerald-500" />
-                            </div>
-                            <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Consumo Médio</h3>
-                            <p className="text-2xl md:text-3xl font-bold text-white">{stats.fuelAvg}</p>
-                            <div className="mt-4 flex items-center gap-2 text-emerald-400 text-xs font-bold px-2 py-1 bg-emerald-500/10 w-fit rounded-lg">
-                                <CheckCircle className="w-3 h-3" />
-                                Estimado (Global)
-                            </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleDownloadTemplate}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white rounded-xl font-medium transition-all shadow-sm"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span className="hidden md:inline">Template</span>
+                            </button>
+                            <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white rounded-xl font-medium transition-all shadow-sm cursor-pointer">
+                                <Upload className="w-4 h-4" />
+                                <span className="hidden md:inline">Importar</span>
+                                <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} className="hidden" />
+                            </label>
+                            <button
+                                onClick={() => setActiveTab('create')}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                            >
+                                <PlusCircle className="w-5 h-5" />
+                                <span>Nova Viatura</span>
+                            </button>
                         </div>
                     </div>
 
-                    {/* Quick Access / Alerts */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="bg-slate-900/30 border border-slate-800 rounded-3xl p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <AlertTriangle className="w-5 h-5 text-amber-500" />
-                                    Alertas de Frota
-                                </h3>
-                            </div>
+                    {/* Navigation Tabs */}
+                    <div className="flex items-center gap-2 border-b border-slate-800">
+                        {[
+                            { id: 'overview', label: 'Dashboard Geral', icon: LayoutTemplate },
+                            { id: 'list', label: 'Lista de Frota', icon: List },
+                            { id: 'create', label: 'Registo', icon: PlusCircle },
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all
+                                ${activeTab === tab.id
+                                        ? 'border-blue-500 text-blue-400 bg-blue-500/5'
+                                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+                            >
+                                <tab.icon className="w-4 h-4" />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
 
-                            {stats.maintenance > 0 ? (
-                                <div className="space-y-3">
-                                    {viaturas.filter(v => getVehicleStatus(v) === 'maintenance').map(v => (
-                                        <div key={v.id} className="flex items-center gap-4 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                                            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
-                                                <Wrench className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-white font-bold">{v.matricula}</p>
-                                                <p className="text-xs text-amber-400/80">{v.obs || 'Manutenção não especificada'}</p>
-                                            </div>
-                                            <button
-                                                onClick={() => setSelectedViatura(v)}
-                                                className="ml-auto px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 rounded-lg transition-colors"
-                                            >
-                                                Ver
-                                            </button>
+                    {/* CONTENT AREA */}
+                    <div className="min-h-[500px]">
+
+                        {/* VIEW: OVERVIEW */}
+                        {activeTab === 'overview' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {/* KPI Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-500/30 transition-all">
+                                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                            <Car className="w-32 h-32 text-blue-500" />
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-8 text-center">
-                                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-3">
-                                        <CheckCircle className="w-6 h-6" />
-                                    </div>
-                                    <p className="text-slate-300 font-medium">Tudo operacional</p>
-                                    <p className="text-xs text-slate-500">Nenhuma viatura reportada com problemas.</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="bg-gradient-to-br from-blue-900/40 to-slate-900/40 border border-blue-500/10 p-6 rounded-3xl relative overflow-hidden">
-                            <h3 className="text-blue-200 text-lg font-bold mb-4">Gestão Rápida</h3>
-                            <div className="space-y-3">
-                                <button
-                                    onClick={() => setActiveTab('create')}
-                                    className="w-full p-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex items-center justify-between group transition-all shadow-lg shadow-blue-900/20"
-                                >
-                                    <span className="flex items-center gap-3 font-bold">
-                                        <PlusCircle className="w-5 h-5 text-blue-200" />
-                                        Registrar Nova Viatura
-                                    </span>
-                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('list')}
-                                    className="w-full p-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl flex items-center justify-between group transition-all border border-slate-700/50"
-                                >
-                                    <span className="flex items-center gap-3 font-bold">
-                                        <List className="w-5 h-5 text-slate-400" />
-                                        Gerir Inventário Completo
-                                    </span>
-                                    <ArrowRight className="w-5 h-5 text-slate-500 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* CONTENT: LIST */}
-            {activeTab === 'list' && (
-                <div className="space-y-6 animate-slide-in-from-right">
-                    {/* Filters */}
-                    <div className="flex justify-between items-center bg-slate-900/30 p-4 rounded-2xl border border-slate-800">
-                        <div className="relative w-full md:w-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 h-4 w-4" />
-                            <input
-                                type="text"
-                                placeholder={t('vehicles.search')}
-                                className="w-full md:w-80 pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-200"
-                                value={filter}
-                                onChange={e => setFilter(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5">
-                        {filteredItems.map(viatura => {
-                            const status = getVehicleStatus(viatura);
-                            return (
-                                <div
-                                    key={viatura.id}
-                                    onClick={() => setSelectedViatura(viatura)}
-                                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl md:rounded-2xl p-4 md:p-5 hover:bg-slate-800 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-900/10 transition-all group relative cursor-pointer"
-                                >
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); deleteViatura(viatura.id); }}
-                                        className="absolute top-4 right-4 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-2 hover:bg-red-500/10 rounded-xl z-10"
-                                        title="Eliminar"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-
-                                    <div className="flex items-start gap-4 mb-4">
-                                        <div className={`p-3 rounded-xl shadow-lg 
-                                            ${status === 'maintenance'
-                                                ? 'bg-amber-500/10 text-amber-500 shadow-amber-900/10'
-                                                : 'bg-blue-600/10 text-blue-400 shadow-blue-900/10'}`}>
-                                            <Car className="h-6 w-6" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-white text-lg leading-tight tracking-wider font-mono">{viatura.matricula}</h3>
-                                            <p className="text-sm text-slate-400 mt-0.5">{viatura.marca} {viatura.modelo}</p>
+                                        <div className="relative">
+                                            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-4 border border-blue-500/20">
+                                                <Car className="w-6 h-6" />
+                                            </div>
+                                            <h3 className="text-slate-400 font-medium text-sm uppercase tracking-wider">Total de Viaturas</h3>
+                                            <div className="flex items-baseline gap-2 mt-2">
+                                                <span className="text-4xl font-black text-white">{stats.total}</span>
+                                                <span className="text-sm font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    {stats.active} Ativas
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3 mt-4 pt-4 border-t border-slate-700/50 text-sm">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-slate-400">
-                                                <Calendar className="h-4 w-4 text-slate-500" />
-                                                <span>{viatura.ano || 'N/A'}</span>
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-amber-500/30 transition-all">
+                                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                            <Wrench className="w-32 h-32 text-amber-500" />
+                                        </div>
+                                        <div className="relative">
+                                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 mb-4 border border-amber-500/20">
+                                                <Wrench className="w-6 h-6" />
                                             </div>
-                                            <div className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border
-                                                ${status === 'maintenance'
-                                                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                                    : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                                                }
-                                            `}>
-                                                {status === 'maintenance' ? 'Manutenção' : 'Operacional'}
+                                            <h3 className="text-slate-400 font-medium text-sm uppercase tracking-wider">Em Manutenção</h3>
+                                            <div className="flex items-baseline gap-2 mt-2">
+                                                <span className="text-4xl font-black text-white">{stats.maintenance}</span>
+                                                {stats.maintenance > 0 && (
+                                                    <span className="text-sm font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                                                        Requer Atenção
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
+                                    </div>
 
-                                        {viatura.obs && (
-                                            <div className="flex items-start gap-2.5 text-slate-400 bg-slate-900/50 p-2 rounded-lg">
-                                                <Info className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
-                                                <span className="text-xs line-clamp-2 italic">{viatura.obs}</span>
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-purple-500/30 transition-all">
+                                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                            <Fuel className="w-32 h-32 text-purple-500" />
+                                        </div>
+                                        <div className="relative">
+                                            <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 mb-4 border border-purple-500/20">
+                                                <Fuel className="w-6 h-6" />
+                                            </div>
+                                            <h3 className="text-slate-400 font-medium text-sm uppercase tracking-wider">Consumo Médio</h3>
+                                            <div className="flex items-baseline gap-2 mt-2">
+                                                <span className="text-4xl font-black text-white">7.8</span>
+                                                <span className="text-lg text-slate-500 font-medium">L/100km</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Alerts Section */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                            <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                            Alertas de Manutenção
+                                        </h3>
+                                        {stats.maintenance > 0 ? (
+                                            <div className="space-y-3">
+                                                {viaturas.filter(v => getVehicleStatus(v) === 'maintenance').map(v => (
+                                                    <div key={v.id} className="flex items-center justify-between p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl hover:bg-amber-500/10 transition-colors cursor-pointer" onClick={() => setSelectedViatura(v)}>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="p-2 bg-amber-500/20 rounded-lg text-amber-500">
+                                                                <Car className="w-5 h-5" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-white">{v.matricula}</p>
+                                                                <p className="text-sm text-slate-400">{v.marca} {v.modelo}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-amber-500 text-sm font-medium">
+                                                            <span>Ver Detalhes</span>
+                                                            <ArrowRight className="w-4 h-4" />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                                                <CheckCircle className="w-12 h-12 mb-3 text-emerald-500/50" />
+                                                <p>Tudo operacional. Nenhuma viatura em manutenção.</p>
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Quick Actions */}
+                                    <div className="bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border border-blue-500/10 rounded-2xl p-6 flex flex-col justify-center">
+                                        <h3 className="text-lg font-bold text-white mb-6">Ações Rápidas</h3>
+                                        <div className="space-y-4">
+                                            <button onClick={() => setActiveTab('create')} className="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-blue-600 hover:text-white text-slate-300 rounded-xl transition-all group border border-slate-700 hover:border-blue-500">
+                                                <span className="flex items-center gap-3 font-medium">
+                                                    <PlusCircle className="w-5 h-5" />
+                                                    Adicionar Nova Viatura
+                                                </span>
+                                                <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </button>
+                                            <button onClick={() => setActiveTab('list')} className="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all group border border-slate-700">
+                                                <span className="flex items-center gap-3 font-medium">
+                                                    <List className="w-5 h-5" />
+                                                    Ver Inventário Completo
+                                                </span>
+                                                <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            );
-                        })}
-                        {filteredItems.length === 0 && (
-                            <div className="col-span-full text-center py-20 bg-slate-900/20 rounded-3xl border border-dashed border-slate-700">
-                                <div className="inline-flex p-4 bg-slate-800/50 rounded-full mb-4">
-                                    <Search className="w-8 h-8 text-slate-600" />
-                                </div>
-                                <p className="text-slate-500 text-lg">{t('vehicles.empty.title')}</p>
-                                <p className="text-slate-600 text-sm mt-1">{t('vehicles.empty.subtitle')}</p>
                             </div>
                         )}
-                    </div>
-                </div>
-            )}
 
-            {/* CONTENT: CREATE */}
-            {activeTab === 'create' && (
-                <div className="max-w-3xl mx-auto w-full animate-slide-in-up">
-                    <div className="bg-slate-800/30 backdrop-blur-xl p-8 rounded-3xl border border-slate-700 shadow-2xl">
-                        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-700/50">
-                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-900/20">
-                                <PlusCircle className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-white tracking-tight">{t('vehicles.new')}</h2>
-                                <p className="text-slate-400 text-sm">Registrar uma nova viatura na frota.</p>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 pl-1">{t('vehicles.form.plate')}</label>
-                                    <input
-                                        required
-                                        maxLength={8}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 uppercase tracking-widest font-mono text-lg placeholder-slate-600 transition-all"
-                                        value={formData.matricula}
-                                        onChange={e => setFormData({ ...formData, matricula: e.target.value.toUpperCase() })}
-                                        placeholder="AA-00-BB"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 pl-1">{t('vehicles.form.year')}</label>
-                                    <input
-                                        type="number"
-                                        min="1900"
-                                        max={new Date().getFullYear() + 1}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all"
-                                        value={formData.ano}
-                                        onChange={e => setFormData({ ...formData, ano: e.target.value })}
-                                        placeholder={new Date().getFullYear().toString()}
-                                    />
-                                </div>
-                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 pl-1">{t('vehicles.form.brand')}</label>
+                        {/* VIEW: LIST */}
+                        {activeTab === 'list' && (
+                            <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
+                                <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900 p-4 rounded-xl border border-slate-800">
+                                    <div className="relative w-full md:w-96">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 h-4 w-4" />
                                         <input
-                                            required
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all"
-                                            value={formData.marca}
-                                            onChange={e => setFormData({ ...formData, marca: e.target.value })}
-                                            placeholder="Ex: Mercedes-Benz"
+                                            type="text"
+                                            placeholder="Pesquisar por matrícula, marca ou modelo..."
+                                            className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200"
+                                            value={filter}
+                                            onChange={e => setFilter(e.target.value)}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 pl-1">{t('vehicles.form.model')}</label>
-                                        <input
-                                            required
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all"
-                                            value={formData.modelo}
-                                            onChange={e => setFormData({ ...formData, modelo: e.target.value })}
-                                            placeholder="Ex: Sprinter 316 CDI"
-                                        />
+                                    <div className="flex items-center gap-3">
+                                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
+                                            <Filter className="w-4 h-4" />
+                                            Filtros
+                                        </button>
+                                        <div className="h-6 w-px bg-slate-700 mx-2"></div>
+                                        <span className="text-sm text-slate-500 font-medium">
+                                            Showing {filteredItems.length} results
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="md:col-span-2">
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 pl-1">{t('vehicles.form.obs')}</label>
-                                    <textarea
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all resize-none placeholder-slate-600"
-                                        value={formData.obs}
-                                        onChange={e => setFormData({ ...formData, obs: e.target.value })}
-                                        placeholder="Ex: Viatura com porta lateral danificada..."
-                                    />
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                                    {filteredItems.map(viatura => {
+                                        const status = getVehicleStatus(viatura);
+                                        return (
+                                            <div
+                                                key={viatura.id}
+                                                onClick={() => setSelectedViatura(viatura)}
+                                                className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                                            >
+                                                <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); deleteViatura(viatura.id); }}
+                                                        className="p-2 bg-slate-950 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold
+                                                            ${status === 'maintenance' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-600/10 text-blue-500'}`}>
+                                                            <Car className="w-6 h-6" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-white text-lg tracking-wide">{viatura.matricula}</h3>
+                                                            <p className="text-sm text-slate-400">{viatura.marca} {viatura.modelo}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-3 pt-4 border-t border-slate-800">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-500 flex items-center gap-2">
+                                                            <Calendar className="w-4 h-4" /> {viatura.ano || 'N/A'}
+                                                        </span>
+                                                        <span className={`px-2 py-0.5 rounded textxs font-bold uppercase tracking-wider
+                                                            ${status === 'maintenance' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                                            {status === 'maintenance' ? 'Manutenção' : 'Operacional'}
+                                                        </span>
+                                                    </div>
+                                                    {viatura.obs && (
+                                                        <div className="p-2 bg-slate-950 rounded-lg text-xs text-slate-400 italic line-clamp-1 flex items-start gap-2">
+                                                            <Info className="w-3 h-3 shrink-0 mt-0.5 text-slate-600" />
+                                                            {viatura.obs}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
+                        )}
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-slate-700/50">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveTab('list')}
-                                    className="px-6 py-3 text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-8 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-900/40 transition-all flex items-center gap-2"
-                                >
-                                    <CheckCircle className="w-5 h-5" />
-                                    Salvar Viatura
-                                </button>
+                        {/* VIEW: CREATE */}
+                        {activeTab === 'create' && (
+                            <div className="max-w-4xl mx-auto w-full animate-in slide-in-from-bottom-8 duration-500">
+                                <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+                                    <div className="flex items-center gap-6 mb-8 relative z-10">
+                                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+                                            <PlusCircle className="w-8 h-8 text-white" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-white mb-1">Nova Viatura</h2>
+                                            <p className="text-slate-400">Preencha os dados abaixo para adicionar um novo veículo à frota.</p>
+                                        </div>
+                                    </div>
+
+                                    <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Matrícula</label>
+                                                    <input
+                                                        required
+                                                        maxLength={8}
+                                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white text-lg font-mono tracking-widest uppercase placeholder-slate-700 transition-all"
+                                                        value={formData.matricula}
+                                                        onChange={e => setFormData({ ...formData, matricula: e.target.value.toUpperCase() })}
+                                                        placeholder="AA-00-BB"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Ano</label>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all"
+                                                        value={formData.ano}
+                                                        onChange={e => setFormData({ ...formData, ano: e.target.value })}
+                                                        placeholder="Ex: 2023"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Marca</label>
+                                                    <input
+                                                        required
+                                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all"
+                                                        value={formData.marca}
+                                                        onChange={e => setFormData({ ...formData, marca: e.target.value })}
+                                                        placeholder="Ex: Mercedes-Benz"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Modelo</label>
+                                                    <input
+                                                        required
+                                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all"
+                                                        value={formData.modelo}
+                                                        onChange={e => setFormData({ ...formData, modelo: e.target.value })}
+                                                        placeholder="Ex: Sprinter"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Observações</label>
+                                                <textarea
+                                                    rows={4}
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all resize-none placeholder-slate-700"
+                                                    value={formData.obs}
+                                                    onChange={e => setFormData({ ...formData, obs: e.target.value })}
+                                                    placeholder="Informações adicionais, estado da viatura, etc..."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-800">
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveTab('list')}
+                                                className="px-6 py-3 text-slate-400 hover:text-white font-bold transition-colors"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                                            >
+                                                <CheckCircle className="w-5 h-5" />
+                                                Registar Viatura
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                        </form>
+                        )}
+
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
