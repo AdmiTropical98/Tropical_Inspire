@@ -5,7 +5,7 @@ import { Plus, Trash2, Building2, MapPin } from 'lucide-react';
 import type { CentroCusto } from '../../types';
 
 export default function CentrosCustos() {
-    const { centrosCustos, addCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes } = useWorkshop();
+    const { centrosCustos, addCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes, motoristas, manualHours } = useWorkshop();
     const [showForm, setShowForm] = useState(false);
 
     // Form State
@@ -56,16 +56,70 @@ export default function CentrosCustos() {
                     </div>
                 ) : (
                     centrosCustos.map(cc => {
-                        // Calculate Expenses
+                        // Calculate Expenses from Context Data
+
+                        // 1. Fuel
                         const fuelExpenses = fuelTransactions
                             .filter(t => t.centroCustoId === cc.id)
                             .reduce((sum, t) => sum + (t.totalCost || 0), 0);
 
+                        // 2. Requisitions
                         const reqExpenses = requisicoes
                             .filter(r => r.centroCustoId === cc.id)
                             .reduce((sum, r) => sum + (r.custo || 0), 0);
 
-                        const totalExpenses = fuelExpenses + reqExpenses;
+                        // 3. Labor (Salaries + Manual Hours)
+                        // This matches drivers CURRENTLY in this CC. 
+                        // Note: Historical movements not tracked, so this assumes they were always here.
+                        const ccDrivers = motoristas.filter(m => m.centroCustoId === cc.id);
+
+                        let laborExpenses = 0;
+                        const now = new Date();
+
+                        ccDrivers.forEach(m => {
+                            // A. Base Salary (Estimated Lifetime for this Driver)
+                            const regDate = m.dataRegisto ? new Date(m.dataRegisto) : new Date();
+                            // Diff in months
+                            const months = (now.getFullYear() - regDate.getFullYear()) * 12 + (now.getMonth() - regDate.getMonth()) + 1; // +1 to include starting month
+                            const activeMonths = Math.max(1, months);
+
+                            if (m.vencimentoBase) {
+                                laborExpenses += m.vencimentoBase * activeMonths;
+                            }
+
+                            // B. Manual Hours
+                            // Filter hours for this driver
+                            /* 
+                                We don't have manualHours exposed in the destructured vars below yet, 
+                                need to add it to useWorkshop() destructure or access via context.
+                                Assuming manualHours is available in context (verified in previous steps).
+                            */
+                        });
+
+                        // Specific Manual Hours Loop (in case driver changed but hour record has ID - though record doesn't store CC, it stores DriverID)
+                        // If we want to be precise, we iterate all manual hours and check if their driver is CURRENTLY in this CC.
+                        // (Approximation accepted)
+                        const relevantManualHours = manualHours.filter(mh => {
+                            const driver = motoristas.find(d => d.id === mh.motoristaId);
+                            return driver && driver.centroCustoId === cc.id;
+                        });
+
+                        relevantManualHours.forEach(mh => {
+                            const driver = motoristas.find(d => d.id === mh.motoristaId);
+                            if (driver && driver.valorHora) {
+                                const start = new Date(`1970-01-01T${mh.startTime}`);
+                                const end = new Date(`1970-01-01T${mh.endTime}`);
+                                let diffHrs = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                                if (diffHrs < 0) diffHrs += 24;
+                                const duration = diffHrs - ((mh.breakDuration || 0) / 60);
+                                if (duration > 0) {
+                                    laborExpenses += duration * driver.valorHora;
+                                }
+                            }
+                        });
+
+
+                        const totalExpenses = fuelExpenses + reqExpenses + laborExpenses;
 
                         return (
                             <div key={cc.id} className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 relative group hover:border-blue-500/30 transition-all">
@@ -97,9 +151,14 @@ export default function CentrosCustos() {
                                     <p className="text-2xl font-bold text-white">
                                         {totalExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
                                     </p>
-                                    <div className="flex gap-4 mt-2 text-xs text-slate-400">
-                                        <span>Combustível: {fuelExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
-                                        <span>Requisições: {reqExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                    <div className="flex flex-col gap-1 mt-3">
+                                        <div className="flex gap-4 text-xs text-slate-400">
+                                            <span>Combustível: {fuelExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                            <span>Requisições: {reqExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                        </div>
+                                        <div className="text-xs text-emerald-400/80 font-medium">
+                                            <span>Salários / M. Obra: {laborExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
