@@ -114,7 +114,7 @@ export default function Viaturas() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto p-4 md:p-8 font-sans h-full flex flex-col overflow-y-auto custom-scrollbar">
+        <div className="max-w-7xl mx-auto p-2 md:p-8 font-sans h-full flex flex-col overflow-y-auto overflow-x-hidden custom-scrollbar">
             {selectedViatura && (
                 <VehicleProfile
                     viatura={selectedViatura}
@@ -197,13 +197,13 @@ export default function Viaturas() {
             {activeTab === 'overview' && (
                 <div className="space-y-8 animate-slide-in-up">
                     {/* Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                         <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Car className="w-24 h-24 text-blue-500" />
+                                <Car className="w-16 h-16 md:w-24 md:h-24 text-blue-500" />
                             </div>
                             <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Frota</h3>
-                            <p className="text-3xl font-bold text-white">{stats.total}</p>
+                            <p className="text-2xl md:text-3xl font-bold text-white">{stats.total}</p>
                             <div className="mt-4 flex items-center gap-2 text-blue-400 text-xs font-bold px-2 py-1 bg-blue-500/10 w-fit rounded-lg">
                                 <CheckCircle className="w-3 h-3" />
                                 {stats.active} Operacionais
@@ -212,10 +212,10 @@ export default function Viaturas() {
 
                         <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Wrench className="w-24 h-24 text-amber-500" />
+                                <Wrench className="w-16 h-16 md:w-24 md:h-24 text-amber-500" />
                             </div>
                             <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Em Manutenção</h3>
-                            <p className="text-3xl font-bold text-white">{stats.maintenance}</p>
+                            <p className="text-2xl md:text-3xl font-bold text-white">{stats.maintenance}</p>
                             <div className="mt-4 flex items-center gap-2 text-amber-400 text-xs font-bold px-2 py-1 bg-amber-500/10 w-fit rounded-lg">
                                 <AlertTriangle className="w-3 h-3" />
                                 Requer atenção
@@ -224,10 +224,10 @@ export default function Viaturas() {
 
                         <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Fuel className="w-24 h-24 text-emerald-500" />
+                                <Fuel className="w-16 h-16 md:w-24 md:h-24 text-emerald-500" />
                             </div>
                             <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Consumo Médio</h3>
-                            <p className="text-3xl font-bold text-white">{stats.fuelAvg}</p>
+                            <p className="text-2xl md:text-3xl font-bold text-white">{stats.fuelAvg}</p>
                             <div className="mt-4 flex items-center gap-2 text-emerald-400 text-xs font-bold px-2 py-1 bg-emerald-500/10 w-fit rounded-lg">
                                 <CheckCircle className="w-3 h-3" />
                                 Estimado (Global)
@@ -322,14 +322,14 @@ export default function Viaturas() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5">
                         {filteredItems.map(viatura => {
                             const status = getVehicleStatus(viatura);
                             return (
                                 <div
                                     key={viatura.id}
                                     onClick={() => setSelectedViatura(viatura)}
-                                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-900/10 transition-all group relative cursor-pointer"
+                                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl md:rounded-2xl p-4 md:p-5 hover:bg-slate-800 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-900/10 transition-all group relative cursor-pointer"
                                 >
                                     <button
                                         onClick={(e) => { e.stopPropagation(); deleteViatura(viatura.id); }}
