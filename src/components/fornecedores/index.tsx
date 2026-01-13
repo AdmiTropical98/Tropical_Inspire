@@ -3,6 +3,7 @@ import { Plus, Search, Trash2, MapPin, Phone, Mail, Building2 } from 'lucide-rea
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Fornecedor } from '../../types';
+import { supabase } from '../../lib/supabase';
 
 export default function Fornecedores() {
     const { fornecedores, addFornecedor, deleteFornecedor } = useWorkshop();
@@ -10,29 +11,98 @@ export default function Fornecedores() {
     const [showForm, setShowForm] = useState(false);
     const [filter, setFilter] = useState('');
 
-    const [formData, setFormData] = useState<Omit<Fornecedor, 'id'>>({
-        nome: '',
-        nif: '',
-        morada: '',
-        contacto: '',
-        email: '',
-        obs: ''
+    const [fotoFile, setFotoFile] = useState<File | null>(null);
+const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+
+const [formData, setFormData] = useState<Omit<Fornecedor, 'id'>>({
+  nome: '',
+  nif: '',
+  morada: '',
+  contacto: '',
+  email: '',
+  obs: ''
+});
+
+const uploadFornecedorFoto = async (file: File) => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${crypto.randomUUID()}.${fileExt}`;
+  const filePath = `logos/${fileName}`; // 👈 OBRIGATÓRIO
+
+  const { error } = await supabase.storage
+    .from('fornecedores')
+    .upload(filePath, file);
+
+  if (error) {
+    console.error('Erro upload:', error);
+    throw error;
+  }
+
+  const { data } = supabase.storage
+    .from('fornecedores')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    let fotoUrl: string | undefined;
+
+    if (fotoFile) {
+      fotoUrl = await uploadFornecedorFoto(fotoFile);
+    }
+
+    addFornecedor({
+      ...formData,
+      id: crypto.randomUUID(),
+      foto: fotoUrl,
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        addFornecedor({
-            ...formData,
-            id: crypto.randomUUID()
-        });
-        setShowForm(false);
-        setFormData({ nome: '', nif: '', morada: '', contacto: '', email: '', obs: '' });
-    };
+    setShowForm(false);
+    setFotoFile(null);
+    setFotoPreview(null);
+    setFormData({
+      nome: '',
+      nif: '',
+      morada: '',
+      contacto: '',
+      email: '',
+      obs: '',
+    });
+
+  } catch (err) {
+    console.error('Erro ao guardar fornecedor:', err);
+    alert('Erro ao guardar fornecedor');
+  }
+};
+
 
     const filteredItems = fornecedores.filter(f =>
         f.nome.toLowerCase().includes(filter.toLowerCase()) ||
         f.nif.includes(filter)
     );
+const handleDeleteFornecedor = async (fornecedor: Fornecedor) => {
+  // 1. Remover imagem do Supabase Storage (se existir)
+  if (fornecedor.foto) {
+    try {
+      const url = new URL(fornecedor.foto);
+      const filePath = url.pathname.split('/fornecedores/')[1];
+
+      if (filePath) {
+        await supabase.storage
+          .from('fornecedores')
+          .remove([filePath]);
+      }
+    } catch (err) {
+      console.warn('Erro ao remover imagem do fornecedor:', err);
+    }
+  }
+
+  // 2. Remover fornecedor da base / estado
+  deleteFornecedor(fornecedor.id);
+};
 
     return (
         <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
@@ -69,31 +139,33 @@ export default function Fornecedores() {
                             {/* Image Upload */}
                             <div className="flex justify-center mb-6">
                                 <div className="relative group">
-                                    <div className={`w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-2 ${formData.foto ? 'border-blue-500' : 'border-slate-600 border-dashed bg-slate-800'}`}>
-                                        {formData.foto ? (
-                                            <img src={formData.foto} alt="Preview" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <Building2 className="w-8 h-8 text-slate-500" />
-                                        )}
-                                    </div>
+                                   <div className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-2 border-slate-600 bg-slate-800">
+  {fotoPreview ? (
+  <img src={fotoPreview} className="w-full h-full object-cover" />
+) : (
+  <Building2 className="w-8 h-8 text-slate-500" />
+)}
+
+</div>
+
                                     <label className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full cursor-pointer shadow-lg transition-all z-10">
-                                        <Plus className="w-4 h-4" />
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => {
-                                                        setFormData(prev => ({ ...prev, foto: reader.result as string }));
-                                                    };
-                                                    reader.readAsDataURL(file);
-                                                }
-                                            }}
-                                        />
-                                    </label>
+  <Plus className="w-4 h-4" />
+
+ <input
+  type="file"
+  className="hidden"
+  accept="image/*"
+  onChange={(e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFotoFile(file);
+      setFotoPreview(URL.createObjectURL(file));
+    }
+  }}
+/>
+
+</label>
+
                                 </div>
                             </div>
 
@@ -172,27 +244,35 @@ export default function Fornecedores() {
                         {filteredItems.map(fornecedor => (
                             <div key={fornecedor.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/10 transition-all group relative">
                                 <button
-                                    onClick={() => deleteFornecedor(fornecedor.id)}
+                                    onClick={() => handleDeleteFornecedor(fornecedor)}
                                     className="absolute top-4 right-4 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-red-500/10 rounded-lg z-10"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </button>
+<div className="flex items-start gap-4 mb-4">
+  <div className="relative">
+    <div className="w-12 h-12 rounded-xl shadow-lg flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
+      {fornecedor.foto ? (
+  <img
+    src={fornecedor.foto}
+    alt={fornecedor.nome}
+    className="w-full h-full object-cover"
+  />
+) : (
+  <Building2 className="h-6 w-6" />
+)}
+    </div>
+  </div>
 
-                                <div className="flex items-start gap-4 mb-4">
-                                    <div className="relative">
-                                        <div className="w-12 h-12 rounded-xl shadow-lg flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
-                                            {fornecedor.foto ? (
-                                                <img src={fornecedor.foto} alt={fornecedor.nome} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <Building2 className="h-6 w-6" />
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-white text-lg leading-tight">{fornecedor.nome}</h3>
-                                        <p className="text-sm text-slate-400 mt-1 font-mono">NIF: {fornecedor.nif}</p>
-                                    </div>
-                                </div>
+  <div>
+    <h3 className="font-bold text-white text-lg leading-tight">
+      {fornecedor.nome}
+    </h3>
+    <p className="text-sm text-slate-400 mt-1 font-mono">
+      NIF: {fornecedor.nif}
+    </p>
+  </div>
+</div>
 
                                 <div className="space-y-2.5 mt-4 pt-4 border-t border-slate-700/50 text-sm">
                                     <div className="flex items-center gap-2.5 text-slate-400">

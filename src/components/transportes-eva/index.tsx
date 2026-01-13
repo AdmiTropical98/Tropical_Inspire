@@ -1,5 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Bus, Plus, Calendar, Euro, TrendingUp, Receipt, AlertTriangle, CheckCircle, X, Check } from 'lucide-react';
+import {
+  Bus,
+  Plus,
+  Calendar,
+  Euro,
+  TrendingUp,
+  Receipt,
+  AlertTriangle,
+  CheckCircle,
+  X,
+  Check
+} from 'lucide-react';
+
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import type { EvaTransport, EvaDailyUsage } from '../../types';
