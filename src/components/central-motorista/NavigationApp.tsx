@@ -420,11 +420,11 @@ export default function NavigationApp({
                                     onClick={() => {
                                         // Manual override for testing/desktop
                                         setHasGpsLock(true);
-                                        // Force set to a generic Algarve coords if needed, or leave current (which is user input)
                                     }}
-                                    className="px-6 py-3 bg-slate-800 text-slate-400 border border-slate-700 rounded-xl font-bold hover:bg-slate-700 hover:text-white transition"
+                                    className="px-6 py-3 bg-blue-600 text-white shadow-lg shadow-blue-900/20 rounded-xl font-bold hover:bg-blue-500 transition flex items-center gap-2"
                                 >
-                                    Ignorar (Teste)
+                                    <Navigation className="w-5 h-5" />
+                                    Simular GPS
                                 </button>
                             </div>
                         </div>
