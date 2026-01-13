@@ -277,13 +277,13 @@ export default function NavigationApp({
     }, []);
 
     // Icons
-    // Custom Icons - 3D Car
+    // Custom Icons - 3D Blue Car
     const carIcon = new L.Icon({
-        iconUrl: '/nav-car-3d.png',
-        iconSize: [80, 80], // High visibility size
-        iconAnchor: [40, 40], // Center anchor (top-down view)
+        iconUrl: '/nav-car-blue.png',
+        iconSize: [80, 80],
+        iconAnchor: [40, 40],
         popupAnchor: [0, -40],
-        className: 'navigation-car-3d-icon' // For potential CSS rotation later
+        className: 'navigation-car-blue-3d' // Specific class to avoid old styles
     });
 
     const destIcon = L.divIcon({
