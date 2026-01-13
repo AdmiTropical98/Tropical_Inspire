@@ -8,7 +8,7 @@ import DriverProfile from './DriverProfile';
 import UserPermissionsModal from '../permissoes/UserPermissionsModal';
 
 export default function Motoristas() {
-    const { motoristas, addMotorista, updateMotorista, deleteMotorista } = useWorkshop();
+    const { motoristas, addMotorista, updateMotorista, deleteMotorista, centrosCustos } = useWorkshop();
     const { t } = useTranslation();
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'on_leave' | 'holidays' | 'sick'>('all');
@@ -22,6 +22,7 @@ export default function Motoristas() {
         contacto: '',
         cartaConducao: '',
         email: '',
+        centroCustoId: '',
         vencimentoBase: 0,
         valorHora: 0,
         obs: '',
@@ -54,7 +55,7 @@ export default function Motoristas() {
         };
 
         addMotorista(newMotorista);
-        setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', foto: '', cartrackKey: '' });
+        setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', foto: '', cartrackKey: '' , centroCustoId: '' });
         setPhotoPreview('');
         alert(`${t('drivers.success_msg')}: ${newPin} `);
         setSelectedDriver(newMotorista);
@@ -250,6 +251,7 @@ export default function Motoristas() {
                 <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
                     <h3 className="font-bold text-white mb-6 text-lg">{t('drivers.new')}</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        
                         {/* Photo Upload */}
                         <div className="flex justify-center mb-4">
                             <div className="relative">
@@ -322,6 +324,29 @@ export default function Motoristas() {
                                 placeholder="motorista@algartempo.com"
                             />
                         </div>
+{/* CENTRO DE CUSTOS */}
+<div className="w-full">
+  <label className="text-xs font-bold text-slate-500 uppercase ml-1">
+    Centro de Custos *
+  </label>
+
+  <select
+    value={formData.centroCustoId}
+    onChange={(e) =>
+      setFormData({ ...formData, centroCustoId: e.target.value })
+    }
+    required
+    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+  >
+    <option value="">Selecionar centro de custos</option>
+
+    {centrosCustos.map((cc) => (
+      <option key={cc.id} value={cc.id}>
+        {cc.nome}
+      </option>
+    ))}
+  </select>
+</div>
 
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase ml-1">Chave Cartrack</label>
