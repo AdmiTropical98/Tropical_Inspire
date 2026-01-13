@@ -337,15 +337,15 @@ export default function NavigationApp({
 
             {/* Map Area - Simplified & Safe 3D */}
             <div
-                className="absolute inset-0 z-0 w-full h-full"
+                className={`transition-all duration-1000 ease-in-out ${isNavigating
+                        ? 'absolute top-[-150%] left-[-50%] w-[200%] h-[250%] z-0 origin-bottom'
+                        : 'absolute inset-0 z-0 w-full h-full'
+                    }`}
                 style={isNavigating ? {
-                    // Safe 3D Effect: Scale up slightly, tilt moderately
-                    transform: 'scale(1.2) perspective(1000px) rotateX(50deg) translateY(-10%)',
-                    transformOrigin: '50% 100%',
-                    transition: 'transform 1s ease-in-out'
-                } : {
-                    transition: 'transform 1s ease-in-out'
-                }}
+                    // Horizon Fix: 250% Height compressed by 60deg tilt = ~125% screen fill
+                    transform: 'perspective(800px) rotateX(60deg)',
+                    transformOrigin: '50% 100%'
+                } : {}}
             >
                 <MapContainer
                     center={currentPos}
