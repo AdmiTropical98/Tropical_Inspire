@@ -39,6 +39,7 @@ import Geofences from './components/geofences'; // Import Geofences component
 import UsersPage from './components/users'; // Import UsersPage
 import Permissoes from './components/permissoes';
 import MyProfile from './components/profile/MyProfile';
+import SplashScreen from './components/SplashScreen';
 import { LayoutProvider } from './contexts/LayoutContext';
 
 // Sidebar Item Component for consistent styling
@@ -83,6 +84,7 @@ function AppContent() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Listen for Password Recovery Event
   useEffect(() => {
@@ -149,6 +151,10 @@ function AppContent() {
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
   };
+
+};
+
+if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
   if (isResettingPassword) return <ResetPassword />;
 
