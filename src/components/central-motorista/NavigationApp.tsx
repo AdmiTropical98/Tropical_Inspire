@@ -428,7 +428,7 @@ export default function NavigationApp({
                 )}
 
                 {/* Recenter Button */}
-                <div className="absolute right-4 bottom-56 md:bottom-24 z-[1000] flex flex-col gap-3">
+                <div className="absolute right-4 bottom-40 md:bottom-24 z-[1000] flex flex-col gap-3">
                     <button
                         onClick={() => setFollowMe(prev => !prev)}
                         className={`p-3.5 rounded-full shadow-2xl transition-all active:scale-95 ${followMe ? 'bg-blue-600 text-white shadow-blue-900/30' : 'bg-slate-900 text-slate-400 border border-slate-700'}`}
