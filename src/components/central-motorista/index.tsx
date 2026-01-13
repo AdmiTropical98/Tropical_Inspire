@@ -5,7 +5,8 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import {
     LayoutTemplate, Clock, FileText, Share2, AlertTriangle,
     Send, Car, Sun, Navigation, Calendar,
-    Check, Fuel, Settings2, ArrowRight
+    Check, Fuel, Settings2, ArrowRight,
+    CloudSun, CloudFog, CloudLightning, CloudRain, Snowflake, Moon
 } from 'lucide-react';
 import MyScheduleView from './MyScheduleView';
 import DraggableZone from '../common/DraggableZone';
