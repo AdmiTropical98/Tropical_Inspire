@@ -2,7 +2,8 @@ import { useState } from 'react';
 import {
     Fuel, Droplets, History, Check, Truck,
     Gauge, Trash2, LayoutTemplate, BarChart3,
-    Zap, Settings, Upload, Download, FileSpreadsheet
+    Zap, Settings, Upload, Download, FileSpreadsheet,
+    Plus, Search, Filter, ArrowRight, X, AlertCircle, TrendingUp, Calendar, ChevronRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -108,45 +109,33 @@ export default function Combustivel() {
         // Step 1: Admin/Staff Authentication
         if (authModal.step === 1) {
             if (userRole === 'admin') {
-                // Fetch the actual logged-in user's email from the session
                 const { data: { user } } = await supabase.auth.getUser();
                 const adminEmail = user?.email || (currentUser as any)?.email || 'admin@admin.com';
 
-                console.log("Verifying password for:", adminEmail);
-
-                // Verify Admin Password via Supabase Auth
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: adminEmail,
                     password: authModal.adminPassword
                 });
 
                 if (error || !data.user) {
-                    console.error("Auth Error:", error);
                     const errorMsg = error?.message === 'Invalid login credentials'
                         ? 'Password incorreta.'
-                        : 'Erro de autenticação. Tente novamente.';
+                        : 'Erro de autenticação.';
                     setAuthModal(prev => ({ ...prev, error: errorMsg }));
                     return;
                 }
             } else if (userRole === 'oficina') {
-                // Verify Office Staff PIN
-                // TypeScript needs to know currentUser has a pin. 'oficinaUser' type usually has it.
-                // We'll assume currentUser is correct type if role is oficina.
                 if ((currentUser as any)?.pin !== authModal.adminPassword) {
                     setAuthModal(prev => ({ ...prev, error: 'PIN incorreto.' }));
                     return;
                 }
             } else {
-                // Supervisors?? Typically don't register fuel, but if they do, use password
-                // For now, assume success or block? Let's check password if they have it
-                // Supervisors use password in AuthContext
                 if ((currentUser as any)?.password !== authModal.adminPassword) {
                     setAuthModal(prev => ({ ...prev, error: 'Password incorreta.' }));
                     return;
                 }
             }
 
-            // If success, move to step 2
             setAuthModal(prev => ({ ...prev, step: 2, error: '' }));
             return;
         }
@@ -164,7 +153,6 @@ export default function Combustivel() {
                 return;
             }
 
-            // Both Verified! Register Refuel
             registerRefuel({
                 id: crypto.randomUUID(),
                 driverId: refuelForm.driverId,
@@ -174,7 +162,7 @@ export default function Combustivel() {
                 km: Number(refuelForm.km),
                 staffId: currentUser?.id || 'admin',
                 staffName: currentUser?.nome || 'Administrador',
-                status: 'confirmed', // Automatically confirmed
+                status: 'confirmed',
                 timestamp: new Date().toISOString()
             });
 
@@ -198,7 +186,7 @@ export default function Combustivel() {
         let totalSpentSinceLast = 0;
         if (tankRefills.length > 0) {
             const lastLog = tankRefills[0];
-            totalSpentSinceLast = lastLog.levelAfter - currentLevel;
+            totalSpentSinceLast = lastLog.levelAfter - currentLevel; // Approximation
         }
 
         registerTankRefill({
@@ -231,8 +219,8 @@ export default function Combustivel() {
 
     const confirmCalibration = () => {
         const parsedLevel = Number(calibrationValue);
-        if (isNaN(parsedLevel) || parsedLevel < 0 || parsedLevel > fuelTank.capacity) {
-            alert('Valor inválido. Certifique-se que é um número entre 0 e ' + fuelTank.capacity);
+        if (isNaN(parsedLevel) || parsedLevel < 0) {
+            alert('Valor inválido.');
             return;
         }
 
@@ -265,504 +253,474 @@ export default function Combustivel() {
             alert(`${data.length} registos importados com sucesso!`);
         };
         reader.readAsBinaryString(file);
-        e.target.value = ''; // Reset input
+        e.target.value = '';
     };
 
     const percentage = (fuelTank.currentLevel / fuelTank.capacity) * 100;
 
-    // Get recent transactions for the sidebar
     const recentTransactions = [...fuelTransactions]
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 5);
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar max-w-[1920px] mx-auto p-4 md:p-8 font-sans space-y-8">
+        <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 font-sans overflow-hidden">
 
-            {/* Header */}
-            <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
-                            <Fuel className="w-6 h-6 text-yellow-500" />
+            {/* Scrollable Main Area */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <main className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-8">
+
+                    {/* Header */}
+                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+                        <div>
+                            <h1 className="text-4xl font-black text-white tracking-tight mb-2 flex items-center gap-4">
+                                <div className="p-3 bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
+                                    <Fuel className="w-8 h-8 text-yellow-500" />
+                                </div>
+                                <span className="bg-gradient-to-r from-yellow-400 to-amber-500 text-transparent bg-clip-text">
+                                    {t('fuel.title')}
+                                </span>
+                            </h1>
+                            <p className="text-slate-400 text-lg font-medium max-w-2xl">{t('fuel.subtitle')}</p>
                         </div>
-                        {t('fuel.title')}
-                    </h1>
-                    <p className="text-slate-400">{t('fuel.subtitle')}</p>
-                </div>
 
-                {/* Live Date/Time Widget */}
-                <div className="hidden md:flex flex-col items-end bg-slate-800/30 px-4 py-2 rounded-xl border border-slate-700/50">
-                    <span className="text-xl font-mono font-bold text-white">
-                        {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <span className="text-xs text-slate-400 capitalize">
-                        {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
-                    </span>
-                </div>
-            </div>
+                        <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg overflow-x-auto max-w-full">
+                            {[
+                                { id: 'overview', icon: LayoutTemplate, label: 'Visão Geral' },
+                                { id: 'abastecer', icon: Fuel, label: 'Abastecer Viatura' },
+                                { id: 'tanque', icon: Droplets, label: 'Reabastecer Tanque' },
+                                { id: 'historico', icon: History, label: 'Histórico' },
+                                { id: 'bp', icon: FileSpreadsheet, label: 'BP' },
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap
+                                    ${activeTab === tab.id
+                                            ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <tab.icon className="w-4 h-4" />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-            {/* Navigation Tabs - Modern Pill Design */}
-            <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-                {[
-                    { id: 'overview', icon: LayoutTemplate, label: 'Visão Geral', color: 'yellow' },
-                    { id: 'abastecer', icon: Fuel, label: 'Registar Abastecimento', color: 'yellow' },
-                    { id: 'tanque', icon: Droplets, label: 'Gestão de Tanque', color: 'emerald' },
-                    { id: 'bp', icon: FileSpreadsheet, label: 'Cartões BP', color: 'green' },
-                    { id: 'historico', icon: History, label: 'Histórico Completo', color: 'blue' },
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all whitespace-nowrap text-sm
-                        ${activeTab === tab.id
-                                ? `bg-${tab.color}-500 text-black shadow-lg shadow-${tab.color}-500/20 ring-2 ring-${tab.color}-500/30`
-                                : 'bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700/50'}`}
-                    >
-                        <tab.icon className="w-4 h-4" />
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-
-                {/* Main Action Panel */}
-                <div className="lg:col-span-2 space-y-6">
+                    {/* Content Area */}
 
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Main Stats Card */}
+                            <div className="lg:col-span-2 space-y-6">
+                                <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl group">
+                                    <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-yellow-500/10 transition-colors duration-500"></div>
 
-                            {/* Hero Status Card */}
-                            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-white/5 rounded-3xl p-6 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-
-                                <div className="relative z-10">
-                                    <div className="flex justify-between items-start mb-6">
+                                    <div className="flex justify-between items-start mb-8 relative z-10">
                                         <div>
-                                            <h2 className="text-2xl font-bold text-white mb-1">Estado do Combustível</h2>
-                                            <p className="text-slate-400">Visão geral do tanque e consumos</p>
+                                            <h2 className="text-2xl font-black text-white mb-2">Estado do Tanque</h2>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-slate-400 font-medium">Capacidade Total</span>
+                                                <span className="bg-slate-800 px-3 py-1 rounded-full text-xs font-bold text-slate-300 border border-slate-700">{fuelTank.capacity} L</span>
+                                            </div>
                                         </div>
-                                        {/* Tank Level Badge */}
-                                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${percentage < 20 ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
-                                            <span className={`w-2 h-2 rounded-full ${percentage < 20 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></span>
-                                            <span className={`text-xs font-bold uppercase ${percentage < 20 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                        <div className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-lg backdrop-blur-md ${percentage < 20 ? 'bg-red-500/10 border-red-500/20 shadow-red-900/10' : 'bg-emerald-500/10 border-emerald-500/20 shadow-emerald-900/10'}`}>
+                                            <span className={`w-2.5 h-2.5 rounded-full ${percentage < 20 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                                            <span className={`text-sm font-bold uppercase tracking-wider ${percentage < 20 ? 'text-red-400' : 'text-emerald-400'}`}>
                                                 {percentage < 20 ? 'Nível Crítico' : 'Nível Normal'}
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
-                                            <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                                <Droplets className="w-4 h-4 text-blue-500" />
-                                                <span className="text-xs font-bold uppercase">Nível Atual</span>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                                        {/* Tank Visual */}
+                                        <div className="bg-slate-950/50 rounded-3xl p-6 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-56 group/tank">
+                                            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-yellow-600 to-yellow-400 opacity-20 transition-all duration-1000 ease-in-out group-hover/tank:opacity-30" style={{ height: `${percentage}%` }}></div>
+                                            <div className="absolute bottom-0 left-0 w-full h-1 bg-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.5)]" style={{ bottom: `${percentage}%`, transition: 'bottom 1s ease-in-out' }}></div>
+
+                                            <div className="relative z-10 flex justify-between items-start">
+                                                <Droplets className="w-6 h-6 text-yellow-500" />
+                                                <span className="text-2xl font-black text-white">{Math.round(percentage)}%</span>
                                             </div>
-                                            <div className="flex items-baseline gap-1">
-                                                <p className="text-white font-bold text-2xl">{fuelTank.currentLevel}</p>
-                                                <span className="text-xs text-slate-500">L</span>
-                                            </div>
-                                            <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                                                <div
-                                                    className={`h-full rounded-full ${percentage < 20 ? 'bg-red-500' : 'bg-blue-500'}`}
-                                                    style={{ width: `${percentage}%` }}
-                                                />
+                                            <div className="relative z-10">
+                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Disponível</p>
+                                                <p className="text-4xl font-black text-white">{fuelTank.currentLevel} <span className="text-lg text-slate-500 font-bold">L</span></p>
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
-                                            <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                                <Truck className="w-4 h-4 text-emerald-500" />
-                                                <span className="text-xs font-bold uppercase">Capacidade</span>
-                                            </div>
-                                            <div className="flex items-baseline gap-1">
-                                                <p className="text-white font-bold text-2xl">{fuelTank.capacity}</p>
-                                                <span className="text-xs text-slate-500">L</span>
-                                            </div>
-                                            <p className="text-xs text-slate-500 mt-2 truncate">Max. Tanque</p>
-                                        </div>
-
-                                        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 relative group">
-                                            <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                                <Gauge className="w-4 h-4 text-yellow-500" />
-                                                <span className="text-xs font-bold uppercase">Contador</span>
-                                            </div>
-
-                                            {isCalibrating ? (
-                                                <div className="animate-in fade-in zoom-in duration-200">
-                                                    <input
-                                                        autoFocus
-                                                        type="number"
-                                                        value={calibrationValue}
-                                                        onChange={e => setCalibrationValue(e.target.value)}
-                                                        className="w-full bg-black/50 border border-yellow-500/50 rounded px-2 py-1 text-white font-mono text-lg mb-2 outline-none focus:ring-1 focus:ring-yellow-500"
-                                                        placeholder="000000"
-                                                    />
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={confirmCalibration}
-                                                            className="flex-1 bg-yellow-500 text-black text-[10px] font-bold py-1 rounded hover:bg-yellow-400"
-                                                        >
-                                                            SALVAR
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setIsCalibrating(false)}
-                                                            className="px-2 bg-slate-800 text-slate-400 text-[10px] font-bold py-1 rounded hover:bg-slate-700"
-                                                        >
-                                                            X
-                                                        </button>
+                                        <div className="md:col-span-2 grid grid-cols-2 gap-6">
+                                            <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 hover:bg-slate-800/50 transition-all">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
+                                                        <BarChart3 className="w-5 h-5" />
                                                     </div>
+                                                    <span className="text-xs font-bold text-slate-400 uppercase">Preço Médio</span>
                                                 </div>
-                                            ) : (
-                                                <>
-                                                    <p className="text-white font-bold text-xl tracking-tighter">
-                                                        {String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500 mt-2">Leitura da Bomba</p>
+                                                <p className="text-3xl font-black text-white">{(fuelTank.averagePrice || 0).toFixed(3)}</p>
+                                                <p className="text-sm text-slate-500 font-medium mt-1">EUR / Litro</p>
+                                            </div>
 
+                                            <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 hover:bg-slate-800/50 transition-all relative group/counter">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+                                                            <Gauge className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-xs font-bold text-slate-400 uppercase">Contador</span>
+                                                    </div>
                                                     {hasAccess(userRole, 'combustivel_calibrate') && (
-                                                        <button
-                                                            onClick={handleCalibrateTank}
-                                                            className="absolute top-2 right-2 p-1.5 text-slate-600 hover:text-white hover:bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                                                            title="Calibrar Contador"
-                                                        >
-                                                            <Settings className="w-3.5 h-3.5" />
+                                                        <button onClick={handleCalibrateTank} className="text-slate-600 hover:text-white transition-colors opacity-0 group-hover/counter:opacity-100">
+                                                            <Settings className="w-4 h-4" />
                                                         </button>
                                                     )}
-                                                </>
-                                            )}
-                                        </div>
+                                                </div>
 
-                                        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
-                                            <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                                <BarChart3 className="w-4 h-4 text-purple-500" />
-                                                <span className="text-xs font-bold uppercase">Preço Médio</span>
+                                                {isCalibrating ? (
+                                                    <div className="flex items-center gap-2 animate-in fade-in zoom-in">
+                                                        <input
+                                                            autoFocus
+                                                            type="number"
+                                                            value={calibrationValue}
+                                                            onChange={e => setCalibrationValue(e.target.value)}
+                                                            className="w-full bg-slate-950 border border-blue-500 rounded-lg px-2 py-1 text-white font-mono text-lg outline-none"
+                                                        />
+                                                        <button onClick={confirmCalibration} className="bg-blue-600 p-1.5 rounded-lg text-white"><Check className="w-4 h-4" /></button>
+                                                        <button onClick={() => setIsCalibrating(false)} className="bg-slate-700 p-1.5 rounded-lg text-slate-300"><X className="w-4 h-4" /></button>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <p className="text-3xl font-black text-white font-mono tracking-tight">{String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}</p>
+                                                        <p className="text-sm text-slate-500 font-medium mt-1">Litros Totais</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <p className="text-white font-bold text-2xl">
-                                                {(fuelTank.averagePrice || 0).toFixed(3)}
-                                            </p>
-                                            <p className="text-xs text-slate-500 mt-2">€ / Litro</p>
                                         </div>
                                     </div>
+
+                                    {/* Edit Button */}
+                                    {hasAccess(userRole, 'combustivel_edit') && (
+                                        <button
+                                            onClick={handleEditTank}
+                                            className="absolute bottom-8 right-8 text-slate-600 hover:text-white transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-slate-950/50 px-4 py-2 rounded-xl border border-slate-800 hover:border-slate-600"
+                                        >
+                                            <Settings className="w-4 h-4" />
+                                            Configurar Tanque
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <button
+                                        onClick={() => setActiveTab('abastecer')}
+                                        className="group bg-slate-900 border border-slate-800 p-6 rounded-[2rem] hover:border-yellow-500/50 transition-all text-left relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity transform translate-x-4 -translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0">
+                                            <Fuel className="w-24 h-24 text-yellow-500" />
+                                        </div>
+                                        <div className="w-14 h-14 bg-yellow-500 rounded-2xl flex items-center justify-center text-black mb-4 shadow-lg shadow-yellow-500/20 group-hover:scale-110 transition-transform">
+                                            <Fuel className="w-7 h-7" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-1">Registar Abastecimento</h3>
+                                        <p className="text-slate-400">Saída de combustível para viatura</p>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setActiveTab('tanque')}
+                                        className="group bg-slate-900 border border-slate-800 p-6 rounded-[2rem] hover:border-emerald-500/50 transition-all text-left relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity transform translate-x-4 -translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0">
+                                            <Truck className="w-24 h-24 text-emerald-500" />
+                                        </div>
+                                        <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-emerald-900/20 group-hover:scale-110 transition-transform">
+                                            <Truck className="w-7 h-7" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-1">Reabastecer Tanque</h3>
+                                        <p className="text-slate-400">Entrada de combustível (Camião Cisterna)</p>
+                                    </button>
                                 </div>
                             </div>
 
-                            {/* Quick Actions Grid */}
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider ml-1">Ações Rápidas</h3>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                                <button
-                                    onClick={() => setActiveTab('abastecer')}
-                                    className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 hover:border-yellow-500/50 rounded-2xl transition-all group text-left relative overflow-hidden"
-                                >
-                                    <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 mb-4 group-hover:scale-110 transition-transform">
-                                        <Fuel className="w-6 h-6" />
+                            {/* Sidebar Stats */}
+                            <div className="space-y-6">
+                                <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-6 h-full backdrop-blur-md">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="font-bold text-white flex items-center gap-2">
+                                            <History className="w-5 h-5 text-slate-400" />
+                                            Recentes
+                                        </h3>
+                                        <button onClick={() => setActiveTab('historico')} className="text-xs font-bold text-blue-400 hover:text-white transition-colors">VER TUDO</button>
                                     </div>
-                                    <span className="font-bold text-slate-200 block text-lg">Registar Saída</span>
-                                    <span className="text-xs text-slate-500 mt-1 block">Abastecimento Viatura</span>
-                                </button>
-
-                                <button
-                                    onClick={() => setActiveTab('tanque')}
-                                    className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 hover:border-emerald-500/50 rounded-2xl transition-all group text-left"
-                                >
-                                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-4 group-hover:scale-110 transition-transform">
-                                        <Truck className="w-6 h-6" />
+                                    <div className="space-y-4">
+                                        {recentTransactions.length > 0 ? (
+                                            recentTransactions.map(tx => {
+                                                const driver = motoristas.find(m => m.id === tx.driverId);
+                                                const vehicle = viaturas.find(v => v.id === tx.vehicleId);
+                                                return (
+                                                    <div key={tx.id} className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 hover:bg-slate-800 transition-colors">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex items-center gap-2 text-white font-bold">
+                                                                <span className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center text-xs font-mono">{vehicle?.matricula.slice(0, 2)}</span>
+                                                                <span>{vehicle?.matricula}</span>
+                                                            </div>
+                                                            <span className="text-yellow-400 font-bold font-mono">{tx.liters}L</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-xs text-slate-500">
+                                                            <span>{driver?.nome.split(' ')[0]}</span>
+                                                            <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="text-center py-12 text-slate-500 italic">Sem movimentos recentes</div>
+                                        )}
                                     </div>
-                                    <span className="font-bold text-slate-200 block text-lg">Registar Entrada</span>
-                                    <span className="text-xs text-slate-500 mt-1 block">Abastecer Tanque</span>
-                                </button>
-
-                                <button
-                                    onClick={() => setActiveTab('historico')}
-                                    className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 hover:border-blue-500/50 rounded-2xl transition-all group text-left"
-                                >
-                                    <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mb-4 group-hover:scale-110 transition-transform">
-                                        <History className="w-6 h-6" />
-                                    </div>
-                                    <span className="font-bold text-slate-200 block text-lg">Histórico</span>
-                                    <span className="text-xs text-slate-500 mt-1 block">Consultar Movimentos</span>
-                                </button>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {/* REFUEL TAB */}
                     {activeTab === 'abastecer' && (
-                        <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl animate-in slide-in-from-right-4">
-                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500">
-                                    <Fuel className="w-5 h-5" />
+                        <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                            <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
+                                <div className="w-16 h-16 bg-yellow-500 rounded-3xl flex items-center justify-center text-black shadow-xl shadow-yellow-500/20 rotate-3">
+                                    <Fuel className="w-8 h-8" />
                                 </div>
-                                {t('fuel.form.title')}
-                            </h3>
+                                <div>
+                                    <h2 className="text-3xl font-black text-white tracking-tight">{t('fuel.form.title')}</h2>
+                                    <p className="text-slate-400 text-lg mt-1">Registo de saída de combustível</p>
+                                </div>
+                            </div>
 
-                            <form onSubmit={handleInitiateRefuel} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <form onSubmit={handleInitiateRefuel} className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">{t('fuel.form.driver')}</label>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.driver')}</label>
                                         <select
                                             required
                                             value={refuelForm.driverId}
-                                            onChange={e => setRefuelForm({ ...refuelForm, driverId: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-yellow-500/50 outline-none transition-all"
+                                            onChange={(e) => setRefuelForm({ ...refuelForm, driverId: e.target.value })}
+                                            className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium text-lg"
                                         >
-                                            <option value="">{t('modal.choose_driver')}</option>
+                                            <option value="">Selecione Condutor</option>
                                             {motoristas.map(m => (
-                                                <option key={m.id} value={m.id}>{m.nome}</option>
+                                                <option key={m.id} value={m.id}>{m.nome} ({m.cartaConducao})</option>
                                             ))}
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">{t('fuel.form.vehicle')}</label>
-                                        <input
-                                            type="text"
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.vehicle')}</label>
+                                        <select
                                             required
                                             value={refuelForm.vehicleId}
-                                            onChange={e => setRefuelForm({ ...refuelForm, vehicleId: e.target.value })}
-                                            list="viaturas-list"
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-yellow-500/50 outline-none font-mono uppercase"
-                                            placeholder="AA-00-BB"
-                                        />
-                                        <datalist id="viaturas-list">
-                                            {viaturas.map(v => <option key={v.id} value={v.matricula} />)}
-                                        </datalist>
+                                            onChange={(e) => setRefuelForm({ ...refuelForm, vehicleId: e.target.value })}
+                                            className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium text-lg"
+                                        >
+                                            <option value="">Selecione Viatura</option>
+                                            {viaturas.map(v => (
+                                                <option key={v.id} value={v.id}>{v.matricula} - {v.marca} {v.modelo}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.liters')}</label>
+                                        <div className="relative group">
+                                            <input
+                                                required
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                value={refuelForm.liters}
+                                                onChange={(e) => setRefuelForm({ ...refuelForm, liters: e.target.value })}
+                                                className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-mono text-xl"
+                                                placeholder="0.0"
+                                            />
+                                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">L</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.km')}</label>
+                                        <div className="relative group">
+                                            <input
+                                                required
+                                                type="number"
+                                                min="0"
+                                                value={refuelForm.km}
+                                                onChange={(e) => setRefuelForm({ ...refuelForm, km: e.target.value })}
+                                                className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-mono text-xl"
+                                                placeholder="000000"
+                                            />
+                                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">KM</span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Centro de Custos</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custos (Opcional)</label>
                                     <select
                                         value={refuelForm.centroCustoId}
-                                        onChange={e => setRefuelForm({ ...refuelForm, centroCustoId: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-yellow-500/50 outline-none transition-all"
+                                        onChange={(e) => setRefuelForm({ ...refuelForm, centroCustoId: e.target.value })}
+                                        className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium"
                                     >
-                                        <option value="">(Nenhum)</option>
+                                        <option value="">Nenhum (Geral)</option>
                                         {centrosCustos.map(cc => (
                                             <option key={cc.id} value={cc.id}>{cc.nome}</option>
                                         ))}
                                     </select>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">{t('fuel.form.liters')}</label>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                required
-                                                min="1"
-                                                value={refuelForm.liters}
-                                                onChange={e => setRefuelForm({ ...refuelForm, liters: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-right text-white font-mono text-lg focus:border-yellow-500/50 outline-none"
-                                                placeholder="0"
-                                            />
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-sm">L</span>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">{t('fuel.form.km')}</label>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                required
-                                                min="0"
-                                                value={refuelForm.km}
-                                                onChange={e => setRefuelForm({ ...refuelForm, km: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-right text-white font-mono text-lg focus:border-yellow-500/50 outline-none"
-                                                placeholder="0"
-                                            />
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-sm">KM</span>
-                                        </div>
-                                    </div>
+                                <div className="flex gap-4 pt-4 border-t border-slate-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('overview')}
+                                        className="px-8 py-4 text-slate-400 hover:text-white font-bold hover:bg-slate-800 rounded-xl transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-black text-lg py-4 px-6 rounded-xl shadow-lg shadow-yellow-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Check className="w-6 h-6" />
+                                        Confirmar Abastecimento
+                                    </button>
                                 </div>
-
-                                <button className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold py-5 rounded-xl transition-all shadow-xl shadow-yellow-500/20 active:scale-[0.98] text-sm uppercase tracking-wider flex items-center justify-center gap-2 mt-4">
-                                    <Check className="w-5 h-5" />
-                                    {t('fuel.form.submit')}
-                                </button>
                             </form>
                         </div>
                     )}
 
-                    {/* TANK SUPPLY TAB */}
+                    {/* SUPPLY TAB */}
                     {activeTab === 'tanque' && (
-                        <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl animate-in slide-in-from-right-4">
-                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                    <Truck className="w-5 h-5" />
+                        <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                            <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
+                                <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
+                                    <Truck className="w-8 h-8" />
                                 </div>
-                                Registar Entrada de Combustível
-                            </h3>
-
-                            <form onSubmit={handleRegisterSupply} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Fornecedor</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={supplyForm.supplier}
-                                        onChange={e => setSupplyForm({ ...supplyForm, supplier: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:border-emerald-500/50 outline-none transition-all placeholder:text-slate-600"
-                                        placeholder="Nome da empresa fornecedora"
-                                    />
+                                <div>
+                                    <h2 className="text-3xl font-black text-white tracking-tight">Reabastecer Tanque</h2>
+                                    <p className="text-slate-400 text-lg mt-1">Registo de entrada de combustível (Cisterna)</p>
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Litros Adicionados</label>
+                            <form onSubmit={handleRegisterSupply} className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="col-span-1 md:col-span-2 space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Fornecedor</label>
                                         <input
-                                            type="number"
                                             required
-                                            min="1"
-                                            value={supplyForm.litersAdded}
-                                            onChange={e => setSupplyForm({ ...supplyForm, litersAdded: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white font-mono text-right focus:border-emerald-500/50 outline-none"
-                                            placeholder="0"
+                                            type="text"
+                                            value={supplyForm.supplier}
+                                            onChange={(e) => setSupplyForm({ ...supplyForm, supplier: e.target.value })}
+                                            className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                            placeholder="Ex: Galp, Repsol..."
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Preço por Litro (€)</label>
-                                        <input
-                                            type="number"
-                                            required
-                                            min="0"
-                                            step="0.001"
-                                            value={supplyForm.pricePerLiter}
-                                            onChange={e => setSupplyForm({ ...supplyForm, pricePerLiter: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white font-mono text-right focus:border-emerald-500/50 outline-none"
-                                            placeholder="0.000"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Verificação de Segurança</label>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex-1 space-y-1">
-                                            <span className="text-[10px] text-slate-500 uppercase">Leitura da Bomba</span>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Litros Entregues</label>
+                                        <div className="relative group">
                                             <input
-                                                type="number"
                                                 required
-                                                min={fuelTank.pumpTotalizer || 0}
-                                                value={supplyForm.pumpReading}
-                                                onChange={e => setSupplyForm({ ...supplyForm, pumpReading: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white font-mono text-sm focus:border-emerald-500/50 outline-none"
-                                                placeholder={String(fuelTank.pumpTotalizer || 0)}
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                value={supplyForm.litersAdded}
+                                                onChange={(e) => setSupplyForm({ ...supplyForm, litersAdded: e.target.value })}
+                                                className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-xl"
+                                                placeholder="0.0"
                                             />
+                                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">L</span>
                                         </div>
-                                        {hasAccess(userRole, 'combustivel_calibrate') && (
-                                            <button
-                                                type="button"
-                                                onClick={handleCalibrateTank}
-                                                className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors mt-5 border border-slate-700 hover:border-slate-600"
-                                                title="Calibrar contador"
-                                            >
-                                                <Gauge className="w-5 h-5" />
-                                            </button>
-                                        )}
                                     </div>
-
-                                    {isCalibrating && (
-                                        <div className="mt-4 pt-4 border-t border-slate-800/50 animate-in slide-in-from-top-2">
-                                            <div className="flex gap-2 items-center">
-                                                <span className="text-xs text-yellow-500 font-bold uppercase whitespace-nowrap">Novo Valor:</span>
-                                                <input
-                                                    type="number"
-                                                    value={calibrationValue}
-                                                    onChange={e => setCalibrationValue(e.target.value)}
-                                                    className="flex-1 bg-black/30 border border-slate-700 rounded px-2 py-1 text-white text-sm"
-                                                    placeholder="000000"
-                                                />
-                                                <button type="button" onClick={confirmCalibration} className="px-3 py-1 bg-yellow-500 text-black font-bold text-xs rounded hover:bg-yellow-400">DEFINIR</button>
-                                            </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Preço por Litro (€)</label>
+                                        <div className="relative group">
+                                            <input
+                                                required
+                                                type="number"
+                                                min="0"
+                                                step="0.001"
+                                                value={supplyForm.pricePerLiter}
+                                                onChange={(e) => setSupplyForm({ ...supplyForm, pricePerLiter: e.target.value })}
+                                                className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-xl"
+                                                placeholder="0.000"
+                                            />
+                                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">€</span>
                                         </div>
-                                    )}
+                                    </div>
+                                    <div className="col-span-1 md:col-span-2 space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Leitura Bomba do Camião (Opcional)</label>
+                                        <input
+                                            type="number"
+                                            value={supplyForm.pumpReading}
+                                            onChange={(e) => setSupplyForm({ ...supplyForm, pumpReading: e.target.value })}
+                                            className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-lg"
+                                            placeholder="000000"
+                                        />
+                                    </div>
                                 </div>
-
-                                <button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-5 rounded-xl transition-all shadow-xl shadow-emerald-900/20 active:scale-[0.98] text-sm uppercase tracking-wider mt-4">
-                                    Confirmar Entrada
-                                </button>
+                                <div className="flex gap-4 pt-4 border-t border-slate-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('overview')}
+                                        className="px-8 py-4 text-slate-400 hover:text-white font-bold hover:bg-slate-800 rounded-xl transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg py-4 px-6 rounded-xl shadow-lg shadow-emerald-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Check className="w-6 h-6" />
+                                        Confirmar Entrada
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     )}
 
                     {/* HISTORY TAB */}
                     {activeTab === 'historico' && (
-                        <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl animate-in slide-in-from-right-4">
-                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                <History className="w-5 h-5 text-blue-400" />
-                                Histórico de Movimentos
-                            </h3>
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                    <History className="w-6 h-6 text-blue-400" />
+                                    Histórico de Transações
+                                </h2>
+                            </div>
 
-                            <table className="w-full text-left border-separate border-spacing-y-2">
-                                <thead>
-                                    <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        <th className="pb-4 pl-4">{t('fuel.history.date')}</th>
-                                        <th className="pb-4">Operação</th>
-                                        <th className="pb-4 text-center">Entidade</th>
-                                        <th className="pb-4 text-right">Qtd.</th>
-                                        <th className="pb-4 text-center">{t('fuel.history.status')}</th>
-                                        <th className="pb-4 w-10"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-sm">
-                                    {[
-                                        ...fuelTransactions.map(t => ({ ...t, type: 'out', dateObj: new Date(t.timestamp) })),
-                                        ...tankRefills.map(t => ({ ...t, type: 'in', dateObj: new Date(t.timestamp) }))
-                                    ]
-                                        .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime())
-                                        .map((item: any) => {
-                                            const isRefill = item.type === 'in';
-                                            const driverName = !isRefill
-                                                ? (motoristas.find(m => m.id === item.driverId)?.nome || 'Staff Office')
-                                                : (item.staffName || 'Admin');
-
+                            <div className="overflow-hidden rounded-2xl border border-slate-800">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                        <tr>
+                                            <th className="px-6 py-4">Data</th>
+                                            <th className="px-6 py-4">Viatura</th>
+                                            <th className="px-6 py-4">Condutor</th>
+                                            <th className="px-6 py-4 text-right">Litros</th>
+                                            <th className="px-6 py-4 text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800 bg-slate-900/30">
+                                        {fuelTransactions.map(tx => {
+                                            const driver = motoristas.find(m => m.id === tx.driverId);
+                                            const vehicle = viaturas.find(v => v.id === tx.vehicleId);
                                             return (
-                                                <tr key={item.id} className="bg-slate-800/10 hover:bg-slate-800/30 transition-all group">
-                                                    <td className="p-4 rounded-l-xl font-mono text-slate-400 text-xs border-y border-l border-white/5 group-hover:border-white/10">
-                                                        <div>{new Date(item.timestamp).toLocaleDateString()}</div>
-                                                        <div className="text-slate-600 mt-0.5">{new Date(item.timestamp).toLocaleTimeString().slice(0, 5)}</div>
+                                                <tr key={tx.id} className="hover:bg-slate-800/50 transition-colors">
+                                                    <td className="px-6 py-4 text-slate-300 font-mono">
+                                                        {new Date(tx.timestamp).toLocaleDateString()}
+                                                        <span className="text-slate-600 ml-2 text-xs">{new Date(tx.timestamp).toLocaleTimeString()}</span>
                                                     </td>
-                                                    <td className="p-4 border-y border-white/5 group-hover:border-white/10">
-                                                        <span className={`font-bold block ${isRefill ? 'text-emerald-400' : 'text-slate-200'}`}>
-                                                            {isRefill ? 'Entrada (Tanque)' : 'Abastecimento'}
-                                                        </span>
-                                                        <span className="text-xs text-slate-500">{driverName}</span>
-                                                    </td>
-                                                    <td className="p-4 text-center border-y border-white/5 group-hover:border-white/10">
-                                                        {isRefill ? (
-                                                            <span className="px-2 py-1 rounded border border-emerald-500/20 text-emerald-500 text-xs font-bold">
-                                                                {item.supplier || 'Fornecedor N/D'}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="font-mono text-xs font-bold text-slate-300 bg-black/20 px-2 py-1 rounded border border-white/5">
-                                                                {item.vehicleId}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="p-4 text-right border-y border-white/5 group-hover:border-white/10">
-                                                        <div className={`font-bold ${isRefill ? 'text-emerald-500' : 'text-yellow-500'}`}>
-                                                            {isRefill ? '+' : '-'}{item.liters || item.litersAdded} L
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4 text-center border-y border-white/5 group-hover:border-white/10">
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${isRefill || item.status === 'confirmed'
-                                                            ? 'bg-emerald-500/10 text-emerald-400'
-                                                            : 'bg-amber-500/10 text-amber-500'
-                                                            }`}>
-                                                            {isRefill ? 'Confirmado' : (item.status === 'confirmed' ? 'OK' : 'Pendente')}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-4 rounded-r-xl border-y border-r border-white/5 group-hover:border-white/10">
-                                                        {hasAccess(userRole, 'combustivel_edit_history') && (
+                                                    <td className="px-6 py-4 font-bold text-white">{vehicle?.matricula}</td>
+                                                    <td className="px-6 py-4 text-slate-300">{driver?.nome}</td>
+                                                    <td className="px-6 py-4 text-right font-mono text-yellow-500 font-bold">{tx.liters} L</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        {hasAccess(userRole, 'combustivel_delete') && (
                                                             <button
                                                                 onClick={() => {
-                                                                    if (confirm('Apagar registo?')) {
-                                                                        isRefill ? deleteTankRefill(item.id) : deleteFuelTransaction(item.id);
-                                                                    }
+                                                                    if (confirm('Tem a certeza que deseja eliminar este registo?')) deleteFuelTransaction(tx.id);
                                                                 }}
-                                                                className="text-slate-600 hover:text-red-400 p-1"
+                                                                className="text-slate-600 hover:text-red-400 transition-colors"
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
@@ -771,315 +729,178 @@ export default function Combustivel() {
                                                 </tr>
                                             );
                                         })}
-                                </tbody>
-                            </table>
+                                        {fuelTransactions.length === 0 && (
+                                            <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">Nenhum registo encontrado.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
 
                     {/* BP TAB */}
                     {activeTab === 'bp' && (
-                        <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl animate-in slide-in-from-right-4">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-green-600/10 flex items-center justify-center text-green-500">
-                                        <FileSpreadsheet className="w-5 h-5" />
-                                    </div>
-                                    Gestão de Abastecimentos BP
-                                </h3>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleDownloadBPTemplate}
-                                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm border border-slate-700 transition-colors"
-                                    >
-                                        <Download className="w-4 h-4" />
-                                        Template
-                                    </button>
-                                    <div className="relative">
-                                        <input
-                                            type="file"
-                                            accept=".xlsx, .xls"
-                                            onChange={handleImportBP}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        />
-                                        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm transition-colors shadow-lg shadow-green-900/20">
-                                            <Upload className="w-4 h-4" />
-                                            Importar
-                                        </button>
-                                    </div>
-                                </div>
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
+                            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                    <FileSpreadsheet className="w-6 h-6 text-green-400" />
+                                    Importar BP
+                                </h2>
+                                <button
+                                    onClick={handleDownloadBPTemplate}
+                                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all flex items-center gap-2"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Download Template
+                                </button>
                             </div>
 
-                            {bpTransactions.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-separate border-spacing-y-2">
-                                        <thead>
-                                            <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                                <th className="pb-4 pl-4">Data</th>
-                                                <th className="pb-4">Viatura</th>
-                                                <th className="pb-4">Estação</th>
-                                                <th className="pb-4">Produto</th>
-                                                <th className="pb-4 text-right">Qtd (L)</th>
-                                                <th className="pb-4 text-right">Total (€)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="text-sm">
-                                            {bpTransactions.map((row, idx) => (
-                                                <tr key={idx} className="bg-slate-800/10 hover:bg-slate-800/30 transition-all">
-                                                    <td className="p-4 rounded-l-xl font-mono text-slate-400 text-xs border-y border-l border-white/5">
-                                                        {row.Data} <span className="text-slate-600">{row.Hora}</span>
-                                                    </td>
-                                                    <td className="p-4 border-y border-white/5 text-white font-bold">
-                                                        {row.Matricula}
-                                                    </td>
-                                                    <td className="p-4 border-y border-white/5 text-slate-300">
-                                                        {row.Estacao}
-                                                    </td>
-                                                    <td className="p-4 border-y border-white/5 text-slate-400">
-                                                        {row.Produto}
-                                                    </td>
-                                                    <td className="p-4 text-right border-y border-white/5 text-white font-mono">
-                                                        {Number(row.Quantidade).toFixed(2)}
-                                                    </td>
-                                                    <td className="p-4 rounded-r-xl text-right border-y border-r border-white/5 text-green-400 font-bold">
-                                                        {Number(row.Total).toFixed(2)} €
-                                                    </td>
+                            <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-950/30 hover:bg-slate-900/30 transition-all cursor-pointer group mb-8 relative">
+                                <input
+                                    type="file"
+                                    accept=".xlsx, .xls"
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    onChange={handleImportBP}
+                                />
+                                <Upload className="w-16 h-16 text-slate-600 group-hover:text-blue-500 transition-colors mb-4" />
+                                <p className="text-xl font-bold text-slate-300 group-hover:text-white transition-colors">Arraste um ficheiro ou clique para upload</p>
+                                <p className="text-slate-500 text-sm mt-2">Suporta ficheiros Excel (.xlsx)</p>
+                            </div>
+
+                            {bpTransactions.length > 0 && (
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-white text-lg">Pré-visualização</h3>
+                                    <div className="overflow-x-auto rounded-xl border border-slate-800">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs">
+                                                <tr>
+                                                    {Object.keys(bpTransactions[0]).map(key => (
+                                                        <th key={key} className="px-6 py-3">{key}</th>
+                                                    ))}
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="text-center py-20 bg-slate-900/20 rounded-3xl border border-dashed border-slate-700">
-                                    <FileSpreadsheet className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                                    <p className="text-slate-500">Nenhum dado importado.</p>
-                                    <p className="text-xs text-slate-600 mt-1">
-                                        Baixe o template, preencha os dados e importe o ficheiro Excel.
-                                    </p>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800 bg-slate-900/50">
+                                                {bpTransactions.slice(0, 5).map((row, i) => (
+                                                    <tr key={i}>
+                                                        {Object.values(row).map((val: any, j) => (
+                                                            <td key={j} className="px-6 py-3 text-slate-300">{val}</td>
+                                                        ))}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p className="text-center text-xs text-slate-500 mt-2">A mostrar os primeiros 5 registos.</p>
                                 </div>
                             )}
                         </div>
                     )}
-                </div>
-
-                {/* Sidebar Info Panel */}
-                <div className="space-y-6">
-                    {/* Tank Summary Card */}
-                    <div className="bg-slate-800/20 border border-slate-700/50 rounded-3xl p-6 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-yellow-500/20"></div>
-
-                        <div className="flex flex-col items-center text-center relative z-10">
-                            <div className="w-24 h-24 rounded-full bg-slate-800 mb-4 flex items-center justify-center shadow-xl border-4 border-[#0f172a] p-4">
-                                <Fuel className="w-10 h-10 text-yellow-500" />
-                            </div>
-                            <h3 className="font-bold text-xl text-white">Tanque Principal</h3>
-                            <div className="flex items-center gap-2">
-                                <p className="text-sm text-slate-400">Gasóleo Rodoviário</p>
-                                {hasAccess(userRole, 'combustivel_calibrate') && (
-                                    <button
-                                        onClick={handleEditTank}
-                                        className="p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition-colors"
-                                        title="Editar Capacidade/Nível"
-                                    >
-                                        <Settings className="w-3 h-3" />
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="flex gap-2 mt-4">
-                                <span className={`text-xs border px-3 py-1 rounded-full capitalize flex items-center gap-1 ${percentage < 20 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${percentage < 20 ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
-                                    {percentage < 20 ? 'Reserva' : 'Operacional'}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="mt-8 pt-6 border-t border-slate-700/50 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-slate-900/50 p-3 rounded-xl text-center">
-                                    <span className="block text-2xl font-bold text-white">{tankRefills.length}</span>
-                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">Entradas</span>
-                                </div>
-                                <div className="bg-slate-900/50 p-3 rounded-xl text-center">
-                                    <span className="block text-2xl font-bold text-white">{fuelTransactions.length}</span>
-                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">Saídas</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Recent Transactions Feed */}
-                    <div className="bg-slate-800/20 border border-slate-700/50 rounded-3xl p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="font-bold text-white text-sm uppercase flex items-center gap-2">
-                                <Zap className="w-4 h-4 text-yellow-500" />
-                                Últimos Movimentos
-                            </h4>
-                            <button onClick={() => setActiveTab('historico')} className="text-xs text-yellow-500 hover:text-yellow-400">Ver Todos</button>
-                        </div>
-
-                        <div className="space-y-3">
-                            {recentTransactions.map(trans => {
-                                const driverName = motoristas.find(m => m.id === trans.driverId)?.nome.split(' ')[0] || 'Motorista';
-                                return (
-                                    <div key={trans.id} className="p-3 bg-slate-900/50 rounded-xl border border-slate-800/50 hover:border-slate-700 transition-colors cursor-default">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-yellow-500/10 text-yellow-500">
-                                                - {trans.liters} L
-                                            </span>
-                                            <span className="text-[10px] text-slate-500 text-right">{new Date(trans.timestamp).toLocaleTimeString().slice(0, 5)}</span>
-                                        </div>
-                                        <p className="text-sm font-bold text-white mt-1">{driverName}</p>
-                                        <p className="text-xs text-slate-400 font-mono">{trans.vehicleId}</p>
-                                    </div>
-                                );
-                            })}
-                            {recentTransactions.length === 0 && (
-                                <p className="text-xs text-slate-500 text-center py-4">Sem movimentos recentes.</p>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={() => setActiveTab('abastecer')}
-                            className="w-full mt-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-300 transition-colors"
-                        >
-                            Novo Abastecimento
-                        </button>
-                    </div>
-                </div>
-
+                </main>
             </div>
 
-            {/* Edit Tank Modal */}
-            {isEditingTank && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
-                        <h3 className="text-xl font-bold text-white mb-4">Editar Tanque</h3>
-                        <form onSubmit={saveTankChanges} className="space-y-4">
-                            <div>
-                                <label className="text-xs text-slate-400 font-bold uppercase">Capacidade Total (L)</label>
-                                <input
-                                    type="number"
-                                    required
-                                    value={editTankForm.capacity}
-                                    onChange={e => setEditTankForm({ ...editTankForm, capacity: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-400 font-bold uppercase">Nível Atual (L)</label>
-                                <input
-                                    type="number"
-                                    required
-                                    value={editTankForm.currentLevel}
-                                    onChange={e => setEditTankForm({ ...editTankForm, currentLevel: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
-                                />
-                                <p className="text-[10px] text-yellow-500 mt-1">
-                                    Atenção: Alterar manualmente o nível pode dessincronizar o histórico de abastecimentos.
-                                </p>
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-400 font-bold uppercase">Preço Médio (€/L)</label>
-                                <input
-                                    type="number"
-                                    step="0.001"
-                                    required
-                                    value={editTankForm.averagePrice}
-                                    onChange={e => setEditTankForm({ ...editTankForm, averagePrice: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
-                                />
-                            </div>
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEditingTank(false)}
-                                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-bold transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold transition-colors"
-                                >
-                                    Salvar Alterações
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Dual Auth Modal */}
+            {/* DUAL AUTH MODAL */}
             {authModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
-                        <button
-                            onClick={() => setAuthModal({ isOpen: false, step: 1, adminPassword: '', driverPin: '', error: '' })}
-                            className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white transition-colors"
-                        >
-                            <Trash2 className="w-5 h-5 rotate-45" />
-                        </button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+                    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+                        <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                            {authModal.step === 1 ? 'Autenticação Responsável' : 'Autenticação Condutor'}
+                        </h3>
 
-                        <div className="text-center mb-8">
-                            <div className="w-16 h-16 bg-yellow-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-yellow-500 border border-yellow-500/20">
-                                {authModal.step === 1 ? <Fuel className="w-8 h-8" /> : <Truck className="w-8 h-8" />}
+                        {authModal.error && (
+                            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm font-bold">
+                                <AlertCircle className="w-5 h-5" />
+                                {authModal.error}
                             </div>
-                            <h3 className="text-2xl font-bold text-white">
-                                {authModal.step === 1 ? 'Confirmação de Staff' : 'Confirmação do Motorista'}
-                            </h3>
-                            <p className="text-slate-400 mt-2">
-                                {authModal.step === 1
-                                    ? `Por favor insira ${userRole === 'admin' ? 'sua password' : 'seu PIN'} para continuar.`
-                                    : 'Por favor, peça ao motorista para inserir o PIN dele.'}
-                            </p>
-                        </div>
+                        )}
 
                         <div className="space-y-6">
                             {authModal.step === 1 ? (
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
-                                        {userRole === 'admin' ? 'Password de Administrador' : 'PIN de Acesso'}
+                                    <label className="text-xs font-bold text-slate-500 uppercase block text-center">
+                                        {userRole === 'oficina' ? 'PIN Oficina' : 'Password Admin'}
                                     </label>
                                     <input
-                                        type={userRole === 'admin' ? 'password' : 'password'}
-                                        inputMode={userRole === 'admin' ? 'text' : 'numeric'}
-                                        value={authModal.adminPassword}
-                                        onChange={e => setAuthModal(prev => ({ ...prev, adminPassword: e.target.value, error: '' }))}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white text-center text-2xl font-mono tracking-widest focus:border-yellow-500/50 outline-none transition-all"
-                                        placeholder={userRole === 'admin' ? '••••••••' : '••••'}
+                                        type="password"
                                         autoFocus
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={authModal.adminPassword}
+                                        onChange={e => setAuthModal({ ...authModal, adminPassword: e.target.value })}
+                                        onKeyDown={e => e.key === 'Enter' && handleDualAuth()}
                                     />
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
-                                        PIN do Motorista
-                                    </label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase block text-center">PIN Condutor</label>
                                     <input
                                         type="password"
-                                        inputMode="numeric"
-                                        value={authModal.driverPin}
-                                        onChange={e => setAuthModal(prev => ({ ...prev, driverPin: e.target.value, error: '' }))}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white text-center text-2xl font-mono tracking-widest focus:border-yellow-500/50 outline-none transition-all"
-                                        placeholder="••••••"
                                         autoFocus
+                                        maxLength={6}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                        value={authModal.driverPin}
+                                        onChange={e => setAuthModal({ ...authModal, driverPin: e.target.value })}
+                                        onKeyDown={e => e.key === 'Enter' && handleDualAuth()}
                                     />
                                 </div>
                             )}
 
-                            {authModal.error && (
-                                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center animate-shake">
-                                    {authModal.error}
-                                </div>
-                            )}
-
-                            <button
-                                onClick={handleDualAuth}
-                                className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl transition-all shadow-lg shadow-yellow-500/20 active:scale-[0.98]"
-                            >
-                                {authModal.step === 1 ? 'Continuar' : 'Confirmar Abastecimento'}
-                            </button>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setAuthModal({ ...authModal, isOpen: false, step: 1, adminPassword: '', driverPin: '' })}
+                                    className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleDualAuth}
+                                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all"
+                                >
+                                    {authModal.step === 1 ? 'Seguinte' : 'Confirmar'}
+                                </button>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDIT TANK MODAL */}
+            {isEditingTank && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+                    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+                        <h3 className="text-xl font-bold text-white mb-6">Configurar Tanque</h3>
+                        <form onSubmit={saveTankChanges} className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Capacidade Total (L)</label>
+                                <input
+                                    type="number"
+                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={editTankForm.capacity}
+                                    onChange={e => setEditTankForm({ ...editTankForm, capacity: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Nível Atual (L)</label>
+                                <input
+                                    type="number"
+                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={editTankForm.currentLevel}
+                                    onChange={e => setEditTankForm({ ...editTankForm, currentLevel: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Preço Médio (€)</label>
+                                <input
+                                    type="number"
+                                    step="0.001"
+                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={editTankForm.averagePrice}
+                                    onChange={e => setEditTankForm({ ...editTankForm, averagePrice: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button type="button" onClick={() => setIsEditingTank(false)} className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold">Cancelar</button>
+                                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">Guardar</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
