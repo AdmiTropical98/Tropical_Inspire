@@ -337,10 +337,12 @@ export default function NavigationApp({
 
             {/* Map Area */}
             <div
-                className={`flex-1 relative w-full z-0 transition-transform duration-1000 ${isNavigating ? 'scale-[1.5] origin-bottom' : ''}`}
+                className={`transition-all duration-1000 ease-in-out ${isNavigating
+                        ? 'absolute inset-[-50%] w-[200%] h-[200%] z-0 origin-bottom'
+                        : 'flex-1 relative w-full z-0'
+                    }`}
                 style={isNavigating ? {
-                    transform: 'perspective(600px) rotateX(40deg) scale(1.2) translateY(-20%)',
-                    transformOrigin: '50% 80%'
+                    transform: 'perspective(600px) rotateX(70deg) translateY(15%)',
                 } : {}}
             >
                 <MapContainer
@@ -355,8 +357,8 @@ export default function NavigationApp({
                     style={{ background: '#0f172a' }}
                 >
                     <TileLayer
-                        attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
+                        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                         maxNativeZoom={18}
                         maxZoom={20}
                     />
@@ -365,11 +367,14 @@ export default function NavigationApp({
                     {route.length > 0 && (
                         <Polyline
                             positions={route}
-                            pathOptions={{ color: isNavigating ? '#10b981' : '#3b82f6', weight: 8, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }}
+                            pathOptions={{ color: isNavigating ? '#22d3ee' : '#3b82f6', weight: 10, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }}
                         />
                     )}
 
-                    <Marker position={currentPos} icon={carIcon} />
+                    {/* Show Car only if GPS is valid or we are just previewing */}
+                    {gpsAccuracy > 0 || !isNavigating ? (
+                        <Marker position={currentPos} icon={carIcon} />
+                    ) : null}
 
                     {destCoords && (
                         <Marker position={destCoords} icon={destIcon}>
@@ -385,8 +390,25 @@ export default function NavigationApp({
                     </div>
                 )}
 
+                {/* GPS Waiting Indicator */}
+                {isNavigating && gpsAccuracy === 0 && (
+                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-[500] flex flex-col items-center justify-center p-6 text-center">
+                        <div className="animate-pulse mb-4">
+                            <LocateFixed className="w-16 h-16 text-blue-500" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">A aguardar sinal GPS...</h3>
+                        <p className="text-slate-400">Por favor aguarde enquanto localizamos a sua viatura.</p>
+                        <button
+                            onClick={stopNavigation}
+                            className="mt-6 px-6 py-2 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-700 transition"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                )}
+
                 {/* Recenter Button */}
-                <div className="absolute right-4 bottom-6 z-[1000] flex flex-col gap-3">
+                <div className="absolute right-4 bottom-56 md:bottom-24 z-[1000] flex flex-col gap-3">
                     <button
                         onClick={() => setFollowMe(prev => !prev)}
                         className={`p-3.5 rounded-full shadow-2xl transition-all active:scale-95 ${followMe ? 'bg-blue-600 text-white shadow-blue-900/30' : 'bg-slate-900 text-slate-400 border border-slate-700'}`}
