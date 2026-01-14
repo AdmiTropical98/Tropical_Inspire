@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local } from '../types';
 import { CartrackService, cleanTagId, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -31,6 +31,13 @@ interface WorkshopContextType {
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
     cartrackDrivers: import('../services/cartrack').CartrackDriver[];
     cartrackError: string | null;
+
+    // POI / Locais
+    locais: Local[];
+    addLocal: (l: Local) => Promise<void>;
+    updateLocal: (l: Local) => Promise<void>;
+    deleteLocal: (id: string) => Promise<void>;
+    checkRouteValidation: (serviceId: string) => Promise<Record<string, { status: 'success' | 'failed'; time?: string; distance?: number }>>;
     // Fuel
     fuelTank: FuelTank;
     fuelTransactions: FuelTransaction[];
@@ -99,6 +106,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [viaturas, setViaturas] = useState<Viatura[]>([]);
     const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
+    const [locais, setLocais] = useState<Local[]>([]); // POIs
     const [centrosCustos, setCentrosCustos] = useState<CentroCusto[]>([]);
     const [geofences, setGeofences] = useState<CartrackGeofence[]>([]);
     const [geofenceVisits, setGeofenceVisits] = useState<CartrackGeofenceVisit[]>([]); // NEW
@@ -281,6 +289,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             const { data: c } = await supabase.from('clientes').select('*');
             if (c) setClientes(c);
+
+            // POIs
+            const { data: loc } = await supabase.from('locais').select('*');
+            if (loc) setLocais(loc.map((l: any) => ({ ...l, userId: l.user_id })));
 
             const { data: v } = await supabase.from('viaturas').select('*');
             if (v) setViaturas(v.map((item: any) => ({ ...item, precoDiario: item.preco_diario })));
@@ -590,6 +602,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 console.warn('Silent fail: could not fetch Visits:', e);
             }
 
+            // 6. Locais (POIs)
+            const { data: locs } = await supabase.from('locais').select('*');
+            if (locs) setLocais(locs.map((l: any) => ({
+                id: l.id,
+                nome: l.nome,
+                latitude: l.latitude,
+                longitude: l.longitude,
+                raio: l.raio,
+                tipo: l.tipo,
+                cor: l.cor
+            })));
+
         } catch (error) {
             console.error('Error refreshing data:', error);
         }
@@ -739,6 +763,105 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         } catch (error: any) {
             console.error('Error deleting service:', error);
             alert(`Erro ao apagar serviço: ${error.message}`);
+        }
+    };
+
+    // POI Methods
+    const addLocal = async (l: Local) => {
+        const { error } = await supabase.from('locais').insert({
+            nome: l.nome,
+            latitude: l.latitude,
+            longitude: l.longitude,
+            raio: l.raio,
+            tipo: l.tipo,
+            cor: l.cor,
+            user_id: l.userId
+        });
+        if (!error) setLocais(prev => [...prev, l]);
+    };
+
+    const updateLocal = async (l: Local) => {
+        const { error } = await supabase.from('locais').update({
+            nome: l.nome,
+            latitude: l.latitude,
+            longitude: l.longitude,
+            raio: l.raio,
+            tipo: l.tipo,
+            cor: l.cor
+        }).eq('id', l.id);
+        if (!error) setLocais(prev => prev.map(item => item.id === l.id ? l : item));
+    };
+
+    const deleteLocal = async (id: string) => {
+        const { error } = await supabase.from('locais').delete().eq('id', id);
+        if (!error) setLocais(prev => prev.filter(l => l.id !== id));
+    };
+
+    const checkRouteValidation = async (serviceId: string) => {
+        const service = servicos.find(s => s.id === serviceId);
+        if (!service) return {};
+
+        const validationPoints = service.validationPoints || [];
+        if (validationPoints.length === 0) return {};
+
+        const driver = motoristas.find(m => m.id === service.motoristaId);
+        let vehicleId = driver?.cartrackId;
+
+        if (!vehicleId && driver?.currentVehicle) {
+            const cv = cartrackVehicles.find(v => v.registration.replace(/[^a-zA-Z0-9]/g, '') === driver?.currentVehicle?.replace(/[^a-zA-Z0-9]/g, ''));
+            if (cv) vehicleId = cv.id;
+        }
+
+        if (!vehicleId) return {};
+
+        const [sh, sm] = service.hora.split(':').map(Number);
+        const serviceDate = new Date();
+        serviceDate.setHours(sh, sm, 0, 0);
+
+        const start = new Date(serviceDate.getTime() - 30 * 60000).toISOString();
+        const end = new Date(serviceDate.getTime() + 180 * 60000).toISOString();
+
+        try {
+            const history = await CartrackService.getRouteHistory(vehicleId, start, end);
+
+            const results: Record<string, { status: 'success' | 'failed'; time?: string; distance?: number }> = {};
+
+            service.validationPoints.forEach((poiId: string) => {
+                const poi = locais.find(l => l.id === poiId);
+                if (!poi) return;
+
+                let minDist = Infinity;
+                let matchTime = null;
+
+                for (const point of history) {
+                    const R = 6371e3;
+                    const φ1 = point.lat * Math.PI / 180;
+                    const φ2 = poi.latitude * Math.PI / 180;
+                    const Δφ = (poi.latitude - point.lat) * Math.PI / 180;
+                    const Δλ = (poi.longitude - point.lng) * Math.PI / 180;
+
+                    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                        Math.cos(φ1) * Math.cos(φ2) *
+                        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                    const d = R * c;
+
+                    if (d < minDist) {
+                        minDist = d;
+                        matchTime = point.time;
+                    }
+                }
+
+                if (minDist <= (poi.raio || 50) + 50) {
+                    results[poiId] = { status: 'success', time: matchTime || undefined, distance: minDist };
+                } else {
+                    results[poiId] = { status: 'failed', distance: minDist };
+                }
+            });
+            return results;
+        } catch (e) {
+            console.error('Route Validation Error:', e);
+            return {};
         }
     };
 
@@ -1389,6 +1512,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addServico,
             updateServico,
             deleteServico,
+            locais,
+            addLocal,
+            updateLocal,
+            deleteLocal,
+            checkRouteValidation,
             geofences,
             geofenceVisits,
             cartrackVehicles,

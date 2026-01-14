@@ -468,5 +468,37 @@ export const CartrackService = {
             console.error('Failed to fetch geofence visits:', error);
             throw error;
         }
+    },
+
+    getRouteHistory: async (vehicleId: string, startDate: string, endDate: string): Promise<{ lat: number, lng: number, time: string }[]> => {
+        try {
+            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+            // Common Cartrack endpoint for history/positions
+            const url = `${BASE_URL}/positions?vehicle_ids[]=${vehicleId}&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&per_page=2000`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'Authorization': `Basic ${auth}` },
+            });
+
+            if (!response.ok) {
+                console.warn(`History fetch failed: ${response.status}`);
+                return [];
+            }
+
+            const result = await response.json();
+            const items = result.data || result.rows || result.positions || [];
+
+            return items.map((item: any) => ({
+                lat: Number(item.latitude),
+                lng: Number(item.longitude),
+                time: item.event_ts || item.timestamp
+            })).filter((p: any) => !isNaN(p.lat) && !isNaN(p.lng) && p.lat !== 0 && p.lng !== 0);
+
+        } catch (error) {
+            console.error('Failed to fetch route history:', error);
+            // Mock data for demo if failed
+            return [];
+        }
     }
 };

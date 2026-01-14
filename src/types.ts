@@ -152,6 +152,17 @@ export interface Motorista {
     currentVehicle?: string; // Registration (matricula) of the current vehicle
 }
 
+export interface Local {
+    id: string;
+    nome: string;
+    latitude: number;
+    longitude: number;
+    raio: number;
+    tipo: 'hotel' | 'aeroporto' | 'oficina' | 'outros';
+    cor: string;
+    userId?: string;
+}
+
 export interface Servico {
     id: string;
     motoristaId?: string | null; // Pode ser nulo se não atribuído
@@ -163,6 +174,7 @@ export interface Servico {
     obs?: string;
     concluido: boolean;
     centroCustoId?: string;
+    validationPoints?: string[]; // IDs of required POIs to visit
 }
 
 export interface Supervisor {

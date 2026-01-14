@@ -37,6 +37,7 @@ import Relatorios from './components/relatorios'; // Import Relatorios
 import AvaliacaoMotorista from './components/avaliacao'; // Import AvaliacaoMotorista
 import Geofences from './components/geofences'; // Import Geofences component
 import UsersPage from './components/users'; // Import UsersPage
+import Locais from './components/locais'; // Import Locais (POIs)
 import Permissoes from './components/permissoes';
 import MyProfile from './components/profile/MyProfile';
 import SplashScreen from './components/SplashScreen';
@@ -71,7 +72,7 @@ function AppContent() {
   const { notifications } = useWorkshop();
   const { unreadCount } = useChat(); // Now we can use this!
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'meu-perfil'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil'>('dashboard');
 
   // Sidebar Visibility Flags
   const showFleetGroup = hasAccess(userRole, 'central_motorista') || hasAccess(userRole, 'viaturas') || hasAccess(userRole, 'motoristas') || hasAccess(userRole, 'geofences') || userRole === 'admin';
@@ -146,6 +147,7 @@ function AppContent() {
       case 'relatorios': return <Relatorios />;
       case 'avaliacao': return <AvaliacaoMotorista />;
       case 'geofences': return <Geofences />;
+      case 'locais': return <Locais />;
       case 'external': return <ExternalServices />;
       case 'meu-perfil': return <MyProfile />;
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
@@ -195,7 +197,11 @@ function AppContent() {
             <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => setActiveTab('motoristas')} />
           )}
           {hasAccess(userRole, 'geofences') && (
-            <SidebarItem icon={MapPin} label="Geofences" active={activeTab === 'geofences'} onClick={() => setActiveTab('geofences')} />
+            <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => setActiveTab('geofences')} />
+          )}
+          {/* Locais (Custom POI) - Accessible by admins & managers */}
+          {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
+            <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => setActiveTab('locais')} />
           )}
           {userRole === 'admin' && (
             <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => setActiveTab('avaliacao')} />
@@ -323,7 +329,10 @@ function AppContent() {
                 <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => { setActiveTab('motoristas'); setIsMobileMenuOpen(false); }} />
               )}
               {hasAccess(userRole, 'geofences') && (
-                <SidebarItem icon={MapPin} label="Geofences" active={activeTab === 'geofences'} onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false); }} />
+                <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false); }} />
+              )}
+              {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
+                <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => { setActiveTab('locais'); setIsMobileMenuOpen(false); }} />
               )}
               {userRole === 'admin' && (
                 <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => { setActiveTab('avaliacao'); setIsMobileMenuOpen(false); }} />
