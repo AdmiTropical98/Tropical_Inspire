@@ -175,6 +175,7 @@ export interface Servico {
     concluido: boolean;
     centroCustoId?: string;
     validationPoints?: string[]; // IDs of required POIs to visit
+    tipo?: 'entrada' | 'saida' | 'outro';
 }
 
 export interface Supervisor {

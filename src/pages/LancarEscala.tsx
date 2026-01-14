@@ -1,12 +1,16 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useWorkshop } from '../contexts/WorkshopContext';
-// import { useAuth } from '../contexts/AuthContext'; // Unused
-import { Plus, Trash, ArrowRightLeft, Upload, LayoutTemplate } from 'lucide-react';
-// import { useNavigate } from 'react-router-dom';
-// import * as XLSX from 'xlsx'; // Not used yet in this version
+import { usePermissions } from '../contexts/PermissionsContext';
+import { useAuth } from '../contexts/AuthContext';
+import {
+    Plus, Trash, ArrowRightLeft, Upload,
+    Info, Building2, MapPin,
+    Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download
+} from 'lucide-react';
+import { read, utils } from 'xlsx';
 
-// Helper for unique IDs for grid rows (temporary)
+// Helper for unique IDs for grid rows
 const generateTempId = () => Math.random().toString(36).substr(2, 9);
 
 interface GridRow {
@@ -15,8 +19,8 @@ interface GridRow {
     origem: string;
     destino: string;
     hora: string;
-    voo: string;
     obs: string;
+    tipo: 'entrada' | 'saida';
 }
 
 interface LancarEscalaProps {
@@ -25,8 +29,19 @@ interface LancarEscalaProps {
 
 export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     const { centrosCustos, createScaleBatch } = useWorkshop();
-    // const { currentUser } = useAuth(); // Unused
-    // const navigate = useNavigate(); // Removed due to no Router context
+    const { hasAccess } = usePermissions();
+    const { userRole } = useAuth();
+
+    // Access Control
+    if (userRole && !hasAccess(userRole, 'escalas_create')) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center bg-[#0B1120] text-slate-400">
+                <AlertCircle className="w-12 h-12 mb-4 text-red-500 opacity-50" />
+                <h2 className="text-xl font-bold text-white mb-2">Acesso Restrito</h2>
+                <p className="max-w-md text-center">Você não tem permissão para lançar escalas. Contacte o administrador.</p>
+            </div>
+        );
+    }
 
     const [isLoading, setIsLoading] = useState(false);
     
@@ -39,52 +54,117 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     const [selectedCentroCusto, setSelectedCentroCusto] = useState('');
     const [notes, setNotes] = useState('');
 
+    // State for Import Modal
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [pendingImportRows, setPendingImportRows] = useState<GridRow[]>([]);
+
     // Grid Data
     const [rows, setRows] = useState<GridRow[]>([
-        { tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', voo: '', obs: '' }
+        { tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada' }
     ]);
 
-    // Templates State (Mock for now, easy to implement real storage)
-    const [templates, setTemplates] = useState<{name: string, rows: GridRow[]}[]>([
-        { 
-            name: 'Exemplo: Turno Manhã', 
-            rows: [
-                { tempId: '1', passageiro: 'João Silva', origem: 'Albufeira', destino: 'Aeroporto', hora: '08:00', voo: '', obs: 'Ida' },
-                { tempId: '2', passageiro: 'Maria Santos', origem: 'Vilamoura', destino: 'Aeroporto', hora: '08:30', voo: '', obs: 'Ida' }
-            ]
+    // Refs
+    const gridRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Excel Handlers
+    const handleDownloadTemplate = () => {
+        // Direct download of the file in public folder
+        const link = document.createElement('a');
+        link.href = '/PLANILHA DE EXEMPLO PARA LANÇAMENTO DE ESCALAS EM MASSA.xlsx';
+        link.download = 'Modelo_Escala_Tropical.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = utils.sheet_to_json<any>(worksheet);
+
+            const newRows: GridRow[] = jsonData.map((row: any) => {
+                let tipoRaw = (row['TIPO'] || 'ENTRADA').toString().toLowerCase().trim();
+                let tipo: 'entrada' | 'saida' = 'entrada';
+                if (tipoRaw.includes('saida') || tipoRaw.includes('saída')) tipo = 'saida';
+
+                return {
+                    tempId: generateTempId(),
+                    passageiro: row['PASSAGEIRO'] || '',
+                    origem: row['ORIGEM'] || '',
+                    destino: row['DESTINO'] || '',
+                    hora: row['HORA'] || '', // Check format if needed
+                    obs: row['OBS'] || '',
+                    tipo: tipo
+                };
+            });
+
+            if (newRows.length > 0) {
+                setPendingImportRows(newRows);
+                setShowImportModal(true);
+            } else {
+                alert('Nenhum dado encontrado no arquivo.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao processar arquivo. Verifique se é um Excel válido.');
+        } finally {
+            // Reset input
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    ]);
-    const [showTemplates, setShowTemplates] = useState(false);
+    };
+
+    const confirmImport = (mode: 'replace' | 'append') => {
+        if (mode === 'replace') {
+            setRows(pendingImportRows);
+        } else {
+            setRows(prev => [...prev, ...pendingImportRows]);
+        }
+        setShowImportModal(false);
+        setPendingImportRows([]);
+    };
 
     // Grid Handlers
     const addRow = () => {
-        setRows(prev => [...prev, { tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', voo: '', obs: '' }]);
+        setRows(prev => [...prev, { tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada' }]);
     };
 
-    const updateRow = (id: string, field: keyof GridRow, value: string) => {
+    const updateRow = (id: string, field: keyof GridRow, value: any) => {
         setRows(prev => prev.map(r => r.tempId === id ? { ...r, [field]: value } : r));
     };
 
     const deleteRow = (id: string) => {
         if (rows.length === 1) {
-            // Don't delete last row, just clear it
-            setRows([{ tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', voo: '', obs: '' }]);
+            setRows([{ tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada' }]);
             return;
         }
         setRows(prev => prev.filter(r => r.tempId !== id));
+    };
+
+    // Smart Actions
+    const setRowType = (id: string, newType: 'entrada' | 'saida') => {
+        setRows(prev => prev.map(r => {
+            if (r.tempId !== id) return r;
+            let changes: Partial<GridRow> = { tipo: newType };
+            return { ...r, ...changes };
+        }));
     };
 
     const addReturnTrip = (row: GridRow) => {
         const returnRow: GridRow = {
             tempId: generateTempId(),
             passageiro: row.passageiro,
-            origem: row.destino, // Swap
-            destino: row.origem, // Swap
-            hora: '', // User must fill
-            voo: row.voo,
-            obs: 'Volta'
+            origem: row.destino,
+            destino: row.origem,
+            hora: '',
+            obs: row.tipo === 'entrada' ? 'Volta' : 'Ida',
+            tipo: row.tipo === 'entrada' ? 'saida' : 'entrada'
         };
-        // Find index to insert after
         const index = rows.findIndex(r => r.tempId === row.tempId);
         const newRows = [...rows];
         newRows.splice(index + 1, 0, returnRow);
@@ -92,9 +172,17 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     };
 
     const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+        // Arrow Keys Navigation (Basic implementation)
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Focus same field in next row
+            if (index === rows.length - 1) {
+                addRow();
+            }
+        }
+
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            // If it's the last row, add new
             if (index === rows.length - 1) {
                 addRow();
             }
@@ -102,33 +190,18 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     };
 
     // Actions
-    const handleSaveTemplate = () => {
-        const name = prompt('Nome do Modelo (ex: Turno Manhã):');
-        if (name) {
-            setTemplates(prev => [...prev, { name, rows: rows.map(r => ({ ...r, tempId: generateTempId() })) }]);
-            alert('Modelo salvo!');
-        }
-    };
-
-    const loadTemplate = (t: {rows: GridRow[]}) => {
-        setRows(t.rows.map(r => ({ ...r, tempId: generateTempId() })));
-        setShowTemplates(false);
-    };
-
     const handleLaunch = async () => {
         if (!selectedCentroCusto) {
             alert('Por favor selecione um Centro de Custo');
             return;
         }
 
-        // Validate rows (simple check: must have passenger)
         const validRows = rows.filter(r => r.passageiro.trim() !== '');
         if (validRows.length === 0) {
             alert('Adicione pelo menos um serviço válido.');
             return;
         }
 
-        // Validate times
         const missingTime = validRows.find(r => r.hora.trim() === '');
         if (missingTime) {
             alert(`Falta hora para o passageiro: ${missingTime.passageiro}`);
@@ -138,20 +211,18 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         setIsLoading(true);
 
         try {
-            // Convert GridRows to proper Service objects (DTOs)
-            // We generate IDs here or let backend. For batch simplicity context expects servicos with IDs
             const servicesToCreate = validRows.map(r => ({
                 id: crypto.randomUUID(),
-                motoristaId: '', // Unassigned
+                motoristaId: '', 
                 passageiro: r.passageiro,
                 hora: r.hora,
                 origem: r.origem,
                 destino: r.destino,
-                voo: r.voo,
+                voo: '', 
                 obs: r.obs,
+                tipo: r.tipo,
                 concluido: false,
                 centroCustoId: selectedCentroCusto,
-                // Batch ID applied by context
             }));
 
             const result = await createScaleBatch({
@@ -161,12 +232,12 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             }, servicesToCreate as any);
 
             if (result.success) {
-                alert('Escala lançada com sucesso!');
+                // Success UI
+                if (confirm('Escala lançada com sucesso! Deseja limpar o formulário?')) {
+                    setRows([{ tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada' }]);
+                    setNotes('');
+                }
                 if (onNavigate) onNavigate('escalas');
-                // Since App.tsx uses activeTab via props/state interaction, this navigate might not work if it's not route based.
-                // Actually App.tsx is not using Routes for tabs, but 'LancarEscala' is rendered BY App.tsx. 
-                // To switch tab, we might need to access setActiveTab from context or just rely on user clicking.
-                // Or better: show success toast.
             } else {
                 alert('Erro ao lançar escala: ' + result.error);
             }
@@ -180,199 +251,344 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     };
 
     return (
-        <div className="h-full flex flex-col bg-slate-950 text-white overflow-hidden">
-            {/* Header Toolbar */}
-            <div className="bg-slate-900 border-b border-slate-800 p-4 shrink-0 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-1">
-                    <div className="flex flex-col">
-                        <label className="text-[10px] uppercase text-slate-500 font-bold mb-1">Data Escala</label>
-                        <input 
-                            type="date"
-                            className="bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none"
-                            value={referenceDate}
-                            onChange={e => setReferenceDate(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex flex-col flex-1 max-w-xs">
-                        <label className="text-[10px] uppercase text-slate-500 font-bold mb-1">Centro de Custo</label>
-                        <select 
-                            className="bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none"
-                            value={selectedCentroCusto}
-                            onChange={e => setSelectedCentroCusto(e.target.value)}
-                        >
-                            <option value="">Selecione...</option>
-                            {centrosCustos.map(cc => (
-                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                            ))}
-                        </select>
-                    </div>
+        <div className="h-full flex flex-col bg-[#0B1120] text-slate-200 overflow-hidden font-sans">
+            {/* Top Bar: Controls */}
+            <div className="bg-[#0f172a] border-b border-slate-800 p-6 shadow-xl z-20">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 max-w-[1920px] mx-auto w-full">
 
-                    <div className="flex flex-col flex-1 max-w-md">
-                        <label className="text-[10px] uppercase text-slate-500 font-bold mb-1">Notas / Observações do Lote</label>
-                        <input 
-                            className="bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none w-full"
-                            placeholder="Ex: Reforço de Verão..."
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                        />
-                    </div>
-                    
-                    <button 
-                        onClick={() => setShowTemplates(!showTemplates)}
-                        className="flex flex-col items-center justify-center p-2 bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 transition ml-4"
-                        title="Carregar Modelo"
-                    >
-                        <LayoutTemplate className="w-5 h-5 text-purple-400" />
-                        <span className="text-[10px] text-slate-400">Modelos</span>
-                    </button>
-                    {showTemplates && (
-                        <div className="absolute top-20 left-60 z-50 bg-slate-800 border border-slate-700 shadow-xl rounded-xl p-2 w-64 animate-in fade-in zoom-in-95">
-                             <div className="text-xs font-bold text-slate-400 px-2 py-1 uppercase">Modelos Salvos</div>
-                             {templates.map((t, idx) => (
-                                 <button 
-                                    key={idx}
-                                    onClick={() => loadTemplate(t)}
-                                    className="w-full text-left px-3 py-2 hover:bg-slate-700 rounded text-sm text-white flex justify-between"
-                                 >
-                                     {t.name}
-                                     <span className="text-slate-500 text-xs">{t.rows.length} linhas</span>
-                                 </button>
-                             ))}
+                    {/* Left: Inputs */}
+                    <div className="flex items-center gap-6 flex-1">
+
+                        {/* Date Picker */}
+                        <div className="group relative">
+                            <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-blue-400 group-focus-within:text-blue-300 transition-colors z-10">
+                                Data da Escala
+                            </label>
+                            <div className="relative flex items-center bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden group-focus-within:border-blue-500/50 group-focus-within:ring-2 ring-blue-500/10 transition-all w-36">
+                                <input
+                                    type="date"
+                                    className="bg-transparent border-none text-sm font-medium text-white px-3 py-2.5 w-full outline-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                    value={referenceDate}
+                                    onChange={e => setReferenceDate(e.target.value)}
+                                />
+                            </div>
                         </div>
-                    )}
-                </div>
 
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={handleSaveTemplate}
-                        className="px-4 py-2 text-slate-400 hover:text-white text-sm font-medium transition"
-                    >
-                        Salvar Modelo
-                    </button>
-                    <button 
-                        onClick={handleLaunch}
-                        disabled={isLoading}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-600/20 flex items-center gap-2 transition disabled:opacity-50"
-                    >
-                        {isLoading ? 'Lançando...' : (
-                            <>
-                                <Upload className="w-4 h-4" />
-                                Lançar Escala
-                            </>
-                        )}
-                    </button>
-                </div>
-            </div>
-
-            {/* Grid Area */}
-            <div className="flex-1 overflow-auto p-4 custom-scrollbar">
-                <div className="border border-slate-700 rounded-lg overflow-hidden bg-slate-900/50">
-                    {/* Grid Header */}
-                    <div className="grid grid-cols-[30px_1fr_1fr_1fr_100px_100px_1fr_100px] gap-px bg-slate-800 border-b border-slate-700 text-xs font-bold uppercase text-slate-400 sticky top-0 z-10">
-                        <div className="p-3 text-center">#</div>
-                        <div className="p-3">Passageiro</div>
-                        <div className="p-3">Origem</div>
-                        <div className="p-3">Destino</div>
-                        <div className="p-3">Hora</div>
-                        <div className="p-3">Voo/Ref</div>
-                        <div className="p-3">Obs</div>
-                        <div className="p-3 text-center">Ações</div>
-                    </div>
-
-                    {/* Grid Rows */}
-                    <div className="bg-slate-800/50">
-                        {rows.map((row, idx) => (
-                            <div 
-                                key={row.tempId} 
-                                className="group grid grid-cols-[30px_1fr_1fr_1fr_100px_100px_1fr_100px] gap-px border-b border-slate-800/50 hover:bg-slate-800/80 transition-colors"
-                            >
-                                <div className="p-2 text-center text-slate-600 text-xs flex items-center justify-center">
-                                    {idx + 1}
+                        {/* Cost Center */}
+                        <div className="group relative flex-1 max-w-xs">
+                            <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-purple-400 group-focus-within:text-purple-300 transition-colors z-10">
+                                Centro de Custo
+                            </label>
+                            <div className="relative bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden group-focus-within:border-purple-500/50 group-focus-within:ring-2 ring-purple-500/10 transition-all">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                    <Building2 className="w-4 h-4" />
                                 </div>
-                                <div className="p-0">
-                                    <input 
-                                        className="w-full h-full bg-transparent px-3 py-2 outline-none focus:bg-blue-900/20 text-white text-sm"
-                                        placeholder="Nome..."
-                                        value={row.passageiro}
-                                        onChange={e => updateRow(row.tempId, 'passageiro', e.target.value)}
-                                        onKeyDown={e => handleKeyDown(e, idx)}
-                                    />
-                                </div>
-                                <div className="p-0">
-                                    <input 
-                                        className="w-full h-full bg-transparent px-3 py-2 outline-none focus:bg-blue-900/20 text-white text-sm"
-                                        placeholder="Origem"
-                                        value={row.origem}
-                                        onChange={e => updateRow(row.tempId, 'origem', e.target.value)}
-                                        onKeyDown={e => handleKeyDown(e, idx)}
-                                    />
-                                </div>
-                                <div className="p-0">
-                                    <input 
-                                        className="w-full h-full bg-transparent px-3 py-2 outline-none focus:bg-blue-900/20 text-white text-sm"
-                                        placeholder="Destino"
-                                        value={row.destino}
-                                        onChange={e => updateRow(row.tempId, 'destino', e.target.value)}
-                                        onKeyDown={e => handleKeyDown(e, idx)}
-                                    />
-                                </div>
-                                <div className="p-0">
-                                    <input 
-                                        type="time"
-                                        className="w-full h-full bg-transparent px-3 py-2 outline-none focus:bg-blue-900/20 text-white text-sm"
-                                        value={row.hora}
-                                        onChange={e => updateRow(row.tempId, 'hora', e.target.value)}
-                                        onKeyDown={e => handleKeyDown(e, idx)}
-                                    />
-                                </div>
-                                <div className="p-0">
-                                    <input 
-                                        className="w-full h-full bg-transparent px-3 py-2 outline-none focus:bg-blue-900/20 text-slate-300 text-sm"
-                                        placeholder="TP..."
-                                        value={row.voo}
-                                        onChange={e => updateRow(row.tempId, 'voo', e.target.value)}
-                                        onKeyDown={e => handleKeyDown(e, idx)}
-                                    />
-                                </div>
-                                <div className="p-0">
-                                    <input 
-                                        className="w-full h-full bg-transparent px-3 py-2 outline-none focus:bg-blue-900/20 text-slate-300 text-sm"
-                                        value={row.obs}
-                                        onChange={e => updateRow(row.tempId, 'obs', e.target.value)}
-                                        onKeyDown={e => handleKeyDown(e, idx)}
-                                    />
-                                </div>
-                                <div className="p-0 flex items-center justify-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                                    <button 
-                                        onClick={() => addReturnTrip(row)}
-                                        className="p-1.5 hover:bg-blue-500/20 text-blue-400 rounded"
-                                        title="Adicionar Retorno (Inverter)"
-                                        tabIndex={-1}
-                                    >
-                                        <ArrowRightLeft className="w-4 h-4" />
-                                    </button>
-                                    <button 
-                                        onClick={() => deleteRow(row.tempId)}
-                                        className="p-1.5 hover:bg-red-500/20 text-red-400 rounded"
-                                        title="Remover Linha"
-                                        tabIndex={-1}
-                                    >
-                                        <Trash className="w-4 h-4" />
-                                    </button>
+                                <select 
+                                    className="bg-transparent border-none text-sm font-medium text-white pl-10 pr-10 py-2.5 w-full outline-none appearance-none [&_option]:bg-slate-900 cursor-pointer"
+                                    value={selectedCentroCusto}
+                                    onChange={e => setSelectedCentroCusto(e.target.value)}
+                                >
+                                    <option value="">Selecione...</option>
+                                    {centrosCustos.map(cc => (
+                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                    <ChevronDown className="w-4 h-4 opacity-50" />
                                 </div>
                             </div>
-                        ))}
+                        </div>
+
+                        {/* Notes */}
+                        <div className="group relative flex-[1.5]">
+                            <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-slate-300 transition-colors z-10">
+                                Observações desta Escala
+                            </label>
+                            <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-xl overflow-visible group-focus-within:border-slate-500/50 transition-all relative">
+                                <div className="pl-3 text-slate-500 group/info cursor-help relative flex items-center h-full py-2.5">
+                                    <Info className="w-4 h-4 hover:text-blue-400 transition-colors" />
+                                    {/* Tooltip */}
+                                    <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-xl shadow-2xl text-xs text-slate-300 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-50 translate-y-[-10px] group-hover/info:translate-y-0">
+                                        Use este campo para observações gerais que se aplicam a todo o lote de escalas.
+                                        {/* Arrow */}
+                                        <div className="absolute -top-1 left-4 w-2 h-2 bg-slate-800 border-t border-l border-slate-700 rotate-45"></div>
+                                    </div>
+                                </div>
+                                <input 
+                                    className="bg-transparent border-none text-sm text-slate-300 px-3 py-2.5 w-full outline-none placeholder:text-slate-600"
+                                    placeholder="Ex: Reforço de Verão..."
+                                    value={notes}
+                                    onChange={e => setNotes(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-3">
+                        {/* Hidden Input */}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept=".xlsx, .xls"
+                            onChange={handleImportExcel}
+                        />
+
+                        {/* Buttons */}
+                        <button 
+                            onClick={handleDownloadTemplate}
+                            className="bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-4 py-2.5 rounded-xl border border-slate-700/50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12"
+                            title="Baixar Modelo Excel"
+                        >
+                            <Download className="w-4 h-4" />
+                            <span className="hidden xl:block text-left leading-none">
+                                BAIXAR<br />MODELO
+                            </span>
+                        </button>
+
+                        <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 px-4 py-2.5 rounded-xl border border-slate-700/50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12"
+                            title="Importar Excel"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            <span className="hidden xl:block text-left leading-none">
+                                IMPORTAR<br />ESCALA EM MASSA
+                            </span>
+                        </button>
+
+                        <div className="w-px h-8 bg-slate-800 mx-1"></div>
+
+                        <button
+                            onClick={handleLaunch}
+                            disabled={isLoading}
+                            className={`
+                                relative overflow-hidden group px-6 py-2 rounded-xl font-bold text-sm tracking-wide transition-all h-12
+                                ${isLoading
+                                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 hover:-translate-y-0.5'
+                                }
+                            `}
+                        >
+                            <div className="flex items-center gap-2 relative z-10">
+                                {isLoading ? (
+                                    'Processando...'
+                                ) : (
+                                    <>
+                                        <Upload className="w-4 h-4" />
+                                        <span className="text-left leading-none text-xs">
+                                            LANÇAR<br />ESCALA
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                        </button>
                     </div>
                 </div>
-
-                <button 
-                    onClick={addRow}
-                    className="mt-4 w-full py-3 border-2 border-dashed border-slate-700 rounded-lg text-slate-500 hover:text-white hover:border-slate-500 hover:bg-slate-800 transition flex items-center justify-center gap-2 font-medium"
-                >
-                    <Plus className="w-4 h-4" />
-                    Adicionar Linha
-                </button>
             </div>
+
+            {/* Main Grid Area */}
+            <div className="flex-1 overflow-auto p-6 custom-scrollbar bg-[url('/grid-pattern.svg')] bg-repeat opacity-[0.98]">
+                <div className="max-w-[1920px] mx-auto">
+
+                    <div className="bg-[#0f172a] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+
+                        {/* Grid Header */}
+                        <div className="grid grid-cols-[40px_105px_1.21fr_1.9fr_1.9fr_125px_1.5fr_60px] gap-px bg-slate-900 border-b border-slate-800">
+                            {[
+                                { l: '#', c: 'text-center' },
+                                { l: 'Tipo', c: 'text-center' },
+                                { l: 'Passageiro', i: null },
+                                { l: 'Origem', i: MapPin },
+                                { l: 'Destino', i: MapPin },
+                                { l: 'Hora', i: Clock },
+                                { l: 'Obs', i: Info },
+                                { l: '', c: '' }
+                            ].map((h, idx) => (
+                                <div key={idx} className={`p-4 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 ${h.c || ''}`}>
+                                    {h.i && <h.i className="w-3 h-3" />}
+                                    {h.l}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Grid Rows */}
+                        <div className="divide-y divide-slate-800/50 bg-[#0f172a]" ref={gridRef}>
+                            {rows.map((row, idx) => (
+                                <div
+                                    key={row.tempId} 
+                                    className="group grid grid-cols-[40px_105px_1.21fr_1.9fr_1.9fr_125px_1.5fr_60px] gap-px text-sm hover:bg-slate-800/30 transition-colors focus-within:bg-slate-800/50"
+                                >
+
+                                    {/* Line Number */}
+                                    <div className="p-3 text-center text-slate-600 font-mono text-xs flex items-center justify-center">
+                                        {idx + 1}
+                                    </div>
+
+                                    {/* Type Toggle - Changed to Select */}
+                                    <div className="p-2 flex items-center justify-center">
+                                        <div className="relative w-full h-full">
+                                            <select
+                                                className={`
+                                                    w-full h-full text-xs font-bold uppercase rounded-lg px-2 outline-none appearance-none cursor-pointer border
+                                                    ${row.tipo === 'entrada' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                                        row.tipo === 'saida' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
+                                                            'bg-slate-800 text-slate-400 border-slate-700'}
+                                                `}
+                                                value={row.tipo}
+                                                onChange={e => setRowType(row.tempId, e.target.value as any)}
+                                            >
+                                                <option value="entrada">ENTRADA</option>
+                                                <option value="saida">SAÍDA</option>
+                                            </select>
+                                            {/* Custom Arrow */}
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                                                <ChevronDown className="w-3 h-3" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Inputs */}
+                                    <div className="relative">
+                                        <input 
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all placeholder:text-slate-700"
+                                            placeholder="Nome do Passageiro..."
+                                            value={row.passageiro}
+                                            maxLength={18}
+                                            onChange={e => updateRow(row.tempId, 'passageiro', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, idx)}
+                                        />
+                                    </div>
+
+                                    <div className="relative border-l border-slate-800/50">
+                                        <input 
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
+                                            value={row.origem}
+                                            maxLength={28}
+                                            onChange={e => updateRow(row.tempId, 'origem', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, idx)}
+                                        />
+                                    </div>
+
+                                    <div className="relative border-l border-slate-800/50">
+                                        <input 
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
+                                            value={row.destino}
+                                            maxLength={28}
+                                            onChange={e => updateRow(row.tempId, 'destino', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, idx)}
+                                        />
+                                    </div>
+
+                                    <div className="relative border-l border-slate-800/50">
+                                        <input
+                                            type="time"
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-white font-mono text-center focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
+                                            value={row.hora}
+                                            onChange={e => updateRow(row.tempId, 'hora', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, idx)}
+                                        />
+                                    </div>
+
+                                    <div className="relative border-l border-slate-800/50">
+                                        <input 
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-400 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
+                                            value={row.obs}
+                                            maxLength={50}
+                                            onChange={e => updateRow(row.tempId, 'obs', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, idx)}
+                                        />
+                                    </div>
+
+                                    {/* Row Actions */}
+                                    <div className="flex items-center justify-center gap-1 border-l border-slate-800/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => addReturnTrip(row)}
+                                            className="p-1.5 hover:bg-blue-500/10 text-blue-500 rounded-lg transition-colors"
+                                            title="Retorno"
+                                        >
+                                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            onClick={() => deleteRow(row.tempId)}
+                                            className="p-1.5 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                                            title="Remover"
+                                        >
+                                            <Trash className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Footer: Add Row */}
+                        <div className="p-4 bg-slate-900/50 border-t border-slate-800">
+                            <button
+                                onClick={addRow}
+                                className="w-full py-3 border-2 border-dashed border-slate-700/50 rounded-xl text-slate-500 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2 font-medium text-sm"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Adicionar Nova Linha
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Instructions */}
+                    <div className="mt-8 flex gap-8 text-xs text-slate-500 px-2 opacity-50 hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold font-mono">↙</div>
+                            <span>Use <span className="text-slate-300 font-bold">Enter</span> para adicionar novas linhas</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {/* Import Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+                        <div className="p-6">
+                            <h3 className="text-xl font-bold text-white mb-2">Importar Escala</h3>
+                            <p className="text-slate-400 text-sm">
+                                Encontradas <span className="text-blue-400 font-bold">{pendingImportRows.length}</span> linhas no arquivo.
+                                <br />Como deseja proceder?
+                            </p>
+
+                            <div className="flex flex-col gap-3 mt-8">
+                                <button
+                                    onClick={() => confirmImport('replace')}
+                                    className="w-full py-3 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-red-400 font-bold text-sm transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Trash className="w-4 h-4" />
+                                    Substituir Escala Atual
+                                </button>
+
+                                <button 
+                                    onClick={() => confirmImport('append')}
+                                    className="w-full py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl text-emerald-400 font-bold text-sm transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Somente Adicionar à Escala
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setShowImportModal(false);
+                                        setPendingImportRows([]);
+                                    }}
+                                    className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 font-medium text-sm transition-all mt-2"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
