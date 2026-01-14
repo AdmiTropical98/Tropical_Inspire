@@ -88,6 +88,7 @@ interface WorkshopContextType {
     runComplianceCheck: () => Promise<void>;
     runComplianceDemo: () => void;
     updateVehicleLocation: (registration: string, lat: number, lng: number) => Promise<void>;
+    createScaleBatch: (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; error?: string }>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -1465,6 +1466,77 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     ));
                 } catch (err) {
                     console.error('Error updating vehicle location:', err);
+                }
+            },
+            createScaleBatch: async (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => {
+                try {
+                    const storedUser = localStorage.getItem('currentUser');
+                    let user = null;
+                    if (storedUser) user = JSON.parse(storedUser);
+
+                    // 1. Create Batch
+                    const { data: batch, error: batchError } = await supabase.from('scale_batches').insert({
+                        created_by: user?.nome || 'Sistema',
+                        centro_custo_id: batchData.centroCustoId,
+                        reference_date: batchData.referenceDate,
+                        notes: batchData.notes
+                    }).select().single();
+
+                    if (batchError) throw batchError;
+
+                    // 2. Prepare Services with batch_id
+                    const servicesToInsert = services.map(s => ({
+                        id: s.id,
+                        motorista_id: s.motoristaId, // Should be null usually
+                        passageiro: s.passageiro,
+                        hora: s.hora,
+                        origem: s.origem,
+                        destino: s.destino,
+                        voo: s.voo,
+                        obs: s.obs, // "Ida" or "Volta" usually
+                        concluido: false,
+                        centro_custo_id: batchData.centroCustoId,
+                        batch_id: batch.id
+                    }));
+
+                    const { error: servicesError } = await supabase.from('servicos').insert(servicesToInsert);
+
+                    if (servicesError) {
+                        // Rollback batch? Supabase doesn't support easy rollback from client unless RPC. 
+                        // For now we assume success or manual cleanup if needed.
+                        throw servicesError;
+                    }
+
+                    // 3. Log History for each (Optional but good for consistency)
+                    // We can do this async to not block UI
+                    services.forEach(s => {
+                        const confirmed = { ...s, batchId: batch.id, centroCustoId: batchData.centroCustoId };
+                        logServiceHistory(s.id, 'CREATE', null, confirmed);
+                    });
+
+                    // 4. Update Local State
+                    // Convert back to app format
+                    const newServices = servicesToInsert.map(s => ({
+                        id: s.id,
+                        motoristaId: s.motorista_id,
+                        passageiro: s.passageiro,
+                        hora: s.hora,
+                        origem: s.origem,
+                        destino: s.destino,
+                        voo: s.voo,
+                        obs: s.obs,
+                        concluido: s.concluido,
+                        centroCustoId: s.centro_custo_id,
+                        batchId: s.batch_id
+                    }));
+
+                    setServicos(prev => [...prev, ...newServices]);
+
+                    return { success: true };
+
+                } catch (error: any) {
+                    console.error('Error creating batch:', error);
+                    return { success: false, error: error.message };
                 }
             }
         }}>

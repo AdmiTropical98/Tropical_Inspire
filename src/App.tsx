@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
-  BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award,
+  BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -39,6 +39,7 @@ import Geofences from './components/geofences'; // Import Geofences component
 import UsersPage from './components/users'; // Import UsersPage
 import Permissoes from './components/permissoes';
 import MyProfile from './components/profile/MyProfile';
+import LancarEscala from './pages/LancarEscala';
 import SplashScreen from './components/SplashScreen';
 import { LayoutProvider } from './contexts/LayoutContext';
 
@@ -71,7 +72,7 @@ function AppContent() {
   const { notifications } = useWorkshop();
   const { unreadCount } = useChat(); // Now we can use this!
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'meu-perfil'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'meu-perfil'>('dashboard');
 
   // Sidebar Visibility Flags
   const showFleetGroup = hasAccess(userRole, 'central_motorista') || hasAccess(userRole, 'viaturas') || hasAccess(userRole, 'motoristas') || hasAccess(userRole, 'geofences') || userRole === 'admin';
@@ -129,6 +130,7 @@ function AppContent() {
           </div>
         );
       case 'escalas': return <Escalas />;
+      case 'lancar-escala': return <LancarEscala onNavigate={(tab) => setActiveTab(tab as any)} />;
       case 'horas': return <Horas />;
       case 'equipa-oficina': return <EquipaOficina />;
       case 'supervisores': return <Supervisores />;
@@ -208,6 +210,9 @@ function AppContent() {
 
           {hasAccess(userRole, 'escalas') && (
             <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => setActiveTab('escalas')} />
+          )}
+          {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor') && (
+            <SidebarItem icon={LayoutTemplate} label="Lançar Escala" active={activeTab === 'lancar-escala'} onClick={() => setActiveTab('lancar-escala')} />
           )}
           {hasAccess(userRole, 'requisicoes') && (
             <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => setActiveTab('requisicoes')} />
@@ -336,6 +341,9 @@ function AppContent() {
 
               {hasAccess(userRole, 'escalas') && (
                 <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false); }} />
+              )}
+              {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor') && (
+                <SidebarItem icon={LayoutTemplate} label="Lançar Escala" active={activeTab === 'lancar-escala'} onClick={() => { setActiveTab('lancar-escala'); setIsMobileMenuOpen(false); }} />
               )}
               {hasAccess(userRole, 'requisicoes') && (
                 <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => { setActiveTab('requisicoes'); setIsMobileMenuOpen(false); }} />
