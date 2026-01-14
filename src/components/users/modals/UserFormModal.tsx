@@ -46,7 +46,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
         addMotorista, updateMotorista, 
         addSupervisor, updateSupervisor,
         addOficinaUser, updateOficinaUser,
-        createAdminUser
+        createAdminUser, centrosCustos
     } = useWorkshop();
 
     const [role, setRole] = useState<UserRole>(initialRole);
@@ -65,7 +65,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
         turnoInicio: '09:00',
         turnoFim: '18:00',
         folgas: [] as string[],
-        blockedPermissions: [] as string[]
+        blockedPermissions: [] as string[],
+        centroCustoId: ''
     });
 
     useEffect(() => {
@@ -75,7 +76,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                 ...user,
                 // Ensure array existence
                 blockedPermissions: user.blockedPermissions || [],
-                folgas: user.folgas || []
+                folgas: user.folgas || [],
+                centroCustoId: user.centroCustoId || ''
             });
         } else {
             // Reset
@@ -93,7 +95,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                 turnoInicio: '09:00',
                 turnoFim: '18:00',
                 folgas: [],
-                blockedPermissions: []
+                blockedPermissions: [],
+                centroCustoId: ''
             });
             setRole(initialRole);
         }
@@ -139,7 +142,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     folgas: baseData.folgas,
                     blockedPermissions: baseData.blockedPermissions,
                     status: (baseData.status === 'active' ? 'disponivel' : 'indisponivel') as any, // Cast to satisfy type
-                    obs: baseData.obs || ''
+                    obs: baseData.obs || '',
+                    centroCustoId: baseData.centroCustoId
                 };
                 if (user) await updateMotorista(driverData);
                 else await addMotorista(driverData);
@@ -357,6 +361,19 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                             onChange={e => setFormData({ ...formData, cartaConducao: e.target.value })}
                                         />
                                     </div>
+                                </div>
+                                <div className="mt-4">
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">Centro de Custo</label>
+                                    <select
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.centroCustoId || ''}
+                                        onChange={e => setFormData({ ...formData, centroCustoId: e.target.value })}
+                                    >
+                                        <option value="">Selecione um Centro de Custo</option>
+                                        {centrosCustos?.map(cc => (
+                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <h3 className="text-sm font-bold text-slate-500 uppercase flex items-center gap-2 pt-2">
