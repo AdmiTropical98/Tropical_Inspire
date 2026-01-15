@@ -23,11 +23,17 @@ I have successfully linked Requisitions to the Accounting invoices view, treatin
     - "Despesas Totais" now includes the sum of all confirmed requisitions.
     - "Distribuição de Custos" chart now includes a "Requisições" category.
 
-### 4. Rentals Display (Alugueres)
-- **Grouping**: Rentals are now grouped by **Client** and **Month/Year** only.
-    - This consolidates multiple cost centers for the same client in the same month into a single group.
-- **Cost Centers**: 
-    - **Group View**: Displays "Vários Centros de Custo" if the group contains mixed cost centers.
+- [x] O botão "Camadas" (Satélite) aparece sempre expandido no mapa.
+- [x] A pesquisa de locais (ex: "Hilton") funciona corretamente.
+- [x] **NOVO:** O sistema verifica se a viatura está fisicamente no local do serviço (Live Geofence).
+
+### Resultados da Validação
+| Funcionalidade | Estado | Obs |
+| :--- | :---: | :--- |
+| **Ponto de Interesse (Paz)** | ✅ | Marcadores corretos |
+| **Pesquisa "Hilton"** | ✅ | Retorna resultados Komoot |
+| **Satélite View** | ✅ | Tiles Esri funcional |
+| **Live Geofence** | 📡 | Verifica distâncias < 200m entre Viatura e POI |centers.
     - **Detail View**: Only when expanded does the list show the details. If multiple Cost Centers exist, items are visually grouped under **Cost Center Sub-headers** for clarity.
 - **Terminology**: Replaced "Faturas" with "Relatórios" in the list view.
 
