@@ -9,6 +9,8 @@ import {
     Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download
 } from 'lucide-react';
 import { read, utils } from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Helper for unique IDs for grid rows
 const generateTempId = () => Math.random().toString(36).substr(2, 9);
@@ -189,6 +191,72 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         }
     };
 
+    // Generate PDF
+    const generatePDF = (batchId: string, services: any[]) => {
+        const doc = new jsPDF();
+
+        // Logo and Header
+        // Assuming there isn't a widely accessible logo URL that works in local generation without CORS, 
+        // using text placeholder or base64 if available. For now, polished text header.
+        doc.setFillColor(15, 23, 42); // slate-900
+        doc.rect(0, 0, 220, 40, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text("TROPICAL INSPIRE", 15, 20);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text("Gestão de Frota e Escalas", 15, 28);
+
+        // Batch Info
+        doc.setTextColor(51, 65, 85); // slate-700
+        doc.setFontSize(10);
+        doc.text(`Data da Escala: ${referenceDate}`, 15, 50);
+        const ccName = centrosCustos.find(c => c.id === selectedCentroCusto)?.nome || 'N/A';
+        doc.text(`Centro de Custo: ${ccName}`, 15, 56);
+        doc.text(`ID do Lote: ${batchId.slice(0, 8)}...`, 15, 62);
+        doc.text(`Criado por: Supervisor (ID: ${userRole})`, 15, 68); // Ideally allow passing proper name
+
+        // Table
+        const tableBody = services.map((s, index) => [
+            (index + 1).toString(),
+            s.tipo.toUpperCase(),
+            s.passageiro,
+            s.origem,
+            s.destino,
+            s.hora,
+            s.obs || '-'
+        ]);
+
+        autoTable(doc, {
+            startY: 75,
+            head: [['#', 'TIPO', 'PASSAGEIRO', 'ORIGEM', 'DESTINO', 'HORA', 'OBS']],
+            body: tableBody,
+            headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold' },
+            bodyStyles: { textColor: 50 },
+            alternateRowStyles: { fillColor: [241, 245, 249] },
+            styles: { fontSize: 9, cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 10 },
+                1: { cellWidth: 20 },
+                5: { cellWidth: 20, halign: 'center' }
+            }
+        });
+
+        // Footer
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Página ${i} de ${pageCount} - Gerado em ${new Date().toLocaleString()}`, 105, 290, { align: 'center' });
+        }
+
+        doc.save(`Escala_${referenceDate}_${ccName}.pdf`);
+    };
+
     // Actions
     const handleLaunch = async () => {
         if (!selectedCentroCusto) {
@@ -233,10 +301,12 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
             if (result.success) {
                 // Success UI
-                if (confirm('Escala lançada com sucesso! Deseja limpar o formulário?')) {
-                    setRows([{ tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada' }]);
-                    setNotes('');
+                if (confirm('Escala lançada com sucesso! Deseja imprimir a lista em PDF?')) {
+                    // Use the newly created services data (we rely on validRows to reconstruct what was sent)
+                    // In a real scenario, we might want the returned IDs, but for printing, validRows is enough context
+                    generatePDF(result.data?.id || 'BATCH-NEW', servicesToCreate);
                 }
+
                 if (onNavigate) onNavigate('escalas');
             } else {
                 alert('Erro ao lançar escala: ' + result.error);
