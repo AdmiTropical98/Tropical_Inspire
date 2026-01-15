@@ -147,6 +147,20 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     // COMPLIANCE LOGIC
     const [complianceStats, setComplianceStats] = useState<Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>>({});
 
+    // Helper: Haversine Distance (km)
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371; // Radius of the earth in km
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const d = R * c; // Distance in km
+        return d * 1000; // Returns meters
+    };
+
     const runComplianceCheck = async () => {
         const todayStr = new Date().toISOString().split('T')[0];
         console.log("Iniciando verificação de conformidade...");
@@ -175,8 +189,45 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 if (cv) vehicleId = cv.id;
             }
 
+            // --- NEW: LIVE POI CHECK ---
+            // Try to find if the Service Origin/Destination matches a known POI (Local)
+            // Logic: Check 'Origem' for 'Entrada' services, 'Destino' for 'Saída', or both.
+            const targetLocationName = service.obs === 'Saída' ? service.destino : service.origem;
+
+            // Find matching Local (POI)
+            // Loose matching: POI name contained in Service location or vice versa
+            const targetPOI = locais.find(l =>
+                l.nome.toLowerCase().includes(targetLocationName.toLowerCase()) ||
+                targetLocationName.toLowerCase().includes(l.nome.toLowerCase())
+            );
+
+            // Find LIVE Vehicle Object (for coordinates)
+            const liveVehicle = cartrackVehicles.find(v =>
+                (vehicleId && v.id === String(vehicleId)) ||
+                (driver.currentVehicle && v.registration.replace(/\s+/g, '') === driver.currentVehicle.replace(/\s+/g, ''))
+            );
+
+            if (targetPOI && liveVehicle) {
+                // Calculate Distance
+                const dist = calculateDistance(liveVehicle.latitude, liveVehicle.longitude, targetPOI.latitude, targetPOI.longitude);
+                const radius = targetPOI.raio || 200; // Default 200m if not set
+
+                if (dist <= radius) {
+                    newStats[service.id] = {
+                        status: 'success',
+                        message: `✓ Em Local: ${targetPOI.nome} (${Math.round(dist)}m)`
+                    };
+                    continue; // Success found, skip legacy check
+                } else {
+                    // Too far currently
+                    // Don't fail immediately, fallback to Geofence History check below
+                    // or set a provisional 'away' message if history check also fails
+                }
+            }
+
+
             if (!vehicleId) {
-                newStats[service.id] = { status: 'pending', message: 'Viatura não associada' };
+                newStats[service.id] = { status: 'pending', message: `Viatura não associada (${driver.currentVehicle || 'N/A'})` };
                 continue;
             }
 
@@ -238,8 +289,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         message = `🕒 Fora de horas (${match.geofenceName})`;
                     }
                 } else {
-                    status = 'failed';
-                    message = `📍 Falha Geofence: ${targetGeofenceName}`;
+                    // Fallback from Live Check
+                    if (targetPOI && liveVehicle) {
+                        // If we are here, it means Live Check failed (vehicle far) AND Geofence History failed
+                        const dist = calculateDistance(liveVehicle.latitude, liveVehicle.longitude, targetPOI.latitude, targetPOI.longitude);
+                        status = 'failed';
+                        message = `📍 ${Math.round(dist / 1000)}km de ${targetPOI.nome}`;
+                    } else {
+                        status = 'failed';
+                        message = `📍 Falha Geofence: ${targetGeofenceName}`;
+                    }
                 }
 
                 newStats[service.id] = { status, message };
