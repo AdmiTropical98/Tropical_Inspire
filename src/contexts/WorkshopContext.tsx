@@ -1662,7 +1662,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                     setServicos(prev => [...prev, ...newServices]);
 
-                    return { success: true };
+                    return { success: true, data: batch };
 
                 } catch (error: any) {
                     console.error('Error creating batch:', error);

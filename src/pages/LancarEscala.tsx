@@ -192,34 +192,75 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     };
 
     // Generate PDF
-    const generatePDF = (batchId: string, services: any[]) => {
+    const generatePDF = async (batch: any, services: any[]) => {
         const doc = new jsPDF();
 
-        // Logo and Header
-        // Assuming there isn't a widely accessible logo URL that works in local generation without CORS, 
-        // using text placeholder or base64 if available. For now, polished text header.
-        doc.setFillColor(15, 23, 42); // slate-900
-        doc.rect(0, 0, 220, 40, 'F');
+        // 1. Logo Handling
+        try {
+            const logoUrl = '/logo-algar-frota.png';
+            const imgData = await fetch(logoUrl)
+                .then(res => res.blob())
+                .then(blob => new Promise<string | ArrayBuffer>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.readAsDataURL(blob);
+                }));
 
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
+            if (imgData) {
+                doc.addImage(imgData as string, 'PNG', 15, 10, 50, 25); // Top Left Logo
+            }
+        } catch (e) {
+            console.warn('Logo load failed', e);
+        }
+
+        // 2. Header Content (Right Side)
+        const pageWidth = doc.internal.pageSize.getWidth();
+
+        // Title Area (Right Aligned or Centered next to Logo?)
+        // User asked for "Logo top left". Let's put Title/Info Top Right/Center to balance.
+
         doc.setFont('helvetica', 'bold');
-        doc.text("TROPICAL INSPIRE", 15, 20);
+        doc.setFontSize(22);
+        doc.setTextColor(15, 23, 42); // Slate 900
+        // doc.text("TROPICAL INSPIRE", 70, 20); // Center-ish
+
+        // Schedule ID & Date (Top Right)
+        doc.setFontSize(14);
+        doc.setTextColor(51, 65, 85);
+        if (batch.serial_number) {
+            doc.text(`Escala #${batch.serial_number}`, pageWidth - 15, 20, { align: 'right' });
+        } else {
+            doc.text(`Escala #${batch.id.slice(0, 8)}`, pageWidth - 15, 20, { align: 'right' });
+        }
 
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text("Gestão de Frota e Escalas", 15, 28);
+        doc.setTextColor(100);
+        doc.text(referenceDate, pageWidth - 15, 26, { align: 'right' });
 
-        // Batch Info
-        doc.setTextColor(51, 65, 85); // slate-700
+        // 3. Meta Info (Below Logo)
+        let currentY = 45;
         doc.setFontSize(10);
-        doc.text(`Data da Escala: ${referenceDate}`, 15, 50);
+        doc.setTextColor(51, 65, 85);
+
         const ccName = centrosCustos.find(c => c.id === selectedCentroCusto)?.nome || 'N/A';
-        doc.text(`Centro de Custo: ${ccName}`, 15, 56);
-        doc.text(`ID do Lote: ${batchId.slice(0, 8)}...`, 15, 62);
-        doc.text(`Criado por: Supervisor (ID: ${userRole})`, 15, 68); // Ideally allow passing proper name
+        doc.text(`Centro de Custo: ${ccName}`, 15, currentY);
 
-        // Table
+        // "Criado por: Supervisor [Nome]"
+        // We use the batch data if available, or fallback to current user session
+        const creatorName = batch.created_by || 'Sistema';
+        // Capitalize Role
+        const roleDisplay = userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'User';
+
+        doc.text(`Criado por: ${roleDisplay} ${creatorName}`, 15, currentY + 6);
+
+        if (notes) {
+            doc.setFont('helvetica', 'italic');
+            doc.text(`Obs: ${notes}`, 15, currentY + 12);
+            doc.setFont('helvetica', 'normal');
+            currentY += 6;
+        }
+
+        // 4. Table
         const tableBody = services.map((s, index) => [
             (index + 1).toString(),
             s.tipo.toUpperCase(),
@@ -231,30 +272,54 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         ]);
 
         autoTable(doc, {
-            startY: 75,
+            startY: currentY + 15,
             head: [['#', 'TIPO', 'PASSAGEIRO', 'ORIGEM', 'DESTINO', 'HORA', 'OBS']],
             body: tableBody,
-            headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold' },
-            bodyStyles: { textColor: 50 },
-            alternateRowStyles: { fillColor: [241, 245, 249] },
-            styles: { fontSize: 9, cellPadding: 3 },
+            headStyles: {
+                fillColor: [15, 23, 42], // Slate 900
+                textColor: 255,
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            bodyStyles: {
+                textColor: 50,
+                halign: 'center'
+            },
+            alternateRowStyles: { fillColor: [241, 245, 249] }, // Slate 50
+            styles: { fontSize: 9, cellPadding: 3, valign: 'middle' },
             columnStyles: {
                 0: { cellWidth: 10 },
-                1: { cellWidth: 20 },
-                5: { cellWidth: 20, halign: 'center' }
+                1: { cellWidth: 25, fontStyle: 'bold' },
+                2: { halign: 'left' }, // Passageiro Left Align
+                3: { halign: 'left' }, // Origem Left Align
+                4: { halign: 'left' }, // Destino Left Align
+            },
+            didParseCell: function (data) {
+                // Colorize Type
+                if (data.section === 'body' && data.column.index === 1) {
+                    const text = data.cell.raw as string;
+                    if (text === 'ENTRADA') {
+                        data.cell.styles.textColor = [217, 119, 6]; // Amber 600
+                    } else if (text === 'SAIDA' || text === 'SAÍDA') {
+                        data.cell.styles.textColor = [79, 70, 229]; // Indigo 600
+                    }
+                }
             }
         });
 
-        // Footer
+        // 5. Footer
         const pageCount = doc.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(150);
-            doc.text(`Página ${i} de ${pageCount} - Gerado em ${new Date().toLocaleString()}`, 105, 290, { align: 'center' });
+            doc.text(`Página ${i} de ${pageCount} - Gerado em ${new Date().toLocaleString()}`, pageWidth / 2, 290, { align: 'center' });
+
+            // Branding Footer
+            doc.text("Tropical Inspire App", pageWidth - 15, 290, { align: 'right' });
         }
 
-        doc.save(`Escala_${referenceDate}_${ccName}.pdf`);
+        doc.save(`Escala_${batch.serial_number || 'Batch'}_${referenceDate}.pdf`);
     };
 
     // Actions
@@ -302,9 +367,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             if (result.success) {
                 // Success UI
                 if (confirm('Escala lançada com sucesso! Deseja imprimir a lista em PDF?')) {
-                    // Use the newly created services data (we rely on validRows to reconstruct what was sent)
-                    // In a real scenario, we might want the returned IDs, but for printing, validRows is enough context
-                    generatePDF(result.data?.id || 'BATCH-NEW', servicesToCreate);
+                    // Pass the full batch object returned from context (contains serial_number, created_by, etc)
+                    await generatePDF(result.data, servicesToCreate);
                 }
 
                 if (onNavigate) onNavigate('escalas');
