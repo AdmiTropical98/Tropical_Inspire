@@ -89,7 +89,7 @@ export default function Locais() {
             setIsSearching(true);
             try {
                 // Using Photon (Komoot) -> Returns GeoJSON
-                const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&limit=5&lang=pt`);
+                const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&limit=5`);
 
                 if (!response.ok) {
                     throw new Error(`Photon API error: ${response.status}`);
