@@ -339,7 +339,7 @@ export default function Locais() {
                         zoom={12}
                         className="h-full w-full outline-none"
                     >
-                        <LayersControl position="topright">
+                        <LayersControl position="topright" collapsed={false}>
                             <LayersControl.BaseLayer checked name="Mapa Estrada">
                                 <TileLayer
                                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
