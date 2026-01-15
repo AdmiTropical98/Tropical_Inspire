@@ -4,12 +4,20 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import {
     MapPin, Plus, Trash2, Search, Navigation,
-    Hotel, Plane, Wrench, Map as MapIcon, Save, X
+    Hotel, Plane, Wrench, Map as MapIcon, Save, X, Loader2, Globe
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { Local } from '../../types';
+
+interface SearchResult {
+    place_id: number;
+    lat: string;
+    lon: string;
+    display_name: string;
+    type: string;
+}
 
 // Fix Leaflet Icons
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -64,6 +72,60 @@ export default function Locais() {
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number, lng: number } | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [newLocalPos, setNewLocalPos] = useState<{ lat: number, lng: number } | null>(null);
+
+    // Geocoding State
+    const [geoResults, setGeoResults] = useState<SearchResult[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [showResults, setShowResults] = useState(false);
+
+    // Search Effect (Debounced)
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (searchTerm.length < 3) {
+                setGeoResults([]);
+                return;
+            }
+
+            setIsSearching(true);
+            try {
+                // Browsers do not allow setting User-Agent in fetch (Forbidden Header Name)
+                // Nominatim should accept requests from browsers with standard Referer.
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&limit=5&accept-language=pt`);
+
+                if (!response.ok) {
+                    throw new Error(`Nominatim API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("POI Search Results:", data); // Debugging
+                setGeoResults(data);
+            } catch (err) {
+                console.error("Geocoding error:", err);
+                setGeoResults([]); // Clear on error
+            } finally {
+                setIsSearching(false);
+            }
+        }, 800);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    const handleSelectGlobalLocation = (result: SearchResult) => {
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
+
+        setSelectedLocation({ lat, lng });
+        setSearchTerm('');
+        setShowResults(false);
+        setGeoResults([]);
+
+        // Auto-trigger creation mode
+        if (userRole === 'admin') {
+            setNewLocalPos({ lat, lng });
+            setIsCreating(true);
+            setFormData(prev => ({ ...prev, nome: result.display_name.split(',')[0] }));
+        }
+    };
 
     // Form State
     const [formData, setFormData] = useState<{
@@ -129,7 +191,7 @@ export default function Locais() {
     return (
         <div className="flex flex-col h-full bg-[#0f172a] text-slate-200">
             {/* Header */}
-            <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a]/80 backdrop-blur-md">
+            <div className="relative z-50 h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a]/80 backdrop-blur-md">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-600/20 rounded-lg">
                         <MapIcon className="w-6 h-6 text-blue-400" />
@@ -137,15 +199,77 @@ export default function Locais() {
                     <h1 className="text-xl font-bold text-white">Gestão de Locais (POIs)</h1>
                 </div>
 
-                <div className="relative w-64">
+                <div className="relative w-72 z-[1001]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                         type="text"
-                        placeholder="Procurar local..."
+                        placeholder="Procurar local ou morada..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setShowResults(true);
+                        }}
+                        onFocus={() => setShowResults(true)}
                         className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-blue-500/50"
                     />
+
+                    {/* Search Dropdown */}
+                    {showResults && searchTerm.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-[#1e293b] border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-[400px] overflow-y-auto">
+                            {/* Local Results */}
+                            {filteredLocais.length > 0 && (
+                                <div className="p-2">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase px-2 mb-1">Meus Locais</div>
+                                    {filteredLocais.slice(0, 3).map(local => (
+                                        <button
+                                            key={local.id}
+                                            onClick={() => {
+                                                setSelectedLocation({ lat: local.latitude, lng: local.longitude });
+                                                setSearchTerm('');
+                                                setShowResults(false);
+                                            }}
+                                            className="w-full text-left p-2 hover:bg-white/5 rounded-lg flex items-center gap-2 group"
+                                        >
+                                            <div className={`p-1.5 rounded-md ${local.tipo === 'aeroporto' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                {getIconForType(local.tipo)}
+                                            </div>
+                                            <span className="text-sm text-slate-200 truncate">{local.nome}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Global Results */}
+                            <div className="p-2 border-t border-white/10">
+                                <div className="flex items-center justify-between px-2 mb-1">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase">Resultados Globais</div>
+                                    {isSearching && <Loader2 className="w-3 h-3 text-blue-400 animate-spin" />}
+                                </div>
+
+                                {geoResults.map(result => (
+                                    <button
+                                        key={result.place_id}
+                                        onClick={() => handleSelectGlobalLocation(result)}
+                                        className="w-full text-left p-2 hover:bg-white/5 rounded-lg flex items-start gap-2"
+                                    >
+                                        <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-md mt-0.5">
+                                            <Globe className="w-3.5 h-3.5" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm text-slate-200 font-medium truncate">{result.display_name.split(',')[0]}</div>
+                                            <div className="text-xs text-slate-500 truncate">{result.display_name}</div>
+                                        </div>
+                                    </button>
+                                ))}
+
+                                {!isSearching && geoResults.length === 0 && searchTerm.length >= 3 && (
+                                    <div className="text-center py-2 text-xs text-slate-500">
+                                        Sem resultados externos.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
