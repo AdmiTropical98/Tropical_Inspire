@@ -1622,6 +1622,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         destino: s.destino,
                         voo: s.voo,
                         obs: s.obs, // "Ida" or "Volta" usually
+                        tipo: s.tipo || 'outro',
                         concluido: false,
                         centro_custo_id: batchData.centroCustoId,
                         batch_id: batch.id
@@ -1653,6 +1654,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         destino: s.destino,
                         voo: s.voo,
                         obs: s.obs,
+                        tipo: s.tipo,
                         concluido: s.concluido,
                         centroCustoId: s.centro_custo_id,
                         batchId: s.batch_id
