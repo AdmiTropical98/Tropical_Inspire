@@ -50,7 +50,7 @@ export default function Login() {
         // 1.1 Strict Email Validation
         // Checking for @algartempo presence
         if (!regData.email.toLowerCase().includes('@algartempo')) {
-            setRegError('Apenas emails corporativos (@algartempo) são permitidos.');
+            setRegError('O email não é autenticado pela empresa. Contacte o administrador.');
             return;
         }
 
@@ -350,6 +350,13 @@ export default function Login() {
                                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-emerald-400 text-sm flex items-center gap-2">
                                             <CheckCircle className="w-5 h-5" />
                                             {regSuccess}
+                                        </div>
+                                    )}
+
+                                    {regError && (
+                                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm flex items-center gap-2 animate-pulse">
+                                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                            {regError}
                                         </div>
                                     )}
 
