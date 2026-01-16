@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
-export default function SplashScreen({ onComplete }: { onComplete: () => void }) {
+export default function SplashScreen({ onComplete, message = "A iniciar aplicação..." }: { onComplete?: () => void, message?: string }) {
     const [status, setStatus] = useState<'loading' | 'error'>('loading');
     const [progress, setProgress] = useState(0);
 
@@ -16,7 +16,9 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
                 setProgress(60);
                 setTimeout(() => {
                     setProgress(100);
-                    setTimeout(onComplete, 500); // Fade out after full
+                    if (onComplete) {
+                        setTimeout(onComplete, 500); // Fade out after full
+                    }
                 }, 800);
             } else {
                 // Offline
@@ -31,12 +33,12 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
         // Safety timeout to force proceed (if stuck)
         const safetyTimer = setTimeout(() => {
             if (navigator.onLine && status === 'loading') {
-                onComplete();
+                if (onComplete) onComplete();
             }
         }, 3500);
 
         return () => clearTimeout(safetyTimer);
-    }, []);
+    }, [onComplete]);
 
     const handleRetry = () => {
         checkConnection();
@@ -66,7 +68,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
                             />
                         </div>
                         <p className="text-center text-slate-500 text-xs font-medium tracking-wider uppercase animate-pulse">
-                            A iniciar aplicação...
+                            {message}
                         </p>
                     </div>
                 ) : (

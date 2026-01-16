@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useWorkshop } from './WorkshopContext';
 import type { Motorista, Supervisor, OficinaUser, AdminUser, Gestor } from '../types';
 import { supabase } from '../lib/supabase';
+import SplashScreen from '../components/SplashScreen';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -296,7 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (isLoading) {
-        return <div className="h-screen w-screen bg-[#0f172a] flex items-center justify-center text-slate-400">Carregando...</div>;
+        return <SplashScreen message="A carregar dados..." />;
     }
 
     return (
