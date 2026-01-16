@@ -277,14 +277,19 @@ export default function Login() {
                         </button>
                     </form>
 
-                    {role === 'supervisor' && (
+                    {(role === 'supervisor' || role === 'gestor') && (
                         <div className="mt-6 border-t border-slate-800/50 pt-4">
                             <button
                                 onClick={() => setShowRegistration(true)}
-                                className="w-full py-3 rounded-xl border border-purple-500/20 text-purple-400 text-sm font-medium hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2"
+                                className={`w-full py-3 rounded-xl border text-sm font-medium transition-colors flex items-center justify-center gap-2
+                                    ${role === 'supervisor'
+                                        ? 'border-purple-500/20 text-purple-400 hover:bg-purple-500/10'
+                                        : 'border-teal-500/20 text-teal-400 hover:bg-teal-500/10'
+                                    }
+                                `}
                             >
                                 <UserCog className="w-4 h-4" />
-                                Registar Nova Conta Supervisor
+                                {role === 'supervisor' ? 'Registar Nova Conta Supervisor' : 'Registar Nova Conta Gestor'}
                             </button>
                         </div>
                     )}
@@ -309,8 +314,8 @@ export default function Login() {
                         <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-900/50">
                             <div>
                                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <UserCog className="w-5 h-5 text-purple-500" />
-                                    Registo de Supervisor
+                                    <UserCog className={`w-5 h-5 ${role === 'supervisor' ? 'text-purple-500' : 'text-teal-500'}`} />
+                                    {role === 'supervisor' ? 'Registo de Supervisor' : 'Registo de Gestor'}
                                 </h2>
                                 <p className="text-sm text-slate-400">
                                     {regStep === 'form' ? 'Preencha os seus dados' : 'Validação de Segurança'}
@@ -394,7 +399,9 @@ export default function Login() {
 
                                         <button
                                             type="submit"
-                                            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                            className={`w-full text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2
+                                                ${role === 'supervisor' ? 'bg-purple-600 hover:bg-purple-500' : 'bg-teal-600 hover:bg-teal-500'}
+                                            `}
                                         >
                                             <Send className="w-4 h-4" />
                                             Validar Dados e Pedir PIN
