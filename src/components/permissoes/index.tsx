@@ -130,6 +130,8 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
         icon: Lock,
         permissions: [
             { id: 'central_motorista', labelKey: 'menu.driver_central' },
+            { id: 'central_navegacao', labelKey: 'permission.central_navegacao' },
+            { id: 'central_recibos', labelKey: 'permission.central_recibos' },
             { id: 'plataformas_externas', labelKey: 'menu.external_platforms' }
         ]
     }

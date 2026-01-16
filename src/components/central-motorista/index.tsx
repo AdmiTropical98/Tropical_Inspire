@@ -14,10 +14,12 @@ import { useLayout } from '../../contexts/LayoutContext';
 import NavigationApp from './NavigationApp';
 import TagRegistrationModal from '../common/TagRegistrationModal';
 import { supabase } from '../../lib/supabase';
+import { usePermissions } from '../../contexts/PermissionsContext';
 
 export default function CentralMotorista() {
     const { t } = useTranslation();
     const { currentUser, userRole, userPhoto, refreshCurrentUser } = useAuth();
+    const { hasAccess } = usePermissions();
     const {
         servicos,
         notifications,
@@ -444,7 +446,12 @@ export default function CentralMotorista() {
         { id: 'navegacao', icon: Navigation, label: 'Navegação', color: 'blue' },
         { id: 'recibos', icon: FileText, label: t('central.tab.payslips'), color: 'emerald' },
         { id: 'reportar', icon: AlertTriangle, label: t('central.tab.report'), color: 'red' }
-    ].map(tab => {
+    ].filter(tab => {
+        // Permission Check
+        if (tab.id === 'navegacao') return hasAccess(userRole, 'central_navegacao');
+        if (tab.id === 'recibos') return hasAccess(userRole, 'central_recibos');
+        return true;
+    }).map(tab => {
         const getActiveClasses = (color: string) => {
             switch (color) {
                 case 'blue': return 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/30';

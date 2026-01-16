@@ -11,7 +11,7 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'equipa-oficina' |
     'supervisores' |
     'combustivel' | 'combustivel_calibrate' | 'combustivel_edit_history' |
-    'central_motorista' |
+    'central_motorista' | 'central_navegacao' | 'central_recibos' |
     'centros_custos' |
     'plataformas_externas' |
     'clientes' |
@@ -54,7 +54,8 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'contabilidade',
         'dashboard',
         'mensagens',
-        'geofences'
+        'geofences',
+        'central_navegacao', 'central_recibos'
     ],
     motorista: [
         'requisicoes', 'requisicoes_edit', 'requisicoes_delete', // Allow blocking if granted
@@ -66,6 +67,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'equipa-oficina',
         'combustivel', 'combustivel_calibrate', 'combustivel_edit_history',
         'central_motorista',
+        // 'central_navegacao', 'central_recibos', // EXCLUDED BY DEFAULT
         'centros_custos',
         'plataformas_externas',
         'dashboard',
@@ -81,7 +83,8 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'horas', 'hours_view_costs',
         'motoristas', 'fornecedores', 'equipa-oficina', 'plataformas_externas',
         'supervisores', 'clientes', 'relatorios',
-        'dashboard', 'mensagens', 'geofences'
+        'dashboard', 'mensagens', 'geofences',
+        'central_navegacao', 'central_recibos'
     ],
     gestor: [
         'requisicoes', 'requisicoes_edit', 'requisicoes_delete',
@@ -100,7 +103,8 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'mensagens',
         'geofences',
         'supervisores',
-        'clientes'
+        'clientes',
+        'central_navegacao', 'central_recibos'
     ]
 };
 

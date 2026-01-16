@@ -287,22 +287,7 @@ export default function Login() {
                         </button>
                     </form>
 
-                    {(role === 'supervisor' || role === 'gestor') && (
-                        <div className="mt-6 border-t border-slate-800/50 pt-4">
-                            <button
-                                onClick={() => setShowRegistration(true)}
-                                className={`w-full py-3 rounded-xl border text-sm font-medium transition-colors flex items-center justify-center gap-2
-                                    ${role === 'supervisor'
-                                        ? 'border-purple-500/20 text-purple-400 hover:bg-purple-500/10'
-                                        : 'border-teal-500/20 text-teal-400 hover:bg-teal-500/10'
-                                    }
-                                `}
-                            >
-                                <UserCog className="w-4 h-4" />
-                                {role === 'supervisor' ? 'Registar Nova Conta Supervisor' : 'Registar Nova Conta Gestor'}
-                            </button>
-                        </div>
-                    )}
+
 
                     <p className="mt-8 text-center text-xs text-slate-600">
                         &copy; 2025 Algartempo Frota. Todos os direitos reservados.
