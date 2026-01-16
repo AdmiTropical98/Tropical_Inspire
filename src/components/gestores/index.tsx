@@ -139,46 +139,6 @@ export default function Gestores() {
                     onSave={(updated) => updateGestor(updated as any)}
                 />
             )}
-
-
-    // Pending Requests Logic
-    const pendingRequests = useMemo(() => {
-        return notifications.filter(n =>
-            n.type === 'registration_request' &&
-            n.status === 'pending' &&
-            n.data?.role === 'gestor'
-            );
-    }, [notifications]);
-
-    const handleApproveRequest = async (request: Notification) => {
-        const pin = Math.floor(100000 + Math.random() * 900000).toString();
-
-            // 1. Approve Notification
-            await updateNotification({
-                ...request,
-                status: 'approved',
-            response: {pin}
-        });
-
-            // 2. Alert Admin (or auto-create user? Logic says specific "Admin creates user after validation")
-            // NOTE: The previous flow in Login.tsx implies the User enters the PIN to finalize.
-            // So we just need to provide the PIN to the Admin so they can send it.
-            alert(`Pedido Aprovado!\n\nPIN Gerado: ${pin}\n\nEnvie este PIN ao requerente para que ele possa concluir o registo.`);
-    };
-
-            return (
-            <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
-                {permissionUser && (
-                    <UserPermissionsModal
-                        isOpen={true}
-                        onClose={() => setPermissionUser(null)}
-                        user={permissionUser as any} // Cast safely as interfaces align on permissions
-                        role={"gestor" as any}
-                        onSave={(updated) => updateGestor(updated as any)}
-                    />
-                )}
-
-
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
