@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkshop } from '../contexts/WorkshopContext';
-import { Lock, Mail, ChevronRight, AlertCircle, Eye, EyeOff, User, ShieldCheck, UserCog, Send, CheckCircle, X, Wrench } from 'lucide-react';
+import { Lock, Mail, ChevronRight, AlertCircle, Eye, EyeOff, User, ShieldCheck, UserCog, Send, CheckCircle, X, Wrench, UserCheck } from 'lucide-react';
 import type { Notification } from '../types';
 
 export default function Login() {
@@ -144,7 +144,8 @@ export default function Login() {
                     </div>
 
                     {/* Role Toggles */}
-                    <div className="grid grid-cols-4 gap-2 p-1 bg-slate-900/50 rounded-xl mb-8 border border-slate-700/50">
+                    {/* Role Toggles */}
+                    <div className="grid grid-cols-5 gap-1.5 p-1 bg-slate-900/50 rounded-xl mb-8 border border-slate-700/50">
                         <button
                             onClick={() => { setRole('admin'); setError(''); }}
                             className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all
@@ -153,6 +154,15 @@ export default function Login() {
                         >
                             <ShieldCheck className="w-5 h-5" />
                             Admin
+                        </button>
+                        <button
+                            onClick={() => { setRole('gestor'); setError(''); }}
+                            className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all
+                            ${role === 'gestor' ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}
+                        `}
+                        >
+                            <UserCheck className="w-5 h-5" />
+                            Gestor
                         </button>
                         <button
                             onClick={() => { setRole('supervisor'); setError(''); }}
