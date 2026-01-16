@@ -5,43 +5,51 @@ export default function SplashScreen({ onComplete, message = "A iniciar aplicaç
     const [status, setStatus] = useState<'loading' | 'error'>('loading');
     const [progress, setProgress] = useState(0);
 
-    const checkConnection = async () => {
-        setStatus('loading');
-        setProgress(10); // Start
-
-        // Simulate initial check delay
-        setTimeout(() => {
-            if (navigator.onLine) {
-                // Online sequence
-                setProgress(60);
-                setTimeout(() => {
-                    setProgress(100);
-                    if (onComplete) {
-                        setTimeout(onComplete, 500); // Fade out after full
-                    }
-                }, 800);
-            } else {
-                // Offline
-                setStatus('error');
-            }
-        }, 1000);
-    };
-
     useEffect(() => {
+        let interval: NodeJS.Timeout;
+        let timeout: NodeJS.Timeout;
+
+        const checkConnection = () => {
+            // Reset
+            setStatus('loading');
+            setProgress(0);
+
+            // Smooth progress animation
+            interval = setInterval(() => {
+                setProgress(prev => {
+                    // Slow down as we get closer to 90%
+                    if (prev >= 90) return 90;
+                    const increment = Math.max(1, (90 - prev) / 10);
+                    return Math.min(90, prev + increment);
+                });
+            }, 100);
+
+            // Check connection simulation
+            timeout = setTimeout(() => {
+                if (navigator.onLine) {
+                    clearInterval(interval);
+                    setProgress(100);
+                    // Slight delay before completing to show full bar
+                    setTimeout(() => {
+                        if (onComplete) onComplete();
+                    }, 500);
+                } else {
+                    clearInterval(interval);
+                    setStatus('error');
+                }
+            }, 2000); // Wait 2s to simulate load/check
+        };
+
         checkConnection();
 
-        // Safety timeout to force proceed (if stuck)
-        const safetyTimer = setTimeout(() => {
-            if (navigator.onLine && status === 'loading') {
-                if (onComplete) onComplete();
-            }
-        }, 3500);
-
-        return () => clearTimeout(safetyTimer);
-    }, [onComplete]);
+        return () => {
+            if (interval) clearInterval(interval);
+            if (timeout) clearTimeout(timeout);
+        };
+    }, []); // Run once on mount
 
     const handleRetry = () => {
-        checkConnection();
+        window.location.reload(); 
     };
 
     return (
