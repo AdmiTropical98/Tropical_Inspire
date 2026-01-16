@@ -7,7 +7,7 @@ import type { Notification } from '../types';
 export default function Login() {
     const { login } = useAuth();
     const { addNotification, updateNotification, notifications, addSupervisor } = useWorkshop();
-    const [role, setRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina'>('admin');
+    const [role, setRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor'>('admin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -44,6 +44,13 @@ export default function Login() {
         if (recentRequest) {
             const timeLeft = 60 - Math.floor((new Date().getTime() - new Date(recentRequest.timestamp).getTime()) / 1000);
             setRegError(`Por favor aguarde ${timeLeft} segundos antes de solicitar um novo PIN.`);
+            return;
+        }
+
+        // 1.1 Strict Email Validation
+        // Checking for @algartempo presence
+        if (!regData.email.toLowerCase().includes('@algartempo')) {
+            setRegError('Apenas emails corporativos (@algartempo) são permitidos.');
             return;
         }
 
@@ -285,6 +292,17 @@ export default function Login() {
                             Entrar
                             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>
+
+                        {(role === 'supervisor' || role === 'gestor') && (
+                            <button
+                                type="button"
+                                onClick={() => setShowRegistration(true)}
+                                className="w-full text-slate-400 hover:text-white font-medium py-3 rounded-xl hover:bg-slate-800/50 transition-all flex items-center justify-center gap-2 text-sm"
+                            >
+                                <UserCog className="w-4 h-4" />
+                                Criar Conta {role === 'supervisor' ? 'Supervisor' : 'Gestor'} (AlgarTempo)
+                            </button>
+                        )}
                     </form>
 
 
