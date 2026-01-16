@@ -25,12 +25,13 @@ export interface RolePermissions {
     supervisor: PermissionModule[];
     motorista: PermissionModule[];
     oficina: PermissionModule[];
+    gestor: PermissionModule[];
 }
 
 interface PermissionsContextType {
     permissions: RolePermissions;
-    updatePermission: (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => void;
-    hasAccess: (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | null, module: PermissionModule) => boolean;
+    updatePermission: (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', module: PermissionModule, hasAccess: boolean) => void;
+    hasAccess: (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule) => boolean;
 }
 
 const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
@@ -81,6 +82,25 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'motoristas', 'fornecedores', 'equipa-oficina', 'plataformas_externas',
         'supervisores', 'clientes', 'relatorios',
         'dashboard', 'mensagens', 'geofences'
+    ],
+    gestor: [
+        'requisicoes', 'requisicoes_edit', 'requisicoes_delete',
+        'viaturas',
+        'motoristas',
+        'fornecedores',
+        'escalas', 'escalas_import', 'escalas_print', 'escalas_create', 'escalas_urgent', 'escalas_view_pending',
+        'horas', 'hours_view_costs',
+        'equipa-oficina',
+        'combustivel', 'combustivel_calibrate', 'combustivel_edit_history',
+        'centros_custos',
+        'plataformas_externas',
+        'relatorios',
+        'contabilidade',
+        'dashboard',
+        'mensagens',
+        'geofences',
+        'supervisores',
+        'clientes'
     ]
 };
 
@@ -95,7 +115,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
                 const { data, error } = await supabase
                     .from('app_settings')
                     .select('key, value')
-                    .in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina']);
+                    .in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina', 'permissions_gestor']);
 
                 if (error) {
                     console.error('Error fetching permissions:', error);
@@ -115,6 +135,9 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
                             if (item.key === 'permissions_oficina' && Array.isArray(item.value)) {
                                 nextPerms.oficina = item.value;
                             }
+                            if (item.key === 'permissions_gestor' && Array.isArray(item.value)) {
+                                nextPerms.gestor = item.value;
+                            }
                         });
                         return nextPerms;
                     });
@@ -127,7 +150,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         fetchPermissions();
     }, []);
 
-    const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule, hasAccess: boolean) => {
+    const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', module: PermissionModule, hasAccess: boolean) => {
         // Use functional state to ensure we have the absolute latest permissions
         setPermissions(prev => {
             const currentPerms = [...(prev[role] || [])];
@@ -159,7 +182,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         });
     };
 
-    const hasAccess = (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | null, module: PermissionModule): boolean => {
+    const hasAccess = (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule): boolean => {
         if (!role) return false;
         if (role === 'admin') return true; // Admin always has access
 

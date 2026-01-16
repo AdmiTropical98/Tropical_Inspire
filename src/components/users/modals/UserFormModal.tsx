@@ -3,7 +3,7 @@ import { X, Save, Shield, User, Key, DollarSign, Clock } from 'lucide-react';
 import { usePermissions } from '../../../contexts/PermissionsContext';
 import { useWorkshop } from '../../../contexts/WorkshopContext';
 
-type UserRole = 'admin' | 'motorista' | 'supervisor' | 'oficina';
+type UserRole = 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor';
 
 interface UserFormModalProps {
     isOpen: boolean;
@@ -46,6 +46,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
         addMotorista, updateMotorista, 
         addSupervisor, updateSupervisor,
         addOficinaUser, updateOficinaUser,
+        addGestor, updateGestor,
         createAdminUser, centrosCustos
     } = useWorkshop();
 
@@ -163,6 +164,21 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                 if (user) await updateSupervisor(supData as any);
                 else await addSupervisor(supData as any);
 
+            } else if (role === 'gestor') {
+                const mgrData = {
+                    id: baseData.id,
+                    nome: baseData.nome,
+                    email: baseData.email,
+                    foto: baseData.foto,
+                    telemovel: baseData.telemovel,
+                    pin: baseData.pin,
+                    password: baseData.password,
+                    status: baseData.status === 'active' ? 'active' : 'blocked',
+                    blockedPermissions: baseData.blockedPermissions
+                };
+                if (user) await updateGestor(mgrData as any);
+                else await addGestor(mgrData as any);
+
             } else if (role === 'oficina') {
                 const mechData = {
                     id: baseData.id,
@@ -230,6 +246,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                             <div className="grid grid-cols-4 gap-4">
                                 {[
                                     { id: 'supervisor', label: 'Supervisor', desc: 'Gestão / Supervisor' },
+                                    { id: 'gestor', label: 'Gestor', desc: 'Gestão Geral' },
                                     { id: 'motorista', label: 'Motorista', desc: 'App Móvel' },
                                     { id: 'oficina', label: 'Oficina', desc: 'Mecânico' }
                                 ].map(r => (
@@ -265,7 +282,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         required
                                     />
                                 </div>
-                                {(role === 'admin' || role === 'supervisor') && (
+                                {(role === 'admin' || role === 'supervisor' || role === 'gestor') && (
                                     <div>
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Email {role === 'admin' && '*'}</label>
                                         <input
@@ -279,7 +296,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     </div>
                                 )}
 
-                                {(role === 'supervisor' || role === 'motorista' || role === 'oficina') && (
+                                {(role === 'supervisor' || role === 'motorista' || role === 'oficina' || role === 'gestor') && (
                                     <div>
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Telemóvel * {role === 'oficina' && '(Login)'}</label>
                                         <input
@@ -313,7 +330,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         required
                                     />
                                 </div>
-                                {(role === 'supervisor' || role === 'admin') && (
+                                {(role === 'supervisor' || role === 'admin' || role === 'gestor') && (
                                     <div>
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
                                         <input

@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Plus, Search, User, Phone, Mail, FileText, Trash2, Calendar, Share2, Shield, MessageSquare, TrendingUp, AlertTriangle, Euro, Grid3x3, List, Upload, X } from 'lucide-react';
+import { Plus, Search, User, Phone, Mail, FileText, Trash2, Calendar, Share2, Shield, MessageSquare, TrendingUp, AlertTriangle, Euro, Grid3x3, List } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Motorista } from '../../types';
@@ -16,7 +16,7 @@ export default function Motoristas() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [selectedDriver, setSelectedDriver] = useState<Motorista | null>(null);
     const [permissionUser, setPermissionUser] = useState<Motorista | null>(null);
-    const [photoPreview, setPhotoPreview] = useState<string>('');
+
     const [formData, setFormData] = useState<Omit<Motorista, 'id' | 'pin'>>({
         nome: '',
         contacto: '',
@@ -30,18 +30,7 @@ export default function Motoristas() {
         cartrackKey: ''
     });
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result as string;
-                setPhotoPreview(base64);
-                setFormData({ ...formData, foto: base64 });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -56,7 +45,7 @@ export default function Motoristas() {
 
         addMotorista(newMotorista);
         setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', foto: '', cartrackKey: '' , centroCustoId: '' });
-        setPhotoPreview('');
+
         alert(`${t('drivers.success_msg')}: ${newPin} `);
         setSelectedDriver(newMotorista);
     };
@@ -252,29 +241,10 @@ export default function Motoristas() {
                     <h3 className="font-bold text-white mb-6 text-lg">{t('drivers.new')}</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         
-                        {/* Photo Upload */}
+                        {/* Static Icon */}
                         <div className="flex justify-center mb-4">
-                            <div className="relative">
-                                <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center overflow-hidden">
-                                    {photoPreview ? (
-                                        <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <User className="w-12 h-12 text-slate-600" />
-                                    )}
-                                </div>
-                                <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-lg">
-                                    <Upload className="w-4 h-4 text-white" />
-                                    <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                                </label>
-                                {photoPreview && (
-                                    <button
-                                        type="button"
-                                        onClick={() => { setPhotoPreview(''); setFormData({ ...formData, foto: '' }); }}
-                                        className="absolute -top-1 -right-1 w-6 h-6 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center transition-colors"
-                                    >
-                                        <X className="w-3 h-3 text-white" />
-                                    </button>
-                                )}
+                            <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                                <User className="w-12 h-12 text-slate-600" />
                             </div>
                         </div>
 

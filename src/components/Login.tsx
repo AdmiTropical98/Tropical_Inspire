@@ -200,6 +200,8 @@ export default function Login() {
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                                 ) : role === 'supervisor' ? (
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
+                                    ) : role === 'gestor' ? (
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-teal-400 transition-colors" />
                                 ) : role === 'oficina' ? (
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-orange-400 transition-colors" />
                                 ) : (
@@ -214,7 +216,8 @@ export default function Login() {
                                     placeholder={
                                         role === 'admin' ? "admin@algartempo.com" :
                                             role === 'supervisor' ? "supervisor@algartempo.com" :
-                                                "Nº de Telemóvel"
+                                                role === 'gestor' ? "gestor@algartempo.com" :
+                                                    "Nº de Telemóvel"
                                     }
                                 />
                             </div>
@@ -231,6 +234,7 @@ export default function Login() {
                                 <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-colors
                                     ${role === 'admin' ? 'group-focus-within:text-blue-400' :
                                         role === 'supervisor' ? 'group-focus-within:text-purple-400' :
+                                        role === 'gestor' ? 'group-focus-within:text-teal-400' :
                                             role === 'oficina' ? 'group-focus-within:text-orange-400' :
                                                 'group-focus-within:text-emerald-400'}
                                 `} />
@@ -240,7 +244,7 @@ export default function Login() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-12 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
-                                    placeholder={role === 'admin' || role === 'supervisor' ? "••••••••" : "0000"}
+                                    placeholder={role === 'admin' || role === 'supervisor' || role === 'gestor' ? "••••••••" : "0000"}
                                     maxLength={(role === 'motorista' || role === 'oficina') ? 6 : undefined}
                                 />
                                 <button
@@ -260,6 +264,8 @@ export default function Login() {
                                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-900/20 hover:shadow-blue-900/40'
                                     : role === 'supervisor'
                                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 shadow-purple-900/20 hover:shadow-purple-900/40'
+                                    : role === 'gestor'
+                                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 shadow-teal-900/20 hover:shadow-teal-900/40'
                                         : role === 'oficina'
                                             ? 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 shadow-orange-900/20 hover:shadow-orange-900/40'
                                             : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-900/20 hover:shadow-emerald-900/40'

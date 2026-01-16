@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useWorkshop } from './WorkshopContext';
-import type { Motorista, Supervisor, OficinaUser, AdminUser } from '../types';
+import type { Motorista, Supervisor, OficinaUser, AdminUser, Gestor } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    userRole: 'admin' | 'motorista' | 'supervisor' | 'oficina' | null;
-    currentUser: Motorista | Supervisor | OficinaUser | AdminUser | null;
+    userRole: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | null;
+    currentUser: Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null;
     userStatus: 'online' | 'absent' | 'offline';
     language: 'pt' | 'en';
-    login: (type: 'admin' | 'motorista' | 'supervisor' | 'oficina', identifier: string, credential: string) => Promise<boolean>;
+    login: (type: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor', identifier: string, credential: string) => Promise<boolean>;
     logout: () => void;
     updateStatus: (status: 'online' | 'absent' | 'offline') => void;
     refreshCurrentUser: () => Promise<void>;
@@ -21,10 +21,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const { motoristas, supervisors, oficinaUsers } = useWorkshop();
+    const { motoristas, supervisors, oficinaUsers, gestores } = useWorkshop();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [userRole, setUserRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | null>(null);
-    const [currentUser, setCurrentUser] = useState<Motorista | Supervisor | OficinaUser | AdminUser | null>(null);
+    const [userRole, setUserRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | null>(null);
+    const [currentUser, setCurrentUser] = useState<Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     const [userStatus, setUserStatus] = useState<'online' | 'absent' | 'offline'>('online');
@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             let table = '';
             if (userRole === 'motorista') table = 'motoristas';
             else if (userRole === 'supervisor') table = 'supervisores';
+            else if (userRole === 'gestor') table = 'gestores';
             else if (userRole === 'oficina') table = 'oficina_users';
 
             if (table) {
@@ -161,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('appLanguage', lang);
     }
 
-    async function login(type: 'admin' | 'motorista' | 'supervisor' | 'oficina', identifier: string, credential: string) {
+    async function login(type: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor', identifier: string, credential: string) {
         if (type === 'admin') {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: identifier,
@@ -190,6 +191,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return true;
             }
             return false;
+        } else if (type === 'gestor') {
+            const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
+            const gestor = gestores.find(g => {
+                const cleanPhone = (g.telemovel || '').replace(/[^0-9]/g, '');
+                const phoneMatch = (cleanPhone !== '' && cleanIdentifier !== '') &&
+                    (cleanPhone.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanPhone));
+                const emailMatch = g.email && g.email.toLowerCase() === identifier.toLowerCase();
+                return (phoneMatch || emailMatch) && g.pin === credential && g.status === 'active';
+            });
+
+            if (gestor) {
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('userRole', 'gestor');
+                localStorage.setItem('currentUser', JSON.stringify(gestor));
+                setIsAuthenticated(true);
+                setUserRole('gestor');
+                setCurrentUser(gestor);
+                if (gestor.foto) setUserPhoto(gestor.foto);
+                return true;
+            }
         } else if (type === 'oficina') {
             const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
             const staff = oficinaUsers.find(u => {

@@ -424,3 +424,16 @@ export interface ManualHourRecord {
     obs?: string;
     createdAt?: string;
 }
+
+export interface Gestor {
+    id: string;
+    nome: string;
+    foto?: string;
+    email: string;
+    telemovel: string;
+    password?: string;
+    pin?: string;
+    status: 'active' | 'blocked';
+    blockedPermissions?: string[];
+    dataRegisto?: string;
+}

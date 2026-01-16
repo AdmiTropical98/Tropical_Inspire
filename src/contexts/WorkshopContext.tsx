@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local } from '../types';
 import { CartrackService, cleanTagId, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -21,6 +21,8 @@ interface WorkshopContextType {
     setMotoristas: React.Dispatch<React.SetStateAction<Motorista[]>>;
     supervisors: Supervisor[];
     setSupervisors: React.Dispatch<React.SetStateAction<Supervisor[]>>;
+    gestores: Gestor[];
+    setGestores: React.Dispatch<React.SetStateAction<Gestor[]>>;
     oficinaUsers: OficinaUser[];
     setOficinaUsers: React.Dispatch<React.SetStateAction<OficinaUser[]>>;
     notifications: Notification[];
@@ -77,6 +79,9 @@ interface WorkshopContextType {
     addSupervisor: (s: Supervisor) => void;
     updateSupervisor: (s: Supervisor) => void;
     deleteSupervisor: (id: string) => void;
+    addGestor: (g: Gestor) => void;
+    updateGestor: (g: Gestor) => void;
+    deleteGestor: (id: string) => void;
     addOficinaUser: (u: OficinaUser) => Promise<{ error?: any } | void>;
     updateOficinaUser: (u: OficinaUser) => void;
     deleteOficinaUser: (id: string) => void;
@@ -129,6 +134,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
 
     const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+    const [gestores, setGestores] = useState<Gestor[]>([]);
     const [oficinaUsers, setOficinaUsers] = useState<OficinaUser[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
@@ -578,6 +584,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             const { data: sups } = await supabase.from('supervisores').select('*');
             if (sups) setSupervisors(sups.map((s: any) => ({ ...s, password: s.password, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
+
+            const { data: managers } = await supabase.from('gestores').select('*');
+            if (managers) setGestores(managers.map((g: any) => ({ ...g, blockedPermissions: g.blocked_permissions, dataRegisto: g.data_registo })));
 
             const { data: oficina } = await supabase.from('oficina_users').select('*');
             if (oficina) setOficinaUsers(oficina.map((u: any) => ({ ...u, blockedPermissions: u.blocked_permissions, dataRegisto: u.data_registo })));
@@ -1354,6 +1363,38 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!error) setSupervisors(prev => prev.filter(s => s.id !== id));
     };
 
+    const addGestor = async (g: Gestor) => {
+        const { error } = await supabase.from('gestores').insert({
+            id: g.id,
+            nome: g.nome,
+            foto: g.foto,
+            email: g.email,
+            telemovel: g.telemovel,
+            pin: g.pin,
+            password: g.password,
+            status: g.status,
+            blocked_permissions: g.blockedPermissions
+        });
+        if (!error) setGestores(prev => [...prev, g]);
+    };
+    const updateGestor = async (g: Gestor) => {
+        const { error } = await supabase.from('gestores').update({
+            nome: g.nome,
+            foto: g.foto,
+            email: g.email,
+            telemovel: g.telemovel,
+            pin: g.pin,
+            password: g.password,
+            status: g.status,
+            blocked_permissions: g.blockedPermissions
+        }).eq('id', g.id);
+        if (!error) setGestores(prev => prev.map(curr => curr.id === g.id ? g : curr));
+    };
+    const deleteGestor = async (id: string) => {
+        const { error } = await supabase.from('gestores').delete().eq('id', id);
+        if (!error) setGestores(prev => prev.filter(g => g.id !== id));
+    };
+
     const addOficinaUser = async (u: OficinaUser) => {
         const { error } = await supabase.from('oficina_users').insert({
             id: u.id,
@@ -1564,6 +1605,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             setMotoristas,
             supervisors,
             setSupervisors,
+            gestores,
+            setGestores,
             oficinaUsers,
             setOficinaUsers,
             notifications,
@@ -1617,6 +1660,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addSupervisor,
             updateSupervisor,
             deleteSupervisor,
+            addGestor,
+            updateGestor,
+            deleteGestor,
             addOficinaUser,
             updateOficinaUser,
             deleteOficinaUser,

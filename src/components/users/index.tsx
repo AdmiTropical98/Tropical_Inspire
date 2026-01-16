@@ -5,12 +5,12 @@ import UserFormModal from './modals/UserFormModal';
 
 export default function UsersPage() {
     const {
-        motoristas, supervisors, oficinaUsers, adminUsers,
-        deleteMotorista, deleteSupervisor, deleteOficinaUser, deleteAdminUser
+        motoristas, supervisors, oficinaUsers, adminUsers, gestores,
+        deleteMotorista, deleteSupervisor, deleteOficinaUser, deleteAdminUser, deleteGestor
     } = useWorkshop();
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'admin' | 'motorista' | 'oficina' | 'supervisor'>('all');
+    const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'admin' | 'motorista' | 'oficina' | 'supervisor' | 'gestor'>('all');
 
     // Combine all users into a single normalized list
     const allUsers = useMemo(() => {
@@ -19,8 +19,8 @@ export default function UsersPage() {
             nome: u.nome || 'Administrador',
             email: u.email,
             role: 'admin' as const,
-            status: 'active', // Admins are always active for now
-            lastAccess: null, // We don't track this yet
+            status: 'active',
+            lastAccess: null,
             avatar: null
         }));
 
@@ -41,7 +41,8 @@ export default function UsersPage() {
             turnoFim: u.turnoFim,
             folgas: u.folgas,
             pin: u.pin,
-            blockedPermissions: u.blockedPermissions
+            blockedPermissions: u.blockedPermissions,
+            centroCustoId: u.centroCustoId // FIX: Mapped correctly now
         }));
 
         const mechanics = oficinaUsers.map(u => ({
@@ -52,7 +53,7 @@ export default function UsersPage() {
             status: u.status === 'active' ? 'active' : 'inactive',
             lastAccess: null,
             avatar: u.foto,
-            telemovel: u.telemovel, // NEW
+            telemovel: u.telemovel,
             pin: u.pin,
             blockedPermissions: u.blockedPermissions
         }));
@@ -71,8 +72,22 @@ export default function UsersPage() {
             blockedPermissions: u.blockedPermissions
         }));
 
-        return [...admins, ...drivers, ...mechanics, ...sups];
-    }, [motoristas, supervisors, oficinaUsers, adminUsers]);
+        const managers = gestores.map(u => ({
+            id: u.id,
+            nome: u.nome,
+            email: u.email,
+            role: 'gestor' as const,
+            status: u.status === 'active' ? 'active' : 'inactive',
+            lastAccess: null,
+            avatar: u.foto,
+            telemovel: u.telemovel,
+            pin: u.pin,
+            password: u.password,
+            blockedPermissions: u.blockedPermissions
+        }));
+
+        return [...admins, ...drivers, ...mechanics, ...sups, ...managers];
+    }, [motoristas, supervisors, oficinaUsers, adminUsers, gestores]);
 
     // Filter Logic
     const filteredUsers = allUsers.filter(user => {
@@ -89,6 +104,7 @@ export default function UsersPage() {
             case 'motorista': return <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-bold uppercase flex items-center gap-1"><Bus className="w-3 h-3" /> Motorista</span>;
             case 'oficina': return <span className="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-bold uppercase flex items-center gap-1"><Wrench className="w-3 h-3" /> Oficina</span>;
             case 'supervisor': return <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-bold uppercase flex items-center gap-1"><User className="w-3 h-3" /> Supervisor</span>;
+            case 'gestor': return <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20 text-xs font-bold uppercase flex items-center gap-1"><Shield className="w-3 h-3" /> Gestor</span>;
             default: return <span className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-xs">Outro</span>;
         }
     };
@@ -102,6 +118,7 @@ export default function UsersPage() {
         try {
             if (user.role === 'motorista') await deleteMotorista(user.id);
             else if (user.role === 'supervisor') await deleteSupervisor(user.id);
+            else if (user.role === 'gestor') await deleteGestor(user.id);
             else if (user.role === 'oficina') await deleteOficinaUser(user.id);
             else if (user.role === 'admin') await deleteAdminUser(user.id);
         } catch (error) {
@@ -113,7 +130,7 @@ export default function UsersPage() {
     return (
         <div className="h-full overflow-y-auto custom-scrollbar p-6 max-w-7xl mx-auto space-y-6 pb-24">
             {/* Dashboard Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
                     <div>
                         <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Usuários</p>
@@ -131,6 +148,16 @@ export default function UsersPage() {
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
                         <Shield className="w-5 h-5 text-purple-400" />
+                    </div>
+                </div>
+
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+                    <div>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Gestores</p>
+                        <p className="text-2xl font-bold text-white mt-1">{gestores.length}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
+                        <Shield className="w-5 h-5 text-teal-400" />
                     </div>
                 </div>
 
@@ -182,7 +209,7 @@ export default function UsersPage() {
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
                     <Filter className="w-4 h-4 text-slate-500 shrink-0" />
-                    {['all', 'admin', 'motorista', 'oficina', 'supervisor'].map(type => (
+                    {['all', 'admin', 'motorista', 'oficina', 'supervisor', 'gestor'].map(type => (
                         <button
                             key={type}
                             onClick={() => setUserTypeFilter(type as any)}

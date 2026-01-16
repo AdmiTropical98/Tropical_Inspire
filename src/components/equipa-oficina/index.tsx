@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Wrench, Plus, Trash2, Shield, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Grid3x3, List, Upload, X } from 'lucide-react';
+import { Wrench, Plus, Trash2, Shield, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Grid3x3, List } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { OficinaUser } from '../../types';
@@ -13,22 +13,11 @@ export default function EquipaOficina() {
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
     const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-    const [photoPreview, setPhotoPreview] = useState<string>('');
+
     const [newOficinaUser, setNewOficinaUser] = useState({ nome: '', telemovel: '', pin: '', foto: '' });
     const [permissionUser, setPermissionUser] = useState<OficinaUser | null>(null);
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result as string;
-                setPhotoPreview(base64);
-                setNewOficinaUser({ ...newOficinaUser, foto: base64 });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+
 
     const handleCreateOficinaUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,7 +46,7 @@ export default function EquipaOficina() {
         }
 
         setNewOficinaUser({ nome: '', telemovel: '', pin: '', foto: '' });
-        setPhotoPreview('');
+
         alert(t('team.success_create'));
     };
 
@@ -175,29 +164,10 @@ export default function EquipaOficina() {
                 <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
                     <h3 className="font-bold text-white mb-6 text-lg">{t('team.form.title')}</h3>
                     <form onSubmit={handleCreateOficinaUser} className="space-y-4">
-                        {/* Photo Upload */}
+                        {/* Static Icon */}
                         <div className="flex justify-center mb-4">
-                            <div className="relative">
-                                <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center overflow-hidden">
-                                    {photoPreview ? (
-                                        <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Wrench className="w-12 h-12 text-slate-600" />
-                                    )}
-                                </div>
-                                <label className="absolute bottom-0 right-0 w-8 h-8 bg-orange-600 hover:bg-orange-500 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-lg">
-                                    <Upload className="w-4 h-4 text-white" />
-                                    <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                                </label>
-                                {photoPreview && (
-                                    <button
-                                        type="button"
-                                        onClick={() => { setPhotoPreview(''); setNewOficinaUser({ ...newOficinaUser, foto: '' }); }}
-                                        className="absolute -top-1 -right-1 w-6 h-6 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center transition-colors"
-                                    >
-                                        <X className="w-3 h-3 text-white" />
-                                    </button>
-                                )}
+                            <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                                <Wrench className="w-12 h-12 text-slate-600" />
                             </div>
                         </div>
 
