@@ -90,6 +90,36 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = utils.sheet_to_json<any>(worksheet);
 
+            // Helper to safe parse Excel time (handles number 0.xxx and strings)
+            const parseExcelTime = (val: any): string => {
+                if (val === undefined || val === null) return '';
+
+                // 1. Handle Excel Serial Number (e.g. 0.5 = 12:00)
+                if (typeof val === 'number') {
+                    // Round to avoid precision errors
+                    const totalMinutes = Math.round(val * 24 * 60);
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+
+                    const h = (hours % 24).toString().padStart(2, '0');
+                    const m = minutes.toString().padStart(2, '0');
+                    return `${h}:${m}`;
+                }
+
+                // 2. Handle Strings
+                const str = val.toString().trim();
+                // Match HH:mm pattern
+                // If it's something like "14:30:00", we just take first two parts
+                const match = str.match(/(\d{1,2}):(\d{2})/);
+                if (match) {
+                    const h = match[1].padStart(2, '0');
+                    const m = match[2].padStart(2, '0');
+                    return `${h}:${m}`;
+                }
+
+                return str; // Fallback
+            };
+
             const newRows: GridRow[] = jsonData.map((row: any) => {
                 let tipoRaw = (row['TIPO'] || 'ENTRADA').toString().toLowerCase().trim();
                 let tipo: 'entrada' | 'saida' = 'entrada';
@@ -100,7 +130,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                     passageiro: row['PASSAGEIRO'] || '',
                     origem: row['ORIGEM'] || '',
                     destino: row['DESTINO'] || '',
-                    hora: row['HORA'] || '', // Check format if needed
+                    hora: parseExcelTime(row['HORA']), 
                     obs: row['OBS'] || '',
                     tipo: tipo
                 };

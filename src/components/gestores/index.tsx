@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Shield, Plus, Trash2, AlertCircle, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Clock, Grid3x3, List, UserCheck } from 'lucide-react';
+import { Shield, Plus, Trash2, AlertCircle, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Grid3x3, List, UserCheck } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Gestor } from '../../types';
@@ -8,12 +8,12 @@ import UserPermissionsModal from '../permissoes/UserPermissionsModal';
 
 export default function Gestores() {
     const { gestores, addGestor, updateGestor, deleteGestor } = useWorkshop();
-    const { t } = useTranslation(); // Assuming translation keys might fall back or I'll use direct text if keys missing
+    const { } = useTranslation(); // Removed unused 't'
     // TODO: Ideally update translation files, but for now will hardcode or reuse similar keys
     
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'blocked'>('all');
-    const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+    const [sortBy] = useState<'name' | 'date'>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     const [newGestor, setNewGestor] = useState({ nome: '', email: '', telemovel: '', foto: '' });

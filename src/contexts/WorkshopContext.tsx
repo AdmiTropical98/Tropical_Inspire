@@ -100,7 +100,7 @@ interface WorkshopContextType {
     runComplianceCheck: () => Promise<void>;
     runComplianceDemo: () => void;
     updateVehicleLocation: (registration: string, lat: number, lng: number) => Promise<void>;
-    createScaleBatch: (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; error?: string }>;
+    createScaleBatch: (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; error?: string, data?: any }>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
