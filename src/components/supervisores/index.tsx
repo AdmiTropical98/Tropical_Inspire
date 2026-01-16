@@ -1,13 +1,13 @@
 
 import { useState, useMemo } from 'react';
-import { UserCog, Plus, Trash2, AlertCircle, Shield, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Clock, Grid3x3, List } from 'lucide-react';
+import { UserCog, Plus, Trash2, AlertCircle, Shield, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Clock, Grid3x3, List, CheckCircle } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { Supervisor } from '../../types';
+import type { Supervisor, Notification } from '../../types';
 import UserPermissionsModal from '../permissoes/UserPermissionsModal';
 
 export default function Supervisores() {
-    const { supervisors, addSupervisor, updateSupervisor, deleteSupervisor } = useWorkshop();
+    const { supervisors, addSupervisor, updateSupervisor, deleteSupervisor, notifications, updateNotification } = useWorkshop();
     const { t } = useTranslation();
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'blocked'>('all');

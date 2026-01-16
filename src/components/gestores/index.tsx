@@ -1,13 +1,13 @@
 
 import { useState, useMemo } from 'react';
-import { Shield, Plus, Trash2, AlertCircle, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Grid3x3, List, UserCheck } from 'lucide-react';
+import { Shield, Plus, Trash2, AlertCircle, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Grid3x3, List, UserCheck, CheckCircle } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { Gestor } from '../../types';
+import type { Gestor, Notification } from '../../types';
 import UserPermissionsModal from '../permissoes/UserPermissionsModal';
 
 export default function Gestores() {
-    const { gestores, addGestor, updateGestor, deleteGestor } = useWorkshop();
+    const { gestores, addGestor, updateGestor, deleteGestor, notifications, updateNotification } = useWorkshop();
     const { } = useTranslation(); // Removed unused 't'
     // TODO: Ideally update translation files, but for now will hardcode or reuse similar keys
     
@@ -18,6 +18,34 @@ export default function Gestores() {
 
     const [newGestor, setNewGestor] = useState({ nome: '', email: '', telemovel: '', foto: '' });
     const [permissionUser, setPermissionUser] = useState<Gestor | null>(null);
+
+    // Pending Requests Logic
+    const pendingRequests = useMemo(() => {
+        return notifications.filter(n =>
+            n.type === 'registration_request' &&
+            n.status === 'pending' &&
+            n.data?.role === 'gestor'
+        );
+    }, [notifications]);
+
+    const handleApproveRequest = async (request: Notification) => {
+        const pin = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // 1. Approve Notification
+        await updateNotification({
+            ...request,
+            status: 'approved',
+            response: { pin }
+        });
+
+        // WhatsApp Link creation with the generated PIN
+        const cleanPhone = (request.data.telemovel || '').replace(/[^0-9]/g, '');
+        const whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Olá ${request.data.nome}, o seu pedido de registo foi aprovado. O seu PIN de acesso é: ${pin}`)}`;
+
+        if (confirm(`Pedido Aprovado!\n\nPIN Gerado: ${pin}\n\nDeseja enviar o PIN agora via WhatsApp?`)) {
+            window.open(whatsappLink, '_blank');
+        }
+    };
 
     const handleCreateGestor = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -113,6 +141,44 @@ export default function Gestores() {
             )}
 
 
+    // Pending Requests Logic
+    const pendingRequests = useMemo(() => {
+        return notifications.filter(n =>
+            n.type === 'registration_request' &&
+            n.status === 'pending' &&
+            n.data?.role === 'gestor'
+            );
+    }, [notifications]);
+
+    const handleApproveRequest = async (request: Notification) => {
+        const pin = Math.floor(100000 + Math.random() * 900000).toString();
+
+            // 1. Approve Notification
+            await updateNotification({
+                ...request,
+                status: 'approved',
+            response: {pin}
+        });
+
+            // 2. Alert Admin (or auto-create user? Logic says specific "Admin creates user after validation")
+            // NOTE: The previous flow in Login.tsx implies the User enters the PIN to finalize.
+            // So we just need to provide the PIN to the Admin so they can send it.
+            alert(`Pedido Aprovado!\n\nPIN Gerado: ${pin}\n\nEnvie este PIN ao requerente para que ele possa concluir o registo.`);
+    };
+
+            return (
+            <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
+                {permissionUser && (
+                    <UserPermissionsModal
+                        isOpen={true}
+                        onClose={() => setPermissionUser(null)}
+                        user={permissionUser as any} // Cast safely as interfaces align on permissions
+                        role={"gestor" as any}
+                        onSave={(updated) => updateGestor(updated as any)}
+                    />
+                )}
+
+
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
@@ -122,6 +188,69 @@ export default function Gestores() {
                 </h1>
                 <p className="text-slate-400">Gerir equipa de gestão e permissões administrativas.</p>
             </div>
+
+                {/* Pending Requests Section */}
+                {pendingRequests.length > 0 && (
+                    <div className="bg-teal-500/5 border border-teal-500/20 rounded-2xl p-6 mb-8">
+                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-teal-400" />
+                            Pedidos de Registo Pendentes
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {pendingRequests.map(req => (
+                                <div key={req.id} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center">
+                                            <Users className="w-5 h-5 text-slate-400" />
+                                        </div>
+                                        <span className="text-xs bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded-full border border-yellow-500/20">
+                                            Pendente
+                                        </span>
+                                    </div>
+                                    <h4 className="font-bold text-white">{req.data.nome || 'Sem Nome'}</h4>
+                                    <div className="text-sm text-slate-400 space-y-1 mt-2">
+                                        <p className="flex items-center gap-2">
+                                            <span className="opacity-50">Email:</span>
+                                            {req.data.email}
+                                        </p>
+                                        <p className="flex items-center gap-2">
+                                            <span className="opacity-50">Tel:</span>
+                                            {req.data.telemovel}
+                                        </p>
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t border-slate-700/50 flex gap-2">
+                                        <button
+                                            onClick={() => handleApproveRequest(req)}
+                                            className="flex-1 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <CheckCircle className="w-3 h-3" />
+                                            Gerar PIN & Aprovar
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const cleanPhone = (req.data.telemovel || '').replace(/[^0-9]/g, '');
+                                                // Since we haven't generated a PIN yet, we can't send it. 
+                                                // User requested "send PIN via whatsapp". 
+                                                // This implies the PIN must be generated first.
+                                                // So this button is only useful if we auto-gen PIN or if we do it in one step.
+                                                // I'll make the Approve button show the PIN, and maybe enable WhatsApp sending AFTER approval?
+                                                // Or, I'll add a 'Send WhatsApp' that generates a proposed PIN?
+                                                // Simpler: Just open WhatsApp with a generic "Hello" or do nothing until approved. 
+                                                // User asked: "botão para que eu mande o pin".
+                                                // I will hide this button here or just make it open empty chat.
+                                                window.open(`https://wa.me/${cleanPhone}`, '_blank');
+                                            }}
+                                            className="w-10 h-10 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg flex items-center justify-center transition-colors"
+                                            title="Abrir WhatsApp"
+                                        >
+                                            <Share2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
             {/* Statistics Dashboard */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">

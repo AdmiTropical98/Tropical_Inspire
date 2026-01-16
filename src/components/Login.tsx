@@ -65,7 +65,7 @@ export default function Login() {
             // Update the existing request with new timestamp and potential data changes
             updateNotification({
                 ...existing,
-                data: { ...regData },
+                data: { ...regData, role },
                 timestamp: new Date().toISOString()
             });
 
@@ -78,7 +78,7 @@ export default function Login() {
         const newNotification: Notification = {
             id: crypto.randomUUID(),
             type: 'registration_request',
-            data: { ...regData },
+            data: { ...regData, role }, // Include role for filtering
             status: 'pending',
             timestamp: new Date().toISOString()
         };
