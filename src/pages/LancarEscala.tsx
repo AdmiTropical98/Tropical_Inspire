@@ -88,36 +88,63 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             const data = await file.arrayBuffer();
             const workbook = read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = utils.sheet_to_json<any>(worksheet);
+            // Explicitly requesting raw values to avoid date formatting issues, but we will handle dates if they come
+            const jsonData = utils.sheet_to_json<any>(worksheet, { raw: true });
 
-            // Helper to safe parse Excel time (handles number 0.xxx and strings)
+            // Helper to safe parse Excel time (handles number 0.xxx, strings, and Date objects)
             const parseExcelTime = (val: any): string => {
                 if (val === undefined || val === null) return '';
 
+                // Debug log to help identify what exactly is coming in
+                console.log('Parsing time value:', val, typeof val);
+
+                // 0. Handle JS Date Objects (if xlsx parsed it as date)
+                if (val instanceof Date) {
+                    const h = val.getHours().toString().padStart(2, '0');
+                    const m = val.getMinutes().toString().padStart(2, '0');
+                    return `${h}:${m}`;
+                }
+
                 // 1. Handle Excel Serial Number (e.g. 0.5 = 12:00)
                 if (typeof val === 'number') {
-                    // Round to avoid precision errors
+                    // Excel fractional day: 0.5 = 12:00
                     const totalMinutes = Math.round(val * 24 * 60);
                     const hours = Math.floor(totalMinutes / 60);
                     const minutes = totalMinutes % 60;
-
                     const h = (hours % 24).toString().padStart(2, '0');
                     const m = minutes.toString().padStart(2, '0');
                     return `${h}:${m}`;
                 }
 
-                // 2. Handle Strings
-                const str = val.toString().trim();
-                // Match HH:mm pattern
-                // If it's something like "14:30:00", we just take first two parts
-                const match = str.match(/(\d{1,2}):(\d{2})/);
+                // 2. Handle Strings (Aggrresive parsing)
+                let str = val.toString().trim();
+
+                // 2a. Handle AM/PM
+                const isPM = /pm/i.test(str);
+                const isAM = /am/i.test(str);
+
+                // Remove unwanted chars except digits and separators
+                // We keep : . , h H
+
+                const match = str.match(/(\d{1,2})[:.,hH](\d{2})/);
                 if (match) {
-                    const h = match[1].padStart(2, '0');
-                    const m = match[2].padStart(2, '0');
+                    let h = parseInt(match[1], 10);
+                    let m = parseInt(match[2], 10);
+
+                    if (isPM && h < 12) h += 12;
+                    if (isAM && h === 12) h = 0;
+
+                    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                }
+
+                // Fallback for just 4 digits "1430"
+                if (/^\d{4}$/.test(str)) {
+                    const h = str.substr(0, 2);
+                    const m = str.substr(2, 2);
                     return `${h}:${m}`;
                 }
 
-                return str; // Fallback
+                return ''; // Failed to parse
             };
 
             const newRows: GridRow[] = jsonData.map((row: any) => {
@@ -125,13 +152,15 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                 let tipo: 'entrada' | 'saida' = 'entrada';
                 if (tipoRaw.includes('saida') || tipoRaw.includes('saída')) tipo = 'saida';
 
+                const rawHora = row['HORA'] !== undefined ? row['HORA'] : (row['Hora'] || row['hora']); 
+
                 return {
                     tempId: generateTempId(),
-                    passageiro: row['PASSAGEIRO'] || '',
-                    origem: row['ORIGEM'] || '',
-                    destino: row['DESTINO'] || '',
-                    hora: parseExcelTime(row['HORA']), 
-                    obs: row['OBS'] || '',
+                    passageiro: row['PASSAGEIRO'] || row['Passageiro'] || '',
+                    origem: row['ORIGEM'] || row['Origem'] || '',
+                    destino: row['DESTINO'] || row['Destino'] || '',
+                    hora: parseExcelTime(rawHora),
+                    obs: row['OBS'] || row['Obs'] || '',
                     tipo: tipo
                 };
             });
