@@ -29,7 +29,8 @@ export default function CentralMotorista() {
         updateMotorista,
         complianceStats,
         cartrackVehicles,
-        geofences
+        geofences,
+        updateServico
     } = useWorkshop();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos' | 'navegacao'>('overview');
@@ -530,6 +531,7 @@ export default function CentralMotorista() {
                                 <MyScheduleView
                                     services={mySchedule}
                                     onBack={() => setActiveTab('overview')}
+                                    onUpdateStatus={updateServico}
                                 />
                             </div>
                         )}

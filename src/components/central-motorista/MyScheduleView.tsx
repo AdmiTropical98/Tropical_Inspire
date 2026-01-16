@@ -1,13 +1,15 @@
 import { Calendar, Info, CheckCircle, Clock, User, Users, ArrowLeft, LogIn, LogOut, CheckSquare, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
 import { type Servico } from '../../types';
 
 interface MyScheduleViewProps {
     services: Servico[];
     onBack?: () => void;
     complianceStats?: Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>;
+    onUpdateStatus?: (service: Servico) => Promise<void>;
 }
 
-export default function MyScheduleView({ services, onBack, complianceStats }: MyScheduleViewProps) {
+export default function MyScheduleView({ services, onBack, complianceStats, onUpdateStatus }: MyScheduleViewProps) {
 
 
     // Group services by date
@@ -54,8 +56,81 @@ export default function MyScheduleView({ services, onBack, complianceStats }: My
         return timeA - timeB;
     });
 
+    // State for Failure Modal
+    const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+    const [failureModalOpen, setFailureModalOpen] = useState(false);
+    const [failureReason, setFailureReason] = useState('');
+
+    const handleSuccess = (service: Servico) => {
+        if (window.confirm('Confirma que recolheu o passageiro?')) {
+            onUpdateStatus?.({ ...service, status: 'completed', concluido: true }); // Using 'completed' for 'Pegou' based on analysis
+        }
+    };
+
+    const handleFailure = (serviceId: string) => {
+        setSelectedServiceId(serviceId);
+        setFailureModalOpen(true);
+        setFailureReason('');
+    };
+
+    const submitFailure = () => {
+        if (!selectedServiceId || !onUpdateStatus) return;
+        const service = services.find(s => s.id === selectedServiceId);
+        if (service) {
+            onUpdateStatus({ ...service, status: 'failed', failureReason: failureReason || 'Não especificado', concluido: true }); // Failed is also "Finalized" in terms of schedule
+        }
+        setFailureModalOpen(false);
+        setSelectedServiceId(null);
+    };
+
     return (
-        <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0">
+        <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 relative">
+            {/* Modal for Failure Reason */}
+            {failureModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 text-red-500 mb-4">
+                            <div className="p-3 bg-red-500/10 rounded-full">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">Passageiro Não Recolhido</h3>
+                        </div>
+                        <p className="text-slate-400 mb-4 text-sm">Por favor, indique o motivo da falha na recolha:</p>
+
+                        <div className="space-y-2 mb-6">
+                            {['Não compareceu à paragem', 'Folga / Não necessita', 'Erro na escala / Cancelado', 'Viatura Avariada', 'Outros'].map(reason => (
+                                <button
+                                    key={reason}
+                                    onClick={() => setFailureReason(reason)}
+                                    className={`w-full text-left px-4 py-3 rounded-xl border transition-all font-medium text-sm
+                                        ${failureReason === reason
+                                            ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-900/20'
+                                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'}`}
+                                >
+                                    {reason}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setFailureModalOpen(false)}
+                                className="flex-1 py-3 rounded-xl font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={submitFailure}
+                                disabled={!failureReason}
+                                className="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-900/20"
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Mobile Header with Back Button */}
             <div className="md:hidden flex items-center gap-3 bg-slate-800/80 backdrop-blur-md p-4 sticky top-0 z-50 border-b border-slate-700/50 -mx-4 px-4 shadow-lg">
                 <button
@@ -125,7 +200,7 @@ export default function MyScheduleView({ services, onBack, complianceStats }: My
                                                 <th className="px-6 py-4 font-bold">Passageiro</th>
                                                 <th className="px-6 py-4 font-bold">Itinerário</th>
                                                 <th className="px-6 py-4 font-bold w-1/4">Observações</th>
-                                                <th className="px-6 py-4 font-bold text-right">Estado</th>
+                                                <th className="px-6 py-4 font-bold text-right">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-700/50">
@@ -180,13 +255,35 @@ export default function MyScheduleView({ services, onBack, complianceStats }: My
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         {service.concluido ? (
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full text-xs font-bold border border-emerald-500/20">
-                                                                <CheckCircle className="w-3.5 h-3.5" /> Concluído
+                                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${service.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                                                                {service.status === 'failed' ? (
+                                                                    <>
+                                                                        <AlertTriangle className="w-3.5 h-3.5" /> Falhou: {service.failureReason}
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <CheckCircle className="w-3.5 h-3.5" /> Concluído
+                                                                    </>
+                                                                )}
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-bold border border-amber-500/20">
-                                                                <Clock className="w-3.5 h-3.5" /> Agendado
-                                                            </span>
+                                                                <div className="flex justify-end gap-2">
+                                                                    <button
+                                                                        onClick={() => handleFailure(service.id)}
+                                                                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                                                                        title="Não Pegou"
+                                                                    >
+                                                                        <User className="w-5 h-5 text-red-500/50 hover:text-red-500" />
+                                                                        <span className="sr-only">Não Pegou</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleSuccess(service)}
+                                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-1"
+                                                                    >
+                                                                        <CheckCircle className="w-4 h-4" />
+                                                                        Pegou
+                                                                    </button>
+                                                                </div>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -239,7 +336,7 @@ export default function MyScheduleView({ services, onBack, complianceStats }: My
                                         : groupComplianceStatus === 'failed'
                                             ? 'bg-gradient-to-r from-red-600 to-rose-500'
                                             : service.concluido
-                                                ? 'bg-gradient-to-r from-blue-500 to-indigo-400'
+                                                ? (service.status === 'failed' ? 'bg-gradient-to-r from-red-600 to-rose-600' : 'bg-gradient-to-r from-blue-500 to-indigo-400')
                                                 : 'bg-gradient-to-r from-amber-500 to-orange-400';
 
                                     return (
@@ -264,9 +361,9 @@ export default function MyScheduleView({ services, onBack, complianceStats }: My
                                                             <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Estado do Serviço</span>
                                                             <div className="flex justify-between items-center w-full pr-2">
                                                                 {service.concluido ? (
-                                                                    <div className="flex items-center gap-1.5 text-blue-400 font-bold text-sm">
-                                                                        <CheckCircle className="w-4 h-4" />
-                                                                        <span>Concluído</span>
+                                                                    <div className={`flex items-center gap-1.5 ${service.status === 'failed' ? 'text-red-400' : 'text-blue-400'} font-bold text-sm`}>
+                                                                        {service.status === 'failed' ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                                                                        <span>{service.status === 'failed' ? 'Falhou' : 'Concluído'}</span>
                                                                     </div>
                                                                 ) : (
                                                                     <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
@@ -345,6 +442,26 @@ export default function MyScheduleView({ services, onBack, complianceStats }: My
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {/* ACTION BUTTONS (Mobile) - NEW */}
+                                                {!service.concluido && !service.isGroup && (
+                                                    <div className="grid grid-cols-2 gap-3 mt-2 border-t border-slate-700/50 pt-3">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleFailure(service.id); }}
+                                                            className="flex items-center justify-center gap-2 py-2.5 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-xl font-bold text-xs transition-colors"
+                                                        >
+                                                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                                                            Não Pegou
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleSuccess(service); }}
+                                                            className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition-colors shadow-lg shadow-emerald-900/20"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            Pegou
+                                                        </button>
+                                                    </div>
+                                                )}
 
                                                 {/* Footer / Obs */}
                                                 {service.obs && (

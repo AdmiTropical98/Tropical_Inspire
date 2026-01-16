@@ -19,11 +19,11 @@ export default function Gestores() {
     const [newGestor, setNewGestor] = useState({ nome: '', email: '', telemovel: '', foto: '' });
     const [permissionUser, setPermissionUser] = useState<Gestor | null>(null);
 
-    const handleCreateGestor = (e: React.FormEvent) => {
+    const handleCreateGestor = async (e: React.FormEvent) => {
         e.preventDefault();
         const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
 
-        addGestor({
+        const result = await addGestor({
             id: crypto.randomUUID(),
             nome: newGestor.nome,
             email: newGestor.email,
@@ -33,6 +33,11 @@ export default function Gestores() {
             pin: randomPin,
             dataRegisto: new Date().toISOString().split('T')[0]
         });
+
+        if (result && result.error) {
+            alert(`Erro ao criar gestor: ${result.error.message || 'Erro desconhecido'}`);
+            return; // Stop here on error
+        }
 
         setNewGestor({ nome: '', email: '', telemovel: '', foto: '' });
 
@@ -102,7 +107,7 @@ export default function Gestores() {
                     isOpen={true}
                     onClose={() => setPermissionUser(null)}
                     user={permissionUser as any} // Cast safely as interfaces align on permissions
-                    role="gestor"
+                    role={"gestor" as any}
                     onSave={(updated) => updateGestor(updated as any)}
                 />
             )}

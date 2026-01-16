@@ -79,7 +79,7 @@ interface WorkshopContextType {
     addSupervisor: (s: Supervisor) => void;
     updateSupervisor: (s: Supervisor) => void;
     deleteSupervisor: (id: string) => void;
-    addGestor: (g: Gestor) => void;
+    addGestor: (g: Gestor) => Promise<{ error?: any } | void>;
     updateGestor: (g: Gestor) => void;
     deleteGestor: (id: string) => void;
     addOficinaUser: (u: OficinaUser) => Promise<{ error?: any } | void>;
@@ -599,7 +599,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (servError) console.error('Error fetching services:', servError);
             if (servs) {
                 console.log('Fetched services:', servs.length);
-                setServicos(servs.map((s: any) => ({ ...s, motoristaId: s.motorista_id, centroCustoId: s.centro_custo_id })));
+                setServicos(servs.map((s: any) => ({
+                    ...s,
+                    motoristaId: s.motorista_id,
+                    centroCustoId: s.centro_custo_id,
+                    status: s.status,
+                    failureReason: s.failure_reason
+                })));
             }
 
             // 5. Fuel
@@ -752,7 +758,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 voo: s.voo,
                 obs: s.obs,
                 concluido: s.concluido,
-                centro_custo_id: s.centroCustoId
+                centro_custo_id: s.centroCustoId,
+                status: s.status,
+                failure_reason: s.failureReason
             }).select().single();
 
             if (error) throw error;
@@ -789,7 +797,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 voo: s.voo,
                 obs: s.obs,
                 concluido: s.concluido,
-                centro_custo_id: s.centroCustoId
+                centro_custo_id: s.centroCustoId,
+                status: s.status,
+                failure_reason: s.failureReason
             }).eq('id', s.id).select();
 
             if (error) throw error;
@@ -1373,9 +1383,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             pin: g.pin,
             password: g.password,
             status: g.status,
-            blocked_permissions: g.blockedPermissions
+            blocked_permissions: g.blockedPermissions,
+            data_registo: g.dataRegisto
         });
-        if (!error) setGestores(prev => [...prev, g]);
+        if (error) {
+            console.error('Error adding Gestor:', error);
+            return { error };
+        }
+        setGestores(prev => [...prev, g]);
+        return { error: null };
     };
     const updateGestor = async (g: Gestor) => {
         const { error } = await supabase.from('gestores').update({

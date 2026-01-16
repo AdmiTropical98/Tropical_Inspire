@@ -176,6 +176,8 @@ export interface Servico {
     centroCustoId?: string;
     validationPoints?: string[]; // IDs of required POIs to visit
     tipo?: 'entrada' | 'saida' | 'outro';
+    status?: 'pending' | 'started' | 'completed' | 'failed';
+    failureReason?: string;
 }
 
 export interface Supervisor {
