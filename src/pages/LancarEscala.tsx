@@ -1,5 +1,4 @@
-
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useWorkshop } from '../contexts/WorkshopContext';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +10,7 @@ import {
 import { read, utils } from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { CartrackService } from '../services/cartrack';
 
 // Helper for unique IDs for grid rows
 const generateTempId = () => Math.random().toString(36).substr(2, 9);
@@ -33,6 +33,23 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     const { centrosCustos, createScaleBatch } = useWorkshop();
     const { hasAccess } = usePermissions();
     const { userRole } = useAuth();
+
+    // Geofence Autocomplete State
+    const [geofenceSuggestions, setGeofenceSuggestions] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchGeofences = async () => {
+            try {
+                const fences = await CartrackService.getGeofences();
+                // Extract unique names and sort
+                const names = Array.from(new Set(fences.map(f => f.name))).sort();
+                setGeofenceSuggestions(names);
+            } catch (e) {
+                console.error('Failed to load geofences for autocomplete:', e);
+            }
+        };
+        fetchGeofences();
+    }, []);
 
     // Access Control
     if (userRole && !hasAccess(userRole, 'escalas_create')) {
@@ -445,6 +462,13 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
     return (
         <div className="h-full flex flex-col bg-[#0B1120] text-slate-200 overflow-hidden font-sans">
+            {/* Datalist for AutoComplete */}
+            <datalist id="geofence-list">
+                {geofenceSuggestions.map((name, i) => (
+                    <option key={i} value={name} />
+                ))}
+            </datalist>
+
             {/* Top Bar: Controls */}
             <div className="bg-[#0f172a] border-b border-slate-800 p-6 shadow-xl z-20">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 max-w-[1920px] mx-auto w-full">
@@ -660,8 +684,10 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                             className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
                                             value={row.origem}
                                             maxLength={28}
+                                            list="geofence-list"
                                             onChange={e => updateRow(row.tempId, 'origem', e.target.value)}
                                             onKeyDown={e => handleKeyDown(e, idx)}
+                                            placeholder="Origem..."
                                         />
                                     </div>
 
@@ -670,8 +696,10 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                             className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
                                             value={row.destino}
                                             maxLength={28}
+                                            list="geofence-list"
                                             onChange={e => updateRow(row.tempId, 'destino', e.target.value)}
                                             onKeyDown={e => handleKeyDown(e, idx)}
+                                            placeholder="Destino..."
                                         />
                                     </div>
 
