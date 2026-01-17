@@ -243,8 +243,19 @@ export default function Combustivel() {
             const wb = XLSX.read(bstr, { type: 'binary' });
             const wsname = wb.SheetNames[0];
             const ws = wb.Sheets[wsname];
-            const data = XLSX.utils.sheet_to_json(ws);
-            setBpTransactions(data);
+            const data: any[] = XLSX.utils.sheet_to_json(ws);
+
+            // Enrich data with initial cost center match if possible
+            const enrichedData = data.map(row => {
+                const ccName = row['Centro de Custo'];
+                const matchedCC = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
+                return {
+                    ...row,
+                    _selectedCC: matchedCC ? matchedCC.id : ''
+                };
+            });
+
+            setBpTransactions(enrichedData);
         };
         reader.readAsBinaryString(file);
     };
@@ -261,9 +272,8 @@ export default function Combustivel() {
                 const plate = row['Matrícula'];
                 const vehicle = viaturas.find(v => v.matricula.replace(/\s/g, '') === plate?.replace(/\s/g, ''));
 
-                // Find Centro de Custo
-                const ccName = row['Centro de Custo'];
-                const cc = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
+                // Use manually selected Centro de Custo
+                const ccId = row._selectedCC;
 
                 // Parse Date & Time
                 // Excel dates might come as numbers or strings. Assuming YYYY-MM-DD or similar string for now given the template
@@ -290,7 +300,7 @@ export default function Combustivel() {
                     timestamp: timestamp,
                     staffId: currentUser?.id || 'admin',
                     staffName: currentUser?.nome || 'Admin',
-                    centroCustoId: cc ? cc.id : undefined
+                    centroCustoId: ccId || undefined
                 };
 
                 registerRefuel(transaction);
@@ -916,7 +926,22 @@ export default function Combustivel() {
                                                     <td className="px-6 py-3 text-slate-300">{row['Matrícula']}</td>
                                                     <td className="px-6 py-3 text-slate-300 font-mono text-yellow-500">{row['Litros']}</td>
                                                     <td className="px-6 py-3 text-slate-300 font-mono text-emerald-400">{row['Total']}€</td>
-                                                    <td className="px-6 py-3 text-slate-300">{row['Centro de Custo'] || '-'}</td>
+                                                    <td className="px-6 py-3 text-slate-300">
+                                                        <select
+                                                            className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
+                                                            value={row._selectedCC || ''}
+                                                            onChange={(e) => {
+                                                                const newTransactions = [...bpTransactions];
+                                                                newTransactions[i]._selectedCC = e.target.value;
+                                                                setBpTransactions(newTransactions);
+                                                            }}
+                                                        >
+                                                            <option value="">-- Selecionar --</option>
+                                                            {centrosCustos.map(cc => (
+                                                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                            ))}
+                                                        </select>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
