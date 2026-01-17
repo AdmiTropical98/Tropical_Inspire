@@ -22,6 +22,8 @@ export default function Combustivel() {
 
     const [activeTab, setActiveTab] = useState<'overview' | 'abastecer' | 'tanque' | 'historico' | 'bp'>('overview');
     const [bpTransactions, setBpTransactions] = useState<any[]>([]); // Temp state for BP imports
+    const [selectedRows, setSelectedRows] = useState<number[]>([]); // For bulk actions
+    const [bulkCC, setBulkCC] = useState('');
     const [bypassDriverPin, setBypassDriverPin] = useState(false); // Admin override for PIN
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1038,11 +1040,47 @@ export default function Combustivel() {
 
                         {bpTransactions.length > 0 && (
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="font-bold text-white text-lg">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                <div className="flex flex-wrap justify-between items-center gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <h3 className="font-bold text-white text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                        {selectedRows.length > 0 && (
+                                            <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30 animate-in fade-in slide-in-from-left-2">
+                                                <span className="text-blue-400 text-sm font-bold">{selectedRows.length} selecionados</span>
+                                                <div className="h-4 w-[1px] bg-blue-500/30 mx-1" />
+                                                <select
+                                                    className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+                                                    value={bulkCC}
+                                                    onChange={(e) => setBulkCC(e.target.value)}
+                                                >
+                                                    <option value="">Aplicar C.Custo...</option>
+                                                    {centrosCustos.map(cc => (
+                                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={() => {
+                                                        if (!bulkCC) return;
+                                                        const newTransactions = [...bpTransactions];
+                                                        selectedRows.forEach(idx => {
+                                                            newTransactions[idx]._selectedCC = bulkCC;
+                                                        });
+                                                        setBpTransactions(newTransactions);
+                                                        setSelectedRows([]);
+                                                        setBulkCC('');
+                                                    }}
+                                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold transition-colors"
+                                                >
+                                                    Atribuir
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => setBpTransactions([])}
+                                            onClick={() => {
+                                                setBpTransactions([]);
+                                                setSelectedRows([]);
+                                            }}
                                             className="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-sm font-bold"
                                         >
                                             Limpar Lista
@@ -1051,24 +1089,35 @@ export default function Combustivel() {
                                 </div>
                                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[7px] tracking-tight whitespace-nowrap">
+                                        <thead className="bg-slate-950 text-slate-400 uppercase font-extrabold text-[10px] tracking-widest whitespace-nowrap">
                                             <tr>
-                                                <th className="px-1.5 py-3">Data/Hora</th>
-                                                <th className="px-1.5 py-3">Trans.</th>
-                                                <th className="px-1.5 py-3">Cartão</th>
-                                                <th className="px-1.5 py-3">Proprietário</th>
-                                                <th className="px-1.5 py-3 font-black text-white">Viatura</th>
-                                                <th className="px-1.5 py-3">KM</th>
-                                                <th className="px-1.5 py-3">P.</th>
-                                                <th className="px-1.5 py-3">Posto</th>
-                                                <th className="px-1.5 py-3">Produto</th>
-                                                <th className="px-1.5 py-3">Qtd.</th>
-                                                <th className="px-1.5 py-3">P/L</th>
-                                                <th className="px-1.5 py-3">Liq.</th>
-                                                <th className="px-1.5 py-3">IVA</th>
-                                                <th className="px-1.5 py-3 text-emerald-400">Total</th>
-                                                <th className="px-1.5 py-3">IVA%</th>
-                                                <th className="px-1.5 py-3 min-w-[100px]">Centro de Custo</th>
+                                                <th className="px-3 py-4 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                                        checked={selectedRows.length === bpTransactions.length && bpTransactions.length > 0}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedRows(bpTransactions.map((_, i) => i));
+                                                            } else {
+                                                                setSelectedRows([]);
+                                                            }
+                                                        }}
+                                                    />
+                                                </th>
+                                                <th className="px-3 py-4">Data/Hora</th>
+                                                <th className="px-3 py-4">Trans.</th>
+                                                <th className="px-3 py-4">Cartão</th>
+                                                <th className="px-3 py-4">Proprietário</th>
+                                                <th className="px-3 py-4 font-black text-white">Viatura</th>
+                                                <th className="px-3 py-4">KM</th>
+                                                <th className="px-3 py-4">P.</th>
+                                                <th className="px-3 py-4">Posto</th>
+                                                <th className="px-3 py-4">Produto</th>
+                                                <th className="px-3 py-4">Qtd.</th>
+                                                <th className="px-3 py-4">P/L</th>
+                                                <th className="px-3 py-4 text-emerald-400">Total</th>
+                                                <th className="px-3 py-4 min-w-[150px]">Centro de Custo</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
@@ -1103,25 +1152,36 @@ export default function Combustivel() {
                                                 const total = parseImportNumber(row['Total']) || (liters * price);
 
                                                 return (
-                                                    <tr key={i} className="hover:bg-slate-800/30 transition-colors border-b border-slate-800/50">
-                                                        <td className="px-1.5 py-2 text-slate-300 font-medium whitespace-nowrap text-[8px]">{displayDate}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[7px]">{row['Nº transação'] || '-'}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[7px]">{row['Nº cartão'] || '-'}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 text-[7px] truncate max-w-[50px]">{row['Proprietário'] || '-'}</td>
-                                                        <td className="px-1.5 py-2 text-white font-black text-[9px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[8px]">{row['Km'] || '0'}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 text-[7px]">{row['Dia laboral'] || '-'}</td>
-                                                        <td className="px-1.5 py-2 text-slate-400 text-[8px] truncate max-w-[70px]">{row['Posto'] || '-'}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 text-[7px] uppercase font-bold">{row['Produto'] || '-'}</td>
-                                                        <td className="px-1.5 py-2 text-yellow-500 font-bold font-mono text-[9px]">{liters.toFixed(2)}</td>
-                                                        <td className="px-1.5 py-2 text-slate-400 font-mono text-[8px]">{price > 0 ? price.toFixed(3) : '-'}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[8px]">{parseImportNumber(row['Valor líquido']).toFixed(2)}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[8px]">{parseImportNumber(row['IVA']).toFixed(2)}</td>
-                                                        <td className="px-1.5 py-2 text-emerald-400 font-black font-mono text-[9px]">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
-                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[7px]">{row['IVA%'] || '-'}</td>
-                                                        <td className="px-1.5 py-2">
+                                                    <tr key={i} className={`hover:bg-slate-800/30 transition-colors border-b border-slate-800/50 ${selectedRows.includes(i) ? 'bg-blue-600/5' : ''}`}>
+                                                        <td className="px-3 py-3 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                                                checked={selectedRows.includes(i)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedRows(prev => [...prev, i]);
+                                                                    } else {
+                                                                        setSelectedRows(prev => prev.filter(idx => idx !== i));
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
+                                                        <td className="px-3 py-3 text-slate-500 font-mono text-[11px]">{row['Nº transação'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-500 font-mono text-[11px]">{row['Nº cartão'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-500 text-[11px] truncate max-w-[100px]">{row['Proprietário'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-white font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[12px]">{row['Km'] || '0'}</td>
+                                                        <td className="px-3 py-3 text-slate-500 text-[11px]">{row['Dia laboral'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[120px]">{row['Posto'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-500 text-[11px] uppercase font-bold">{row['Produto'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-yellow-500 font-bold font-mono text-[13px]">{liters.toFixed(2)}L</td>
+                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[11px]">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
+                                                        <td className="px-3 py-3 text-emerald-400 font-black font-mono text-[13px]">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
+                                                        <td className="px-3 py-3">
                                                             <select
-                                                                className="bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-[8px] text-white outline-none focus:border-blue-500 w-full"
+                                                                className="bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-[12px] text-white outline-none focus:border-blue-500 w-full"
                                                                 value={row._selectedCC || ''}
                                                                 onChange={(e) => {
                                                                     const newTransactions = [...bpTransactions];
