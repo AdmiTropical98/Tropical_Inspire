@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { 
-    User, Mail, Phone, Key, CreditCard, Clock, 
+    User, Mail, Phone, Key, 
     Save, Shield, AlertCircle, CheckCircle2,
-    Car, Wrench, ShieldAlert, ClipboardCheck, UserCog
+    Car, Wrench, ClipboardCheck, UserCog
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -146,31 +146,7 @@ export default function MyProfile() {
                     </div>
 
                     {/* Stats/Extra Info if needed */}
-                    {userRole === 'motorista' && (
-                        <div className="bg-[#0f172a] rounded-2xl border border-slate-800 p-6 space-y-4">
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Detalhes Profissionais</h3>
-                            
-                            <div className="flex items-center gap-3 text-slate-300">
-                                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
-                                    <CreditCard className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-500 font-medium uppercase">Vencimento Base</p>
-                                    <p className="font-mono font-bold">{Number(formData.vencimentoBase || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
-                                </div>
-                            </div>
 
-                            <div className="flex items-center gap-3 text-slate-300">
-                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
-                                    <Clock className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-500 font-medium uppercase">Horário Turno</p>
-                                    <p className="font-mono font-bold">{formData.turnoInicio} - {formData.turnoFim}</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Right Column: Edit Form */}

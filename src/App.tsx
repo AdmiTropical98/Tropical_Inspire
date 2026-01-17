@@ -222,85 +222,106 @@ function AppContent() {
             />
           )}
 
-          {/* 1. GESTÃO DE FROTA */}
-          <SidebarGroup title="Gestão de Frota" icon={Car}>
-            {hasAccess(userRole, 'central_motorista') && (
-              <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => setActiveTab('central-motorista')} />
-            )}
-            {hasAccess(userRole, 'viaturas') && (
-              <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => setActiveTab('viaturas')} />
-            )}
-            {hasAccess(userRole, 'geofences') && (
-              <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => setActiveTab('geofences')} />
-            )}
-            {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
-              <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => setActiveTab('locais')} />
-            )}
-            {userRole === 'admin' && (
-              <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => setActiveTab('avaliacao')} />
-            )}
-          </SidebarGroup>
+          {showFleetGroup && (
+            <SidebarGroup title="Gestão de Frota" icon={Car}>
+              {hasAccess(userRole, 'central_motorista') && (
+                <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => setActiveTab('central-motorista')} />
+              )}
+              {hasAccess(userRole, 'viaturas') && (
+                <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => setActiveTab('viaturas')} />
+              )}
+              {hasAccess(userRole, 'geofences') && (
+                <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => setActiveTab('geofences')} />
+              )}
+              {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
+                <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => setActiveTab('locais')} />
+              )}
+              {userRole === 'admin' && (
+                <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => setActiveTab('avaliacao')} />
+              )}
+            </SidebarGroup>
+          )}
 
-          {/* 2. OPERAÇÕES */}
-          <SidebarGroup title="Operações" icon={ClipboardCheck}>
-            {hasAccess(userRole, 'escalas') && (
-              <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => setActiveTab('escalas')} />
-            )}
-            {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor' || userRole === 'gestor') && (
-              <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => setActiveTab('lancar-escala')} />
-            )}
-            {hasAccess(userRole, 'horas') && (
-              <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => setActiveTab('horas')} />
-            )}
-            {hasAccess(userRole, 'plataformas_externas') && (
-              <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => setActiveTab('transportes-eva')} />
-            )}
-          </SidebarGroup>
+          {showOpsGroup && (
+            <SidebarGroup title="Operações" icon={ClipboardCheck}>
+              {hasAccess(userRole, 'escalas') && (
+                <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => setActiveTab('escalas')} />
+              )}
+              {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor' || userRole === 'gestor') && (
+                <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => setActiveTab('lancar-escala')} />
+              )}
+              {hasAccess(userRole, 'horas') && (
+                <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => setActiveTab('horas')} />
+              )}
+              {hasAccess(userRole, 'plataformas_externas') && (
+                <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => setActiveTab('transportes-eva')} />
+              )}
+            </SidebarGroup>
+          )}
 
-          {/* 3. OFICINA */}
-          <SidebarGroup title="Oficina" icon={Wrench}>
-            {hasAccess(userRole, 'combustivel') && (
-              <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => setActiveTab('combustivel')} />
-            )}
-            {hasAccess(userRole, 'requisicoes') && (
-              <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => setActiveTab('requisicoes')} />
-            )}
-          </SidebarGroup>
+          {/* 3. OFICINA - Adjusted logic if needed, but assuming check is fine. Assuming 'Oficina' group logic is missing in constants? No, let's use manual check if variable missing */}
+          {/* Wait, showSysGroup exists but not showOficinaGroup. Let's create ad-hoc check or assume it's part of another group. 
+              Checking line 114: showSysGroup includes equipa-oficina. 
+              Let's look at lines 261-268. It contains 'combustivel' and 'requisicoes'.
+              Ah, I see showOpsGroup includes 'combustivel' (line 112). 'requisicoes' is also in 'showOpsGroup'.
+              So 'Oficina' items are actually in 'showOpsGroup' logic-wise in the variable definitions?
+              Wait, line 112: `const showOpsGroup = ... || hasAccess(userRole, 'combustivel')`.
+              So I should use `showOpsGroup` or create a new check. 
+              Actually, looking at the code, 'Oficina' group contains Fuel and Requisicoes.
+              Let's check if 'showOpsGroup' covers these. Yes in line 112: 'requisicoes' and 'combustivel'.
+              So I can use `showOpsGroup`? But 'Operações' group also uses `showOpsGroup`.
+              If I use it for both, they both appear/disappear together?
+              Different items though.
+              Let's just do inline check for simplicity and correctness: 
+              (hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes'))
+          */}
+          {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && (
+            <SidebarGroup title="Oficina" icon={Wrench}>
+              {hasAccess(userRole, 'combustivel') && (
+                <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => setActiveTab('combustivel')} />
+              )}
+              {hasAccess(userRole, 'requisicoes') && (
+                <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => setActiveTab('requisicoes')} />
+              )}
+            </SidebarGroup>
+          )}
 
-          {/* 4. EQUIPA */}
-          <SidebarGroup title="Equipa" icon={Users}>
-            {(userRole === 'admin' || userRole === 'gestor') && (
-              <SidebarItem icon={UserCheck} label="Gestores" active={activeTab === 'gestores'} onClick={() => setActiveTab('gestores')} />
-            )}
-            {hasAccess(userRole, 'equipa-oficina') && (
-              <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => setActiveTab('equipa-oficina')} />
-            )}
-            {hasAccess(userRole, 'supervisores') && (
-              <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => setActiveTab('supervisores')} />
-            )}
-            {hasAccess(userRole, 'motoristas') && (
-              <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => setActiveTab('motoristas')} />
-            )}
-          </SidebarGroup>
+          {showSysGroup && (
+            <SidebarGroup title="Equipa" icon={Users}>
+              {(userRole === 'admin' || userRole === 'gestor') && (
+                <SidebarItem icon={UserCheck} label="Gestores" active={activeTab === 'gestores'} onClick={() => setActiveTab('gestores')} />
+              )}
+              {hasAccess(userRole, 'equipa-oficina') && (
+                <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => setActiveTab('equipa-oficina')} />
+              )}
+              {hasAccess(userRole, 'supervisores') && (
+                <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => setActiveTab('supervisores')} />
+              )}
+              {hasAccess(userRole, 'motoristas') && (
+                <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => setActiveTab('motoristas')} />
+              )}
+            </SidebarGroup>
+          )}
 
-          {/* 5. FINANCEIRO */}
-          <SidebarGroup title="Financeiro" icon={Wallet}>
-            {hasAccess(userRole, 'contabilidade') && (
-              <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => setActiveTab('contabilidade')} />
-            )}
-            {hasAccess(userRole, 'centros_custos') && (
-              <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => setActiveTab('centros-custos')} />
-            )}
-            {hasAccess(userRole, 'fornecedores') && (
-              <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => setActiveTab('fornecedores')} />
-            )}
-            {hasAccess(userRole, 'clientes') && (
-              <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} />
-            )}
-            {hasAccess(userRole, 'relatorios') && (
-              <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => setActiveTab('relatorios')} />
-            )}
-          </SidebarGroup>
+          {showFinGroup && (
+            <SidebarGroup title="Financeiro" icon={Wallet}>
+              {hasAccess(userRole, 'contabilidade') && (
+                <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => setActiveTab('contabilidade')} />
+              )}
+              {hasAccess(userRole, 'centros_custos') && (
+                <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => setActiveTab('centros-custos')} />
+              )}
+              {hasAccess(userRole, 'fornecedores') && (
+                <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => setActiveTab('fornecedores')} />
+              )}
+              {hasAccess(userRole, 'clientes') && (
+                <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} />
+              )}
+              {hasAccess(userRole, 'relatorios') && (
+                <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => setActiveTab('relatorios')} />
+              )}
+            </SidebarGroup>
+          )}
 
           {/* 6. SISTEMA */}
           <SidebarGroup title="Sistema" icon={Settings}>
@@ -366,7 +387,7 @@ function AppContent() {
               )}
 
               {/* 1. GESTÃO DE FROTA */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Gestão de Frota</div>
+              {showFleetGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Gestão de Frota</div>}
               {hasAccess(userRole, 'central_motorista') && (
                 <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false); }} />
               )}
@@ -384,7 +405,7 @@ function AppContent() {
               )}
 
               {/* 2. OPERAÇÕES */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Operações</div>
+              {showOpsGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Operações</div>}
               {hasAccess(userRole, 'escalas') && (
                 <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false); }} />
               )}
@@ -399,7 +420,7 @@ function AppContent() {
               )}
 
               {/* 3. OFICINA */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Oficina</div>
+              {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Oficina</div>}
               {hasAccess(userRole, 'combustivel') && (
                 <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { setActiveTab('combustivel'); setIsMobileMenuOpen(false); }} />
               )}
@@ -408,7 +429,7 @@ function AppContent() {
               )}
 
               {/* 4. EQUIPA */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Equipa</div>
+              {showSysGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Equipa</div>}
               {(userRole === 'admin' || userRole === 'gestor') && (
                 <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => { setActiveTab('gestores'); setIsMobileMenuOpen(false); }} />
               )}
@@ -423,7 +444,7 @@ function AppContent() {
               )}
 
               {/* 5. FINANCEIRO */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Financeiro</div>
+              {showFinGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Financeiro</div>}
               {hasAccess(userRole, 'contabilidade') && (
                 <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => { setActiveTab('contabilidade'); setIsMobileMenuOpen(false); }} />
               )}
