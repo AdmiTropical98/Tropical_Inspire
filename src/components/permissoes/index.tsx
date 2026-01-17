@@ -1,7 +1,6 @@
 import {
-    Shield, User, Wrench, Globe, LayoutDashboard, MessageSquare, MapPin,
-    FileText, Truck, Users, Truck as TruckIcon, UserCog, Building2,
-    Briefcase, BarChart3, Wallet, Clock, Fuel, Calendar, Lock
+    Shield, Wrench, Globe, FileText, Truck, UserCog, Building2,
+    Briefcase, Fuel, Calendar, Lock, UserCheck, User, Wallet
 } from 'lucide-react';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { PermissionModule } from '../../contexts/PermissionsContext';
@@ -27,7 +26,11 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
         permissions: [
             { id: 'dashboard', labelKey: 'menu.dashboard' },
             { id: 'mensagens', labelKey: 'menu.messages' },
-            { id: 'geofences', labelKey: 'menu.geofences' }
+            { id: 'dashboard', labelKey: 'menu.dashboard' },
+            { id: 'mensagens', labelKey: 'menu.messages' },
+            { id: 'geofences', labelKey: 'menu.geofences' },
+            { id: 'locais', labelKey: 'menu.places' },
+            { id: 'avaliacao', labelKey: 'menu.evaluation' }
         ]
     },
     {
@@ -141,7 +144,7 @@ export default function Permissoes() {
     const { permissions, updatePermission } = usePermissions();
     const { t } = useTranslation();
 
-    const togglePermission = (role: 'supervisor' | 'motorista' | 'oficina', module: PermissionModule) => {
+    const togglePermission = (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', module: PermissionModule) => {
         // Safe access with type assertion since we know the keys
         const rolePermissions = permissions[role] as PermissionModule[];
         const hasAccess = rolePermissions.includes(module);
@@ -191,19 +194,21 @@ export default function Permissoes() {
                                         </div>
 
                                         {/* Toggles Grid */}
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {(['supervisor', 'oficina', 'motorista'] as const).map((role) => {
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {(['supervisor', 'oficina', 'motorista', 'gestor'] as const).map((role) => {
                                                 const isActive = permissions[role].includes(perm.id);
-                                                const roleLabel = role === 'supervisor' ? 'Sup' : role === 'oficina' ? 'Ofc' : 'Mot';
+                                                const roleLabel = role === 'supervisor' ? 'Sup' : role === 'oficina' ? 'Ofc' : role === 'motorista' ? 'Mot' : 'Ges';
 
                                                 const colorClass = role === 'supervisor' ? 'bg-purple-500'
                                                     : role === 'oficina' ? 'bg-orange-500'
-                                                        : 'bg-emerald-500';
+                                                        : role === 'gestor' ? 'bg-cyan-500'
+                                                            : 'bg-emerald-500';
 
                                                 return (
                                                     <div key={`${role}-${perm.id}`} className="flex flex-col items-center gap-2 bg-slate-900/50 p-2 rounded-lg border border-white/5">
                                                         <span className={`text-[10px] font-bold uppercase ${role === 'supervisor' ? 'text-purple-400' :
                                                                 role === 'oficina' ? 'text-orange-400' :
+                                                                role === 'gestor' ? 'text-cyan-400' :
                                                                     'text-emerald-400'
                                                             }`}>
                                                             {roleLabel}
@@ -261,6 +266,14 @@ export default function Permissoes() {
                                         <span className="text-emerald-400 font-bold text-sm">Motorista</span>
                                     </div>
                                 </th>
+                                <th className="px-6 py-5">
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 mb-2">
+                                            <UserCheck className="w-5 h-5 text-cyan-400" />
+                                        </div>
+                                        <span className="text-cyan-400 font-bold text-sm">Gestor</span>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/30">
@@ -270,7 +283,7 @@ export default function Permissoes() {
                                     <>
                                         {/* Group Header */}
                                         <tr key={`header-${group.id}`} className="bg-slate-800/30">
-                                            <td colSpan={4} className="px-6 py-4">
+                                            <td colSpan={5} className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
                                                         <GroupIcon className="w-4 h-4 text-blue-400" />
@@ -308,15 +321,17 @@ export default function Permissoes() {
                                                 </td>
 
                                                 {/* Role Toggles */}
-                                                {(['supervisor', 'oficina', 'motorista'] as const).map((role) => {
+                                                {(['supervisor', 'oficina', 'motorista', 'gestor'] as const).map((role) => {
                                                     const isActive = permissions[role].includes(perm.id);
                                                     const colorClass = role === 'supervisor' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.4)]'
                                                         : role === 'oficina' ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]'
-                                                            : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]';
+                                                            : role === 'gestor' ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+                                                                : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]';
 
                                                     const ringClass = role === 'supervisor' ? 'focus:ring-purple-500'
                                                         : role === 'oficina' ? 'focus:ring-orange-500'
-                                                            : 'focus:ring-emerald-500';
+                                                            : role === 'gestor' ? 'focus:ring-cyan-500'
+                                                                : 'focus:ring-emerald-500';
 
                                                     return (
                                                         <td key={`${role}-${perm.id}`} className="px-6 py-4 text-center">

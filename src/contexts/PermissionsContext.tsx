@@ -19,7 +19,10 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'contabilidade' |
     'dashboard' |
     'mensagens' |
-    'geofences';
+    'mensagens' |
+    'geofences' |
+    'locais' |
+    'avaliacao';
 
 export interface RolePermissions {
     supervisor: PermissionModule[];

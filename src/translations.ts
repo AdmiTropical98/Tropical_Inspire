@@ -22,6 +22,8 @@ export const translations = {
         'menu.cost_centers': 'Centros de Custos',
         'menu.logout': 'Terminar Sessão',
         'menu.system': 'Sistema',
+        'menu.places': 'Locais (POIs)',
+        'menu.evaluation': 'Avaliação',
 
         // Headers / Titles
         'header.requisitions': 'Painel de Requisições',
@@ -518,6 +520,8 @@ export const translations = {
         'menu.cost_centers': 'Cost Centers',
         'menu.logout': 'Logout',
         'menu.system': 'System',
+        'menu.places': 'Places (POIs)',
+        'menu.evaluation': 'Evaluation',
 
         // Headers / Titles
         'header.requisitions': 'Requisitions Dashboard',
