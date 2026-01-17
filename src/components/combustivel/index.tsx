@@ -269,9 +269,11 @@ export default function Combustivel() {
 
         for (const row of bpTransactions as any[]) {
             try {
-                // Find Vehicle
+                // Find Vehicle (Fuzzy Match: Remove spaces, dashes, case insensitive)
+                const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
                 const plate = row['Matrícula'];
-                const vehicle = viaturas.find(v => v.matricula.replace(/\s/g, '') === plate?.replace(/\s/g, ''));
+                const cleanPlate = normalizePlate(plate);
+                const vehicle = viaturas.find(v => normalizePlate(v.matricula) === cleanPlate);
 
                 // Use manually selected Centro de Custo
                 const ccId = row._selectedCC;
@@ -305,21 +307,20 @@ export default function Combustivel() {
                 }
 
                 // Prepare Transaction
-                // We might not have driver info in BP file (usually card based)
-                // If card is mapped to driver, we could look it up. For now, leaving driver empty or 'Unknown'
+                // driverId must be a valid UUID or NULL. 'BP_IMPORT' fails FK constraint.
                 const transaction: any = {
                     id: crypto.randomUUID(),
-                    vehicleId: vehicle ? vehicle.id : 'UNKNOWN_VEHICLE',
-                    driverId: 'BP_IMPORT', // Placeholder or 'Sistema'
+                    vehicleId: vehicle ? vehicle.id : (cleanPlate || 'UNKNOWN_PLATE'), // Use clean plate if no ID found, but warn user via "Unmatched" UI later?
+                    driverId: null, // BP import usually doesn't have driver UUID. Send null.
                     liters: parseFloat(row['Litros']) || 0,
                     pricePerLiter: parseFloat(row['Preço Unitário']) || 0,
                     totalCost: parseFloat(row['Total']) || (parseFloat(row['Litros']) * parseFloat(row['Preço Unitário'])) || 0,
-                    km: 0, // BP files usually don't have KM unless manually entered at pump
+                    km: 0,
                     status: 'confirmed',
                     timestamp: timestamp,
                     staffId: currentUser?.id || 'admin',
                     staffName: currentUser?.nome || 'Admin',
-                    centroCustoId: ccId || null // Ensure explicit null if undefined
+                    centroCustoId: ccId || null
                 };
 
                 await registerRefuel(transaction);
@@ -838,6 +839,7 @@ export default function Combustivel() {
                                         <th className="px-6 py-4">Data</th>
                                         <th className="px-6 py-4">Viatura</th>
                                         <th className="px-6 py-4">Condutor</th>
+                                        <th className="px-6 py-4">Centro Custo</th>
                                         <th className="px-6 py-4 text-right">Litros</th>
                                         <th className="px-6 py-4 text-right">Valor</th>
                                         <th className="px-6 py-4 text-right">Ações</th>
@@ -854,7 +856,12 @@ export default function Combustivel() {
                                                     <span className="text-slate-600 ml-2 text-xs">{new Date(tx.timestamp).toLocaleTimeString()}</span>
                                                 </td>
                                                 <td className="px-6 py-4 font-bold text-white">{vehicle?.matricula}</td>
-                                                <td className="px-6 py-4 text-slate-300">{driver?.nome}</td>
+                                                <td className="px-6 py-4 text-slate-300">
+                                                    {driver ? driver.nome : (tx.driverId === null ? 'Importação BP' : 'N/A')}
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-400 text-xs">
+                                                    {centrosCustos.find(c => c.id === tx.centroCustoId)?.nome || '-'}
+                                                </td>
                                                 <td className="px-6 py-4 text-right font-mono text-yellow-500 font-bold">{tx.liters} L</td>
                                                 <td className="px-6 py-4 text-right font-mono text-slate-300 font-bold">
                                                     {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}

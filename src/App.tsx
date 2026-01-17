@@ -112,6 +112,7 @@ const SidebarGroup = ({ title, icon: Icon, children, defaultOpen = true }: { tit
 
 
 function AppContent() {
+  console.log('--- APP CONTENT RENDERING ---');
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
