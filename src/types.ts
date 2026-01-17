@@ -179,6 +179,17 @@ export interface Servico {
     tipo?: 'entrada' | 'saida' | 'outro';
     status?: 'pending' | 'started' | 'completed' | 'failed';
     failureReason?: string;
+    batchId?: string; // Link to ScaleBatch
+}
+
+export interface ScaleBatch {
+    id: string;
+    serial_number?: number;
+    created_by: string;
+    centro_custo_id: string;
+    reference_date: string;
+    notes?: string;
+    created_at: string;
 }
 
 export interface Supervisor {

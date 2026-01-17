@@ -62,7 +62,7 @@ export default function ApprovalsModal({ isOpen, onClose }: ApprovalsModalProps)
             return;
         }
 
-        const message = `Olá *${name}*,\n\nO seu registo na *Tropical Inspire* foi aprovado!\n\n🔑 As suas credenciais de acesso são:\n*PIN:* ${pin}\n\nPor favor, guarde este código em segurança.\n\nServiços Administrativos`;
+        const message = `Olá ${name}, seja bem vindo ao sistema de gerenciamento de frota da Algartempo.\nSegue o código Pin para autorizar o acesso de ${notification.data.role || 'utilizador'}\n\n*PIN:* ${pin}\n\nPara acessar a aplicação carregue aqui https://algartempo-frota.com/`;
         
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
     };
@@ -146,18 +146,45 @@ export default function ApprovalsModal({ isOpen, onClose }: ApprovalsModalProps)
 
                                     {/* Actions */}
                                     <div className="flex md:flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-6">
-                                        <button 
-                                            onClick={() => handleApprove(req)}
-                                            disabled={!!processingId}
-                                            className="flex-1 md:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                                        >
-                                            <Check className="w-4 h-4" />
-                                            Aprovar
-                                        </button>
+
+                                        {!req.response?.pin ? (
+                                            <button
+                                                onClick={async () => {
+                                                    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+                                                    setProcessingId(req.id);
+                                                    try {
+                                                        await updateNotification({
+                                                            ...req,
+                                                            response: { ...req.response, pin }
+                                                        });
+                                                    } catch (e) {
+                                                        console.error(e);
+                                                        alert('Erro ao gerar PIN');
+                                                    } finally {
+                                                        setProcessingId(null);
+                                                    }
+                                                }}
+                                                disabled={!!processingId}
+                                                className="flex-1 md:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 whitespace-nowrap"
+                                            >
+                                                <Shield className="w-4 h-4" />
+                                                Gerar PIN
+                                            </button>
+                                        ) : (
+                                                <button
+                                                    onClick={() => handleApprove(req)}
+                                                    disabled={!!processingId}
+                                                    className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 whitespace-nowrap shadow-lg shadow-emerald-900/20"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                    Concluir
+                                                </button>
+                                        )}
+
                                         <button 
                                             onClick={() => handleReject(req)}
                                             disabled={!!processingId}
-                                            className="flex-1 md:flex-none px-4 py-2 bg-slate-700 hover:bg-red-500/20 hover:text-red-400 text-slate-300 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                                            className="flex-1 md:flex-none px-4 py-2 bg-slate-800 hover:bg-red-500/10 hover:text-red-400 text-slate-400 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 border border-slate-700 hover:border-red-500/30"
                                         >
                                             <XCircle className="w-4 h-4" />
                                             Rejeitar

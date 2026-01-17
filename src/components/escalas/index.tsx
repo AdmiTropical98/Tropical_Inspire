@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import type { Servico, Notification } from '../../types';
+import type { Servico, Notification, ScaleBatch } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface NewServiceState {
@@ -31,7 +31,7 @@ export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
         addServico, updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
-        runComplianceCheck, complianceStats, runComplianceDemo, locais, checkRouteValidation
+        runComplianceCheck, complianceStats, runComplianceDemo, locais, checkRouteValidation, scaleBatches
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -42,6 +42,7 @@ export default function Escalas() {
     const [selectedMotoristaForAssign, setSelectedMotoristaForAssign] = useState<string>('');
     const [selectedCentroCusto, setSelectedCentroCusto] = useState<string>('all');
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
     // Mobile sidebar state
     const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false);
@@ -160,6 +161,9 @@ export default function Escalas() {
         // Better fallback: if s.data is missing, maybe we shouldn't hide it yet to avoid data loss visibility.
         // But the user wants control. Let's strictly filter if s.data exists.
         if (s.data && s.data !== selectedDate) return false;
+
+        // Filter by Batch
+        if (selectedBatchId && s.batchId !== selectedBatchId) return false;
         // If s.data is missing, we might want to still show it? Or assume it's legacy 'today'?
         // Let's force filter: if no data, assume it belongs to the date it was created (which we might not have).
         // For now: Check if s.data matches. If s.data is undefined, check if we are on "Today".
@@ -184,6 +188,20 @@ export default function Escalas() {
         }
         return true;
     });
+
+    // Global Pending Calculation for Sidebar Grouping
+    const globalPendentes = servicos.filter(s => !s.motoristaId && !s.concluido);
+
+    // Compute Batches that have pending services
+    const pendingBatches = scaleBatches.filter(batch => {
+        return globalPendentes.some(s => s.batchId === batch.id);
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Legacy/Ad-hoc pending (no batch or batch not found)
+    const adHocPendentes = globalPendentes.filter(s => !s.batchId || !scaleBatches.find(b => b.id === s.batchId));
+
+    // Sidebar Count
+    const sidebarTotalCount = pendingBatches.length + (adHocPendentes.length > 0 ? 1 : 0);
 
     const pendentes = filteredServicos.filter(s => !s.motoristaId).sort((a, b) => a.hora.localeCompare(b.hora));
     const assigned = filteredServicos.filter(s => s.motoristaId);
@@ -561,7 +579,10 @@ export default function Escalas() {
                                 <input
                                     type="date"
                                     value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    onChange={(e) => {
+                                        setSelectedDate(e.target.value);
+                                        setSelectedBatchId(null);
+                                    }}
                                     className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/5 outline-none focus:border-blue-500 transition-colors shadow-sm"
                                 />
                                 <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1106,7 +1127,7 @@ export default function Escalas() {
                                             </h2>
                                             <div className="flex items-center gap-2 ml-auto">
                                                 <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                                                    {pendentes.length}
+                                                    {globalPendentes.length}
                                                 </span>
                                                 <button
                                                     onClick={() => setIsPendingSidebarOpen(false)}
@@ -1172,95 +1193,87 @@ export default function Escalas() {
                                         )}
                                     </div>
 
-                                    {/* Pending List */}
+                                    {/* Grouped Batches List */}
                                     <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
-                                        {pendentes.length === 0 ? (
-                                            <div className="h-full flex flex-col items-center justify-center text-slate-600 px-10 text-center">
-                                                <CheckSquare className="w-12 h-12 mb-4 opacity-20" />
-                                                <p className="text-sm font-medium">{t('schedule.pending.empty')}</p>
-                                                <p className="text-xs opacity-50 mt-1">Ótimo trabalho! Tudo organizado.</p>
+
+                                        {/* Ad-Hoc Group (Legacy) */}
+                                        {adHocPendentes.length > 0 && (
+                                            <div 
+                                                onClick={() => {
+                                                    setSelectedBatchId(null);
+                                                    // Optional: navigate to today? Or keep current date?
+                                                    // For ad-hoc, mostly we just clear batch filter
+                                                }}
+                                                className={`p-4 rounded-xl border cursor-pointer transition-all
+                                                    ${selectedBatchId === null
+                                                        ? 'bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-900/10'
+                                                        : 'bg-[#1e293b] border-white/5 hover:border-white/10 hover:bg-[#1e293b]/80'}
+                                                `}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="font-bold text-white text-sm">Escalas Avulsas</div>
+                                                    <span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHocPendentes.length}</span>
+                                                </div>
+                                                <div className="text-xs text-slate-500">Serviços sem lote associado</div>
                                             </div>
-                                        ) : (
-                                            pendentes.map(service => (
+                                        )}
+
+                                        {/* Batches */}
+                                        {pendingBatches.map(batch => {
+                                            const batchServiceCount = globalPendentes.filter(s => s.batchId === batch.id).length;
+
+                                            return (
                                                 <div
-                                                    key={service.id}
+                                                    key={batch.id}
                                                     onClick={() => {
-                                                        if (isDistributeMode) {
-                                                            handleQuickAssign(service.id);
-                                                        } else {
-                                                            togglePendenteSelection(service.id);
-                                                        }
+                                                        setSelectedBatchId(batch.id);
+                                                        setSelectedDate(batch.reference_date);
                                                     }}
-                                                    draggable={!isDistributeMode}
-                                                    onDragStart={(e) => {
-                                                        setDraggedServiceId(service.id);
-                                                        e.dataTransfer.setData('text/plain', service.id);
-                                                    }}
-                                                    onDragEnd={() => setDraggedServiceId(null)}
-                                                    className={`group relative p-3 rounded-xl border transition-all cursor-grab active:cursor-grabbing select-none
-                                                        ${isDistributeMode
-                                                            ? activeDriverId
-                                                                ? 'bg-slate-800/30 border-white/5 hover:bg-blue-600/20 hover:border-blue-500/50 hover:scale-[1.02]'
-                                                                : 'bg-slate-800/30 border-white/5 opacity-50 cursor-not-allowed'
-                                                            : selectedPendentes.includes(service.id)
-                                                                ? 'bg-blue-900/20 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
-                                                                : 'bg-slate-900/40 border-white/5 hover:border-white/10 hover:bg-slate-800/60'
-                                                        }
+                                                    className={`p-4 rounded-xl border cursor-pointer transition-all group relative
+                                                        ${selectedBatchId === batch.id
+                                                            ? 'bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-900/10'
+                                                            : 'bg-[#1e293b] border-white/5 hover:border-white/10 hover:bg-[#1e293b]/80'}
                                                     `}
                                                 >
-                                                    <div className="flex gap-3">
-                                                        {/* Drag Handle */}
-                                                        {!isDistributeMode && !selectedPendentes.includes(service.id) && (
-                                                            <div className="hidden group-hover:flex absolute left-1 top-1/2 -translate-y-1/2 p-1 text-slate-600 cursor-grab active:cursor-grabbing">
-                                                                <GripVertical className="w-4 h-4" />
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs ring-2 ring-[#0b1120]">
+                                                                {batch.created_by.charAt(0).toUpperCase()}
                                                             </div>
-                                                        )}
-
-                                                        {/* Checkbox Visual or Assign Action */}
-                                                        {isDistributeMode ? (
-                                                            <div className={`w-5 h-5 mt-0.5 rounded-md flex items-center justify-center transition-colors
-                                                                ${activeDriverId ? 'bg-slate-800 text-slate-500 group-hover:bg-blue-500 group-hover:text-white' : 'bg-slate-800 text-slate-600'}
-                                                            `}>
-                                                                <ArrowRight className="w-3.5 h-3.5" />
-                                                            </div>
-                                                        ) : (
-                                                            <div className={`w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center transition-colors
-                                                                ${selectedPendentes.includes(service.id)
-                                                                    ? 'bg-blue-600 border-blue-600'
-                                                                    : 'bg-slate-900 border-slate-700 group-hover:border-slate-500'}
-                                                            `}>
-                                                                {selectedPendentes.includes(service.id) && <CheckSquare className="w-3.5 h-3.5 text-white" />}
-                                                            </div>
-                                                        )}
-
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex justify-between items-start mb-1">
-                                                                <span className="font-mono text-sm font-bold text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/5">{service.hora}</span>
-                                                                <button
-                                                                    onClick={(e) => handleDeleteService(service.id, e)}
-                                                                    className="text-slate-600 hover:text-red-400 transition-colors opacity-70 hover:opacity-100 p-1 hover:bg-slate-800 rounded"
-                                                                    title={t('schedule.actions.cancel')}
-                                                                >
-                                                                    <Trash2 className="w-3 h-3" />
-                                                                </button>
-                                                            </div>
-
-                                                            <div className="font-medium text-slate-200 text-sm truncate pr-2 mb-2">{service.passageiro}</div>
-
-                                                            <div className="text-xs text-slate-500 flex flex-col gap-1.5 bg-black/20 p-2 rounded-lg border border-white/5">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
-                                                                    <span className="truncate">{service.origem}</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                                                                    <span className="truncate text-slate-400 group-hover:text-slate-300 transition-colors">{service.destino}</span>
-                                                                </div>
+                                                            <div>
+                                                                <div className="font-bold text-white text-sm leading-tight">{batch.created_by}</div>
+                                                                <div className="text-[10px] text-slate-500 font-mono mt-0.5">{batch.created_at.split('T')[1].substring(0, 5)}</div>
                                                             </div>
                                                         </div>
+                                                        <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">
+                                                            {batchServiceCount}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                            <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                                                            <span className="font-mono">{batch.reference_date}</span>
+                                                        </div>
+                                                        {batch.centro_custo_id && (
+                                                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                                <LayoutList className="w-3.5 h-3.5 text-slate-500" />
+                                                                <span className="truncate max-w-[150px]">
+                                                                    {centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome || 'Centro Custo'}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            ))
+                                            );
+                                        })}
+
+                                        {pendingBatches.length === 0 && adHocPendentes.length === 0 && (
+                                            <div className="h-40 flex flex-col items-center justify-center text-slate-600 text-center px-6">
+                                                <CheckSquare className="w-8 h-8 mb-3 opacity-20" />
+                                                <p className="text-sm font-medium">Tudo limpo!</p>
+                                                <p className="text-xs opacity-50 mt-1">Não há escalas pendentes.</p>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

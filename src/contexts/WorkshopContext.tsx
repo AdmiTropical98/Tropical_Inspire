@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch } from '../types';
 import { CartrackService, cleanTagId, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -28,6 +28,7 @@ interface WorkshopContextType {
     notifications: Notification[];
     servicos: any[];
     setServicos: React.Dispatch<React.SetStateAction<any[]>>;
+    scaleBatches: ScaleBatch[];
     geofences: CartrackGeofence[];
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
@@ -147,6 +148,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     // NEW: Services State (Lifted)
     const [servicos, setServicos] = useState<any[]>([]);
+    const [scaleBatches, setScaleBatches] = useState<ScaleBatch[]>([]);
 
 
 
@@ -607,6 +609,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     failureReason: s.failure_reason
                 })));
             }
+
+            const { data: batches } = await supabase.from('scale_batches').select('*');
+            if (batches) setScaleBatches(batches);
 
             // 5. Fuel
             const { data: tankData } = await supabase.from('fuel_tank').select('*').eq('id', 'main').single();
@@ -1782,6 +1787,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     }));
 
                     setServicos(prev => [...prev, ...newServices]);
+                    setScaleBatches(prev => [...prev, batch]);
 
                     return { success: true, data: batch };
 
@@ -1789,7 +1795,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     console.error('Error creating batch:', error);
                     return { success: false, error: error.message };
                 }
-            }
+            },
+            scaleBatches
         }}>
             {children}
         </WorkshopContext.Provider>
