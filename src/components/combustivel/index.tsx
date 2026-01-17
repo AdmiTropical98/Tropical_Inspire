@@ -152,16 +152,23 @@ export default function Combustivel() {
         }
 
         try {
+            const isConfirmed = userRole === 'admin' && bypassDriverPin;
+
             await registerRefuel({
+                id: crypto.randomUUID(),
                 driverId: refuelForm.driverId,
                 vehicleId: refuelForm.vehicleId,
                 liters: liters,
                 km: Number(refuelForm.km),
-                centroCustoId: refuelForm.centroCustoId || undefined
+                centroCustoId: refuelForm.centroCustoId || undefined,
+                status: isConfirmed ? 'confirmed' : 'pending',
+                timestamp: new Date().toISOString(),
+                staffId: currentUser?.id || 'admin',
+                staffName: currentUser?.nome || 'Admin'
             });
 
             setRefuelForm({ driverId: '', vehicleId: '', liters: '', km: '', centroCustoId: '' });
-            alert('Abastecimento registado com sucesso!');
+            alert(isConfirmed ? 'Abastecimento registado e confirmado com sucesso!' : 'Abastecimento registado! A aguardar confirmação do motorista.');
             setActiveTab('overview');
         } catch (error) {
             console.error(error);
@@ -173,10 +180,19 @@ export default function Combustivel() {
         e.preventDefault();
         try {
             await registerTankRefill({
+                id: crypto.randomUUID(),
                 supplier: supplyForm.supplier,
                 litersAdded: Number(supplyForm.litersAdded),
-                pumpReading: supplyForm.pumpReading ? Number(supplyForm.pumpReading) : undefined,
-                pricePerLiter: Number(supplyForm.pricePerLiter)
+                pumpMeterReading: supplyForm.pumpReading ? Number(supplyForm.pumpReading) : 0, // Fixed property name
+                pricePerLiter: Number(supplyForm.pricePerLiter),
+                levelBefore: fuelTank.currentLevel,
+                levelAfter: Math.min(fuelTank.capacity, fuelTank.currentLevel + Number(supplyForm.litersAdded)),
+                totalSpentSinceLast: 0, // You might want to calculate this or leave 0
+                timestamp: new Date().toISOString(),
+                staffId: currentUser?.id || 'admin',
+                staffName: currentUser?.nome || 'Admin',
+                systemExpectedReading: fuelTank.pumpTotalizer,
+                totalCost: Number(supplyForm.litersAdded) * Number(supplyForm.pricePerLiter)
             });
             setSupplyForm({ supplier: '', litersAdded: '', pumpReading: '', pricePerLiter: '' });
             alert('Entrada de combustível registada com sucesso!');
