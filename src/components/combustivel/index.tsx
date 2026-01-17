@@ -934,12 +934,13 @@ export default function Combustivel() {
                                                 <th className="px-6 py-3">Data</th>
                                                 <th className="px-6 py-3">Viatura</th>
                                                 <th className="px-6 py-3">Litros</th>
+                                                <th className="px-6 py-3">Preço/L</th>
                                                 <th className="px-6 py-3">Total</th>
                                                 <th className="px-6 py-3">C. Custo</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
-                                            {bpTransactions.slice(0, 10).map((row, i) => {
+                                            {bpTransactions.slice(0, 100).map((row, i) => {
                                                 const dateObj = excelDateToJSDate(row['Data']);
                                                 const timeObj = excelDateToJSDate(row['Hora']);
 
@@ -952,12 +953,17 @@ export default function Combustivel() {
                                                     displayDate = `${dString} ${tString}`;
                                                 }
 
+                                                const liters = parseFloat(row['Litros']) || 0;
+                                                const price = parseFloat(row['Preço Unitário']) || 0;
+                                                const total = parseFloat(row['Total']) || (liters * price);
+
                                                 return (
                                                     <tr key={i}>
                                                         <td className="px-6 py-3 text-slate-300">{displayDate}</td>
                                                         <td className="px-6 py-3 text-slate-300">{row['Matrícula']}</td>
-                                                        <td className="px-6 py-3 text-slate-300 font-mono text-yellow-500">{row['Litros']}</td>
-                                                        <td className="px-6 py-3 text-slate-300 font-mono text-emerald-400">{row['Total']}€</td>
+                                                        <td className="px-6 py-3 text-slate-300 font-mono text-yellow-500">{liters.toFixed(2)}</td>
+                                                        <td className="px-6 py-3 text-slate-300 font-mono">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
+                                                        <td className="px-6 py-3 text-slate-300 font-mono text-emerald-400">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
                                                         <td className="px-6 py-3 text-slate-300">
                                                             <select
                                                                 className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
@@ -980,7 +986,7 @@ export default function Combustivel() {
                                         </tbody>
                                     </table>
                                 </div>
-                                <p className="text-center text-xs text-slate-500 mt-2">A mostrar os primeiros 10 registos.</p>
+                                <p className="text-center text-xs text-slate-500 mt-2">A mostrar os primeiros 100 registos.</p>
                             </div>
                         )}
                     </div>
