@@ -281,20 +281,12 @@ export default function Combustivel() {
         const ws = XLSX.utils.json_to_sheet([
             {
                 'Dia Hora': '15/01/2026 18:42',
-                'Nº transação': '1012187',
-                'Nº cartão': '886',
-                'Proprietário': '51-NR-36',
                 'Matrícula': '51-NR-36',
                 'Km': 449100,
-                'Dia laboral': 'Y',
                 'Posto': 'VILAMOURA',
                 'Produto': 'GASOLEO',
                 'Quantidade': 64.77,
-                'Preço': 1.2509,
-                'Valor líquido': 81.02,
-                'IVA': 18.64,
-                'Valor total a faturar': 99.66,
-                'IVA%': '23,00'
+                'Valor total a faturar': 99.66
             }
         ]);
         const wb = XLSX.utils.book_new();
@@ -409,14 +401,17 @@ export default function Combustivel() {
                 }
 
                 // Prepare Transaction
-                // driverId must be a valid UUID or NULL. 'BP_IMPORT' fails FK constraint.
+                const liters = parseImportNumber(row['Litros']);
+                const totalCost = parseImportNumber(row['Total']);
+                const pricePerLiter = liters > 0 ? totalCost / liters : 0;
+
                 const transaction: any = {
                     id: crypto.randomUUID(),
-                    vehicleId: vehicle ? vehicle.id : (cleanPlate || 'UNKNOWN_PLATE'), // Use clean plate if no ID found, but warn user via "Unmatched" UI later?
-                    driverId: null, // BP import usually doesn't have driver UUID. Send null.
-                    liters: parseImportNumber(row['Litros']),
-                    pricePerLiter: parseImportNumber(row['Preço Unitário']),
-                    totalCost: parseImportNumber(row['Total']),
+                    vehicleId: vehicle ? vehicle.id : (cleanPlate || 'UNKNOWN_PLATE'),
+                    driverId: null,
+                    liters: liters,
+                    pricePerLiter: pricePerLiter,
+                    totalCost: totalCost,
                     km: parseImportNumber(row['Km']),
                     status: 'confirmed',
                     timestamp: timestamp,
@@ -1108,17 +1103,12 @@ export default function Combustivel() {
                                                     />
                                                 </th>
                                                 <th className="px-3 py-4">Data/Hora</th>
-                                                <th className="px-3 py-4">Trans.</th>
-                                                <th className="px-3 py-4">Cartão</th>
-                                                <th className="px-3 py-4">Proprietário</th>
                                                 <th className="px-3 py-4 font-black text-white">Viatura</th>
-                                                <th className="px-3 py-4">KM</th>
-                                                <th className="px-3 py-4">P.</th>
+                                                <th className="px-3 py-4 text-center">KM</th>
                                                 <th className="px-3 py-4">Posto</th>
                                                 <th className="px-3 py-4">Produto</th>
-                                                <th className="px-3 py-4">Qtd.</th>
-                                                <th className="px-3 py-4">P/L</th>
-                                                <th className="px-3 py-4 text-emerald-400">Total</th>
+                                                <th className="px-3 py-4 text-right">Qtd. (L)</th>
+                                                <th className="px-3 py-4 text-right text-emerald-400">Total (€)</th>
                                                 <th className="px-3 py-4 min-w-[150px]">Centro de Custo</th>
                                             </tr>
                                         </thead>
@@ -1170,17 +1160,12 @@ export default function Combustivel() {
                                                             />
                                                         </td>
                                                         <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
-                                                        <td className="px-3 py-3 text-slate-500 font-mono text-[11px]">{row['Nº transação'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-slate-500 font-mono text-[11px]">{row['Nº cartão'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-slate-500 text-[11px] truncate max-w-[100px]">{row['Proprietário'] || '-'}</td>
                                                         <td className="px-3 py-3 text-white font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[12px]">{row['Km'] || '0'}</td>
-                                                        <td className="px-3 py-3 text-slate-500 text-[11px]">{row['Dia laboral'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[120px]">{row['Posto'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[12px] text-center">{row['Km'] || '0'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[150px]">{row['Posto'] || '-'}</td>
                                                         <td className="px-3 py-3 text-slate-500 text-[11px] uppercase font-bold">{row['Produto'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-yellow-500 font-bold font-mono text-[13px]">{liters.toFixed(2)}L</td>
-                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[11px]">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
-                                                        <td className="px-3 py-3 text-emerald-400 font-black font-mono text-[13px]">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
+                                                        <td className="px-3 py-3 text-yellow-500 font-bold font-mono text-[13px] text-right">{liters.toFixed(2)}L</td>
+                                                        <td className="px-3 py-3 text-emerald-400 font-black font-mono text-[13px] text-right">{total.toFixed(2)}€</td>
                                                         <td className="px-3 py-3">
                                                             <select
                                                                 className="bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-[12px] text-white outline-none focus:border-blue-500 w-full"
