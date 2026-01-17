@@ -54,22 +54,39 @@ export default function SplashScreen({ onComplete, message = "A iniciar aplicaç
 
     return (
         <div className="fixed inset-0 z-[99999] bg-[#0f172a] flex items-center justify-center overflow-hidden">
-            {/* Cinematic Background */}
+            {/* Cinematic Road Background */}
             <div className="absolute inset-0 z-0">
                 <img
-                    src="/fleet-bg.png"
-                    alt="Background"
+                    src="/road-bg.png"
+                    alt="Road"
                     className="w-full h-full object-cover animate-slow-zoom"
                 />
-                {/* Darker, deeper overlay for better contrast */}
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-slate-950/70 to-slate-950/90" />
+                {/* Overlay for better contrast */}
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/30 to-slate-950/80" />
+            </div>
+
+            {/* Dynamic Vehicles Passing By */}
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-end pb-[12%]">
+                {/* Tour Bus Passing */}
+                <img
+                    src="/bus-sprite.png"
+                    alt="Algar Tempo Bus"
+                    className="h-32 md:h-44 object-contain absolute left-0 animate-drive-across-delayed filter drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)]"
+                />
+
+                {/* 9-Seater Van Passing */}
+                <img
+                    src="/van-sprite.png"
+                    alt="Algar Tempo Van"
+                    className="h-20 md:h-28 object-contain absolute left-0 animate-drive-across filter drop-shadow-[0_15px_15px_rgba(0,0,0,0.5)]"
+                />
             </div>
 
             <div className="flex flex-col items-center max-w-xs w-full px-8 relative z-10">
 
                 {/* Logo with enhanced glow */}
-                <div className="w-56 h-56 mb-12 relative animate-fade-in">
-                    <div className="absolute inset-0 bg-blue-500/20 blur-[80px] rounded-full" />
+                <div className="w-48 h-48 mb-12 relative animate-fade-in">
+                    <div className="absolute inset-0 bg-blue-500/20 blur-[60px] rounded-full" />
                     <img
                         src="/logo-algar-frota.png"
                         alt="Algar Frota"
@@ -87,7 +104,7 @@ export default function SplashScreen({ onComplete, message = "A iniciar aplicaç
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
-                        <p className="text-center text-slate-300 text-[10px] font-bold tracking-[0.3em] uppercase animate-pulse drop-shadow-md">
+                        <p className="text-center text-slate-100 text-[10px] font-black tracking-[0.4em] uppercase animate-pulse drop-shadow-md">
                             {message}
                         </p>
                     </div>
