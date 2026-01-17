@@ -14,7 +14,7 @@ import { useLayout } from '../../contexts/LayoutContext';
 import NavigationApp from './NavigationApp';
 import TagRegistrationModal from '../common/TagRegistrationModal';
 import { supabase } from '../../lib/supabase';
-import { supabase } from '../../lib/supabase';
+
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { cleanTagId } from '../../services/cartrack';
 
