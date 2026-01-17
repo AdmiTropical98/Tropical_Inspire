@@ -106,6 +106,7 @@ export default function Combustivel() {
         licensePlate: '',
         liters: '',
         pricePerLiter: '',
+        totalCost: '',
         station: '',
         centroCustoId: ''
     });
@@ -114,7 +115,7 @@ export default function Combustivel() {
         e.preventDefault();
         const liters = parseFloat(manualBPForm.liters);
         const price = parseFloat(manualBPForm.pricePerLiter);
-        const total = liters * price;
+        const total = parseFloat(manualBPForm.totalCost);
 
         const newRow = {
             'Data': undefined, // Will use manual date
@@ -138,6 +139,7 @@ export default function Combustivel() {
             licensePlate: '',
             liters: '',
             pricePerLiter: '',
+            totalCost: '',
             station: '',
             centroCustoId: ''
         });
@@ -341,7 +343,7 @@ export default function Combustivel() {
                     else if (lowerKey === 'preço' || lowerKey === 'preço unitário') normalized['Preço Unitário'] = row[key];
                     else if (lowerKey === 'valor líquido' || lowerKey === 'liquido') normalized['Valor líquido'] = row[key];
                     else if (lowerKey === 'iva') normalized['IVA'] = row[key];
-                    else if (lowerKey === 'valor total a faturar' || lowerKey === 'total') normalized['Total'] = row[key];
+                    else if (lowerKey === 'valor total a faturar' || lowerKey === 'total' || lowerKey === 'valor total') normalized['Total'] = row[key];
                     else if (lowerKey === 'iva%') normalized['IVA%'] = row[key];
                     else normalized[cleanKey] = row[key];
                 });
@@ -414,7 +416,7 @@ export default function Combustivel() {
                     driverId: null, // BP import usually doesn't have driver UUID. Send null.
                     liters: parseImportNumber(row['Litros']),
                     pricePerLiter: parseImportNumber(row['Preço Unitário']),
-                    totalCost: parseImportNumber(row['Total']) || (parseImportNumber(row['Litros']) * parseImportNumber(row['Preço Unitário'])),
+                    totalCost: parseImportNumber(row['Total']),
                     km: parseImportNumber(row['Km']),
                     status: 'confirmed',
                     timestamp: timestamp,
@@ -1255,12 +1257,12 @@ export default function Combustivel() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-400">Preço/L (€)</label>
+                                        <label className="text-xs font-bold text-slate-400">Total (€)</label>
                                         <input
-                                            required type="number" step="0.001"
-                                            value={manualBPForm.pricePerLiter}
-                                            onChange={e => setManualBPForm({ ...manualBPForm, pricePerLiter: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                            required type="number" step="0.01"
+                                            value={manualBPForm.totalCost}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, totalCost: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-emerald-500 font-bold text-emerald-400"
                                         />
                                     </div>
                                 </div>
