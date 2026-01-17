@@ -4,7 +4,7 @@ import {
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, MousePointer2,
     Search, LayoutList, X, GripVertical, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid
+    Table as TableIcon, LayoutGrid, ArrowLeft
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -513,17 +513,7 @@ export default function Escalas() {
                                 </button>
                             )}
 
-                            {hasAccess(userRole, 'escalas_import') && (
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
-                                        title="Importar Excel"
-                                    >
-                                        <Upload className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            )}
+
 
                             {/* View Toggles */}
                             {hasAccess(userRole, 'escalas_create') && (
@@ -1043,6 +1033,29 @@ export default function Escalas() {
                                         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
                                         onClick={() => setIsPendingSidebarOpen(false)}
                                     />
+                                )}
+
+                                {/* Collapsed Sidebar Strip (Desktop) */}
+                                {isSidebarCollapsed && (
+                                    <div className="hidden lg:flex flex-col items-center py-4 w-12 border-l border-white/5 bg-[#0f172a] h-full z-[50]">
+                                        <button
+                                            onClick={() => setIsSidebarCollapsed(false)}
+                                            className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg mb-4"
+                                            title="Expandir"
+                                        >
+                                            <ArrowLeft className="w-5 h-5" />
+                                        </button>
+                                        <div className="flex-1 flex flex-col items-center gap-2">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider -rotate-90 whitespace-nowrap mt-8">
+                                                Pendentes
+                                            </span>
+                                            {pendentes.length > 0 && (
+                                                <span className="mt-4 bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                                    {pendentes.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
 
                                 <div className={`
