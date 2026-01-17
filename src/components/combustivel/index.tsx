@@ -259,6 +259,16 @@ export default function Combustivel() {
     const recentTransactions = fuelTransactions.slice(0, 5);
 
     // --- BP Import Logic ---
+    const parseImportNumber = (val: any): number => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+            const normalized = val.replace(/\s/g, '').replace(',', '.');
+            const num = parseFloat(normalized);
+            return isNaN(num) ? 0 : num;
+        }
+        return 0;
+    };
+
     const handleDownloadBPTemplate = () => {
         const ws = XLSX.utils.json_to_sheet([
             {
@@ -366,21 +376,23 @@ export default function Combustivel() {
 
                 // Optimized parsing using the improved helper
                 const diaHora = row['Dia Hora'];
+                const dataVal = row['Data'];
+                const horaVal = row['Hora'];
                 let dateObj: Date | null = null;
 
                 if (row._manualDate) {
                     dateObj = new Date(row._manualDate);
-                    const h = excelDateToJSDate(row['Hora']);
-                    if (h && dateObj) {
-                        dateObj.setHours(h.getHours(), h.getMinutes());
-                    }
-                } else if (diaHora) {
-                    dateObj = excelDateToJSDate(diaHora);
+                    const h = excelDateToJSDate(horaVal);
+                    if (h && dateObj) dateObj.setHours(h.getHours(), h.getMinutes());
                 } else {
-                    dateObj = excelDateToJSDate(row['Data']);
-                    const timeObj = excelDateToJSDate(row['Hora']);
-                    if (dateObj && timeObj) {
-                        dateObj.setHours(timeObj.getHours(), timeObj.getMinutes());
+                    const primaryDate = diaHora || dataVal;
+                    if (primaryDate) {
+                        dateObj = excelDateToJSDate(primaryDate);
+                        // If it's a separate date column often time is in another column
+                        if (dateObj && horaVal) {
+                            const h = excelDateToJSDate(horaVal);
+                            if (h) dateObj.setHours(h.getHours(), h.getMinutes());
+                        }
                     }
                 }
 
@@ -394,10 +406,10 @@ export default function Combustivel() {
                     id: crypto.randomUUID(),
                     vehicleId: vehicle ? vehicle.id : (cleanPlate || 'UNKNOWN_PLATE'), // Use clean plate if no ID found, but warn user via "Unmatched" UI later?
                     driverId: null, // BP import usually doesn't have driver UUID. Send null.
-                    liters: parseFloat(row['Litros']) || 0,
-                    pricePerLiter: parseFloat(row['Preço Unitário']) || 0,
-                    totalCost: parseFloat(row['Total']) || (parseFloat(row['Litros']) * parseFloat(row['Preço Unitário'])) || 0,
-                    km: parseFloat(row['Km']) || 0,
+                    liters: parseImportNumber(row['Litros']),
+                    pricePerLiter: parseImportNumber(row['Preço Unitário']),
+                    totalCost: parseImportNumber(row['Total']) || (parseImportNumber(row['Litros']) * parseImportNumber(row['Preço Unitário'])),
+                    km: parseImportNumber(row['Km']),
                     status: 'confirmed',
                     timestamp: timestamp,
                     staffId: currentUser?.id || 'admin',
@@ -1058,21 +1070,22 @@ export default function Combustivel() {
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
                                             {bpTransactions.map((row, i) => {
                                                 const diaHora = row['Dia Hora'];
+                                                const dataVal = row['Data'];
+                                                const horaVal = row['Hora'];
                                                 let dateObj: Date | null = null;
 
                                                 if (row._manualDate) {
                                                     dateObj = new Date(row._manualDate);
-                                                    const h = excelDateToJSDate(row['Hora']);
-                                                    if (h && dateObj) {
-                                                        dateObj.setHours(h.getHours(), h.getMinutes());
-                                                    }
-                                                } else if (diaHora) {
-                                                    dateObj = excelDateToJSDate(diaHora);
+                                                    const h = excelDateToJSDate(horaVal);
+                                                    if (h && dateObj) dateObj.setHours(h.getHours(), h.getMinutes());
                                                 } else {
-                                                    dateObj = excelDateToJSDate(row['Data']);
-                                                    const timeObj = excelDateToJSDate(row['Hora']);
-                                                    if (dateObj && timeObj) {
-                                                        dateObj.setHours(timeObj.getHours(), timeObj.getMinutes());
+                                                    const primaryDate = diaHora || dataVal;
+                                                    if (primaryDate) {
+                                                        dateObj = excelDateToJSDate(primaryDate);
+                                                        if (dateObj && horaVal) {
+                                                            const h = excelDateToJSDate(horaVal);
+                                                            if (h) dateObj.setHours(h.getHours(), h.getMinutes());
+                                                        }
                                                     }
                                                 }
 
@@ -1081,9 +1094,9 @@ export default function Combustivel() {
                                                     displayDate = `${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                                                 }
 
-                                                const liters = parseFloat(row['Litros']) || parseFloat(row['Quantidade']) || 0;
-                                                const price = parseFloat(row['Preço Unitário']) || parseFloat(row['Preço']) || 0;
-                                                const total = parseFloat(row['Total']) || parseFloat(row['Valor total a faturar']) || (liters * price);
+                                                const liters = parseImportNumber(row['Litros']);
+                                                const price = parseImportNumber(row['Preço Unitário']);
+                                                const total = parseImportNumber(row['Total']) || (liters * price);
 
                                                 return (
                                                     <tr key={i} className="hover:bg-slate-800/30 transition-colors border-b border-slate-800/50">
