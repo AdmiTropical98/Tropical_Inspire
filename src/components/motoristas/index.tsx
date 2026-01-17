@@ -16,6 +16,7 @@ export default function Motoristas() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [selectedDriver, setSelectedDriver] = useState<Motorista | null>(null);
     const [permissionUser, setPermissionUser] = useState<Motorista | null>(null);
+    const [contractType, setContractType] = useState<'monthly' | 'hourly' | null>(null);
 
     const [formData, setFormData] = useState<Omit<Motorista, 'id' | 'pin'>>({
         nome: '',
@@ -34,6 +35,12 @@ export default function Motoristas() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!contractType) {
+            alert('Por favor selecione o tipo de contrato (Mensal ou Hora).');
+            return;
+        }
+
         const newPin = Math.floor(100000 + Math.random() * 900000).toString();
 
         const newMotorista: Motorista = {
@@ -45,6 +52,7 @@ export default function Motoristas() {
 
         addMotorista(newMotorista);
         setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', foto: '', cartrackKey: '' , centroCustoId: '' });
+        setContractType(null);
 
         alert(`${t('drivers.success_msg')}: ${newPin} `);
         setSelectedDriver(newMotorista);
@@ -329,38 +337,79 @@ export default function Motoristas() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t('drivers.form.salary')}</label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={formData.vencimentoBase}
-                                        onChange={e => setFormData({ ...formData, vencimentoBase: parseFloat(e.target.value) })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
-                                        placeholder="0.00"
-                                    />
-                                    <span className="absolute right-4 top-1/2 translate-y-0 text-slate-500 text-sm font-bold">€</span>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t('drivers.form.hourly_rate')}</label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={formData.valorHora}
-                                        onChange={e => setFormData({ ...formData, valorHora: parseFloat(e.target.value) })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
-                                        placeholder="0.00"
-                                    />
-                                    <span className="absolute right-4 top-1/2 translate-y-0 text-slate-500 text-sm font-bold">€</span>
-                                </div>
+                        {/* Contract Type Selection */}
+                        <div className="space-y-3">
+                            <label className="text-xs font-bold text-slate-500 uppercase ml-1">Tipo de Contrato *</label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setContractType('monthly');
+                                        setFormData(prev => ({ ...prev, valorHora: 0 }));
+                                    }}
+                                    className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${contractType === 'monthly'
+                                        ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
+                                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                                        }`}
+                                >
+                                    <span className="font-bold">Contrato Mensal</span>
+                                    <span className="text-[10px] opacity-70">Vencimento Base</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setContractType('hourly');
+                                        setFormData(prev => ({ ...prev, vencimentoBase: 0 }));
+                                    }}
+                                    className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${contractType === 'hourly'
+                                        ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20'
+                                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                                        }`}
+                                >
+                                    <span className="font-bold">Contrato Hora</span>
+                                    <span className="text-[10px] opacity-70">Valor à Hora</span>
+                                </button>
                             </div>
                         </div>
+
+                        {/* Conditional Inputs */}
+                        {contractType === 'monthly' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Vencimento Base *</label>
+                                <div className="relative mt-1">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        required
+                                        value={formData.vencimentoBase || ''}
+                                        onChange={e => setFormData({ ...formData, vencimentoBase: parseFloat(e.target.value) })}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none transition-all hover:border-slate-700 font-mono text-lg"
+                                        placeholder="0.00"
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">€</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {contractType === 'hourly' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Valor Semanal / Hora *</label>
+                                <div className="relative mt-1">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        required
+                                        value={formData.valorHora || ''}
+                                        onChange={e => setFormData({ ...formData, valorHora: parseFloat(e.target.value) })}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-purple-500 outline-none transition-all hover:border-slate-700 font-mono text-lg"
+                                        placeholder="0.00"
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">€/h</span>
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t('drivers.form.obs')}</label>
