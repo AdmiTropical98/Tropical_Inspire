@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, Calendar, Plus, Trash2, Shield, Wrench } from 'lucide-react';
+import { X, Save, FileText, Calendar, Plus, Trash2, Shield, Wrench, Fuel } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import type { Viatura, Manutencao, Multa, Seguro } from '../../types';
 
@@ -9,12 +9,12 @@ interface VehicleProfileProps {
 }
 
 export default function VehicleProfile({ viatura: initialViatura, onClose }: VehicleProfileProps) {
-    const { updateViatura, viaturas, requisicoes } = useWorkshop();
+    const { updateViatura, viaturas, requisicoes, fuelTransactions } = useWorkshop();
 
     // Live data from context to handle updates
     const viatura = viaturas.find(v => v.id === initialViatura.id) || initialViatura;
 
-    const [activeTab, setActiveTab] = useState<'detalhes' | 'multas' | 'manutencao' | 'requisicoes'>('detalhes');
+    const [activeTab, setActiveTab] = useState<'detalhes' | 'multas' | 'manutencao' | 'requisicoes' | 'abastecimentos'>('detalhes');
 
     // --- State for Forms ---
     const [showFineForm, setShowFineForm] = useState(false);
@@ -45,6 +45,29 @@ export default function VehicleProfile({ viatura: initialViatura, onClose }: Veh
 
     // Filter requisitions for this vehicle
     const vehicleRequisitions = requisicoes.filter(r => r.viaturaId === viatura.id || (r.tipo === 'Viatura' && r.viaturaId === viatura.id));
+
+    // Filter fuel transactions
+    const vehicleFuelTransactions = fuelTransactions
+        .filter(t => t.vehicleId === viatura.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Helper to calculate consumption
+    const calculateConsumption = (currentTx: typeof vehicleFuelTransactions[0], index: number) => {
+        // Find previous transaction (chronologically before current, so later in sorted array)
+        // Ensure we are comparing within the same vehicle context (which we are, since filtered)
+        // We need to look for the next item in the descending array that has a valid KM reading
+
+        // Simple approach: strict previous record
+        const previousTx = vehicleFuelTransactions[index + 1];
+
+        if (!previousTx) return null;
+
+        const kmDelta = currentTx.km - previousTx.km;
+        if (kmDelta <= 0) return null;
+
+        const consumption = (currentTx.liters / kmDelta) * 100;
+        return consumption.toFixed(1);
+    };
 
     // --- Handlers ---
 
@@ -144,28 +167,34 @@ export default function VehicleProfile({ viatura: initialViatura, onClose }: Veh
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-slate-800 bg-[#1e293b]/50">
+                <div className="flex border-b border-slate-800 bg-[#1e293b]/50 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('detalhes')}
-                        className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'detalhes' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                        className={`flex-1 min-w-[100px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'detalhes' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                     >
-                        Detalhes & Seguro
+                        Detalhes
                     </button>
                     <button
-                        onClick={() => setActiveTab('multas')}
-                        className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'multas' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                        onClick={() => setActiveTab('abastecimentos')}
+                        className={`flex-1 min-w-[120px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'abastecimentos' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                     >
-                        Multas
+                        Abastecimentos
                     </button>
                     <button
                         onClick={() => setActiveTab('manutencao')}
-                        className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'manutencao' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                        className={`flex-1 min-w-[100px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'manutencao' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                     >
                         Manutenções
                     </button>
                     <button
+                        onClick={() => setActiveTab('multas')}
+                        className={`flex-1 min-w-[100px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'multas' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                    >
+                        Multas
+                    </button>
+                    <button
                         onClick={() => setActiveTab('requisicoes')}
-                        className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'requisicoes' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                        className={`flex-1 min-w-[100px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'requisicoes' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                     >
                         Requisições
                     </button>
@@ -266,6 +295,67 @@ export default function VehicleProfile({ viatura: initialViatura, onClose }: Veh
                                 <div className="text-center py-6 text-slate-500 text-sm border border-dashed border-slate-700 rounded-lg">
                                     Gestão de documentos digitais (PDF) brevemente...
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- FUEL TRANSACTIONS TAB --- */}
+                    {activeTab === 'abastecimentos' && (
+                        <div className="space-y-6">
+                            <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                                <Fuel className="w-5 h-5 text-yellow-500" />
+                                Histórico de Abastecimentos
+                            </h3>
+
+                            <div className="space-y-3">
+                                {vehicleFuelTransactions.length > 0 ? (
+                                    vehicleFuelTransactions.map((tx, idx) => {
+                                        const consumption = calculateConsumption(tx, idx);
+                                        return (
+                                            <div key={tx.id} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-white font-bold">{new Date(tx.timestamp).toLocaleDateString()}</span>
+                                                            <span className="text-slate-500 text-xs">{new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        </div>
+                                                        <p className="text-slate-400 text-xs mt-0.5">{tx.staffName || 'Admin'}</p>
+                                                    </div>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                                                        {tx.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                                                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                                        <p className="text-xs text-slate-500 uppercase font-bold">Litros</p>
+                                                        <p className="text-yellow-500 font-mono font-bold text-lg">{tx.liters} L</p>
+                                                    </div>
+                                                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                                        <p className="text-xs text-slate-500 uppercase font-bold">KM (Odo)</p>
+                                                        <p className="text-white font-mono">{tx.km}</p>
+                                                    </div>
+                                                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                                        <p className="text-xs text-slate-500 uppercase font-bold">Consumo</p>
+                                                        <p className={`font-mono font-bold ${consumption ? 'text-blue-400' : 'text-slate-600'}`}>
+                                                            {consumption ? `${consumption} L/100` : '--'}
+                                                        </p>
+                                                    </div>
+                                                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                                        <p className="text-xs text-slate-500 uppercase font-bold">Custo</p>
+                                                        <p className="text-white font-mono">
+                                                            {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '--'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="text-center py-8 text-slate-500 text-sm italic border border-dashed border-slate-700 rounded-lg">
+                                        Sem registos de abastecimento para esta viatura.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

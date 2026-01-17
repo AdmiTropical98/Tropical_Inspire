@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Calendar, AlertTriangle, FileText, Clock, Plus, Trash2, MapPin, Euro, CheckCircle } from 'lucide-react';
+import { X, Calendar, AlertTriangle, FileText, Clock, Plus, Trash2, MapPin, Euro, CheckCircle, Fuel } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import type { Motorista, Acidente, Multa, Ausencia } from '../../types';
 
@@ -9,8 +9,8 @@ interface DriverProfileProps {
 }
 
 export default function DriverProfile({ motorista: initialMotorista, onClose }: DriverProfileProps) {
-    const { motoristas, updateMotorista } = useWorkshop();
-    const [activeTab, setActiveTab] = useState<'details' | 'acidentes' | 'multas' | 'ausencias'>('details');
+    const { motoristas, updateMotorista, fuelTransactions, viaturas } = useWorkshop();
+    const [activeTab, setActiveTab] = useState<'details' | 'acidentes' | 'multas' | 'ausencias' | 'abastecimentos'>('details');
 
     // Get live data to ensure updates are reflected
     const motorista = motoristas.find(m => m.id === initialMotorista.id) || initialMotorista;
@@ -85,6 +85,32 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
         updateMotorista(updated);
         setIsAddingAbsence(false);
         setNewAbsence({ tipo: 'ferias', aprovado: true });
+    };
+
+    const driverFuelTransactions = (fuelTransactions || [])
+        .filter(t => t.driverId === motorista.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const getVehiclePlate = (vId: string) => {
+        const v = viaturas.find(v => v.id === vId);
+        return v ? v.matricula : 'N/A';
+    };
+
+    const calculateConsumption = (currentTx: typeof driverFuelTransactions[0]) => {
+        // Find the previous transaction *for the same vehicle*
+        // We need to look ahead in the sorted array (which is descending by date)
+        // taking into account only transactions for this vehicle
+        const sameVehicleTransactions = driverFuelTransactions.filter(t => t.vehicleId === currentTx.vehicleId);
+        const currentInVehicleListIndex = sameVehicleTransactions.findIndex(t => t.id === currentTx.id);
+        const previousTx = sameVehicleTransactions[currentInVehicleListIndex + 1];
+
+        if (!previousTx) return null;
+
+        const kmDelta = currentTx.km - previousTx.km;
+        if (kmDelta <= 0) return null;
+
+        const consumption = (currentTx.liters / kmDelta) * 100;
+        return consumption.toFixed(1);
     };
 
     const handleDeleteItem = (id: string, type: 'acidentes' | 'multas' | 'ausencias') => {
@@ -163,7 +189,8 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
                         { id: 'details', label: 'Detalhes', icon: FileText },
                         { id: 'acidentes', label: 'Acidentes', icon: AlertTriangle },
                         { id: 'multas', label: 'Multas', icon: Euro },
-                        { id: 'ausencias', label: 'Ausências / Folgas', icon: Calendar },
+                        { id: 'ausencias', label: 'Ausências', icon: Calendar },
+                        { id: 'abastecimentos', label: 'Abastecimentos', icon: Fuel },
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -456,6 +483,81 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
                                 {(!motorista.ausencias || motorista.ausencias.length === 0) && (
                                     <p className="text-center text-slate-500 py-8 text-sm">Sem registo de ausências.</p>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'abastecimentos' && (
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-white">Histórico de Abastecimentos</h3>
+                                <div className="bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">
+                                    <span className="text-xs text-slate-400 uppercase font-bold mr-2">Total Gasto</span>
+                                    <span className="text-emerald-400 font-mono font-bold">
+                                        {driverFuelTransactions.reduce((acc, curr) => acc + (curr.totalCost || 0), 0).toFixed(2)}€
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="overflow-hidden rounded-xl border border-slate-700/50">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-800 text-slate-400 font-medium uppercase text-xs">
+                                        <tr>
+                                            <th className="px-4 py-3">Data</th>
+                                            <th className="px-4 py-3">Viatura</th>
+                                            <th className="px-4 py-3 text-right">Litros</th>
+                                            <th className="px-4 py-3 text-right">Valor</th>
+                                            <th className="px-4 py-3 text-right">KM</th>
+                                            <th className="px-4 py-3 text-right">Consumo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800 bg-slate-800/20">
+                                        {driverFuelTransactions.length > 0 ? (
+                                            driverFuelTransactions.map((tx) => {
+                                                const consumption = calculateConsumption(tx);
+                                                return (
+                                                    <tr key={tx.id} className="hover:bg-slate-800/50 transition-colors">
+                                                        <td className="px-4 py-3 text-slate-300">
+                                                            <div className="flex flex-col">
+                                                                <span className="font-mono">{new Date(tx.timestamp).toLocaleDateString()}</span>
+                                                                <span className="text-xs text-slate-500">{new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-xs text-blue-400 font-mono">
+                                                                {getVehiclePlate(tx.vehicleId)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-mono text-slate-300">
+                                                            {tx.liters.toFixed(2)} L
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-mono text-emerald-400">
+                                                            {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-mono text-slate-400">
+                                                            {tx.km}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            {consumption ? (
+                                                                <span className={`font-mono font-bold ${parseFloat(consumption) > 10 ? 'text-amber-400' : 'text-blue-400'}`}>
+                                                                    {consumption} <span className="text-[10px] opacity-70">L/100</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-slate-600">-</span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={6} className="px-4 py-8 text-center text-slate-500 italic">
+                                                    Sem registos de abastecimento para este motorista.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     )}
