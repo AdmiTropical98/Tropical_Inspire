@@ -1,4 +1,4 @@
-import { Calendar, Info, CheckCircle, Clock, User, Users, ArrowLeft, LogIn, LogOut, CheckSquare, AlertTriangle } from 'lucide-react';
+import { Calendar, Info, CheckCircle, Clock, User, Users, ArrowLeft, LogIn, LogOut, CheckSquare, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { type Servico } from '../../types';
 
@@ -10,10 +10,59 @@ interface MyScheduleViewProps {
 }
 
 export default function MyScheduleView({ services, onBack, complianceStats, onUpdateStatus }: MyScheduleViewProps) {
+    // Date Selection State
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
+    // Helpers for Date Navigation
+    const handlePrevDay = () => {
+        const newDate = new Date(selectedDate);
+        newDate.setDate(selectedDate.getDate() - 1);
+        setSelectedDate(newDate);
+    };
 
-    // Group services by date
-    const groupedServices = services.reduce((groups, service) => {
+    const handleNextDay = () => {
+        const newDate = new Date(selectedDate);
+        newDate.setDate(selectedDate.getDate() + 1);
+        setSelectedDate(newDate);
+    };
+
+    const isSameDay = (d1: Date, stringDate: string) => {
+        const d2 = new Date(stringDate);
+        return d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate();
+    };
+
+    const formattedDateStr = selectedDate.toISOString().split('T')[0];
+
+    // Filter services for the selected day
+    const filteredServices = services.filter(s => {
+        // 1. If explicit 'data' field exists, use it (Best for cross-midnight)
+        if (s.data) {
+            return s.data === formattedDateStr;
+        }
+
+        // 2. Fallback: Try to parse 'hora'
+        // If 'hora' is full ISO string
+        if (s.hora.includes('T') || s.hora.includes('-')) {
+            return isSameDay(selectedDate, s.hora);
+        }
+
+        // 3. Fallback: If just HH:mm, assume it belongs to "Today" (Legacy behavior)
+        // If we represent "today" and the service has no date, show it?
+        // Risk: Showing old services on "today".
+        // Better: Compare with "today" date object.
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (formattedDateStr === todayStr) {
+            // If viewing today, show legacy services (assumed today)
+            return true;
+        }
+
+        return false;
+    });
+
+    // Group services by date (now only one date essentially, but keeping structure/logic is fine)
+    const groupedServices = filteredServices.reduce((groups, service) => {
         let dateKey = 'Data Inválida';
         let rawDate = 0;
 
@@ -21,14 +70,16 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
             // Handle cases where 'hora' is full ISO, or we need to combine data+hora
             let dateObj = new Date(service.hora);
 
-            // If invalid date (e.g. just HH:mm), try to use today's date + time
+            // If invalid date (e.g. just HH:mm), try to use the selected date + time
             if (isNaN(dateObj.getTime())) {
-                const today = new Date();
                 const [hours, minutes] = service.hora.split(':').map(Number);
                 if (!isNaN(hours) && !isNaN(minutes)) {
-                    dateObj = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);
+                    dateObj = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), hours, minutes);
                 }
             }
+
+            // Override date part with selectedDate if s.data matches (double check)
+            // Actually, we trust the filter above.
 
             // Sort Key (Time)
             rawDate = dateObj.getTime();
@@ -154,6 +205,31 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                     </h2>
                     <p className="text-slate-400 text-sm">Consulta os teus serviços agendados</p>
                 </div>
+
+                {/* DATE NAVIGATOR */}
+                <div className="flex items-center gap-4 bg-slate-900/50 p-1 rounded-xl border border-white/10">
+                    <button
+                        onClick={handlePrevDay}
+                        className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex flex-col items-center min-w-[120px]">
+                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+                            {selectedDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                        </span>
+                        <span className="text-white font-bold">
+                            {selectedDate.toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric' })}
+                        </span>
+                    </div>
+                    <button
+                        onClick={handleNextDay}
+                        className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
+                </div>
+
                 <div className="flex items-center gap-3">
                     <span className="text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:block">Status:</span>
                     <div className="flex gap-2">
@@ -165,6 +241,30 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Date Navigator */}
+            <div className="md:hidden flex items-center justify-between bg-slate-800/50 p-2 rounded-xl mb-4 border border-slate-700/50">
+                <button
+                    onClick={handlePrevDay}
+                    className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                        {selectedDate.toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
+                    </span>
+                    <span className="text-white font-bold text-sm">
+                        {selectedDate.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric' })}
+                    </span>
+                </div>
+                <button
+                    onClick={handleNextDay}
+                    className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                >
+                    <ChevronRight className="w-5 h-5" />
+                </button>
             </div>
 
             {services.length === 0 ? (

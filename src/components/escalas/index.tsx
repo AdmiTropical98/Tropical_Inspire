@@ -41,6 +41,7 @@ export default function Escalas() {
     const [selectedPendentes, setSelectedPendentes] = useState<string[]>([]);
     const [selectedMotoristaForAssign, setSelectedMotoristaForAssign] = useState<string>('');
     const [selectedCentroCusto, setSelectedCentroCusto] = useState<string>('all');
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
     // Mobile sidebar state
     const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false);
@@ -152,6 +153,22 @@ export default function Escalas() {
 
     // Advanced Filtering
     const filteredServicos = servicos.filter(s => {
+        // Filter by Date
+        // If service has explicit 'data', use it.
+        // If not, try to fallback (optional: depending on business rule, we might default to today or show all legacy).
+
+        // Better fallback: if s.data is missing, maybe we shouldn't hide it yet to avoid data loss visibility.
+        // But the user wants control. Let's strictly filter if s.data exists.
+        if (s.data && s.data !== selectedDate) return false;
+        // If s.data is missing, we might want to still show it? Or assume it's legacy 'today'?
+        // Let's force filter: if no data, assume it belongs to the date it was created (which we might not have).
+        // For now: Check if s.data matches. If s.data is undefined, check if we are on "Today".
+        if (!s.data) {
+            // Basic legacy support: match today
+            const today = new Date().toISOString().split('T')[0];
+            if (selectedDate !== today) return false;
+        }
+
         // Filter by Cost Center
         if (selectedCentroCusto !== 'all' && s.centroCustoId !== selectedCentroCusto) return false;
 
@@ -291,6 +308,7 @@ export default function Escalas() {
 
         const servicesToAdd: Servico[] = [{
             id: crypto.randomUUID(),
+            data: selectedDate, // Use currently selected date
             hora: newService.hora,
             passageiro: newService.passageiro || 'Staff',
             origem: newService.origem,
@@ -306,6 +324,7 @@ export default function Escalas() {
             const returnDest = newService.destinoRegresso || newService.origem;
             servicesToAdd.push({
                 id: crypto.randomUUID(),
+                data: selectedDate,
                 hora: newService.horaRegresso,
                 passageiro: newService.passageiro || 'Staff',
                 origem: newService.destino,
@@ -536,7 +555,17 @@ export default function Escalas() {
                             )}
                         </div>
 
-                        <div className="flex gap-2">
+                        {/* Date Picker & Actions */}
+                        <div className="flex gap-2 items-center">
+                            <div className="relative">
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/5 outline-none focus:border-blue-500 transition-colors shadow-sm"
+                                />
+                                <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            </div>
                             {hasAccess(userRole, 'escalas_create') && (
                                 <button
                                     onClick={() => setShowNewServiceModal(true)}
@@ -782,7 +811,7 @@ export default function Escalas() {
                                                                                         <Trash2 className="w-3 h-3" />
                                                                                     </button>
 
-                                                                                    <div className="flex items-start justify-between pr-6">
+                                                                                    <div className="flex items-start justify-between pr-8 md:pr-10">
                                                                                         <div className="flex flex-col">
                                                                                             <span className="text-xs font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
                                                                                                 {service.passageiro}

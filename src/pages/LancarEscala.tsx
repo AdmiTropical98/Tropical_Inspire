@@ -422,6 +422,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         try {
             const servicesToCreate = validRows.map(r => ({
                 id: crypto.randomUUID(),
+                data: referenceDate, // Operational Date
                 motoristaId: null, 
                 passageiro: r.passageiro,
                 hora: r.hora,
