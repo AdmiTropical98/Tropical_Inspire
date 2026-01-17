@@ -345,60 +345,28 @@ export default function Combustivel() {
                 // Parse Date & Time
                 let timestamp = new Date().toISOString();
 
-                // Check for Manual Date, "Dia Hora", or Excel Date/Hora
+                // Optimized parsing using the improved helper
                 const diaHora = row['Dia Hora'];
                 let dateObj: Date | null = null;
-                let hours = 0;
-                let minutes = 0;
 
                 if (row._manualDate) {
                     dateObj = new Date(row._manualDate);
-                    if (row['Hora']) {
-                        const h = excelDateToJSDate(row['Hora']);
-                        if (h) { hours = h.getHours(); minutes = h.getMinutes(); }
+                    const h = excelDateToJSDate(row['Hora']);
+                    if (h && dateObj) {
+                        dateObj.setHours(h.getHours(), h.getMinutes());
                     }
                 } else if (diaHora) {
-                    // "Dia Hora" might be "15/01/2026 18:42" (from image) or an Excel serial
-                    if (typeof diaHora === 'number') {
-                        dateObj = excelDateToJSDate(diaHora);
-                    } else if (typeof diaHora === 'string') {
-                        // Try common formats: DD/MM/YYYY HH:mm
-                        const parts = diaHora.split(' ');
-                        const dateParts = parts[0]?.split(/[-/]/);
-                        const timeParts = parts[1]?.split(':');
-
-                        if (dateParts?.length === 3 && timeParts?.length >= 2) {
-                            const day = parseInt(dateParts[0]);
-                            const month = parseInt(dateParts[1]) - 1;
-                            const year = dateParts[2].length === 2 ? 2000 + parseInt(dateParts[2]) : parseInt(dateParts[2]);
-                            dateObj = new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-                        } else {
-                            // Fallback to JS native attempt
-                            const d = new Date(diaHora);
-                            if (!isNaN(d.getTime())) dateObj = d;
-                        }
-                    }
+                    dateObj = excelDateToJSDate(diaHora);
                 } else {
                     dateObj = excelDateToJSDate(row['Data']);
                     const timeObj = excelDateToJSDate(row['Hora']);
-                    if (timeObj) {
-                        hours = timeObj.getHours();
-                        minutes = timeObj.getMinutes();
-                    } else if (typeof row['Hora'] === 'string' && row['Hora'].includes(':')) {
-                        const parts = row['Hora'].split(':');
-                        hours = parseInt(parts[0]);
-                        minutes = parseInt(parts[1]);
+                    if (dateObj && timeObj) {
+                        dateObj.setHours(timeObj.getHours(), timeObj.getMinutes());
                     }
                 }
 
                 if (dateObj && !isNaN(dateObj.getTime())) {
-                    if (!diaHora && !row._manualDate) {
-                        // Apply hours from separate Time if not using Dia Hora
-                        const finalDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), hours, minutes);
-                        timestamp = finalDate.toISOString();
-                    } else {
-                        timestamp = dateObj.toISOString();
-                    }
+                    timestamp = dateObj.toISOString();
                 }
 
                 // Prepare Transaction
@@ -1071,23 +1039,7 @@ export default function Combustivel() {
                                                         dateObj.setHours(h.getHours(), h.getMinutes());
                                                     }
                                                 } else if (diaHora) {
-                                                    if (typeof diaHora === 'number') {
-                                                        dateObj = excelDateToJSDate(diaHora);
-                                                    } else if (typeof diaHora === 'string') {
-                                                        const parts = diaHora.split(' ');
-                                                        const dateParts = parts[0]?.split(/[-/]/);
-                                                        const timeParts = parts[1]?.split(':');
-
-                                                        if (dateParts?.length === 3 && timeParts?.length >= 2) {
-                                                            const day = parseInt(dateParts[0]);
-                                                            const month = parseInt(dateParts[1]) - 1;
-                                                            const year = dateParts[2].length === 2 ? 2000 + parseInt(dateParts[2]) : parseInt(dateParts[2]);
-                                                            dateObj = new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
-                                                        } else {
-                                                            const d = new Date(diaHora);
-                                                            if (!isNaN(d.getTime())) dateObj = d;
-                                                        }
-                                                    }
+                                                    dateObj = excelDateToJSDate(diaHora);
                                                 } else {
                                                     dateObj = excelDateToJSDate(row['Data']);
                                                     const timeObj = excelDateToJSDate(row['Hora']);
