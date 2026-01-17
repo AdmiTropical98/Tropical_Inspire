@@ -20,6 +20,7 @@ window.onunhandledrejection = function (event) {
   document.body.appendChild(div);
 };
 
+console.log('--- MAIN.TSX EXECUTING ---');
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
