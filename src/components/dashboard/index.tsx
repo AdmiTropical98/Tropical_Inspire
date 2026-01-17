@@ -14,6 +14,7 @@ import {
     rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortableWidget } from './SortableWidget';
+import ApprovalsModal from './modals/ApprovalsModal';
 import { supabase } from '../../lib/supabase';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -337,7 +338,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                             <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                                 <h3 className="text-amber-400 font-bold mb-1">Aprovação Necessária</h3>
                                 <p className="text-slate-400 text-xs mb-3">Existem {pendingRegistrations} novos registos pendentes.</p>
-                                <button onClick={() => setActiveTab('equipa-oficina')} className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
+                                <button onClick={() => setShowApprovalsModal(true)} className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
                                     Rever Pedidos
                                 </button>
                             </div>
@@ -374,8 +375,15 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
         }
     };
 
+    // --- MODALS ---
+    const [showApprovalsModal, setShowApprovalsModal] = useState(false);
+
     return (
         <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
+            {/* ... Modal ... */}
+            {hasAccess(userRole, 'equipa-oficina') && ( // Or just render if showApprovalsModal is true, safeguarded inside
+                <ApprovalsModal isOpen={showApprovalsModal} onClose={() => setShowApprovalsModal(false)} />
+            )}
 
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

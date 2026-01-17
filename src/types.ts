@@ -214,6 +214,7 @@ export interface Notification {
         email?: string;
         telemovel?: string;
         password?: string;
+        role?: string;
 
         // Transport Request Data
         origin?: string;
