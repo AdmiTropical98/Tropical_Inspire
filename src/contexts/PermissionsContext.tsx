@@ -107,7 +107,6 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'geofences',
         'supervisores',
         'clientes',
-        'clientes',
         'central_navegacao', 'central_recibos',
         'locais', 'avaliacao'
     ]

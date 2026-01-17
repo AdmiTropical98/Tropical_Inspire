@@ -1,6 +1,6 @@
 import {
     Shield, Wrench, Globe, FileText, Truck, UserCog, Building2,
-    Briefcase, Fuel, Calendar, Lock, UserCheck, User, Wallet
+    Briefcase, Fuel, Calendar, Lock, UserCheck, User, Wallet, Clock
 } from 'lucide-react';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { PermissionModule } from '../../contexts/PermissionsContext';
