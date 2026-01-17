@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { WifiOff, RefreshCw } from 'lucide-react';
 
 export default function SplashScreen({ onComplete, message = "A iniciar aplicação..." }: { onComplete?: () => void, message?: string }) {
     const [status, setStatus] = useState<'loading' | 'error'>('loading');
@@ -65,15 +65,15 @@ export default function SplashScreen({ onComplete, message = "A iniciar aplicaç
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/80" />
             </div>
 
-            <div className="flex flex-col items-center max-w-md w-full px-8 relative z-10">
+            <div className="flex flex-col items-center w-full px-8 relative z-10">
 
-                {/* Significantly Enlarged Logo with Premium Glow */}
-                <div className="w-72 h-72 md:w-80 md:h-80 mb-16 relative animate-fade-in group">
-                    <div className="absolute inset-0 bg-blue-500/30 blur-[100px] rounded-full animate-pulse transition-all duration-1000 group-hover:bg-blue-400/40" />
+                {/* Massive Logo with Premium Glow */}
+                <div className="w-80 h-80 md:w-[500px] md:h-[500px] mb-12 relative animate-fade-in group">
+                    <div className="absolute inset-0 bg-blue-500/25 blur-[120px] rounded-full animate-pulse transition-all duration-1000 group-hover:bg-blue-400/35" />
                     <img
                         src="/logo-algar-frota.png"
                         alt="Algar Frota"
-                        className="w-full h-full object-contain drop-shadow-[0_15px_45px_rgba(0,0,0,0.6)] relative z-10 transition-transform duration-700 hover:scale-105"
+                        className="w-full h-full object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.7)] relative z-10 transition-transform duration-1000 hover:scale-105"
                     />
                 </div>
 
