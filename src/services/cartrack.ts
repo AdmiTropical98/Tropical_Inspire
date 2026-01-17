@@ -36,6 +36,7 @@ export interface CartrackVehicle {
     ignition?: boolean;
     odometer?: number;
     last_position_update?: string;
+    address?: string;
 }
 
 export interface CartrackDriver {

@@ -32,8 +32,17 @@ export default function CentralMotorista() {
         complianceStats,
         cartrackVehicles,
         geofences,
-        updateServico
+        updateServico,
+        refreshData
     } = useWorkshop();
+
+    // Auto-refresh data every 30 seconds to keep vehicle position live
+    useEffect(() => {
+        const interval = setInterval(() => {
+            refreshData();
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [refreshData]);
 
     const [activeTab, setActiveTab] = useState<'overview' | 'viatura' | 'pedidos' | 'recibos' | 'reportar' | 'escala' | 'abastecimentos' | 'navegacao'>('overview');
 
@@ -868,14 +877,13 @@ export default function CentralMotorista() {
 
                                                     <div className="mt-8 grid grid-cols-2 gap-4">
                                                         <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-                                                            <p className="text-[10px] text-slate-500 font-bold uppercase">Velocidade</p>
-                                                            <p className="text-2xl font-mono font-bold text-white">{Math.round(myVehicle.speed)} <span className="text-xs text-slate-500">km/h</span></p>
-                                                        </div>
-                                                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
                                                             <p className="text-[10px] text-slate-500 font-bold uppercase">Ignição</p>
                                                             <p className={`text-xl font-bold ${myVehicle.ignition ? 'text-emerald-400' : 'text-slate-500'}`}>
                                                                 {myVehicle.ignition ? 'LIGADA' : 'DESLIGADA'}
                                                             </p>
+                                                        </div>
+                                                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 hidden">
+                                                            {/* Speed removed as requested */}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -886,7 +894,9 @@ export default function CentralMotorista() {
                                                 <div className="p-4 bg-slate-900/50 border-b border-slate-800">
                                                     <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Última Localização</p>
                                                     <p className="text-sm text-white line-clamp-2">{myVehicle.address || 'Localização desconhecida'}</p>
-                                                    <p className="text-[10px] text-slate-600 mt-1 font-mono">Atualizado: {new Date(myVehicle.last_position_update).toLocaleTimeString()}</p>
+                                                    <p className="text-[10px] text-slate-600 mt-1 font-mono">
+                                                        Atualizado: {myVehicle.last_position_update ? new Date(myVehicle.last_position_update).toLocaleTimeString() : 'N/A'}
+                                                    </p>
                                                 </div>
 
                                                 {/* Mini Map Static Placeholder or Simple Visual */}
@@ -901,11 +911,11 @@ export default function CentralMotorista() {
 
                                                 <div className="p-4">
                                                     <button
-                                                        onClick={() => setActiveTab('navegacao')}
+                                                        onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${myVehicle.latitude},${myVehicle.longitude}`, '_blank')}
                                                         className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                                                     >
                                                         <Navigation className="w-4 h-4" />
-                                                        Ir para Navegação
+                                                        Localização Atual
                                                     </button>
                                                 </div>
                                             </div>
@@ -934,7 +944,7 @@ export default function CentralMotorista() {
                             {activeTab === 'recibos' && (
                                 <div className="bg-slate-900 p-12 rounded-3xl border border-slate-800 text-center animate-in fade-in zoom-in-95 duration-300">
                                     <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        {activeTab === 'viatura' ? <Car className="w-10 h-10 text-slate-600" /> : <FileText className="w-10 h-10 text-slate-600" />}
+                                        <FileText className="w-10 h-10 text-slate-600" />
                                     </div>
                                     <h3 className="text-2xl font-bold text-white mb-2 capitalize">{activeTab}</h3>
                                     <p className="text-slate-400 max-w-md mx-auto">Esta funcionalidade está em desenvolvimento e estará disponível brevemente.</p>
