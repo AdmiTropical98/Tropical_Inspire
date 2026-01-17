@@ -1,5 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
     children: ReactNode;
@@ -19,46 +18,39 @@ export class ErrorBoundary extends Component<Props, State> {
     };
 
     public static getDerivedStateFromError(error: Error): State {
+        // Update state so the next render will show the fallback UI.
         return { hasError: true, error, errorInfo: null };
     }
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        console.error('Uncaught error:', error, errorInfo);
+        console.error("Uncaught error:", error, errorInfo);
         this.setState({ errorInfo });
     }
 
     public render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-                    <div className="bg-slate-800 border border-red-500/50 rounded-2xl p-8 max-w-2xl w-full shadow-2xl">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="p-3 bg-red-500/10 rounded-full">
-                                <AlertTriangle className="w-8 h-8 text-red-500" />
-                            </div>
-                            <h1 className="text-2xl font-bold text-white">Ops! Algo correu mal.</h1>
+                <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-white font-sans">
+                    <div className="max-w-xl w-full bg-slate-900 border border-red-500/30 rounded-2xl p-8 shadow-2xl">
+                        <h1 className="text-3xl font-black text-red-500 mb-4">Algo correu mal.</h1>
+                        <p className="text-slate-400 mb-6">Ocorreu um erro crítico na aplicação. Por favor contacte o suporte com esta mensagem:</p>
+
+                        <div className="bg-black/50 p-4 rounded-xl border border-white/10 overflow-auto max-h-64 mb-6 custom-scrollbar">
+                            <p className="font-mono text-red-400 text-sm mb-2 font-bold">
+                                {this.state.error?.toString()}
+                            </p>
+                            {this.state.errorInfo && (
+                                <pre className="font-mono text-slate-500 text-xs whitespace-pre-wrap">
+                                    {this.state.errorInfo.componentStack}
+                                </pre>
+                            )}
                         </div>
 
-                        <p className="text-slate-300 mb-6">
-                            A aplicação encontrou um erro inesperado e teve de encerrar esta secção.
-                        </p>
-
-                        {this.state.error && (
-                            <div className="bg-slate-950 p-4 rounded-lg overflow-x-auto border border-slate-700 mb-6">
-                                <p className="text-red-400 font-mono text-sm mb-2">{this.state.error.toString()}</p>
-                                {this.state.errorInfo && (
-                                    <pre className="text-slate-500 text-xs font-mono whitespace-pre-wrap">
-                                        {this.state.errorInfo.componentStack}
-                                    </pre>
-                                )}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                        <button 
+                            onClick={() => window.location.href = '/'}
+                            className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
                         >
-                            Recarregar Página
+                            Tentar Recarregar
                         </button>
                     </div>
                 </div>
@@ -68,3 +60,5 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.children;
     }
 }
+
+
