@@ -296,21 +296,30 @@ export default function Combustivel() {
             const ws = wb.Sheets[wsname];
             const data: any[] = XLSX.utils.sheet_to_json(ws);
 
-            // Filter empty rows (must have Plate OR Quantity)
-            const validData = data.filter(row => row['Matrícula'] || row['Quantidade'] || row['Litros']);
+            // Filter empty rows
+            const validData = data.filter(row => {
+                const keys = Object.keys(row);
+                const hasPlate = keys.some(k => k.trim().toLowerCase() === 'matrícula');
+                const hasQty = keys.some(k => k.trim().toLowerCase() === 'quantidade' || k.trim().toLowerCase() === 'litros');
+                return hasPlate || hasQty;
+            });
 
             // Normalize and Enrich data
             const enrichedData = validData.map(row => {
-                // Normalize headers
-                const normalized = {
-                    ...row,
-                    'Litros': row['Quantidade'] !== undefined ? row['Quantidade'] : row['Litros'],
-                    'Preço Unitário': row['Preço'] !== undefined ? row['Preço'] : row['Preço Unitário'],
-                    'Total': row['Valor total a faturar'] !== undefined ? row['Valor total a faturar'] : row['Total']
-                };
+                // Better normalization: trim keys and check alternates
+                const normalized: any = {};
+                Object.keys(row).forEach(key => {
+                    const cleanKey = key.trim();
+                    const lowerKey = cleanKey.toLowerCase();
 
-                // Cost center will be assigned manually in the UI later
-                // But we check if by any chance it's still there (e.g. user re-used old template)
+                    if (lowerKey === 'dia hora' || lowerKey === 'data') normalized['Dia Hora'] = row[key];
+                    else if (lowerKey === 'matrícula') normalized['Matrícula'] = row[key];
+                    else if (lowerKey === 'quantidade' || lowerKey === 'litros') normalized['Litros'] = row[key];
+                    else if (lowerKey === 'preço' || lowerKey === 'preço unitário') normalized['Preço Unitário'] = row[key];
+                    else if (lowerKey === 'valor total a faturar' || lowerKey === 'total') normalized['Total'] = row[key];
+                    else normalized[cleanKey] = row[key]; // Preserve other clean keys
+                });
+
                 const ccName = normalized['Centro de Custo'];
                 const matchedCC = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
 
@@ -1019,9 +1028,9 @@ export default function Combustivel() {
                                         <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[10px] tracking-wider">
                                             <tr>
                                                 <th className="px-4 py-3">Data/Hora</th>
-                                                <th className="px-4 py-3">Nº Trans.</th>
+                                                <th className="px-4 py-3">Transação</th>
+                                                <th className="px-4 py-3">Cartão</th>
                                                 <th className="px-4 py-3">Viatura</th>
-                                                <th className="px-4 py-3">KM</th>
                                                 <th className="px-4 py-3">Posto</th>
                                                 <th className="px-4 py-3">Produto</th>
                                                 <th className="px-4 py-3">Qtd.</th>
@@ -1063,15 +1072,15 @@ export default function Combustivel() {
                                                 return (
                                                     <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                                                         <td className="px-4 py-3 text-slate-300 font-medium whitespace-nowrap">{displayDate}</td>
-                                                        <td className="px-4 py-3 text-slate-500 font-mono text-xs">{row['Nº transação'] || '-'}</td>
+                                                        <td className="px-4 py-3 text-slate-500 font-mono text-[10px]">{row['Nº transação'] || '-'}</td>
+                                                        <td className="px-4 py-3 text-slate-500 font-mono text-[10px]">{row['Nº cartão'] || '-'}</td>
                                                         <td className="px-4 py-3 text-white font-black">{row['Matrícula'] || '-'}</td>
-                                                        <td className="px-4 py-3 text-slate-500 font-mono text-xs">{row['Km'] || '0'}</td>
                                                         <td className="px-4 py-3 text-slate-400 text-xs truncate max-w-[120px]">{row['Posto'] || '-'}</td>
                                                         <td className="px-4 py-3 text-slate-500 text-[10px] uppercase font-bold">{row['Produto'] || '-'}</td>
                                                         <td className="px-4 py-3 text-slate-300 font-bold font-mono text-yellow-500">{liters.toFixed(2)}L</td>
                                                         <td className="px-4 py-3 text-slate-400 font-mono text-xs">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
                                                         <td className="px-4 py-3 text-emerald-400 font-black font-mono">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
-                                                        <td className="px-4 py-3 text-slate-300">
+                                                        <td className="px-4 py-3">
                                                             <select
                                                                 className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500 w-full"
                                                                 value={row._selectedCC || ''}
