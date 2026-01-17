@@ -44,6 +44,8 @@ export default function Escalas() {
 
     // Mobile sidebar state
     const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false);
+    // Desktop sidebar state
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     // View Mode State
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -438,10 +440,14 @@ export default function Escalas() {
 
                         {/* Pendentes Indicator - Mobile Only (Compact) / Desktop (Full) */}
                         <div
-                            className="flex flex-col items-center relative cursor-pointer"
-                            onClick={() => setIsPendingSidebarOpen(true)}
+                            className="flex flex-col items-center relative cursor-pointer group"
+                            onClick={() => {
+                                setIsPendingSidebarOpen(true);
+                                setIsSidebarCollapsed(false);
+                            }}
+                            title="Ver Pendentes"
                         >
-                            <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Pendentes</span>
+                            <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider group-hover:text-amber-400 transition-colors">Pendentes</span>
                             <span className={`text-sm md:text-lg font-bold leading-tight ${pendentes.length > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{pendentes.length}</span>
                             {pendentes.length > 0 && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />}
                         </div>
@@ -509,27 +515,6 @@ export default function Escalas() {
 
                             {hasAccess(userRole, 'escalas_import') && (
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={() => {
-                                            const headers = [
-                                                {
-                                                    'Nome do funcionário': 'João Silva',
-                                                    'Origem': 'Albufeira',
-                                                    'Destino': 'Aeroporto Faro',
-                                                    'Horário de apanhar transporte': '08:30',
-                                                    'Horário de saída do serviço': '17:30'
-                                                }
-                                            ];
-                                            const ws = XLSX.utils.json_to_sheet(headers);
-                                            const wb = XLSX.utils.book_new();
-                                            XLSX.utils.book_append_sheet(wb, ws, "Modelo");
-                                            XLSX.writeFile(wb, "modelo_escala.xlsx");
-                                        }}
-                                        className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
-                                        title="Baixar Modelo Excel"
-                                    >
-                                        <TableIcon className="w-5 h-5" />
-                                    </button>
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className="p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-colors"
@@ -632,8 +617,8 @@ export default function Escalas() {
                                     </button>
                                 </div>
 
-                                {/* Drivers Swimlanes */}
-                                <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-3 md:gap-6 md:overflow-x-auto pb-24 md:pb-6 px-2 md:px-4 snap-y md:snap-x">
+                                {/* Drivers Grid View */}
+                                <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 overflow-y-auto pb-24 md:pb-6 px-2 md:px-4 custom-scrollbar">
                                     {filteredMotoristas.map(driver => {
                                         // Calculate Driver Stats
                                         const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
@@ -651,8 +636,7 @@ export default function Escalas() {
                                                     e.currentTarget.style.borderColor = '';
                                                     e.currentTarget.style.backgroundColor = '';
                                                 }}
-                                                // Removed hardcoded width, allowing flex-grow and proper shrinking
-                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col shrink-0 w-full md:w-[420px] lg:w-[450px] snap-center group transition-all duration-200 h-auto md:h-full
+                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200 h-[600px]
                                             ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
                                             border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
                                             ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
@@ -1063,9 +1047,10 @@ export default function Escalas() {
 
                                 <div className={`
                             fixed lg:relative inset-y-0 right-0 z-[60]
-                            w-[85vw] max-w-[400px] lg:w-[400px]
+                            ${isSidebarCollapsed ? 'lg:w-0 lg:border-l-0 lg:overflow-hidden opacity-0 lg:opacity-100' : 'lg:w-[400px] lg:border-l'}
+                            w-[85vw] max-w-[400px]
                             flex flex-col bg-[#0f172a] border-l border-white/5 shadow-2xl
-                            transform transition-transform duration-300 ease-in-out
+                            transform transition-all duration-300 ease-in-out
                             ${isPendingSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
                         `}>
                                     {/* Sidebar Header */}
@@ -1086,6 +1071,13 @@ export default function Escalas() {
                                                     className="lg:hidden p-1.5 text-slate-400 hover:text-white bg-slate-800/50 rounded-lg"
                                                 >
                                                     <X className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setIsSidebarCollapsed(true)}
+                                                    className="hidden lg:flex p-1.5 text-slate-400 hover:text-white bg-slate-800/50 rounded-lg"
+                                                    title="Recolher barra lateral"
+                                                >
+                                                    <ArrowRight className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </div>
