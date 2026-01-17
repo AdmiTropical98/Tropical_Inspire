@@ -14,7 +14,9 @@ import { useLayout } from '../../contexts/LayoutContext';
 import NavigationApp from './NavigationApp';
 import TagRegistrationModal from '../common/TagRegistrationModal';
 import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../contexts/PermissionsContext';
+import { cleanTagId } from '../../services/cartrack';
 
 export default function CentralMotorista() {
     const { t } = useTranslation();
@@ -203,7 +205,33 @@ export default function CentralMotorista() {
             desc: n.data.message
         }));
 
-    const myVehicle: any = null;
+    // Vehicle Detection Logic
+    const myVehicle = (() => {
+        if (!currentUser) return null;
+        const driver = currentUser as any;
+
+        // 1. Try to find by Cartrack Key (Tag)
+        const userKey = driver.cartrackKey || driver.cartrack_key;
+        if (userKey) {
+            const cleanKey = cleanTagId(userKey);
+            // Check if any vehicle has this tag currently active
+            const taggedVehicle = cartrackVehicles.find(v =>
+                v.tagId && cleanTagId(v.tagId) === cleanKey
+            );
+            if (taggedVehicle) return taggedVehicle;
+        }
+
+        // 2. Fallback: Try to find by assigned 'currentVehicle' string (Plate)
+        if (driver.currentVehicle) {
+            const normalize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            const assignedVehicle = cartrackVehicles.find(v =>
+                normalize(v.registration) === normalize(driver.currentVehicle)
+            );
+            if (assignedVehicle) return assignedVehicle;
+        }
+
+        return null;
+    })();
 
     const myServicesCount = servicos.filter((s: any) => s.motoristaId === currentUser?.id).length;
     // @ts-ignore
@@ -312,13 +340,20 @@ export default function CentralMotorista() {
                         <span className="text-xs font-bold uppercase tracking-wider">Viatura</span>
                     </div>
                     {myVehicle ? (
-                        <div className="mt-2">
-                            <p className="text-white font-black text-2xl mb-1">{myVehicle.matricula}</p>
-                            <p className="text-sm text-slate-400">{myVehicle.modelo}</p>
+                        <div className="mt-2 text-left">
+                            <p className="text-white font-black text-2xl mb-1 truncate">{myVehicle.registration}</p>
+                            <p className="text-sm text-slate-400 truncate">{myVehicle.make || ''} {myVehicle.model || myVehicle.label || 'Viatura da Frota'}</p>
+                            <div className="mt-3 flex items-center gap-2">
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${myVehicle.status === 'moving' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${myVehicle.status === 'moving' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`}></span>
+                                    {myVehicle.status === 'moving' ? 'Em Movimento' : 'Parada'}
+                                </span>
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center flex-1 py-4 text-center">
-                            <p className="text-slate-500 text-sm font-medium">Nenhuma viatura atribuída</p>
+                                <p className="text-slate-500 text-sm font-medium">Nenhuma viatura detetada</p>
+                                <p className="text-[10px] text-slate-600 mt-1">Passe a sua tag na viatura</p>
                         </div>
                     )}
                 </div>
@@ -796,8 +831,107 @@ export default function CentralMotorista() {
                                 </div>
                             )}
 
-                            {/* Fallback for other tabs */}
-                            {(activeTab === 'viatura' || activeTab === 'recibos') && (
+                            {/* Minha Viatura Tab - Full Detail */}
+                            {activeTab === 'viatura' && (
+                                <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="flex items-center gap-3 mb-8">
+                                        <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
+                                            <Car className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white">Minha Viatura Atual</h3>
+                                            <p className="text-slate-400 text-sm">Informação em tempo real via Cartrack</p>
+                                        </div>
+                                    </div>
+
+                                    {myVehicle ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            {/* Main Info */}
+                                            <div className="space-y-6">
+                                                <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 relative overflow-hidden">
+                                                    <div className="absolute top-0 right-0 p-3">
+                                                        <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${myVehicle.status === 'moving' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                                            <span className={`w-2 h-2 rounded-full ${myVehicle.status === 'moving' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`}></span>
+                                                            {myVehicle.status === 'moving' ? 'Em Movimento' : 'Parada'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        <p className="text-sm text-slate-400 font-bold uppercase tracking-wider mb-1">Matrícula</p>
+                                                        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">{myVehicle.registration}</h2>
+                                                    </div>
+
+                                                    <div className="mt-6">
+                                                        <p className="text-sm text-slate-400 font-bold uppercase tracking-wider mb-1">Veículo</p>
+                                                        <p className="text-xl text-indigo-200 font-medium">{myVehicle.make || ''} {myVehicle.model || myVehicle.label}</p>
+                                                    </div>
+
+                                                    <div className="mt-8 grid grid-cols-2 gap-4">
+                                                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                                                            <p className="text-[10px] text-slate-500 font-bold uppercase">Velocidade</p>
+                                                            <p className="text-2xl font-mono font-bold text-white">{Math.round(myVehicle.speed)} <span className="text-xs text-slate-500">km/h</span></p>
+                                                        </div>
+                                                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                                                            <p className="text-[10px] text-slate-500 font-bold uppercase">Ignição</p>
+                                                            <p className={`text-xl font-bold ${myVehicle.ignition ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                                {myVehicle.ignition ? 'LIGADA' : 'DESLIGADA'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Location & Map */}
+                                            <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden flex flex-col">
+                                                <div className="p-4 bg-slate-900/50 border-b border-slate-800">
+                                                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Última Localização</p>
+                                                    <p className="text-sm text-white line-clamp-2">{myVehicle.address || 'Localização desconhecida'}</p>
+                                                    <p className="text-[10px] text-slate-600 mt-1 font-mono">Atualizado: {new Date(myVehicle.last_position_update).toLocaleTimeString()}</p>
+                                                </div>
+
+                                                {/* Mini Map Static Placeholder or Simple Visual */}
+                                                <div className="flex-1 bg-[#1e293b] relative flex items-center justify-center min-h-[200px]">
+                                                    {/* Simple Radar Animation */}
+                                                    <div className="absolute inset-0 opacity-20">
+                                                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-indigo-500 rounded-full animate-ping"></div>
+                                                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-indigo-500 rounded-full animate-ping delay-150"></div>
+                                                    </div>
+                                                    <Car className="w-12 h-12 text-indigo-500 relative z-10" />
+                                                </div>
+
+                                                <div className="p-4">
+                                                    <button
+                                                        onClick={() => setActiveTab('navegacao')}
+                                                        className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        <Navigation className="w-4 h-4" />
+                                                        Ir para Navegação
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-16 bg-slate-950/50 rounded-2xl border border-dashed border-slate-800">
+                                            <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-800">
+                                                <Car className="w-8 h-8 text-slate-600" />
+                                            </div>
+                                            <h4 className="text-lg font-bold text-white mb-2">Nenhuma viatura detetada</h4>
+                                            <p className="text-slate-500 max-w-sm mx-auto mb-6">
+                                                Para ver os dados da sua viatura, certifique-se que passou a sua tag Cartrack no leitor do veículo.
+                                            </p>
+                                            {(currentUser as any)?.cartrackKey && (
+                                                <div className="inline-block bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
+                                                    <p className="text-[10px] text-slate-500 uppercase font-bold">A sua Tag</p>
+                                                    <p className="font-mono text-indigo-400 font-bold">{(currentUser as any).cartrackKey}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Recibos - Fallback */}
+                            {activeTab === 'recibos' && (
                                 <div className="bg-slate-900 p-12 rounded-3xl border border-slate-800 text-center animate-in fade-in zoom-in-95 duration-300">
                                     <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
                                         {activeTab === 'viatura' ? <Car className="w-10 h-10 text-slate-600" /> : <FileText className="w-10 h-10 text-slate-600" />}
