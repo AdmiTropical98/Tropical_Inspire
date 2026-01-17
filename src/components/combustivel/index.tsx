@@ -262,16 +262,21 @@ export default function Combustivel() {
     const handleDownloadBPTemplate = () => {
         const ws = XLSX.utils.json_to_sheet([
             {
-                'Data': '2023-10-27',
-                'Hora': '14:30',
-                'Cartão': '7080...',
-                'Matrícula': 'AA-00-BB',
-                'Produto': 'Gasóleo',
-                'Litros': 50.5,
-                'Preço Unitário': 1.65,
-                'Total': 83.33,
-                'Posto': 'BP Matosinhos',
-                'Centro de Custo': 'Administração'
+                'Dia Hora': '15/01/2026 18:42',
+                'Nº transação': '1012187',
+                'Nº cartão': '886',
+                'Proprietário': '51-NR-36',
+                'Matrícula': '51-NR-36',
+                'Km': 449100,
+                'Dia laboral': 'Y',
+                'Posto': 'VILAMOURA',
+                'Produto': 'GASOLEO',
+                'Quantidade': 64.77,
+                'Preço': 1.2509,
+                'Valor líquido': 81.02,
+                'IVA': 18.64,
+                'Valor total a faturar': 99.66,
+                'IVA%': '23,00'
             }
         ]);
         const wb = XLSX.utils.book_new();
@@ -291,15 +296,26 @@ export default function Combustivel() {
             const ws = wb.Sheets[wsname];
             const data: any[] = XLSX.utils.sheet_to_json(ws);
 
-            // Filter empty rows (must have Plate OR Liters)
-            const validData = data.filter(row => row['Matrícula'] || row['Litros']);
+            // Filter empty rows (must have Plate OR Quantity)
+            const validData = data.filter(row => row['Matrícula'] || row['Quantidade'] || row['Litros']);
 
-            // Enrich data with initial cost center match if possible
+            // Normalize and Enrich data
             const enrichedData = validData.map(row => {
-                const ccName = row['Centro de Custo'];
-                const matchedCC = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
-                return {
+                // Normalize headers
+                const normalized = {
                     ...row,
+                    'Litros': row['Quantidade'] !== undefined ? row['Quantidade'] : row['Litros'],
+                    'Preço Unitário': row['Preço'] !== undefined ? row['Preço'] : row['Preço Unitário'],
+                    'Total': row['Valor total a faturar'] !== undefined ? row['Valor total a faturar'] : row['Total']
+                };
+
+                // Cost center will be assigned manually in the UI later
+                // But we check if by any chance it's still there (e.g. user re-used old template)
+                const ccName = normalized['Centro de Custo'];
+                const matchedCC = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
+
+                return {
+                    ...normalized,
                     _selectedCC: matchedCC ? matchedCC.id : ''
                 };
             });
@@ -329,17 +345,42 @@ export default function Combustivel() {
                 // Parse Date & Time
                 let timestamp = new Date().toISOString();
 
-                // Check for Manual Date or Excel Date
-                const dateObj = row._manualDate ? new Date(row._manualDate) : excelDateToJSDate(row['Data']);
-                const timeObj = excelDateToJSDate(row['Hora']);
+                // Check for Manual Date, "Dia Hora", or Excel Date/Hora
+                const diaHora = row['Dia Hora'];
+                let dateObj: Date | null = null;
+                let hours = 0;
+                let minutes = 0;
 
-                if (dateObj) {
-                    // Helper to pad time
-                    const pad = (n: number) => n.toString().padStart(2, '0');
+                if (row._manualDate) {
+                    dateObj = new Date(row._manualDate);
+                    if (row['Hora']) {
+                        const h = excelDateToJSDate(row['Hora']);
+                        if (h) { hours = h.getHours(); minutes = h.getMinutes(); }
+                    }
+                } else if (diaHora) {
+                    // "Dia Hora" might be "15/01/2026 18:42" (from image) or an Excel serial
+                    if (typeof diaHora === 'number') {
+                        dateObj = excelDateToJSDate(diaHora);
+                    } else if (typeof diaHora === 'string') {
+                        // Try common formats: DD/MM/YYYY HH:mm
+                        const parts = diaHora.split(' ');
+                        const dateParts = parts[0]?.split(/[-/]/);
+                        const timeParts = parts[1]?.split(':');
 
-                    let hours = 0;
-                    let minutes = 0;
-
+                        if (dateParts?.length === 3 && timeParts?.length >= 2) {
+                            const day = parseInt(dateParts[0]);
+                            const month = parseInt(dateParts[1]) - 1;
+                            const year = dateParts[2].length === 2 ? 2000 + parseInt(dateParts[2]) : parseInt(dateParts[2]);
+                            dateObj = new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
+                        } else {
+                            // Fallback to JS native attempt
+                            const d = new Date(diaHora);
+                            if (!isNaN(d.getTime())) dateObj = d;
+                        }
+                    }
+                } else {
+                    dateObj = excelDateToJSDate(row['Data']);
+                    const timeObj = excelDateToJSDate(row['Hora']);
                     if (timeObj) {
                         hours = timeObj.getHours();
                         minutes = timeObj.getMinutes();
@@ -348,10 +389,16 @@ export default function Combustivel() {
                         hours = parseInt(parts[0]);
                         minutes = parseInt(parts[1]);
                     }
+                }
 
-                    // Create final date
-                    const finalDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), hours, minutes);
-                    timestamp = finalDate.toISOString();
+                if (dateObj && !isNaN(dateObj.getTime())) {
+                    if (!diaHora && !row._manualDate) {
+                        // Apply hours from separate Time if not using Dia Hora
+                        const finalDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), hours, minutes);
+                        timestamp = finalDate.toISOString();
+                    } else {
+                        timestamp = dateObj.toISOString();
+                    }
                 }
 
                 // Prepare Transaction
