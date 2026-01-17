@@ -214,3 +214,17 @@ input::-webkit-credentials-auto-fill-button {
     opacity: 0;
   }
 }
+
+@keyframes slowZoom {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.1);
+  }
+}
+
+.animate-slow-zoom {
+  animation: slowZoom 30s infinite alternate ease-in-out;
+}
