@@ -10,6 +10,7 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { excelDateToJSDate } from '../../utils/format';
 
 export default function Combustivel() {
     const {
@@ -276,13 +277,31 @@ export default function Combustivel() {
                 const ccId = row._selectedCC;
 
                 // Parse Date & Time
-                // Excel dates might come as numbers or strings. Assuming YYYY-MM-DD or similar string for now given the template
-                // If standard excel date number, handling might need adjustment but sticking to template string format first.
-                // Combine Data + Hora
                 let timestamp = new Date().toISOString();
-                if (row['Data'] && row['Hora']) {
-                    // Try to parse basic "YYYY-MM-DD" "HH:mm"
-                    timestamp = `${row['Data']}T${row['Hora']}:00`;
+
+                // Try parsing Excel date
+                const dateObj = excelDateToJSDate(row['Data']);
+                const timeObj = excelDateToJSDate(row['Hora']);
+
+                if (dateObj) {
+                    // Helper to pad time
+                    const pad = (n: number) => n.toString().padStart(2, '0');
+
+                    let hours = 0;
+                    let minutes = 0;
+
+                    if (timeObj) {
+                        hours = timeObj.getHours();
+                        minutes = timeObj.getMinutes();
+                    } else if (typeof row['Hora'] === 'string' && row['Hora'].includes(':')) {
+                        const parts = row['Hora'].split(':');
+                        hours = parseInt(parts[0]);
+                        minutes = parseInt(parts[1]);
+                    }
+
+                    // Create final date
+                    const finalDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), hours, minutes);
+                    timestamp = finalDate.toISOString();
                 }
 
                 // Prepare Transaction
@@ -920,30 +939,44 @@ export default function Combustivel() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
-                                            {bpTransactions.slice(0, 10).map((row, i) => (
-                                                <tr key={i}>
-                                                    <td className="px-6 py-3 text-slate-300">{row['Data']} {row['Hora']}</td>
-                                                    <td className="px-6 py-3 text-slate-300">{row['Matrícula']}</td>
-                                                    <td className="px-6 py-3 text-slate-300 font-mono text-yellow-500">{row['Litros']}</td>
-                                                    <td className="px-6 py-3 text-slate-300 font-mono text-emerald-400">{row['Total']}€</td>
-                                                    <td className="px-6 py-3 text-slate-300">
-                                                        <select
-                                                            className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
-                                                            value={row._selectedCC || ''}
-                                                            onChange={(e) => {
-                                                                const newTransactions = [...bpTransactions];
-                                                                newTransactions[i]._selectedCC = e.target.value;
-                                                                setBpTransactions(newTransactions);
-                                                            }}
-                                                        >
-                                                            <option value="">-- Selecionar --</option>
-                                                            {centrosCustos.map(cc => (
-                                                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                                            ))}
-                                                        </select>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {bpTransactions.slice(0, 10).map((row, i) => {
+                                                const dateObj = excelDateToJSDate(row['Data']);
+                                                const timeObj = excelDateToJSDate(row['Hora']);
+
+                                                let displayDate = '-';
+
+                                                if (dateObj) {
+                                                    const dString = dateObj.toLocaleDateString();
+                                                    const tString = timeObj ? timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
+                                                        (typeof row['Hora'] === 'string' ? row['Hora'] : '');
+                                                    displayDate = `${dString} ${tString}`;
+                                                }
+
+                                                return (
+                                                    <tr key={i}>
+                                                        <td className="px-6 py-3 text-slate-300">{displayDate}</td>
+                                                        <td className="px-6 py-3 text-slate-300">{row['Matrícula']}</td>
+                                                        <td className="px-6 py-3 text-slate-300 font-mono text-yellow-500">{row['Litros']}</td>
+                                                        <td className="px-6 py-3 text-slate-300 font-mono text-emerald-400">{row['Total']}€</td>
+                                                        <td className="px-6 py-3 text-slate-300">
+                                                            <select
+                                                                className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
+                                                                value={row._selectedCC || ''}
+                                                                onChange={(e) => {
+                                                                    const newTransactions = [...bpTransactions];
+                                                                    newTransactions[i]._selectedCC = e.target.value;
+                                                                    setBpTransactions(newTransactions);
+                                                                }}
+                                                            >
+                                                                <option value="">-- Selecionar --</option>
+                                                                {centrosCustos.map(cc => (
+                                                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -961,7 +994,6 @@ export default function Combustivel() {
                         <h3 className="text-2xl font-bold text-white mb-6 text-center">
                             {authModal.step === 1 ? 'Autenticação Responsável' : 'Autenticação Condutor'}
                         </h3>
-
                         {authModal.error && (
                             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm font-bold">
                                 <AlertCircle className="w-5 h-5" />
