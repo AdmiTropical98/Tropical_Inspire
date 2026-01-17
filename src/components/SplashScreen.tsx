@@ -53,66 +53,82 @@ export default function SplashScreen({ onComplete, message = "A iniciar aplicaç
     };
 
     return (
-        <div className="fixed inset-0 z-[99999] bg-[#0f172a] flex items-center justify-center overflow-hidden">
+        <div className="fixed inset-0 z-[99999] bg-[#020617] flex items-center justify-center overflow-hidden">
             {/* Cinematic Moving Fleet Background */}
             <div className="absolute inset-0 z-0">
                 <img
                     src="/fleet-bg.png"
                     alt="Algar Tempo Fleet"
-                    className="w-full h-full object-cover scale-110 animate-slow-zoom"
+                    className="w-full h-full object-cover scale-110 animate-slow-zoom brightness-75"
                 />
-                {/* Optimized overlay for the moving scene */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-slate-950/80" />
+                {/* Deeper, more sophisticated gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/80" />
             </div>
 
-            <div className="flex flex-col items-center max-w-xs w-full px-8 relative z-10">
+            <div className="flex flex-col items-center max-w-md w-full px-8 relative z-10">
 
-                {/* Logo with clean glow */}
-                <div className="w-56 h-56 mb-12 relative animate-fade-in">
-                    <div className="absolute inset-0 bg-blue-500/20 blur-[80px] rounded-full" />
+                {/* Significantly Enlarged Logo with Premium Glow */}
+                <div className="w-72 h-72 md:w-80 md:h-80 mb-16 relative animate-fade-in group">
+                    <div className="absolute inset-0 bg-blue-500/30 blur-[100px] rounded-full animate-pulse transition-all duration-1000 group-hover:bg-blue-400/40" />
                     <img
                         src="/logo-algar-frota.png"
                         alt="Algar Frota"
-                        className="w-full h-full object-contain drop-shadow-[0_10px_35px_rgba(0,0,0,0.5)] relative z-10"
+                        className="w-full h-full object-contain drop-shadow-[0_15px_45px_rgba(0,0,0,0.6)] relative z-10 transition-transform duration-700 hover:scale-105"
                     />
                 </div>
 
                 {status === 'loading' ? (
-                    <div className="w-full animate-fade-in">
-                        {/* Progress Bar Container */}
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mb-4 backdrop-blur-md border border-white/5">
-                            {/* Animated Fill */}
+                    <div className="w-full max-w-sm animate-fade-in">
+                        {/* Professional Progress Bar with Glassmorphism */}
+                        <div className="relative h-2 bg-white/5 rounded-full overflow-hidden mb-6 backdrop-blur-xl border border-white/10 shadow-inner">
+                            {/* Glow behind the bar */}
+                            <div className="absolute inset-0 bg-blue-500/5 blur-sm" />
+
+                            {/* Animated Fill with Gradient and Shimmer */}
                             <div
-                                className="h-full bg-gradient-to-r from-blue-600 to-blue-300 transition-all duration-700 ease-out shadow-[0_0_20px_rgba(59,130,246,0.6)]"
+                                className="h-full bg-gradient-to-r from-blue-700 via-blue-500 to-blue-300 transition-all duration-700 ease-out shadow-[0_0_25px_rgba(59,130,246,0.8)] relative rounded-full"
                                 style={{ width: `${progress}%` }}
-                            />
+                            >
+                            </div>
                         </div>
-                        <p className="text-center text-white text-[10px] font-black tracking-[0.4em] uppercase animate-pulse drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                            {message}
-                        </p>
+
+                        {/* High-end Typography */}
+                        <div className="space-y-1">
+                            <p className="text-center text-white text-[11px] font-black tracking-[0.6em] uppercase animate-pulse drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
+                                {message}
+                            </p>
+                            <div className="flex justify-center gap-1 opacity-40">
+                                <span className="w-1 h-1 bg-white rounded-full animate-bounce [animation-delay:0s]" />
+                                <span className="w-1 h-1 bg-white rounded-full animate-bounce [animation-delay:0.2s]" />
+                                <span className="w-1 h-1 bg-white rounded-full animate-bounce [animation-delay:0.4s]" />
+                            </div>
+                        </div>
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300 bg-slate-900/40 backdrop-blur-xl p-8 rounded-3xl border border-white/10">
-                        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
-                            <WifiOff className="w-8 h-8 text-red-500" />
+                    <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500 bg-slate-950/80 backdrop-blur-2xl p-10 rounded-[2.5rem] border border-white/10 shadow-2xl">
+                        <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mb-6 border border-red-500/20 rotate-3">
+                            <WifiOff className="w-10 h-10 text-red-500" />
                         </div>
-                        <h3 className="text-white font-bold text-lg mb-2">Sem Internet</h3>
-                        <p className="text-slate-400 text-center text-sm mb-6 leading-relaxed">
-                            Verifique a sua conexão para continuar.
+                        <h3 className="text-white font-black text-xl mb-3 tracking-tight">Sem Internet</h3>
+                        <p className="text-slate-400 text-center text-sm mb-8 leading-relaxed max-w-[200px]">
+                            A sua conexão falhou. Vamos tentar restabelecer o acesso?
                         </p>
                         <button
                             onClick={handleRetry}
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold transition-all active:scale-95 shadow-xl shadow-blue-900/40"
+                            className="w-full flex items-center justify-center gap-3 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white px-8 py-4 rounded-2xl font-black transition-all active:scale-95 shadow-[0_15px_30px_rgba(37,99,235,0.4)] border border-blue-400/20"
                         >
-                            <RefreshCw className="w-4 h-4" />
-                            Tentar Novamente
+                            <RefreshCw className="w-5 h-5" />
+                            TENTAR NOVAMENTE
                         </button>
                     </div>
                 )}
 
-                {/* Footer Brand */}
-                <div className="absolute -bottom-24 text-white text-[10px] font-black tracking-[0.4em] opacity-60 drop-shadow-lg">
-                    ALGARTEMPO
+                {/* Footer Brand Premium */}
+                <div className="absolute -bottom-24 flex flex-col items-center gap-2 opacity-60">
+                    <div className="h-[1px] w-8 bg-white/20" />
+                    <div className="text-white text-[11px] font-black tracking-[0.5em] drop-shadow-lg">
+                        ALGARTEMPO
+                    </div>
                 </div>
             </div>
         </div>
