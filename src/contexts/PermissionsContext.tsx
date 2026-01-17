@@ -10,7 +10,7 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'horas' | 'hours_view_costs' |
     'equipa-oficina' |
     'supervisores' |
-    'combustivel' | 'combustivel_calibrate' | 'combustivel_edit_history' |
+    'combustivel' | 'combustivel_calibrate' | 'combustivel_edit_history' | 'combustivel_edit' | 'combustivel_delete' |
     'central_motorista' | 'central_navegacao' | 'central_recibos' |
     'centros_custos' |
     'plataformas_externas' |

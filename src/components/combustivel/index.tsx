@@ -1,16 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
     Fuel, Droplets, History, Check, Truck,
     Gauge, Trash2, LayoutTemplate, BarChart3,
-    Zap, Settings, Upload, Download, FileSpreadsheet,
-    Plus, Search, Filter, ArrowRight, X, AlertCircle, TrendingUp, Calendar, ChevronRight
+    Settings, Upload, Download, FileSpreadsheet,
+    X, AlertCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { supabase } from '../../lib/supabase';
 
 export default function Combustivel() {
     const {
@@ -23,6 +22,7 @@ export default function Combustivel() {
     const [activeTab, setActiveTab] = useState<'overview' | 'abastecer' | 'tanque' | 'historico' | 'bp'>('overview');
     const [bpTransactions, setBpTransactions] = useState<any[]>([]); // Temp state for BP imports
     const [bypassDriverPin, setBypassDriverPin] = useState(false); // Admin override for PIN
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Fuel Form State
     const [refuelForm, setRefuelForm] = useState({
@@ -215,7 +215,18 @@ export default function Combustivel() {
     // --- BP Import Logic ---
     const handleDownloadBPTemplate = () => {
         const ws = XLSX.utils.json_to_sheet([
-            { 'Data': '2023-10-27', 'Hora': '14:30', 'Cartão': '7080...', 'Matrícula': 'AA-00-BB', 'Produto': 'Gasóleo', 'Litros': 50.5, 'Preço Unitário': 1.65, 'Posto': 'BP Matosinhos' }
+            {
+                'Data': '2023-10-27',
+                'Hora': '14:30',
+                'Cartão': '7080...',
+                'Matrícula': 'AA-00-BB',
+                'Produto': 'Gasóleo',
+                'Litros': 50.5,
+                'Preço Unitário': 1.65,
+                'Total': 83.33,
+                'Posto': 'BP Matosinhos',
+                'Centro de Custo': 'Administração'
+            }
         ]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Template BP");
@@ -236,6 +247,63 @@ export default function Combustivel() {
             setBpTransactions(data);
         };
         reader.readAsBinaryString(file);
+    };
+
+    const handleConfirmBPImport = async () => {
+        if (!confirm(`Confirma a importação de ${bpTransactions.length} registos?`)) return;
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const row of bpTransactions as any[]) {
+            try {
+                // Find Vehicle
+                const plate = row['Matrícula'];
+                const vehicle = viaturas.find(v => v.matricula.replace(/\s/g, '') === plate?.replace(/\s/g, ''));
+
+                // Find Centro de Custo
+                const ccName = row['Centro de Custo'];
+                const cc = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
+
+                // Parse Date & Time
+                // Excel dates might come as numbers or strings. Assuming YYYY-MM-DD or similar string for now given the template
+                // If standard excel date number, handling might need adjustment but sticking to template string format first.
+                // Combine Data + Hora
+                let timestamp = new Date().toISOString();
+                if (row['Data'] && row['Hora']) {
+                    // Try to parse basic "YYYY-MM-DD" "HH:mm"
+                    timestamp = `${row['Data']}T${row['Hora']}:00`;
+                }
+
+                // Prepare Transaction
+                // We might not have driver info in BP file (usually card based)
+                // If card is mapped to driver, we could look it up. For now, leaving driver empty or 'Unknown'
+                const transaction: any = {
+                    id: crypto.randomUUID(),
+                    vehicleId: vehicle ? vehicle.id : 'UNKNOWN_VEHICLE',
+                    driverId: 'BP_IMPORT', // Placeholder or 'Sistema'
+                    liters: parseFloat(row['Litros']) || 0,
+                    pricePerLiter: parseFloat(row['Preço Unitário']) || 0,
+                    totalCost: parseFloat(row['Total']) || (parseFloat(row['Litros']) * parseFloat(row['Preço Unitário'])) || 0,
+                    km: 0, // BP files usually don't have KM unless manually entered at pump
+                    status: 'confirmed',
+                    timestamp: timestamp,
+                    staffId: currentUser?.id || 'admin',
+                    staffName: currentUser?.nome || 'Admin',
+                    centroCustoId: cc ? cc.id : undefined
+                };
+
+                registerRefuel(transaction);
+                successCount++;
+            } catch (err) {
+                console.error("Erro ao importar linha BP:", row, err);
+                errorCount++;
+            }
+        }
+
+        alert(`Importação concluída.\nSucesso: ${successCount}\nErros: ${errorCount}`);
+        setBpTransactions([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     // --- Counter Calibration ---
@@ -800,6 +868,7 @@ export default function Combustivel() {
                         <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-950/30 hover:bg-slate-900/30 transition-all cursor-pointer group mb-8 relative">
                             <input
                                 type="file"
+                                ref={fileInputRef}
                                 accept=".xlsx, .xls"
                                 className="absolute inset-0 opacity-0 cursor-pointer"
                                 onChange={handleImportBP}
@@ -811,28 +880,49 @@ export default function Combustivel() {
 
                         {bpTransactions.length > 0 && (
                             <div className="space-y-4">
-                                <h3 className="font-bold text-white text-lg">Pré-visualização</h3>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-white text-lg">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setBpTransactions([])}
+                                            className="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-sm font-bold"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleConfirmBPImport}
+                                            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold flex items-center gap-2"
+                                        >
+                                            <Check className="w-4 h-4" />
+                                            Confirmar Importação
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs">
                                             <tr>
-                                                {Object.keys(bpTransactions[0]).map(key => (
-                                                    <th key={key} className="px-6 py-3">{key}</th>
-                                                ))}
+                                                <th className="px-6 py-3">Data</th>
+                                                <th className="px-6 py-3">Viatura</th>
+                                                <th className="px-6 py-3">Litros</th>
+                                                <th className="px-6 py-3">Total</th>
+                                                <th className="px-6 py-3">C. Custo</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
-                                            {bpTransactions.slice(0, 5).map((row, i) => (
+                                            {bpTransactions.slice(0, 10).map((row, i) => (
                                                 <tr key={i}>
-                                                    {Object.values(row).map((val: any, j) => (
-                                                        <td key={j} className="px-6 py-3 text-slate-300">{val}</td>
-                                                    ))}
+                                                    <td className="px-6 py-3 text-slate-300">{row['Data']} {row['Hora']}</td>
+                                                    <td className="px-6 py-3 text-slate-300">{row['Matrícula']}</td>
+                                                    <td className="px-6 py-3 text-slate-300 font-mono text-yellow-500">{row['Litros']}</td>
+                                                    <td className="px-6 py-3 text-slate-300 font-mono text-emerald-400">{row['Total']}€</td>
+                                                    <td className="px-6 py-3 text-slate-300">{row['Centro de Custo'] || '-'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
-                                <p className="text-center text-xs text-slate-500 mt-2">A mostrar os primeiros 5 registos.</p>
+                                <p className="text-center text-xs text-slate-500 mt-2">A mostrar os primeiros 10 registos.</p>
                             </div>
                         )}
                     </div>
