@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
@@ -29,7 +29,9 @@ import ExternalServices from './components/external';
 import ChatWidget from './components/chat/ChatWidget';
 import ChatPage from './components/chat/ChatPage'; // New Chat Page
 import CentrosCustos from './components/centros-custos';
-import CentralMotorista from './components/central-motorista';
+// Lazy Load CentralMotorista
+const CentralMotorista = lazy(() => import('./components/central-motorista'));
+
 import TransportesEva from './components/transportes-eva';
 import UserProfileMenu from './components/common/UserProfileMenu';
 import Contabilidade from './components/contabilidade';
@@ -42,9 +44,19 @@ import Locais from './components/locais'; // Import Locais (POIs)
 import Permissoes from './components/permissoes';
 import MyProfile from './components/profile/MyProfile';
 import Gestores from './components/gestores';
-import LancarEscala from './pages/LancarEscala';
+// Lazy Load LancarEscala
+const LancarEscala = lazy(() => import('./pages/LancarEscala'));
+
 import SplashScreen from './components/SplashScreen';
 import { LayoutProvider } from './contexts/LayoutContext';
+
+// Helper for loading state
+const PageLoading = () => (
+  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-400 gap-4">
+    <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+    <p className="text-sm font-medium animate-pulse">A carregar módulo...</p>
+  </div>
+);
 
 // Sidebar Item Component for consistent styling
 const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: { icon: React.ElementType, label: string, active: boolean, onClick: () => void, badge?: number }) => (
@@ -164,13 +176,21 @@ function AppContent() {
           </div>
         );
       case 'escalas': return <Escalas />;
-      case 'lancar-escala': return <LancarEscala onNavigate={(tab) => setActiveTab(tab as any)} />;
+      case 'lancar-escala': return (
+        <Suspense fallback={<PageLoading />}>
+          <LancarEscala onNavigate={(tab) => setActiveTab(tab as any)} />
+        </Suspense>
+      );
       case 'horas': return <Horas />;
       case 'equipa-oficina': return <EquipaOficina />;
       case 'supervisores': return <Supervisores />;
       case 'gestores': return <Gestores />;
       case 'centros-custos': return <CentrosCustos />;
-      case 'central-motorista': return <CentralMotorista />;
+      case 'central-motorista': return (
+        <Suspense fallback={<PageLoading />}>
+          <CentralMotorista />
+        </Suspense>
+      );
       case 'transportes-eva': return <TransportesEva />;
       case 'mensagens': return <ChatPage />;
       case 'combustivel': return <FuelManager />;

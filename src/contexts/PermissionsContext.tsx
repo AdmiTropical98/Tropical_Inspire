@@ -19,7 +19,6 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'contabilidade' |
     'dashboard' |
     'mensagens' |
-    'mensagens' |
     'geofences' |
     'locais' |
     'avaliacao';
@@ -53,11 +52,11 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'centros_custos',
         'plataformas_externas',
         'relatorios',
-        'relatorios',
         'contabilidade',
         'dashboard',
         'mensagens',
         'geofences',
+        'locais', 'avaliacao',
         'central_navegacao', 'central_recibos'
     ],
     motorista: [
@@ -87,7 +86,8 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'motoristas', 'fornecedores', 'equipa-oficina', 'plataformas_externas',
         'supervisores', 'clientes', 'relatorios',
         'dashboard', 'mensagens', 'geofences',
-        'central_navegacao', 'central_recibos'
+        'central_navegacao', 'central_recibos',
+        'locais', 'avaliacao'
     ],
     gestor: [
         'requisicoes', 'requisicoes_edit', 'requisicoes_delete',
@@ -107,7 +107,9 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'geofences',
         'supervisores',
         'clientes',
-        'central_navegacao', 'central_recibos'
+        'clientes',
+        'central_navegacao', 'central_recibos',
+        'locais', 'avaliacao'
     ]
 };
 
