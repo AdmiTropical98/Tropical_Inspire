@@ -618,7 +618,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (tankData) setFuelTank({ id: tankData.id, capacity: tankData.capacity, currentLevel: tankData.current_level, pumpTotalizer: tankData.pump_totalizer, lastRefillDate: tankData.last_refill_date, averagePrice: tankData.average_price });
 
             const { data: transData } = await supabase.from('fuel_transactions').select('*');
-            if (transData) setFuelTransactions(transData.map((t: any) => ({ ...t, driverId: t.driver_id, vehicleId: t.vehicle_id, staffId: t.staff_id, staffName: t.staff_name, pumpCounterAfter: t.pump_counter_after, pricePerLiter: t.price_per_liter, totalCost: t.total_cost, centroCustoId: t.centro_custo_id })));
+            if (transData) setFuelTransactions(transData.map((t: any) => ({ ...t, driverId: t.driver_id, vehicleId: t.vehicle_id, staffId: t.staff_id, staffName: t.staff_name, pumpCounterAfter: t.pump_counter_after, pricePerLiter: t.price_per_liter, totalCost: t.total_cost, centroCustoId: t.centro_custo_id, isExternal: t.is_external })));
 
             const { data: refillData } = await supabase.from('tank_refills').select('*');
             if (refillData) setTankRefills(refillData.map((r: any) => ({ ...r, litersAdded: r.liters_added, levelBefore: r.level_before, levelAfter: r.level_after, totalSpentSinceLast: r.total_spent_since_last, pumpMeterReading: r.pump_meter_reading, systemExpectedReading: r.system_expected_reading, staffId: r.staff_id, staffName: r.staff_name, pricePerLiter: r.price_per_liter, totalCost: r.total_cost })));
@@ -974,13 +974,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const registerRefuel = async (transaction: FuelTransaction) => {
         const currentPMP = fuelTank.averagePrice || 0;
-        const totalCost = transaction.liters * currentPMP;
+
+        // Trust provided values (e.g. from BP imports) or fallback to internal PMP
+        const finalPrice = transaction.pricePerLiter ?? currentPMP;
+        const finalTotal = transaction.totalCost ?? (transaction.liters * currentPMP);
 
         let finalStatus = transaction.status || 'pending';
         let pumpCounterAfter = 0;
 
-        // If explicitly confirmed (Dual Auth), calculate tank updates immediately
-        if (finalStatus === 'confirmed') {
+        // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates immediately
+        if (finalStatus === 'confirmed' && !transaction.isExternal) {
             const currentTotalizer = fuelTank.pumpTotalizer || 0;
             pumpCounterAfter = currentTotalizer + transaction.liters;
             const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
@@ -996,9 +999,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         const transactionToSave = {
             ...transaction,
             status: finalStatus,
-            pricePerLiter: currentPMP,
-            totalCost: totalCost,
-            pumpCounterAfter: finalStatus === 'confirmed' ? pumpCounterAfter : undefined
+            pricePerLiter: finalPrice,
+            totalCost: finalTotal,
+            pumpCounterAfter: (finalStatus === 'confirmed' && !transaction.isExternal) ? pumpCounterAfter : undefined
         };
 
         const { error } = await supabase.from('fuel_transactions').insert({
@@ -1014,7 +1017,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             price_per_liter: transactionToSave.pricePerLiter,
             total_cost: transactionToSave.totalCost,
             centro_custo_id: transactionToSave.centroCustoId,
-            pump_counter_after: transactionToSave.pumpCounterAfter
+            pump_counter_after: transactionToSave.pumpCounterAfter,
+            is_external: transactionToSave.isExternal
         });
 
         if (!error) {

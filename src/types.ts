@@ -283,6 +283,7 @@ export interface FuelTransaction {
     pricePerLiter?: number;
     totalCost?: number;
     centroCustoId?: string;
+    isExternal?: boolean;
 }
 
 export interface TankRefillLog {

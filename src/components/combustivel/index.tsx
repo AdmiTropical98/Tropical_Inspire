@@ -417,7 +417,8 @@ export default function Combustivel() {
                     timestamp: timestamp,
                     staffId: currentUser?.id || 'admin',
                     staffName: currentUser?.nome || 'Admin',
-                    centroCustoId: ccId || null
+                    centroCustoId: ccId || null,
+                    isExternal: true
                 };
 
                 await registerRefuel(transaction);
