@@ -262,7 +262,11 @@ export default function Combustivel() {
     const parseImportNumber = (val: any): number => {
         if (typeof val === 'number') return val;
         if (typeof val === 'string') {
-            const normalized = val.replace(/\s/g, '').replace(',', '.');
+            let normalized = val.trim().replace(/\s/g, '');
+            // If comma exists, it's likely the decimal separator (European). Remove dots (thousands) and fix comma.
+            if (normalized.includes(',')) {
+                normalized = normalized.replace(/\./g, '').replace(',', '.');
+            }
             const num = parseFloat(normalized);
             return isNaN(num) ? 0 : num;
         }
@@ -1047,24 +1051,24 @@ export default function Combustivel() {
                                 </div>
                                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[8px] tracking-tight">
+                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[7px] tracking-tight whitespace-nowrap">
                                             <tr>
-                                                <th className="px-2 py-3">Data/Hora</th>
-                                                <th className="px-2 py-3">Trans.</th>
-                                                <th className="px-2 py-3">Cartão</th>
-                                                <th className="px-2 py-3">Proprietário</th>
-                                                <th className="px-2 py-3 font-black text-white">Viatura</th>
-                                                <th className="px-2 py-3">KM</th>
-                                                <th className="px-2 py-3">P.</th>
-                                                <th className="px-2 py-3">Posto</th>
-                                                <th className="px-2 py-3">Prod.</th>
-                                                <th className="px-2 py-3">Qtd.</th>
-                                                <th className="px-2 py-3">P/L</th>
-                                                <th className="px-2 py-3">Liq.</th>
-                                                <th className="px-2 py-3">IVA</th>
-                                                <th className="px-2 py-3 text-emerald-400">Total</th>
-                                                <th className="px-2 py-3">IVA%</th>
-                                                <th className="px-2 py-3 min-w-[120px]">Centro de Custo</th>
+                                                <th className="px-1.5 py-3">Data/Hora</th>
+                                                <th className="px-1.5 py-3">Trans.</th>
+                                                <th className="px-1.5 py-3">Cartão</th>
+                                                <th className="px-1.5 py-3">Proprietário</th>
+                                                <th className="px-1.5 py-3 font-black text-white">Viatura</th>
+                                                <th className="px-1.5 py-3">KM</th>
+                                                <th className="px-1.5 py-3">P.</th>
+                                                <th className="px-1.5 py-3">Posto</th>
+                                                <th className="px-1.5 py-3">Produto</th>
+                                                <th className="px-1.5 py-3">Qtd.</th>
+                                                <th className="px-1.5 py-3">P/L</th>
+                                                <th className="px-1.5 py-3">Liq.</th>
+                                                <th className="px-1.5 py-3">IVA</th>
+                                                <th className="px-1.5 py-3 text-emerald-400">Total</th>
+                                                <th className="px-1.5 py-3">IVA%</th>
+                                                <th className="px-1.5 py-3 min-w-[100px]">Centro de Custo</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
@@ -1100,24 +1104,24 @@ export default function Combustivel() {
 
                                                 return (
                                                     <tr key={i} className="hover:bg-slate-800/30 transition-colors border-b border-slate-800/50">
-                                                        <td className="px-2 py-2 text-slate-300 font-medium whitespace-nowrap text-[9px]">{displayDate}</td>
-                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[8px]">{row['Nº transação'] || '-'}</td>
-                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[8px]">{row['Nº cartão'] || '-'}</td>
-                                                        <td className="px-2 py-2 text-slate-500 text-[8px] truncate max-w-[60px]">{row['Proprietário'] || '-'}</td>
-                                                        <td className="px-2 py-2 text-white font-black text-[10px]">{row['Matrícula'] || '-'}</td>
-                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[9px]">{row['Km'] || '0'}</td>
-                                                        <td className="px-2 py-2 text-slate-500 text-[8px]">{row['Dia laboral'] || '-'}</td>
-                                                        <td className="px-2 py-2 text-slate-400 text-[9px] truncate max-w-[80px]">{row['Posto'] || '-'}</td>
-                                                        <td className="px-2 py-2 text-slate-500 text-[8px] uppercase">{row['Produto'] || '-'}</td>
-                                                        <td className="px-2 py-2 text-yellow-500 font-bold font-mono text-[10px]">{liters.toFixed(2)}L</td>
-                                                        <td className="px-2 py-2 text-slate-400 font-mono text-[9px]">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
-                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[9px]">{row['Valor líquido'] ? `${Number(row['Valor líquido']).toFixed(2)}€` : '-'}</td>
-                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[9px]">{row['IVA'] ? `${Number(row['IVA']).toFixed(2)}€` : '-'}</td>
-                                                        <td className="px-2 py-2 text-emerald-400 font-black font-mono text-[10px]">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
-                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[8px]">{row['IVA%'] || '-'}</td>
-                                                        <td className="px-2 py-2">
+                                                        <td className="px-1.5 py-2 text-slate-300 font-medium whitespace-nowrap text-[8px]">{displayDate}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[7px]">{row['Nº transação'] || '-'}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[7px]">{row['Nº cartão'] || '-'}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 text-[7px] truncate max-w-[50px]">{row['Proprietário'] || '-'}</td>
+                                                        <td className="px-1.5 py-2 text-white font-black text-[9px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[8px]">{row['Km'] || '0'}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 text-[7px]">{row['Dia laboral'] || '-'}</td>
+                                                        <td className="px-1.5 py-2 text-slate-400 text-[8px] truncate max-w-[70px]">{row['Posto'] || '-'}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 text-[7px] uppercase font-bold">{row['Produto'] || '-'}</td>
+                                                        <td className="px-1.5 py-2 text-yellow-500 font-bold font-mono text-[9px]">{liters.toFixed(2)}</td>
+                                                        <td className="px-1.5 py-2 text-slate-400 font-mono text-[8px]">{price > 0 ? price.toFixed(3) : '-'}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[8px]">{parseImportNumber(row['Valor líquido']).toFixed(2)}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[8px]">{parseImportNumber(row['IVA']).toFixed(2)}</td>
+                                                        <td className="px-1.5 py-2 text-emerald-400 font-black font-mono text-[9px]">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
+                                                        <td className="px-1.5 py-2 text-slate-500 font-mono text-[7px]">{row['IVA%'] || '-'}</td>
+                                                        <td className="px-1.5 py-2">
                                                             <select
-                                                                className="bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-white outline-none focus:border-blue-500 w-full"
+                                                                className="bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-[8px] text-white outline-none focus:border-blue-500 w-full"
                                                                 value={row._selectedCC || ''}
                                                                 onChange={(e) => {
                                                                     const newTransactions = [...bpTransactions];
