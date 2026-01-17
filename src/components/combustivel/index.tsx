@@ -387,7 +387,7 @@ export default function Combustivel() {
                     liters: parseFloat(row['Litros']) || 0,
                     pricePerLiter: parseFloat(row['Preço Unitário']) || 0,
                     totalCost: parseFloat(row['Total']) || (parseFloat(row['Litros']) * parseFloat(row['Preço Unitário'])) || 0,
-                    km: 0,
+                    km: parseFloat(row['Km']) || 0,
                     status: 'confirmed',
                     timestamp: timestamp,
                     staffId: currentUser?.id || 'admin',
@@ -1025,18 +1025,18 @@ export default function Combustivel() {
                                 </div>
                                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[10px] tracking-wider">
+                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[9px] tracking-wider">
                                             <tr>
-                                                <th className="px-4 py-3">Data/Hora</th>
-                                                <th className="px-4 py-3">Transação</th>
-                                                <th className="px-4 py-3">Cartão</th>
-                                                <th className="px-4 py-3">Viatura</th>
-                                                <th className="px-4 py-3">Posto</th>
-                                                <th className="px-4 py-3">Produto</th>
-                                                <th className="px-4 py-3">Qtd.</th>
-                                                <th className="px-4 py-3">Preço/L</th>
-                                                <th className="px-4 py-3">Total</th>
-                                                <th className="px-4 py-3">C. Custo</th>
+                                                <th className="px-3 py-3">Data/Hora</th>
+                                                <th className="px-3 py-3">Cartão</th>
+                                                <th className="px-3 py-3">Proprietário</th>
+                                                <th className="px-3 py-3">Viatura</th>
+                                                <th className="px-3 py-3">KM</th>
+                                                <th className="px-3 py-3">Posto</th>
+                                                <th className="px-3 py-3">Qtd.</th>
+                                                <th className="px-3 py-3">Preço/L</th>
+                                                <th className="px-3 py-3">Total</th>
+                                                <th className="px-3 py-3">C. Custo</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
@@ -1071,18 +1071,18 @@ export default function Combustivel() {
 
                                                 return (
                                                     <tr key={i} className="hover:bg-slate-800/30 transition-colors">
-                                                        <td className="px-4 py-3 text-slate-300 font-medium whitespace-nowrap">{displayDate}</td>
-                                                        <td className="px-4 py-3 text-slate-500 font-mono text-[10px]">{row['Nº transação'] || '-'}</td>
-                                                        <td className="px-4 py-3 text-slate-500 font-mono text-[10px]">{row['Nº cartão'] || '-'}</td>
-                                                        <td className="px-4 py-3 text-white font-black">{row['Matrícula'] || '-'}</td>
-                                                        <td className="px-4 py-3 text-slate-400 text-xs truncate max-w-[120px]">{row['Posto'] || '-'}</td>
-                                                        <td className="px-4 py-3 text-slate-500 text-[10px] uppercase font-bold">{row['Produto'] || '-'}</td>
-                                                        <td className="px-4 py-3 text-slate-300 font-bold font-mono text-yellow-500">{liters.toFixed(2)}L</td>
-                                                        <td className="px-4 py-3 text-slate-400 font-mono text-xs">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
-                                                        <td className="px-4 py-3 text-emerald-400 font-black font-mono">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
-                                                        <td className="px-4 py-3">
+                                                        <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[11px]">{displayDate}</td>
+                                                        <td className="px-3 py-3 text-slate-500 font-mono text-[10px]">{row['Nº cartão'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-500 text-[10px] truncate max-w-[80px]">{row['Proprietário'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-white font-black text-xs">{row['Matrícula'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-500 font-mono text-[10px]">{row['Km'] || '0'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 text-[10px] truncate max-w-[100px]">{row['Posto'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-300 font-bold font-mono text-yellow-500 text-xs">{liters.toFixed(2)}L</td>
+                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[10px]">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
+                                                        <td className="px-3 py-3 text-emerald-400 font-black font-mono text-xs">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
+                                                        <td className="px-3 py-3">
                                                             <select
-                                                                className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500 w-full"
+                                                                className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-white outline-none focus:border-blue-500 w-full"
                                                                 value={row._selectedCC || ''}
                                                                 onChange={(e) => {
                                                                     const newTransactions = [...bpTransactions];
@@ -1090,7 +1090,7 @@ export default function Combustivel() {
                                                                     setBpTransactions(newTransactions);
                                                                 }}
                                                             >
-                                                                <option value="">-- Selecionar --</option>
+                                                                <option value="">-- C.Custo --</option>
                                                                 {centrosCustos.map(cc => (
                                                                     <option key={cc.id} value={cc.id}>{cc.nome}</option>
                                                                 ))}
