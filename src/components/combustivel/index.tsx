@@ -1061,21 +1061,49 @@ export default function Combustivel() {
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
                                             {bpTransactions.map((row, i) => {
-                                                const dateObj = row._manualDate ? new Date(row._manualDate) : excelDateToJSDate(row['Data']);
-                                                const timeObj = excelDateToJSDate(row['Hora']);
+                                                const diaHora = row['Dia Hora'];
+                                                let dateObj: Date | null = null;
 
-                                                let displayDate = '-';
+                                                if (row._manualDate) {
+                                                    dateObj = new Date(row._manualDate);
+                                                    const h = excelDateToJSDate(row['Hora']);
+                                                    if (h && dateObj) {
+                                                        dateObj.setHours(h.getHours(), h.getMinutes());
+                                                    }
+                                                } else if (diaHora) {
+                                                    if (typeof diaHora === 'number') {
+                                                        dateObj = excelDateToJSDate(diaHora);
+                                                    } else if (typeof diaHora === 'string') {
+                                                        const parts = diaHora.split(' ');
+                                                        const dateParts = parts[0]?.split(/[-/]/);
+                                                        const timeParts = parts[1]?.split(':');
 
-                                                if (dateObj) {
-                                                    const dString = dateObj.toLocaleDateString();
-                                                    const tString = timeObj ? timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
-                                                        (typeof row['Hora'] === 'string' ? row['Hora'] : '');
-                                                    displayDate = `${dString} ${tString}`;
+                                                        if (dateParts?.length === 3 && timeParts?.length >= 2) {
+                                                            const day = parseInt(dateParts[0]);
+                                                            const month = parseInt(dateParts[1]) - 1;
+                                                            const year = dateParts[2].length === 2 ? 2000 + parseInt(dateParts[2]) : parseInt(dateParts[2]);
+                                                            dateObj = new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
+                                                        } else {
+                                                            const d = new Date(diaHora);
+                                                            if (!isNaN(d.getTime())) dateObj = d;
+                                                        }
+                                                    }
+                                                } else {
+                                                    dateObj = excelDateToJSDate(row['Data']);
+                                                    const timeObj = excelDateToJSDate(row['Hora']);
+                                                    if (dateObj && timeObj) {
+                                                        dateObj.setHours(timeObj.getHours(), timeObj.getMinutes());
+                                                    }
                                                 }
 
-                                                const liters = parseFloat(row['Litros']) || 0;
-                                                const price = parseFloat(row['Preço Unitário']) || 0;
-                                                const total = parseFloat(row['Total']) || (liters * price);
+                                                let displayDate = '-';
+                                                if (dateObj && !isNaN(dateObj.getTime())) {
+                                                    displayDate = `${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                }
+
+                                                const liters = parseFloat(row['Litros']) || parseFloat(row['Quantidade']) || 0;
+                                                const price = parseFloat(row['Preço Unitário']) || parseFloat(row['Preço']) || 0;
+                                                const total = parseFloat(row['Total']) || parseFloat(row['Valor total a faturar']) || (liters * price);
 
                                                 return (
                                                     <tr key={i}>
