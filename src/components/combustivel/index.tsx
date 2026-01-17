@@ -319,10 +319,10 @@ export default function Combustivel() {
                     timestamp: timestamp,
                     staffId: currentUser?.id || 'admin',
                     staffName: currentUser?.nome || 'Admin',
-                    centroCustoId: ccId || undefined
+                    centroCustoId: ccId || null // Ensure explicit null if undefined
                 };
 
-                registerRefuel(transaction);
+                await registerRefuel(transaction);
                 successCount++;
             } catch (err) {
                 console.error("Erro ao importar linha BP:", row, err);
@@ -331,8 +331,14 @@ export default function Combustivel() {
         }
 
         alert(`Importação concluída.\nSucesso: ${successCount}\nErros: ${errorCount}`);
-        setBpTransactions([]);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+
+        if (successCount > 0) {
+            setBpTransactions([]);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+
+            // Switch to history tab so user sees the new records immediately
+            setActiveTab('historico');
+        }
     };
 
     // --- Counter Calibration ---
