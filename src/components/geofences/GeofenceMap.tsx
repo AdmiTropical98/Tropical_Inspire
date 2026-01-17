@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useState, useEffect } from 'react';
 import type { CartrackGeofence, CartrackVehicle } from '../../services/cartrack';
+import type { Local } from '../../types';
 
 // Fix for default marker icons in Leaflet
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -20,6 +21,8 @@ interface GeofenceMapProps {
     geofences: CartrackGeofence[];
     vehicles?: CartrackVehicle[];
     selectedVehicle?: CartrackVehicle | null;
+    locais?: Local[]; // NEW: POIs from our database
+    onSelectVehicle?: (v: CartrackVehicle) => void;
 }
 
 // Custom icon for car with rotation and license plate label
@@ -88,7 +91,7 @@ const createCarIcon = (registration: string, heading: number, status: 'moving' |
 };
 
 // Component to handle auto-focus
-function AutoFitBounds({ geofences, vehicles }: { geofences: CartrackGeofence[], vehicles: CartrackVehicle[] }) {
+function AutoFitBounds({ geofences, vehicles, locais = [] }: { geofences: CartrackGeofence[], vehicles: CartrackVehicle[], locais?: Local[] }) {
     const map = useMap();
 
     useEffect(() => {
@@ -106,6 +109,14 @@ function AutoFitBounds({ geofences, vehicles }: { geofences: CartrackGeofence[],
                         hasValidPoints = true;
                     }
                 });
+            }
+        });
+
+        // Add Local POIs to bounds
+        locais.forEach(l => {
+            if (l.latitude && l.longitude && l.latitude !== 0 && l.longitude !== 0) {
+                bounds.extend([l.latitude, l.longitude]);
+                hasValidPoints = true;
             }
         });
 
@@ -171,7 +182,7 @@ function MapFocus({ vehicle }: { vehicle: CartrackVehicle | null }) {
     return null;
 }
 
-export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle = null }: GeofenceMapProps) {
+export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle = null, locais = [], onSelectVehicle }: GeofenceMapProps) {
     const [center] = useState<[number, number]>([38.7223, -9.1393]); // Lisbon default
 
     return (
@@ -183,7 +194,7 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                 className="h-full w-full"
             >
                 <MapResizer />
-                <AutoFitBounds geofences={geofences} vehicles={vehicles} />
+                <AutoFitBounds geofences={geofences} vehicles={vehicles} locais={locais} />
                 <MapFocus vehicle={selectedVehicle} />
 
                 {/* Waze-like Tile Layer (Voyager) */}
@@ -262,6 +273,40 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                     );
                 })}
 
+                {/* Local POIs (Zonas de Centro de Custo) Rendering */}
+                {locais.map((local) => (
+                    <Circle
+                        key={`local-${local.id}`}
+                        center={[local.latitude, local.longitude]}
+                        radius={local.raio}
+                        pathOptions={{
+                            color: local.cor || '#3b82f6',
+                            fillColor: local.cor || '#3b82f6',
+                            fillOpacity: 0.2,
+                            weight: 2,
+                            dashArray: local.centroCustoId ? '0' : '5, 5'
+                        }}
+                    >
+                        <Popup>
+                            <div className="p-2 min-w-[150px]">
+                                <div className="font-bold text-slate-900 border-b pb-1 mb-1">{local.nome}</div>
+                                <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                    Local Localizado
+                                </div>
+                                {local.centroCustoId && (
+                                    <div className="mt-2 pt-2 border-t border-slate-100">
+                                        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Centro de Custo Atribuído</div>
+                                        <div className="text-xs font-black text-blue-600 uppercase mt-0.5">
+                                            {local.nome}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </Popup>
+                    </Circle>
+                ))}
+
                 {/* Vehicles Markers */}
                 {vehicles.map(vehicle => {
                     // Safety check for valid coordinates
@@ -273,6 +318,9 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                             position={[vehicle.latitude, vehicle.longitude]}
                             // Use 'bearing' as heading (fallback to 0) e cast status
                             icon={createCarIcon(vehicle.registration, vehicle.bearing || 0, (vehicle.status as 'moving' | 'stopped' | 'idle') || 'idle')}
+                            eventHandlers={{
+                                click: () => onSelectVehicle?.(vehicle)
+                            }}
                         >
                             <Popup className="custom-popup">
                                 <div className="p-3 min-w-[220px]">

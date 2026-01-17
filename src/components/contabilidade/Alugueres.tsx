@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react';
-import { Plus, Search, Car, Printer, Trash2, Download, X, Edit, ChevronDown, ChevronUp } from 'lucide-react'; // Added ChevronDown, ChevronUp
+import { Plus, Search, Car, Printer, Trash2, Download, X, Edit, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'; // Added ChevronDown, ChevronUp, RefreshCw
 import type { Fatura } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import jsPDF from 'jspdf';
@@ -13,7 +13,7 @@ interface AlugueresProps {
 }
 
 export default function Alugueres({ invoices, onSaveRental, onDelete }: AlugueresProps) {
-    const { viaturas, centrosCustos, clientes } = useWorkshop();
+    const { viaturas, centrosCustos, clientes, getVehicleOccupancyHistory } = useWorkshop();
 
     // Filter duplicates: Keep only used vehicles if duplicates exist
     const filteredDisplayViaturas = (() => {
@@ -77,6 +77,40 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
     // Grouping State
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const [isSyncing, setIsSyncing] = useState<string | null>(null);
+
+    const handleSyncGPS = async (vId: string) => {
+        setIsSyncing(vId);
+        try {
+            const settings = getVehicleSettings(vId);
+            const startStr = settings.dataInicio;
+            const end = new Date(startStr);
+            end.setDate(end.getDate() + settings.dias);
+            const endStr = end.toISOString().split('T')[0];
+
+            const history = await getVehicleOccupancyHistory(vId, startStr, endStr);
+
+            const counts: Record<string, number> = {};
+            history.forEach(h => {
+                if (h.centroCustoId) {
+                    counts[h.centroCustoId] = (counts[h.centroCustoId] || 0) + 1;
+                }
+            });
+
+            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            if (sorted.length > 0) {
+                const dominantCCId = sorted[0][0];
+                const ccName = centrosCustos.find(c => c.id === dominantCCId)?.nome || 'Centro de Custo';
+                if (window.confirm(`Viatura detectada em: ${ccName}. Vincular este aluguer?`)) {
+                    setCentroCustoId(dominantCCId);
+                }
+            } else {
+                alert('Não foram encontrados dados de geofence para esta viatura no período selecionado.');
+            }
+        } finally {
+            setIsSyncing(null);
+        }
+    };
 
     const toggleGroup = (groupId: string) => {
         const newExpanded = new Set(expandedGroups);
@@ -1128,12 +1162,23 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                                     <p className="text-white font-medium">{v?.marca} {v?.modelo}</p>
                                                     <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleRemoveViatura(id)}
-                                                    className="text-slate-400 hover:text-red-400 transition-colors"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleSyncGPS(id)}
+                                                        disabled={isSyncing === id}
+                                                        title="Sincronizar com GPS"
+                                                        className={`p-1.5 rounded-md transition-all ${isSyncing === id ? 'bg-slate-700 text-slate-500 animate-spin' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                            }`}
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRemoveViatura(id)}
+                                                        className="text-slate-400 hover:text-red-400 transition-colors p-1"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div className="flex gap-2 text-sm pt-2 border-t border-slate-700/50">

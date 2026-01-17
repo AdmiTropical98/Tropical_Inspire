@@ -37,6 +37,8 @@ export interface CartrackVehicle {
     odometer?: number;
     last_position_update?: string;
     address?: string;
+    currentCentroCustoId?: string;
+    currentCentroCustoName?: string;
 }
 
 export interface CartrackDriver {

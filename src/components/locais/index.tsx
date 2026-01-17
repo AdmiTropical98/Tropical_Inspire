@@ -64,7 +64,7 @@ function FlyToLocation({ location }: { location: { lat: number, lng: number } | 
 // --- Main Component ---
 
 export default function Locais() {
-    const { locais, addLocal, deleteLocal, updateLocal } = useWorkshop();
+    const { locais, addLocal, deleteLocal, updateLocal, centrosCustos } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
 
@@ -146,11 +146,13 @@ export default function Locais() {
         raio: number;
         tipo: 'hotel' | 'aeroporto' | 'oficina' | 'outros';
         cor: string;
+        centroCustoId: string;
     }>({
         nome: '',
         raio: 50,
         tipo: 'outros',
-        cor: '#3b82f6'
+        cor: '#3b82f6',
+        centroCustoId: ''
     });
 
     // Default Center (Lisbon)
@@ -175,7 +177,8 @@ export default function Locais() {
             longitude: newLocalPos.lng,
             raio: formData.raio,
             tipo: formData.tipo,
-            cor: formData.cor
+            cor: formData.cor,
+            centroCustoId: formData.centroCustoId || undefined
         });
 
         setIsCreating(false);
@@ -432,6 +435,23 @@ export default function Locais() {
                                             max="5000"
                                         />
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase block mb-1">Vincular a Centro de Custo</label>
+                                    <select
+                                        className="w-full bg-[#0b1120] border border-white/10 rounded-lg p-2 text-white text-sm outline-none"
+                                        value={formData.centroCustoId}
+                                        onChange={e => setFormData({ ...formData, centroCustoId: e.target.value })}
+                                    >
+                                        <option value="">Nenhum (Ponto Geral)</option>
+                                        {centrosCustos.map(cc => (
+                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-slate-500 mt-1 italic">
+                                        Use isto para atribuir automaticamente alugueres de viaturas que operem nesta zona.
+                                    </p>
                                 </div>
 
                                 <div>
