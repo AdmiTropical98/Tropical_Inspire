@@ -3,7 +3,7 @@ import {
     Fuel, Droplets, History, Check, Truck,
     Gauge, Trash2, LayoutTemplate, BarChart3,
     Settings, Upload, Download, FileSpreadsheet,
-    X, AlertCircle
+    X, AlertCircle, Plus
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -95,6 +95,51 @@ export default function Combustivel() {
         driverPin: '',
         error: ''
     });
+
+    // Manual BP Entry State
+    const [isManualBPOpen, setIsManualBPOpen] = useState(false);
+    const [manualBPForm, setManualBPForm] = useState({
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().split(' ')[0].slice(0, 5),
+        licensePlate: '',
+        liters: '',
+        pricePerLiter: '',
+        station: '',
+        centroCustoId: ''
+    });
+
+    const handleManualBPAdd = (e: React.FormEvent) => {
+        e.preventDefault();
+        const liters = parseFloat(manualBPForm.liters);
+        const price = parseFloat(manualBPForm.pricePerLiter);
+        const total = liters * price;
+
+        const newRow = {
+            'Data': undefined, // Will use manual date
+            'Hora': manualBPForm.time,
+            'Matrícula': manualBPForm.licensePlate.toUpperCase(),
+            'Litros': liters,
+            'Preço Unitário': price,
+            'Total': total,
+            'Posto': manualBPForm.station,
+            'Centro de Custo': '', // Manual entry uses explicit ID below
+            _selectedCC: manualBPForm.centroCustoId,
+            _manualDate: manualBPForm.date // Helper for rendering
+        };
+
+        setBpTransactions(prev => [...prev, newRow]);
+        setIsManualBPOpen(false);
+        // Reset form but keep date/time/price for convenience? No, unsafe. Reset all.
+        setManualBPForm({
+            date: new Date().toISOString().split('T')[0],
+            time: new Date().toTimeString().split(' ')[0].slice(0, 5),
+            licensePlate: '',
+            liters: '',
+            pricePerLiter: '',
+            station: '',
+            centroCustoId: ''
+        });
+    };
 
     const handleInitiateRefuel = (e: React.FormEvent) => {
         e.preventDefault();
@@ -246,8 +291,11 @@ export default function Combustivel() {
             const ws = wb.Sheets[wsname];
             const data: any[] = XLSX.utils.sheet_to_json(ws);
 
+            // Filter empty rows (must have Plate OR Liters)
+            const validData = data.filter(row => row['Matrícula'] || row['Litros']);
+
             // Enrich data with initial cost center match if possible
-            const enrichedData = data.map(row => {
+            const enrichedData = validData.map(row => {
                 const ccName = row['Centro de Custo'];
                 const matchedCC = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
                 return {
@@ -281,8 +329,8 @@ export default function Combustivel() {
                 // Parse Date & Time
                 let timestamp = new Date().toISOString();
 
-                // Try parsing Excel date
-                const dateObj = excelDateToJSDate(row['Data']);
+                // Check for Manual Date or Excel Date
+                const dateObj = row._manualDate ? new Date(row._manualDate) : excelDateToJSDate(row['Data']);
                 const timeObj = excelDateToJSDate(row['Hora']);
 
                 if (dateObj) {
@@ -898,13 +946,31 @@ export default function Combustivel() {
                                 <FileSpreadsheet className="w-6 h-6 text-green-400" />
                                 Importar BP
                             </h2>
-                            <button
-                                onClick={handleDownloadBPTemplate}
-                                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all flex items-center gap-2"
-                            >
-                                <Download className="w-4 h-4" />
-                                Download Template
-                            </button>
+                            <div className="flex gap-2">
+                                {bpTransactions.length > 0 && (
+                                    <button
+                                        onClick={handleConfirmBPImport}
+                                        className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in"
+                                    >
+                                        <Check className="w-4 h-4" />
+                                        Confirmar ({bpTransactions.length})
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsManualBPOpen(true)}
+                                    className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Inserir Manual
+                                </button>
+                                <button
+                                    onClick={handleDownloadBPTemplate}
+                                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all flex items-center gap-2"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Template
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-950/30 hover:bg-slate-900/30 transition-all cursor-pointer group mb-8 relative">
@@ -929,14 +995,7 @@ export default function Combustivel() {
                                             onClick={() => setBpTransactions([])}
                                             className="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-sm font-bold"
                                         >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            onClick={handleConfirmBPImport}
-                                            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold flex items-center gap-2"
-                                        >
-                                            <Check className="w-4 h-4" />
-                                            Confirmar Importação
+                                            Limpar Lista
                                         </button>
                                     </div>
                                 </div>
@@ -954,8 +1013,8 @@ export default function Combustivel() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
-                                            {bpTransactions.slice(0, 100).map((row, i) => {
-                                                const dateObj = excelDateToJSDate(row['Data']);
+                                            {bpTransactions.map((row, i) => {
+                                                const dateObj = row._manualDate ? new Date(row._manualDate) : excelDateToJSDate(row['Data']);
                                                 const timeObj = excelDateToJSDate(row['Hora']);
 
                                                 let displayDate = '-';
@@ -1001,9 +1060,109 @@ export default function Combustivel() {
                                         </tbody>
                                     </table>
                                 </div>
-                                <p className="text-center text-xs text-slate-500 mt-2">A mostrar os primeiros 100 registos.</p>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* MANUAL BP MODAL */}
+                {isManualBPOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+                        <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
+                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <Plus className="w-6 h-6 text-blue-500" />
+                                Inserir Talão BP Manual
+                            </h3>
+                            <form onSubmit={handleManualBPAdd} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-400">Data</label>
+                                        <input
+                                            required type="date"
+                                            value={manualBPForm.date}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, date: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-400">Hora</label>
+                                        <input
+                                            required type="time"
+                                            value={manualBPForm.time}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, time: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-400">Matrícula</label>
+                                    <input
+                                        required type="text" placeholder="Sem traços (ex: AA00BB)"
+                                        value={manualBPForm.licensePlate}
+                                        onChange={e => setManualBPForm({ ...manualBPForm, licensePlate: e.target.value.toUpperCase() })}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500 uppercase"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-400">Litros</label>
+                                        <input
+                                            required type="number" step="0.01"
+                                            value={manualBPForm.liters}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, liters: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-400">Preço/L (€)</label>
+                                        <input
+                                            required type="number" step="0.001"
+                                            value={manualBPForm.pricePerLiter}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, pricePerLiter: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-400">Posto (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        value={manualBPForm.station}
+                                        onChange={e => setManualBPForm({ ...manualBPForm, station: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-400">Centro de Custo</label>
+                                    <select
+                                        value={manualBPForm.centroCustoId}
+                                        onChange={e => setManualBPForm({ ...manualBPForm, centroCustoId: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                    >
+                                        <option value="">-- Selecionar --</option>
+                                        {centrosCustos.map(cc => (
+                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex justify-end gap-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsManualBPOpen(false)}
+                                        className="px-4 py-2 text-slate-400 hover:text-white font-bold"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold"
+                                    >
+                                        Adicionar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 )}
             </main>
