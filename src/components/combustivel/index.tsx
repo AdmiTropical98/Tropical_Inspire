@@ -22,6 +22,7 @@ export default function Combustivel() {
 
     const [activeTab, setActiveTab] = useState<'overview' | 'abastecer' | 'tanque' | 'historico' | 'bp'>('overview');
     const [bpTransactions, setBpTransactions] = useState<any[]>([]); // Temp state for BP imports
+    const [bypassDriverPin, setBypassDriverPin] = useState(false); // Admin override for PIN
 
     // Fuel Form State
     const [refuelForm, setRefuelForm] = useState({
@@ -114,6 +115,12 @@ export default function Combustivel() {
 
             if (userRole !== 'admin' && userRole !== 'oficina') {
                 setAuthModal(prev => ({ ...prev, error: 'Sem permissão para autorizar' }));
+                return;
+            }
+
+            if (userRole === 'admin' && bypassDriverPin) {
+                setAuthModal(prev => ({ ...prev, isOpen: false }));
+                await confirmRefuel();
                 return;
             }
 
@@ -539,6 +546,21 @@ export default function Combustivel() {
                                     ))}
                                 </select>
                             </div>
+
+                            {userRole === 'admin' && (
+                                <div className="flex items-center gap-3 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
+                                    <input
+                                        type="checkbox"
+                                        id="bypassPin"
+                                        checked={bypassDriverPin}
+                                        onChange={(e) => setBypassDriverPin(e.target.checked)}
+                                        className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-yellow-500 focus:ring-yellow-500/50 cursor-pointer"
+                                    />
+                                    <label htmlFor="bypassPin" className="text-sm font-bold text-slate-300 cursor-pointer select-none">
+                                        Registo Manual (Sem PIN Condutor)
+                                    </label>
+                                </div>
+                            )}
 
                             <div className="flex gap-4 pt-4 border-t border-slate-800">
                                 <button
