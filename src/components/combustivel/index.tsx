@@ -30,7 +30,9 @@ export default function Combustivel() {
         vehicleId: '',
         liters: '',
         km: '',
-        centroCustoId: ''
+        centroCustoId: '',
+        manualDate: '',
+        manualTime: ''
     });
 
     // Tank Supply Form State
@@ -162,12 +164,14 @@ export default function Combustivel() {
                 km: Number(refuelForm.km),
                 centroCustoId: refuelForm.centroCustoId || undefined,
                 status: isConfirmed ? 'confirmed' : 'pending',
-                timestamp: new Date().toISOString(),
+                timestamp: (isConfirmed && refuelForm.manualDate && refuelForm.manualTime)
+                    ? new Date(`${refuelForm.manualDate}T${refuelForm.manualTime}`).toISOString()
+                    : new Date().toISOString(),
                 staffId: currentUser?.id || 'admin',
                 staffName: currentUser?.nome || 'Admin'
             });
 
-            setRefuelForm({ driverId: '', vehicleId: '', liters: '', km: '', centroCustoId: '' });
+            setRefuelForm({ driverId: '', vehicleId: '', liters: '', km: '', centroCustoId: '', manualDate: '', manualTime: '' });
             alert(isConfirmed ? 'Abastecimento registado e confirmado com sucesso!' : 'Abastecimento registado! A aguardar confirmação do motorista.');
             setActiveTab('overview');
         } catch (error) {
@@ -564,17 +568,44 @@ export default function Combustivel() {
                             </div>
 
                             {userRole === 'admin' && (
-                                <div className="flex items-center gap-3 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
-                                    <input
-                                        type="checkbox"
-                                        id="bypassPin"
-                                        checked={bypassDriverPin}
-                                        onChange={(e) => setBypassDriverPin(e.target.checked)}
-                                        className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-yellow-500 focus:ring-yellow-500/50 cursor-pointer"
-                                    />
-                                    <label htmlFor="bypassPin" className="text-sm font-bold text-slate-300 cursor-pointer select-none">
-                                        Registo Manual (Sem PIN Condutor)
-                                    </label>
+                                <div className="space-y-4 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="bypassPin"
+                                            checked={bypassDriverPin}
+                                            onChange={(e) => setBypassDriverPin(e.target.checked)}
+                                            className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-yellow-500 focus:ring-yellow-500/50 cursor-pointer"
+                                        />
+                                        <label htmlFor="bypassPin" className="text-sm font-bold text-slate-300 cursor-pointer select-none">
+                                            Registo Manual (Sem PIN Condutor)
+                                        </label>
+                                    </div>
+
+                                    {bypassDriverPin && (
+                                        <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data</label>
+                                                <input
+                                                    type="date"
+                                                    required
+                                                    value={refuelForm.manualDate}
+                                                    onChange={(e) => setRefuelForm({ ...refuelForm, manualDate: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Hora</label>
+                                                <input
+                                                    type="time"
+                                                    required
+                                                    value={refuelForm.manualTime}
+                                                    onChange={(e) => setRefuelForm({ ...refuelForm, manualTime: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -705,6 +736,7 @@ export default function Combustivel() {
                                         <th className="px-6 py-4">Viatura</th>
                                         <th className="px-6 py-4">Condutor</th>
                                         <th className="px-6 py-4 text-right">Litros</th>
+                                        <th className="px-6 py-4 text-right">Valor</th>
                                         <th className="px-6 py-4 text-right">Ações</th>
                                     </tr>
                                 </thead>
@@ -721,6 +753,9 @@ export default function Combustivel() {
                                                 <td className="px-6 py-4 font-bold text-white">{vehicle?.matricula}</td>
                                                 <td className="px-6 py-4 text-slate-300">{driver?.nome}</td>
                                                 <td className="px-6 py-4 text-right font-mono text-yellow-500 font-bold">{tx.liters} L</td>
+                                                <td className="px-6 py-4 text-right font-mono text-slate-300 font-bold">
+                                                    {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}
+                                                </td>
                                                 <td className="px-6 py-4 text-right">
                                                     {hasAccess(userRole, 'combustivel_delete') && (
                                                         <button
