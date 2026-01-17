@@ -313,11 +313,21 @@ export default function Combustivel() {
                     const lowerKey = cleanKey.toLowerCase();
 
                     if (lowerKey === 'dia hora' || lowerKey === 'data') normalized['Dia Hora'] = row[key];
-                    else if (lowerKey === 'matrícula') normalized['Matrícula'] = row[key];
+                    else if (lowerKey === 'nº transação' || lowerKey === 'transaçao' || lowerKey === 'transação') normalized['Nº transação'] = row[key];
+                    else if (lowerKey === 'nº cartão' || lowerKey === 'cartão' || lowerKey === 'cartao') normalized['Nº cartão'] = row[key];
+                    else if (lowerKey === 'proprietário' || lowerKey === 'proprietario') normalized['Proprietário'] = row[key];
+                    else if (lowerKey === 'matrícula' || lowerKey === 'matricula') normalized['Matrícula'] = row[key];
+                    else if (lowerKey === 'km' || lowerKey === 'kms') normalized['Km'] = row[key];
+                    else if (lowerKey === 'dia laboral' || lowerKey === 'laboral') normalized['Dia laboral'] = row[key];
+                    else if (lowerKey === 'posto') normalized['Posto'] = row[key];
+                    else if (lowerKey === 'produto') normalized['Produto'] = row[key];
                     else if (lowerKey === 'quantidade' || lowerKey === 'litros') normalized['Litros'] = row[key];
                     else if (lowerKey === 'preço' || lowerKey === 'preço unitário') normalized['Preço Unitário'] = row[key];
+                    else if (lowerKey === 'valor líquido' || lowerKey === 'liquido') normalized['Valor líquido'] = row[key];
+                    else if (lowerKey === 'iva') normalized['IVA'] = row[key];
                     else if (lowerKey === 'valor total a faturar' || lowerKey === 'total') normalized['Total'] = row[key];
-                    else normalized[cleanKey] = row[key]; // Preserve other clean keys
+                    else if (lowerKey === 'iva%') normalized['IVA%'] = row[key];
+                    else normalized[cleanKey] = row[key];
                 });
 
                 const ccName = normalized['Centro de Custo'];
@@ -1025,18 +1035,24 @@ export default function Combustivel() {
                                 </div>
                                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[9px] tracking-wider">
+                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[8px] tracking-tight">
                                             <tr>
-                                                <th className="px-3 py-3">Data/Hora</th>
-                                                <th className="px-3 py-3">Cartão</th>
-                                                <th className="px-3 py-3">Proprietário</th>
-                                                <th className="px-3 py-3">Viatura</th>
-                                                <th className="px-3 py-3">KM</th>
-                                                <th className="px-3 py-3">Posto</th>
-                                                <th className="px-3 py-3">Qtd.</th>
-                                                <th className="px-3 py-3">Preço/L</th>
-                                                <th className="px-3 py-3">Total</th>
-                                                <th className="px-3 py-3">C. Custo</th>
+                                                <th className="px-2 py-3">Data/Hora</th>
+                                                <th className="px-2 py-3">Trans.</th>
+                                                <th className="px-2 py-3">Cartão</th>
+                                                <th className="px-2 py-3">Proprietário</th>
+                                                <th className="px-2 py-3 font-black text-white">Viatura</th>
+                                                <th className="px-2 py-3">KM</th>
+                                                <th className="px-2 py-3">P.</th>
+                                                <th className="px-2 py-3">Posto</th>
+                                                <th className="px-2 py-3">Prod.</th>
+                                                <th className="px-2 py-3">Qtd.</th>
+                                                <th className="px-2 py-3">P/L</th>
+                                                <th className="px-2 py-3">Liq.</th>
+                                                <th className="px-2 py-3">IVA</th>
+                                                <th className="px-2 py-3 text-emerald-400">Total</th>
+                                                <th className="px-2 py-3">IVA%</th>
+                                                <th className="px-2 py-3 min-w-[120px]">Centro de Custo</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
@@ -1070,19 +1086,25 @@ export default function Combustivel() {
                                                 const total = parseFloat(row['Total']) || parseFloat(row['Valor total a faturar']) || (liters * price);
 
                                                 return (
-                                                    <tr key={i} className="hover:bg-slate-800/30 transition-colors">
-                                                        <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[11px]">{displayDate}</td>
-                                                        <td className="px-3 py-3 text-slate-500 font-mono text-[10px]">{row['Nº cartão'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-slate-500 text-[10px] truncate max-w-[80px]">{row['Proprietário'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-white font-black text-xs">{row['Matrícula'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-slate-500 font-mono text-[10px]">{row['Km'] || '0'}</td>
-                                                        <td className="px-3 py-3 text-slate-400 text-[10px] truncate max-w-[100px]">{row['Posto'] || '-'}</td>
-                                                        <td className="px-3 py-3 text-slate-300 font-bold font-mono text-yellow-500 text-xs">{liters.toFixed(2)}L</td>
-                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[10px]">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
-                                                        <td className="px-3 py-3 text-emerald-400 font-black font-mono text-xs">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
-                                                        <td className="px-3 py-3">
+                                                    <tr key={i} className="hover:bg-slate-800/30 transition-colors border-b border-slate-800/50">
+                                                        <td className="px-2 py-2 text-slate-300 font-medium whitespace-nowrap text-[9px]">{displayDate}</td>
+                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[8px]">{row['Nº transação'] || '-'}</td>
+                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[8px]">{row['Nº cartão'] || '-'}</td>
+                                                        <td className="px-2 py-2 text-slate-500 text-[8px] truncate max-w-[60px]">{row['Proprietário'] || '-'}</td>
+                                                        <td className="px-2 py-2 text-white font-black text-[10px]">{row['Matrícula'] || '-'}</td>
+                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[9px]">{row['Km'] || '0'}</td>
+                                                        <td className="px-2 py-2 text-slate-500 text-[8px]">{row['Dia laboral'] || '-'}</td>
+                                                        <td className="px-2 py-2 text-slate-400 text-[9px] truncate max-w-[80px]">{row['Posto'] || '-'}</td>
+                                                        <td className="px-2 py-2 text-slate-500 text-[8px] uppercase">{row['Produto'] || '-'}</td>
+                                                        <td className="px-2 py-2 text-yellow-500 font-bold font-mono text-[10px]">{liters.toFixed(2)}L</td>
+                                                        <td className="px-2 py-2 text-slate-400 font-mono text-[9px]">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
+                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[9px]">{row['Valor líquido'] ? `${Number(row['Valor líquido']).toFixed(2)}€` : '-'}</td>
+                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[9px]">{row['IVA'] ? `${Number(row['IVA']).toFixed(2)}€` : '-'}</td>
+                                                        <td className="px-2 py-2 text-emerald-400 font-black font-mono text-[10px]">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
+                                                        <td className="px-2 py-2 text-slate-500 font-mono text-[8px]">{row['IVA%'] || '-'}</td>
+                                                        <td className="px-2 py-2">
                                                             <select
-                                                                className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-white outline-none focus:border-blue-500 w-full"
+                                                                className="bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-white outline-none focus:border-blue-500 w-full"
                                                                 value={row._selectedCC || ''}
                                                                 onChange={(e) => {
                                                                     const newTransactions = [...bpTransactions];
