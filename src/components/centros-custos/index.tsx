@@ -1,12 +1,16 @@
 // Force Deployment
 import React, { useState } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { Plus, Trash2, Building2, MapPin } from 'lucide-react';
+import { Plus, Trash2, Building2, MapPin, X, Download, Users, Car, Fuel, Wallet, ChevronRight } from 'lucide-react';
 import type { CentroCusto } from '../../types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function CentrosCustos() {
-    const { centrosCustos, addCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes, motoristas, manualHours } = useWorkshop();
+    const { centrosCustos, addCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes, motoristas, manualHours, viaturas } = useWorkshop();
     const [showForm, setShowForm] = useState(false);
+    const [selectedCC, setSelectedCC] = useState<CentroCusto | null>(null);
+    const [cardViews, setCardViews] = useState<Record<string, 'financial' | 'operational'>>({});
 
     // Form State
     const [nome, setNome] = useState('');
@@ -28,11 +32,92 @@ export default function CentrosCustos() {
         setLocalizacao('');
     };
 
+    const toggleCardView = (ccId: string, view: 'financial' | 'operational') => {
+        setCardViews(prev => ({ ...prev, [ccId]: view }));
+    };
+
+    const exportCCReport = (cc: CentroCusto) => {
+        const doc = new jsPDF();
+        const now = new Date();
+
+        // Header
+        doc.setFillColor(30, 41, 59);
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.text('Relatório de Centro de Custo', 15, 25);
+
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(10);
+        doc.text(`Unidade: ${cc.nome.toUpperCase()}`, 15, 33);
+        doc.text(`Data: ${now.toLocaleDateString('pt-PT')} ${now.toLocaleTimeString('pt-PT')}`, 140, 33);
+
+        const ccFuel = fuelTransactions.filter(t => t.centroCustoId === cc.id);
+        const ccReqs = requisicoes.filter(r => r.centroCustoId === cc.id);
+        const ccDrivers = motoristas.filter(m => m.centroCustoId === cc.id);
+
+        let yPos = 50;
+
+        // Fuel Section
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(14);
+        doc.text('1. Consumo de Combustível', 15, yPos);
+
+        autoTable(doc, {
+            startY: yPos + 5,
+            head: [['Data', 'Viatura', 'Litros', 'Custo']],
+            body: ccFuel.map(t => [
+                new Date(t.timestamp).toLocaleDateString('pt-PT'),
+                viaturas.find(v => v.id === t.vehicleId)?.matricula || '---',
+                `${(t.liters || 0).toFixed(2)} L`,
+                `${(t.totalCost || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [59, 130, 246] }
+        });
+
+        // Requisitions Section
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+        doc.setFontSize(14);
+        doc.text('2. Requisições e Peças', 15, yPos);
+
+        autoTable(doc, {
+            startY: yPos + 5,
+            head: [['Data', 'Descrição', 'Valor']],
+            body: ccReqs.map(r => [
+                new Date(r.data).toLocaleDateString('pt-PT'),
+                r.descricao,
+                `${(r.custo || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [245, 158, 11] }
+        });
+
+        // Team Section
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+        doc.setFontSize(14);
+        doc.text('3. Mão de Obra e Equipa', 15, yPos);
+
+        autoTable(doc, {
+            startY: yPos + 5,
+            head: [['Motorista', 'Status', 'Salário Base']],
+            body: ccDrivers.map(m => [
+                m.nome,
+                m.status,
+                `${(m.vencimentoBase || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [16, 185, 129] }
+        });
+
+        doc.save(`Relatorio_${cc.nome.replace(/\s+/g, '_')}.pdf`);
+    };
+
     // --- Global Totals Calculations ---
     const globalFuelTotal = fuelTransactions.reduce((sum, t) => sum + (t.totalCost || 0), 0);
     const globalReqTotal = requisicoes.reduce((sum, r) => sum + (r.custo || 0), 0);
 
-    // Global Labor (Approximation based on current drivers)
+    // Global Labor
     let globalLaborTotal = 0;
     const now = new Date();
     motoristas.forEach(m => {
@@ -113,6 +198,7 @@ export default function CentrosCustos() {
                     </div>
                 ) : (
                     centrosCustos.map(cc => {
+                        const currentView = cardViews[cc.id] || 'financial';
                         const ccFuelTrans = fuelTransactions.filter(t => t.centroCustoId === cc.id);
                         const fuelExpenses = ccFuelTrans.reduce((sum, t) => sum + (t.totalCost || 0), 0);
                         const fuelLiters = ccFuelTrans.reduce((sum, t) => sum + (t.liters || 0), 0);
@@ -204,38 +290,92 @@ export default function CentrosCustos() {
                                         </div>
                                     </div>
 
-                                    {/* Breakdown Visualization */}
+                                    {/* View Toggling (The Dots) */}
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
-                                            <span className="text-slate-500">Repartição de Custos</span>
-                                            <span className="text-white">100%</span>
-                                        </div>
-                                        <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden flex shadow-inner">
-                                            <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${fuelPct}%` }} title={`Combustível: ${fuelPct.toFixed(1)}%`} />
-                                            <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${laborPct}%` }} title={`Mão de Obra: ${laborPct.toFixed(1)}%`} />
-                                            <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${reqPct}%` }} title={`Requisições: ${reqPct.toFixed(1)}%`} />
-                                        </div>
-                                        <div className="flex flex-wrap gap-x-4 gap-y-2">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                                <span>Fuel {fuelExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                                <span>Work {laborExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                                <span>Buy {reqExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                            <span className="text-slate-500">
+                                                {currentView === 'financial' ? 'Repartição de Custos' : 'Recursos da Unidade'}
+                                            </span>
+                                            <div className="flex gap-1.5">
+                                                <button
+                                                    onClick={() => toggleCardView(cc.id, 'financial')}
+                                                    className={`w-2.5 h-2.5 rounded-full transition-all ${currentView === 'financial' ? 'bg-blue-500 scale-125 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                                />
+                                                <button
+                                                    onClick={() => toggleCardView(cc.id, 'operational')}
+                                                    className={`w-2.5 h-2.5 rounded-full transition-all ${currentView === 'operational' ? 'bg-emerald-500 scale-125 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                                />
                                             </div>
                                         </div>
+
+                                        {currentView === 'financial' ? (
+                                            <>
+                                                <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden flex shadow-inner">
+                                                    <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${fuelPct}%` }} title={`Combustível: ${fuelPct.toFixed(1)}%`} />
+                                                    <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${laborPct}%` }} title={`Mão de Obra: ${laborPct.toFixed(1)}%`} />
+                                                    <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${reqPct}%` }} title={`Requisições: ${reqPct.toFixed(1)}%`} />
+                                                </div>
+                                                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                                        <span>Fuel {fuelExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                        <span>Work {laborExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                                        <span>Buy {reqExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-slate-900/30 p-2.5 rounded-xl border border-white/5">
+                                                    <p className="text-[8px] text-slate-500 font-black uppercase mb-1 flex items-center gap-1">
+                                                        <Users className="w-2 h-2" /> Motoristas Ativos
+                                                    </p>
+                                                    <div className="flex -space-x-2">
+                                                        {ccDrivers.slice(0, 3).map((d, i) => (
+                                                            <div key={i} title={d.nome} className="w-5 h-5 rounded-full bg-blue-600 border border-slate-900 flex items-center justify-center text-[8px] font-black text-white">
+                                                                {d.nome.charAt(0)}
+                                                            </div>
+                                                        ))}
+                                                        {ccDrivers.length > 3 && (
+                                                            <div className="w-5 h-5 rounded-full bg-slate-800 border border-slate-900 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                                                                +{ccDrivers.length - 3}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-slate-900/30 p-2.5 rounded-xl border border-white/5">
+                                                    <p className="text-[8px] text-slate-500 font-black uppercase mb-1 flex items-center gap-1">
+                                                        <Car className="w-2 h-2" /> Frota Dedicada
+                                                    </p>
+                                                    <div className="font-bold text-[10px] text-slate-300">
+                                                        {fuelTransactions.filter(t => t.centroCustoId === cc.id)
+                                                            .reduce((acc: string[], t) => {
+                                                                const v = viaturas.find(vi => vi.id === t.vehicleId);
+                                                                if (v && !acc.includes(v.matricula)) acc.push(v.matricula);
+                                                                return acc;
+                                                            }, []).length} Viaturas
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Action Footnote */}
                                     <div className="mt-8 pt-6 border-t border-slate-800 flex justify-between items-center">
-                                        <button className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors">Ver Relatório</button>
+                                        <button
+                                            onClick={() => setSelectedCC(cc)}
+                                            className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1.5 active:scale-95"
+                                        >
+                                            Ver Relatório <ChevronRight className="w-3 h-3" />
+                                        </button>
                                         <div className="flex gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                            <div className={`w-1.5 h-1.5 rounded-full transition-all ${totalCC > 5000 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'}`} />
                                             <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
                                         </div>
                                     </div>
@@ -246,7 +386,126 @@ export default function CentrosCustos() {
                 )}
             </div>
 
-            {/* Modal */}
+            {/* Details Modal */}
+            {selectedCC && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[100] p-4 scale-in-center">
+                    <div className="bg-[#0f172a] w-full max-w-5xl h-[85vh] rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col">
+                        {/* Modal Header */}
+                        <div className="p-8 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+                            <div>
+                                <h2 className="text-3xl font-black text-white tracking-tighter">Relatório Detalhado</h2>
+                                <div className="flex items-center gap-2 text-blue-400 font-bold text-sm mt-1 uppercase tracking-widest">
+                                    <Building2 className="w-4 h-4" />
+                                    {selectedCC.nome}
+                                </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => exportCCReport(selectedCC)}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all text-sm active:scale-95"
+                                >
+                                    <Download className="w-4 h-4" /> Exportar PDF
+                                </button>
+                                <button
+                                    onClick={() => setSelectedCC(null)}
+                                    className="p-2.5 bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-all"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
+                            {/* Stats Overview */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Fuel className="w-8 h-8 text-blue-400 mb-4" />
+                                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Combustível</p>
+                                    <p className="text-2xl font-black text-white">
+                                        {fuelTransactions.filter(t => t.centroCustoId === selectedCC.id)
+                                            .reduce((sum, t) => sum + (t.totalCost || 0), 0)
+                                            .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                                    </p>
+                                </div>
+                                <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Wallet className="w-8 h-8 text-amber-500 mb-4" />
+                                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Requisições</p>
+                                    <p className="text-2xl font-black text-white">
+                                        {requisicoes.filter(r => r.centroCustoId === selectedCC.id)
+                                            .reduce((sum, r) => sum + (r.custo || 0), 0)
+                                            .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                                    </p>
+                                </div>
+                                <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Users className="w-8 h-8 text-emerald-500 mb-4" />
+                                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Mão de Obra</p>
+                                    <p className="text-2xl font-black text-white">
+                                        {motoristas.filter(m => m.centroCustoId === selectedCC.id)
+                                            .reduce((sum, m) => sum + (m.vencimentoBase || 0), 0)
+                                            .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Tables Container */}
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                                {/* Fuel Transactions Table */}
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">Histórico de Abastecimento</h3>
+                                    <div className="bg-slate-950/40 rounded-3xl border border-white/5 overflow-hidden">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-[#020617] text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                                                <tr>
+                                                    <th className="px-6 py-4">Data</th>
+                                                    <th className="px-6 py-4">Viatura</th>
+                                                    <th className="px-6 py-4 text-right">Custo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {fuelTransactions.filter(t => t.centroCustoId === selectedCC.id).slice(0, 10).map((t, i) => (
+                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                        <td className="px-6 py-4 text-slate-400">{new Date(t.timestamp).toLocaleDateString('pt-PT')}</td>
+                                                        <td className="px-6 py-4 text-white font-bold">{viaturas.find(v => v.id === t.vehicleId)?.matricula || '---'}</td>
+                                                        <td className="px-6 py-4 text-right text-blue-400 font-mono font-bold">{(t.totalCost || 0).toFixed(2)}€</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Requisitions Table */}
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">Pedidos e Custos</h3>
+                                    <div className="bg-slate-950/40 rounded-3xl border border-white/5 overflow-hidden">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-[#020617] text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                                                <tr>
+                                                    <th className="px-6 py-4">Data</th>
+                                                    <th className="px-6 py-4">Peça/Serviço</th>
+                                                    <th className="px-6 py-4 text-right">Valor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {requisicoes.filter(r => r.centroCustoId === selectedCC.id).slice(0, 10).map((r, i) => (
+                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                        <td className="px-6 py-4 text-slate-400">{new Date(r.data).toLocaleDateString('pt-PT')}</td>
+                                                        <td className="px-6 py-4 text-white font-bold truncate max-w-[150px]">{r.descricao}</td>
+                                                        <td className="px-6 py-4 text-right text-amber-500 font-mono font-bold">{(r.custo || 0).toFixed(2)}€</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Creation Form Modal */}
             {showForm && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
                     <div className="bg-[#0f172a] w-full max-w-md rounded-3xl border border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
