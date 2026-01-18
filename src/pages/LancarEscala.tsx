@@ -656,8 +656,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     onChange={e => setNotes(e.target.value)}
                                 />
                                 </div>
-                            </DraggableWidget>
-                        </div>
+                            </div>
+                    </DraggableWidget>
 
                     </div>
 
