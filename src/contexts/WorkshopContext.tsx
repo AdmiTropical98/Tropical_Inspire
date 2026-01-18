@@ -1736,15 +1736,28 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 const viatura = viaturas.find(vit => vit.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === v.registration.replace(/[^a-zA-Z0-9]/g, '').toUpperCase());
                 if (!viatura || !v.currentCentroCustoId) continue;
 
-                // Create a deterministic ID: auto-vid-ccid-date
-                const detId = `auto-${viatura.id}-${v.currentCentroCustoId}-${today}`;
+                // Check if a record already exists for this vehicle + CC + date
+                const { data: existing } = await supabase
+                    .from('faturas')
+                    .select('id')
+                    .eq('tipo', 'aluguer')
+                    .eq('data', today)
+                    .contains('aluguer_details', {
+                        viaturaId: viatura.id,
+                        centroCustoId: v.currentCentroCustoId
+                    })
+                    .limit(1);
+
+                if (existing && existing.length > 0) {
+                    console.log(`Skipping auto-sync for ${v.registration}: already exists.`);
+                    continue;
+                }
 
                 const rentalData = {
-                    id: detId,
                     numero: `AUTO-${today.replace(/-/g, '')}-${v.registration.replace(/[^a-zA-Z0-9]/g, '').slice(-4)}`,
                     data: today,
                     vencimento: today,
-                    clienteId: 'internal-auto-sync',
+                    clienteId: null, // Set to null for internal auto-sync to avoid FKEY issues
                     status: 'emitida',
                     subtotal: viatura.precoDiario || 0,
                     imposto: (viatura.precoDiario || 0) * 0.23,
@@ -1769,9 +1782,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     }
                 };
 
-                const { error } = await supabase.from('faturas').upsert(rentalData);
+                const { error } = await supabase.from('faturas').insert(rentalData);
                 if (error) console.error('Error auto-syncing rental:', error);
             }
+            // Trigger a data refresh after sync
+            await refreshData();
         } catch (e) {
             console.error('Auto-sync failed:', e);
         }

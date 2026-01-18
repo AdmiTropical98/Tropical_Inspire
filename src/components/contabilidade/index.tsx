@@ -155,10 +155,10 @@ function ContabilidadeContent() {
                     </div>
                 );
 
-            case 'receitas': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} />;
+            case 'receitas': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} onRefresh={fetchInvoices} />;
             case 'despesas': return <ExpensesList />;
             case 'fixos': return <FixedCostsManager />;
-            case 'alugueres': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} />;
+            case 'alugueres': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} onRefresh={fetchInvoices} />;
             default: return null;
         }
     };

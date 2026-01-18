@@ -10,9 +10,10 @@ interface AlugueresProps {
     invoices: Fatura[];
     onSaveRental: (data: Fatura) => void;
     onDelete: (id: string) => void;
+    onRefresh?: () => void;
 }
 
-export default function Alugueres({ invoices, onSaveRental, onDelete }: AlugueresProps) {
+export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh }: AlugueresProps) {
     const { viaturas, centrosCustos, clientes, getVehicleOccupancyHistory, cartrackVehicles, syncRealTimeRentals } = useWorkshop();
 
     // Filter duplicates: Keep only used vehicles if duplicates exist
@@ -1354,6 +1355,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                             if (btn) btn.classList.add('animate-spin');
                             syncRealTimeRentals().finally(() => {
                                 if (btn) btn.classList.remove('animate-spin');
+                                if (onRefresh) onRefresh();
                             });
                         }}
                         id="sync-all-btn"
