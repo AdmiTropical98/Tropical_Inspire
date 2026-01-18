@@ -1467,7 +1467,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             status: s.status,
             blocked_permissions: s.blockedPermissions
         });
-        if (!error) setSupervisors(prev => [...prev, s]);
+        if (error) throw error; // Propagate error
+        setSupervisors(prev => [...prev, s]);
     };
     const updateSupervisor = async (s: Supervisor) => {
         const { error } = await supabase.from('supervisores').update({
@@ -1498,9 +1499,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             password: g.password,
             status: g.status,
             blocked_permissions: g.blockedPermissions,
-            data_registo: g.dataRegisto
+            data_registo: new Date().toISOString()
         });
-        if (error) {
+        if (error) throw error; // Propagate error
+        setGestores(prev => [...prev, g]);
+    };
             console.error('Error adding Gestor:', error);
             return { error };
         }

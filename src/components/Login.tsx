@@ -6,7 +6,7 @@ import type { Notification } from '../types';
 
 export default function Login() {
     const { login } = useAuth();
-    const { addNotification, updateNotification, notifications, addSupervisor } = useWorkshop();
+    const { addNotification, updateNotification, notifications, addSupervisor, addGestor } = useWorkshop();
     const [role, setRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor'>('admin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -88,7 +88,7 @@ export default function Login() {
         setRegSuccess('Pedido enviado! Aguarde que o administrador lhe envie o PIN de confirmação.');
     };
 
-    const handleConfirmation = (e: React.FormEvent) => {
+    const handleConfirmation = async (e: React.FormEvent) => {
         e.preventDefault();
         setRegError('');
 
@@ -101,26 +101,44 @@ export default function Login() {
         );
 
         if (notification) {
-            // Create Supervisor
-            addSupervisor({
-                id: crypto.randomUUID(),
-                nome: notification.data.nome || '',
-                email: notification.data.email || '',
-                telemovel: notification.data.telemovel || '',
-                password: notification.data.password || '',
-                pin: notification.response?.pin || '',
-                status: 'active'
-            });
+            try {
+                if (role === 'supervisor') {
+                    await addSupervisor({
+                        id: crypto.randomUUID(),
+                        nome: notification.data.nome || '',
+                        email: notification.data.email || '',
+                        telemovel: notification.data.telemovel || '',
+                        password: notification.data.password || '',
+                        pin: notification.response?.pin || '', // Use Activation PIN as Login PIN
+                        status: 'active'
+                    });
+                } else if (role === 'gestor') {
+                    await addGestor({
+                        id: crypto.randomUUID(),
+                        nome: notification.data.nome || '',
+                        email: notification.data.email || '',
+                        telemovel: notification.data.telemovel || '',
+                        password: notification.data.password || '',
+                        pin: notification.response?.pin || '', // Use Activation PIN as Login PIN
+                        status: 'active',
+                        blockedPermissions: [],
+                        dataRegisto: new Date().toISOString()
+                    });
+                }
 
-            // Success & Close
-            setShowRegistration(false);
-            setRegData({ nome: '', email: '', telemovel: '', password: '' });
-            setConfirmPin('');
-            setRegStep('form');
-            setEmail(notification.data.email || '');
-            setRole('supervisor');
-            setError(''); // Clear any prev errors
-            alert('Conta criada com sucesso! Pode agora entrar.');
+                // Success & Close
+                setShowRegistration(false);
+                setRegData({ nome: '', email: '', telemovel: '', password: '' });
+                setConfirmPin('');
+                setRegStep('form');
+                setEmail(notification.data.email || '');
+                setRole(notification.data.role as any || role); // Use role from notification
+                setError('');
+                alert('Conta criada com sucesso! Pode agora entrar.');
+            } catch (err: any) {
+                console.error("Error creating account:", err);
+                setRegError('Erro ao criar conta no banco de dados. Tente novamente ou contacte o suporte.');
+            }
         } else {
             setRegError('PIN inválido ou pedido ainda não aprovado pelo administrador.');
         }
