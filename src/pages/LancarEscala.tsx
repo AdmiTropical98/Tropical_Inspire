@@ -5,13 +5,13 @@ import { useAuth } from '../contexts/AuthContext';
 import {
     Plus, Trash, ArrowRightLeft, Upload,
     Info, Building2, MapPin,
-    Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download, Settings, Layout
+    Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download, Settings, Layout, Check, X
 } from 'lucide-react';
 import { read, utils, write } from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CartrackService } from '../services/cartrack';
-import DraggableZone, { DraggableWidget } from '../components/common/DraggableZone';
+import DraggableGrid from '../components/common/DraggableGrid';
 import { useLayout } from '../contexts/LayoutContext';
 
 // Helper for unique IDs for grid rows
@@ -33,7 +33,7 @@ interface LancarEscalaProps {
 }
 
 export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
-    const { isEditMode, toggleEditMode } = useLayout();
+    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout();
     const { centrosCustos, createScaleBatch } = useWorkshop();
     const { hasAccess } = usePermissions();
     const { userRole } = useAuth();
@@ -578,6 +578,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         }
     };
 
+
+
     return (
         <div className="h-full flex flex-col bg-[#0B1120] text-slate-200 overflow-hidden font-sans">
             {/* Datalist for AutoComplete */}
@@ -589,9 +591,26 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
             {/* Top Bar: Controls */}
             <div className="bg-[#0f172a] border-b border-slate-800 p-6 shadow-xl z-20">
-                <DraggableZone zoneId="lancar_header" className="max-w-[1920px] mx-auto w-full">
+                <DraggableGrid
+                    zoneId="lancar_header_rgl"
+                    className="max-w-[1920px] mx-auto w-full"
+                    defaultLayouts={{
+                        lg: [
+                            { i: 'inputs', x: 0, y: 0, w: 6, h: 2 },
+                            { i: 'actions', x: 6, y: 0, w: 6, h: 2 }
+                        ],
+                        md: [
+                            { i: 'inputs', x: 0, y: 0, w: 10, h: 2 },
+                            { i: 'actions', x: 0, y: 2, w: 10, h: 2 }
+                        ],
+                        sm: [
+                            { i: 'inputs', x: 0, y: 0, w: 6, h: 3 },
+                            { i: 'actions', x: 0, y: 3, w: 6, h: 2 }
+                        ]
+                    }}
+                >
                     {/* Left: Inputs */}
-                    <DraggableWidget id="inputs" defaultWidth="half">
+                    <div key="inputs" className="h-full">
                         <div className="flex items-center gap-6 flex-1 h-full items-end">
 
                         {/* Date Picker */}
@@ -658,27 +677,45 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                 </div>
                             </div>
                         </div>
-                    </DraggableWidget>
-
+                    </div>
                     {/* Right: Actions */}
-                    <DraggableWidget id="actions" defaultWidth="half">
+                    <div key="actions" className="h-full">
                         <div className="flex items-center gap-3 justify-end h-full items-end">
-                            <button
-                                onClick={toggleEditMode}
-                                className={`
-                                    h-12 px-4 rounded-xl border transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide
-                                    ${isEditMode
-                                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                                        : 'bg-slate-800 text-slate-400 border-slate-700/50 hover:bg-slate-700 hover:text-white'
-                                    }
-                                `}
-                                title="Personalizar Layout"
-                            >
-                                <Layout className="w-4 h-4" />
-                                <span className="hidden xl:block text-left leading-none">
-                                    EDITAR<br />LAYOUT
-                                </span>
-                            </button>
+                            {isEditMode ? (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={saveChanges}
+                                        className="h-12 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white border border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)] transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide animate-pulse"
+                                        title="Salvar alterações"
+                                    >
+                                        <Check className="w-4 h-4" />
+                                        <span className="hidden xl:block text-left leading-none">
+                                            SALVAR<br />LAYOUT
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={cancelEditMode}
+                                        className="h-12 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide"
+                                        title="Cancelar edição"
+                                    >
+                                        <X className="w-4 h-4" />
+                                        <span className="hidden xl:block text-left leading-none">
+                                            CANCELAR
+                                        </span>
+                                    </button>
+                                </div>
+                            ) : (
+                                    <button
+                                        onClick={toggleEditMode}
+                                        className="h-12 px-4 rounded-xl bg-slate-800 text-slate-400 border border-slate-700/50 hover:bg-slate-700 hover:text-white transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide"
+                                        title="Personalizar Layout"
+                                    >
+                                        <Layout className="w-4 h-4" />
+                                        <span className="hidden xl:block text-left leading-none">
+                                            EDITAR<br />LAYOUT
+                                        </span>
+                                    </button>
+                            )}
                         {/* Hidden Input */}
                         <input
                             type="file"
@@ -738,8 +775,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                             </div>
                         </button>
                         </div>
-                    </DraggableWidget>
-                </DraggableZone>
+                    </div>
+                </DraggableGrid>
             </div>
 
             {/* Main Grid Area */}

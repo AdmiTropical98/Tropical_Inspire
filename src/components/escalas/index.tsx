@@ -23,7 +23,7 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import DraggableZone, { DraggableWidget } from '../common/DraggableZone';
+import DraggableGrid from '../common/DraggableGrid';
 import { useLayout } from '../../contexts/LayoutContext';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -94,7 +94,7 @@ export default function Escalas() {
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
-    const { isEditMode, toggleEditMode } = useLayout();
+    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout();
 
     // Core State
     const [selectedPendentes, setSelectedPendentes] = useState<string[]>([]);
@@ -637,22 +637,39 @@ export default function Escalas() {
 
                     <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0">
                         {/* Action Buttons Group */}
-                        <div className="flex gap-2">
-                            {/* Distribute Mode */}
-                            {hasAccess(userRole, 'escalas_create') && (
+                        <div className="flex items-center gap-2">
+                            {/* EDIT MODE TOGGLE */}
+                            {isEditMode ? (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={saveChanges}
+                                        className="p-2 lg:px-4 lg:py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-500/20 animate-pulse flex items-center justify-center gap-2 transition-all"
+                                        title={t('common.save')}
+                                    >
+                                        <Check className="w-5 h-5" />
+                                        <span className="hidden lg:inline text-sm font-bold">Salvar</span>
+                                    </button>
+                                    <button
+                                        onClick={cancelEditMode}
+                                        className="p-2 lg:px-4 lg:py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 flex items-center justify-center gap-2 transition-all"
+                                        title="Cancelar"
+                                    >
+                                        <X className="w-5 h-5" />
+                                        <span className="hidden lg:inline text-sm font-bold">Cancelar</span>
+                                    </button>
+                                </div>
+                            ) : (
                                 <button
-                                    onClick={() => setIsDistributeMode(!isDistributeMode)}
-                                    className={`p-2 rounded-lg border transition-colors ${isDistributeMode
-                                        ? 'bg-blue-600 border-blue-500 text-white animate-pulse'
-                                        : 'bg-[#1e293b] border-white/5 text-slate-300 hover:bg-slate-700'
-                                        }`}
-                                    title="Modo de Distribuição Rápida"
+                                    onClick={toggleEditMode}
+                                    className="p-2 lg:px-4 lg:py-2 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 transition-all flex items-center justify-center gap-2"
+                                    title="Personalizar Layout"
                                 >
-                                    <MousePointer2 className="w-5 h-5" />
+                                    <Layout className="w-5 h-5" />
+                                    <span className="hidden lg:inline text-sm font-bold">Layout</span>
                                 </button>
                             )}
 
-                            {/* Mobile Pending Details Toggle */}
+                            {/* View Mode Toggle */}Pending Details Toggle */}
                             {hasAccess(userRole, 'escalas_view_pending') && (
                                 <button
                                     onClick={() => setIsPendingSidebarOpen(!isPendingSidebarOpen)}
@@ -743,11 +760,29 @@ export default function Escalas() {
             </div>
 
             {/* MAIN CONTENT AREA */}
-            {/* LAYOUT CONTAINER */}
-            <div className="flex-1 flex flex-col overflow-hidden h-full relative">
-                <DraggableZone zoneId="escalas_layout_v2" className="h-full">
-                    <DraggableWidget id="drivers_grid" defaultWidth="full">
-                        <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative h-auto md:h-full w-full">
+            <div className="flex-1 overflow-hidden relative">
+                <DraggableGrid
+                    zoneId="escalas_layout_rgl"
+                    className="h-full w-full"
+                    defaultLayouts={{
+                        lg: [
+                            { i: 'drivers_grid', x: 0, y: 0, w: 9, h: 20 },
+                            { i: 'pending_sidebar', x: 9, y: 0, w: 3, h: 20 }
+                        ],
+                        md: [
+                            { i: 'drivers_grid', x: 0, y: 0, w: 7, h: 20 },
+                            { i: 'pending_sidebar', x: 7, y: 0, w: 3, h: 20 }
+                        ],
+                        sm: [
+                            { i: 'drivers_grid', x: 0, y: 0, w: 6, h: 10 },
+                            { i: 'pending_sidebar', x: 0, y: 10, w: 6, h: 10 }
+                        ]
+                    }}
+                >
+                    {/* DRIVERS GRID WIDGET */}
+                    <div key="drivers_grid" className="h-full relative flex flex-col">
+
+                        {/* Status Tabs (Stick to top of widget) */}w-full">
 
                 {viewMode === 'cards' ? (
                     /* CARD VIEW (Existing) */
@@ -1638,12 +1673,13 @@ export default function Escalas() {
             }
 
 
-                </DraggableWidget>
+            </div >
+        </div>
 
                 {/* PENDING SIDEBAR WIDGET */}
                 {
                     hasAccess(userRole, 'escalas_view_pending') && (
-                        <DraggableWidget id="pending_sidebar" defaultWidth="third">
+                        <div key="pending_sidebar" className="h-full">
                             <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
                                 <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
                                     <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
@@ -1725,11 +1761,11 @@ export default function Escalas() {
                                     )}
                                 </div>
                             </div>
-                        </DraggableWidget>
+                        </div>
                     )
                 }
-            </DraggableZone>
-        </div>
+                </DraggableGrid >
+            </div >
 
             {/* MODAL: URGENT REQUEST */}
             {

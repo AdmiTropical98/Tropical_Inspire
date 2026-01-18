@@ -6,10 +6,10 @@ import {
     LayoutTemplate, Clock, FileText, Share2, AlertTriangle,
     Send, Car, Sun, Navigation, Calendar,
     Check, Fuel, Settings2, ArrowRight,
-    CloudSun, CloudFog, CloudLightning, CloudRain, Snowflake, Moon, Star
+    CloudSun, CloudFog, CloudLightning, CloudRain, Snowflake, Moon, Star, X
 } from 'lucide-react';
 import MyScheduleView from './MyScheduleView';
-import DraggableZone from '../common/DraggableZone';
+import DraggableGrid from '../common/DraggableGrid';
 import { useLayout } from '../../contexts/LayoutContext';
 import NavigationApp from './NavigationApp';
 import TagRegistrationModal from '../common/TagRegistrationModal';
@@ -56,7 +56,7 @@ export default function CentralMotorista() {
     } | null>(null);
 
     // Layout Context
-    const { isEditMode, toggleEditMode } = useLayout();
+    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout();
 
     // Shift Edit State
     const [editingShift, setEditingShift] = useState(false);
@@ -561,14 +561,23 @@ export default function CentralMotorista() {
                         </div>
                     </div>
 
-                    {/* Navigation Tabs */}
-                    <div className="w-full overflow-hidden">
-                        <DraggableZone
-                            zoneId="central_tabs"
-                            items={navTabs}
-                            className="overflow-x-auto pb-4 scrollbar-hide flex w-full"
-                            layout="flex"
-                        />
+                    {/* Navigation Tabs (As RGL Grid now) */}
+                    <div className="w-full">
+                        <DraggableGrid
+                            zoneId="central_tabs_rgl"
+                            className="bg-transparent"
+                            defaultLayouts={{
+                                lg: navTabs.map((t, i) => ({ i: t.id, x: i * 2, y: 0, w: 2, h: 2 })),
+                                md: navTabs.map((t, i) => ({ i: t.id, x: (i % 5) * 2, y: Math.floor(i / 5) * 2, w: 2, h: 2 })),
+                                sm: navTabs.map((t, i) => ({ i: t.id, x: (i % 3) * 2, y: Math.floor(i / 3) * 2, w: 2, h: 2 }))
+                            }}
+                        >
+                            {navTabs.map(tab => (
+                                <div key={tab.id} className="flex items-center justify-center">
+                                    {tab.content}
+                                </div>
+                            ))}
+                        </DraggableGrid>
                     </div>
 
                     {/* Tag Registration Modal */}
@@ -628,22 +637,67 @@ export default function CentralMotorista() {
                                                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                                         <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Online</span>
                                                     </div>
-                                                    <button
-                                                        onClick={toggleEditMode}
-                                                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${isEditMode ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 animate-pulse' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white'}`}
-                                                    >
-                                                        <Settings2 className="w-3.5 h-3.5" />
-                                                        {isEditMode ? 'Terminar Edição' : 'Personalizar'}
-                                                    </button>
+                                                    <div className="flex gap-2">
+                                                        {isEditMode ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={saveChanges}
+                                                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-green-600 text-white shadow-lg shadow-green-900/20 animate-pulse flex items-center gap-2 hover:bg-green-500 transition-colors"
+                                                                >
+                                                                    <Check className="w-3.5 h-3.5" />
+                                                                    Gravar
+                                                                </button>
+                                                                <button
+                                                                    onClick={cancelEditMode}
+                                                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500/10 text-red-500 border border-red-500/20 flex items-center gap-2 hover:bg-red-500/20 transition-colors"
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                    Cancelar
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                                <button
+                                                                    onClick={toggleEditMode}
+                                                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white transition-all flex items-center gap-2"
+                                                                >
+                                                                    <Settings2 className="w-3.5 h-3.5" />
+                                                                    Personalizar
+                                                                </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <DraggableZone
-                                                zoneId="central_driver_overview"
-                                                items={dashboardWidgets}
-                                                // Removed specific grid-cols classes here to let DraggableZone manage it
-                                                className=""
-                                            />
+                                            {/* DASHBOARD WIDGETS GRID */}
+                                            <DraggableGrid
+                                                zoneId="central_driver_overview_rgl"
+                                                defaultLayouts={{
+                                                    lg: [
+                                                        { i: 'next-service', x: 0, y: 0, w: 6, h: 4 },
+                                                        { i: 'vehicle', x: 6, y: 0, w: 6, h: 4 },
+                                                        { i: 'weather', x: 0, y: 4, w: 6, h: 6 },
+                                                        { i: 'shift', x: 6, y: 4, w: 6, h: 6 }
+                                                    ],
+                                                    md: [
+                                                        { i: 'next-service', x: 0, y: 0, w: 10, h: 4 },
+                                                        { i: 'vehicle', x: 0, y: 4, w: 10, h: 4 },
+                                                        { i: 'weather', x: 0, y: 8, w: 5, h: 6 },
+                                                        { i: 'shift', x: 5, y: 8, w: 5, h: 6 }
+                                                    ],
+                                                    sm: [
+                                                        { i: 'next-service', x: 0, y: 0, w: 6, h: 4 },
+                                                        { i: 'vehicle', x: 0, y: 4, w: 6, h: 4 },
+                                                        { i: 'weather', x: 0, y: 8, w: 6, h: 6 },
+                                                        { i: 'shift', x: 0, y: 14, w: 6, h: 6 }
+                                                    ]
+                                                }}
+                                            >
+                                                {dashboardWidgets.map(widget => (
+                                                    <div key={widget.id}>
+                                                        {widget.content}
+                                                    </div>
+                                                ))}
+                                            </DraggableGrid>
                                         </div>
                                     </div>
 
