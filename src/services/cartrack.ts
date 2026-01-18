@@ -14,6 +14,7 @@ export interface CartrackGeofence {
     radius?: number;
     polygon_wkt?: string;
     points?: { lat: number, lng: number }[];
+    group_name?: string; // New field
 }
 
 export interface CartrackVehicle {
@@ -239,7 +240,8 @@ export const CartrackService = {
                 latitude: item.latitude,
                 longitude: item.longitude,
                 polygon_wkt: item.polygon_wkt,
-                points: item.polygon_wkt ? parseWKT(item.polygon_wkt) : undefined
+                points: item.polygon_wkt ? parseWKT(item.polygon_wkt) : undefined,
+                group_name: item.group_name || 'Geral' // Expose Group Name
             }));
         } catch (error) {
             console.error('Failed to fetch geofences:', error);

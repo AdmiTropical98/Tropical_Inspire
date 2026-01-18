@@ -89,14 +89,70 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
     // Excel Handlers
     // Excel Handlers
-    const handleDownloadTemplate = () => {
-        // Download static template file from public folder
-        const link = document.createElement('a');
-        link.href = '/Modelo_Escala_Tropical.xlsx';
-        link.download = 'Modelo_Escala_Tropical.xlsx';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownloadTemplate = async () => {
+        try {
+            // 1. Fetch Template
+            const response = await fetch('/Modelo_Escala_Tropical.xlsx');
+            const data = await response.arrayBuffer();
+            const workbook = read(data);
+
+            // 2. Fetch Geofences from Cartrack
+            const fences = await CartrackService.getGeofences();
+
+            // 3. Group Geofences
+            const groupedFences: Record<string, string[]> = {};
+            fences.forEach(f => {
+                const group = f.group_name || 'Outros';
+                if (!groupedFences[group]) groupedFences[group] = [];
+                groupedFences[group].push(f.name);
+            });
+
+            // 4. Prepare Data for "BANCO DE DADOS" Sheet
+            // We need columns where Header = Group Name, Rows = Values
+            const groups = Object.keys(groupedFences).sort();
+            const maxRows = Math.max(...Object.values(groupedFences).map(arr => arr.length));
+
+            const dbSheetData: any[] = [];
+
+            for (let i = 0; i < maxRows; i++) {
+                const row: any = {};
+                groups.forEach(group => {
+                    if (groupedFences[group][i]) {
+                        row[group] = groupedFences[group][i];
+                    }
+                });
+                dbSheetData.push(row);
+            }
+
+            // 5. Update Workbook
+            // Find or Create 'BANCO DE DADOS' sheet
+            let sheetName = workbook.SheetNames.find(n => n.toUpperCase() === 'BANCO DE DADOS');
+            if (sheetName) {
+                // Replace existing sheet
+                const newSheet = utils.json_to_sheet(dbSheetData, { header: groups });
+                workbook.Sheets[sheetName] = newSheet;
+            } else {
+                // Add new sheet
+                const newSheet = utils.json_to_sheet(dbSheetData, { header: groups });
+                utils.book_append_sheet(workbook, newSheet, 'BANCO DE DADOS');
+            }
+
+            // 6. Download Modified File
+            const wbout = write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'Modelo_Escala_Tropical_Atualizado.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+        } catch (e) {
+            console.error('Error generating template:', e);
+            alert('Erro ao gerar modelo atualizado. Tente novamente.');
+        }
     };
 
     const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
