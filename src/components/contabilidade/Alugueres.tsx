@@ -13,7 +13,7 @@ interface AlugueresProps {
 }
 
 export default function Alugueres({ invoices, onSaveRental, onDelete }: AlugueresProps) {
-    const { viaturas, centrosCustos, clientes, getVehicleOccupancyHistory } = useWorkshop();
+    const { viaturas, centrosCustos, clientes, getVehicleOccupancyHistory, cartrackVehicles } = useWorkshop();
 
     // Filter duplicates: Keep only used vehicles if duplicates exist
     const filteredDisplayViaturas = (() => {
@@ -1145,7 +1145,21 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                                     </div>
                                                     <div>
                                                         <p className="text-white font-semibold">{v?.marca} {v?.modelo}</p>
-                                                        <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
+                                                            {(() => {
+                                                                const cv = cartrackVehicles.find(cv => cv.registration.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === v?.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase());
+                                                                if (cv?.currentCentroCustoName) {
+                                                                    return (
+                                                                        <span className="flex items-center gap-1 text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded-full border border-indigo-500/30">
+                                                                            <RefreshCw className="w-2.5 h-2.5 animate-pulse" />
+                                                                            GPS: {cv.currentCentroCustoName}
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">

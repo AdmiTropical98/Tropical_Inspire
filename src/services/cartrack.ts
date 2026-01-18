@@ -39,6 +39,7 @@ export interface CartrackVehicle {
     address?: string;
     currentCentroCustoId?: string;
     currentCentroCustoName?: string;
+    currentGeofenceName?: string;
 }
 
 export interface CartrackDriver {
@@ -189,7 +190,8 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
             address: loc.position_description || item.address || '',
             driverName: driverName,
             ignition: !!item.ignition,
-            tagId: cleanTagId(item.last_identification_tag_id) || '' // Limpa o ID da tag (remove 0000-0000...)
+            tagId: cleanTagId(item.last_identification_tag_id) || '', // Limpa o ID da tag (remove 0000-0000...)
+            currentGeofenceName: item.geofence_name || loc.geofence_name || item.current_geofence || ''
         };
     });
 };

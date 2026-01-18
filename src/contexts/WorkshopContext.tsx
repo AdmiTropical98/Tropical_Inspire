@@ -586,6 +586,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             currentCCId = matchingLocal.centroCustoId;
                             currentCCName = matchingLocal.nome;
                         }
+
+                        // NEW: Also check direct geofence mapping from Cartrack (if present in vehicle object)
+                        if (!currentCCId && v.currentGeofenceName && geofenceMappings[v.currentGeofenceName]) {
+                            currentCCId = geofenceMappings[v.currentGeofenceName];
+                            const cc = centrosCustos.find(c => c.id === currentCCId);
+                            currentCCName = cc?.nome || v.currentGeofenceName;
+                        }
                     }
 
                     return {
@@ -1673,12 +1680,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 const exit = visit.exitTime ? new Date(visit.exitTime) : new Date();
 
                 // For each day the visit spans
-                for (let d = new Date(entry); d <= exit; d.setDate(d.getDate() + 1)) {
-                    const dayKey = d.toISOString().split('T')[0];
+                const current = new Date(entry);
+                while (current <= exit) {
+                    const dayKey = current.toISOString().split('T')[0];
                     if (occupancy[dayKey]) {
                         // Calculate duration on this specific day
-                        const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
-                        const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
+                        const dayStart = new Date(current); dayStart.setHours(0, 0, 0, 0);
+                        const dayEnd = new Date(current); dayEnd.setHours(23, 59, 59, 999);
 
                         const overlapStart = entry > dayStart ? entry : dayStart;
                         const overlapEnd = exit < dayEnd ? exit : dayEnd;
@@ -1690,6 +1698,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             occupancy[dayKey].visitedCCs.add(ccId);
                         }
                     }
+                    // Move to next day (ensuring we cross midnight correctly)
+                    current.setDate(current.getDate() + 1);
+                    current.setHours(0, 0, 0, 0);
                 }
             });
 
