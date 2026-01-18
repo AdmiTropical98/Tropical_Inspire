@@ -657,9 +657,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                 />
                                 </div>
                             </div>
+                        </div>
                     </DraggableWidget>
-
-                    </div>
 
                     {/* Right: Actions */}
                     <DraggableWidget id="actions" defaultWidth="half">
