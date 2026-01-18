@@ -7,7 +7,7 @@ import {
     Info, Building2, MapPin,
     Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download
 } from 'lucide-react';
-import { read, utils } from 'xlsx';
+import { read, utils, write } from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CartrackService } from '../services/cartrack';
@@ -88,14 +88,57 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Excel Handlers
+    // Excel Handlers
     const handleDownloadTemplate = () => {
-        // Direct download of the file in public folder
-        const link = document.createElement('a');
-        link.href = '/PLANILHA DE EXEMPLO PARA LANÇAMENTO DE ESCALAS EM MASSA.xlsx';
-        link.download = 'Modelo_Escala_Tropical.xlsx';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Dynamic generation to ensure it matches current requirements
+        const ws = utils.json_to_sheet([
+            {
+                'TIPO': 'ENTRADA',
+                'DEPARTAMENTO': 'HK',
+                'PASSAGEIRO': 'João Silva',
+                'ORIGEM': 'Aeroporto',
+                'DESTINO': 'Hotel',
+                'HORA': '10:00',
+                'OBS': 'Voo TP123'
+            },
+            {
+                'TIPO': 'SAIDA',
+                'DEPARTAMENTO': 'F&B',
+                'PASSAGEIRO': 'Maria Santos',
+                'ORIGEM': 'Hotel',
+                'DESTINO': 'Aeroporto',
+                'HORA': '18:00',
+                'OBS': ''
+            }
+        ]);
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 10 }, // TIPO
+            { wch: 15 }, // DEPARTAMENTO
+            { wch: 25 }, // PASSAGEIRO
+            { wch: 20 }, // ORIGEM
+            { wch: 20 }, // DESTINO
+            { wch: 10 }, // HORA
+            { wch: 20 }  // OBS
+        ];
+
+        const wb = utils.book_new();
+        utils.book_append_sheet(wb, ws, "Modelo");
+
+        // Save file
+        const wbout = typeof window !== 'undefined' ? write(wb, { bookType: 'xlsx', type: 'array' }) : null;
+        if (wbout) {
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'Modelo_Escala_Tropical.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
     };
 
     const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,7 +222,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                     destino: row['DESTINO'] || row['Destino'] || '',
                     hora: parseExcelTime(rawHora),
                     obs: row['OBS'] || row['Obs'] || '',
-                    tipo: tipo
+                    tipo: tipo,
+                    departamento: row['DEPARTAMENTO'] || row['Departamento'] || ''
                 };
             });
 
@@ -693,6 +737,17 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                                 <ChevronDown className="w-3 h-3" />
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* Departamento Input */}
+                                    <div className="relative border-r border-slate-800/50">
+                                        <input
+                                            className="w-full h-full bg-transparent px-3 outline-none placeholder:text-slate-700 text-slate-300 font-medium"
+                                            placeholder="Geral"
+                                            value={row.departamento || ''}
+                                            onChange={e => updateRow(row.tempId, 'departamento', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, idx)}
+                                        />
                                     </div>
 
                                     {/* Inputs */}
