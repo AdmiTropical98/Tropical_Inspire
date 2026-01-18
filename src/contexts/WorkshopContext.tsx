@@ -634,14 +634,21 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 setCartrackDrivers(cDrivers);
             }
 
-            const { data: sups } = await supabase.from('supervisores').select('*');
-            if (sups) setSupervisors(sups.map((s: any) => ({ ...s, password: s.password, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
+            // 4. Other Teams - Fetched Independently for Safety
+            try {
+                const { data: sups } = await supabase.from('supervisores').select('*');
+                if (sups) setSupervisors(sups.map((s: any) => ({ ...s, password: s.password, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
+            } catch (supErr) { console.error('Error fetching supervisors:', supErr); }
 
-            const { data: managers } = await supabase.from('gestores').select('*');
-            if (managers) setGestores(managers.map((g: any) => ({ ...g, blockedPermissions: g.blocked_permissions, dataRegisto: g.data_registo })));
+            try {
+                const { data: managers } = await supabase.from('gestores').select('*');
+                if (managers) setGestores(managers.map((g: any) => ({ ...g, blockedPermissions: g.blocked_permissions, dataRegisto: g.data_registo })));
+            } catch (gestErr) { console.error('Error fetching gestores:', gestErr); }
 
-            const { data: oficina } = await supabase.from('oficina_users').select('*');
-            if (oficina) setOficinaUsers(oficina.map((u: any) => ({ ...u, blockedPermissions: u.blocked_permissions, dataRegisto: u.data_registo })));
+            try {
+                const { data: oficina } = await supabase.from('oficina_users').select('*');
+                if (oficina) setOficinaUsers(oficina.map((u: any) => ({ ...u, blockedPermissions: u.blocked_permissions, dataRegisto: u.data_registo })));
+            } catch (ofiErr) { console.error('Error fetching oficina users:', ofiErr); }
 
             // 4. Notifications & Services
             const { data: notifs } = await supabase.from('notifications').select('*');
