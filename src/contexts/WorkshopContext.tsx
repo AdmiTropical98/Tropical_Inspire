@@ -575,9 +575,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     let currentCCName: string | undefined = undefined;
 
                     if (v.latitude && v.longitude) {
-                        const matchingLocal = currentLocais.find(l =>
+                        // Prioritize smallest radius (smallest matches win)
+                        const matchingLocals = currentLocais.filter(l =>
                             l.centroCustoId && getDistance(v.latitude, v.longitude, l.latitude, l.longitude) <= l.raio
-                        );
+                        ).sort((a, b) => a.raio - b.raio);
+
+                        const matchingLocal = matchingLocals[0];
 
                         if (matchingLocal) {
                             currentCCId = matchingLocal.centroCustoId;
@@ -979,16 +982,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             return {};
         }
     };
-
-    useEffect(() => {
-        refreshData();
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
-            if (event === 'SIGNED_IN') {
-                refreshData();
-            }
-        });
-        return () => subscription.unsubscribe();
-    }, []);
 
     // Fuel Methods
     const updateFuelTank = async (tank: FuelTank) => {
