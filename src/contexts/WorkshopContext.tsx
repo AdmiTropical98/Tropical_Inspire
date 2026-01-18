@@ -429,7 +429,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             // 3. Team - DECOUPLED FETCH FOR SAFETY
             // Always fetch DB Motoristas first to ensure Admin panel is never empty
             const normalizePlate = (p?: string | null) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
-            const { data: dbMotoristas } = await supabase.from('motoristas').select('*');
+            const { data: dbMotoristas, error: dbMotoristasError } = await supabase.from('motoristas').select('*');
+            if (dbMotoristasError) console.error('Error fetching motoristas:', dbMotoristasError);
 
             // 3.1 Fetch Locais & Geofence Mappings early for enrichment
             const { data: dbLocais } = await supabase.from('locais').select('*');
