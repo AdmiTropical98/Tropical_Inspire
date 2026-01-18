@@ -3,10 +3,9 @@ import { useState, useEffect } from 'react';
 import {
     Wallet, TrendingDown, DollarSign,
     Download, PieChart, BarChart3,
-    ArrowUpRight, FileText, CreditCard,
+    ArrowUpRight, CreditCard,
     Receipt, RefreshCcw
 } from 'lucide-react';
-import Faturas from './Faturas';
 import NovaFatura from './NovaFatura';
 import Alugueres from './Alugueres';
 import ExpensesList from './ExpensesList';
@@ -21,7 +20,7 @@ import type { Fatura } from '../../types';
 function ContabilidadeContent() {
     // Only get what actually exists in the context
     const { summary, isLoading, refreshData } = useFinancial();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'receitas' | 'despesas' | 'fixos' | 'relatorios' | 'faturas' | 'alugueres'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'receitas' | 'despesas' | 'fixos' | 'alugueres'>('dashboard');
     const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
     const [selectedInvoice, setSelectedInvoice] = useState<Fatura | null>(null);
     const [invoices, setInvoices] = useState<Fatura[]>([]);
@@ -65,11 +64,6 @@ function ContabilidadeContent() {
         }
     };
 
-    const handleDownloadInvoice = (invoice: Fatura) => {
-        // Placeholder for PDF generation
-        alert(`Gerando PDF para fatura ${invoice.numero}`);
-    };
-
     const handleSaveInvoice = async (data: any) => {
         try {
             const payload = {
@@ -111,10 +105,6 @@ function ContabilidadeContent() {
         refreshData();
     };
 
-    const handleEditInvoice = (inv: Fatura) => {
-        setSelectedInvoice(inv);
-        setView('edit');
-    };
 
     if (isLoading) return <div className="p-12 text-center text-slate-400">Carregando dados financeiros...</div>;
 
@@ -165,21 +155,10 @@ function ContabilidadeContent() {
                     </div>
                 );
 
-            case 'receitas': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} />;
+            case 'receitas': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} onRefresh={fetchInvoices} />;
             case 'despesas': return <ExpensesList />;
             case 'fixos': return <FixedCostsManager />;
-            case 'relatorios':
-                // Original Faturas/Relatorios View
-                return <Faturas
-                    invoices={invoices}
-                    onCreateNew={() => setView('create')}
-                    onDelete={handleDeleteInvoice}
-                    onDownload={handleDownloadInvoice}
-                    onEdit={handleEditInvoice}
-                    onView={(inv: Fatura) => alert(inv.numero)}
-                />;
-            case 'faturas': return <Faturas invoices={invoices} onCreateNew={() => setView('create')} onDelete={handleDeleteInvoice} onDownload={handleDownloadInvoice} onEdit={handleEditInvoice} onView={() => { }} />;
-            case 'alugueres': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} />;
+            case 'alugueres': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} onRefresh={fetchInvoices} />;
             default: return null;
         }
     };
@@ -207,7 +186,6 @@ function ContabilidadeContent() {
                             { id: 'receitas', label: 'Alugueres', icon: ArrowUpRight },
                             { id: 'despesas', label: 'Despesas', icon: Receipt },
                             { id: 'fixos', label: 'Fixos', icon: RefreshCcw },
-                            { id: 'relatorios', label: 'Faturas', icon: FileText },
                         ].map(tab => (
                             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
                                 <tab.icon className="w-4 h-4" /> {tab.label}

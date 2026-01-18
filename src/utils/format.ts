@@ -8,9 +8,34 @@ export const formatCurrency = (amount: number): string => {
 
 export const excelDateToJSDate = (serial: number | string): Date | null => {
     // If it's already a date string like "2023-10-27", let Date parse it
-    if (typeof serial === 'string' && serial.includes('-')) {
-        const d = new Date(serial);
-        return isNaN(d.getTime()) ? null : d;
+    // Handle strings
+    if (typeof serial === 'string') {
+        const s = serial.trim();
+        // Already a date string like "2023-10-27" or "15/01/2026 18:42"
+        if (s.includes('-') || s.includes('/')) {
+            // Try DD/MM/YYYY format specifically if / is present
+            if (s.includes('/')) {
+                const parts = s.split(' ');
+                const dateParts = parts[0].split('/');
+                if (dateParts.length === 3) {
+                    const day = parseInt(dateParts[0]);
+                    const month = parseInt(dateParts[1]) - 1;
+                    const year = dateParts[2].length === 2 ? 2000 + parseInt(dateParts[2]) : parseInt(dateParts[2]);
+
+                    let date: Date;
+                    if (parts[1] && parts[1].includes(':')) {
+                        const timeParts = parts[1].split(':');
+                        date = new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]));
+                    } else {
+                        date = new Date(year, month, day);
+                    }
+                    if (!isNaN(date.getTime())) return date;
+                }
+            }
+
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        }
     }
 
     // If it's a serial number (Excel dates are days since Dec 30 1899)

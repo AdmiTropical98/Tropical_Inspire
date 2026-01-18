@@ -22,6 +22,8 @@ export default function Combustivel() {
 
     const [activeTab, setActiveTab] = useState<'overview' | 'abastecer' | 'tanque' | 'historico' | 'bp'>('overview');
     const [bpTransactions, setBpTransactions] = useState<any[]>([]); // Temp state for BP imports
+    const [selectedRows, setSelectedRows] = useState<number[]>([]); // For bulk actions
+    const [bulkCC, setBulkCC] = useState('');
     const [bypassDriverPin, setBypassDriverPin] = useState(false); // Admin override for PIN
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,6 +106,7 @@ export default function Combustivel() {
         licensePlate: '',
         liters: '',
         pricePerLiter: '',
+        totalCost: '',
         station: '',
         centroCustoId: ''
     });
@@ -112,7 +115,7 @@ export default function Combustivel() {
         e.preventDefault();
         const liters = parseFloat(manualBPForm.liters);
         const price = parseFloat(manualBPForm.pricePerLiter);
-        const total = liters * price;
+        const total = parseFloat(manualBPForm.totalCost);
 
         const newRow = {
             'Data': undefined, // Will use manual date
@@ -136,6 +139,7 @@ export default function Combustivel() {
             licensePlate: '',
             liters: '',
             pricePerLiter: '',
+            totalCost: '',
             station: '',
             centroCustoId: ''
         });
@@ -259,19 +263,30 @@ export default function Combustivel() {
     const recentTransactions = fuelTransactions.slice(0, 5);
 
     // --- BP Import Logic ---
+    const parseImportNumber = (val: any): number => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+            let normalized = val.trim().replace(/\s/g, '');
+            // If comma exists, it's likely the decimal separator (European). Remove dots (thousands) and fix comma.
+            if (normalized.includes(',')) {
+                normalized = normalized.replace(/\./g, '').replace(',', '.');
+            }
+            const num = parseFloat(normalized);
+            return isNaN(num) ? 0 : num;
+        }
+        return 0;
+    };
+
     const handleDownloadBPTemplate = () => {
         const ws = XLSX.utils.json_to_sheet([
             {
-                'Data': '2023-10-27',
-                'Hora': '14:30',
-                'Cartão': '7080...',
-                'Matrícula': 'AA-00-BB',
-                'Produto': 'Gasóleo',
-                'Litros': 50.5,
-                'Preço Unitário': 1.65,
-                'Total': 83.33,
-                'Posto': 'BP Matosinhos',
-                'Centro de Custo': 'Administração'
+                'Dia Hora': '15/01/2026 18:42',
+                'Matrícula': '51-NR-36',
+                'Km': 449100,
+                'Posto': 'VILAMOURA',
+                'Produto': 'GASOLEO',
+                'Quantidade': 64.77,
+                'Valor total a faturar': 99.66
             }
         ]);
         const wb = XLSX.utils.book_new();
@@ -291,15 +306,45 @@ export default function Combustivel() {
             const ws = wb.Sheets[wsname];
             const data: any[] = XLSX.utils.sheet_to_json(ws);
 
-            // Filter empty rows (must have Plate OR Liters)
-            const validData = data.filter(row => row['Matrícula'] || row['Litros']);
+            // Filter empty rows
+            const validData = data.filter(row => {
+                const keys = Object.keys(row);
+                const hasPlate = keys.some(k => k.trim().toLowerCase() === 'matrícula');
+                const hasQty = keys.some(k => k.trim().toLowerCase() === 'quantidade' || k.trim().toLowerCase() === 'litros');
+                return hasPlate || hasQty;
+            });
 
-            // Enrich data with initial cost center match if possible
+            // Normalize and Enrich data
             const enrichedData = validData.map(row => {
-                const ccName = row['Centro de Custo'];
+                // Better normalization: trim keys and check alternates
+                const normalized: any = {};
+                Object.keys(row).forEach(key => {
+                    const cleanKey = key.trim();
+                    const lowerKey = cleanKey.toLowerCase();
+
+                    if (lowerKey === 'dia hora' || lowerKey === 'data') normalized['Dia Hora'] = row[key];
+                    else if (lowerKey === 'nº transação' || lowerKey === 'transaçao' || lowerKey === 'transação') normalized['Nº transação'] = row[key];
+                    else if (lowerKey === 'nº cartão' || lowerKey === 'cartão' || lowerKey === 'cartao') normalized['Nº cartão'] = row[key];
+                    else if (lowerKey === 'proprietário' || lowerKey === 'proprietario') normalized['Proprietário'] = row[key];
+                    else if (lowerKey === 'matrícula' || lowerKey === 'matricula') normalized['Matrícula'] = row[key];
+                    else if (lowerKey === 'km' || lowerKey === 'kms') normalized['Km'] = row[key];
+                    else if (lowerKey === 'dia laboral' || lowerKey === 'laboral') normalized['Dia laboral'] = row[key];
+                    else if (lowerKey === 'posto') normalized['Posto'] = row[key];
+                    else if (lowerKey === 'produto') normalized['Produto'] = row[key];
+                    else if (lowerKey === 'quantidade' || lowerKey === 'litros') normalized['Litros'] = row[key];
+                    else if (lowerKey === 'preço' || lowerKey === 'preço unitário') normalized['Preço Unitário'] = row[key];
+                    else if (lowerKey === 'valor líquido' || lowerKey === 'liquido') normalized['Valor líquido'] = row[key];
+                    else if (lowerKey === 'iva') normalized['IVA'] = row[key];
+                    else if (lowerKey === 'valor total a faturar' || lowerKey === 'total' || lowerKey === 'valor total') normalized['Total'] = row[key];
+                    else if (lowerKey === 'iva%') normalized['IVA%'] = row[key];
+                    else normalized[cleanKey] = row[key];
+                });
+
+                const ccName = normalized['Centro de Custo'];
                 const matchedCC = centrosCustos.find(c => c.nome.toLowerCase() === ccName?.toLowerCase());
+
                 return {
-                    ...row,
+                    ...normalized,
                     _selectedCC: matchedCC ? matchedCC.id : ''
                 };
             });
@@ -329,46 +374,51 @@ export default function Combustivel() {
                 // Parse Date & Time
                 let timestamp = new Date().toISOString();
 
-                // Check for Manual Date or Excel Date
-                const dateObj = row._manualDate ? new Date(row._manualDate) : excelDateToJSDate(row['Data']);
-                const timeObj = excelDateToJSDate(row['Hora']);
+                // Optimized parsing using the improved helper
+                const diaHora = row['Dia Hora'];
+                const dataVal = row['Data'];
+                const horaVal = row['Hora'];
+                let dateObj: Date | null = null;
 
-                if (dateObj) {
-                    // Helper to pad time
-                    const pad = (n: number) => n.toString().padStart(2, '0');
-
-                    let hours = 0;
-                    let minutes = 0;
-
-                    if (timeObj) {
-                        hours = timeObj.getHours();
-                        minutes = timeObj.getMinutes();
-                    } else if (typeof row['Hora'] === 'string' && row['Hora'].includes(':')) {
-                        const parts = row['Hora'].split(':');
-                        hours = parseInt(parts[0]);
-                        minutes = parseInt(parts[1]);
+                if (row._manualDate) {
+                    dateObj = new Date(row._manualDate);
+                    const h = excelDateToJSDate(horaVal);
+                    if (h && dateObj) dateObj.setHours(h.getHours(), h.getMinutes());
+                } else {
+                    const primaryDate = diaHora || dataVal;
+                    if (primaryDate) {
+                        dateObj = excelDateToJSDate(primaryDate);
+                        // If it's a separate date column often time is in another column
+                        if (dateObj && horaVal) {
+                            const h = excelDateToJSDate(horaVal);
+                            if (h) dateObj.setHours(h.getHours(), h.getMinutes());
+                        }
                     }
+                }
 
-                    // Create final date
-                    const finalDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), hours, minutes);
-                    timestamp = finalDate.toISOString();
+                if (dateObj && !isNaN(dateObj.getTime())) {
+                    timestamp = dateObj.toISOString();
                 }
 
                 // Prepare Transaction
-                // driverId must be a valid UUID or NULL. 'BP_IMPORT' fails FK constraint.
+                const liters = parseImportNumber(row['Litros']);
+                const totalCost = parseImportNumber(row['Total']);
+                const pricePerLiter = liters > 0 ? totalCost / liters : 0;
+
                 const transaction: any = {
                     id: crypto.randomUUID(),
-                    vehicleId: vehicle ? vehicle.id : (cleanPlate || 'UNKNOWN_PLATE'), // Use clean plate if no ID found, but warn user via "Unmatched" UI later?
-                    driverId: null, // BP import usually doesn't have driver UUID. Send null.
-                    liters: parseFloat(row['Litros']) || 0,
-                    pricePerLiter: parseFloat(row['Preço Unitário']) || 0,
-                    totalCost: parseFloat(row['Total']) || (parseFloat(row['Litros']) * parseFloat(row['Preço Unitário'])) || 0,
-                    km: 0,
+                    vehicleId: vehicle ? vehicle.id : (cleanPlate || 'UNKNOWN_PLATE'),
+                    driverId: null,
+                    liters: liters,
+                    pricePerLiter: pricePerLiter,
+                    totalCost: totalCost,
+                    km: parseImportNumber(row['Km']),
                     status: 'confirmed',
                     timestamp: timestamp,
                     staffId: currentUser?.id || 'admin',
                     staffName: currentUser?.nome || 'Admin',
-                    centroCustoId: ccId || null
+                    centroCustoId: ccId || null,
+                    isExternal: true
                 };
 
                 await registerRefuel(transaction);
@@ -988,11 +1038,47 @@ export default function Combustivel() {
 
                         {bpTransactions.length > 0 && (
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="font-bold text-white text-lg">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                <div className="flex flex-wrap justify-between items-center gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <h3 className="font-bold text-white text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                        {selectedRows.length > 0 && (
+                                            <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30 animate-in fade-in slide-in-from-left-2">
+                                                <span className="text-blue-400 text-sm font-bold">{selectedRows.length} selecionados</span>
+                                                <div className="h-4 w-[1px] bg-blue-500/30 mx-1" />
+                                                <select
+                                                    className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+                                                    value={bulkCC}
+                                                    onChange={(e) => setBulkCC(e.target.value)}
+                                                >
+                                                    <option value="">Aplicar C.Custo...</option>
+                                                    {centrosCustos.map(cc => (
+                                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={() => {
+                                                        if (!bulkCC) return;
+                                                        const newTransactions = [...bpTransactions];
+                                                        selectedRows.forEach(idx => {
+                                                            newTransactions[idx]._selectedCC = bulkCC;
+                                                        });
+                                                        setBpTransactions(newTransactions);
+                                                        setSelectedRows([]);
+                                                        setBulkCC('');
+                                                    }}
+                                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold transition-colors"
+                                                >
+                                                    Atribuir
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => setBpTransactions([])}
+                                            onClick={() => {
+                                                setBpTransactions([]);
+                                                setSelectedRows([]);
+                                            }}
                                             className="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-sm font-bold"
                                         >
                                             Limpar Lista
@@ -1001,46 +1087,89 @@ export default function Combustivel() {
                                 </div>
                                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs">
+                                        <thead className="bg-slate-950 text-slate-400 uppercase font-extrabold text-[10px] tracking-widest whitespace-nowrap">
                                             <tr>
-                                                <th className="px-6 py-3">Data</th>
-                                                <th className="px-6 py-3">Viatura</th>
-                                                <th className="px-6 py-3">Posto</th>
-                                                <th className="px-6 py-3">Litros</th>
-                                                <th className="px-6 py-3">Preço/L</th>
-                                                <th className="px-6 py-3">Total</th>
-                                                <th className="px-6 py-3">C. Custo</th>
+                                                <th className="px-3 py-4 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                                        checked={selectedRows.length === bpTransactions.length && bpTransactions.length > 0}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedRows(bpTransactions.map((_, i) => i));
+                                                            } else {
+                                                                setSelectedRows([]);
+                                                            }
+                                                        }}
+                                                    />
+                                                </th>
+                                                <th className="px-3 py-4">Data/Hora</th>
+                                                <th className="px-3 py-4 font-black text-white">Viatura</th>
+                                                <th className="px-3 py-4 text-center">KM</th>
+                                                <th className="px-3 py-4">Posto</th>
+                                                <th className="px-3 py-4">Produto</th>
+                                                <th className="px-3 py-4 text-right">Qtd. (L)</th>
+                                                <th className="px-3 py-4 text-right text-emerald-400">Total (€)</th>
+                                                <th className="px-3 py-4 min-w-[150px]">Centro de Custo</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
                                             {bpTransactions.map((row, i) => {
-                                                const dateObj = row._manualDate ? new Date(row._manualDate) : excelDateToJSDate(row['Data']);
-                                                const timeObj = excelDateToJSDate(row['Hora']);
+                                                const diaHora = row['Dia Hora'];
+                                                const dataVal = row['Data'];
+                                                const horaVal = row['Hora'];
+                                                let dateObj: Date | null = null;
 
-                                                let displayDate = '-';
-
-                                                if (dateObj) {
-                                                    const dString = dateObj.toLocaleDateString();
-                                                    const tString = timeObj ? timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
-                                                        (typeof row['Hora'] === 'string' ? row['Hora'] : '');
-                                                    displayDate = `${dString} ${tString}`;
+                                                if (row._manualDate) {
+                                                    dateObj = new Date(row._manualDate);
+                                                    const h = excelDateToJSDate(horaVal);
+                                                    if (h && dateObj) dateObj.setHours(h.getHours(), h.getMinutes());
+                                                } else {
+                                                    const primaryDate = diaHora || dataVal;
+                                                    if (primaryDate) {
+                                                        dateObj = excelDateToJSDate(primaryDate);
+                                                        if (dateObj && horaVal) {
+                                                            const h = excelDateToJSDate(horaVal);
+                                                            if (h) dateObj.setHours(h.getHours(), h.getMinutes());
+                                                        }
+                                                    }
                                                 }
 
-                                                const liters = parseFloat(row['Litros']) || 0;
-                                                const price = parseFloat(row['Preço Unitário']) || 0;
-                                                const total = parseFloat(row['Total']) || (liters * price);
+                                                let displayDate = '-';
+                                                if (dateObj && !isNaN(dateObj.getTime())) {
+                                                    displayDate = `${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                }
+
+                                                const liters = parseImportNumber(row['Litros']);
+                                                const price = parseImportNumber(row['Preço Unitário']);
+                                                const total = parseImportNumber(row['Total']) || (liters * price);
 
                                                 return (
-                                                    <tr key={i}>
-                                                        <td className="px-6 py-3 text-slate-300">{displayDate}</td>
-                                                        <td className="px-6 py-3 text-slate-300">{row['Matrícula']}</td>
-                                                        <td className="px-6 py-3 text-slate-300">{row['Posto'] || '-'}</td>
-                                                        <td className="px-6 py-3 text-slate-300 font-mono text-yellow-500">{liters.toFixed(2)}</td>
-                                                        <td className="px-6 py-3 text-slate-300 font-mono">{price > 0 ? `${price.toFixed(3)}€` : '-'}</td>
-                                                        <td className="px-6 py-3 text-slate-300 font-mono text-emerald-400">{total > 0 ? `${total.toFixed(2)}€` : '-'}</td>
-                                                        <td className="px-6 py-3 text-slate-300">
+                                                    <tr key={i} className={`hover:bg-slate-800/30 transition-colors border-b border-slate-800/50 ${selectedRows.includes(i) ? 'bg-blue-600/5' : ''}`}>
+                                                        <td className="px-3 py-3 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                                                checked={selectedRows.includes(i)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedRows(prev => [...prev, i]);
+                                                                    } else {
+                                                                        setSelectedRows(prev => prev.filter(idx => idx !== i));
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
+                                                        <td className="px-3 py-3 text-white font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[12px] text-center">{row['Km'] || '0'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[150px]">{row['Posto'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-500 text-[11px] uppercase font-bold">{row['Produto'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-yellow-500 font-bold font-mono text-[13px] text-right">{liters.toFixed(2)}L</td>
+                                                        <td className="px-3 py-3 text-emerald-400 font-black font-mono text-[13px] text-right">{total.toFixed(2)}€</td>
+                                                        <td className="px-3 py-3">
                                                             <select
-                                                                className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
+                                                                className="bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-[12px] text-white outline-none focus:border-blue-500 w-full"
                                                                 value={row._selectedCC || ''}
                                                                 onChange={(e) => {
                                                                     const newTransactions = [...bpTransactions];
@@ -1048,7 +1177,7 @@ export default function Combustivel() {
                                                                     setBpTransactions(newTransactions);
                                                                 }}
                                                             >
-                                                                <option value="">-- Selecionar --</option>
+                                                                <option value="">-- C.Custo --</option>
                                                                 {centrosCustos.map(cc => (
                                                                     <option key={cc.id} value={cc.id}>{cc.nome}</option>
                                                                 ))}
@@ -1114,12 +1243,12 @@ export default function Combustivel() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-400">Preço/L (€)</label>
+                                        <label className="text-xs font-bold text-slate-400">Total (€)</label>
                                         <input
-                                            required type="number" step="0.001"
-                                            value={manualBPForm.pricePerLiter}
-                                            onChange={e => setManualBPForm({ ...manualBPForm, pricePerLiter: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                            required type="number" step="0.01"
+                                            value={manualBPForm.totalCost}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, totalCost: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-emerald-500 font-bold text-emerald-400"
                                         />
                                     </div>
                                 </div>

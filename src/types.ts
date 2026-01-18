@@ -161,6 +161,7 @@ export interface Local {
     tipo: 'hotel' | 'aeroporto' | 'oficina' | 'outros';
     cor: string;
     userId?: string;
+    centroCustoId?: string; // NEW: Map Geofence to specific Cost Center
 }
 
 export interface Servico {
@@ -283,6 +284,7 @@ export interface FuelTransaction {
     pricePerLiter?: number;
     totalCost?: number;
     centroCustoId?: string;
+    isExternal?: boolean;
 }
 
 export interface TankRefillLog {
@@ -382,6 +384,7 @@ export interface Fatura {
             dataInicio: string;
             dataFim: string;
             precoDiario: number;
+            centroCustoId?: string;
         }[];
     };
     cliente?: Cliente;

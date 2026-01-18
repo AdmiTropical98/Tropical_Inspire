@@ -37,6 +37,9 @@ export interface CartrackVehicle {
     odometer?: number;
     last_position_update?: string;
     address?: string;
+    currentCentroCustoId?: string;
+    currentCentroCustoName?: string;
+    currentGeofenceName?: string;
 }
 
 export interface CartrackDriver {
@@ -187,7 +190,8 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
             address: loc.position_description || item.address || '',
             driverName: driverName,
             ignition: !!item.ignition,
-            tagId: cleanTagId(item.last_identification_tag_id) || '' // Limpa o ID da tag (remove 0000-0000...)
+            tagId: cleanTagId(item.last_identification_tag_id) || '', // Limpa o ID da tag (remove 0000-0000...)
+            currentGeofenceName: item.geofence_name || loc.geofence_name || item.current_geofence || ''
         };
     });
 };
@@ -199,24 +203,36 @@ export const CartrackService = {
     getGeofences: async (): Promise<CartrackGeofence[]> => {
         try {
             const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+            let allGeofences: any[] = [];
+            let page = 1;
+            let hasMore = true;
 
-            let url = `${BASE_URL}/geofences`;
-            // Check if BASE_URL already has query params (e.g. proxy)
-            const separator = url.includes('?') ? '&' : '?';
-            // Use extreme limit to get all geofences
-            url += `${separator}per_page=1000`;
+            while (hasMore) {
+                let url = `${BASE_URL}/geofences`;
+                const separator = url.includes('?') ? '&' : '?';
+                url += `${separator}per_page=100&page=${page}`;
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: { 'Authorization': `Basic ${auth}` },
-            });
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Basic ${auth}` },
+                });
 
-            if (!response.ok) throw new Error('Falha ao obter geofences da Cartrack');
+                if (!response.ok) throw new Error('Falha ao obter geofences da Cartrack');
 
-            const result = await response.json();
-            const items = result.data || result.rows || result.geofences || [];
+                const result = await response.json();
+                const items = result.data || result.rows || result.geofences || [];
 
-            return items.map((item: any) => ({
+                if (items.length === 0) {
+                    hasMore = false;
+                } else {
+                    allGeofences = [...allGeofences, ...items];
+                    page++;
+                    // Safety limit to prevent infinite loops (e.g. 50 pages / 5000 geofences)
+                    if (page > 50) hasMore = false;
+                }
+            }
+
+            return allGeofences.map((item: any) => ({
                 id: String(item.id),
                 name: item.name,
                 radius: item.radius,

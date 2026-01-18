@@ -1,8 +1,21 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
+
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // in metres
+};
 
 interface WorkshopContextType {
     fornecedores: Fornecedor[];
@@ -102,6 +115,10 @@ interface WorkshopContextType {
     runComplianceDemo: () => void;
     updateVehicleLocation: (registration: string, lat: number, lng: number) => Promise<void>;
     createScaleBatch: (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; error?: string, data?: any }>;
+    getVehicleOccupancyHistory: (vehicleId: string, startDate: string, endDate: string) => Promise<{ date: string, centroCustoId: string | null }[]>;
+    geofenceMappings: Record<string, string>;
+    updateGeofenceMapping: (geofenceName: string, centroCustoId: string) => Promise<void>;
+    syncRealTimeRentals: () => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -154,6 +171,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     // COMPLIANCE LOGIC
     const [complianceStats, setComplianceStats] = useState<Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>>({});
+    const [geofenceMappings, setGeofenceMappings] = useState<Record<string, string>>({});
 
     // Helper: Haversine Distance (km)
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -413,6 +431,27 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const normalizePlate = (p?: string | null) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
             const { data: dbMotoristas } = await supabase.from('motoristas').select('*');
 
+            // 3.1 Fetch Locais & Geofence Mappings early for enrichment
+            const { data: dbLocais } = await supabase.from('locais').select('*');
+            const { data: geoMappings } = await supabase.from('cartrack_geofence_mappings').select('*');
+
+            if (geoMappings) {
+                const map: Record<string, string> = {};
+                geoMappings.forEach((m: any) => { map[m.geofence_name] = m.centro_custo_id; });
+                setGeofenceMappings(map);
+            }
+            const currentLocais = dbLocais?.map((l: any) => ({
+                id: l.id,
+                nome: l.nome,
+                latitude: l.latitude,
+                longitude: l.longitude,
+                raio: l.raio,
+                tipo: l.tipo,
+                cor: l.cor,
+                centroCustoId: l.centro_custo_id
+            })) || [];
+            setLocais(currentLocais);
+
             let updatedMotoristas: Motorista[] = [];
             let cDrivers: any[] = [];
             let cVehicles: any[] = [];
@@ -524,7 +563,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     let displayName = 'Sem Motorista';
 
                     // Only show Cartrack driver if vehicle is moving/idle OR has an active tag swipe
-                    // This prevents "João Lisboa" (or any last known driver) from sticking to parked cars
                     const shouldShowCartrackDriver = v.status !== 'stopped' || !!v.tagId;
 
                     if (localM) {
@@ -533,24 +571,36 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         displayName = resolvedName!;
                     }
 
-                    return {
-                        ...v,
-                        driverName: displayName
-                    };
+                    // 3. Detect current Cost Center from POIs (Locais)
+                    let currentCCId: string | undefined = undefined;
+                    let currentCCName: string | undefined = undefined;
 
-                    if (v.registration.includes('ZZ')) {
-                        console.log('Debug ZZ:', {
-                            reg: v.registration,
-                            driverId: v.driverId,
-                            resolvedName,
-                            localFound: !!localM,
-                            displayName
-                        });
+                    if (v.latitude && v.longitude) {
+                        // Prioritize smallest radius (smallest matches win)
+                        const matchingLocals = currentLocais.filter(l =>
+                            l.centroCustoId && getDistance(v.latitude, v.longitude, l.latitude, l.longitude) <= l.raio
+                        ).sort((a, b) => a.raio - b.raio);
+
+                        const matchingLocal = matchingLocals[0];
+
+                        if (matchingLocal) {
+                            currentCCId = matchingLocal.centroCustoId;
+                            currentCCName = matchingLocal.nome;
+                        }
+
+                        // NEW: Also check direct geofence mapping from Cartrack (if present in vehicle object)
+                        if (!currentCCId && v.currentGeofenceName && geofenceMappings[v.currentGeofenceName]) {
+                            currentCCId = geofenceMappings[v.currentGeofenceName];
+                            const cc = centrosCustos.find(c => c.id === currentCCId);
+                            currentCCName = cc?.nome || v.currentGeofenceName;
+                        }
                     }
 
                     return {
                         ...v,
-                        driverName: displayName
+                        driverName: displayName,
+                        currentCentroCustoId: currentCCId,
+                        currentCentroCustoName: currentCCName
                     };
                 });
 
@@ -618,7 +668,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (tankData) setFuelTank({ id: tankData.id, capacity: tankData.capacity, currentLevel: tankData.current_level, pumpTotalizer: tankData.pump_totalizer, lastRefillDate: tankData.last_refill_date, averagePrice: tankData.average_price });
 
             const { data: transData } = await supabase.from('fuel_transactions').select('*');
-            if (transData) setFuelTransactions(transData.map((t: any) => ({ ...t, driverId: t.driver_id, vehicleId: t.vehicle_id, staffId: t.staff_id, staffName: t.staff_name, pumpCounterAfter: t.pump_counter_after, pricePerLiter: t.price_per_liter, totalCost: t.total_cost, centroCustoId: t.centro_custo_id })));
+            if (transData) setFuelTransactions(transData.map((t: any) => ({ ...t, driverId: t.driver_id, vehicleId: t.vehicle_id, staffId: t.staff_id, staffName: t.staff_name, pumpCounterAfter: t.pump_counter_after, pricePerLiter: t.price_per_liter, totalCost: t.total_cost, centroCustoId: t.centro_custo_id, isExternal: t.is_external })));
 
             const { data: refillData } = await supabase.from('tank_refills').select('*');
             if (refillData) setTankRefills(refillData.map((r: any) => ({ ...r, litersAdded: r.liters_added, levelBefore: r.level_before, levelAfter: r.level_after, totalSpentSinceLast: r.total_spent_since_last, pumpMeterReading: r.pump_meter_reading, systemExpectedReading: r.system_expected_reading, staffId: r.staff_id, staffName: r.staff_name, pricePerLiter: r.price_per_liter, totalCost: r.total_cost })));
@@ -682,17 +732,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 console.warn('Silent fail: could not fetch Visits:', e);
             }
 
-            // 6. Locais (POIs)
-            const { data: locs } = await supabase.from('locais').select('*');
-            if (locs) setLocais(locs.map((l: any) => ({
-                id: l.id,
-                nome: l.nome,
-                latitude: l.latitude,
-                longitude: l.longitude,
-                raio: l.raio,
-                tipo: l.tipo,
-                cor: l.cor
-            })));
+            // 6. Locais (POIs) - ALREADY FETCHED ABOVE
 
         } catch (error) {
             console.error('Error refreshing data:', error);
@@ -859,7 +899,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             raio: l.raio,
             tipo: l.tipo,
             cor: l.cor,
-            user_id: l.userId
+            user_id: l.userId,
+            centro_custo_id: l.centroCustoId
         });
         if (!error) setLocais(prev => [...prev, l]);
     };
@@ -871,7 +912,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             longitude: l.longitude,
             raio: l.raio,
             tipo: l.tipo,
-            cor: l.cor
+            cor: l.cor,
+            centro_custo_id: l.centroCustoId
         }).eq('id', l.id);
         if (!error) setLocais(prev => prev.map(item => item.id === l.id ? l : item));
     };
@@ -949,16 +991,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    useEffect(() => {
-        refreshData();
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
-            if (event === 'SIGNED_IN') {
-                refreshData();
-            }
-        });
-        return () => subscription.unsubscribe();
-    }, []);
-
     // Fuel Methods
     const updateFuelTank = async (tank: FuelTank) => {
         const { error } = await supabase.from('fuel_tank').upsert({
@@ -974,13 +1006,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const registerRefuel = async (transaction: FuelTransaction) => {
         const currentPMP = fuelTank.averagePrice || 0;
-        const totalCost = transaction.liters * currentPMP;
+
+        // Trust provided values (e.g. from BP imports) or fallback to internal PMP
+        const finalPrice = transaction.pricePerLiter ?? currentPMP;
+        const finalTotal = transaction.totalCost ?? (transaction.liters * currentPMP);
 
         let finalStatus = transaction.status || 'pending';
         let pumpCounterAfter = 0;
 
-        // If explicitly confirmed (Dual Auth), calculate tank updates immediately
-        if (finalStatus === 'confirmed') {
+        // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates immediately
+        if (finalStatus === 'confirmed' && !transaction.isExternal) {
             const currentTotalizer = fuelTank.pumpTotalizer || 0;
             pumpCounterAfter = currentTotalizer + transaction.liters;
             const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
@@ -996,9 +1031,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         const transactionToSave = {
             ...transaction,
             status: finalStatus,
-            pricePerLiter: currentPMP,
-            totalCost: totalCost,
-            pumpCounterAfter: finalStatus === 'confirmed' ? pumpCounterAfter : undefined
+            pricePerLiter: finalPrice,
+            totalCost: finalTotal,
+            pumpCounterAfter: (finalStatus === 'confirmed' && !transaction.isExternal) ? pumpCounterAfter : undefined
         };
 
         const { error } = await supabase.from('fuel_transactions').insert({
@@ -1014,7 +1049,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             price_per_liter: transactionToSave.pricePerLiter,
             total_cost: transactionToSave.totalCost,
             centro_custo_id: transactionToSave.centroCustoId,
-            pump_counter_after: transactionToSave.pumpCounterAfter
+            pump_counter_after: transactionToSave.pumpCounterAfter,
+            is_external: transactionToSave.isExternal
         });
 
         if (!error) {
@@ -1608,6 +1644,162 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const updateGeofenceMapping = async (geofenceName: string, centroCustoId: string) => {
+        try {
+            const { error } = await supabase
+                .from('cartrack_geofence_mappings')
+                .upsert({ geofence_name: geofenceName, centro_custo_id: centroCustoId });
+
+            if (error) throw error;
+            setGeofenceMappings(prev => ({ ...prev, [geofenceName]: centroCustoId }));
+        } catch (e) {
+            console.error('Error updating geofence mapping:', e);
+        }
+    };
+
+    const getVehicleOccupancyHistory = async (vehicleId: string, startDate: string, endDate: string) => {
+        try {
+            // 1. Get Geofence Visits
+            const visits = await CartrackService.getGeofenceVisits(startDate, endDate, vehicleId);
+
+            // 2. Generate days map
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const occupancy: Record<string, { centroCustoId: string | null; duration: number; visitedCCs: Set<string> }> = {};
+
+            // Initialize days
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                occupancy[d.toISOString().split('T')[0]] = { centroCustoId: null, duration: 0, visitedCCs: new Set() };
+            }
+
+            // 3. Attribute visits to days
+            visits.forEach(visit => {
+                const ccId = geofenceMappings[visit.geofenceName];
+                if (!ccId) return;
+
+                const entry = new Date(visit.entryTime);
+                const exit = visit.exitTime ? new Date(visit.exitTime) : new Date();
+
+                // For each day the visit spans
+                const current = new Date(entry);
+                while (current <= exit) {
+                    const dayKey = current.toISOString().split('T')[0];
+                    if (occupancy[dayKey]) {
+                        // Calculate duration on this specific day
+                        const dayStart = new Date(current); dayStart.setHours(0, 0, 0, 0);
+                        const dayEnd = new Date(current); dayEnd.setHours(23, 59, 59, 999);
+
+                        const overlapStart = entry > dayStart ? entry : dayStart;
+                        const overlapEnd = exit < dayEnd ? exit : dayEnd;
+
+                        const durationInMinutes = Math.max(0, (overlapEnd.getTime() - overlapStart.getTime()) / 60000);
+
+                        // If the presence is significant (> 1 minute), add this CC to the day's record
+                        if (durationInMinutes > 1) {
+                            occupancy[dayKey].visitedCCs.add(ccId);
+                        }
+                    }
+                    // Move to next day (ensuring we cross midnight correctly)
+                    current.setDate(current.getDate() + 1);
+                    current.setHours(0, 0, 0, 0);
+                }
+            });
+
+            const results: { date: string; centroCustoId: string | null }[] = [];
+            Object.entries(occupancy).forEach(([date, data]) => {
+                const ccs = Array.from(data.visitedCCs);
+                if (ccs.length === 0) {
+                    results.push({ date, centroCustoId: null });
+                } else {
+                    ccs.forEach(ccId => {
+                        results.push({ date, centroCustoId: ccId });
+                    });
+                }
+            });
+
+            return results;
+
+        } catch (e) {
+            console.error('Error calculating occupancy:', e);
+            return [];
+        }
+    };
+
+    const syncRealTimeRentals = async () => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const activeVehicles = cartrackVehicles.filter(v => v.currentCentroCustoId);
+
+            if (activeVehicles.length === 0) return;
+
+            for (const v of activeVehicles) {
+                const viatura = viaturas.find(vit => vit.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === v.registration.replace(/[^a-zA-Z0-9]/g, '').toUpperCase());
+                if (!viatura || !v.currentCentroCustoId) continue;
+
+                // Check if a record already exists for this vehicle + CC + date
+                const { data: existing } = await supabase
+                    .from('faturas')
+                    .select('id')
+                    .eq('tipo', 'aluguer')
+                    .eq('data', today)
+                    .contains('aluguer_details', {
+                        viaturaId: viatura.id,
+                        centroCustoId: v.currentCentroCustoId
+                    })
+                    .limit(1);
+
+                if (existing && existing.length > 0) {
+                    console.log(`Skipping auto-sync for ${v.registration}: already exists.`);
+                    continue;
+                }
+
+                const rentalData = {
+                    numero: `AUTO-${today.replace(/-/g, '')}-${v.registration.replace(/[^a-zA-Z0-9]/g, '').slice(-4)}`,
+                    data: today,
+                    vencimento: today,
+                    clienteId: null, // Set to null for internal auto-sync to avoid FKEY issues
+                    status: 'emitida',
+                    subtotal: viatura.precoDiario || 0,
+                    imposto: (viatura.precoDiario || 0) * 0.23,
+                    desconto: 0,
+                    total: (viatura.precoDiario || 0) * 1.23,
+                    tipo: 'aluguer',
+                    aluguerDetails: {
+                        viaturaId: viatura.id,
+                        viaturasIds: [viatura.id],
+                        dias: 1,
+                        dataInicio: today,
+                        dataFim: today,
+                        centroCustoId: v.currentCentroCustoId,
+                        detalhesViaturas: [{
+                            viaturaId: viatura.id,
+                            dias: 1,
+                            dataInicio: today,
+                            dataFim: today,
+                            precoDiario: viatura.precoDiario || 0,
+                            centroCustoId: v.currentCentroCustoId
+                        }]
+                    }
+                };
+
+                const { error } = await supabase.from('faturas').insert(rentalData);
+                if (error) console.error('Error auto-syncing rental:', error);
+            }
+            // Trigger a data refresh after sync
+            await refreshData();
+        } catch (e) {
+            console.error('Auto-sync failed:', e);
+        }
+    };
+
+    // Auto-sync effect
+    useEffect(() => {
+        const interval = setInterval(() => {
+            syncRealTimeRentals();
+        }, 15 * 60 * 1000); // 15 minutes
+        return () => clearInterval(interval);
+    }, [cartrackVehicles, viaturas]);
+
     return (
         <WorkshopContext.Provider value={{
             fornecedores,
@@ -1692,6 +1884,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addAvaliacao,
             adminUsers,
             avaliacoes,
+            syncRealTimeRentals,
+            geofenceMappings,
+            updateGeofenceMapping,
+            getVehicleOccupancyHistory,
             addNotification,
             updateNotification,
             refreshData,

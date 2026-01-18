@@ -1,19 +1,19 @@
-import { MapPin, RefreshCw, AlertCircle, Car, Layers, History, Search } from 'lucide-react';
+import { MapPin, RefreshCw, AlertCircle, Car, Layers, History, Search, X } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import GeofenceMap from './GeofenceMap';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { CartrackService, debugLastResponse } from '../../services/cartrack';
 
 export default function Geofences() {
-    const { geofenceVisits, refreshData, motoristas, cartrackError } = useWorkshop();
+    const { geofenceVisits, refreshData, cartrackError, locais, cartrackVehicles, centrosCustos, geofenceMappings, updateGeofenceMapping } = useWorkshop();
 
     const [geofences, setGeofences] = useState<any[]>([]);
-    const [vehicles, setVehicles] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState<'map' | 'history'>('map');
     const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
     // Error handled by context
     const [searchTerm, setSearchTerm] = useState('');
     const [debugInfo, setDebugInfo] = useState<any>(null); // DEBUG STATE
@@ -24,63 +24,17 @@ export default function Geofences() {
         else setLoading(true);
 
         // Error cleared by context refresh
-        const normalizePlate = (p?: string | null) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
+        // ...
         try {
-            const [geoData, vehiclesData] = await Promise.allSettled([
-                CartrackService.getGeofences(),
-                CartrackService.getVehicles()
+            const [geoData] = await Promise.allSettled([
+                CartrackService.getGeofences()
             ]);
 
             if (geoData.status === 'fulfilled') {
                 setGeofences(geoData.value);
             }
 
-            if (vehiclesData.status === 'fulfilled') {
-                const cDrivers = (await CartrackService.getDrivers()) || [];
-                const rawVehicles = vehiclesData.value;
-                const enriched = rawVehicles.map((v: any) => {
-                    let resolvedName = v.driverName;
-
-                    const isProperName = (name?: string | null) => {
-                        if (!name || name === 'N/A' || name === 'Sem Motorista') return false;
-                        return normalizePlate(name) !== normalizePlate(v.registration);
-                    };
-
-                    if (!isProperName(resolvedName) && (v.driverId || v.tagId)) {
-                        const cd = cDrivers.find(d =>
-                            (v.driverId && String(d.id) === String(v.driverId)) ||
-                            (v.tagId && d.tagId === v.tagId)
-                        );
-                        if (cd) {
-                            resolvedName = cd.fullName;
-                        }
-                    }
-
-                    const localM = motoristas.find(m =>
-                        (m.cartrackId && String(m.cartrackId) === String(v.driverId)) ||
-                        (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
-                    );
-
-                    let displayName = 'Sem Motorista';
-
-                    // Only show Cartrack driver if vehicle is moving/idle OR has an active tag swipe
-                    // This prevents "João Lisboa" (or any last known driver) from sticking to parked cars
-                    const shouldShowCartrackDriver = v.status !== 'stopped' || !!v.tagId;
-
-                    if (localM) {
-                        displayName = localM.nome;
-                    } else if (shouldShowCartrackDriver && isProperName(resolvedName)) {
-                        displayName = resolvedName!;
-                    }
-
-                    return { ...v, driverName: displayName };
-                });
-                setVehicles(enriched);
-            }
-
-            if (geoData.status === 'rejected' && vehiclesData.status === 'rejected') {
-                throw new Error('Falha ao conectar à Cartrack. Verifique a ligação.');
-            }
+            await refreshData();
 
         } catch (err) {
             console.error(err);
@@ -113,7 +67,7 @@ export default function Geofences() {
     );
 
     const enrichedVisits = filteredVisits.map(visit => {
-        const matchingVehicle = vehicles.find(v => v.registration === visit.registration);
+        const matchingVehicle = cartrackVehicles.find(v => v.registration === visit.registration);
         return {
             ...visit,
             driverName: matchingVehicle?.driverName || 'N/A'
@@ -154,14 +108,24 @@ export default function Geofences() {
                         </button>
                     </div>
 
-                    <button
-                        onClick={handleRefresh}
-                        disabled={loading || refreshing}
-                        className="flex items-center gap-3 px-8 py-4 bg-white text-black rounded-2xl hover:bg-white/90 transition-all disabled:opacity-50 font-black text-xs uppercase tracking-widest shadow-2xl"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                        <span>{refreshing ? '...' : 'Sincronizar'}</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsMappingModalOpen(true)}
+                            className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all font-black text-xs uppercase tracking-widest shadow-2xl"
+                        >
+                            <Layers className="w-4 h-4" />
+                            <span>Mapear Geofences</span>
+                        </button>
+
+                        <button
+                            onClick={handleRefresh}
+                            disabled={loading || refreshing}
+                            className="flex items-center gap-3 px-8 py-4 bg-white text-black rounded-2xl hover:bg-white/90 transition-all disabled:opacity-50 font-black text-xs uppercase tracking-widest shadow-2xl"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                            <span>{refreshing ? '...' : 'Sincronizar'}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -198,12 +162,12 @@ export default function Geofences() {
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                 Lista de Viaturas
                             </h3>
-                            <span className="text-[10px] font-mono text-blue-500 font-bold">{vehicles.length} UNIT</span>
+                            <span className="text-[10px] font-mono text-blue-500 font-bold">{cartrackVehicles.length} UNIT</span>
                         </div>
 
                         {/* THE SCROLLABLE LIST - FORCED CUSTOM SCROLLBAR */}
                         <div className="flex-1 overflow-y-scroll p-4 space-y-2 bg-[#0a0a0f] custom-scrollbar-forced">
-                            {vehicles.sort((a, b) => a.registration.localeCompare(b.registration)).map(vehicle => (
+                            {cartrackVehicles.sort((a, b) => a.registration.localeCompare(b.registration)).map(vehicle => (
                                 <div
                                     key={vehicle.id}
                                     onClick={() => setSelectedVehicle(vehicle)}
@@ -248,7 +212,13 @@ export default function Geofences() {
 
                     {/* MAP SECTION - FULL WIDTH STRETCH */}
                     <div className="w-full xl:flex-1 h-[500px] xl:h-auto bg-[#161625] rounded-[40px] border border-white/5 p-2 shadow-2xl relative overflow-hidden group">
-                        <GeofenceMap geofences={geofences} vehicles={vehicles} selectedVehicle={selectedVehicle} />
+                        <GeofenceMap
+                            vehicles={cartrackVehicles}
+                            geofences={geofences}
+                            locais={locais}
+                            selectedVehicle={selectedVehicle}
+                            onSelectVehicle={setSelectedVehicle}
+                        />
 
                         {/* Floating Status */}
                         <div className="absolute top-6 right-6 z-[1000] flex gap-3">
@@ -373,6 +343,65 @@ export default function Geofences() {
                 /* Layout Stretch Fix */
                 .flex-1 { flex: 1 1 0% !important; }
             `}</style>
+            {/* MAPPING MODAL */}
+            {isMappingModalOpen && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    <div className="bg-[#161625] w-full max-w-2xl rounded-[40px] border border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-8 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-transparent">
+                            <div>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Mapeamento de Geofences</h3>
+                                <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">Vincule geofences da Cartrack a Centros de Custo</p>
+                            </div>
+                            <button onClick={() => setIsMappingModalOpen(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all text-slate-400 hover:text-white">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-8 max-h-[60vh] overflow-y-auto space-y-4 custom-scrollbar">
+                            <div className="grid grid-cols-2 gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest px-4">
+                                <span>Geofence (Cartrack)</span>
+                                <span>Centro de Custo (Local)</span>
+                            </div>
+
+                            {geofences.sort((a, b) => a.name.localeCompare(b.name)).map(geo => (
+                                <div key={geo.id} className="grid grid-cols-2 gap-4 items-center bg-white/5 p-4 rounded-3xl border border-white/5 hover:border-white/10 transition-all group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                            <MapPin className="w-4 h-4" />
+                                        </div>
+                                        <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{geo.name}</span>
+                                    </div>
+                                    <select
+                                        value={geofenceMappings[geo.name] || ''}
+                                        onChange={(e) => updateGeofenceMapping(geo.name, e.target.value)}
+                                        className="bg-[#0a0a0f] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all cursor-pointer hover:bg-black/40"
+                                    >
+                                        <option value="">Não Vinculado</option>
+                                        {centrosCustos.map(cc => (
+                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ))}
+
+                            {geofences.length === 0 && (
+                                <div className="p-12 text-center text-slate-500 uppercase tracking-widest text-xs font-black">
+                                    Nenhuma geofence encontrada na Cartrack
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-8 bg-black/20 border-t border-white/5 flex justify-end">
+                            <button
+                                onClick={() => setIsMappingModalOpen(false)}
+                                className="px-10 py-4 bg-white text-black font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-white/90 transition-all shadow-xl"
+                            >
+                                Concluído
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
