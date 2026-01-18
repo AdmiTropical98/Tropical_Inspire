@@ -222,6 +222,15 @@ function AppContent() {
 
       {/* Force deploy correction */}
 
+      {/* DB Connection Error Banner */}
+      {useWorkshop().dbConnectionError && (
+        <div className="absolute top-0 left-0 w-full bg-red-600 text-white p-2 z-[9999] text-center font-bold flex items-center justify-center gap-2 shadow-xl animate-pulse">
+          <AlertCircle className="w-5 h-5" />
+          {useWorkshop().dbConnectionError} -- Verifique a Consola (F12) para detalhes.
+          <button onClick={() => window.location.reload()} className="ml-4 underline text-xs">Recarregar</button>
+        </div>
+      )}
+
       {/* SIDEBAR */}
       <aside className="w-72 bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl">
         <button

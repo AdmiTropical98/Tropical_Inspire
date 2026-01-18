@@ -46,7 +46,9 @@ interface WorkshopContextType {
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
     cartrackDrivers: import('../services/cartrack').CartrackDriver[];
+    cartrackDrivers: import('../services/cartrack').CartrackDriver[];
     cartrackError: string | null;
+    dbConnectionError: string | null; // NEW: Explicit DB Error
 
     // POI / Locais
     locais: Local[];
@@ -137,6 +139,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [cartrackVehicles, setCartrackVehicles] = useState<import('../services/cartrack').CartrackVehicle[]>([]);
     const [cartrackDrivers, setCartrackDrivers] = useState<import('../services/cartrack').CartrackDriver[]>([]);
     const [cartrackError, setCartrackError] = useState<string | null>(null);
+    const [dbConnectionError, setDbConnectionError] = useState<string | null>(null);
 
 
 
@@ -369,52 +372,67 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const refreshData = async () => {
         try {
             setCartrackError(null);
+            setDbConnectionError(null); 
+
             // 1. Core Data
             try {
-                const { data: f } = await supabase.from('fornecedores').select('*');
+                const { data: f, error } = await supabase.from('fornecedores').select('*');
+                if (error) throw error;
                 if (f) setFornecedores(f);
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Error fetching fornecedores:', e);
+                setDbConnectionError(`Erro Conexão (Fornecedores): ${e.message || 'Desconhecido'}`);
             }
 
             try {
-                const { data: c } = await supabase.from('clientes').select('*');
+                const { data: c, error } = await supabase.from('clientes').select('*');
+                if (error) throw error;
                 if (c) setClientes(c);
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Error fetching clientes:', e);
+                setDbConnectionError(`Erro Conexão (Clientes): ${e.message || 'Desconhecido'}`);
             }
 
             // POIs
             try {
-                const { data: loc } = await supabase.from('locais').select('*');
+                const { data: loc, error } = await supabase.from('locais').select('*');
+                if (error) throw error;
                 if (loc) setLocais(loc.map((l: any) => ({ ...l, userId: l.user_id })));
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Error fetching locais:', e);
+                setDbConnectionError(`Erro Conexão (Locais): ${e.message || 'Desconhecido'}`);
             }
 
             try {
-                const { data: v } = await supabase.from('viaturas').select('*');
+                const { data: v, error } = await supabase.from('viaturas').select('*');
+                if (error) throw error;
                 if (v) setViaturas(v.map((item: any) => ({ ...item, precoDiario: item.preco_diario })));
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Error fetching viaturas:', e);
+                setDbConnectionError(`Erro Conexão (Viaturas): ${e.message || 'Desconhecido'}`);
             }
 
             try {
-                const { data: cc } = await supabase.from('centros_custos').select('*');
+                const { data: cc, error } = await supabase.from('centros_custos').select('*');
+                if (error) throw error;
                 if (cc) setCentrosCustos(cc.map((item: any) => ({ ...item, id: item.id, nome: item.nome, localizacao: item.localizacao, codigo: item.codigo })));
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Error fetching centros_custos:', e);
+                setDbConnectionError(`Erro Conexão (Centros de Custo): ${e.message || 'Permissão Negada'}`);
             }
 
             try {
-                const { data: r } = await supabase.from('requisicoes').select('*');
+                const { data: r, error } = await supabase.from('requisicoes').select('*');
+                if (error) throw error;
                 if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por, custo: item.custo })));
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Error fetching requisicoes:', e);
+                // Don't override previous critical error if found
             }
 
             try {
-                const { data: av } = await supabase.from('avaliacoes').select('*');
+                const { data: av, error } = await supabase.from('avaliacoes').select('*');
+                if (error) throw error;
                 if (av) setAvaliacoes(av.map((item: any) => ({
                     id: item.id,
                     motoristaId: item.motorista_id,
@@ -425,7 +443,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     obs: item.obs,
                     dataAvaliacao: item.data_avaliacao
                 })));
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Error fetching avaliacoes:', e);
             }
 
@@ -1874,6 +1892,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             cartrackVehicles,
             cartrackDrivers,
             cartrackError,
+            dbConnectionError,
             fuelTank,
             fuelTransactions,
             tankRefills,
