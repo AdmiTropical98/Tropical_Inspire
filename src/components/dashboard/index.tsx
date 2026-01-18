@@ -143,15 +143,17 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
 
     // Load Layout from DB
     useEffect(() => {
+        if (!currentUser) return;
+
         const loadLayout = async () => {
             const { data, error } = await supabase
                 .from('app_settings')
                 .select('dashboard_layout')
-                .limit(1)
-                .single();
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
 
             if (data && data.dashboard_layout && Array.isArray(data.dashboard_layout) && data.dashboard_layout.length > 0) {
-                // Merge with defaults to ensure new widgets appear if added later
+                // Merge with defaults
                 const saved = data.dashboard_layout as string[];
                 const defaults = ['stats_services', 'stats_fleet', 'stats_drivers', 'stats_alerts', 'live_ops', 'quick_access', 'activity_feed', 'admin_management'];
                 const merged = Array.from(new Set([...saved, ...defaults]));
@@ -159,7 +161,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
             }
         };
         loadLayout();
-    }, []);
+    }, [currentUser]);
 
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -175,19 +177,19 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
     };
 
     const saveLayout = async () => {
+        if (!currentUser) return;
+
         const { error } = await supabase
             .from('app_settings')
-            .upsert({ id: '00000000-0000-0000-0000-000000000000', dashboard_layout: layout }) // Should use a singleton logic or match existing ID logic if table isn't single-row.
-            // Actually, best to fetch ID first or use a fixed singleton ID if applicable.
-            // For now, let's try to update the First row found.
-            .select();
+            .upsert({
+                user_id: currentUser.id,
+                dashboard_layout: layout,
+                updated_at: new Date().toISOString()
+            });
 
         if (error) {
-            // Fallback: try inserting if empty, or update any
             console.error('Save layout error:', error);
-            // Try simplified update if singleton
-            await supabase.from('app_settings').update({ dashboard_layout: layout }).gt('created_at', '2000-01-01');
-            alert('Layout salvo globalmente!');
+            alert('Erro ao salvar layout: ' + error.message);
         } else {
             alert('Layout salvo com sucesso!');
         }

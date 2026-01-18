@@ -37,9 +37,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         const loadLayouts = async () => {
             const { data, error } = await supabase
                 .from('user_layouts')
-                .select('layout_data')
                 .eq('user_id', currentUser.id)
-                .single();
+                .maybeSingle();
             
             if (data && data.layout_data) {
                 setLayouts(data.layout_data);
