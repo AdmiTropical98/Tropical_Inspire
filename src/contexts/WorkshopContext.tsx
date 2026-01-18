@@ -1504,12 +1504,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (error) throw error; // Propagate error
         setGestores(prev => [...prev, g]);
     };
-            console.error('Error adding Gestor:', error);
-            return { error };
-        }
-        setGestores(prev => [...prev, g]);
-        return { error: null };
-    };
+
     const updateGestor = async (g: Gestor) => {
         const { error } = await supabase.from('gestores').update({
             nome: g.nome,

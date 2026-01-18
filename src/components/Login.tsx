@@ -12,6 +12,7 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showRegPassword, setShowRegPassword] = useState(false);
 
     // Registration Modal State
     const [showRegistration, setShowRegistration] = useState(false);
@@ -415,15 +416,24 @@ export default function Login() {
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-medium text-slate-400 uppercase">Definir Palavra-Passe</label>
-                                        <input
-                                            type="password"
-                                            required
-                                            value={regData.password}
-                                            onChange={e => setRegData({ ...regData, password: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-purple-500 outline-none"
-                                            placeholder="••••••••"
-                                            minLength={6}
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type={showRegPassword ? "text" : "password"}
+                                                required
+                                                value={regData.password}
+                                                onChange={e => setRegData({ ...regData, password: e.target.value })}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-purple-500 outline-none pr-10"
+                                                placeholder="••••••••"
+                                                minLength={6}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowRegPassword(!showRegPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                                            >
+                                                {showRegPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="pt-4 border-t border-slate-800 mt-4">

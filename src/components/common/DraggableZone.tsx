@@ -43,10 +43,13 @@ function SortableItem({ id, children, config, onToggleWidth, onToggleVisibility,
     const getWidthClass = () => {
         if (layout === 'flex') return '';
         const w = config?.width || 'full';
+
+        // Base is always col-span-12 (mobile first)
+        // larger screens (md/lg) get the persistent width
         switch (w) {
-            case 'half': return 'col-span-6';
-            case 'third': return 'col-span-4';
-            case 'quarter': return 'col-span-3';
+            case 'half': return 'col-span-12 lg:col-span-6';
+            case 'third': return 'col-span-12 lg:col-span-4';
+            case 'quarter': return 'col-span-12 md:col-span-6 lg:col-span-3';
             default: return 'col-span-12';
         }
     };
