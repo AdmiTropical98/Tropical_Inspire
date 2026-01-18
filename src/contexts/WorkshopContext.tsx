@@ -46,7 +46,7 @@ interface WorkshopContextType {
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
     cartrackDrivers: import('../services/cartrack').CartrackDriver[];
-    cartrackDrivers: import('../services/cartrack').CartrackDriver[];
+
     cartrackError: string | null;
     dbConnectionError: string | null; // NEW: Explicit DB Error
 
@@ -808,8 +808,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    // Manual Hours Implementation
+    // INITIAL DATA FETCH
+    useEffect(() => {
+        refreshData();
+    }, []); // Empty dependency array = run once on mount
 
+    // Manual Hours Implementation
     const logServiceHistory = async (servicoId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', previousData: any, newData: any) => {
         try {
             const storedUser = localStorage.getItem('currentUser');
