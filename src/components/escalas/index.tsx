@@ -1485,7 +1485,7 @@ export default function Escalas() {
                     </div>
                 )}
             </div>
-            )}
+            </div>
 
             {/* MODAL: NEW SERVICE */}
             {
@@ -1659,22 +1659,12 @@ export default function Escalas() {
                                     >
                                         Cancelar
                                     </button>
-                                    <button
-                                        type="submit"
-                                        className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 flex items-center gap-2"
-                                    >
-                                        <Plus className="w-5 h-5" />
-                                        {t('schedule.modal.new.add_btn')}
-                                    </button>
                                 </div>
                             </form>
                         </div>
-                    </div >
+                    </div>
                 )
             }
-
-
-            </div >
 
                 {/* PENDING SIDEBAR WIDGET */}
                 {
