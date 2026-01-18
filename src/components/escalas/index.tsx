@@ -669,7 +669,7 @@ export default function Escalas() {
                                 </button>
                             )}
 
-                            {/* View Mode Toggle */}Pending Details Toggle */}
+                            {/* Pending Details Toggle */}
                             {hasAccess(userRole, 'escalas_view_pending') && (
                                 <button
                                     onClick={() => setIsPendingSidebarOpen(!isPendingSidebarOpen)}
@@ -782,7 +782,7 @@ export default function Escalas() {
                     {/* DRIVERS GRID WIDGET */}
                     <div key="drivers_grid" className="h-full relative flex flex-col">
 
-                        {/* Status Tabs (Stick to top of widget) */}w-full">
+                        {/* Status Tabs (Stick to top of widget) */}
 
                 {viewMode === 'cards' ? (
                     /* CARD VIEW (Existing) */
@@ -1485,6 +1485,7 @@ export default function Escalas() {
                     </div>
                 )}
             </div>
+            )}
 
             {/* MODAL: NEW SERVICE */}
             {
@@ -1674,7 +1675,6 @@ export default function Escalas() {
 
 
             </div >
-        </div>
 
                 {/* PENDING SIDEBAR WIDGET */}
                 {
