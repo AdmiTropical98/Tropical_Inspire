@@ -370,36 +370,64 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         try {
             setCartrackError(null);
             // 1. Core Data
-            const { data: f } = await supabase.from('fornecedores').select('*');
-            if (f) setFornecedores(f);
+            try {
+                const { data: f } = await supabase.from('fornecedores').select('*');
+                if (f) setFornecedores(f);
+            } catch (e) {
+                console.error('Error fetching fornecedores:', e);
+            }
 
-            const { data: c } = await supabase.from('clientes').select('*');
-            if (c) setClientes(c);
+            try {
+                const { data: c } = await supabase.from('clientes').select('*');
+                if (c) setClientes(c);
+            } catch (e) {
+                console.error('Error fetching clientes:', e);
+            }
 
             // POIs
-            const { data: loc } = await supabase.from('locais').select('*');
-            if (loc) setLocais(loc.map((l: any) => ({ ...l, userId: l.user_id })));
+            try {
+                const { data: loc } = await supabase.from('locais').select('*');
+                if (loc) setLocais(loc.map((l: any) => ({ ...l, userId: l.user_id })));
+            } catch (e) {
+                console.error('Error fetching locais:', e);
+            }
 
-            const { data: v } = await supabase.from('viaturas').select('*');
-            if (v) setViaturas(v.map((item: any) => ({ ...item, precoDiario: item.preco_diario })));
+            try {
+                const { data: v } = await supabase.from('viaturas').select('*');
+                if (v) setViaturas(v.map((item: any) => ({ ...item, precoDiario: item.preco_diario })));
+            } catch (e) {
+                console.error('Error fetching viaturas:', e);
+            }
 
-            const { data: cc } = await supabase.from('centros_custos').select('*');
-            if (cc) setCentrosCustos(cc.map((item: any) => ({ ...item, id: item.id, nome: item.nome, localizacao: item.localizacao, codigo: item.codigo })));
+            try {
+                const { data: cc } = await supabase.from('centros_custos').select('*');
+                if (cc) setCentrosCustos(cc.map((item: any) => ({ ...item, id: item.id, nome: item.nome, localizacao: item.localizacao, codigo: item.codigo })));
+            } catch (e) {
+                console.error('Error fetching centros_custos:', e);
+            }
 
-            const { data: r } = await supabase.from('requisicoes').select('*');
-            if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por, custo: item.custo })));
+            try {
+                const { data: r } = await supabase.from('requisicoes').select('*');
+                if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por, custo: item.custo })));
+            } catch (e) {
+                console.error('Error fetching requisicoes:', e);
+            }
 
-            const { data: av } = await supabase.from('avaliacoes').select('*');
-            if (av) setAvaliacoes(av.map((item: any) => ({
-                id: item.id,
-                motoristaId: item.motorista_id,
-                adminId: item.admin_id,
-                periodo: item.periodo,
-                pontuacao: item.pontuacao,
-                criterios: item.criterios,
-                obs: item.obs,
-                dataAvaliacao: item.data_avaliacao
-            })));
+            try {
+                const { data: av } = await supabase.from('avaliacoes').select('*');
+                if (av) setAvaliacoes(av.map((item: any) => ({
+                    id: item.id,
+                    motoristaId: item.motorista_id,
+                    adminId: item.admin_id,
+                    periodo: item.periodo,
+                    pontuacao: item.pontuacao,
+                    criterios: item.criterios,
+                    obs: item.obs,
+                    dataAvaliacao: item.data_avaliacao
+                })));
+            } catch (e) {
+                console.error('Error fetching avaliacoes:', e);
+            }
 
             // 2. Eva Transports
             const { data: transports } = await supabase.from('eva_transports').select('*');
