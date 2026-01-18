@@ -48,8 +48,8 @@ export default function Login() {
         }
 
         // 1.1 Strict Email Validation
-        // Checking for @algartempo presence
-        if (!regData.email.toLowerCase().includes('@algartempo')) {
+        // Checking for 'algartempo' presence
+        if (!regData.email.toLowerCase().includes('algartempo')) {
             setRegError('O email não é autenticado pela empresa. Contacte o administrador.');
             return;
         }
