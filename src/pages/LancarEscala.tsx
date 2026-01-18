@@ -91,54 +91,80 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     // Excel Handlers
     const handleDownloadTemplate = async () => {
         try {
-            // 1. Fetch Template
-            const response = await fetch('/Modelo_Escala_Tropical.xlsx');
-            const data = await response.arrayBuffer();
-            const workbook = read(data);
-
-            // 2. Fetch Geofences from Cartrack
+            // 1. Fetch Geofences from Cartrack
             const fences = await CartrackService.getGeofences();
 
-            // 3. Group Geofences
+            // 2. Group Geofences
             const groupedFences: Record<string, string[]> = {};
             fences.forEach(f => {
-                const group = f.group_name || 'Outros';
+                const group = (f.group_name || 'OUTROS').toUpperCase();
                 if (!groupedFences[group]) groupedFences[group] = [];
                 groupedFences[group].push(f.name);
             });
 
-            // 4. Prepare Data for "BANCO DE DADOS" Sheet
-            // We need columns where Header = Group Name, Rows = Values
+            // 3. Prepare Data for "BANCO DE DADOS" (Matrix/AoA)
             const groups = Object.keys(groupedFences).sort();
             const maxRows = Math.max(...Object.values(groupedFences).map(arr => arr.length));
 
-            const dbSheetData: any[] = [];
+            // Header Row
+            const dbSheetData: any[][] = [groups];
 
+            // Data Rows
             for (let i = 0; i < maxRows; i++) {
-                const row: any = {};
+                const row: any[] = [];
                 groups.forEach(group => {
-                    if (groupedFences[group][i]) {
-                        row[group] = groupedFences[group][i];
-                    }
+                    row.push(groupedFences[group][i] || '');
                 });
                 dbSheetData.push(row);
             }
 
-            // 5. Update Workbook
-            // Find or Create 'BANCO DE DADOS' sheet
-            let sheetName = workbook.SheetNames.find(n => n.toUpperCase() === 'BANCO DE DADOS');
-            if (sheetName) {
-                // Replace existing sheet
-                const newSheet = utils.json_to_sheet(dbSheetData, { header: groups });
-                workbook.Sheets[sheetName] = newSheet;
-            } else {
-                // Add new sheet
-                const newSheet = utils.json_to_sheet(dbSheetData, { header: groups });
-                utils.book_append_sheet(workbook, newSheet, 'BANCO DE DADOS');
-            }
+            // 4. Create New Workbook (Fresh)
+            const wb = utils.book_new();
 
-            // 6. Download Modified File
-            const wbout = write(workbook, { bookType: 'xlsx', type: 'array' });
+            // 5. Create "Escala" Sheet (Template)
+            const templateHeaders = [
+                'Nome do funcionário',
+                'Origem',
+                'Destino',
+                'Horário de apanhar transporte',
+                'Horário de saída do serviço',
+                'Referência Voo'
+            ];
+
+            // Example Row
+            const exampleRow = [
+                'Exemplo Funcionário',
+                'Hotel A',
+                'Aeroporto',
+                '09:00',
+                '18:00',
+                'TP123'
+            ];
+
+            const wsEscala = utils.aoa_to_sheet([templateHeaders, exampleRow]);
+
+            // Set Column Widths for readability
+            wsEscala['!cols'] = [
+                { wch: 30 }, // Nome
+                { wch: 20 }, // Origem
+                { wch: 20 }, // Destino
+                { wch: 25 }, // Hora Entrada
+                { wch: 25 }, // Hora Saida
+                { wch: 15 }  // Voo
+            ];
+
+            // 6. Create "BANCO DE DADOS" Sheet
+            const wsDb = utils.aoa_to_sheet(dbSheetData);
+
+            // Auto-width for DB columns based on content
+            wsDb['!cols'] = groups.map(() => ({ wch: 25 }));
+
+            // 7. Append Sheets
+            utils.book_append_sheet(wb, wsEscala, 'Escala');
+            utils.book_append_sheet(wb, wsDb, 'BANCO DE DADOS');
+
+            // 8. Download
+            const wbout = write(wb, { bookType: 'xlsx', type: 'array' });
             const blob = new Blob([wbout], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
