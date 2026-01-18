@@ -148,13 +148,14 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
         const loadLayout = async () => {
             const { data, error } = await supabase
                 .from('app_settings')
-                .select('dashboard_layout')
+                .select('value')
                 .eq('user_id', currentUser.id)
+                .eq('key', 'dashboard_layout')
                 .maybeSingle();
 
-            if (data && data.dashboard_layout && Array.isArray(data.dashboard_layout) && data.dashboard_layout.length > 0) {
+            if (data && data.value && Array.isArray(data.value) && data.value.length > 0) {
                 // Merge with defaults
-                const saved = data.dashboard_layout as string[];
+                const saved = data.value as string[];
                 const defaults = ['stats_services', 'stats_fleet', 'stats_drivers', 'stats_alerts', 'live_ops', 'quick_access', 'activity_feed', 'admin_management'];
                 const merged = Array.from(new Set([...saved, ...defaults]));
                 setLayout(merged);
@@ -183,9 +184,10 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
             .from('app_settings')
             .upsert({
                 user_id: currentUser.id,
-                dashboard_layout: layout,
+                key: 'dashboard_layout',
+                value: layout,
                 updated_at: new Date().toISOString()
-            });
+            }, { onConflict: 'user_id, key' });
 
         if (error) {
             console.error('Save layout error:', error);

@@ -683,19 +683,34 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             // 4. Other Teams - Fetched Independently for Safety
             try {
-                const { data: sups } = await supabase.from('supervisores').select('*');
+                const { data: sups, error } = await supabase.from('supervisores').select('*');
+                if (error) throw error;
+                console.log(`[DEBUG] Supervisores fetched: ${sups?.length || 0}`, sups); // DEBUG LOG
                 if (sups) setSupervisors(sups.map((s: any) => ({ ...s, password: s.password, blockedPermissions: s.blocked_permissions, dataRegisto: s.data_registo })));
-            } catch (supErr) { console.error('Error fetching supervisors:', supErr); }
+            } catch (supErr: any) {
+                console.error('Error fetching supervisors:', supErr);
+                setDbConnectionError(`Erro Supervisores: ${supErr.message || 'Desconhecido'}`);
+            }
 
             try {
-                const { data: managers } = await supabase.from('gestores').select('*');
+                const { data: managers, error } = await supabase.from('gestores').select('*');
+                if (error) throw error;
+                console.log(`[DEBUG] Gestores fetched: ${managers?.length || 0}`, managers); // DEBUG LOG
                 if (managers) setGestores(managers.map((g: any) => ({ ...g, blockedPermissions: g.blocked_permissions, dataRegisto: g.data_registo })));
-            } catch (gestErr) { console.error('Error fetching gestores:', gestErr); }
+            } catch (gestErr: any) {
+                console.error('Error fetching gestores:', gestErr);
+                setDbConnectionError(`Erro Gestores: ${gestErr.message || 'Desconhecido'}`);
+            }
 
             try {
-                const { data: oficina } = await supabase.from('oficina_users').select('*');
+                const { data: oficina, error } = await supabase.from('oficina_users').select('*');
+                if (error) throw error;
+                console.log(`[DEBUG] Oficina fetched: ${oficina?.length || 0}`, oficina); // DEBUG LOG
                 if (oficina) setOficinaUsers(oficina.map((u: any) => ({ ...u, blockedPermissions: u.blocked_permissions, dataRegisto: u.data_registo })));
-            } catch (ofiErr) { console.error('Error fetching oficina users:', ofiErr); }
+            } catch (ofiErr: any) {
+                console.error('Error fetching oficina users:', ofiErr);
+                setDbConnectionError(`Erro Oficina: ${ofiErr.message || 'Desconhecido'}`);
+            }
 
             // 4. Notifications & Services
             const { data: notifs } = await supabase.from('notifications').select('*');
