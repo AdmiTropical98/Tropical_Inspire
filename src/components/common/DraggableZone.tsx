@@ -22,8 +22,7 @@ import { useLayout } from '../../contexts/LayoutContext';
 import { GripVertical, Maximize2, Minimize2, Eye, EyeOff } from 'lucide-react';
 
 // --- Sortable Item Wrapper ---
-// --- Sortable Item Wrapper ---
-function SortableItem({ id, children, config, onToggleWidth, onToggleVisibility, isEditMode, layout }: any) {
+function SortableItem({ id, children, config, defaultWidth, onToggleWidth, onToggleVisibility, isEditMode, layout }: any) {
     const {
         attributes,
         listeners,
@@ -42,7 +41,7 @@ function SortableItem({ id, children, config, onToggleWidth, onToggleVisibility,
     // Calculate grid classes based on width
     const getWidthClass = () => {
         if (layout === 'flex') return '';
-        const w = config?.width || 'full';
+        const w = config?.width || defaultWidth || 'full';
 
         // Base is always col-span-12 (mobile first)
         // larger screens (md/lg) get the persistent width
@@ -100,14 +99,19 @@ function SortableItem({ id, children, config, onToggleWidth, onToggleVisibility,
     );
 }
 
+export function DraggableWidget({ id, defaultWidth, children }: { id: string, defaultWidth?: string, children: React.ReactNode }) {
+    return <>{children}</>;
+}
+
 interface DraggableZoneProps {
     zoneId: string;
-    items: { id: string; content: React.ReactNode }[];
+    items?: { id: string; content: React.ReactNode, defaultWidth?: string }[];
+    children?: React.ReactNode;
     className?: string;
     layout?: 'grid' | 'flex';
 }
 
-export default function DraggableZone({ zoneId, items, className, layout = 'grid' }: DraggableZoneProps) {
+export default function DraggableZone({ zoneId, items = [], children, className, layout = 'grid' }: DraggableZoneProps) {
     const { 
         isEditMode, 
         getLayout, 
@@ -125,7 +129,42 @@ export default function DraggableZone({ zoneId, items, className, layout = 'grid
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const layoutItems = getLayout(zoneId, items); // Returns merged items with config
+
+
+    // Merge items: props.items take precedence or merge?
+    // Let's concatenate.
+    // Note: items from children already contain the content (the child itself).
+    // The previous implementation used DraggableWidget just as data holder.
+    // Better: DraggableWidget returns children. So content is child.props.children?
+    // If I use <DraggableWidget> <div>...</div> </DraggableWidget>, content is <div>...</div>.
+    // The child itself IS the DraggableWidget execution result which is Fragment>Children.
+    // So `content: child` would wrap it in DraggableWidget again?
+    // No, `React.Children.toArray` gives the Element.
+    // If I render `item.content`, it renders the DraggableWidget element, which renders children. Correct.
+
+    // However, if I extract `content: child.props.children`, I bypass the wrapper.
+    // If DraggableWidget is just `return <>{children}</>`, it's fine to bypass.
+    // Let's parse `child.props.children` to be safe/cleaner?
+    // No, simpler to just use `content: <>{child.props.children}</>`.
+
+    // Update logic:
+    const parsedChildrenItems = React.Children.toArray(children).map((child: any) => {
+        if (React.isValidElement(child)) {
+            const props = child.props as any;
+            if (props.id) {
+                return {
+                    id: props.id,
+                    content: props.children, // Extract children to avoid double wrapper issues if any
+                    defaultWidth: props.defaultWidth
+                };
+            }
+        }
+        return null;
+    }).filter((i): i is { id: string; content: React.ReactNode; defaultWidth?: string } => Boolean(i));
+
+    const allItems = [...items, ...parsedChildrenItems];
+
+    const layoutItems = getLayout(zoneId, allItems); // Returns merged items with config
     
     // Filter out hidden items unless in edit mode
     const visibleItems = isEditMode 
@@ -160,6 +199,7 @@ export default function DraggableZone({ zoneId, items, className, layout = 'grid
                             key={item.id} 
                             id={item.id}
                             config={item.layoutConfig}
+                            defaultWidth={item.defaultWidth}
                             onToggleWidth={() => toggleItemWidth(zoneId, item.id)}
                             onToggleVisibility={() => toggleItemVisibility(zoneId, item.id)}
                             isEditMode={isEditMode}

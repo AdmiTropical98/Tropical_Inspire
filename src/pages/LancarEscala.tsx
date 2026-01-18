@@ -5,12 +5,14 @@ import { useAuth } from '../contexts/AuthContext';
 import {
     Plus, Trash, ArrowRightLeft, Upload,
     Info, Building2, MapPin,
-    Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download
+    Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download, Settings, Layout
 } from 'lucide-react';
 import { read, utils, write } from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CartrackService } from '../services/cartrack';
+import DraggableZone, { DraggableWidget } from '../components/common/DraggableZone';
+import { useLayout } from '../contexts/LayoutContext';
 
 // Helper for unique IDs for grid rows
 const generateTempId = () => Math.random().toString(36).substr(2, 9);
@@ -31,6 +33,7 @@ interface LancarEscalaProps {
 }
 
 export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
+    const { isEditMode, toggleEditMode } = useLayout();
     const { centrosCustos, createScaleBatch } = useWorkshop();
     const { hasAccess } = usePermissions();
     const { userRole } = useAuth();
@@ -586,10 +589,10 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
             {/* Top Bar: Controls */}
             <div className="bg-[#0f172a] border-b border-slate-800 p-6 shadow-xl z-20">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 max-w-[1920px] mx-auto w-full">
-
+                <DraggableZone zoneId="lancar_header" className="max-w-[1920px] mx-auto w-full">
                     {/* Left: Inputs */}
-                    <div className="flex items-center gap-6 flex-1">
+                    <DraggableWidget id="inputs" defaultWidth="half">
+                        <div className="flex items-center gap-6 flex-1 h-full items-end">
 
                         {/* Date Picker */}
                         <div className="group relative">
@@ -652,13 +655,31 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     value={notes}
                                     onChange={e => setNotes(e.target.value)}
                                 />
-                            </div>
+                                </div>
+                            </DraggableWidget>
                         </div>
 
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex items-center gap-3">
+                    <DraggableWidget id="actions" defaultWidth="half">
+                        <div className="flex items-center gap-3 justify-end h-full items-end">
+                            <button
+                                onClick={toggleEditMode}
+                                className={`
+                                    h-12 px-4 rounded-xl border transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide
+                                    ${isEditMode
+                                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                                        : 'bg-slate-800 text-slate-400 border-slate-700/50 hover:bg-slate-700 hover:text-white'
+                                    }
+                                `}
+                                title="Personalizar Layout"
+                            >
+                                <Layout className="w-4 h-4" />
+                                <span className="hidden xl:block text-left leading-none">
+                                    EDITAR<br />LAYOUT
+                                </span>
+                            </button>
                         {/* Hidden Input */}
                         <input
                             type="file"
@@ -717,8 +738,9 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                 )}
                             </div>
                         </button>
-                    </div>
-                </div>
+                        </div>
+                    </DraggableWidget>
+                </DraggableZone>
             </div>
 
             {/* Main Grid Area */}

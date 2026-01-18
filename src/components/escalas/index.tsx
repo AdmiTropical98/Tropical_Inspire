@@ -23,6 +23,8 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import DraggableZone, { DraggableWidget } from '../common/DraggableZone';
+import { useLayout } from '../../contexts/LayoutContext';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -92,6 +94,7 @@ export default function Escalas() {
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
+    const { isEditMode, toggleEditMode } = useLayout();
 
     // Core State
     const [selectedPendentes, setSelectedPendentes] = useState<string[]>([]);
@@ -666,6 +669,15 @@ export default function Escalas() {
 
 
 
+                            {/* Layout Edit Mode */}
+                            <button
+                                onClick={toggleEditMode}
+                                className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${isEditMode ? 'bg-emerald-600 text-white animate-pulse' : 'bg-[#1e293b] text-slate-400 border border-white/5 hover:text-white'}`}
+                            >
+                                <Edit className="w-4 h-4" />
+                                <span className="hidden sm:inline">Personalizar</span>
+                            </button>
+
                             {/* View Toggles */}
                             {hasAccess(userRole, 'escalas_create') && (
                                 <div className="flex bg-[#1e293b] rounded-lg p-1 border border-white/5">
@@ -731,7 +743,11 @@ export default function Escalas() {
             </div>
 
             {/* MAIN CONTENT AREA */}
-            <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative h-auto md:h-full">
+            {/* LAYOUT CONTAINER */}
+            <div className="flex-1 flex flex-col overflow-hidden h-full relative">
+                <DraggableZone zoneId="escalas_layout_v2" className="h-full">
+                    <DraggableWidget id="drivers_grid" defaultWidth="full">
+                        <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative h-auto md:h-full w-full">
 
                 {viewMode === 'cards' ? (
                     /* CARD VIEW (Existing) */
@@ -1246,211 +1262,7 @@ export default function Escalas() {
                             </div>
                         </div>
 
-                        {/* RIGHT SIDEBAR: PENDING SERVICES */}
-                        {hasAccess(userRole, 'escalas_view_pending') && (
-                            <>
-                                {/* Mobile Backdrop */}
-                                {isPendingSidebarOpen && (
-                                    <div
-                                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
-                                        onClick={() => setIsPendingSidebarOpen(false)}
-                                    />
-                                )}
-
-                                {/* Collapsed Sidebar Strip (Desktop) */}
-                                {isSidebarCollapsed && (
-                                    <div className="hidden lg:flex flex-col items-center py-4 w-12 border-l border-white/5 bg-[#0f172a] h-full z-[50]">
-                                        <button
-                                            onClick={() => setIsSidebarCollapsed(false)}
-                                            className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg mb-4"
-                                            title="Expandir"
-                                        >
-                                            <ArrowLeft className="w-5 h-5" />
-                                        </button>
-                                        <div className="flex-1 flex flex-col items-center gap-2">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider -rotate-90 whitespace-nowrap mt-8">
-                                                Pendentes
-                                            </span>
-                                            {pendentes.length > 0 && (
-                                                <span className="mt-4 bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                                    {pendentes.length}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className={`
-                            fixed lg:relative inset-y-0 right-0 z-[60]
-                            ${isSidebarCollapsed ? 'lg:w-0 lg:border-l-0 lg:overflow-hidden opacity-0 lg:opacity-100' : 'lg:w-[400px] lg:border-l'}
-                            w-[85vw] max-w-[400px]
-                            flex flex-col bg-[#0f172a] border-l border-white/5 shadow-2xl
-                            transform transition-all duration-300 ease-in-out
-                            ${isPendingSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-                        `}>
-                                    {/* Sidebar Header */}
-                                    <div className="p-6 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 z-20 flex flex-col gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
-                                                <Upload className="w-4 h-4 text-white" />
-                                            </div>
-                                            <h2 className="text-lg font-bold text-white max-w-[150px] truncate">
-                                                {t('schedule.pending.title')}
-                                            </h2>
-                                            <div className="flex items-center gap-2 ml-auto">
-                                                <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                                                    {globalPendentes.length}
-                                                </span>
-                                                <button
-                                                    onClick={() => setIsPendingSidebarOpen(false)}
-                                                    className="lg:hidden p-1.5 text-slate-400 hover:text-white bg-slate-800/50 rounded-lg"
-                                                >
-                                                    <X className="w-5 h-5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => setIsSidebarCollapsed(true)}
-                                                    className="hidden lg:flex p-1.5 text-slate-400 hover:text-white bg-slate-800/50 rounded-lg"
-                                                    title="Recolher barra lateral"
-                                                >
-                                                    <ArrowRight className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Batch Assign Control - Hidden in Distribute Mode */}
-                                        {!isDistributeMode && pendentes.length > 0 && (
-                                            <div className={`flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10 ${pendentes.length === 0 ? 'hidden' : ''}`}>
-                                                <select
-                                                    className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer"
-                                                    value={selectedMotoristaForAssign}
-                                                    onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
-                                                >
-                                                    <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
-                                                    {motoristas.map(m => (
-                                                        <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
-                                                    ))}
-                                                </select>
-                                                <button
-                                                    onClick={handleAssign}
-                                                    disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
-                                                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg"
-                                                    title="Atribuir"
-                                                >
-                                                    <ArrowRight className="w-4 h-4" />
-                                                </button>
-                                                {selectedPendentes.length > 0 && (
-                                                    <button
-                                                        onClick={handleBatchDelete}
-                                                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 p-2 rounded-lg transition-all"
-                                                        title="Apagar selecionados"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {pendentes.length > 0 && (
-                                            <div className="flex items-center justify-between mt-1">
-                                                <button
-                                                    onClick={toggleSelectAll}
-                                                    className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white transition-colors"
-                                                >
-                                                    Selecionar Todos
-                                                </button>
-                                                <span className="text-[10px] text-slate-600">
-                                                    {selectedPendentes.length} selecionados
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Grouped Batches List */}
-                                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
-
-                                        {/* Ad-Hoc Group (Legacy) */}
-                                        {adHocPendentes.length > 0 && (
-                                            <div 
-                                                onClick={() => {
-                                                    setSelectedBatchId(null);
-                                                    // Optional: navigate to today? Or keep current date?
-                                                    // For ad-hoc, mostly we just clear batch filter
-                                                }}
-                                                className={`p-4 rounded-xl border cursor-pointer transition-all
-                                                    ${selectedBatchId === null
-                                                        ? 'bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-900/10'
-                                                        : 'bg-[#1e293b] border-white/5 hover:border-white/10 hover:bg-[#1e293b]/80'}
-                                                `}
-                                            >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="font-bold text-white text-sm">Escalas Avulsas</div>
-                                                    <span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHocPendentes.length}</span>
-                                                </div>
-                                                <div className="text-xs text-slate-500">Serviços sem lote associado</div>
-                                            </div>
-                                        )}
-
-                                        {/* Batches */}
-                                        {pendingBatches.map(batch => {
-                                            const batchServiceCount = globalPendentes.filter(s => s.batchId === batch.id).length;
-
-                                            return (
-                                                <div
-                                                    key={batch.id}
-                                                    onClick={() => {
-                                                        setSelectedBatchId(batch.id);
-                                                        setSelectedDate(batch.reference_date);
-                                                    }}
-                                                    className={`p-4 rounded-xl border cursor-pointer transition-all group relative
-                                                        ${selectedBatchId === batch.id
-                                                            ? 'bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-900/10'
-                                                            : 'bg-[#1e293b] border-white/5 hover:border-white/10 hover:bg-[#1e293b]/80'}
-                                                    `}
-                                                >
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs ring-2 ring-[#0b1120]">
-                                                                {batch.created_by.charAt(0).toUpperCase()}
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-bold text-white text-sm leading-tight">{batch.created_by}</div>
-                                                                <div className="text-[10px] text-slate-500 font-mono mt-0.5">{batch.created_at.split('T')[1].substring(0, 5)}</div>
-                                                            </div>
-                                                        </div>
-                                                        <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">
-                                                            {batchServiceCount}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                                                            <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                                                            <span className="font-mono">{batch.reference_date}</span>
-                                                        </div>
-                                                        {batch.centro_custo_id && (
-                                                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                                                                <LayoutList className="w-3.5 h-3.5 text-slate-500" />
-                                                                <span className="truncate max-w-[150px]">
-                                                                    {centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome || 'Centro Custo'}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-
-                                        {pendingBatches.length === 0 && adHocPendentes.length === 0 && (
-                                            <div className="h-40 flex flex-col items-center justify-center text-slate-600 text-center px-6">
-                                                <CheckSquare className="w-8 h-8 mb-3 opacity-20" />
-                                                <p className="text-sm font-medium">Tudo limpo!</p>
-                                                <p className="text-xs opacity-50 mt-1">Não há escalas pendentes.</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                                    {/* Sidebar moved to independent widget */}
                     </>
                 ) : (
                     /* TABLE VIEW (New) */
@@ -1824,6 +1636,100 @@ export default function Escalas() {
                     </div >
                 )
             }
+
+                    </div>
+                </DraggableWidget>
+
+                {/* PENDING SIDEBAR WIDGET */}
+                {
+                    hasAccess(userRole, 'escalas_view_pending') && (
+                        <DraggableWidget id="pending_sidebar" defaultWidth="third">
+                            <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
+                                <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
+                                    <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
+                                        <Upload className="w-4 h-4 text-white" />
+                                    </div>
+                                    <h2 className="text-lg font-bold text-white truncate flex-1">
+                                        {t('schedule.pending.title')}
+                                    </h2>
+                                    <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
+                                        {globalPendentes.length}
+                                    </span>
+                                </div>
+
+                                {/* Batch Assign Control */}
+                                {!isDistributeMode && pendentes.length > 0 && (
+                                    <div className="p-4 border-b border-white/5 space-y-2">
+                                        <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
+                                            <select
+                                                className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer w-full"
+                                                value={selectedMotoristaForAssign}
+                                                onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
+                                            >
+                                                <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
+                                                {motoristas.map(m => (
+                                                    <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={handleAssign}
+                                                disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
+                                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg shrink-0"
+                                                title="Atribuir"
+                                            >
+                                                <ArrowRight className="w-4 h-4" />
+                                            </button>
+                                            {selectedPendentes.length > 0 && (
+                                                <button
+                                                    onClick={handleBatchDelete}
+                                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 p-2 rounded-lg transition-all shrink-0"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between px-1">
+                                            <button onClick={toggleSelectAll} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white">Selecionar Todos</button>
+                                            <span className="text-[10px] text-slate-600">{selectedPendentes.length} selecionados</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* List */}
+                                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
+                                    {/* Ad-Hoc */}
+                                    {adHocPendentes.length > 0 && (
+                                        <div onClick={() => { setSelectedBatchId(null); }} className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedBatchId === null ? 'bg-blue-600/10 border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                            <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Avulsas</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHocPendentes.length}</span></div>
+                                            <div className="text-xs text-slate-500">Serviços sem lote associado</div>
+                                        </div>
+                                    )}
+                                    {/* Batches */}
+                                    {pendingBatches.map(batch => {
+                                        const count = globalPendentes.filter(s => s.batchId === batch.id).length;
+                                        return (
+                                            <div key={batch.id} onClick={() => { setSelectedBatchId(batch.id); setSelectedDate(batch.reference_date); }} className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedBatchId === batch.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">{batch.created_by.charAt(0).toUpperCase()}</div>
+                                                        <div><div className="font-bold text-white text-sm">{batch.created_by}</div><div className="text-[10px] text-slate-500 font-mono">{batch.created_at.split('T')[1].substring(0, 5)}</div></div>
+                                                    </div>
+                                                    <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{count}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-slate-400"><Calendar className="w-3.5 h-3.5" /><span className="font-mono">{batch.reference_date}</span></div>
+                                            </div>
+                                        );
+                                    })}
+                                    {pendingBatches.length === 0 && adHocPendentes.length === 0 && (
+                                        <div className="h-40 flex flex-col items-center justify-center text-slate-600 text-center"><CheckSquare className="w-8 h-8 mb-3 opacity-20" /><p className="text-sm">Tudo limpo!</p></div>
+                                    )}
+                                </div>
+                            </div>
+                        </DraggableWidget>
+                    )
+                }
+            </DraggableZone>
+        </div>
 
             {/* MODAL: URGENT REQUEST */}
             {

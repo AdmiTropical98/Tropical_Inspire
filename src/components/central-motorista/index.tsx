@@ -312,7 +312,9 @@ export default function CentralMotorista() {
 
     const dashboardWidgets = [
         {
-            id: 'next-service', content: (
+            id: 'next-service',
+            defaultWidth: 'half',
+            content: (
                 <div className={`bg-gradient-to-br from-slate-900 to-slate-900/50 p-5 rounded-2xl border border-slate-800 shadow-xl h-full flex flex-col group hover:border-blue-500/30 transition-all`}>
                     <div className="flex items-center gap-3 text-slate-400 mb-4">
                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
@@ -340,7 +342,9 @@ export default function CentralMotorista() {
             )
         },
         {
-            id: 'vehicle', content: (
+            id: 'vehicle',
+            defaultWidth: 'half',
+            content: (
                 <div className={`bg-gradient-to-br from-slate-900 to-slate-900/50 p-5 rounded-2xl border border-slate-800 shadow-xl h-full flex flex-col group hover:border-indigo-500/30 transition-all`}>
                     <div className="flex items-center gap-3 text-slate-400 mb-4">
                         <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
@@ -369,7 +373,9 @@ export default function CentralMotorista() {
             )
         },
         {
-            id: 'weather', content: (
+            id: 'weather',
+            defaultWidth: 'half',
+            content: (
                 <div className={`relative overflow-hidden bg-gradient-to-br ${weather ? getWeatherBackground(weather.current.code) : 'from-[#0083B0] to-[#00B4DB]'} p-5 rounded-3xl border border-white/10 shadow-2xl h-full flex flex-col text-white transition-colors duration-1000`}>
                     {/* Glossy Overlay */}
                     <div className="absolute inset-0 bg-white/10 pointer-events-none"></div>
@@ -421,7 +427,9 @@ export default function CentralMotorista() {
         },
 
         {
-            id: 'shift', content: (
+            id: 'shift',
+            defaultWidth: 'half',
+            content: (
                 <div className={`bg-gradient-to-br from-slate-900 to-slate-900/50 p-5 rounded-2xl border border-slate-800 shadow-xl h-full flex flex-col group hover:border-emerald-500/30 transition-all relative`}>
                     <div className="flex items-center gap-3 text-slate-400 mb-4">
                         <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
@@ -633,7 +641,8 @@ export default function CentralMotorista() {
                                             <DraggableZone
                                                 zoneId="central_driver_overview"
                                                 items={dashboardWidgets}
-                                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4"
+                                                // Removed specific grid-cols classes here to let DraggableZone manage it
+                                                className=""
                                             />
                                         </div>
                                     </div>
