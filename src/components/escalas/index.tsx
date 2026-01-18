@@ -1637,7 +1637,7 @@ export default function Escalas() {
                 )
             }
 
-                    </div>
+
                 </DraggableWidget>
 
                 {/* PENDING SIDEBAR WIDGET */}
