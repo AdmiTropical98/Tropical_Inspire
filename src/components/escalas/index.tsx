@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
@@ -6,6 +6,23 @@ import {
     Search, LayoutList, X, GripVertical, AlertTriangle, Edit,
     Table as TableIcon, LayoutGrid, ArrowLeft
 } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    rectSortingStrategy,
+    useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,6 +42,45 @@ interface NewServiceState {
     destinoRegresso: string;
     centroCustoId?: string;
     validationPoints: string[];
+}
+
+// Sortable Driver Card Component
+function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, draggedServiceId, activeDriverMenuId, onClick, onDragOver, onDragLeave }: any) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: driver.id, disabled: isDistributeMode }); // Disable drag if in Quick Distribute Mode
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 100 : 'auto',
+        opacity: isDragging ? 0.3 : 1
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200 h-[600px]
+                ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
+                border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
+                ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
+            `}
+            onClick={onClick}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+        >
+            {/* Handle for Dragging (Optional: could handle on whole card, but let's use header) */}
+            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+                {children}
+            </div>
+        </div>
+    );
 }
 
 export default function Escalas() {
@@ -95,6 +151,32 @@ export default function Escalas() {
         destino: '',
         obs: ''
     });
+
+    // Layout & Filter State
+    const [selectedCentroCustoFilter, setSelectedCentroCustoFilter] = useState<string>('all');
+    const [layoutCols, setLayoutCols] = useState<number>(() => {
+        const saved = localStorage.getItem('escalas_layout_cols');
+        return saved ? parseInt(saved) : 3;
+    });
+    const [driverOrder, setDriverOrder] = useState<string[]>(() => {
+        const saved = localStorage.getItem('escalas_driver_order');
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    // Save Layout Effects
+    useEffect(() => {
+        localStorage.setItem('escalas_layout_cols', layoutCols.toString());
+    }, [layoutCols]);
+
+    useEffect(() => {
+        if (driverOrder.length > 0)
+            localStorage.setItem('escalas_driver_order', JSON.stringify(driverOrder));
+    }, [driverOrder]);
 
     // Quick Assign Function
     const handleQuickAssign = async (serviceId: string) => {
@@ -622,82 +704,138 @@ export default function Escalas() {
                 {viewMode === 'cards' ? (
                     /* CARD VIEW (Existing) */
                     <>
+
                         <div className={`flex-1 md:overflow-hidden p-0 transition-colors duration-300
                     ${isDistributeMode ? 'bg-[#1e293b]/20' : ''}
                 `}>
                             <div className="h-auto md:h-full flex flex-col">
-                                {/* Status Filters */}
-                                <div className="flex items-center gap-2 mb-2 px-2 md:px-8 mt-2 md:mt-6 overflow-x-auto pb-1 shrink-0 scrollbar-hide">
-                                    <button
-                                        onClick={() => setFilterStatus('all')}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
-                                            ? 'bg-blue-600 text-white border-blue-500'
-                                            : 'bg-[#1e293b] text-slate-400 border-white/5 hover:border-white/10'
-                                            }`}
-                                    >
-                                        Todos
-                                    </button>
-                                    <button
-                                        onClick={() => setFilterStatus('available')}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'available'
-                                            ? 'bg-emerald-600 text-white border-emerald-500'
-                                            : 'bg-[#1e293b] text-emerald-400 border-white/5 hover:border-white/10'
-                                            }`}
-                                    >
-                                        Disponíveis ({motoristas.filter(m => m.status === 'disponivel').length})
-                                    </button>
-                                    <button
-                                        onClick={() => setFilterStatus('busy')}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'busy'
-                                            ? 'bg-amber-600 text-white border-amber-500'
-                                            : 'bg-[#1e293b] text-amber-400 border-white/5 hover:border-white/10'
-                                            }`}
-                                    >
-                                        Em Serviço ({motoristas.filter(m => m.status === 'ocupado').length})
-                                    </button>
+                                {/* TOOLBAR: Status - CC Filters - View Options */}
+                                <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2 px-2 md:px-8 mt-2 md:mt-6 overflow-x-auto pb-1 shrink-0 scrollbar-hide">
+
+                                    {/* Status Filters */}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setFilterStatus('all')}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
+                                                ? 'bg-blue-600 text-white border-blue-500'
+                                                : 'bg-[#1e293b] text-slate-400 border-white/5 hover:border-white/10'
+                                                }`}
+                                        >
+                                            Todos
+                                        </button>
+                                        <button
+                                            onClick={() => setFilterStatus('available')}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'available'
+                                                ? 'bg-emerald-600 text-white border-emerald-500'
+                                                : 'bg-[#1e293b] text-emerald-400 border-white/5 hover:border-white/10'
+                                                }`}
+                                        >
+                                            Disponíveis ({motoristas.filter(m => m.status === 'disponivel').length})
+                                        </button>
+                                        <button
+                                            onClick={() => setFilterStatus('busy')}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'busy'
+                                                ? 'bg-amber-600 text-white border-amber-500'
+                                                : 'bg-[#1e293b] text-amber-400 border-white/5 hover:border-white/10'
+                                                }`}
+                                        >
+                                            Em Serviço ({motoristas.filter(m => m.status === 'ocupado').length})
+                                        </button>
+                                    </div>
+
+                                    <div className="h-6 w-px bg-white/10 hidden md:block"></div>
+
+                                    {/* Cost Center Filter */}
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                                <LayoutList className="h-3.5 w-3.5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                            </div>
+                                            <select
+                                                value={selectedCentroCustoFilter}
+                                                onChange={(e) => setSelectedCentroCustoFilter(e.target.value)}
+                                                className="bg-[#1e293b] border border-white/10 text-slate-300 text-xs rounded-lg pl-8 pr-8 py-1.5 outline-none focus:border-blue-500 appearance-none hover:bg-slate-800 transition-colors cursor-pointer min-w-[140px]"
+                                            >
+                                                <option value="all">Todos Centros</option>
+                                                {centrosCustos.map(cc => (
+                                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Layout Controls */}
+                                    <div className="ml-auto flex items-center gap-3">
+                                        <div className="flex items-center gap-2 bg-[#1e293b] border border-white/10 px-3 py-1 rounded-lg">
+                                            <span className="text-[10px] uppercase font-bold text-slate-500">Colunas</span>
+                                            <input
+                                                type="range"
+                                                min="1"
+                                                max="6"
+                                                value={layoutCols}
+                                                onChange={(e) => setLayoutCols(parseInt(e.target.value))}
+                                                className="w-20 accent-blue-500 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                                            />
+                                            <span className="text-xs text-white px-2 py-0.5 bg-slate-800 rounded">{layoutCols}</span>
+                                        </div>
+                                    </div>
+
                                 </div>
 
-                                {/* Drivers Grid View */}
-                                <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 overflow-y-auto pb-24 md:pb-6 px-2 md:px-4 custom-scrollbar">
-                                    {filteredMotoristas.map(driver => {
-                                        // Calculate Driver Stats
-                                        const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
+                                {/* Drivers Grid View (With DND) */}
+                                <DndContext
+                                    sensors={sensors}
+                                    collisionDetection={closestCenter}
+                                    onDragEnd={handleDragDriverEnd}
+                                >
+                                    <SortableContext
+                                        items={processedMotoristas.map(m => m.id)}
+                                        strategy={rectSortingStrategy}
+                                    >
+                                        <div
+                                            className="flex-1 min-h-0 grid gap-4 overflow-y-auto pb-24 md:pb-6 px-2 md:px-4 custom-scrollbar"
+                                            style={{
+                                                gridTemplateColumns: `repeat(${layoutCols}, minmax(0, 1fr))`
+                                            }}
+                                        >
+                                            {processedMotoristas.map(driver => {
+                                                // Calculate Driver Stats
+                                                const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
 
-                                        return (
-                                            <div
-                                                key={driver.id}
-                                                onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
-                                                onDragOver={(e) => {
-                                                    e.preventDefault();
-                                                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-                                                }}
-                                                onDragLeave={(e) => {
-                                                    e.preventDefault();
-                                                    e.currentTarget.style.borderColor = '';
-                                                    e.currentTarget.style.backgroundColor = '';
-                                                }}
-                                                className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200 h-[600px]
-                                            ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
-                                            border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
-                                            ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
-                                        `}
-                                            >
-
-                                                {/* Card Header */}
-                                                <div className="p-3 bg-slate-900/50 border-b border-white/5 flex items-center justify-between rounded-t-2xl">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="relative">
-                                                            {driver.foto ? (
-                                                                <img src={driver.foto} alt={driver.nome} className="w-9 h-9 rounded-full object-cover border-2 border-slate-700" />
-                                                            ) : (
-                                                                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
-                                                                    {driver.nome.charAt(0)}
-                                                                </div>
-                                                            )}
-                                                            <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-[#1e293b] rounded-full shadow-sm
-                                                    ${driver.status === 'disponivel' ? 'bg-emerald-500' :
-                                                                    driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
-                                                `}></div>
+                                                return (
+                                                    <SortableDriverCard
+                                                        key={driver.id}
+                                                        driver={driver}
+                                                        isDistributeMode={isDistributeMode}
+                                                        activeDriverId={activeDriverId}
+                                                        draggedServiceId={draggedServiceId}
+                                                        activeDriverMenuId={activeDriverMenuId}
+                                                        onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
+                                                        onDragOver={(e: any) => {
+                                                            e.preventDefault();
+                                                            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                                                        }}
+                                                        onDragLeave={(e: any) => {
+                                                            e.preventDefault();
+                                                            e.currentTarget.style.borderColor = '';
+                                                            e.currentTarget.style.backgroundColor = '';
+                                                        }}
+                                                    >
+                                                        {/* Card Header (Handle) */}
+                                                        <div className="p-3 bg-slate-900/50 border-b border-white/5 flex items-center justify-between rounded-t-2xl cursor-grab active:cursor-grabbing">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="relative">
+                                                                    {driver.foto ? (
+                                                                        <img src={driver.foto} alt={driver.nome} className="w-9 h-9 rounded-full object-cover border-2 border-slate-700" />
+                                                                    ) : (
+                                                                        <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
+                                                                            {driver.nome.charAt(0)}
+                                                                        </div>
+                                                                    )}
+                                                                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-[#1e293b] rounded-full shadow-sm
+                                                                        ${driver.status === 'disponivel' ? 'bg-emerald-500' :
+                                                                            driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
+                                                                    `}></div>
                                                         </div>
                                                         <div>
                                                             <h3 className="font-bold text-white text-sm md:text-base leading-tight">{driver.nome}</h3>
@@ -1003,10 +1141,12 @@ export default function Escalas() {
                                                     <span>•</span>
                                                     <button className="hover:text-blue-400 transition-colors">Enviar Msg</button>
                                                 </div>
-                                            </div>
+                                                    </SortableDriverCard>
                                         );
                                     })}
                                 </div>
+                                    </SortableContext>
+                                </DndContext>
 
                                 {/* URGENT REQUEST SECTION (Supervisor/Admin View Only) */}
                                 {(userRole === 'admin' || userRole === 'supervisor') && notifications.some(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned')) && (

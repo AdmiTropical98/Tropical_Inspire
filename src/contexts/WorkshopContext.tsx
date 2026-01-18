@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch } from '../types';
-import { CartrackService, cleanTagId, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
+import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
