@@ -1947,7 +1947,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         tipo: s.tipo || 'outro',
                         concluido: false,
                         centro_custo_id: batchData.centroCustoId,
-                        batch_id: batch.id
+                        batch_id: batch.id,
+                        departamento: s.departamento // New Field
                     }));
 
                     const { error: servicesError } = await supabase.from('servicos').insert(servicesToInsert);

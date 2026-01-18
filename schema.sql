@@ -136,7 +136,8 @@ CREATE TABLE IF NOT EXISTS public.servicos (
     voo TEXT,
     obs TEXT,
     concluido BOOLEAN DEFAULT false,
-    centro_custo_id UUID REFERENCES public.centros_custos(id) ON DELETE SET NULL
+    centro_custo_id UUID REFERENCES public.centros_custos(id) ON DELETE SET NULL,
+    departamento TEXT
 );
 ALTER TABLE public.servicos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public Access" ON public.servicos FOR ALL USING (true) WITH CHECK (true);

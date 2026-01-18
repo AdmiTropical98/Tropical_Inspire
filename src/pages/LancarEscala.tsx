@@ -23,6 +23,7 @@ interface GridRow {
     hora: string;
     obs: string;
     tipo: 'entrada' | 'saida';
+    departamento: string;
 }
 
 interface LancarEscalaProps {
@@ -79,7 +80,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
     // Grid Data
     const [rows, setRows] = useState<GridRow[]>([
-        { tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada' }
+        { tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada', departamento: '' }
     ]);
 
     // Refs
@@ -209,7 +210,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
     // Grid Handlers
     const addRow = () => {
-        setRows(prev => [...prev, { tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada' }]);
+        setRows(prev => [...prev, { tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada', departamento: '' }]);
     };
 
     const updateRow = (id: string, field: keyof GridRow, value: any) => {
@@ -218,7 +219,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
     const deleteRow = (id: string) => {
         if (rows.length === 1) {
-            setRows([{ tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada' }]);
+            setRows([{ tempId: generateTempId(), passageiro: '', origem: '', destino: '', hora: '', obs: '', tipo: 'entrada', departamento: '' }]);
             return;
         }
         setRows(prev => prev.filter(r => r.tempId !== id));
@@ -241,7 +242,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             destino: row.origem,
             hora: '',
             obs: row.tipo === 'entrada' ? 'Volta' : 'Ida',
-            tipo: row.tipo === 'entrada' ? 'saida' : 'entrada'
+            tipo: row.tipo === 'entrada' ? 'saida' : 'entrada',
+            departamento: row.departamento // Copy Department
         };
         const index = rows.findIndex(r => r.tempId === row.tempId);
         const newRows = [...rows];
@@ -292,13 +294,9 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         // 2. Header Content (Right Side)
         const pageWidth = doc.internal.pageSize.getWidth();
 
-        // Title Area (Right Aligned or Centered next to Logo?)
-        // User asked for "Logo top left". Let's put Title/Info Top Right/Center to balance.
-
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(22);
         doc.setTextColor(15, 23, 42); // Slate 900
-        // doc.text("TROPICAL INSPIRE", 70, 20); // Center-ish
 
         // Schedule ID & Date (Top Right)
         doc.setFontSize(14);
@@ -321,10 +319,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         const ccName = centrosCustos.find(c => c.id === selectedCentroCusto)?.nome || 'N/A';
         doc.text(`Centro de Custo: ${ccName}`, 15, currentY);
 
-        // "Criado por: Supervisor [Nome]"
-        // We use the batch data if available, or fallback to current user session
         const creatorName = batch.created_by || 'Sistema';
-        // Capitalize Role
         const roleDisplay = userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'User';
 
         doc.text(`Criado por: ${roleDisplay} ${creatorName}`, 15, currentY + 6);
@@ -336,52 +331,84 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             currentY += 6;
         }
 
-        // 4. Table
-        const tableBody = services.map((s, index) => [
-            (index + 1).toString(),
-            s.tipo.toUpperCase(),
-            s.passageiro,
-            s.origem,
-            s.destino,
-            s.hora,
-            s.obs || '-'
-        ]);
+        // 4. Group by Department
+        // Get unique departments (empty string = "Geral" or "Sem Departamento")
+        const departments = Array.from(new Set(services.map(s => s.departamento || 'Geral'))).sort();
 
-        autoTable(doc, {
-            startY: currentY + 15,
-            head: [['#', 'TIPO', 'PASSAGEIRO', 'ORIGEM', 'DESTINO', 'HORA', 'OBS']],
-            body: tableBody,
-            headStyles: {
-                fillColor: [15, 23, 42], // Slate 900
-                textColor: 255,
-                fontStyle: 'bold',
-                halign: 'center'
-            },
-            bodyStyles: {
-                textColor: 50,
-                halign: 'center'
-            },
-            alternateRowStyles: { fillColor: [241, 245, 249] }, // Slate 50
-            styles: { fontSize: 9, cellPadding: 3, valign: 'middle' },
-            columnStyles: {
-                0: { cellWidth: 10 },
-                1: { cellWidth: 25, fontStyle: 'bold' },
-                2: { halign: 'left' }, // Passageiro Left Align
-                3: { halign: 'left' }, // Origem Left Align
-                4: { halign: 'left' }, // Destino Left Align
-            },
-            didParseCell: function (data) {
-                // Colorize Type
-                if (data.section === 'body' && data.column.index === 1) {
-                    const text = data.cell.raw as string;
-                    if (text === 'ENTRADA') {
-                        data.cell.styles.textColor = [217, 119, 6]; // Amber 600
-                    } else if (text === 'SAIDA' || text === 'SAÍDA') {
-                        data.cell.styles.textColor = [79, 70, 229]; // Indigo 600
-                    }
-                }
+        // Start tables below header
+        currentY += 15;
+
+        departments.forEach((dept) => {
+            // Filter services for this department
+            const deptServices = services.filter(s => (s.departamento || 'Geral') === dept);
+
+            // Check if we need a new page (rough estimation)
+            if (currentY > 250) {
+                doc.addPage();
+                currentY = 20;
             }
+
+            // Department Header
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(15, 23, 42);
+            doc.setFillColor(241, 245, 249); // Slate 100 background for header
+            // doc.rect(14, currentY - 5, pageWidth - 28, 7, 'F'); // Optional bg
+            doc.text(dept.toUpperCase(), 15, currentY);
+
+            // Table for this Department
+            const tableBody = deptServices.map((s, index) => [
+                s.tipo.toUpperCase(),
+                s.passageiro,
+                s.origem,
+                s.destino,
+                s.hora,
+                s.obs || '-'
+            ]);
+
+            autoTable(doc, {
+                startY: currentY + 2,
+                head: [['TIPO', 'PASSAGEIRO', 'ORIGEM', 'DESTINO', 'HORA', 'OBS']],
+                body: tableBody,
+                headStyles: {
+                    fillColor: [15, 23, 42], // Slate 900
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                bodyStyles: {
+                    textColor: 50,
+                    halign: 'center'
+                },
+                alternateRowStyles: { fillColor: [248, 250, 252] }, // Slate 50
+                styles: { fontSize: 9, cellPadding: 3, valign: 'middle' },
+                columnStyles: {
+                    0: { cellWidth: 25, fontStyle: 'bold' },
+                    1: { halign: 'left' }, // Passageiro Left Align
+                    2: { halign: 'left' }, // Origem Left Align
+                    3: { halign: 'left' }, // Destino Left Align
+                },
+                didParseCell: function (data) {
+                    if (data.section === 'body' && data.column.index === 0) {
+                        const text = data.cell.raw as string;
+                        if (text === 'ENTRADA') {
+                            data.cell.styles.textColor = [217, 119, 6]; // Amber 600
+                        } else if (text === 'SAIDA' || text === 'SAÍDA') {
+                            data.cell.styles.textColor = [79, 70, 229]; // Indigo 600
+                        }
+                    }
+                },
+                // Update currentY after table draw
+                didDrawPage: (data) => {
+                // This is called on page add, but we manage simple flow here.
+                }
+            });
+
+            // Update Y for next table
+            // @ts-ignore
+            currentY = doc.lastAutoTable.finalY + 15;
         });
+
 
         // 5. Footer
         const pageCount = doc.getNumberOfPages();
@@ -390,8 +417,6 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             doc.setFontSize(8);
             doc.setTextColor(150);
             doc.text(`Página ${i} de ${pageCount} - Gerado em ${new Date().toLocaleString()}`, pageWidth / 2, 290, { align: 'center' });
-
-            // Branding Footer
             doc.text("Tropical Inspire App", pageWidth - 15, 290, { align: 'right' });
         }
 
@@ -433,6 +458,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                 tipo: r.tipo,
                 concluido: false,
                 centroCustoId: selectedCentroCusto,
+                departamento: r.departamento || '' // New Field
             }));
 
             const result = await createScaleBatch({
@@ -614,10 +640,11 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                     <div className="bg-[#0f172a] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
 
                         {/* Grid Header */}
-                        <div className="grid grid-cols-[40px_105px_1.21fr_1.9fr_1.9fr_125px_1.5fr_60px] gap-px bg-slate-900 border-b border-slate-800">
+                        <div className="grid grid-cols-[40px_105px_0.8fr_1.21fr_1.9fr_1.9fr_125px_1fr_60px] gap-px bg-slate-900 border-b border-slate-800">
                             {[
                                 { l: '#', c: 'text-center' },
                                 { l: 'Tipo', c: 'text-center' },
+                                { l: 'Departamento', c: 'text-center' }, // New Column
                                 { l: 'Passageiro', i: null },
                                 { l: 'Origem', i: MapPin },
                                 { l: 'Destino', i: MapPin },
@@ -637,7 +664,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                             {rows.map((row, idx) => (
                                 <div
                                     key={row.tempId} 
-                                    className="group grid grid-cols-[40px_105px_1.21fr_1.9fr_1.9fr_125px_1.5fr_60px] gap-px text-sm hover:bg-slate-800/30 transition-colors focus-within:bg-slate-800/50"
+                                    className="group grid grid-cols-[40px_105px_0.8fr_1.21fr_1.9fr_1.9fr_125px_1fr_60px] gap-px text-sm hover:bg-slate-800/30 transition-colors focus-within:bg-slate-800/50"
                                 >
 
                                     {/* Line Number */}
