@@ -50,16 +50,21 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     const [view, setView] = useState<'list' | 'create'>('list');
     const [searchTerm, setSearchTerm] = useState('');
 
+    interface RentalLine {
+        id: string;
+        viaturaId: string;
+        centroCustoId: string;
+        dias: number;
+        dataInicio: string;
+    }
+
     // Rental Form State
     const [editingId, setEditingId] = useState<string | null>(null); // EDIT MODE ID
     const [clienteId, setClienteId] = useState('');
-    const [selectedViaturaIds, setSelectedViaturaIds] = useState<string[]>([]);
+    const [rentalLines, setRentalLines] = useState<RentalLine[]>([]);
 
     // Custom Reference
     const [periodoReferencia, setPeriodoReferencia] = useState(''); // YYYY-MM
-
-    // Per-vehicle customization state
-    const [vehicleSettings, setVehicleSettings] = useState<Record<string, { dias: number, dataInicio: string }>>({});
 
     const [tempViaturaId, setTempViaturaId] = useState(''); // For the dropdown select before adding
     const [centroCustoId, setCentroCustoId] = useState('');
@@ -79,16 +84,18 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
     const [isSyncing, setIsSyncing] = useState<string | null>(null);
 
-    const handleSyncGPS = async (vId: string) => {
-        setIsSyncing(vId);
+    const handleSyncGPS = async (lineId: string) => {
+        setIsSyncing(lineId);
         try {
-            const settings = getVehicleSettings(vId);
-            const startStr = settings.dataInicio;
+            const line = rentalLines.find(l => l.id === lineId);
+            if (!line) return;
+
+            const startStr = line.dataInicio;
             const end = new Date(startStr);
-            end.setDate(end.getDate() + settings.dias);
+            end.setDate(end.getDate() + line.dias);
             const endStr = end.toISOString().split('T')[0];
 
-            const history = await getVehicleOccupancyHistory(vId, startStr, endStr);
+            const history = await getVehicleOccupancyHistory(line.viaturaId, startStr, endStr);
 
             const counts: Record<string, number> = {};
             history.forEach(h => {
@@ -98,11 +105,30 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             });
 
             const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
             if (sorted.length > 0) {
-                const dominantCCId = sorted[0][0];
-                const ccName = centrosCustos.find(c => c.id === dominantCCId)?.nome || 'Centro de Custo';
-                if (window.confirm(`Viatura detectada em: ${ccName}. Vincular este aluguer?`)) {
-                    setCentroCustoId(dominantCCId);
+                const message = sorted.map(([ccId, count]) => {
+                    const ccName = centrosCustos.find(c => c.id === ccId)?.nome || 'CC Desconhecido';
+                    return `- ${ccName}: ${count} dia(s)`;
+                }).join('\n');
+
+                if (window.confirm(`Dados de GPS detectados:\n\n${message}\n\nDeseja atualizar as linhas de cobrança?`)) {
+                    // Filter out existing lines for this vehicle (replace them) OR just merge?
+                    // User said "if he visits both CCs, count 1 day for each".
+                    // So we create 1 line per CC.
+
+                    const newLinesFromGps = sorted.map(([ccId, count]) => ({
+                        id: crypto.randomUUID(),
+                        viaturaId: line.viaturaId,
+                        centroCustoId: ccId,
+                        dias: count,
+                        dataInicio: line.dataInicio
+                    }));
+
+                    setRentalLines(prev => [
+                        ...prev.filter(l => l.id !== lineId), // Remove the line that triggered the sync
+                        ...newLinesFromGps
+                    ]);
                 }
             } else {
                 alert('Não foram encontrados dados de geofence para esta viatura no período selecionado.');
@@ -128,19 +154,26 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         setEditingId(invoice.id);
         setClienteId(invoice.clienteId);
 
-        // Restore Vehicle IDs
+        // Restore Lines
         const details = invoice.aluguerDetails;
-        const vIds = details?.viaturasIds || (details?.viaturaId ? [details?.viaturaId] : []);
-        setSelectedViaturaIds(vIds);
-
-        // Restore Settings
-        const newSettings: Record<string, { dias: number, dataInicio: string }> = {};
         if (details?.detalhesViaturas) {
-            details.detalhesViaturas.forEach(d => {
-                newSettings[d.viaturaId] = { dias: d.dias, dataInicio: d.dataInicio };
-            });
+            setRentalLines(details.detalhesViaturas.map(d => ({
+                id: crypto.randomUUID(),
+                viaturaId: d.viaturaId,
+                centroCustoId: d.centroCustoId || '',
+                dias: d.dias,
+                dataInicio: d.dataInicio
+            })));
+        } else if (invoice.aluguerDetails?.viaturaId) {
+            // Legacy fallback
+            setRentalLines([{
+                id: crypto.randomUUID(),
+                viaturaId: invoice.aluguerDetails.viaturaId,
+                centroCustoId: invoice.aluguerDetails.centroCustoId || '',
+                dias: invoice.aluguerDetails.dias,
+                dataInicio: invoice.aluguerDetails.dataInicio
+            }]);
         }
-        setVehicleSettings(newSettings);
 
         // Restore General Defaults (for fallback UI)
         if (details) {
@@ -155,7 +188,8 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
 
     const handleSaveTemplate = () => {
         if (!newTemplateName) return;
-        const newTemplate = { name: newTemplateName, vehicleIds: selectedViaturaIds };
+        const vehicleIds = Array.from(new Set(rentalLines.map(l => l.viaturaId)));
+        const newTemplate = { name: newTemplateName, vehicleIds };
         const updated = [...templates, newTemplate];
         setTemplates(updated);
         localStorage.setItem('rental_templates', JSON.stringify(updated));
@@ -166,9 +200,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     const handleLoadTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const template = templates.find(t => t.name === e.target.value);
         if (template) {
-            setSelectedViaturaIds(template.vehicleIds);
-            // Reset individual settings when loading template
-            setVehicleSettings({});
+            setRentalLines(template.vehicleIds.map(vId => ({
+                id: crypto.randomUUID(),
+                viaturaId: vId,
+                centroCustoId: '',
+                dias: dias,
+                dataInicio: dataInicio
+            })));
         }
     };
 
@@ -219,45 +257,39 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     })();
 
     const handleAddViatura = () => {
-        if (tempViaturaId && !selectedViaturaIds.includes(tempViaturaId)) {
-            setSelectedViaturaIds([...selectedViaturaIds, tempViaturaId]);
+        if (tempViaturaId) {
+            setRentalLines([...rentalLines, {
+                id: crypto.randomUUID(),
+                viaturaId: tempViaturaId,
+                centroCustoId: centroCustoId,
+                dias: dias,
+                dataInicio: dataInicio
+            }]);
             setTempViaturaId('');
         }
     };
 
     const handleRemoveViatura = (id: string) => {
-        setSelectedViaturaIds(selectedViaturaIds.filter(vId => vId !== id));
-        const newSettings = { ...vehicleSettings };
-        delete newSettings[id];
-        setVehicleSettings(newSettings);
+        setRentalLines(rentalLines.filter(l => l.id !== id));
     };
 
-    const getVehicleSettings = (id: string) => {
-        return vehicleSettings[id] || { dias: dias, dataInicio: dataInicio };
-    };
-
-    const updateVehicleDetails = (id: string, field: 'dias' | 'dataInicio', value: string | number) => {
-        setVehicleSettings(prev => ({
-            ...prev,
-            [id]: {
-                ...getVehicleSettings(id),
-                [field]: value
-            }
-        }));
+    const updateLineDetails = (id: string, field: keyof RentalLine, value: any) => {
+        setRentalLines(prev => prev.map(l =>
+            l.id === id ? { ...l, [field]: value } : l
+        ));
     };
 
     const calculateTotalDaily = () => {
-        return selectedViaturaIds.reduce((acc, id) => {
-            const v = viaturas.find(vi => vi.id === id);
+        return rentalLines.reduce((acc, l) => {
+            const v = viaturas.find(vi => vi.id === l.viaturaId);
             return acc + (v?.precoDiario || 0);
         }, 0);
     };
 
     const calculateGrandTotal = () => {
-        return selectedViaturaIds.reduce((acc, id) => {
-            const v = viaturas.find(vi => vi.id === id);
-            const settings = getVehicleSettings(id);
-            return acc + ((v?.precoDiario || 0) * settings.dias);
+        return rentalLines.reduce((acc, l) => {
+            const v = viaturas.find(vi => vi.id === l.viaturaId);
+            return acc + ((v?.precoDiario || 0) * l.dias);
         }, 0);
     };
 
@@ -938,78 +970,35 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
     };
 
     const handleCreateRental = () => {
-        if (!clienteId || selectedViaturaIds.length === 0) {
+        if (!clienteId || rentalLines.length === 0) {
             alert('Por favor, selecione um cliente e pelo menos uma viatura.');
             return;
         }
 
-        const detailsMap = selectedViaturaIds.map(vid => {
-            const v = viaturas.find(vi => vi.id === vid);
-            const settings = vehicleSettings[vid];
+        const detailsMap = rentalLines.map(l => {
+            const v = viaturas.find(vi => vi.id === l.viaturaId);
+            const precoDiario = v?.precoDiario || 0;
+            const dataFim = new Date(l.dataInicio);
+            dataFim.setDate(dataFim.getDate() + l.dias);
+
             return {
-                viaturaId: vid,
-                dias: settings?.dias || 1,
-                dataInicio: settings?.dataInicio || new Date().toISOString().split('T')[0],
-                dataFim: new Date(new Date(settings?.dataInicio || new Date()).getTime() + (settings?.dias || 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                precoDiario: v?.precoDiario || 0
+                viaturaId: l.viaturaId,
+                centroCustoId: l.centroCustoId || undefined,
+                dias: l.dias,
+                dataInicio: l.dataInicio,
+                dataFim: dataFim.toISOString().split('T')[0],
+                precoDiario
             };
         });
 
-        // --- VALIDATION: CHECK AVAILABILITY ---
-        const conflicts: string[] = [];
-
-        detailsMap.forEach(newRental => {
-            const newStart = new Date(newRental.dataInicio).getTime();
-            const newEnd = new Date(newRental.dataFim).getTime();
-
-            // Check against all existing invoices
-            invoices.forEach(existingInv => {
-                // Skip if not rental or if it's the one we are editing
-                if (existingInv.tipo !== 'aluguer' || existingInv.id === editingId) return;
-
-                const existingDetails = existingInv.aluguerDetails;
-                if (!existingDetails) return;
-
-                // Check against specific vehicle details in existing invoice
-                if (existingDetails.detalhesViaturas) {
-                    existingDetails.detalhesViaturas.forEach(existingV => {
-                        if (existingV.viaturaId === newRental.viaturaId) {
-                            const exStart = new Date(existingV.dataInicio).getTime();
-                            const exEnd = new Date(existingV.dataFim || existingV.dataInicio).getTime(); // Fallback end
-
-                            // Overlap Check
-                            if (newStart <= exEnd && newEnd >= exStart) {
-                                const vName = viaturas.find(v => v.id === newRental.viaturaId)?.matricula || '???';
-                                const ccName = centrosCustos.find(c => c.id === existingDetails.centroCustoId)?.nome || 'Sem C.Custo';
-                                conflicts.push(`Viatura ${vName} já alugada em ${ccName} (${existingV.dataInicio} a ${existingV.dataFim})`);
-                            }
-                        }
-                    });
-                } else if (existingDetails.viaturasIds?.includes(newRental.viaturaId) || existingDetails.viaturaId === newRental.viaturaId) {
-                    // Fallback for legacy rentals without per-vehicle details
-                    const exStart = new Date(existingDetails.dataInicio).getTime();
-                    const exEnd = new Date(existingDetails.dataFim).getTime();
-
-                    if (newStart <= exEnd && newEnd >= exStart) {
-                        const vName = viaturas.find(v => v.id === newRental.viaturaId)?.matricula || '???';
-                        const ccName = centrosCustos.find(c => c.id === existingDetails.centroCustoId)?.nome || 'Sem C.Custo';
-                        conflicts.push(`Viatura ${vName} já alugada em ${ccName} (${existingDetails.dataInicio} a ${existingDetails.dataFim})`);
-                    }
-                }
-            });
-        });
-
-        if (conflicts.length > 0) {
-            alert(`Conflito de Disponibilidade:\n\n${conflicts.join('\n')}`);
-            return;
-        }
-
         const invoiceItems = detailsMap.map(detail => {
             const v = viaturas.find(vi => vi.id === detail.viaturaId);
+            const cc = centrosCustos.find(c => c.id === detail.centroCustoId);
             const netTotal = detail.precoDiario * detail.dias;
+            const descSuffix = cc ? ` [${cc.nome}]` : '';
             return {
                 id: crypto.randomUUID(),
-                descricao: `${v?.marca} ${v?.modelo} (${v?.matricula}) - ${detail.dias} dias`,
+                descricao: `${v?.marca} ${v?.modelo} (${v?.matricula}) - ${detail.dias} dias${descSuffix}`,
                 quantidade: 1,
                 precoUnitario: netTotal,
                 taxaImposto: 23,
@@ -1029,9 +1018,9 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         const referenceToSave = periodoReferencia || '';
 
         const rentalData: Fatura = {
-            id: editingId || crypto.randomUUID(), // Use existing ID if editing
+            id: editingId || crypto.randomUUID(),
             numero: editingId ? (invoices.find(i => i.id === editingId)?.numero || 'REG ERR') : `REG 2024/${invoices.filter(i => i.tipo === 'aluguer').length + 100}`,
-            data: new Date().toISOString().split('T')[0], // Invoice Date
+            data: new Date().toISOString().split('T')[0],
             vencimento: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             clienteId,
             status: 'emitida',
@@ -1042,20 +1031,14 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
             total,
             tipo: 'aluguer',
             aluguerDetails: {
-                viaturaId: selectedViaturaIds[0], // Primary for legacy compatibility
-                viaturasIds: selectedViaturaIds,
-                dias: detailsMap.reduce((sum, d) => sum + d.dias, 0), // Sum of all vehicle days
+                viaturaId: rentalLines[0]?.viaturaId || '',
+                viaturasIds: Array.from(new Set(rentalLines.map(l => l.viaturaId))),
+                dias: detailsMap.reduce((sum, d) => sum + d.dias, 0),
                 dataInicio: new Date(Math.min(...startDates)).toISOString().split('T')[0],
                 dataFim: new Date(Math.max(...endDates)).toISOString().split('T')[0],
                 centroCustoId: centroCustoId || undefined,
-                periodoReferencia: referenceToSave, // Save Custom Reference
-                detalhesViaturas: detailsMap.map(d => ({
-                    viaturaId: d.viaturaId,
-                    dias: d.dias,
-                    dataInicio: d.dataInicio,
-                    dataFim: d.dataFim,
-                    precoDiario: d.precoDiario
-                }))
+                periodoReferencia: referenceToSave,
+                detalhesViaturas: detailsMap
             }
         };
 
@@ -1064,8 +1047,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
         // Reset Form
         setEditingId(null);
         setClienteId('');
-        setSelectedViaturaIds([]);
-        setVehicleSettings({});
+        setRentalLines([]);
         setCentroCustoId('');
         setPeriodoReferencia('');
     };
@@ -1146,74 +1128,80 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                 className="w-full mt-2 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 py-2 rounded-lg border border-slate-700 border-dashed transition-all text-sm font-medium"
                             >
                                 <Car className="w-4 h-4" />
-                                Selecionar Múltiplas Viaturas
+                                Escolher Viaturas
                             </button>
 
                             {/* Selected Vehicles List */}
-                            <div className="mt-3 space-y-2">
-                                {selectedViaturaIds.map(id => {
-                                    const v = viaturas.find(vi => vi.id === id);
-                                    const settings = getVehicleSettings(id);
+                            <div className="mt-3 space-y-3">
+                                {rentalLines.map(line => {
+                                    const v = viaturas.find(vi => vi.id === line.viaturaId);
 
                                     return (
-                                        <div key={id} className="flex flex-col gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                        <div key={line.id} className="flex flex-col gap-3 bg-slate-800/50 p-4 rounded-xl border border-slate-700 shadow-lg">
                                             <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-white font-medium">{v?.marca} {v?.modelo}</p>
-                                                    <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center">
+                                                        <Car className="w-5 h-5 text-amber-500" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white font-semibold">{v?.marca} {v?.modelo}</p>
+                                                        <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <button
-                                                        onClick={() => handleSyncGPS(id)}
-                                                        disabled={isSyncing === id}
-                                                        title="Sincronizar com GPS"
-                                                        className={`p-1.5 rounded-md transition-all ${isSyncing === id ? 'bg-slate-700 text-slate-500 animate-spin' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                        onClick={() => handleSyncGPS(line.id)}
+                                                        disabled={isSyncing === line.id}
+                                                        title="Sincronizar com GPS (Deteção de Locais e Dias)"
+                                                        className={`p-2 rounded-lg transition-all ${isSyncing === line.id ? 'bg-slate-700 text-slate-500 animate-spin' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                                                             }`}
                                                     >
                                                         <RefreshCw className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleRemoveViatura(id)}
-                                                        className="text-slate-400 hover:text-red-400 transition-colors p-1"
+                                                        onClick={() => handleRemoveViatura(line.id)}
+                                                        className="text-slate-400 hover:text-red-400 transition-colors bg-red-500/10 p-2 rounded-lg hover:bg-red-500/20"
                                                     >
                                                         <X className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </div>
 
-                                            <div className="flex gap-2 text-sm pt-2 border-t border-slate-700/50">
-                                                <div className="flex-1">
-                                                    <label className="text-xs text-slate-500 mb-1 block">Data Início</label>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-700/50">
+                                                <div className="col-span-2 sm:col-span-1">
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Centro de Custo</label>
+                                                    <select
+                                                        value={line.centroCustoId}
+                                                        onChange={(e) => updateLineDetails(line.id, 'centroCustoId', e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
+                                                    >
+                                                        <option value="">Nenhum</option>
+                                                        {centrosCustos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Data Início</label>
                                                     <input
                                                         type="date"
-                                                        value={settings.dataInicio}
-                                                        onChange={(e) => updateVehicleDetails(id, 'dataInicio', e.target.value)}
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                                                        value={line.dataInicio}
+                                                        onChange={(e) => updateLineDetails(line.id, 'dataInicio', e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
                                                     />
                                                 </div>
-                                                <div className="w-24">
-                                                    <label className="text-xs text-slate-500 mb-1 block">Dias</label>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Dias a Cobrar</label>
                                                     <input
                                                         type="number"
                                                         min="1"
-                                                        value={settings.dias}
-                                                        onChange={(e) => updateVehicleDetails(id, 'dias', Number(e.target.value))}
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                                                        value={line.dias}
+                                                        onChange={(e) => updateLineDetails(line.id, 'dias', Number(e.target.value))}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
                                                     />
-                                                </div>
-                                                <div className="w-24 text-right">
-                                                    <label className="text-xs text-slate-500 mb-1 block">Subtotal</label>
-                                                    <div className="py-1 text-amber-500 font-medium">
-                                                        {formatCurrency((v?.precoDiario || 0) * settings.dias)}
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     );
                                 })}
-                                {selectedViaturaIds.length === 0 && (
-                                    <p className="text-sm text-slate-500 italic">Nenhuma viatura selecionada</p>
-                                )}
                             </div>
 
                             {/* Templates Control */}
@@ -1229,7 +1217,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                     </select>
                                     <button
                                         onClick={() => setShowSaveTemplate(!showSaveTemplate)}
-                                        disabled={selectedViaturaIds.length === 0}
+                                        disabled={rentalLines.length === 0}
                                         className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 text-sm disabled:opacity-50"
                                     >
                                         {showSaveTemplate ? 'Cancelar' : 'Salvar Kit'}
@@ -1315,11 +1303,18 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                     isOpen={isSelectionModalOpen}
                     onClose={() => setIsSelectionModalOpen(false)}
                     viaturas={filteredDisplayViaturas}
-                    selectedIds={selectedViaturaIds}
-                    onConfirm={(ids) => {
-                        setSelectedViaturaIds(ids);
+                    onConfirm={(vIds) => {
+                        const newLines = vIds.map(vId => ({
+                            id: crypto.randomUUID(),
+                            viaturaId: vId,
+                            centroCustoId: centroCustoId,
+                            dias: dias,
+                            dataInicio: dataInicio
+                        }));
+                        setRentalLines([...rentalLines, ...newLines]);
                         setIsSelectionModalOpen(false);
                     }}
+                    selectedIds={rentalLines.map(l => l.viaturaId)}
                 />
             </div>
         );

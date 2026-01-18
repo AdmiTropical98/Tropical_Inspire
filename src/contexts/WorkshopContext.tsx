@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch } from '../types';
-import { CartrackService, cleanTagId, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
+import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
@@ -1657,11 +1657,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             // 2. Generate days map
             const start = new Date(startDate);
             const end = new Date(endDate);
-            const occupancy: Record<string, { centroCustoId: string | null; duration: number }> = {};
+            const occupancy: Record<string, { centroCustoId: string | null; duration: number; visitedCCs: Set<string> }> = {};
 
             // Initialize days
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                occupancy[d.toISOString().split('T')[0]] = { centroCustoId: null, duration: 0 };
+                occupancy[d.toISOString().split('T')[0]] = { centroCustoId: null, duration: 0, visitedCCs: new Set() };
             }
 
             // 3. Attribute visits to days
@@ -1683,20 +1683,29 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         const overlapStart = entry > dayStart ? entry : dayStart;
                         const overlapEnd = exit < dayEnd ? exit : dayEnd;
 
-                        const duration = Math.max(0, overlapEnd.getTime() - overlapStart.getTime());
+                        const durationInMinutes = Math.max(0, (overlapEnd.getTime() - overlapStart.getTime()) / 60000);
 
-                        // If this duration is greater than current dominant CC for the day
-                        if (duration > occupancy[dayKey].duration) {
-                            occupancy[dayKey] = { centroCustoId: ccId, duration };
+                        // If the presence is significant (> 1 minute), add this CC to the day's record
+                        if (durationInMinutes > 1) {
+                            occupancy[dayKey].visitedCCs.add(ccId);
                         }
                     }
                 }
             });
 
-            return Object.entries(occupancy).map(([date, data]) => ({
-                date,
-                centroCustoId: data.centroCustoId
-            }));
+            const results: { date: string; centroCustoId: string | null }[] = [];
+            Object.entries(occupancy).forEach(([date, data]) => {
+                const ccs = Array.from(data.visitedCCs);
+                if (ccs.length === 0) {
+                    results.push({ date, centroCustoId: null });
+                } else {
+                    ccs.forEach(ccId => {
+                        results.push({ date, centroCustoId: ccId });
+                    });
+                }
+            });
+
+            return results;
 
         } catch (e) {
             console.error('Error calculating occupancy:', e);
