@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
@@ -118,6 +118,7 @@ interface WorkshopContextType {
     getVehicleOccupancyHistory: (vehicleId: string, startDate: string, endDate: string) => Promise<{ date: string, centroCustoId: string | null }[]>;
     geofenceMappings: Record<string, string>;
     updateGeofenceMapping: (geofenceName: string, centroCustoId: string) => Promise<void>;
+    syncRealTimeRentals: () => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -1724,6 +1725,66 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const syncRealTimeRentals = async () => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const activeVehicles = cartrackVehicles.filter(v => v.currentCentroCustoId);
+
+            if (activeVehicles.length === 0) return;
+
+            for (const v of activeVehicles) {
+                const viatura = viaturas.find(vit => vit.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === v.registration.replace(/[^a-zA-Z0-9]/g, '').toUpperCase());
+                if (!viatura || !v.currentCentroCustoId) continue;
+
+                // Create a deterministic ID: auto-vid-ccid-date
+                const detId = `auto-${viatura.id}-${v.currentCentroCustoId}-${today}`;
+
+                const rentalData = {
+                    id: detId,
+                    numero: `AUTO-${today.replace(/-/g, '')}-${v.registration.replace(/[^a-zA-Z0-9]/g, '').slice(-4)}`,
+                    data: today,
+                    vencimento: today,
+                    clienteId: 'internal-auto-sync',
+                    status: 'emitida',
+                    subtotal: viatura.precoDiario || 0,
+                    imposto: (viatura.precoDiario || 0) * 0.23,
+                    desconto: 0,
+                    total: (viatura.precoDiario || 0) * 1.23,
+                    tipo: 'aluguer',
+                    aluguerDetails: {
+                        viaturaId: viatura.id,
+                        viaturasIds: [viatura.id],
+                        dias: 1,
+                        dataInicio: today,
+                        dataFim: today,
+                        centroCustoId: v.currentCentroCustoId,
+                        detalhesViaturas: [{
+                            viaturaId: viatura.id,
+                            dias: 1,
+                            dataInicio: today,
+                            dataFim: today,
+                            precoDiario: viatura.precoDiario || 0,
+                            centroCustoId: v.currentCentroCustoId
+                        }]
+                    }
+                };
+
+                const { error } = await supabase.from('faturas').upsert(rentalData);
+                if (error) console.error('Error auto-syncing rental:', error);
+            }
+        } catch (e) {
+            console.error('Auto-sync failed:', e);
+        }
+    };
+
+    // Auto-sync effect
+    useEffect(() => {
+        const interval = setInterval(() => {
+            syncRealTimeRentals();
+        }, 15 * 60 * 1000); // 15 minutes
+        return () => clearInterval(interval);
+    }, [cartrackVehicles, viaturas]);
+
     return (
         <WorkshopContext.Provider value={{
             fornecedores,
@@ -1808,6 +1869,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addAvaliacao,
             adminUsers,
             avaliacoes,
+            syncRealTimeRentals,
             geofenceMappings,
             updateGeofenceMapping,
             getVehicleOccupancyHistory,

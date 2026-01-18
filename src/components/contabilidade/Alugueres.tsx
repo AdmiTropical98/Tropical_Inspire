@@ -13,7 +13,7 @@ interface AlugueresProps {
 }
 
 export default function Alugueres({ invoices, onSaveRental, onDelete }: AlugueresProps) {
-    const { viaturas, centrosCustos, clientes, getVehicleOccupancyHistory, cartrackVehicles } = useWorkshop();
+    const { viaturas, centrosCustos, clientes, getVehicleOccupancyHistory, cartrackVehicles, syncRealTimeRentals } = useWorkshop();
 
     // Filter duplicates: Keep only used vehicles if duplicates exist
     const filteredDisplayViaturas = (() => {
@@ -1349,6 +1349,21 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                 </div>
                 <div className="flex gap-2">
                     <button
+                        onClick={() => {
+                            const btn = document.getElementById('sync-all-btn');
+                            if (btn) btn.classList.add('animate-spin');
+                            syncRealTimeRentals().finally(() => {
+                                if (btn) btn.classList.remove('animate-spin');
+                            });
+                        }}
+                        id="sync-all-btn"
+                        className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-4 py-2.5 rounded-xl font-medium border border-blue-500/30 transition-all shadow-sm group"
+                        title="Sincronizar GPS Agora (Detetar Viaturas Ativas)"
+                    >
+                        <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
+                        <span className="hidden sm:inline">Sincronizar GPS</span>
+                    </button>
+                    <button
                         onClick={generateCostCenterReport}
                         className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl font-medium border border-slate-700 transition-all shadow-sm"
                     >
@@ -1478,7 +1493,14 @@ export default function Alugueres({ invoices, onSaveRental, onDelete }: Aluguere
                                                                     <td className="px-6 py-4 pl-12 border-l-4 border-slate-800" colSpan={7}>
                                                                         <div className="grid grid-cols-12 items-center gap-4">
                                                                             <div className="col-span-4">
-                                                                                <p className="text-xs text-slate-500 uppercase font-bold">Viatura(s)</p>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <p className="text-xs text-slate-500 uppercase font-bold">Viatura(s)</p>
+                                                                                    {inv.id.startsWith('auto-') && (
+                                                                                        <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded-full border border-indigo-500/30 font-bold uppercase tracking-wider">
+                                                                                            Automático
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                                 <div className="text-slate-300 mt-1">
                                                                                     {inv.aluguerDetails?.viaturasIds ? (
                                                                                         <div className="space-y-1">
