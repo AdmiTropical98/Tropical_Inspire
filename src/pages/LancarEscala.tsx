@@ -90,55 +90,13 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     // Excel Handlers
     // Excel Handlers
     const handleDownloadTemplate = () => {
-        // Dynamic generation to ensure it matches current requirements
-        const ws = utils.json_to_sheet([
-            {
-                'TIPO': 'ENTRADA',
-                'DEPARTAMENTO': 'HK',
-                'PASSAGEIRO': 'João Silva',
-                'ORIGEM': 'Aeroporto',
-                'DESTINO': 'Hotel',
-                'HORA': '10:00',
-                'OBS': 'Voo TP123'
-            },
-            {
-                'TIPO': 'SAIDA',
-                'DEPARTAMENTO': 'F&B',
-                'PASSAGEIRO': 'Maria Santos',
-                'ORIGEM': 'Hotel',
-                'DESTINO': 'Aeroporto',
-                'HORA': '18:00',
-                'OBS': ''
-            }
-        ]);
-
-        // Set column widths
-        ws['!cols'] = [
-            { wch: 10 }, // TIPO
-            { wch: 15 }, // DEPARTAMENTO
-            { wch: 25 }, // PASSAGEIRO
-            { wch: 20 }, // ORIGEM
-            { wch: 20 }, // DESTINO
-            { wch: 10 }, // HORA
-            { wch: 20 }  // OBS
-        ];
-
-        const wb = utils.book_new();
-        utils.book_append_sheet(wb, ws, "Modelo");
-
-        // Save file
-        const wbout = typeof window !== 'undefined' ? write(wb, { bookType: 'xlsx', type: 'array' }) : null;
-        if (wbout) {
-            const blob = new Blob([wbout], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'Modelo_Escala_Tropical.xlsx';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
+        // Download static template file from public folder
+        const link = document.createElement('a');
+        link.href = '/Modelo_Escala_Tropical.xlsx';
+        link.download = 'Modelo_Escala_Tropical.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,8 +106,12 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         try {
             const data = await file.arrayBuffer();
             const workbook = read(data);
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            // Explicitly requesting raw values to avoid date formatting issues, but we will handle dates if they come
+
+            // Try to find 'ESCALAS' sheet, otherwise fallback to first sheet
+            const sheetName = workbook.SheetNames.find(n => n.toUpperCase() === 'ESCALAS') || workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            // Explicitly requesting raw values to avoid date formatting issues
             const jsonData = utils.sheet_to_json<any>(worksheet, { raw: true });
 
             // Helper to safe parse Excel time (handles number 0.xxx, strings, and Date objects)
