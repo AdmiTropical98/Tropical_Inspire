@@ -8,31 +8,34 @@ import {
 
 const SLIDES = [
     {
-        id: 'fleet',
+        id: 'bus',
         title: 'FROTA',
-        subtitle: 'POTÊNCIA E CONTROLO',
-        description: 'A tecnologia Algartempo liga cada autocarro ao sucesso da sua frota.',
+        subtitle: 'POTÊNCIA E CONFORTO',
+        description: 'Autocarros de topo para viagens inesquecíveis.',
         image: '/assets/3d_bus.png',
         color: 'from-blue-500 to-indigo-600',
-        accent: 'blue'
+        accent: 'blue',
+        animationClass: 'animate-drive-in-right'
     },
     {
-        id: 'drivers',
+        id: 'van',
+        title: 'AGILIDADE',
+        subtitle: 'FLEXIBILIDADE TOTAL',
+        description: 'Carrinhas modernas para transporte personalizado.',
+        image: '/assets/3d_van.png',
+        color: 'from-sky-400 to-cyan-600',
+        accent: 'cyan',
+        animationClass: 'animate-drive-in-left'
+    },
+    {
+        id: 'driver',
         title: 'EQUIPA',
         subtitle: 'MOTORISTAS DE ELITE',
-        description: 'Eficiência e segurança em cada quilómetro percorrido.',
+        description: 'Profissionais dedicados para uma experiência segura.',
         image: '/assets/3d_driver.png',
         color: 'from-emerald-400 to-teal-600',
-        accent: 'emerald'
-    },
-    {
-        id: 'workshop',
-        title: 'RIGOR',
-        subtitle: 'MANUTENÇÃO AVANÇADA',
-        description: 'Diagnóstico em tempo real para uma frota sempre disponível.',
-        image: '/assets/3d_tools.png',
-        color: 'from-orange-400 to-rose-600',
-        accent: 'orange'
+        accent: 'emerald',
+        animationClass: 'animate-float-intense'
     },
     {
         id: 'vision',
@@ -41,7 +44,8 @@ const SLIDES = [
         description: 'Dados inteligentes para decisões que transformam o negócio.',
         image: '/assets/3d_manager.png',
         color: 'from-purple-500 to-fuchsia-600',
-        accent: 'purple'
+        accent: 'purple',
+        animationClass: 'animate-float-intense'
     }
 ];
 
@@ -114,33 +118,35 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
                 {/* Background Atmosphere */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1)_0%,transparent_70%)]" />
 
-                <div className="max-w-4xl text-center space-y-20 relative z-10 animate-in fade-in duration-1500 scale-in-95">
-                    <div className="space-y-12">
-                        <div className="relative inline-block scale-150 mb-12">
-                            <div className="absolute -inset-8 bg-blue-500/30 blur-[60px] rounded-full animate-pulse" />
-                            <div className="relative w-32 h-32 bg-white text-black rounded-[2.5rem] flex items-center justify-center shadow-[0_0_100px_rgba(255,255,255,0.4)] transform hover:rotate-12 transition-transform cursor-pointer" onClick={handleStart}>
-                                <Volume2 className="w-16 h-16 animate-bounce text-blue-600" />
+                <div className="max-w-4xl text-center space-y-16 relative z-10 animate-in fade-in duration-1500 scale-in-95">
+                    <div className="space-y-8">
+                        <div className="relative inline-block mb-8">
+                            <div className="absolute -inset-8 bg-blue-500/20 blur-[50px] rounded-full animate-pulse" />
+                            <div className="relative w-24 h-24 bg-white text-black rounded-[2rem] flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.3)] transform hover:rotate-12 transition-transform cursor-pointer" onClick={handleStart}>
+                                <Volume2 className="w-12 h-12 animate-bounce text-blue-600" />
                             </div>
                         </div>
-                        <h1 className="text-8xl md:text-[10rem] font-black tracking-tighter leading-[0.95] italic uppercase drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+
+                        {/* SCALED DOWN TITLE - FIXED AS REQUESTED */}
+                        <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none italic uppercase drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
                             ALGAR TEMPO <br />
-                            <span className="text-white/20 not-italic tracking-[0.2em] text-5xl md:text-7xl block mt-4">EXPERIENCE</span>
+                            <span className="text-white/30 not-italic tracking-[0.2em] text-2xl md:text-4xl block mt-4 font-bold">EXPERIENCE</span>
                         </h1>
-                        <p className="text-2xl md:text-3xl text-white/50 font-light max-w-2xl mx-auto leading-relaxed uppercase tracking-[0.4em]">
+                        <p className="text-xl md:text-2xl text-white/50 font-light max-w-xl mx-auto leading-relaxed uppercase tracking-[0.3em]">
                             A Revolução Digital nos Transportes
                         </p>
                     </div>
 
                     <button
                         onClick={handleStart}
-                        className="group relative inline-flex items-center gap-10 px-24 py-12 bg-white text-black rounded-full overflow-hidden transition-all hover:scale-110 active:scale-95 shadow-[0_40px_120px_rgba(255,255,255,0.25)] border-[12px] border-transparent hover:border-white/20"
+                        className="group relative inline-flex items-center gap-6 px-16 py-8 bg-white text-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_30px_80px_rgba(255,255,255,0.2)] border-[8px] border-transparent hover:border-white/20"
                     >
-                        <span className="relative z-10 text-3xl font-black uppercase tracking-widest italic">Iniciar Programa</span>
-                        <Play className="relative z-10 w-10 h-10 fill-current transform group-hover:scale-150 group-hover:rotate-12 transition-transform" />
+                        <span className="relative z-10 text-xl font-black uppercase tracking-widest italic">Iniciar Programa</span>
+                        <Play className="relative z-10 w-8 h-8 fill-current transform group-hover:scale-150 group-hover:rotate-12 transition-transform" />
                     </button>
 
-                    <div className="text-[12px] font-black uppercase tracking-[1.5em] text-white/10 mt-20">
-                        AUDIOPHASIC IMMERSION ENABLED
+                    <div className="text-[10px] font-black uppercase tracking-[1.2em] text-white/10 mt-12 animate-pulse">
+                        SISTEMA PRONTO
                     </div>
                 </div>
             </div>
@@ -158,105 +164,115 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
 
             {/* VOLUMETRIC BACKGROUND ENGINE */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2200px] h-[2200px] bg-gradient-to-br ${slide.color} opacity-30 blur-[400px] transition-all duration-[2500ms] ${animationStage >= 1 ? 'scale-110 opacity-50' : 'scale-50 opacity-0'}`} />
-                <div className="absolute inset-0 bg-black/70" />
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:150px_150px]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2200px] h-[2200px] bg-gradient-to-br ${slide.color} opacity-20 blur-[300px] transition-all duration-[2000ms] ${animationStage >= 1 ? 'scale-110 opacity-30' : 'scale-50 opacity-0'}`} />
+                <div className="absolute inset-0 bg-black/80" />
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:150px_150px]" />
             </div>
 
-            <div className="relative z-10 w-full max-w-[1800px] px-24 flex flex-col items-center justify-center min-h-screen">
+            <div className="relative z-10 w-full max-w-[1800px] px-12 md:px-24 flex flex-col items-center justify-center min-h-screen">
 
-                <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-24 lg:gap-40">
+                <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-12 lg:gap-32">
 
-                    {/* 3D CHARACTER ENGINE - SCREEN BLENDING & MASSIVE SCALE */}
-                    <div className={`relative flex-1 transition-all duration-[2500ms] cubic-bezier(0.23, 1, 0.32, 1) transform ${animationStage >= 1 ? 'opacity-100 translate-x-0 scale-125' : 'opacity-0 -translate-x-60 scale-50 rotate-[-10deg]'
-                        }`}>
-                        <div className="relative group">
-                            <div className={`absolute -inset-40 bg-gradient-to-br ${slide.color} opacity-40 blur-[180px] rounded-full animate-pulse`} />
-                            {/* The 'screen' blend mode removes the black background perfectly */}
+                    {/* 3D VEHICLE ENGINE - DYNAMIC MOVEMENT & SCREEN BLENDING */}
+                    <div className={`relative flex-1 w-full flex justify-center lg:justify-end transition-all duration-[1000ms]`}>
+                        <div className="relative group w-full max-w-[800px]">
+                            {/* Glow Effect */}
+                            <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-gradient-to-br ${slide.color} opacity-30 blur-[100px] rounded-full transition-all duration-1000 ${animationStage >= 1 ? 'scale-100' : 'scale-0'}`} />
+
+                            {/* Screen Blend Mode for Perfect Transparency + Dynamic Keyframe Animation */}
                             <img
+                                key={slide.id} // Force re-render for animation reset
                                 src={slide.image}
                                 alt={slide.title}
-                                className="relative w-full max-w-[900px] mx-auto mix-blend-screen brightness-125 contrast-110 drop-shadow-[0_120px_150px_rgba(0,0,0,1)] animate-float-intense"
+                                className={`relative w-full object-contain mix-blend-screen brightness-125 contrast-110 drop-shadow-[0_50px_100px_rgba(0,0,0,1)] ${animationStage >= 1 ? slide.animationClass : 'opacity-0 translate-y-20'
+                                    }`}
+                                style={{ maxHeight: '60vh' }}
                             />
                         </div>
                     </div>
 
                     {/* TYPOGRAPHY ARCHITECTURE */}
-                    <div className="flex-1 text-center lg:text-left space-y-16">
-                        <div className="space-y-6">
-                            <h2 className={`text-2xl md:text-3xl tracking-[1.2em] font-black uppercase text-white/20 transition-all duration-1200 delay-300 ${animationStage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'
+                    <div className="flex-1 text-center lg:text-left space-y-10 lg:pl-12">
+                        <div className="space-y-4">
+                            <h2 className={`text-xl md:text-2xl tracking-[1em] font-black uppercase text-white/30 transition-all duration-1000 delay-200 ${animationStage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                                 }`}>
                                 {slide.subtitle}
                             </h2>
 
-                            <h1 className={`text-[10rem] md:text-[18rem] font-black tracking-tighter leading-[0.75] italic transition-all duration-1500 delay-500 ${animationStage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-40 blur-3xl'
+                            <h1 className={`text-7xl md:text-[10rem] font-black tracking-tighter leading-[0.8] italic transition-all duration-1000 delay-300 ${animationStage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 blur-2xl'
                                 }`}>
-                                <span className={`bg-gradient-to-br ${slide.color} bg-clip-text text-transparent uppercase drop-shadow-[0_20px_80px_rgba(255,255,255,0.3)]`}>
+                                <span className={`bg-gradient-to-br ${slide.color} bg-clip-text text-transparent uppercase drop-shadow-[0_10px_40px_rgba(255,255,255,0.2)]`}>
                                     {slide.title}
                                 </span>
                             </h1>
 
-                            <div className={`max-w-2xl transition-all duration-1200 delay-700 ${animationStage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'
+                            <div className={`max-w-xl transition-all duration-1000 delay-500 ${animationStage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                                 }`}>
-                                <p className="text-4xl md:text-6xl font-light text-white leading-[1.1] tracking-tight mt-16 antialiased">
+                                <p className="text-2xl md:text-4xl font-light text-white leading-tight tracking-tight mt-8 antialiased">
                                     {slide.description}
                                 </p>
                             </div>
                         </div>
 
                         {/* ELITE NAVIGATION */}
-                        <div className={`pt-20 transition-all duration-1500 delay-1000 ${animationStage >= 2 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-40 scale-90'}`}>
+                        <div className={`pt-12 transition-all duration-1000 delay-700 ${animationStage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
                             <button
                                 onClick={handleNext}
-                                className="group relative flex items-center gap-12 py-10 px-24 bg-white text-black rounded-[3rem] transition-all hover:scale-110 active:scale-95 shadow-[0_50px_100px_rgba(255,255,255,0.2)] border-[10px] border-transparent hover:border-black/5"
+                                className="group relative flex items-center gap-8 py-6 px-16 bg-white text-black rounded-full transition-all hover:scale-105 active:scale-95 shadow-[0_20px_60px_rgba(255,255,255,0.15)] border-[6px] border-transparent hover:border-black/5"
                             >
-                                <span className="text-3xl font-black uppercase tracking-widest italic">
-                                    {currentSlide === SLIDES.length - 1 ? 'Iniciar Agora' : 'Próximo Passo'}
+                                <span className="text-xl font-black uppercase tracking-widest italic">
+                                    {currentSlide === SLIDES.length - 1 ? 'Aceder à Plataforma' : 'Continuar'}
                                 </span>
-                                <div className="w-16 h-16 bg-black text-white rounded-[1.5rem] flex items-center justify-center transition-all group-hover:rotate-[-10deg] group-hover:scale-125 shadow-xl">
-                                    {currentSlide === SLIDES.length - 1 ? <Zap className="w-8 h-8 fill-current text-yellow-400" /> : <ChevronRight className="w-10 h-10" />}
+                                <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center transition-all group-hover:rotate-[-10deg] group-hover:scale-110 shadow-lg">
+                                    {currentSlide === SLIDES.length - 1 ? <Zap className="w-6 h-6 fill-current text-yellow-400" /> : <ChevronRight className="w-8 h-8" />}
                                 </div>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* FUTURISTIC PROGRESS METRICS */}
-                <div className="absolute inset-x-0 bottom-16 px-24 flex justify-between items-end">
-                    <div className="flex gap-8">
+                {/* PROGRESS METRICS */}
+                <div className="absolute inset-x-0 bottom-8 px-12 flex justify-between items-end">
+                    <div className="flex gap-4">
                         {SLIDES.map((_, idx) => (
                             <div
                                 key={idx}
-                                className={`h-3 rounded-full transition-all duration-[1200ms] cubic-bezier(0.23, 1, 0.32, 1) ${idx === currentSlide ? 'w-[300px] bg-white shadow-[0_0_40px_white]' : 'w-12 bg-white/5'
+                                className={`h-2 rounded-full transition-all duration-1000 cubic-bezier(0.23, 1, 0.32, 1) ${idx === currentSlide ? 'w-[150px] bg-white shadow-[0_0_20px_white]' : 'w-8 bg-white/10'
                                     }`}
                             />
                         ))}
                     </div>
-                    <div className="flex flex-col items-end gap-4">
-                        <div className="text-[14px] font-black uppercase tracking-[1.2em] text-white/10 italic">ALGAR TEMPO ECOSYSTEM v4.0</div>
-                        <button
-                            onClick={handleFinish}
-                            className="group flex items-center gap-4 text-[12px] font-black uppercase tracking-[0.8em] text-white/20 hover:text-white transition-all transform hover:translate-x-2"
-                        >
-                            SALTAR EXPERIÊNCIA <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
+                    <div className="flex flex-col items-end gap-2 text-right">
+                        <div className="text-[10px] font-black uppercase tracking-[1em] text-white/20 italic">ALGAR TEMPO ECOSYSTEM</div>
                     </div>
                 </div>
             </div>
 
             <style>{`
+                @keyframes drive-in-right {
+                    0% { transform: translateX(100%) scale(0.8) skewX(-10deg); opacity: 0; }
+                    60% { transform: translateX(-5%) scale(1.02) skewX(2deg); opacity: 1; }
+                    100% { transform: translateX(0) scale(1) skewX(0deg); opacity: 1; }
+                }
+                @keyframes drive-in-left {
+                    0% { transform: translateX(-100%) scale(0.8) skewX(10deg); opacity: 0; }
+                    60% { transform: translateX(5%) scale(1.02) skewX(-2deg); opacity: 1; }
+                    100% { transform: translateX(0) scale(1) skewX(0deg); opacity: 1; }
+                }
                 @keyframes float-intense {
                     0% { transform: translateY(0px) rotate(0deg) scale(1); }
-                    33% { transform: translateY(-40px) rotate(3deg) scale(1.02); }
-                    66% { transform: translateY(10px) rotate(-2deg) scale(0.98); }
+                    33% { transform: translateY(-20px) rotate(2deg) scale(1.02); }
+                    66% { transform: translateY(10px) rotate(-1deg) scale(0.98); }
                     100% { transform: translateY(0px) rotate(0deg) scale(1); }
                 }
-                .animate-float-intense {
-                    animation: float-intense 8s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite;
+                .animate-drive-in-right {
+                    animation: drive-in-right 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
                 }
-                .tracking-tighter {
-                    letter-spacing: -0.06em;
+                .animate-drive-in-left {
+                    animation: drive-in-left 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+                }
+                .animate-float-intense {
+                    animation: float-intense 6s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite;
                 }
                 .text-transparent {
                     -webkit-background-clip: text;
