@@ -49,6 +49,7 @@ import Gestores from './components/gestores';
 const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 
 import SplashScreen from './components/SplashScreen';
+import IntroVideo from './components/IntroVideo';
 import { LayoutProvider } from './contexts/LayoutContext';
 
 // Helper for loading state
@@ -132,7 +133,8 @@ function AppContent() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showVideo, setShowVideo] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
 
   // Listen for Password Recovery Event
   useEffect(() => {
@@ -211,6 +213,8 @@ function AppContent() {
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
   };
+
+  if (showVideo) return <IntroVideo onComplete={() => { setShowVideo(false); setShowSplash(true); }} />;
 
   if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
