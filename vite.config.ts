@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['apple-touch-icon.png', 'favicon.png', 'grid-pattern.svg'],
       manifest: {
         name: 'Gestão Frota',
         short_name: 'GestãoFrota',
@@ -30,7 +30,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB to handle large chunks
+        maximumFileSizeToCacheInBytes: 20 * 1024 * 1024, // 20MB to handle large chunks and assets
       }
     })
   ],
