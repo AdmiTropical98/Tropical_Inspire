@@ -10,7 +10,6 @@ import { useAuth } from './contexts/AuthContext';
 import { usePermissions } from './contexts/PermissionsContext';
 import { useWorkshop } from './contexts/WorkshopContext';
 import { ChatProvider, useChat } from './contexts/ChatContext';
-import IntroVideo from "./IntroVideo";
 
 // Components
 import Login from './components/Login';
@@ -133,8 +132,7 @@ function AppContent() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const [showVideo, setShowVideo] = useState(true);
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Listen for Password Recovery Event
   useEffect(() => {
@@ -213,8 +211,6 @@ function AppContent() {
       default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
     }
   };
-
-  if (showVideo) return <IntroVideo onComplete={() => { setShowVideo(false); setShowSplash(true); }} />;
 
   if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
@@ -561,7 +557,7 @@ function App() {
   };
 
   if (showIntro) {
-    return <IntroVideo onFinish={finishIntro} />;
+    return <IntroVideo onComplete={finishIntro} />;
   }
 
   return (
