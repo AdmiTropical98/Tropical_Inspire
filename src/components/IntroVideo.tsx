@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Rocket, Users, Wrench, LayoutDashboard, Volume2, Play } from 'lucide-react';
+import { Rocket, Users, Wrench, LayoutDashboard, Volume2, Play, Music } from 'lucide-react';
 
 const SLIDES = [
     {
@@ -36,23 +36,16 @@ const SLIDES = [
     }
 ];
 
+// High-quality ambient track URL
+const BGM_URL = "https://www.chosic.com/wp-content/uploads/2021/04/Ambient-Atmospheric-Cinematic-Background-Music-For-Videos-No-Copyright.mp3";
+
 export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
     const [hasIniciado, setHasIniciado] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isExiting, setIsExiting] = useState(false);
     const [animationStage, setAnimationStage] = useState(0); // 0: hidden, 1: subtitle, 2: title, 3: narrative+icon
     const [progress, setProgress] = useState(0);
-    const [isVoiceReady, setIsVoiceReady] = useState(false);
-
-    // Voice pre-warming
-    useEffect(() => {
-        const warmup = () => {
-            const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) setIsVoiceReady(true);
-        };
-        warmup();
-        window.speechSynthesis.onvoiceschanged = warmup;
-    }, []);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const speak = useCallback((text: string) => {
         window.speechSynthesis.cancel();
@@ -61,10 +54,10 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
         const voices = window.speechSynthesis.getVoices();
         const ptVoices = voices.filter(v => v.lang.toLowerCase().includes('pt'));
 
-        // Elite voice selection - prioritized by quality keywords
+        // Elite voice selection - searching for "Premium" or "Neural" first
         const bestVoice =
-            // 1. PT-PT Neural (Microsoft/Google/Neural)
-            ptVoices.find(v => v.lang.includes('PT') && (v.name.includes('Neural') || v.name.includes('Natural') || v.name.includes('Premium')))
+            // 1. PT-PT Neural / Premium (Microsoft/Google)
+            ptVoices.find(v => v.lang.includes('PT') && (v.name.includes('Neural') || v.name.includes('Premium') || v.name.includes('Natural')))
             || ptVoices.find(v => v.lang.includes('PT') && (v.name.includes('Google') || v.name.includes('Microsoft')))
             // 2. Any PT-PT
             || ptVoices.find(v => v.lang.includes('PT'))
@@ -73,13 +66,13 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
 
         if (bestVoice) {
             utterance.voice = bestVoice;
+            console.log("Selected Voice:", bestVoice.name);
         }
 
         utterance.lang = 'pt-PT';
-        // Adjust rate for a more human cadence. Slower can sometimes sound more robotic if too slow.
-        // 0.95-1.0 is usually better for "Natural" voices.
-        utterance.rate = 1.0;
+        utterance.rate = 0.95; // Slightly slower for better clarity, but not robotic
         utterance.pitch = 1.0;
+        utterance.volume = 1.0;
 
         utterance.onend = () => {
             setTimeout(() => {
@@ -111,26 +104,45 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
 
     const handleStart = () => {
         setHasIniciado(true);
+        if (audioRef.current) {
+            audioRef.current.volume = 0;
+            audioRef.current.play().catch(e => console.error("Audio play blocked", e));
+            // Fade in music
+            const fadeIn = setInterval(() => {
+                if (audioRef.current && audioRef.current.volume < 0.25) {
+                    audioRef.current.volume += 0.01;
+                } else {
+                    clearInterval(fadeIn);
+                }
+            }, 50);
+        }
     };
 
     const handleFinish = () => {
         window.speechSynthesis.cancel();
         setIsExiting(true);
+        // Fade out music
+        const fadeOut = setInterval(() => {
+            if (audioRef.current && audioRef.current.volume > 0.01) {
+                audioRef.current.volume -= 0.02;
+            } else {
+                if (audioRef.current) audioRef.current.pause();
+                clearInterval(fadeOut);
+            }
+        }, 50);
+
         setTimeout(onComplete, 1200);
     };
 
     useEffect(() => {
         if (!hasIniciado) return;
 
-        // Stage 1: Subtitle
-        const t1 = setTimeout(() => setAnimationStage(1), 100);
-        // Stage 2: Title
-        const t2 = setTimeout(() => setAnimationStage(2), 400);
-        // Stage 3: Narrative + voice
+        const t1 = setTimeout(() => setAnimationStage(1), 200);
+        const t2 = setTimeout(() => setAnimationStage(2), 500);
         const t3 = setTimeout(() => {
             setAnimationStage(3);
             speak(SLIDES[currentSlide].narrative);
-        }, 800);
+        }, 1000);
 
         return () => {
             clearTimeout(t1);
@@ -140,11 +152,10 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
         };
     }, [currentSlide, hasIniciado, speak]);
 
-    // Simple smooth progress bar
     useEffect(() => {
         if (animationStage === 3) {
             const interval = setInterval(() => {
-                setProgress(prev => Math.min(prev + 0.9, 100));
+                setProgress(prev => Math.min(prev + 0.8, 100));
             }, 100);
             return () => clearInterval(interval);
         } else {
@@ -155,6 +166,7 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
     if (!hasIniciado) {
         return (
             <div className="fixed inset-0 z-[999999] bg-[#020205] flex items-center justify-center p-8 text-white">
+                <audio ref={audioRef} src={BGM_URL} loop />
                 <div className="max-w-xl text-center space-y-12 animate-in fade-in zoom-in duration-1000">
                     <div className="flex justify-center mb-12">
                         <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-white to-white/20 p-[2px] animate-pulse">
@@ -171,13 +183,15 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
                     </div>
                     <button
                         onClick={handleStart}
-                        className="group relative inline-flex items-center gap-6 px-16 py-8 bg-white text-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95"
+                        className="group relative inline-flex items-center gap-6 px-16 py-8 bg-white text-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
                     >
-                        <span className="relative z-10 text-xl font-black uppercase tracking-widest">Entrar na Oficina</span>
+                        <span className="relative z-10 text-xl font-black uppercase tracking-widest">Entrar no Programa</span>
                         <Play className="relative z-10 w-6 h-6 fill-current" />
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
-                    <p className="text-[10px] uppercase tracking-[0.4em] text-white/10 font-black">Powered by Tropical Inspire</p>
+                    <p className="text-[10px] uppercase tracking-[0.4em] text-white/10 font-black flex items-center justify-center gap-3">
+                        <Music className="w-3 h-3" /> Background Music Enabled
+                    </p>
                 </div>
             </div>
         );
@@ -191,6 +205,8 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
             className={`fixed inset-0 z-[999999] bg-[#020205] flex flex-col items-center justify-center overflow-hidden transition-all duration-1000 select-none ${isExiting ? 'opacity-0 scale-105 blur-3xl' : 'opacity-100'
                 }`}
         >
+            <audio ref={audioRef} src={BGM_URL} loop />
+
             {/* Background Dynamics */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1600px] h-[1600px] bg-gradient-to-br ${slide.color} opacity-20 blur-[280px] transition-all duration-[3000ms] ease-expo ${animationStage >= 1 ? 'scale-110 rotate-6' : 'scale-75 opacity-0'}`} />
@@ -201,7 +217,7 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
             {/* Cinematic Content Layer */}
             <div className="relative z-10 w-full max-w-7xl px-12 text-center flex flex-col items-center justify-center min-h-[80vh]">
 
-                {/* Visual Anchor - Reduced margin to prevent push-down */}
+                {/* Visual Anchor */}
                 <div className={`mb-8 transition-all duration-1000 transform ${animationStage >= 3 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-50 blur-xl'}`}>
                     <div className={`p-8 rounded-[2.5rem] bg-white text-black shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative`}>
                         <Icon className="w-12 h-12" />
@@ -216,10 +232,9 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
                         {slide.subtitle}
                     </h2>
 
-                    {/* Reduced font size slightly and increased leading to prevent clipping of accents */}
                     <h1 className={`text-[6rem] md:text-[10rem] font-black tracking-[-0.05em] leading-[1.1] transition-all duration-1000 delay-300 ${animationStage >= 2 ? 'opacity-100 translate-y-0 scale-100 rotate-0' : 'opacity-0 translate-y-20 scale-90 rotate-2 blur-3xl'
                         }`}>
-                        <span className="bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent italic">
                             {slide.title}
                         </span>
                     </h1>
