@@ -112,7 +112,7 @@ const SidebarGroup = ({ title, icon: Icon, children, defaultOpen = true }: { tit
 };
 
 
-function AppContent({ skipSplash = false }: { skipSplash?: boolean }) {
+function AppContent() {
   console.log('--- APP CONTENT RENDERING ---');
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
@@ -132,7 +132,7 @@ function AppContent({ skipSplash = false }: { skipSplash?: boolean }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const [showSplash, setShowSplash] = useState(!skipSplash);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Listen for Password Recovery Event
   useEffect(() => {
@@ -162,13 +162,6 @@ function AppContent({ skipSplash = false }: { skipSplash?: boolean }) {
       }
     }
   }, [isAuthenticated, userRole]);
-
-  // Sync showSplash with skipSplash prop if it changes
-  useEffect(() => {
-    if (skipSplash && showSplash) {
-      setShowSplash(false);
-    }
-  }, [skipSplash]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -558,17 +551,15 @@ function App() {
   const isDev = window.location.hostname.includes("github.dev");
 
   const [showIntro, setShowIntro] = useState(!isDev);
-  const [introFinished, setIntroFinished] = useState(isDev);
 
   const finishIntro = () => {
     setShowIntro(false);
-    setIntroFinished(true);
   };
 
   return (
     <LayoutProvider>
       <ChatProvider>
-        <AppContent skipSplash={introFinished} />
+        <AppContent />
         {showIntro && <IntroVideo onComplete={finishIntro} />}
       </ChatProvider>
     </LayoutProvider>
