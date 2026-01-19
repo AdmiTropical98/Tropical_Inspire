@@ -48,7 +48,7 @@ import Gestores from './components/gestores';
 const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 
 import SplashScreen from './components/SplashScreen';
-import IntroVideo from './components/IntroVideo';
+
 import { LayoutProvider } from './contexts/LayoutContext';
 
 // Helper for loading state
@@ -548,22 +548,10 @@ function AppContent() {
 }
 
 function App() {
-  const isDev = window.location.hostname.includes("github.dev");
-
-  const [showIntro, setShowIntro] = useState(!isDev);
-
-  const finishIntro = () => {
-    setShowIntro(false);
-  };
-
   return (
     <LayoutProvider>
       <ChatProvider>
-        {showIntro ? (
-          <IntroVideo onComplete={finishIntro} />
-        ) : (
-          <AppContent />
-        )}
+        <AppContent />
       </ChatProvider>
     </LayoutProvider>
   );
