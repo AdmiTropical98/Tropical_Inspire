@@ -6,7 +6,7 @@ const SLIDES = [
         id: 'welcome',
         title: 'TROPICAL',
         subtitle: 'BEM-VINDO AO FUTURO',
-        narrative: 'Seja bem-vindo à Algar Frota. Criámos este espaço digital para potenciar o talento e a dedicação da nossa equipa, elevando o transporte a um novo patamar de eficiência.',
+        narrative: 'Seja bem-vindo à Algartempo. Criámos este espaço digital para potenciar o talento e a dedicação da nossa equipa, elevando o transporte a um novo patamar de eficiência.',
         icon: Rocket,
         color: 'from-blue-600 via-indigo-600 to-violet-600'
     },
@@ -30,7 +30,7 @@ const SLIDES = [
         id: 'management',
         title: 'VISÃO',
         subtitle: 'GESTÃO E ESTRATÉGIA',
-        narrative: 'Aos supervisores, oferecemos visão total. Dados em tempo real para decisões que movem a empresa. Juntos, definimos o futuro da mobilidade Algar Frota.',
+        narrative: 'Aos supervisores, oferecemos visão total. Dados em tempo real para decisões que movem a empresa. Juntos, definimos o futuro da mobilidade Algartempo.',
         icon: LayoutDashboard,
         color: 'from-rose-600 via-purple-600 to-indigo-600'
     }
@@ -59,13 +59,16 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
         const utterance = new SpeechSynthesisUtterance(text);
 
         const voices = window.speechSynthesis.getVoices();
-        const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
+        const ptVoices = voices.filter(v => v.lang.toLowerCase().includes('pt'));
 
-        // Elite voice selection
-        const bestVoice = ptVoices.find(v => v.lang === 'pt-PT' && (v.name.includes('Neural') || v.name.includes('Natural')))
-            || ptVoices.find(v => v.lang === 'pt-PT' && v.name.includes('Google'))
-            || ptVoices.find(v => v.lang === 'pt-PT' && v.name.includes('Microsoft'))
-            || ptVoices.find(v => v.lang === 'pt-PT')
+        // Elite voice selection - prioritized by quality keywords
+        const bestVoice =
+            // 1. PT-PT Neural (Microsoft/Google/Neural)
+            ptVoices.find(v => v.lang.includes('PT') && (v.name.includes('Neural') || v.name.includes('Natural') || v.name.includes('Premium')))
+            || ptVoices.find(v => v.lang.includes('PT') && (v.name.includes('Google') || v.name.includes('Microsoft')))
+            // 2. Any PT-PT
+            || ptVoices.find(v => v.lang.includes('PT'))
+            // 3. Any PT (Fallback)
             || ptVoices[0];
 
         if (bestVoice) {
@@ -73,7 +76,9 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
         }
 
         utterance.lang = 'pt-PT';
-        utterance.rate = 0.88;
+        // Adjust rate for a more human cadence. Slower can sometimes sound more robotic if too slow.
+        // 0.95-1.0 is usually better for "Natural" voices.
+        utterance.rate = 1.0;
         utterance.pitch = 1.0;
 
         utterance.onend = () => {
@@ -83,7 +88,7 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
                 } else {
                     nextSlide();
                 }
-            }, 1000);
+            }, 1200);
         };
 
         utterance.onerror = () => {
@@ -106,7 +111,6 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
 
     const handleStart = () => {
         setHasIniciado(true);
-        // Browser context unlocked, proceed with voice
     };
 
     const handleFinish = () => {
@@ -162,14 +166,14 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
                     <div className="space-y-4">
                         <h1 className="text-4xl font-black tracking-tighter uppercase italic">Experiência Imersiva</h1>
                         <p className="text-xl text-white/40 font-light leading-relaxed">
-                            A tecnologia encontrou o seu propósito. <br />Ative o som para conhecer a nova Algar Frota.
+                            A tecnologia encontrou o seu propósito. <br />Ative o som para conhecer a nova Algartempo.
                         </p>
                     </div>
                     <button
                         onClick={handleStart}
                         className="group relative inline-flex items-center gap-6 px-16 py-8 bg-white text-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95"
                     >
-                        <span className="relative z-10 text-xl font-black uppercase tracking-widest">Entrar na OficIna</span>
+                        <span className="relative z-10 text-xl font-black uppercase tracking-widest">Entrar na Oficina</span>
                         <Play className="relative z-10 w-6 h-6 fill-current" />
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
@@ -187,7 +191,7 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
             className={`fixed inset-0 z-[999999] bg-[#020205] flex flex-col items-center justify-center overflow-hidden transition-all duration-1000 select-none ${isExiting ? 'opacity-0 scale-105 blur-3xl' : 'opacity-100'
                 }`}
         >
-            {/* Background Dynamics - Deep Ambient Blur */}
+            {/* Background Dynamics */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1600px] h-[1600px] bg-gradient-to-br ${slide.color} opacity-20 blur-[280px] transition-all duration-[3000ms] ease-expo ${animationStage >= 1 ? 'scale-110 rotate-6' : 'scale-75 opacity-0'}`} />
                 <div className="absolute inset-0 bg-black/60" />
@@ -195,49 +199,50 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
             </div>
 
             {/* Cinematic Content Layer */}
-            <div className="relative z-10 w-full max-w-7xl px-12 text-center space-y-8">
+            <div className="relative z-10 w-full max-w-7xl px-12 text-center flex flex-col items-center justify-center min-h-[80vh]">
 
-                {/* Visual Anchor */}
-                <div className={`flex justify-center transition-all duration-1000 transform ${animationStage >= 3 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-50 blur-xl'}`}>
-                    <div className={`p-8 rounded-[2.5rem] bg-white text-black shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative group`}>
-                        <Icon className="w-16 h-16" />
+                {/* Visual Anchor - Reduced margin to prevent push-down */}
+                <div className={`mb-8 transition-all duration-1000 transform ${animationStage >= 3 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-50 blur-xl'}`}>
+                    <div className={`p-8 rounded-[2.5rem] bg-white text-black shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative`}>
+                        <Icon className="w-12 h-12" />
                         <div className={`absolute -inset-4 bg-gradient-to-r ${slide.color} blur-3xl opacity-30 -z-10`} />
                     </div>
                 </div>
 
                 {/* Typography Architecture */}
-                <div className="space-y-4">
+                <div className="space-y-2 mb-12">
                     <h2 className={`text-sm tracking-[0.8em] font-black uppercase text-white/30 transition-all duration-1000 delay-100 ${animationStage >= 1 ? 'opacity-100 translate-y-0 tracking-[1.2em]' : 'opacity-0 translate-y-10 tracking-[2em]'
                         }`}>
                         {slide.subtitle}
                     </h2>
 
-                    <h1 className={`text-[8rem] md:text-[14rem] font-black tracking-[-0.05em] leading-[0.8] transition-all duration-1000 delay-300 ${animationStage >= 2 ? 'opacity-100 translate-y-0 scale-100 rotate-0' : 'opacity-0 translate-y-20 scale-90 rotate-2 blur-3xl'
+                    {/* Reduced font size slightly and increased leading to prevent clipping of accents */}
+                    <h1 className={`text-[6rem] md:text-[10rem] font-black tracking-[-0.05em] leading-[1.1] transition-all duration-1000 delay-300 ${animationStage >= 2 ? 'opacity-100 translate-y-0 scale-100 rotate-0' : 'opacity-0 translate-y-20 scale-90 rotate-2 blur-3xl'
                         }`}>
-                        <span className="bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent italic">
+                        <span className="bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
                             {slide.title}
                         </span>
                     </h1>
                 </div>
 
                 {/* Narrative & Progress */}
-                <div className={`max-w-4xl mx-auto space-y-10 transition-all duration-1000 delay-500 ${animationStage >= 3 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-20 scale-95 blur-2xl'
+                <div className={`max-w-4xl mx-auto space-y-12 transition-all duration-1000 delay-500 ${animationStage >= 3 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-20 scale-95 blur-2xl'
                     }`}>
-                    <div className="h-[2px] w-full bg-white/5 mx-auto rounded-full overflow-hidden">
+                    <div className="h-[3px] w-64 mx-auto bg-white/5 rounded-full overflow-hidden">
                         <div
                             className={`h-full bg-gradient-to-r ${slide.color} transition-all duration-300 ease-linear shadow-[0_0_20px_rgba(255,255,255,0.4)]`}
                             style={{ width: `${progress}%` }}
                         />
                     </div>
-                    <p className="text-2xl md:text-5xl font-light text-white/90 leading-[1.3] tracking-wide text-center">
+                    <p className="text-xl md:text-4xl font-light text-white/90 leading-relaxed tracking-wide text-center">
                         {slide.narrative}
                     </p>
                 </div>
             </div>
 
-            {/* Elite HUD Layer */}
-            <div className="absolute inset-0 pointer-events-none p-12 flex flex-col justify-between">
-                <div className="flex justify-between items-start pointer-events-auto">
+            {/* HUD Layer */}
+            <div className="absolute inset-x-0 bottom-0 p-12 flex justify-between items-end pointer-events-none">
+                <div className="space-y-4 pointer-events-auto">
                     <div className="flex gap-2">
                         {SLIDES.map((_, idx) => (
                             <div
@@ -247,23 +252,19 @@ export default function IntroVideo({ onComplete }: { onComplete: () => void }) {
                             />
                         ))}
                     </div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.6em] text-white/20">
+                        Módulo {currentSlide + 1} // Progressão de Equipas
+                    </div>
+                </div>
 
+                <div className="flex flex-col items-end gap-6 pointer-events-auto">
                     <button
                         onClick={handleFinish}
                         className="px-10 py-4 bg-white/5 hover:bg-white text-white/40 hover:text-black backdrop-blur-3xl border border-white/10 rounded-full text-[10px] font-black tracking-[0.4em] transition-all uppercase hover:scale-105 active:scale-95"
                     >
                         Saltar Experiência
                     </button>
-                </div>
-
-                <div className="flex justify-between items-end opacity-20">
-                    <div className="text-[10px] font-black uppercase tracking-[0.6em] text-white">
-                        Módulo {currentSlide + 1} // Progressão de Equipas
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-1 bg-white/10 rounded-full" />
-                        <div className="text-[10px] font-black uppercase tracking-[0.6em] text-white">Algar Frota v1.9</div>
-                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.6em] text-white/10">Algartempo v1.9.1</div>
                 </div>
             </div>
         </div>
