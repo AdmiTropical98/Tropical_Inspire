@@ -559,8 +559,11 @@ function App() {
   return (
     <LayoutProvider>
       <ChatProvider>
-        <AppContent />
-        {showIntro && <IntroVideo onComplete={finishIntro} />}
+        {showIntro ? (
+          <IntroVideo onComplete={finishIntro} />
+        ) : (
+          <AppContent />
+        )}
       </ChatProvider>
     </LayoutProvider>
   );
