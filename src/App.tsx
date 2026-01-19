@@ -556,14 +556,11 @@ function App() {
     setShowIntro(false);
   };
 
-  if (showIntro) {
-    return <IntroVideo onComplete={finishIntro} />;
-  }
-
   return (
     <LayoutProvider>
       <ChatProvider>
         <AppContent />
+        {showIntro && <IntroVideo onComplete={finishIntro} />}
       </ChatProvider>
     </LayoutProvider>
   );
