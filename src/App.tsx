@@ -547,11 +547,28 @@ function AppContent() {
   );
 }
 
+import IntroVideo from './components/IntroVideo';
+
 function App() {
+  const { isAuthenticated } = useAuth();
+  const [showIntro, setShowIntro] = useState(false);
+  const [hasShownIntro, setHasShownIntro] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && !hasShownIntro) {
+      setShowIntro(true);
+      setHasShownIntro(true);
+    }
+  }, [isAuthenticated, hasShownIntro]);
+
   return (
     <LayoutProvider>
       <ChatProvider>
-        <AppContent />
+        {showIntro ? (
+          <IntroVideo onComplete={() => setShowIntro(false)} />
+        ) : (
+          <AppContent />
+        )}
       </ChatProvider>
     </LayoutProvider>
   );
