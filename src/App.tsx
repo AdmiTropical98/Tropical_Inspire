@@ -10,6 +10,7 @@ import { useAuth } from './contexts/AuthContext';
 import { usePermissions } from './contexts/PermissionsContext';
 import { useWorkshop } from './contexts/WorkshopContext';
 import { ChatProvider, useChat } from './contexts/ChatContext';
+import IntroVideo from "./IntroVideo";
 
 // Components
 import Login from './components/Login';
@@ -548,6 +549,18 @@ function AppContent() {
 }
 
 function App() {
+  const isDev = window.location.hostname.includes("github.dev");
+
+  const [showIntro, setShowIntro] = useState(!isDev);
+
+  const finishIntro = () => {
+    setShowIntro(false);
+  };
+
+  if (showIntro) {
+    return <IntroVideo onFinish={finishIntro} />;
+  }
+
   return (
     <LayoutProvider>
       <ChatProvider>
@@ -558,3 +571,4 @@ function App() {
 }
 
 export default App;
+
