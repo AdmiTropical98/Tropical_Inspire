@@ -95,7 +95,13 @@ export default function Escalas() {
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
-    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout();
+    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode, resetLayout, saveGridLayout } = useLayout();
+
+    // ... (lines skipped)
+
+    // ... (lines skipped)
+
+
 
     // Core State
     const [selectedPendentes, setSelectedPendentes] = useState<string[]>([]);
@@ -105,9 +111,40 @@ export default function Escalas() {
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
     // Mobile sidebar state
-    const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false);
+    // const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false); // Removed: Use layout directly
     // Desktop sidebar state
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    // const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Removed: Use layout directly
+
+    const handleRestoreSidebar = () => {
+        // Force reset the layout to ensure sidebar is visible (default 9/3 split)
+        const defaultLayouts = {
+            lg: [
+                { i: 'drivers_grid', x: 0, y: 0, w: 9, h: 20 },
+                { i: 'pending_sidebar', x: 9, y: 0, w: 3, h: 20 }
+            ],
+            md: [
+                { i: 'drivers_grid', x: 0, y: 0, w: 7, h: 20 },
+                { i: 'pending_sidebar', x: 7, y: 0, w: 3, h: 20 }
+            ],
+            sm: [
+                { i: 'drivers_grid', x: 0, y: 0, w: 6, h: 10 },
+                { i: 'pending_sidebar', x: 0, y: 10, w: 6, h: 10 }
+            ],
+            xs: [
+                { i: 'drivers_grid', x: 0, y: 0, w: 4, h: 10 },
+                { i: 'pending_sidebar', x: 0, y: 10, w: 4, h: 10 }
+            ],
+            xxs: [
+                { i: 'drivers_grid', x: 0, y: 0, w: 2, h: 10 },
+                { i: 'pending_sidebar', x: 0, y: 10, w: 2, h: 10 }
+            ]
+        };
+
+        saveGridLayout('escalas_layout_rgl', defaultLayouts);
+        // We don't need to alert, the UI will update. 
+        // Maybe we just want to ensure it's saved?
+        // saveGridLayout triggers 'hasUnsavedChanges'.
+    };
 
     // View Mode State
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -353,7 +390,7 @@ export default function Escalas() {
                             return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
                         }
                         const str = String(val).trim();
-                        if (str.match(/^\d{1,2}:\d{2}/)) {
+                        if (str.match(/^\d{1, 2}:\d{2}/)) {
                             const [h, m] = str.split(':');
                             return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                         }
@@ -640,6 +677,18 @@ export default function Escalas() {
                                         <span className="hidden lg:inline text-sm font-bold">Salvar</span>
                                     </button>
                                     <button
+                                        onClick={async () => {
+                                            if (confirm('Tem a certeza que deseja restaurar o layout padrão?')) {
+                                                await resetLayout();
+                                            }
+                                        }}
+                                        className="p-2 lg:px-4 lg:py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 flex items-center justify-center gap-2 transition-all"
+                                        title="Reset Layout"
+                                    >
+                                        <LayoutGrid className="w-5 h-5" />
+                                        <span className="hidden lg:inline text-sm font-bold">Reset</span>
+                                    </button>
+                                    <button
                                         onClick={cancelEditMode}
                                         className="p-2 lg:px-4 lg:py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 flex items-center justify-center gap-2 transition-all"
                                         title="Cancelar"
@@ -682,10 +731,7 @@ export default function Escalas() {
                             {/* Pendentes Indicator */}
                             <div
                                 className="flex flex-col items-center cursor-pointer group relative"
-                                onClick={() => {
-                                    setIsPendingSidebarOpen(true);
-                                    setIsSidebarCollapsed(false);
-                                }}
+                                onClick={handleRestoreSidebar}
                             >
                                 <span className="text-[10px] uppercase text-slate-500 font-bold group-hover:text-amber-400 transition-colors">Pendentes</span>
                                 <div className="flex items-center gap-1">

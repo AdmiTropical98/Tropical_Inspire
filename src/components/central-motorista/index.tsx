@@ -56,7 +56,7 @@ export default function CentralMotorista() {
     } | null>(null);
 
     // Layout Context
-    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout();
+    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode, resetLayout } = useLayout();
 
     // Shift Edit State
     const [editingShift, setEditingShift] = useState(false);
@@ -365,8 +365,8 @@ export default function CentralMotorista() {
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center flex-1 py-4 text-center">
-                                <p className="text-slate-500 text-sm font-medium">Nenhuma viatura detetada</p>
-                                <p className="text-[10px] text-slate-600 mt-1">Passe a sua tag na viatura</p>
+                            <p className="text-slate-500 text-sm font-medium">Nenhuma viatura detetada</p>
+                            <p className="text-[10px] text-slate-600 mt-1">Passe a sua tag na viatura</p>
                         </div>
                     )}
                 </div>
@@ -648,6 +648,17 @@ export default function CentralMotorista() {
                                                                     Gravar
                                                                 </button>
                                                                 <button
+                                                                    onClick={async () => {
+                                                                        if (confirm('Restaurar layout padrão?')) {
+                                                                            await resetLayout();
+                                                                        }
+                                                                    }}
+                                                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 transition-colors flex items-center gap-2"
+                                                                >
+                                                                    <LayoutTemplate className="w-3.5 h-3.5" />
+                                                                    Reset
+                                                                </button>
+                                                                <button
                                                                     onClick={cancelEditMode}
                                                                     className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500/10 text-red-500 border border-red-500/20 flex items-center gap-2 hover:bg-red-500/20 transition-colors"
                                                                 >
@@ -656,13 +667,13 @@ export default function CentralMotorista() {
                                                                 </button>
                                                             </>
                                                         ) : (
-                                                                <button
-                                                                    onClick={toggleEditMode}
-                                                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white transition-all flex items-center gap-2"
-                                                                >
-                                                                    <Settings2 className="w-3.5 h-3.5" />
-                                                                    Personalizar
-                                                                </button>
+                                                            <button
+                                                                onClick={toggleEditMode}
+                                                                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white transition-all flex items-center gap-2"
+                                                            >
+                                                                <Settings2 className="w-3.5 h-3.5" />
+                                                                Personalizar
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>

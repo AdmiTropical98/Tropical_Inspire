@@ -21,8 +21,16 @@ export default function DraggableGrid({ children, zoneId, className, defaultLayo
     const layoutsFromContext = getGridLayout(zoneId);
 
     // We use a memoized initialLayouts to prevent infinite loops if getGridLayout returns a new object every time
+    // We use a memoized initialLayouts with validation
     const layouts = useMemo(() => {
-        return layoutsFromContext || defaultLayouts || { lg: [], md: [], sm: [] };
+        if (layoutsFromContext) {
+            // Validate: Check if any breakpoint has valid items
+            const isValid = Object.values(layoutsFromContext).some((bpLayout: any) =>
+                Array.isArray(bpLayout) && bpLayout.length > 0 && bpLayout.every((item: any) => item.w > 0)
+            );
+            if (isValid) return layoutsFromContext;
+        }
+        return defaultLayouts || { lg: [], md: [], sm: [] };
     }, [layoutsFromContext, defaultLayouts]);
 
     const handleLayoutChange = (_: any, allLayouts: any) => {
