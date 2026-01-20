@@ -1,14 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
-import type { Layout } from 'react-grid-layout';
+import type { ZoneLayouts } from '../types/grid';
 
-interface ZoneLayouts {
-    lg: Layout[];
-    md: Layout[];
-    sm: Layout[];
-    [key: string]: Layout[];
-}
 
 interface LayoutContextType {
     isEditMode: boolean;

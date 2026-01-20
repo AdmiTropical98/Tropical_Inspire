@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-    Plus, Search, FileText, Trash2, Printer, Package, CheckCircle, RotateCcw,
-    LayoutTemplate, List, PlusCircle, TrendingUp, Clock, AlertCircle, Calendar,
-    ArrowRight, Box, User, Building2, Truck, X
+  Plus, Search, FileText, Trash2, Printer, Package, CheckCircle, RotateCcw,
+  LayoutTemplate, List, PlusCircle, TrendingUp, Clock, AlertCircle, Calendar,
+  ArrowRight, Box, User, Building, Truck, X, Pencil
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,6 +17,14 @@ export default function Requisicoes() {
     const { currentUser, userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
+const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
+
+    {/* resto do teu código */}
+const editarItem = (item: ItemRequisicao) => {
+  setItemEmEdicao(item);
+  setNewItemDesc(item.descricao);
+  setNewItemQtd(item.quantidade);
+};
 
     // Navigation State
     const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'create'>('overview');
@@ -35,6 +43,7 @@ export default function Requisicoes() {
     const [items, setItems] = useState<ItemRequisicao[]>([]);
     const [newItemDesc, setNewItemDesc] = useState('');
     const [newItemQtd, setNewItemQtd] = useState(1);
+    
 
     // Confirmation Modal State
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -590,7 +599,9 @@ export default function Requisicoes() {
                                                                 ${req.tipo === 'Stock' ? 'bg-purple-900/30 border-purple-500/30 text-purple-400' : ''}
                                                                 ${req.tipo === 'Viatura' ? 'bg-indigo-900/30 border-indigo-500/30 text-indigo-400' : ''}
                                                             `}>
-                                                                {req.tipo === 'Oficina' && <Building2 className="w-3 h-3" />}
+                                                               {req.tipo === 'Oficina' && (
+  <Building className="w-3 h-3" />
+)}
                                                                 {req.tipo === 'Stock' && <Box className="w-3 h-3" />}
                                                                 {req.tipo === 'Viatura' && <Truck className="w-3 h-3" />}
                                                                 {req.tipo}
@@ -767,7 +778,7 @@ export default function Requisicoes() {
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custos</label>
                                             <div className="relative group">
-                                                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                                <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                                                 <select
                                                     value={centroCustoId || ''}
                                                     onChange={(e) => setCentroCustoId(e.target.value || undefined)}
@@ -839,6 +850,7 @@ export default function Requisicoes() {
                                                         onClick={addItem}
                                                         className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all font-bold shadow-lg shadow-blue-900/20 active:scale-95 flex items-center gap-2"
                                                     >
+                                                        {itemEmEdicao ? 'Guardar alterações' : 'Adicionar item'}
                                                         <Plus className="w-5 h-5" />
                                                         <span className="hidden md:inline">Adicionar</span>
                                                     </button>
@@ -856,6 +868,14 @@ export default function Requisicoes() {
                                                         </div>
                                                         <span className="text-slate-200 font-medium">{item.descricao}</span>
                                                     </div>
+                                                    <button
+  type="button"
+  onClick={() => editarItem(item)}
+  className="p-2 bg-red-500 text-white rounded-lg"
+>
+  <Pencil className="w-5 h-5" />
+</button>
+
                                                     <button
                                                         type="button"
                                                         onClick={() => removeItem(item.id)}
