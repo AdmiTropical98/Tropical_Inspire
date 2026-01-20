@@ -61,7 +61,7 @@ export const useResizeObserver = () => {
         }
 
         // DOUBLE-CHECK after a delay to catch any layout shifts (e.g. Sidebar transition)
-        const timer = setTimeout(() => {
+        const timer = window.setTimeout(() => {
             if (element) {
                 updateDimensions(element.offsetWidth, element.offsetHeight);
             }

@@ -42,7 +42,9 @@ export default function DraggableGrid({ children, zoneId, className, defaultLayo
                 cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
                 rowHeight={60}
                 width={width}
+                // @ts-ignore
                 isDraggable={isEditMode}
+                // @ts-ignore
                 isResizable={isEditMode}
                 margin={[16, 16]}
                 containerPadding={[0, 0]}
