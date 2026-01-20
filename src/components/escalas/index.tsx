@@ -24,6 +24,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import DraggableGrid from '../common/DraggableGrid';
+import PageHeader from '../common/PageHeader';
 import { useLayout } from '../../contexts/LayoutContext';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -165,6 +166,11 @@ export default function Escalas() {
         const saved = localStorage.getItem('escalas_driver_order');
         return saved ? JSON.parse(saved) : [];
     });
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -554,91 +560,445 @@ export default function Escalas() {
         });
     };
 
+
+
+
+    useEffect(() => {
+        if (driverOrder.length > 0)
+            localStorage.setItem('escalas_driver_order', JSON.stringify(driverOrder));
+    }, [driverOrder]);
+
+
+
+    const handleUrgentRequest = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const newNotification: Notification = {
+            id: crypto.randomUUID(),
+            type: 'urgent_transport_request',
+            data: {
+                time: urgentData.hora || new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+                passenger: urgentData.passageiro,
+                origin: urgentData.origem,
+                destination: urgentData.destino,
+                obs: urgentData.obs
+            },
+            status: 'pending',
+            timestamp: new Date().toISOString()
+        };
+
+        addNotification(newNotification);
+        setShowUrgentModal(false);
+        setUrgentData({ hora: '', passageiro: '', origem: '', destino: '', obs: '' });
+        alert(t('schedule.alerts.urgent_request_sent'));
+    };
+
+    const handleSupervisorCancel = async (notification: Notification) => {
+        if (!confirm(t('schedule.alerts.cancel_confirm'))) return;
+
+        if (notification.status === 'assigned' && notification.response?.driverId) {
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'transport_cancelled',
+                data: {
+                    origin: notification.data.origin,
+                    destination: notification.data.destination
+                },
+                status: 'pending',
+                response: { driverId: notification.response.driverId },
+                timestamp: new Date().toISOString()
+            });
+
+            if (notification.response.serviceId) {
+                await deleteServico(notification.response.serviceId);
+            }
+        }
+
+        updateNotification({ ...notification, status: 'rejected' });
+    };
+
+    // Advanced Filtering
+    const filteredServicos = servicos.filter(s => {
+        // Filter by Date
+        // If service has explicit 'data', use it.
+        // If not, try to fallback (optional: depending on business rule, we might default to today or show all legacy).
+
+        // Better fallback: if s.data is missing, maybe we shouldn't hide it yet to avoid data loss visibility.
+        // But the user wants control. Let's strictly filter if s.data exists.
+        if (s.data && s.data !== selectedDate) return false;
+
+        // Filter by Batch
+        if (selectedBatchId && s.batchId !== selectedBatchId) return false;
+        // If s.data is missing, we might want to still show it? Or assume it's legacy 'today'?
+        // Let's force filter: if no data, assume it belongs to the date it was created (which we might not have).
+        // For now: Check if s.data matches. If s.data is undefined, check if we are on "Today".
+        if (!s.data) {
+            // Basic legacy support: match today
+            const today = new Date().toISOString().split('T')[0];
+            if (selectedDate !== today) return false;
+        }
+
+        // Filter by Cost Center
+        if (selectedCentroCusto !== 'all' && s.centroCustoId !== selectedCentroCusto) return false;
+
+        // Filter by Search Term
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            return (
+                s.passageiro.toLowerCase().includes(term) ||
+                s.origem.toLowerCase().includes(term) ||
+                s.destino.toLowerCase().includes(term) ||
+                s.voo?.toLowerCase().includes(term)
+            );
+        }
+        return true;
+    });
+
+    // Global Pending Calculation for Sidebar Grouping
+    const globalPendentes = servicos.filter(s => !s.motoristaId && !s.concluido);
+
+    // Compute Batches that have pending services
+    const pendingBatches = scaleBatches.filter(batch => {
+        return globalPendentes.some(s => s.batchId === batch.id);
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Legacy/Ad-hoc pending (no batch or batch not found)
+    const adHocPendentes = globalPendentes.filter(s => !s.batchId || !scaleBatches.find(b => b.id === s.batchId));
+
+    // Sidebar Count
+    const sidebarTotalCount = pendingBatches.length + (adHocPendentes.length > 0 ? 1 : 0);
+
+    const pendentes = filteredServicos.filter(s => !s.motoristaId).sort((a, b) => a.hora.localeCompare(b.hora));
+    const assigned = filteredServicos.filter(s => s.motoristaId);
+
+    // Logic & Filters
+    const filteredMotoristas = motoristas.filter(m => {
+        if (selectedCentroCusto !== 'all' && m.centroCustoId !== selectedCentroCusto) return false;
+
+        if (filterStatus === 'all') return true;
+        if (filterStatus === 'available') return m.status === 'disponivel';
+        if (filterStatus === 'busy') return m.status === 'ocupado';
+        return true;
+    }).filter(m => {
+        if (searchTerm) return m.nome.toLowerCase().includes(searchTerm.toLowerCase());
+        return true;
+    });
+
+    const handleDropService = async (driverId: string) => {
+        if (draggedServiceId) {
+            const service = servicos.find(s => s.id === draggedServiceId);
+            if (service) {
+                await updateServico({ ...service, motoristaId: driverId });
+            }
+            setDraggedServiceId(null);
+            if (isDistributeMode) { /* optional feedback */ }
+        }
+    };
+
+    // Stats
+    const totalServices = filteredServicos.length;
+    const progressPercentage = totalServices > 0 ? Math.round((assigned.length / totalServices) * 100) : 0;
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+
+                const data = XLSX.utils.sheet_to_json(ws);
+                const mappedServicos: Servico[] = [];
+
+                data.forEach((row: any) => {
+                    const nome = row['Nome do funcionário'] || row['Nome'] || 'Desconhecido';
+                    const origem = row['Origem'] || '';
+                    const destino = row['Destino'] || '';
+
+                    // Parse Times
+                    const parseTime = (val: any) => {
+                        if (!val) return null;
+                        if (typeof val === 'number') {
+                            const totalSeconds = Math.round(val * 86400);
+                            const hours = Math.floor(totalSeconds / 3600);
+                            const minutes = Math.floor((totalSeconds % 3600) / 60);
+                            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                        }
+                        const str = String(val).trim();
+                        if (str.match(/^\d{1, 2}:\d{2}/)) {
+                            const [h, m] = str.split(':');
+                            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                        }
+                        return '00:00';
+                    };
+
+                    const horaEntrada = parseTime(row['Horário de apanhar transporte']);
+                    const horaSaida = parseTime(row['Horário de saída do serviço']);
+
+                    if (horaEntrada) {
+                        mappedServicos.push({
+                            id: crypto.randomUUID(),
+                            hora: horaEntrada,
+                            passageiro: nome,
+                            origem: origem,
+                            destino: destino,
+                            voo: '',
+                            obs: 'Entrada (Importado)',
+                            concluido: false,
+                            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined
+                        });
+                    }
+
+                    if (horaSaida) {
+                        mappedServicos.push({
+                            id: crypto.randomUUID(),
+                            hora: horaSaida,
+                            passageiro: nome,
+                            origem: destino,
+                            destino: origem,
+                            voo: '',
+                            obs: 'Saída (Importado)',
+                            concluido: false
+                        });
+                    }
+                });
+
+                if (mappedServicos.length === 0) {
+                    alert(t('schedule.alerts.no_valid_data'));
+                } else {
+                    // Bulk insert - loop for now as we don't have bulk insert in context yet
+                    for (const s of mappedServicos) {
+                        await addServico(s);
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao importar:", error);
+                alert(t('schedule.alerts.file_read_error'));
+            } finally {
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
+    const handleCreateService = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const servicesToAdd: Servico[] = [{
+            id: crypto.randomUUID(),
+            data: selectedDate, // Use currently selected date
+            hora: newService.hora,
+            passageiro: newService.passageiro || 'Staff',
+            origem: newService.origem,
+            destino: newService.destino,
+            voo: newService.referencia,
+            obs: 'Entrada',
+            concluido: false,
+            centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
+            validationPoints: newService.validationPoints
+        }];
+
+        if (newService.temRegresso) {
+            const returnDest = newService.destinoRegresso || newService.origem;
+            servicesToAdd.push({
+                id: crypto.randomUUID(),
+                data: selectedDate,
+                hora: newService.horaRegresso,
+                passageiro: newService.passageiro || 'Staff',
+                origem: newService.destino,
+                destino: returnDest,
+                voo: newService.referencia,
+                obs: 'Saída',
+                concluido: false,
+                centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
+                validationPoints: newService.validationPoints
+            });
+        }
+
+        for (const s of servicesToAdd) {
+            await addServico(s);
+        }
+        setShowNewServiceModal(false);
+
+        setNewService({
+            hora: '09:00',
+            passageiro: '',
+            origem: '',
+            destino: '',
+            referencia: '',
+            obs: '',
+            temRegresso: false,
+            horaRegresso: '18:00',
+            destinoRegresso: '',
+            centroCustoId: '',
+            validationPoints: []
+        });
+    };
+
+    const handleAssign = async () => {
+        if (!selectedMotoristaForAssign || selectedPendentes.length === 0) return;
+
+        const servicesToUpdate = servicos.filter(s => selectedPendentes.includes(s.id));
+        await Promise.all(servicesToUpdate.map(s => updateServico({ ...s, motoristaId: selectedMotoristaForAssign })));
+
+        setSelectedPendentes([]);
+        setSelectedMotoristaForAssign('');
+    };
+
+    const handleBatchDelete = async () => {
+        if (selectedPendentes.length === 0) return;
+        if (!confirm(t('schedule.alerts.delete_confirm'))) return;
+
+        await Promise.all(selectedPendentes.map(id => deleteServico(id)));
+        setSelectedPendentes([]);
+    };
+
+    const togglePendenteSelection = (id: string) => {
+        setSelectedPendentes(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedPendentes.length === pendentes.length) {
+            setSelectedPendentes([]);
+        } else {
+            setSelectedPendentes(pendentes.map(s => s.id));
+        }
+    };
+
+    const unassignService = async (id: string) => {
+        const service = servicos.find(s => s.id === id);
+        if (service) {
+            await updateServico({ ...service, motoristaId: null });
+        }
+    };
+
+    const handleDeleteService = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (confirm(t('schedule.alerts.delete_confirm'))) {
+            await deleteServico(id);
+            setSelectedPendentes(prev => prev.filter(x => x !== id));
+        }
+    };
+
+    const handleDeleteDriver = async (driverId: string, driverName: string) => {
+        if (confirm(`Tem a certeza que deseja eliminar o motorista ${driverName}?`)) {
+            await deleteMotorista(driverId);
+            setActiveDriverMenuId(null);
+        }
+    };
+
+    const handleEditDriver = async (driver: any) => {
+        const newName = prompt("Novo nome para o motorista:", driver.nome);
+        if (newName && newName !== driver.nome) {
+            await updateMotorista({ ...driver, nome: newName });
+            setActiveDriverMenuId(null);
+        }
+    };
+
+    const processedMotoristas = useMemo(() => {
+        if (driverOrder.length === 0) return filteredMotoristas;
+        return [...filteredMotoristas].sort((a, b) => {
+            const indexA = driverOrder.indexOf(a.id);
+            const indexB = driverOrder.indexOf(b.id);
+            if (indexA === -1 && indexB === -1) return 0;
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        });
+    }, [filteredMotoristas, driverOrder]);
+
+    const handleDragDriverEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        setDriverOrder((items) => {
+            // Ensure we have a complete list of IDs including new ones if not present
+            const currentIds = items.length > 0 ? items : processedMotoristas.map(m => m.id);
+            // If the list is still empty (edge case), use processed
+            const baseList = currentIds.length === 0 ? processedMotoristas.map(m => m.id) : currentIds;
+
+            const oldIndex = baseList.indexOf(active.id as string);
+            const newIndex = baseList.indexOf(over.id as string);
+
+            if (oldIndex !== -1 && newIndex !== -1) {
+                return arrayMove(baseList, oldIndex, newIndex);
+            }
+            return baseList;
+        });
+    };
+
     return (
         <div className="flex flex-col h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
 
             {/* HEADER TOOLBAR */}
-            <div className="h-auto md:min-h-20 border-b border-white/5 flex flex-wrap md:flex-nowrap items-center justify-between p-3 md:px-8 bg-[#0f172a]/80 backdrop-blur-md z-20 shrink-0 gap-4">
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    accept=".xlsx, .xls, .csv"
-                />
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept=".xlsx, .xls, .csv"
+            />
 
-                {/* Left: Date & Stats */}
-                <div className="flex items-center justify-between w-full md:w-auto gap-4">
-                    <div className="flex flex-col shrink-0">
-                        <div className="flex items-center gap-1.5 text-blue-400 mb-0.5">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">Hoje</span>
-                        </div>
-                        <h2 className="text-lg font-bold text-white capitalize leading-none truncate max-w-[200px] md:max-w-none">
-                            {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'short' })}
-                        </h2>
-                    </div>
-
-                    <div className="hidden md:block h-10 w-px bg-white/10" />
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 md:gap-6">
-                        <div className="flex flex-col items-center">
-                            <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Serviços</span>
-                            <span className="text-sm md:text-lg font-bold text-white leading-tight">{totalServices}</span>
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider">Concluído</span>
-                            <span className="text-sm md:text-lg font-bold text-emerald-400 leading-tight">{progressPercentage}%</span>
-                        </div>
-
-                        {/* Pendentes Indicator - Mobile Only (Compact) / Desktop (Full) */}
-                        <div
-                            className="flex flex-col items-center relative cursor-pointer group"
-                            onClick={() => {
-                                setIsPendingSidebarOpen(true);
-                                setIsSidebarCollapsed(false);
-                            }}
-                            title="Ver Pendentes"
-                        >
-                            <span className="text-[9px] md:text-xs text-slate-400 font-medium uppercase tracking-wider group-hover:text-amber-400 transition-colors">Pendentes</span>
-                            <span className={`text-sm md:text-lg font-bold leading-tight ${pendentes.length > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{pendentes.length}</span>
-                            {pendentes.length > 0 && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right: Actions & Tools */}
-                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto justify-end">
-                    <div className="relative flex-1 md:flex-none md:w-64 min-w-[140px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input
-                            type="text"
-                            placeholder="Procurar..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50"
-                        />
-                    </div>
-
-                    {/* Cost Center Filter - Desktop Only */}
-                    <div className="hidden xl:block w-48">
-                        <select
-                            value={selectedCentroCusto}
-                            onChange={(e) => setSelectedCentroCusto(e.target.value)}
-                            className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
-                        >
-                            <option value="all">{t('menu.cost_centers')}: Todos</option>
-                            {centrosCustos.map(cc => (
-                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0">
-                        {/* Action Buttons Group */}
+            <PageHeader
+                title="Gestão de Viaturas"
+                subtitle="Mapas, Escalas e Distribuição"
+                icon={Calendar}
+                breadcrumbs={[
+                    { label: 'Dashboard', href: '/' },
+                    { label: 'Escalas' }
+                ]}
+                actions={
+                    <>
                         <div className="flex items-center gap-2">
-                            {/* EDIT MODE TOGGLE */}
+                            {/* Date Picker */}
+                            <div className="relative group">
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => {
+                                        setSelectedDate(e.target.value);
+                                        setSelectedBatchId(null);
+                                    }}
+                                    className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/5 outline-none focus:border-blue-500 transition-colors shadow-sm"
+                                />
+                                <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            </div>
+
+                            {/* Action Buttons */}
+                            {hasAccess(userRole, 'escalas_create') && (
+                                <button
+                                    onClick={() => setShowNewServiceModal(true)}
+                                    className="flex bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-bold items-center gap-2 transition-all shadow-lg hover:shadow-blue-600/20 whitespace-nowrap"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Novo</span>
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => setShowUrgentModal(true)}
+                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
+                            >
+                                <AlertTriangle className="w-4 h-4" />
+                                <span className="hidden sm:inline">Urgência</span>
+                            </button>
+
+                            <button
+                                onClick={runComplianceDemo}
+                                className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
+                                title="Gerar dados de exemplo"
+                            >
+                                <span className="hidden sm:inline">Demo</span>
+                            </button>
+
+                            {/* Edit Mode Toggle */}
                             {isEditMode ? (
                                 <div className="flex gap-2">
                                     <button
@@ -668,96 +1028,112 @@ export default function Escalas() {
                                     <span className="hidden lg:inline text-sm font-bold">Layout</span>
                                 </button>
                             )}
+                        </div>
+                    </>
+                }
+            >
+                {/* Header Children (Filters & Stats) */}
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 w-full">
 
-                            {/* Pending Details Toggle */}
-                            {hasAccess(userRole, 'escalas_view_pending') && (
-                                <button
-                                    onClick={() => setIsPendingSidebarOpen(!isPendingSidebarOpen)}
-                                    className="md:hidden p-2 bg-[#1e293b] hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 relative"
-                                >
-                                    <LayoutList className="w-5 h-5" />
-                                    {pendentes.length > 0 && (
-                                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-[10px] font-bold text-black rounded-full flex items-center justify-center">
-                                            {pendentes.length}
-                                        </span>
-                                    )}
-                                </button>
-                            )}
+                    {/* Stats Group */}
+                    <div className="flex items-center gap-4 md:gap-8 overflow-x-auto pb-2 xl:pb-0 w-full xl:w-auto">
+                        <div className="flex items-center gap-4 shrink-0">
+                            <div className="flex flex-col items-center">
+                                <span className="text-[10px] uppercase text-slate-500 font-bold">Total</span>
+                                <span className="text-xl font-bold text-white">{totalServices}</span>
+                            </div>
+                            <div className="w-px h-8 bg-white/5"></div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-[10px] uppercase text-slate-500 font-bold">Atribuídos</span>
+                                <span className="text-xl font-bold text-blue-400">{assigned.length}</span>
+                            </div>
+                            <div className="w-px h-8 bg-white/5"></div>
 
-
-
-                            {/* Layout Edit Mode */}
-                            <button
-                                onClick={toggleEditMode}
-                                className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${isEditMode ? 'bg-emerald-600 text-white animate-pulse' : 'bg-[#1e293b] text-slate-400 border border-white/5 hover:text-white'}`}
+                            {/* Pendentes Indicator */}
+                            <div
+                                className="flex flex-col items-center cursor-pointer group relative"
+                                onClick={() => {
+                                    setIsPendingSidebarOpen(true);
+                                    setIsSidebarCollapsed(false);
+                                }}
                             >
-                                <Edit className="w-4 h-4" />
-                                <span className="hidden sm:inline">Personalizar</span>
-                            </button>
-
-                            {/* View Toggles */}
-                            {hasAccess(userRole, 'escalas_create') && (
-                                <div className="flex bg-[#1e293b] rounded-lg p-1 border border-white/5">
-                                    <button
-                                        onClick={() => setViewMode('cards')}
-                                        className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
-                                        title="Vista de Cartões"
-                                    >
-                                        <LayoutGrid className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => setViewMode('table')}
-                                        className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
-                                        title="Vista de Tabela"
-                                    >
-                                        <TableIcon className="w-4 h-4" />
-                                    </button>
+                                <span className="text-[10px] uppercase text-slate-500 font-bold group-hover:text-amber-400 transition-colors">Pendentes</span>
+                                <div className="flex items-center gap-1">
+                                    <span className={`text-xl font-bold ${pendentes.length > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                                        {pendentes.length}
+                                    </span>
+                                    {pendentes.length > 0 && (
+                                        <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
 
-                        {/* Date Picker & Actions */}
-                        <div className="flex gap-2 items-center">
-                            <div className="relative">
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => {
-                                        setSelectedDate(e.target.value);
-                                        setSelectedBatchId(null);
-                                    }}
-                                    className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/5 outline-none focus:border-blue-500 transition-colors shadow-sm"
-                                />
-                                <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        {/* Progress Bar */}
+                        <div className="hidden md:flex flex-col gap-1 min-w-[120px]">
+                            <div className="flex justify-between text-[10px] font-medium text-slate-400">
+                                <span>Progresso</span>
+                                <span>{progressPercentage}%</span>
                             </div>
-                            {hasAccess(userRole, 'escalas_create') && (
-                                <button
-                                    onClick={() => setShowNewServiceModal(true)}
-                                    className="flex bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-bold items-center gap-2 transition-all shadow-lg hover:shadow-blue-600/20 whitespace-nowrap"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Novo</span>
-                                </button>
-                            )}
-
-                            <button
-                                onClick={() => setShowUrgentModal(true)}
-                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
-                            >
-                                <AlertTriangle className="w-4 h-4" />
-                                <span className="hidden sm:inline">Urgência</span>
-                            </button>
-                            <button
-                                onClick={runComplianceDemo}
-                                className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
-                                title="Gerar dados de exemplo"
-                            >
-                                <span className="hidden sm:inline">Demo</span>
-                            </button>
+                            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500"
+                                    style={{ width: `${progressPercentage}%` }}
+                                ></div>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Filters & Tools */}
+                    <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                        {/* Search */}
+                        <div className="relative flex-1 xl:flex-none min-w-[200px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input
+                                type="text"
+                                placeholder="Procurar serviço..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50 placeholder:text-slate-600"
+                            />
+                        </div>
+
+                        {/* Cost Center Filter */}
+                        <div className="hidden md:block w-40">
+                            <select
+                                value={selectedCentroCusto}
+                                onChange={(e) => setSelectedCentroCusto(e.target.value)}
+                                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
+                            >
+                                <option value="all">Todos Centros</option>
+                                {centrosCustos.map(cc => (
+                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* View Mode Toggle */}
+                        {hasAccess(userRole, 'escalas_create') && (
+                            <div className="flex bg-[#1e293b] rounded-lg p-1 border border-white/5 shrink-0">
+                                <button
+                                    onClick={() => setViewMode('cards')}
+                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    title="Cartões"
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('table')}
+                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    title="Lista"
+                                >
+                                    <TableIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </PageHeader>
 
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 overflow-hidden relative">
