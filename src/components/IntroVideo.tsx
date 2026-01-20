@@ -21,11 +21,11 @@ const SLIDES = [
         id: 'van',
         title: 'AGILIDADE',
         subtitle: 'FLEXIBILIDADE TOTAL',
-        description: 'Carrinhas modernas para transporte personalizado.',
-        image: '/assets/3d_van.png',
+        description: 'Rapidez e eficiência em cada serviço realizado.',
+        image: '/assets/3d_agility.png',
         color: 'from-sky-400 to-cyan-600',
         accent: 'cyan',
-        animationClass: 'animate-drive-in-left'
+        animationClass: 'animate-float-intense'
     },
     {
         id: 'driver',
