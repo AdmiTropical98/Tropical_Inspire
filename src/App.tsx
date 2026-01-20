@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, Settings, Wrench, UserCheck
+  ChevronDown, ChevronRight, UserCheck
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -81,7 +81,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: { icon: Reac
   </button>
 );
 
-const SidebarGroup = ({ title, icon: Icon, children, defaultOpen = true }: { title: string, icon: any, children: React.ReactNode, defaultOpen?: boolean }) => {
+const SidebarGroup = ({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   // Filter out null/false children to check if group is empty
@@ -126,7 +126,7 @@ function AppContent() {
   const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'requisicoes') || hasAccess(userRole, 'horas') || hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'plataformas_externas');
   const showFinGroup = hasAccess(userRole, 'contabilidade') || hasAccess(userRole, 'centros_custos') || hasAccess(userRole, 'fornecedores') || hasAccess(userRole, 'clientes') || hasAccess(userRole, 'relatorios');
   const showSysGroup = hasAccess(userRole, 'equipa-oficina') || hasAccess(userRole, 'supervisores') || userRole === 'admin' || userRole === 'gestor';
-  const showCommGroup = hasAccess(userRole, 'mensagens');
+
 
   // Notification & Modal State
   const [showNotifications, setShowNotifications] = useState(false);
@@ -219,85 +219,88 @@ function AppContent() {
   if (!isAuthenticated) return <Login />;
 
   return (
-    <div className="flex bg-black h-[100dvh] text-slate-200 font-sans overflow-hidden relative selection:bg-blue-500/30">
+    <div className="relative h-[100dvh] w-full overflow-hidden text-slate-200 font-sans selection:bg-blue-500/30 bg-black">
 
-      {/* GLOBAL CINEMATIC BACKGROUND */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+      {/* GLOBAL CINEMATIC BACKGROUND (FIXED LAYER) */}
+      <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1800px] h-[1800px] bg-gradient-to-br from-blue-900/40 to-indigo-900/40 opacity-40 blur-[200px] animate-pulse" />
         <div className="absolute inset-0 bg-black/80" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] opacity-50" />
       </div>
 
-      {/* Force deploy correction */}
+      {/* APP LAYOUT (ON TOP) */}
+      <div className="relative z-10 flex h-full w-full bg-transparent">
 
-      {/* DB Connection Error Banner */}
-      {useWorkshop().dbConnectionError && (
-        <div className="absolute top-0 left-0 w-full bg-red-600 text-white p-2 z-[9999] text-center font-bold flex items-center justify-center gap-2 shadow-xl animate-pulse">
-          {useWorkshop().dbConnectionError} -- Verifique a Consola (F12) para detalhes.
-          <button onClick={() => window.location.reload()} className="ml-4 underline text-xs">Recarregar</button>
-        </div>
-      )}
+        {/* Force deploy correction */}
 
-      {/* SIDEBAR */}
-      <aside className="w-72 bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl">
-        <button
-          onClick={() => isAuthenticated && setActiveTab(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}
-          className="h-40 border-b border-slate-800/60 flex items-center justify-center bg-gradient-to-r from-slate-900/50 to-transparent overflow-hidden hover:bg-slate-800/30 transition-colors cursor-pointer"
-          title="Ir para Início"
-        >
-          <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="w-full h-full object-cover" />
-        </button>
+        {/* DB Connection Error Banner */}
+        {useWorkshop().dbConnectionError && (
+          <div className="absolute top-0 left-0 w-full bg-red-600 text-white p-2 z-[9999] text-center font-bold flex items-center justify-center gap-2 shadow-xl animate-pulse">
+            {useWorkshop().dbConnectionError} -- Verifique a Consola (F12) para detalhes.
+            <button onClick={() => window.location.reload()} className="ml-4 underline text-xs">Recarregar</button>
+          </div>
+        )}
 
-        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
-          {/* MAIN MENU */}
-          {hasAccess(userRole, 'dashboard') && (
-            <SidebarItem
-              icon={LayoutDashboard}
-              label="Dashboard"
-              active={activeTab === 'dashboard'}
-              onClick={() => setActiveTab('dashboard')}
-            />
-          )}
+        {/* SIDEBAR */}
+        <aside className="w-72 bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl">
+          <button
+            onClick={() => isAuthenticated && setActiveTab(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}
+            className="h-40 border-b border-slate-800/60 flex items-center justify-center bg-gradient-to-r from-slate-900/50 to-transparent overflow-hidden hover:bg-slate-800/30 transition-colors cursor-pointer"
+            title="Ir para Início"
+          >
+            <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="w-full h-full object-cover" />
+          </button>
 
-          {showFleetGroup && (
-            <SidebarGroup title="Gestão de Frota" icon={Car}>
-              {hasAccess(userRole, 'central_motorista') && (
-                <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => setActiveTab('central-motorista')} />
-              )}
-              {hasAccess(userRole, 'viaturas') && (
-                <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => setActiveTab('viaturas')} />
-              )}
-              {hasAccess(userRole, 'geofences') && (
-                <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => setActiveTab('geofences')} />
-              )}
-              {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
-                <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => setActiveTab('locais')} />
-              )}
-              {userRole === 'admin' && (
-                <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => setActiveTab('avaliacao')} />
-              )}
-            </SidebarGroup>
-          )}
+          <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
+            {/* MAIN MENU */}
+            {hasAccess(userRole, 'dashboard') && (
+              <SidebarItem
+                icon={LayoutDashboard}
+                label="Dashboard"
+                active={activeTab === 'dashboard'}
+                onClick={() => setActiveTab('dashboard')}
+              />
+            )}
 
-          {showOpsGroup && (
-            <SidebarGroup title="Operações" icon={ClipboardCheck}>
-              {hasAccess(userRole, 'escalas') && (
-                <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => setActiveTab('escalas')} />
-              )}
-              {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor' || userRole === 'gestor') && (
-                <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => setActiveTab('lancar-escala')} />
-              )}
-              {hasAccess(userRole, 'horas') && (
-                <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => setActiveTab('horas')} />
-              )}
-              {hasAccess(userRole, 'plataformas_externas') && (
-                <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => setActiveTab('transportes-eva')} />
-              )}
-            </SidebarGroup>
-          )}
+            {showFleetGroup && (
+              <SidebarGroup title="Gestão de Frota">
+                {hasAccess(userRole, 'central_motorista') && (
+                  <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => setActiveTab('central-motorista')} />
+                )}
+                {hasAccess(userRole, 'viaturas') && (
+                  <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => setActiveTab('viaturas')} />
+                )}
+                {hasAccess(userRole, 'geofences') && (
+                  <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => setActiveTab('geofences')} />
+                )}
+                {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
+                  <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => setActiveTab('locais')} />
+                )}
+                {userRole === 'admin' && (
+                  <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => setActiveTab('avaliacao')} />
+                )}
+              </SidebarGroup>
+            )}
 
-          {/* 3. OFICINA - Adjusted logic if needed, but assuming check is fine. Assuming 'Oficina' group logic is missing in constants? No, let's use manual check if variable missing */}
-          {/* Wait, showSysGroup exists but not showOficinaGroup. Let's create ad-hoc check or assume it's part of another group. 
+            {showOpsGroup && (
+              <SidebarGroup title="Operações">
+                {hasAccess(userRole, 'escalas') && (
+                  <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => setActiveTab('escalas')} />
+                )}
+                {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor' || userRole === 'gestor') && (
+                  <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => setActiveTab('lancar-escala')} />
+                )}
+                {hasAccess(userRole, 'horas') && (
+                  <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => setActiveTab('horas')} />
+                )}
+                {hasAccess(userRole, 'plataformas_externas') && (
+                  <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => setActiveTab('transportes-eva')} />
+                )}
+              </SidebarGroup>
+            )}
+
+            {/* 3. OFICINA - Adjusted logic if needed, but assuming check is fine. Assuming 'Oficina' group logic is missing in constants? No, let's use manual check if variable missing */}
+            {/* Wait, showSysGroup exists but not showOficinaGroup. Let's create ad-hoc check or assume it's part of another group. 
               Checking line 114: showSysGroup includes equipa-oficina. 
               Let's look at lines 261-268. It contains 'combustivel' and 'requisicoes'.
               Ah, I see showOpsGroup includes 'combustivel' (line 112). 'requisicoes' is also in 'showOpsGroup'.
@@ -312,244 +315,245 @@ function AppContent() {
               Let's just do inline check for simplicity and correctness: 
               (hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes'))
           */}
-          {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && (
-            <SidebarGroup title="Oficina" icon={Wrench}>
-              {hasAccess(userRole, 'combustivel') && (
-                <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => setActiveTab('combustivel')} />
+            {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && (
+              <SidebarGroup title="Oficina">
+                {hasAccess(userRole, 'combustivel') && (
+                  <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => setActiveTab('combustivel')} />
+                )}
+                {hasAccess(userRole, 'requisicoes') && (
+                  <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => setActiveTab('requisicoes')} />
+                )}
+              </SidebarGroup>
+            )}
+
+            {showSysGroup && (
+              <SidebarGroup title="Equipa">
+                {(userRole === 'admin' || userRole === 'gestor') && (
+                  <SidebarItem icon={UserCheck} label="Gestores" active={activeTab === 'gestores'} onClick={() => setActiveTab('gestores')} />
+                )}
+                {hasAccess(userRole, 'equipa-oficina') && (
+                  <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => setActiveTab('equipa-oficina')} />
+                )}
+                {hasAccess(userRole, 'supervisores') && (
+                  <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => setActiveTab('supervisores')} />
+                )}
+                {hasAccess(userRole, 'motoristas') && (
+                  <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => setActiveTab('motoristas')} />
+                )}
+              </SidebarGroup>
+            )}
+
+            {showFinGroup && (
+              <SidebarGroup title="Financeiro">
+                {hasAccess(userRole, 'contabilidade') && (
+                  <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => setActiveTab('contabilidade')} />
+                )}
+                {hasAccess(userRole, 'centros_custos') && (
+                  <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => setActiveTab('centros-custos')} />
+                )}
+                {hasAccess(userRole, 'fornecedores') && (
+                  <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => setActiveTab('fornecedores')} />
+                )}
+                {hasAccess(userRole, 'clientes') && (
+                  <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} />
+                )}
+                {hasAccess(userRole, 'relatorios') && (
+                  <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => setActiveTab('relatorios')} />
+                )}
+              </SidebarGroup>
+            )}
+
+            {/* 6. SISTEMA */}
+            <SidebarGroup title="Sistema">
+              {userRole === 'admin' && (
+                <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => setActiveTab('admin_users')} />
               )}
-              {hasAccess(userRole, 'requisicoes') && (
-                <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => setActiveTab('requisicoes')} />
+              {userRole === 'admin' && (
+                <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => setActiveTab('permissions')} />
               )}
             </SidebarGroup>
-          )}
 
-          {showSysGroup && (
-            <SidebarGroup title="Equipa" icon={Users}>
-              {(userRole === 'admin' || userRole === 'gestor') && (
-                <SidebarItem icon={UserCheck} label="Gestores" active={activeTab === 'gestores'} onClick={() => setActiveTab('gestores')} />
-              )}
-              {hasAccess(userRole, 'equipa-oficina') && (
-                <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => setActiveTab('equipa-oficina')} />
-              )}
-              {hasAccess(userRole, 'supervisores') && (
-                <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => setActiveTab('supervisores')} />
-              )}
-              {hasAccess(userRole, 'motoristas') && (
-                <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => setActiveTab('motoristas')} />
+            {/* 7. COMUNICAÇÃO */}
+            <SidebarGroup title="Comunicação">
+              {hasAccess(userRole, 'mensagens') && (
+                <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => setActiveTab('mensagens')} badge={unreadCount > 0 ? unreadCount : undefined} />
               )}
             </SidebarGroup>
-          )}
 
-          {showFinGroup && (
-            <SidebarGroup title="Financeiro" icon={Wallet}>
-              {hasAccess(userRole, 'contabilidade') && (
-                <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => setActiveTab('contabilidade')} />
-              )}
-              {hasAccess(userRole, 'centros_custos') && (
-                <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => setActiveTab('centros-custos')} />
-              )}
-              {hasAccess(userRole, 'fornecedores') && (
-                <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => setActiveTab('fornecedores')} />
-              )}
-              {hasAccess(userRole, 'clientes') && (
-                <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} />
-              )}
-              {hasAccess(userRole, 'relatorios') && (
-                <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => setActiveTab('relatorios')} />
-              )}
-            </SidebarGroup>
-          )}
+          </nav>
 
-          {/* 6. SISTEMA */}
-          <SidebarGroup title="Sistema" icon={Settings}>
-            {userRole === 'admin' && (
-              <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => setActiveTab('admin_users')} />
-            )}
-            {userRole === 'admin' && (
-              <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => setActiveTab('permissions')} />
-            )}
-          </SidebarGroup>
+          {/* USER PROFILE */}
+          <UserProfileMenu onNavigate={() => setActiveTab('meu-perfil')} />
+        </aside>
 
-          {/* 7. COMUNICAÇÃO */}
-          <SidebarGroup title="Comunicação" icon={MessageSquare}>
-            {hasAccess(userRole, 'mensagens') && (
-              <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => setActiveTab('mensagens')} badge={unreadCount > 0 ? unreadCount : undefined} />
-            )}
-          </SidebarGroup>
-
-        </nav>
-
-        {/* USER PROFILE */}
-        <UserProfileMenu onNavigate={() => setActiveTab('meu-perfil')} />
-      </aside>
-
-      {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col h-[100dvh] overflow-hidden bg-transparent relative z-10">
-        {/* Mobile Header - Only visible on mobile */}
-        {/* Mobile Header - Only visible on mobile */}
-        <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
-          <div className="flex items-center">
-            <button onClick={() => isAuthenticated && setActiveTab(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}>
-              <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="h-24 w-auto object-contain" />
-            </button>
-          </div>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
-            <Menu className="w-6 h-6" />
-          </button>
-        </header>
-
-
-        {/* Mobile Menu Overlay */}
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 animate-in slide-in-from-right duration-300">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-white">Menu <span className="text-sm font-normal text-slate-500">v1.9</span></h2>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
-                <X className="w-6 h-6" />
+        {/* MAIN CONTENT */}
+        <main className="flex-1 flex flex-col h-[100dvh] overflow-hidden bg-transparent relative z-10 min-w-0">
+          {/* Mobile Header - Only visible on mobile */}
+          {/* Mobile Header - Only visible on mobile */}
+          <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
+            <div className="flex items-center">
+              <button onClick={() => isAuthenticated && setActiveTab(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}>
+                <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="h-24 w-auto object-contain" />
               </button>
             </div>
-            {/* Mobile Nav - simplified for now, usually same structure */}
-            <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar px-3 py-4">
-              {/* Reuse Sidebar Groups logic or flat list? Mobile usually prefers flat or accordion too. Let's try to mimic the structure but maybe simpler. */}
-              {/* For constraints, I will keep the mobile menu somewhat similar to desktop but maybe flat is easier for touch, but user requested order. I will use the same structure for consistency. */}
-
-              {/* MAIN MENU */}
-              {hasAccess(userRole, 'dashboard') && (
-                <SidebarItem
-                  icon={LayoutDashboard}
-                  label="Dashboard"
-                  active={activeTab === 'dashboard'}
-                  onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
-                />
-              )}
-
-              {/* 1. GESTÃO DE FROTA */}
-              {showFleetGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Gestão de Frota</div>}
-              {hasAccess(userRole, 'central_motorista') && (
-                <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'viaturas') && (
-                <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => { setActiveTab('viaturas'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'geofences') && (
-                <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false); }} />
-              )}
-              {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
-                <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => { setActiveTab('locais'); setIsMobileMenuOpen(false); }} />
-              )}
-              {userRole === 'admin' && (
-                <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => { setActiveTab('avaliacao'); setIsMobileMenuOpen(false); }} />
-              )}
-
-              {/* 2. OPERAÇÕES */}
-              {showOpsGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Operações</div>}
-              {hasAccess(userRole, 'escalas') && (
-                <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor' || userRole === 'gestor') && (
-                <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => { setActiveTab('lancar-escala'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'horas') && (
-                <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => { setActiveTab('horas'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'plataformas_externas') && (
-                <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { setActiveTab('transportes-eva'); setIsMobileMenuOpen(false); }} />
-              )}
-
-              {/* 3. OFICINA */}
-              {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Oficina</div>}
-              {hasAccess(userRole, 'combustivel') && (
-                <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { setActiveTab('combustivel'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'requisicoes') && (
-                <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => { setActiveTab('requisicoes'); setIsMobileMenuOpen(false); }} />
-              )}
-
-              {/* 4. EQUIPA */}
-              {showSysGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Equipa</div>}
-              {(userRole === 'admin' || userRole === 'gestor') && (
-                <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => { setActiveTab('gestores'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'equipa-oficina') && (
-                <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => { setActiveTab('equipa-oficina'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'supervisores') && (
-                <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => { setActiveTab('supervisores'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'motoristas') && (
-                <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => { setActiveTab('motoristas'); setIsMobileMenuOpen(false); }} />
-              )}
-
-              {/* 5. FINANCEIRO */}
-              {showFinGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Financeiro</div>}
-              {hasAccess(userRole, 'contabilidade') && (
-                <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => { setActiveTab('contabilidade'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'centros_custos') && (
-                <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => { setActiveTab('centros-custos'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'fornecedores') && (
-                <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => { setActiveTab('fornecedores'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'clientes') && (
-                <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsMobileMenuOpen(false); }} />
-              )}
-              {hasAccess(userRole, 'relatorios') && (
-                <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => { setActiveTab('relatorios'); setIsMobileMenuOpen(false); }} />
-              )}
-
-              {/* 6. SISTEMA */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Sistema</div>
-              {userRole === 'admin' && (
-                <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => { setActiveTab('admin_users'); setIsMobileMenuOpen(false); }} />
-              )}
-              {userRole === 'admin' && (
-                <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => { setActiveTab('permissions'); setIsMobileMenuOpen(false); }} />
-              )}
-
-              {/* 7. COMUNICAÇÃO */}
-              <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Comunicação</div>
-              {hasAccess(userRole, 'mensagens') && (
-                <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false); }} badge={unreadCount > 0 ? unreadCount : undefined} />
-              )}
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
+              <Menu className="w-6 h-6" />
+            </button>
+          </header>
 
 
-              <div className="pt-8 mt-auto pb-4">
-                <UserProfileMenu onNavigate={() => { setActiveTab('meu-perfil'); setIsMobileMenuOpen(false); }} />
+          {/* Mobile Menu Overlay */}
+          {isMobileMenuOpen && (
+            <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 animate-in slide-in-from-right duration-300">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-bold text-white">Menu <span className="text-sm font-normal text-slate-500">v1.9</span></h2>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-            </nav>
-          </div>
-        )
-        }
+              {/* Mobile Nav - simplified for now, usually same structure */}
+              <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar px-3 py-4">
+                {/* Reuse Sidebar Groups logic or flat list? Mobile usually prefers flat or accordion too. Let's try to mimic the structure but maybe simpler. */}
+                {/* For constraints, I will keep the mobile menu somewhat similar to desktop but maybe flat is easier for touch, but user requested order. I will use the same structure for consistency. */}
 
-        <div className="flex-1 overflow-y-auto relative w-full flex flex-col min-h-0 custom-scrollbar">
-          {renderContent()}
-        </div>
+                {/* MAIN MENU */}
+                {hasAccess(userRole, 'dashboard') && (
+                  <SidebarItem
+                    icon={LayoutDashboard}
+                    label="Dashboard"
+                    active={activeTab === 'dashboard'}
+                    onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
+                  />
+                )}
 
-        {/* Chat Widget (Overlay) - Show only if NOT on messages page */}
-        {activeTab !== 'mensagens' && <ChatWidget />}
-      </main >
+                {/* 1. GESTÃO DE FROTA */}
+                {showFleetGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Gestão de Frota</div>}
+                {hasAccess(userRole, 'central_motorista') && (
+                  <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { setActiveTab('central-motorista'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'viaturas') && (
+                  <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => { setActiveTab('viaturas'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'geofences') && (
+                  <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => { setActiveTab('geofences'); setIsMobileMenuOpen(false); }} />
+                )}
+                {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
+                  <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => { setActiveTab('locais'); setIsMobileMenuOpen(false); }} />
+                )}
+                {userRole === 'admin' && (
+                  <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => { setActiveTab('avaliacao'); setIsMobileMenuOpen(false); }} />
+                )}
 
-      {/* NOTIFICATIONS DRAWER (Simplified) */}
-      {
-        showNotifications && (
-          <div className="absolute right-0 top-0 h-full w-80 bg-[#1e293b] border-l border-slate-700 shadow-2xl z-50 p-4 animate-in slide-in-from-right">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-white">Notificações</h3>
-              <button onClick={() => setShowNotifications(false)}><X className="w-5 h-5 text-slate-400" /></button>
-            </div>
-            <div className="space-y-2">
-              {notifications.slice(0, 10).map(n => (
-                <div key={n.id} className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 text-sm">
-                  <p className="font-bold text-white capitalize">{n.type.replace('_', ' ')}</p>
-                  <p className="text-xs text-slate-400">{n.timestamp}</p>
-                  {/* Actions could go here */}
+                {/* 2. OPERAÇÕES */}
+                {showOpsGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Operações</div>}
+                {hasAccess(userRole, 'escalas') && (
+                  <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor' || userRole === 'gestor') && (
+                  <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => { setActiveTab('lancar-escala'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'horas') && (
+                  <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => { setActiveTab('horas'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'plataformas_externas') && (
+                  <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { setActiveTab('transportes-eva'); setIsMobileMenuOpen(false); }} />
+                )}
+
+                {/* 3. OFICINA */}
+                {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Oficina</div>}
+                {hasAccess(userRole, 'combustivel') && (
+                  <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { setActiveTab('combustivel'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'requisicoes') && (
+                  <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => { setActiveTab('requisicoes'); setIsMobileMenuOpen(false); }} />
+                )}
+
+                {/* 4. EQUIPA */}
+                {showSysGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Equipa</div>}
+                {(userRole === 'admin' || userRole === 'gestor') && (
+                  <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => { setActiveTab('gestores'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'equipa-oficina') && (
+                  <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => { setActiveTab('equipa-oficina'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'supervisores') && (
+                  <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => { setActiveTab('supervisores'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'motoristas') && (
+                  <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => { setActiveTab('motoristas'); setIsMobileMenuOpen(false); }} />
+                )}
+
+                {/* 5. FINANCEIRO */}
+                {showFinGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Financeiro</div>}
+                {hasAccess(userRole, 'contabilidade') && (
+                  <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => { setActiveTab('contabilidade'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'centros_custos') && (
+                  <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => { setActiveTab('centros-custos'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'fornecedores') && (
+                  <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => { setActiveTab('fornecedores'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'clientes') && (
+                  <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'relatorios') && (
+                  <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => { setActiveTab('relatorios'); setIsMobileMenuOpen(false); }} />
+                )}
+
+                {/* 6. SISTEMA */}
+                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Sistema</div>
+                {userRole === 'admin' && (
+                  <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => { setActiveTab('admin_users'); setIsMobileMenuOpen(false); }} />
+                )}
+                {userRole === 'admin' && (
+                  <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => { setActiveTab('permissions'); setIsMobileMenuOpen(false); }} />
+                )}
+
+                {/* 7. COMUNICAÇÃO */}
+                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Comunicação</div>
+                {hasAccess(userRole, 'mensagens') && (
+                  <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => { setActiveTab('mensagens'); setIsMobileMenuOpen(false); }} badge={unreadCount > 0 ? unreadCount : undefined} />
+                )}
+
+
+                <div className="pt-8 mt-auto pb-4">
+                  <UserProfileMenu onNavigate={() => { setActiveTab('meu-perfil'); setIsMobileMenuOpen(false); }} />
                 </div>
-              ))}
+              </nav>
             </div>
+          )
+          }
+
+          <div className="flex-1 overflow-y-auto relative w-full flex flex-col min-h-0 custom-scrollbar">
+            {renderContent()}
           </div>
-        )
-      }
+
+          {/* Chat Widget (Overlay) - Show only if NOT on messages page */}
+          {activeTab !== 'mensagens' && <ChatWidget />}
+        </main >
+
+        {/* NOTIFICATIONS DRAWER (Simplified) */}
+        {
+          showNotifications && (
+            <div className="absolute right-0 top-0 h-full w-80 bg-[#1e293b] border-l border-slate-700 shadow-2xl z-50 p-4 animate-in slide-in-from-right">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-white">Notificações</h3>
+                <button onClick={() => setShowNotifications(false)}><X className="w-5 h-5 text-slate-400" /></button>
+              </div>
+              <div className="space-y-2">
+                {notifications.slice(0, 10).map(n => (
+                  <div key={n.id} className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 text-sm">
+                    <p className="font-bold text-white capitalize">{n.type.replace('_', ' ')}</p>
+                    <p className="text-xs text-slate-400">{n.timestamp}</p>
+                    {/* Actions could go here */}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        }
+      </div>
     </div >
   );
 }
