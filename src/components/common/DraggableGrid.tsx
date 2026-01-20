@@ -25,21 +25,42 @@ export default function DraggableGrid({ children, zoneId, className, defaultLayo
     const layouts = useMemo(() => {
         if (layoutsFromContext) {
             // Validate: Check if any breakpoint has valid items
-            const isValid = Object.values(layoutsFromContext).some((bpLayout: any) =>
-                Array.isArray(bpLayout) && bpLayout.length > 0 && bpLayout.every((item: any) => item.w > 0)
-            );
+            const isValid = Object.values(layoutsFromContext).some((bpLayout: any) => {
+                if (!Array.isArray(bpLayout) || bpLayout.length === 0) return false;
+
+                // CRITICAL FIX: If all items have x=0 (and there's more than 1 item), it's a "pulled to left" corruption.
+                if (bpLayout.length > 1) {
+                    const allXZero = bpLayout.every((item: any) => item.x === 0);
+                    if (allXZero) return false;
+                }
+
+                // Standard check: Must have logical width
+                return bpLayout.every((item: any) => item.w > 0);
+            });
+
             if (isValid) return layoutsFromContext;
         }
         return defaultLayouts || { lg: [], md: [], sm: [] };
     }, [layoutsFromContext, defaultLayouts]);
 
     const handleLayoutChange = (_: any, allLayouts: any) => {
+        // Prevent saving if we shouldn't be editing, OR if the layout looks corrupted (width 0 safety)
         if (!isEditMode) return;
+
+        // Safety: Don't save if width is suspiciously small (prevents overwriting with squashed layout)
+        if (width < 300) return;
+
         saveGridLayout(zoneId, allLayouts);
     };
 
     // Filter children to ensure they have valid keys
     const validChildren = React.Children.toArray(children).filter((child: any) => !!child.key);
+
+    // SAFETY: Do not render grid until we have a realistic width. 
+    // Rendering with width=0 causes RGL to auto-squash everything to x=0, which then triggers onLayoutChange and saves the corruption.
+    if (!width || width < 100) {
+        return <div ref={containerRef} className={`${className} w-full min-h-[100px] animate-pulse bg-slate-800/20 rounded-xl`} />;
+    }
 
     return (
         <div ref={containerRef} className={`${className} w-full`} style={{ width: '100%', minHeight: '100px' }}>
