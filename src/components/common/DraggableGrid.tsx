@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { GridLayout, useContainerWidth, useResponsiveLayout } from 'react-grid-layout';
-import type { Layout } from 'react-grid-layout';
+import { Responsive as ResponsiveGridLayout } from 'react-grid-layout';
 import { useLayout } from '../../contexts/LayoutContext';
+import { useResizeObserver } from '../../hooks/useResizeObserver';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
@@ -10,54 +10,48 @@ interface DraggableGridProps {
     zoneId: string;
     className?: string;
     // Default layouts for when no user config exists
-    defaultLayouts?: { lg: Layout[]; md: Layout[]; sm: Layout[] };
+    defaultLayouts?: { lg: any[]; md: any[]; sm: any[] };
 }
 
 export default function DraggableGrid({ children, zoneId, className, defaultLayouts }: DraggableGridProps) {
     const { isEditMode, getGridLayout, saveGridLayout } = useLayout();
-    const { width, containerRef, mounted } = useContainerWidth();
+    const { containerRef, width } = useResizeObserver();
 
     // Get current layouts from context or defaults
     const layoutsFromContext = getGridLayout(zoneId);
 
     // We use a memoized initialLayouts to prevent infinite loops if getGridLayout returns a new object every time
-    const initialLayouts = useMemo(() => {
+    const layouts = useMemo(() => {
         return layoutsFromContext || defaultLayouts || { lg: [], md: [], sm: [] };
     }, [layoutsFromContext, defaultLayouts]);
 
-    const { layout, cols } = useResponsiveLayout({
-        width,
-        layouts: initialLayouts as any,
-        onLayoutChange: (_, allLayouts) => {
-            if (!isEditMode) return;
-            saveGridLayout(zoneId, allLayouts as any);
-        },
-        breakpoints: { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 },
-        cols: { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }
-    });
-
-    if (!mounted) {
-        return <div ref={containerRef} className={className}>{children}</div>;
-    }
+    const handleLayoutChange = (_: any, allLayouts: any) => {
+        if (!isEditMode) return;
+        saveGridLayout(zoneId, allLayouts);
+    };
 
     // Filter children to ensure they have valid keys
     const validChildren = React.Children.toArray(children).filter((child: any) => !!child.key);
 
     return (
-        <div ref={containerRef} className={className} style={{ width: '100%' }}>
-            <GridLayout
-                width={width}
-                cols={cols}
-                layout={layout}
+        <div ref={containerRef} className={className} style={{ width: '100%', minHeight: '100px' }}>
+            <ResponsiveGridLayout
+                className="layout"
+                layouts={layouts}
+                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
                 rowHeight={60}
+                width={width}
                 isDraggable={isEditMode}
                 isResizable={isEditMode}
                 margin={[16, 16]}
                 containerPadding={[0, 0]}
                 draggableHandle=".drag-handle"
+                onLayoutChange={handleLayoutChange}
+                useCSSTransforms={true}
             >
                 {validChildren.map((child: any) => (
-                    <div key={child.key} className={isEditMode ? "relative group border border-dashed border-slate-600/50 rounded-xl transition-all" : ""}>
+                    <div key={child.key} className={isEditMode ? "relative group border border-dashed border-slate-600/50 rounded-xl transition-all bg-slate-800/20" : ""}>
                         {/* Drag Handle Overlay in Edit Mode */}
                         {isEditMode && (
                             <div className="absolute top-2 left-2 z-50 cursor-move drag-handle bg-slate-800 p-1.5 rounded-md shadow-lg border border-slate-700 hover:bg-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -69,7 +63,7 @@ export default function DraggableGrid({ children, zoneId, className, defaultLayo
                         </div>
                     </div>
                 ))}
-            </GridLayout>
+            </ResponsiveGridLayout>
         </div>
     );
 }
