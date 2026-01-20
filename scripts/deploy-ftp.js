@@ -12,24 +12,21 @@ async function deploy() {
         user: process.env.FTP_USERNAME,
         password: process.env.FTP_PASSWORD,
         port: 21,
-        // Explicit FTPS with loose security to accept self-signed certs often found on shared hosting
-        secure: true,
-        secureOptions: {
-            rejectUnauthorized: false
-        }
+        // Hostinger often blocks passive SSL connections from CI/CD. 
+        // Reverting to plain FTP to prevent ETIMEDOUT during TLS handshake.
+        secure: false
     };
 
-    console.log(`Attempting connection to ${config.host} on port ${config.port}...`);
+    console.log(`Attempting PLAINTEXT connection to ${config.host} on port ${config.port}...`);
 
     try {
         await client.access(config);
         console.log("✅ API Connection Established.");
 
-        console.log("📦 Starting Upload of 'dist' folder...");
-        // Upload the contents of 'dist' to the root '/' of the FTP server
-        // ensuring the destination directory is clean is risky without backup, 
-        // so we just overwrite.
-        await client.uploadFromDir("dist", "/");
+        console.log("📦 Starting Upload to 'public_html'...");
+        // Ensure remote dir exists
+        await client.ensureDir("public_html");
+        await client.uploadFromDir("dist", "public_html");
 
         console.log("🚀 Deployment Complete!");
     } catch (err) {
