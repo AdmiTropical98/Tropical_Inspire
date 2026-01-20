@@ -221,8 +221,8 @@ function AppContent() {
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden text-slate-200 font-sans selection:bg-blue-500/30 bg-black">
 
-      {/* GLOBAL CINEMATIC BACKGROUND (FIXED LAYER) */}
-      <div className="fixed inset-0 pointer-events-none z-0">
+      {/* GLOBAL CINEMATIC BACKGROUND */}
+      <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1800px] h-[1800px] bg-gradient-to-br from-blue-900/40 to-indigo-900/40 opacity-40 blur-[200px] animate-pulse" />
         <div className="absolute inset-0 bg-black/80" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] opacity-50" />
@@ -387,7 +387,7 @@ function AppContent() {
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className="flex-1 flex flex-col h-[100dvh] overflow-hidden bg-transparent relative z-10 min-w-0">
+        <main className="flex-1 flex flex-col h-full overflow-hidden bg-transparent relative z-10 min-w-0">
           {/* Mobile Header - Only visible on mobile */}
           {/* Mobile Header - Only visible on mobile */}
           <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
