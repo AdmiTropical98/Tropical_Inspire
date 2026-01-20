@@ -9,14 +9,14 @@ import DraggableGrid from '../common/DraggableGrid';
 import {
     User, AlertTriangle, TrendingUp,
     Clock, Bus, Wrench, CheckCircle2, ChevronRight, Fuel,
-    FileText, Calendar, Activity, Bell, Users, Check, X, Layout
+    FileText, Calendar, Activity, Bell, Users, Check, X, Layout, LayoutTemplate
 } from 'lucide-react';
 
 export default function Dashboard({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: any) => void }) {
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
     const { notifications, motoristas, servicos, viaturas } = useWorkshop();
-    const { toggleEditMode, isEditMode, saveChanges, cancelEditMode } = useLayout();
+    const { toggleEditMode, isEditMode, saveChanges, cancelEditMode, resetLayout } = useLayout();
 
     // --- Stats Data Prep ---
     const urgentRequests = notifications.filter(n => n.type === 'urgent_transport_request' && n.status === 'pending').length;
@@ -217,20 +217,20 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                         {activeServices === 0 ? (
                             <p className="text-slate-500 text-sm">Sem serviços ativos no momento.</p>
                         ) : (
-                                servicos.filter(s => !s.concluido).slice(0, 3).map((s: any) => (
-                                    <div key={s.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-                                                <Bus className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-white">{s.rota || 'Serviço Geral'}</p>
-                                                <p className="text-xs text-slate-400">{s.viatura?.matricula || '---'} • {s.motorista?.nome || '---'}</p>
-                                            </div>
+                            servicos.filter(s => !s.concluido).slice(0, 3).map((s: any) => (
+                                <div key={s.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                                            <Bus className="w-4 h-4" />
                                         </div>
-                                        <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-400">Em Curso</span>
+                                        <div>
+                                            <p className="text-sm font-medium text-white">{s.rota || 'Serviço Geral'}</p>
+                                            <p className="text-xs text-slate-400">{s.viatura?.matricula || '---'} • {s.motorista?.nome || '---'}</p>
+                                        </div>
                                     </div>
-                                ))
+                                    <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-400">Em Curso</span>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
@@ -322,7 +322,13 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                                 onClick={saveChanges}
                                 className="px-4 py-2 rounded-xl text-sm font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-500/20 animate-pulse flex items-center gap-2"
                             >
-                                <CheckCircle2 className="w-4 h-4" /> Salvar Layout
+                                <CheckCircle2 className="w-4 h-4" /> Salvar
+                            </button>
+                            <button
+                                onClick={resetLayout}
+                                className="px-4 py-2 rounded-xl text-sm font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 flex items-center gap-2"
+                            >
+                                <LayoutTemplate className="w-4 h-4" /> Reset
                             </button>
                             <button
                                 onClick={cancelEditMode}
@@ -332,12 +338,12 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                             </button>
                         </div>
                     ) : (
-                            <button
-                                onClick={toggleEditMode}
-                                className="px-4 py-2 rounded-xl text-sm font-bold bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 transition-all flex items-center gap-2"
-                            >
-                                <Layout className="w-4 h-4" /> Personalizar
-                            </button>
+                        <button
+                            onClick={toggleEditMode}
+                            className="px-4 py-2 rounded-xl text-sm font-bold bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 transition-all flex items-center gap-2"
+                        >
+                            <Layout className="w-4 h-4" /> Personalizar
+                        </button>
                     )}
 
                     <div className="flex items-center gap-3 bg-slate-800/50 p-2 pr-4 rounded-xl border border-slate-700/50">

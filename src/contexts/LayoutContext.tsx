@@ -15,6 +15,7 @@ interface LayoutContextType {
     toggleEditMode: () => void;
     cancelEditMode: () => void;
     saveChanges: () => Promise<void>;
+    resetLayout: () => Promise<void>;
     getGridLayout: (zoneId: string) => ZoneLayouts | null;
     saveGridLayout: (zoneId: string, layouts: ZoneLayouts) => void;
     hasUnsavedChanges: boolean;
@@ -25,7 +26,7 @@ const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
     const { currentUser } = useAuth();
     const [isEditMode, setIsEditMode] = useState(false);
-    
+
     // Main state: Stores the CURRENT layout configuration for all zones
     const [layouts, setLayouts] = useState<Record<string, ZoneLayouts>>({});
 
@@ -37,21 +38,21 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     // Load from Supabase on mount
     useEffect(() => {
         if (!currentUser) return;
-        
+
         const loadLayouts = async () => {
             const { data, error } = await supabase
                 .from('user_layouts')
                 .select('layout_data')
                 .eq('user_id', currentUser.id)
                 .maybeSingle();
-            
+
             if (data && data.layout_data) {
                 setLayouts(data.layout_data);
             } else if (error && error.code !== 'PGRST116') {
                 console.error("Error loading layout:", error);
             }
         };
-        
+
         loadLayouts();
     }, [currentUser]);
 
@@ -111,12 +112,37 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         setHasUnsavedChanges(true);
     };
 
+    const resetLayout = async () => {
+        if (!currentUser) return;
+
+        // 1. Clear local state
+        setLayouts({});
+        setOriginalLayouts({});
+        setIsEditMode(false);
+        setHasUnsavedChanges(false);
+
+        // 2. Clear remote state
+        const { error } = await supabase
+            .from('user_layouts')
+            .delete()
+            .eq('user_id', currentUser.id);
+
+        if (error) {
+            console.error("Error resetting layout:", error);
+            alert("Erro ao reiniciar layout.");
+        } else {
+            // Optional: Force reload to ensure clean slate
+            window.location.reload();
+        }
+    };
+
     return (
         <LayoutContext.Provider value={{
             isEditMode,
             toggleEditMode,
             cancelEditMode,
             saveChanges,
+            resetLayout,
             getGridLayout,
             saveGridLayout,
             hasUnsavedChanges

@@ -1,4 +1,4 @@
-name: Deploy to Hostinger
+name: 🚀 Robust Deploy (LFTP)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   web-deploy:
-    name: 🎉 Deploy
+    name: 🎉 Deploy with LFTP
     runs-on: ubuntu-latest
     steps:
       - name: 🚚 Get latest code
@@ -27,9 +27,8 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: 📂 Deploy with Custom Script
-        run: node scripts/deploy-ftp.js
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      - name: 📂 Sync with LFTP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+          lftp -c "open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; set ssl:verify-certificate no; set ftp:ssl-allow no; mirror -R -v --parallel=4 ./dist /public_html"
