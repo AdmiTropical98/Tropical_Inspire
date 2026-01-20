@@ -902,37 +902,7 @@ export default function Escalas() {
         }
     };
 
-    const processedMotoristas = useMemo(() => {
-        if (driverOrder.length === 0) return filteredMotoristas;
-        return [...filteredMotoristas].sort((a, b) => {
-            const indexA = driverOrder.indexOf(a.id);
-            const indexB = driverOrder.indexOf(b.id);
-            if (indexA === -1 && indexB === -1) return 0;
-            if (indexA === -1) return 1;
-            if (indexB === -1) return -1;
-            return indexA - indexB;
-        });
-    }, [filteredMotoristas, driverOrder]);
 
-    const handleDragDriverEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (!over || active.id === over.id) return;
-
-        setDriverOrder((items) => {
-            // Ensure we have a complete list of IDs including new ones if not present
-            const currentIds = items.length > 0 ? items : processedMotoristas.map(m => m.id);
-            // If the list is still empty (edge case), use processed
-            const baseList = currentIds.length === 0 ? processedMotoristas.map(m => m.id) : currentIds;
-
-            const oldIndex = baseList.indexOf(active.id as string);
-            const newIndex = baseList.indexOf(over.id as string);
-
-            if (oldIndex !== -1 && newIndex !== -1) {
-                return arrayMove(baseList, oldIndex, newIndex);
-            }
-            return baseList;
-        });
-    };
 
     return (
         <div className="flex flex-col h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
