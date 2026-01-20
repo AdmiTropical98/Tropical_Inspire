@@ -34,7 +34,7 @@ export default function DraggableGrid({ children, zoneId, className, defaultLayo
     const validChildren = React.Children.toArray(children).filter((child: any) => !!child.key);
 
     return (
-        <div ref={containerRef} className={className} style={{ width: '100%', minHeight: '100px' }}>
+        <div ref={containerRef} className={`${className} w-full`} style={{ width: '100%', minHeight: '100px' }}>
             <ResponsiveGridLayout
                 className="layout"
                 layouts={layouts}

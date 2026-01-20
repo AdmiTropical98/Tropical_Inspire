@@ -11,17 +11,32 @@ export const useResizeObserver = () => {
             let finalWidth = measuredWidth;
 
             // Safety check: specific scenario where grid gets squashed
-            // If measured width is very small (< 200) but window is large, this is a bug.
+            // If measured width is suspiciously small (< 500) but window is large (Desktop), 
+            // this is likely a bug in the grid library or initial render timing.
             // Force a reasonable width based on window size.
-            if (measuredWidth < 200 && window.innerWidth > 768) {
-                // Approximate available space (Window - Sidebar ~280px - Padding)
-                finalWidth = window.innerWidth - 320;
+            if (window.innerWidth > 1024) {
+                // Desktop constraint
+                if (measuredWidth < 500) {
+                    // Approximate available space (Window - Sidebar ~300px - Padding ~64px)
+                    finalWidth = window.innerWidth - 364;
+                }
+            } else if (window.innerWidth > 768) {
+                // Tablet constraint
+                if (measuredWidth < 300) {
+                    finalWidth = window.innerWidth - 64;
+                }
             }
 
             // Absolute minimum guard
             if (finalWidth < 300) finalWidth = 300;
 
-            setDimensions({ width: finalWidth, height: measuredHeight });
+            // Prevent jitter: only update if diff is significant (> 10px) or if it's the first time
+            setDimensions(prev => {
+                if (Math.abs(prev.width - finalWidth) > 10 || prev.height !== measuredHeight) {
+                    return { width: finalWidth, height: measuredHeight };
+                }
+                return prev;
+            });
         };
 
         if (!element) return;
@@ -42,10 +57,20 @@ export const useResizeObserver = () => {
             updateDimensions(element.offsetWidth, element.offsetHeight);
         } else {
             // Fallback if element is hidden/zero init
-            updateDimensions(1200, 800);
+            updateDimensions(window.innerWidth > 1024 ? window.innerWidth - 364 : window.innerWidth, 800);
         }
 
-        return () => resizeObserver.disconnect();
+        // DOUBLE-CHECK after a delay to catch any layout shifts (e.g. Sidebar transition)
+        const timer = setTimeout(() => {
+            if (element) {
+                updateDimensions(element.offsetWidth, element.offsetHeight);
+            }
+        }, 500);
+
+        return () => {
+            resizeObserver.disconnect();
+            clearTimeout(timer);
+        };
     }, []);
 
     return { containerRef, width: dimensions.width, height: dimensions.height };
