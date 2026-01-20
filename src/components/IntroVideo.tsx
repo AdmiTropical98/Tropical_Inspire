@@ -8,11 +8,11 @@ import {
 
 const SLIDES = [
     {
-        id: 'bus',
+        id: 'renault',
         title: 'FROTA',
         subtitle: 'POTÊNCIA E CONFORTO',
-        description: 'Autocarros de topo para viagens inesquecíveis.',
-        image: '/assets/3d_bus.png',
+        description: 'Viaturas de topo para viagens inesquecíveis.',
+        image: '/assets/3d_renault.png',
         color: 'from-blue-500 to-indigo-600',
         accent: 'blue',
         animationClass: 'animate-drive-in-right'
