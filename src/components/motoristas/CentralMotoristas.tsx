@@ -8,8 +8,8 @@ import {
     Fuel, Settings2, ArrowRight,
     CloudSun, CloudFog, CloudLightning, CloudRain, Snowflake, Star
 } from 'lucide-react';
-import MyScheduleView from '../central-motorista/MyScheduleView'; // Reusing existing component for now
-import NavigationApp from '../central-motorista/NavigationApp'; // Reusing existing component for now
+import MyScheduleView from './MyScheduleView';
+import NavigationApp from './NavigationApp';
 import TagRegistrationModal from '../common/TagRegistrationModal';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../contexts/PermissionsContext';
