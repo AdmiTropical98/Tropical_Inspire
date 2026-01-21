@@ -207,7 +207,7 @@ export default function Dashboard({
     };
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8 bg-slate-950">
+        <div className="h-full w-full overflow-y-auto custom-scrollbar p-6 space-y-8 bg-slate-950">
             {/* ... Modal ... */}
             {hasAccess(userRole, 'equipa-oficina') && (
                 <ApprovalsModal isOpen={showApprovalsModal} onClose={() => setShowApprovalsModal(false)} />
