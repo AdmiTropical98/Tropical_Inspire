@@ -23,25 +23,50 @@ export default function DraggableGrid({ children, zoneId, className, defaultLayo
     // We use a memoized initialLayouts to prevent infinite loops if getGridLayout returns a new object every time
     // We use a memoized initialLayouts with validation
     const layouts = useMemo(() => {
-        if (layoutsFromContext) {
-            // Validate: Check if any breakpoint has valid items
-            const isValid = Object.values(layoutsFromContext).some((bpLayout: any) => {
-                if (!Array.isArray(bpLayout) || bpLayout.length === 0) return false;
+        // Start with defaults to ensure we have a fallback
+        const finalLayouts: any = {
+            lg: [], md: [], sm: [],
+            ...(defaultLayouts || {})
+        };
 
-                // CRITICAL FIX: If all items have x=0 (and there's more than 1 item), it's a "pulled to left" corruption.
+        if (layoutsFromContext) {
+            // Merge valid layouts from context
+            Object.entries(layoutsFromContext).forEach(([bp, bpLayout]: [string, any]) => {
+                if (!Array.isArray(bpLayout) || bpLayout.length === 0) return;
+
+                // CRITICAL VALIDATION: Detect "squashed" layouts (everything at x=0)
                 if (bpLayout.length > 1) {
                     const allXZero = bpLayout.every((item: any) => item.x === 0);
-                    if (allXZero) return false;
+
+                    if (allXZero) {
+                        // Check if default layout for this breakpoint has items with x > 0
+                        // If default has horizontal spread, then the x=0 state is likely corruption.
+                        const defaults = defaultLayouts?.[bp as keyof typeof defaultLayouts];
+                        if (defaults && Array.isArray(defaults) && defaults.some((d: any) => d.x > 0)) {
+                            // CORRUPTION DETECTED: Skip this breakpont layout, use default
+                            console.warn(`[DraggableGrid] Detected corrupt layout for ${bp} (all x=0). Reverting to default.`);
+                            return;
+                        }
+
+                        // Fallback: If no defaults to compare, specific check for Desktop
+                        // A vertical stack of >1 items on Desktop is highly suspicious for a dashboard
+                        if ((bp === 'lg' || bp === 'md') && width > 768) {
+                            console.warn(`[DraggableGrid] Detected suspicious vertical stack on Desktop for ${bp}. Reverting to default.`);
+                            return;
+                        }
+                    }
                 }
 
                 // Standard check: Must have logical width
-                return bpLayout.every((item: any) => item.w > 0);
-            });
+                if (!bpLayout.every((item: any) => item.w > 0)) return;
 
-            if (isValid) return layoutsFromContext;
+                // If valid, override default
+                finalLayouts[bp] = bpLayout;
+            });
         }
-        return defaultLayouts || { lg: [], md: [], sm: [] };
-    }, [layoutsFromContext, defaultLayouts]);
+
+        return finalLayouts;
+    }, [layoutsFromContext, defaultLayouts, width]);
 
     const handleLayoutChange = (_: any, allLayouts: any) => {
         // Prevent saving if we shouldn't be editing, OR if the layout looks corrupted (width 0 safety)
