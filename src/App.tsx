@@ -168,7 +168,7 @@ function AppContent() {
       case 'dashboard':
       case 'overview':
         if (!hasAccess(userRole, 'dashboard')) return <div className="p-8 text-center text-slate-500">Acesso negado ao Dashboard. Selecione outra opção no menu.</div>;
-        return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+        return <Dashboard setActiveTab={setActiveTab} />;
       case 'admin_users':
         return <UsersPage />;
       case 'permissions':
@@ -208,7 +208,7 @@ function AppContent() {
       case 'locais': return <Locais />;
       case 'external': return <ExternalServices />;
       case 'meu-perfil': return <MyProfile />;
-      default: return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+      default: return <Dashboard setActiveTab={setActiveTab} />;
     }
   };
 
@@ -242,7 +242,7 @@ function AppContent() {
         )}
 
         {/* SIDEBAR */}
-        <aside className="w-72 bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl">
+        <aside className="w-72 min-w-[18rem] bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl shrink-0 transition-none">
           <button
             onClick={() => isAuthenticated && setActiveTab(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}
             className="h-40 border-b border-slate-800/60 flex items-center justify-center bg-gradient-to-r from-slate-900/50 to-transparent overflow-hidden hover:bg-slate-800/30 transition-colors cursor-pointer"
@@ -387,7 +387,7 @@ function AppContent() {
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className="flex-1 flex flex-col h-full overflow-hidden bg-transparent relative z-10 min-w-0">
+        <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-transparent relative z-10">
           {/* Mobile Header - Only visible on mobile */}
           {/* Mobile Header - Only visible on mobile */}
           <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
