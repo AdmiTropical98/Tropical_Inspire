@@ -35,10 +35,6 @@ export default function RevenueChart({ services = [] }: RevenueChartProps) {
     const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
     // Align days label to current week day
-    const todayIndex = new Date().getDay(); // 0 = Sun, 1 = Mon...
-    // Adjust logic to match the 7-day window ending today
-    // If today is Monday(1), the labels should end with 'Seg'
-
     const getDayLabel = (offsetParams: number) => {
         const d = new Date();
         d.setDate(d.getDate() - (6 - offsetParams));
@@ -46,41 +42,51 @@ export default function RevenueChart({ services = [] }: RevenueChartProps) {
     };
 
     return (
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 h-full flex flex-col shadow-xl">
-            <div className="flex items-center justify-between mb-6">
+        <div className="relative bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl p-6 h-full flex flex-col shadow-2xl overflow-hidden group">
+            {/* Background Details */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px] opacity-20 pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-8 relative z-10">
                 <div>
                     <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-indigo-400" />
+                        <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                            <BarChart3 className="w-5 h-5" />
+                        </div>
                         <span className="tracking-tight">Volume de Serviços</span>
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1 font-medium">Últimos 7 dias</p>
+                    <p className="text-xs text-slate-400 mt-1 font-medium pl-11">Últimos 7 dias</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-3xl font-black text-white tracking-tighter">{totalServices}</p>
-                    <div className={`text-xs font-bold flex items-center justify-end gap-1 ${Number(percentageChange) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <p className="text-4xl font-black text-white tracking-tighter">{totalServices}</p>
+                    <div className={`text-xs font-bold flex items-center justify-end gap-1 mt-1 px-2 py-0.5 rounded-full bg-slate-800/50 border border-slate-700/50 ${Number(percentageChange) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {Number(percentageChange) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                         {percentageChange}%
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 flex items-end justify-between gap-2 md:gap-3 lg:gap-4 mt-2">
+            <div className="flex-1 flex items-end justify-between gap-3 relative z-10">
+                {/* Y-Axis Grid Lines effect (implied by flex height) */}
                 {data.map((value, index) => {
-                    const heightPercentage = Math.max((value / max) * 100, 5); // Min height 5%
+                    const heightPercentage = Math.max((value / max) * 100, 4); // Min height 4%
                     return (
-                        <div key={index} className="flex flex-col items-center gap-3 flex-1 group cursor-pointer h-full justify-end">
-                            <div className="relative w-full bg-slate-800/30 rounded-2xl h-full flex items-end overflow-hidden group-hover:bg-slate-800/50 transition-colors">
+                        <div key={index} className="flex flex-col items-center gap-3 flex-1 h-full justify-end group/bar">
+                            <div className="relative w-full h-full flex items-end justify-center">
+                                {/* Bar Track */}
+                                <div className="absolute bottom-0 w-2.5 bg-slate-800/50 h-full rounded-full opacity-0 group-hover/bar:opacity-100 transition-opacity duration-300" />
+
+                                {/* Actual Bar */}
                                 <div
-                                    className="w-full bg-gradient-to-t from-indigo-600 to-blue-500 group-hover:from-indigo-500 group-hover:to-blue-400 transition-all duration-500 rounded-2xl relative"
+                                    className="w-full max-w-[12px] md:max-w-[24px] bg-gradient-to-t from-indigo-600 via-blue-500 to-cyan-400 rounded-full relative transition-all duration-500 ease-out group-hover/bar:scale-y-105 origin-bottom shadow-[0_0_20px_rgba(59,130,246,0.3)]"
                                     style={{ height: `${heightPercentage}%` }}
                                 >
-                                    {/* Tooltip-ish value */}
-                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 px-2 py-0.5 rounded-full border border-slate-600">
-                                        {value}
+                                    {/* Tooltip */}
+                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-xs font-bold text-white opacity-0 group-hover/bar:opacity-100 transition-all duration-300 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700 shadow-xl whitespace-nowrap transform translate-y-2 group-hover/bar:translate-y-0 z-50 pointer-events-none">
+                                        {value} svcs
                                     </div>
                                 </div>
                             </div>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{getDayLabel(index)}</span>
+                            <span className="text-[10px] font-bold text-slate-500 group-hover/bar:text-indigo-400 transition-colors uppercase tracking-wider">{getDayLabel(index)}</span>
                         </div>
                     );
                 })}

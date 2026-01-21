@@ -193,14 +193,17 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
             )}
 
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
-                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">{currentUser?.nome?.split(' ')[0] || 'Gestor'}</span>
-                        <span className="text-4xl">👋</span>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                <div className="glass-panel p-6 pr-12 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-purple-500/20 blur-3xl rounded-full -mr-10 -mt-10 pointer-events-none" />
+
+                    <h1 className="text-4xl font-black text-white mb-2 tracking-tight flex items-center gap-3">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 animate-gradient-x">{greeting},</span>
+                        <span className="text-white">{currentUser?.nome?.split(' ')[0] || 'Gestor'}</span>
                     </h1>
-                    <p className="text-slate-400 font-medium">
-                        Resumo operacional e métricas em tempo real.
+                    <p className="text-slate-400 font-medium flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Sistema operacional e online.
                     </p>
                 </div>
 
@@ -250,7 +253,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
 
             {/* DRAGGABLE LAYOUT ZONE */}
             <DraggableGrid
-                zoneId="dashboard_ultra_v3" // FORCE LAYOUT RESET FOR USER
+                zoneId="dashboard_beautified_v1" // FORCE LAYOUT RESET FOR USER
                 defaultLayouts={{
                     lg: [
                         { i: 'kpi_services', x: 0, y: 0, w: 3, h: 4 },
