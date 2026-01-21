@@ -30,7 +30,7 @@ import ChatWidget from './components/chat/ChatWidget';
 import ChatPage from './components/chat/ChatPage'; // New Chat Page
 import CentrosCustos from './components/centros-custos';
 // Lazy Load CentralMotorista
-const CentralMotorista = lazy(() => import('./components/central-motorista'));
+const CentralMotorista = lazy(() => import('./components/motoristas/CentralMotoristas'));
 
 import TransportesEva from './components/transportes-eva';
 import UserProfileMenu from './components/common/UserProfileMenu';

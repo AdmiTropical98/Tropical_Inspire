@@ -5,14 +5,14 @@ import { useAuth } from '../contexts/AuthContext';
 import {
     Plus, Trash, ArrowRightLeft, Upload,
     Info, Building2, MapPin,
-    Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download, Settings, Layout, Check, X
+    Clock, AlertCircle, ChevronDown, FileSpreadsheet, Download
 } from 'lucide-react';
 import { read, utils, write } from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CartrackService } from '../services/cartrack';
-import DraggableGrid from '../components/common/DraggableGrid';
-import { useLayout } from '../contexts/LayoutContext';
+
+
 
 // Helper for unique IDs for grid rows
 const generateTempId = () => Math.random().toString(36).substr(2, 9);
@@ -33,7 +33,8 @@ interface LancarEscalaProps {
 }
 
 export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
-    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout();
+    // const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout(); // Removed
+
     const { centrosCustos, createScaleBatch } = useWorkshop();
     const { hasAccess } = usePermissions();
     const { userRole } = useAuth();
@@ -67,7 +68,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     }
 
     const [isLoading, setIsLoading] = useState(false);
-    
+
     // Header Data
     const [referenceDate, setReferenceDate] = useState(() => {
         const tomorrow = new Date();
@@ -260,7 +261,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                 let tipo: 'entrada' | 'saida' = 'entrada';
                 if (tipoRaw.includes('saida') || tipoRaw.includes('saída')) tipo = 'saida';
 
-                const rawHora = row['HORA'] !== undefined ? row['HORA'] : (row['Hora'] || row['hora']); 
+                const rawHora = row['HORA'] !== undefined ? row['HORA'] : (row['Hora'] || row['hora']);
 
                 return {
                     tempId: generateTempId(),
@@ -490,8 +491,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                     }
                 },
                 // Update currentY after table draw
-                didDrawPage: (data) => {
-                // This is called on page add, but we manage simple flow here.
+                didDrawPage: () => {
+                    // This is called on page add, but we manage simple flow here.
                 }
             });
 
@@ -539,12 +540,12 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             const servicesToCreate = validRows.map(r => ({
                 id: crypto.randomUUID(),
                 data: referenceDate, // Operational Date
-                motoristaId: null, 
+                motoristaId: null,
                 passageiro: r.passageiro,
                 hora: r.hora,
                 origem: r.origem,
                 destino: r.destino,
-                voo: '', 
+                voo: '',
                 obs: r.obs,
                 tipo: r.tipo,
                 concluido: false,
@@ -591,192 +592,143 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
             {/* Top Bar: Controls */}
             <div className="bg-[#0f172a] border-b border-slate-800 p-6 shadow-xl z-20">
-                <DraggableGrid
-                    zoneId="lancar_header_rgl"
-                    className="max-w-[1920px] mx-auto w-full"
-                    defaultLayouts={{
-                        lg: [
-                            { i: 'inputs', x: 0, y: 0, w: 6, h: 2 },
-                            { i: 'actions', x: 6, y: 0, w: 6, h: 2 }
-                        ],
-                        md: [
-                            { i: 'inputs', x: 0, y: 0, w: 10, h: 2 },
-                            { i: 'actions', x: 0, y: 2, w: 10, h: 2 }
-                        ],
-                        sm: [
-                            { i: 'inputs', x: 0, y: 0, w: 6, h: 3 },
-                            { i: 'actions', x: 0, y: 3, w: 6, h: 2 }
-                        ]
-                    }}
-                >
+
+                <div className="max-w-[1920px] mx-auto w-full flex flex-col xl:flex-row gap-6">
                     {/* Left: Inputs */}
-                    <div key="inputs" className="h-full">
-                        <div className="flex items-center gap-6 flex-1 h-full items-end">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-6 flex-1 h-full items-end flex-wrap">
 
-                        {/* Date Picker */}
-                        <div className="group relative">
-                            <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-blue-400 group-focus-within:text-blue-300 transition-colors z-10">
-                                Data da Escala
-                            </label>
-                            <div className="relative flex items-center bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden group-focus-within:border-blue-500/50 group-focus-within:ring-2 ring-blue-500/10 transition-all w-36">
-                                <input
-                                    type="date"
-                                    className="bg-transparent border-none text-sm font-medium text-white px-3 py-2.5 w-full outline-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                                    value={referenceDate}
-                                    onChange={e => setReferenceDate(e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Cost Center */}
-                        <div className="group relative flex-1 max-w-xs">
-                            <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-purple-400 group-focus-within:text-purple-300 transition-colors z-10">
-                                Centro de Custo
-                            </label>
-                            <div className="relative bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden group-focus-within:border-purple-500/50 group-focus-within:ring-2 ring-purple-500/10 transition-all">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-                                    <Building2 className="w-4 h-4" />
-                                </div>
-                                <select 
-                                    className="bg-transparent border-none text-sm font-medium text-white pl-10 pr-10 py-2.5 w-full outline-none appearance-none [&_option]:bg-slate-900 cursor-pointer"
-                                    value={selectedCentroCusto}
-                                    onChange={e => setSelectedCentroCusto(e.target.value)}
-                                >
-                                    <option value="">Selecione...</option>
-                                    {centrosCustos.map(cc => (
-                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                    ))}
-                                </select>
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-                                    <ChevronDown className="w-4 h-4 opacity-50" />
+                            {/* Date Picker */}
+                            <div className="group relative">
+                                <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-blue-400 group-focus-within:text-blue-300 transition-colors z-10">
+                                    Data da Escala
+                                </label>
+                                <div className="relative flex items-center bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden group-focus-within:border-blue-500/50 group-focus-within:ring-2 ring-blue-500/10 transition-all w-36">
+                                    <input
+                                        type="date"
+                                        className="bg-transparent border-none text-sm font-medium text-white px-3 py-2.5 w-full outline-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                        value={referenceDate}
+                                        onChange={e => setReferenceDate(e.target.value)}
+                                    />
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Notes */}
-                        <div className="group relative flex-[1.5]">
-                            <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-slate-300 transition-colors z-10">
-                                Observações desta Escala
-                            </label>
-                            <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-xl overflow-visible group-focus-within:border-slate-500/50 transition-all relative">
-                                <div className="pl-3 text-slate-500 group/info cursor-help relative flex items-center h-full py-2.5">
-                                    <Info className="w-4 h-4 hover:text-blue-400 transition-colors" />
-                                    {/* Tooltip */}
-                                    <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-xl shadow-2xl text-xs text-slate-300 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-50 translate-y-[-10px] group-hover/info:translate-y-0">
-                                        Use este campo para observações gerais que se aplicam a todo o lote de escalas.
-                                        {/* Arrow */}
-                                        <div className="absolute -top-1 left-4 w-2 h-2 bg-slate-800 border-t border-l border-slate-700 rotate-45"></div>
+                            {/* Cost Center */}
+                            <div className="group relative flex-1 max-w-xs min-w-[200px]">
+                                <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-purple-400 group-focus-within:text-purple-300 transition-colors z-10">
+                                    Centro de Custo
+                                </label>
+                                <div className="relative bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden group-focus-within:border-purple-500/50 group-focus-within:ring-2 ring-purple-500/10 transition-all">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                        <Building2 className="w-4 h-4" />
+                                    </div>
+                                    <select
+                                        className="bg-transparent border-none text-sm font-medium text-white pl-10 pr-10 py-2.5 w-full outline-none appearance-none [&_option]:bg-slate-900 cursor-pointer"
+                                        value={selectedCentroCusto}
+                                        onChange={e => setSelectedCentroCusto(e.target.value)}
+                                    >
+                                        <option value="">Selecione...</option>
+                                        {centrosCustos.map(cc => (
+                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                        <ChevronDown className="w-4 h-4 opacity-50" />
                                     </div>
                                 </div>
-                                <input 
-                                    className="bg-transparent border-none text-sm text-slate-300 px-3 py-2.5 w-full outline-none placeholder:text-slate-600"
-                                    placeholder="Ex: Reforço de Verão..."
-                                    value={notes}
-                                    onChange={e => setNotes(e.target.value)}
-                                />
+                            </div>
+
+                            {/* Notes */}
+                            <div className="group relative flex-[1.5] min-w-[300px]">
+                                <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-slate-300 transition-colors z-10">
+                                    Observações desta Escala
+                                </label>
+                                <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-xl overflow-visible group-focus-within:border-slate-500/50 transition-all relative">
+                                    <div className="pl-3 text-slate-500 group/info cursor-help relative flex items-center h-full py-2.5">
+                                        <Info className="w-4 h-4 hover:text-blue-400 transition-colors" />
+                                        {/* Tooltip */}
+                                        <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-xl shadow-2xl text-xs text-slate-300 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-50 translate-y-[-10px] group-hover/info:translate-y-0">
+                                            Use este campo para observações gerais que se aplicam a todo o lote de escalas.
+                                            {/* Arrow */}
+                                            <div className="absolute -top-1 left-4 w-2 h-2 bg-slate-800 border-t border-l border-slate-700 rotate-45"></div>
+                                        </div>
+                                    </div>
+                                    <input
+                                        className="bg-transparent border-none text-sm text-slate-300 px-3 py-2.5 w-full outline-none placeholder:text-slate-600"
+                                        placeholder="Ex: Reforço de Verão..."
+                                        value={notes}
+                                        onChange={e => setNotes(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
                     {/* Right: Actions */}
-                    <div key="actions" className="h-full">
-                        <div className="flex items-center gap-3 justify-end h-full items-end">
-                            {isEditMode ? (
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={saveChanges}
-                                        className="h-12 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white border border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)] transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide animate-pulse"
-                                        title="Salvar alterações"
-                                    >
-                                        <Check className="w-4 h-4" />
-                                        <span className="hidden xl:block text-left leading-none">
-                                            SALVAR<br />LAYOUT
-                                        </span>
-                                    </button>
-                                    <button
-                                        onClick={cancelEditMode}
-                                        className="h-12 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide"
-                                        title="Cancelar edição"
-                                    >
-                                        <X className="w-4 h-4" />
-                                        <span className="hidden xl:block text-left leading-none">
-                                            CANCELAR
-                                        </span>
-                                    </button>
-                                </div>
-                            ) : (
-                                    <button
-                                        onClick={toggleEditMode}
-                                        className="h-12 px-4 rounded-xl bg-slate-800 text-slate-400 border border-slate-700/50 hover:bg-slate-700 hover:text-white transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide"
-                                        title="Personalizar Layout"
-                                    >
-                                        <Layout className="w-4 h-4" />
-                                        <span className="hidden xl:block text-left leading-none">
-                                            EDITAR<br />LAYOUT
-                                        </span>
-                                    </button>
-                            )}
-                        {/* Hidden Input */}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept=".xlsx, .xls"
-                            onChange={handleImportExcel}
-                        />
+                    <div className="flex-none">
+                        <div className="flex items-center gap-3 justify-end h-full items-end flex-wrap">
 
-                        {/* Buttons */}
-                        <button 
-                            onClick={handleDownloadTemplate}
-                            className="bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-4 py-2.5 rounded-xl border border-slate-700/50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12"
-                            title="Baixar Modelo Excel"
-                        >
-                            <Download className="w-4 h-4" />
-                            <span className="hidden xl:block text-left leading-none">
-                                BAIXAR<br />MODELO
-                            </span>
-                        </button>
+                            {/* Hidden Input */}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept=".xlsx, .xls"
+                                onChange={handleImportExcel}
+                            />
 
-                        <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 px-4 py-2.5 rounded-xl border border-slate-700/50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12"
-                            title="Importar Excel"
-                        >
-                            <FileSpreadsheet className="w-4 h-4" />
-                            <span className="hidden xl:block text-left leading-none">
-                                IMPORTAR<br />ESCALA EM MASSA
-                            </span>
-                        </button>
+                            {/* Buttons */}
+                            <button
+                                onClick={handleDownloadTemplate}
+                                className="bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-4 py-2.5 rounded-xl border border-slate-700/50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12"
+                                title="Baixar Modelo Excel"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span className="hidden xl:block text-left leading-none">
+                                    BAIXAR<br />MODELO
+                                </span>
+                            </button>
 
-                        <div className="w-px h-8 bg-slate-800 mx-1"></div>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 px-4 py-2.5 rounded-xl border border-slate-700/50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12"
+                                title="Importar Excel"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" />
+                                <span className="hidden xl:block text-left leading-none">
+                                    IMPORTAR<br />ESCALA EM MASSA
+                                </span>
+                            </button>
 
-                        <button
-                            onClick={handleLaunch}
-                            disabled={isLoading}
-                            className={`
+                            <div className="w-px h-8 bg-slate-800 mx-1"></div>
+
+                            <button
+                                onClick={handleLaunch}
+                                disabled={isLoading}
+                                className={`
                                 relative overflow-hidden group px-6 py-2 rounded-xl font-bold text-sm tracking-wide transition-all h-12
                                 ${isLoading
-                                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 hover:-translate-y-0.5'
-                                }
+                                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 hover:-translate-y-0.5'
+                                    }
                             `}
-                        >
-                            <div className="flex items-center gap-2 relative z-10">
-                                {isLoading ? (
-                                    'Processando...'
-                                ) : (
-                                    <>
-                                        <Upload className="w-4 h-4" />
-                                        <span className="text-left leading-none text-xs">
-                                            LANÇAR<br />ESCALA
-                                        </span>
-                                    </>
-                                )}
-                            </div>
-                        </button>
+                            >
+                                <div className="flex items-center gap-2 relative z-10">
+                                    {isLoading ? (
+                                        'Processando...'
+                                    ) : (
+                                        <>
+                                            <Upload className="w-4 h-4" />
+                                            <span className="text-left leading-none text-xs">
+                                                LANÇAR<br />ESCALA
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
+                            </button>
                         </div>
                     </div>
-                </DraggableGrid>
+                </div>
+
             </div>
 
             {/* Main Grid Area */}
@@ -796,7 +748,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                 { l: 'Destino', i: MapPin },
                                 { l: 'Hora', i: Clock },
                                 { l: 'Obs', i: Info },
-                                { l: '', c: '' }
+                                { l: '' }
                             ].map((h, idx) => (
                                 <div key={idx} className={`p-4 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 ${h.c || ''}`}>
                                     {h.i && <h.i className="w-3 h-3" />}
@@ -809,7 +761,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                         <div className="divide-y divide-slate-800/50 bg-[#0f172a]" ref={gridRef}>
                             {rows.map((row, idx) => (
                                 <div
-                                    key={row.tempId} 
+                                    key={row.tempId}
                                     className="group grid grid-cols-[40px_105px_0.8fr_1.21fr_1.9fr_1.9fr_125px_1fr_60px] gap-px text-sm hover:bg-slate-800/30 transition-colors focus-within:bg-slate-800/50"
                                 >
 
@@ -854,7 +806,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                                     {/* Inputs */}
                                     <div className="relative">
-                                        <input 
+                                        <input
                                             className="w-full h-full bg-transparent px-4 py-3 outline-none text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all placeholder:text-slate-700"
                                             placeholder="Nome do Passageiro..."
                                             value={row.passageiro}
@@ -865,7 +817,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     </div>
 
                                     <div className="relative border-l border-slate-800/50">
-                                        <input 
+                                        <input
                                             className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
                                             value={row.origem}
                                             maxLength={28}
@@ -877,7 +829,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     </div>
 
                                     <div className="relative border-l border-slate-800/50">
-                                        <input 
+                                        <input
                                             className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
                                             value={row.destino}
                                             maxLength={28}
@@ -899,7 +851,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     </div>
 
                                     <div className="relative border-l border-slate-800/50">
-                                        <input 
+                                        <input
                                             className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-400 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
                                             value={row.obs}
                                             maxLength={50}
@@ -973,7 +925,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     Substituir Escala Atual
                                 </button>
 
-                                <button 
+                                <button
                                     onClick={() => confirmImport('append')}
                                     className="w-full py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl text-emerald-400 font-bold text-sm transition-all flex items-center justify-center gap-2"
                                 >
