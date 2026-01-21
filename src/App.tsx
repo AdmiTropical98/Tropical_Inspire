@@ -49,7 +49,7 @@ const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 
 import SplashScreen from './components/SplashScreen';
 
-import { LayoutProvider } from './contexts/LayoutContext';
+
 
 // Helper for loading state
 const PageLoading = () => (
@@ -573,7 +573,7 @@ function App() {
   }, [isAuthenticated, hasShownIntro]);
 
   return (
-    <LayoutProvider>
+
       <ChatProvider>
         {showIntro ? (
           <IntroVideo onComplete={() => setShowIntro(false)} />
@@ -581,7 +581,7 @@ function App() {
           <AppContent />
         )}
       </ChatProvider>
-    </LayoutProvider>
+
   );
 }
 
