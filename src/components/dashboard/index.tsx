@@ -279,8 +279,12 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                     ]
                 }}
             >
-                {getWidgets().map(widget => (
-                    <div key={widget.id}>
+                {getWidgets().map((widget, index) => (
+                    <div
+                        key={widget.id}
+                        className="animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-backwards"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                    >
                         {widget.content}
                     </div>
                 ))}
