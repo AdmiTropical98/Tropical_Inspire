@@ -210,7 +210,6 @@ export default function Escalas() {
     );
 
 
-
     // Save Layout Effects
     useEffect(() => {
         localStorage.setItem('escalas_layout_cols', layoutCols.toString());
@@ -390,7 +389,7 @@ export default function Escalas() {
                             return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
                         }
                         const str = String(val).trim();
-                        if (str.match(/^\d{1, 2}:\d{2}/)) {
+                        if (str.match(/^\d{1,2}:\d{2}/)) {
                             const [h, m] = str.split(':');
                             return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                         }
@@ -597,8 +596,10 @@ export default function Escalas() {
 
 
 
-
-
+    useEffect(() => {
+        if (driverOrder.length > 0)
+            localStorage.setItem('escalas_driver_order', JSON.stringify(driverOrder));
+    }, [driverOrder]);
 
 
     return (
