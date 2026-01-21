@@ -558,7 +558,7 @@ export default function Escalas() {
 
 
     return (
-        <div className="flex flex-col h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
+        <div className="flex flex-col w-full h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
 
             {/* HEADER TOOLBAR */}
             <input

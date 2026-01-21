@@ -359,7 +359,7 @@ export default function CentralMotoristas() {
                     {showTagModal && <TagRegistrationModal onSave={handleTagSave} />}
 
                     {/* Content Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 h-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 h-full w-full">
 
                         {activeTab === 'escala' && (
                             <div className="lg:col-span-3 h-full">
