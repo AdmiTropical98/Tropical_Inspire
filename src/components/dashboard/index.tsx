@@ -9,11 +9,12 @@ import KPICard from './widgets/KPICard';
 import FleetStatusChart from './widgets/FleetStatusChart';
 import RevenueChart from './widgets/RevenueChart';
 import ActivityTable from './widgets/ActivityTable';
+import QuickActions from './widgets/QuickActions';
 
 import {
     Activity, User, Bus,
     CheckCircle2, AlertTriangle, Layout, X, LayoutTemplate,
-    Calendar
+    Calendar, MapPin, Truck, PlusCircle, UserPlus
 } from 'lucide-react';
 
 export default function Dashboard({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: any) => void }) {
@@ -143,7 +144,18 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
             });
         }
 
-        // 2. Charts (Middle Row)
+        // 2. New Quick Actions (Middle Row - Left)
+        widgets.push({
+            id: 'widget_quick_actions',
+            content: <QuickActions
+                onNewService={() => setActiveTab('requisicoes')}
+                onNewClient={() => setActiveTab('clientes')}
+                onNewVehicle={() => setActiveTab('viaturas')}
+            />
+        });
+
+
+        // 3. Charts (Middle Row)
 
         // Fleet Status Donut
         if (hasAccess(userRole, 'viaturas')) {
@@ -161,10 +173,10 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
         // Revenue / Services Bar Chart
         widgets.push({
             id: 'chart_revenue',
-            content: <RevenueChart />
+            content: <RevenueChart services={servicos} />
         });
 
-        // 3. Activity Table (Bottom Row)
+        // 4. Activity Table (Bottom Row)
         widgets.push({
             id: 'table_activity',
             content: <ActivityTable items={activityItems} />
@@ -174,7 +186,7 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
     };
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8 bg-slate-900">
+        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8 bg-slate-950">
             {/* ... Modal ... */}
             {hasAccess(userRole, 'equipa-oficina') && (
                 <ApprovalsModal isOpen={showApprovalsModal} onClose={() => setShowApprovalsModal(false)} />
@@ -238,18 +250,18 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
 
             {/* DRAGGABLE LAYOUT ZONE */}
             <DraggableGrid
-                zoneId="dashboard_pro_v1" // Changed ID to force reset for new layout
+                zoneId="dashboard_ultra_v3" // FORCE LAYOUT RESET FOR USER
                 defaultLayouts={{
                     lg: [
                         { i: 'kpi_services', x: 0, y: 0, w: 3, h: 4 },
                         { i: 'kpi_fleet', x: 3, y: 0, w: 3, h: 4 },
                         { i: 'kpi_drivers', x: 6, y: 0, w: 3, h: 4 },
-                        // Conditional logical handled by grid item existence, but coordinate must assume it exists
                         { i: 'kpi_approvals', x: 9, y: 0, w: 3, h: 4 },
                         { i: 'kpi_alerts', x: 9, y: 0, w: 3, h: 4 },
 
-                        { i: 'chart_fleet_status', x: 0, y: 4, w: 4, h: 8 },
-                        { i: 'chart_revenue', x: 4, y: 4, w: 8, h: 8 },
+                        { i: 'widget_quick_actions', x: 0, y: 4, w: 3, h: 8 },
+                        { i: 'chart_fleet_status', x: 3, y: 4, w: 4, h: 8 },
+                        { i: 'chart_revenue', x: 7, y: 4, w: 5, h: 8 },
 
                         { i: 'table_activity', x: 0, y: 12, w: 12, h: 10 }
                     ],
@@ -260,10 +272,11 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                         { i: 'kpi_approvals', x: 5, y: 4, w: 5, h: 4 },
                         { i: 'kpi_alerts', x: 5, y: 4, w: 5, h: 4 },
 
-                        { i: 'chart_fleet_status', x: 0, y: 8, w: 6, h: 8 },
-                        { i: 'chart_revenue', x: 6, y: 8, w: 4, h: 8 },
+                        { i: 'widget_quick_actions', x: 0, y: 8, w: 5, h: 6 },
+                        { i: 'chart_fleet_status', x: 5, y: 8, w: 5, h: 6 },
+                        { i: 'chart_revenue', x: 0, y: 14, w: 10, h: 8 },
 
-                        { i: 'table_activity', x: 0, y: 16, w: 10, h: 10 }
+                        { i: 'table_activity', x: 0, y: 22, w: 10, h: 10 }
                     ],
                     sm: [
                         { i: 'kpi_services', x: 0, y: 0, w: 6, h: 4 },
@@ -272,10 +285,11 @@ export default function Dashboard({ activeTab, setActiveTab }: { activeTab: stri
                         { i: 'kpi_approvals', x: 0, y: 12, w: 6, h: 4 },
                         { i: 'kpi_alerts', x: 0, y: 12, w: 6, h: 4 },
 
-                        { i: 'chart_fleet_status', x: 0, y: 16, w: 6, h: 8 },
-                        { i: 'chart_revenue', x: 0, y: 24, w: 6, h: 8 },
+                        { i: 'widget_quick_actions', x: 0, y: 16, w: 6, h: 6 },
+                        { i: 'chart_fleet_status', x: 0, y: 22, w: 6, h: 8 },
+                        { i: 'chart_revenue', x: 0, y: 30, w: 6, h: 8 },
 
-                        { i: 'table_activity', x: 0, y: 32, w: 6, h: 10 }
+                        { i: 'table_activity', x: 0, y: 38, w: 6, h: 10 }
                     ]
                 }}
             >
