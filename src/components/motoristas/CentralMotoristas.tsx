@@ -390,7 +390,7 @@ export default function CentralMotoristas() {
                             </div>
                         )}
 
-                        <div className={`lg:col-span-2 space-y-6 ${activeTab === 'escala' || activeTab === 'navegacao' ? 'hidden' : ''} w-full`}>
+                        <div className={`lg:col-span-3 space-y-6 ${activeTab === 'escala' || activeTab === 'navegacao' ? 'hidden' : ''} w-full`}>
 
                             {activeTab === 'overview' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -411,7 +411,7 @@ export default function CentralMotoristas() {
                                             </div>
 
                                             {/* Static Grid for Widgets */}
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                                 {/* Next Service Widget */}
                                                 <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-5 rounded-2xl border border-slate-800 shadow-xl h-full flex flex-col group hover:border-blue-500/30 transition-all">
                                                     <div className="flex items-center gap-3 text-slate-400 mb-4">
