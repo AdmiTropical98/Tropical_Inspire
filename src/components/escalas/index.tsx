@@ -3,8 +3,8 @@ import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users,
-    Search, LayoutList, X, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid, Check, Layout
+    Search, LayoutList, AlertTriangle, Edit,
+    Table as TableIcon, LayoutGrid
 } from 'lucide-react';
 import {
     DndContext,
@@ -23,9 +23,9 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import DraggableGrid from '../common/DraggableGrid';
+
 import PageHeader from '../common/PageHeader';
-import { useLayout } from '../../contexts/LayoutContext';
+
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,7 +48,7 @@ interface NewServiceState {
 }
 
 // Sortable Driver Card Component
-function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, draggedServiceId, activeDriverMenuId, onClick, onDragOver, onDragLeave }: any) {
+function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, activeDriverMenuId, onClick, onDragOver, onDragLeave }: any) {
     const {
         attributes,
         listeners,
@@ -71,7 +71,7 @@ function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId
             style={style}
             className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200 h-[600px]
                 ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
-                border ${draggedServiceId ? 'border-dashed border-blue-500/40 hover:border-blue-500' : 'border-white/5 hover:border-white/10'}
+                border border-white/5 hover:border-white/10
                 ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
             `}
             onClick={onClick}
@@ -90,12 +90,12 @@ export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
         addServico, updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
-        runComplianceCheck, complianceStats, runComplianceDemo, locais, checkRouteValidation, scaleBatches
+        complianceStats, runComplianceDemo, locais, checkRouteValidation, scaleBatches
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
-    const { isEditMode, toggleEditMode, saveChanges, cancelEditMode, resetLayout, saveGridLayout } = useLayout();
+
 
     // ... (lines skipped)
 
@@ -110,50 +110,12 @@ export default function Escalas() {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
-    // --- Draggable Grid Fix ---
-    const [gridKey, setGridKey] = useState(0);
-
-    useEffect(() => {
-        // Force DraggableGrid remount after initial layout paint
-        const t = setTimeout(() => setGridKey(k => k + 1), 0);
-        return () => clearTimeout(t);
-    }, []);
-
     // Mobile sidebar state
     // const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false); // Removed: Use layout directly
     // Desktop sidebar state
     // const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Removed: Use layout directly
 
-    const handleRestoreSidebar = () => {
-        // Force reset the layout to ensure sidebar is visible (default 9/3 split)
-        const defaultLayouts = {
-            lg: [
-                { i: 'drivers_grid', x: 0, y: 0, w: 9, h: 20 },
-                { i: 'pending_sidebar', x: 9, y: 0, w: 3, h: 20 }
-            ],
-            md: [
-                { i: 'drivers_grid', x: 0, y: 0, w: 7, h: 20 },
-                { i: 'pending_sidebar', x: 7, y: 0, w: 3, h: 20 }
-            ],
-            sm: [
-                { i: 'drivers_grid', x: 0, y: 0, w: 6, h: 10 },
-                { i: 'pending_sidebar', x: 0, y: 10, w: 6, h: 10 }
-            ],
-            xs: [
-                { i: 'drivers_grid', x: 0, y: 0, w: 4, h: 10 },
-                { i: 'pending_sidebar', x: 0, y: 10, w: 4, h: 10 }
-            ],
-            xxs: [
-                { i: 'drivers_grid', x: 0, y: 0, w: 2, h: 10 },
-                { i: 'pending_sidebar', x: 0, y: 10, w: 2, h: 10 }
-            ]
-        };
 
-        saveGridLayout('escalas_layout_rgl', defaultLayouts);
-        // We don't need to alert, the UI will update. 
-        // Maybe we just want to ensure it's saved?
-        // saveGridLayout triggers 'hasUnsavedChanges'.
-    };
 
     // View Mode State
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -164,11 +126,10 @@ export default function Escalas() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'busy'>('all');
 
-    // Drag and drop state
-    const [draggedServiceId, setDraggedServiceId] = useState<string | null>(null);
+
 
     // Quick Distribution Mode State
-    const [isDistributeMode, setIsDistributeMode] = useState(false);
+    const [isDistributeMode] = useState(false);
     const [activeDriverId, setActiveDriverId] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -230,13 +191,7 @@ export default function Escalas() {
     }, [driverOrder]);
 
     // Quick Assign Function
-    const handleQuickAssign = async (serviceId: string) => {
-        if (!activeDriverId) return;
-        const service = servicos.find(s => s.id === serviceId);
-        if (service) {
-            await updateServico({ ...service, motoristaId: activeDriverId });
-        }
-    };
+
 
     const handleUrgentRequest = (e: React.FormEvent) => {
         e.preventDefault();
@@ -334,7 +289,7 @@ export default function Escalas() {
     const adHocPendentes = globalPendentes.filter(s => !s.batchId || !scaleBatches.find(b => b.id === s.batchId));
 
     // Sidebar Count
-    const sidebarTotalCount = pendingBatches.length + (adHocPendentes.length > 0 ? 1 : 0);
+
 
     const pendentes = filteredServicos.filter(s => !s.motoristaId).sort((a, b) => a.hora.localeCompare(b.hora));
     const assigned = filteredServicos.filter(s => s.motoristaId);
@@ -352,16 +307,7 @@ export default function Escalas() {
         return true;
     });
 
-    const handleDropService = async (driverId: string) => {
-        if (draggedServiceId) {
-            const service = servicos.find(s => s.id === draggedServiceId);
-            if (service) {
-                await updateServico({ ...service, motoristaId: driverId });
-            }
-            setDraggedServiceId(null);
-            if (isDistributeMode) { /* optional feedback */ }
-        }
-    };
+
 
     // Stats
     const totalServices = filteredServicos.length;
@@ -612,7 +558,7 @@ export default function Escalas() {
 
 
     return (
-        <div className="flex flex-col h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
+        <div className="flex flex-col w-full h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
 
             {/* HEADER TOOLBAR */}
             <input
@@ -675,48 +621,7 @@ export default function Escalas() {
                                 <span className="hidden sm:inline">Demo</span>
                             </button>
 
-                            {/* Edit Mode Toggle */}
-                            {isEditMode ? (
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={saveChanges}
-                                        className="p-2 lg:px-4 lg:py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-500/20 animate-pulse flex items-center justify-center gap-2 transition-all"
-                                        title={t('common.save')}
-                                    >
-                                        <Check className="w-5 h-5" />
-                                        <span className="hidden lg:inline text-sm font-bold">Salvar</span>
-                                    </button>
-                                    <button
-                                        onClick={async () => {
-                                            if (confirm('Tem a certeza que deseja restaurar o layout padrão?')) {
-                                                await resetLayout();
-                                            }
-                                        }}
-                                        className="p-2 lg:px-4 lg:py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 flex items-center justify-center gap-2 transition-all"
-                                        title="Reset Layout"
-                                    >
-                                        <LayoutGrid className="w-5 h-5" />
-                                        <span className="hidden lg:inline text-sm font-bold">Reset</span>
-                                    </button>
-                                    <button
-                                        onClick={cancelEditMode}
-                                        className="p-2 lg:px-4 lg:py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 flex items-center justify-center gap-2 transition-all"
-                                        title="Cancelar"
-                                    >
-                                        <X className="w-5 h-5" />
-                                        <span className="hidden lg:inline text-sm font-bold">Cancelar</span>
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={toggleEditMode}
-                                    className="p-2 lg:px-4 lg:py-2 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 transition-all flex items-center justify-center gap-2"
-                                    title="Personalizar Layout"
-                                >
-                                    <Layout className="w-5 h-5" />
-                                    <span className="hidden lg:inline text-sm font-bold">Layout</span>
-                                </button>
-                            )}
+
                         </div>
                     </>
                 }
@@ -740,8 +645,7 @@ export default function Escalas() {
 
                             {/* Pendentes Indicator */}
                             <div
-                                className="flex flex-col items-center cursor-pointer group relative"
-                                onClick={handleRestoreSidebar}
+                                className="flex flex-col items-center group relative"
                             >
                                 <span className="text-[10px] uppercase text-slate-500 font-bold group-hover:text-amber-400 transition-colors">Pendentes</span>
                                 <div className="flex items-center gap-1">
@@ -823,27 +727,9 @@ export default function Escalas() {
 
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 overflow-hidden relative">
-                <DraggableGrid
-                    key={gridKey}
-                    zoneId="escalas_layout_rgl"
-                    className="h-full w-full"
-                    defaultLayouts={{
-                        lg: [
-                            { i: 'drivers_grid', x: 0, y: 0, w: 9, h: 20 },
-                            { i: 'pending_sidebar', x: 9, y: 0, w: 3, h: 20 }
-                        ],
-                        md: [
-                            { i: 'drivers_grid', x: 0, y: 0, w: 7, h: 20 },
-                            { i: 'pending_sidebar', x: 7, y: 0, w: 3, h: 20 }
-                        ],
-                        sm: [
-                            { i: 'drivers_grid', x: 0, y: 0, w: 6, h: 10 },
-                            { i: 'pending_sidebar', x: 0, y: 10, w: 6, h: 10 }
-                        ]
-                    }}
-                >
+                <div className="flex flex-col md:flex-row h-full w-full overflow-hidden">
                     {/* DRIVERS GRID WIDGET */}
-                    <div key="drivers_grid" className="h-full relative flex flex-col">
+                    <div className="flex-1 flex flex-col min-w-0 h-full relative md:border-r border-white/5">
 
                         {/* Status Tabs (Stick to top of widget) */}
 
@@ -954,7 +840,6 @@ export default function Escalas() {
                                                                 driver={driver}
                                                                 isDistributeMode={isDistributeMode}
                                                                 activeDriverId={activeDriverId}
-                                                                draggedServiceId={draggedServiceId}
                                                                 activeDriverMenuId={activeDriverMenuId}
                                                                 onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
                                                                 onDragOver={(e: any) => {
@@ -1729,7 +1614,7 @@ export default function Escalas() {
                     }
                     {
                         hasAccess(userRole, 'escalas_view_pending') && (
-                            <div key="pending_sidebar" className="h-full">
+                            <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-[#0f172a] border-t md:border-t-0 md:border-l border-white/5">
                                 <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
                                     <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
                                         <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
@@ -1817,7 +1702,7 @@ export default function Escalas() {
 
 
 
-                </DraggableGrid >
+                </div>
             </div >
 
             {/* MODAL: URGENT REQUEST */}

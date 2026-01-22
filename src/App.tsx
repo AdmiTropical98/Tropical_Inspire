@@ -49,7 +49,7 @@ const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 
 import SplashScreen from './components/SplashScreen';
 
-import { LayoutProvider } from './contexts/LayoutContext';
+
 
 // Helper for loading state
 const PageLoading = () => (
@@ -387,8 +387,7 @@ function AppContent() {
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-transparent relative z-10">
-          {/* Mobile Header - Only visible on mobile */}
+        <main className="flex-1 flex flex-col w-full h-full overflow-hidden bg-transparent relative z-10 p-0 m-0">
           {/* Mobile Header - Only visible on mobile */}
           <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
             <div className="flex items-center">
@@ -525,7 +524,7 @@ function AppContent() {
           )
           }
 
-          <div className="flex-1 overflow-y-auto relative w-full flex flex-col min-h-0 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto w-full relative flex flex-col custom-scrollbar">
             {renderContent()}
           </div>
 
@@ -564,11 +563,11 @@ function App() {
   // const { isAuthenticated } = useAuth(); // Unused now
 
   return (
-    <LayoutProvider>
+
       <ChatProvider>
         <AppContent />
       </ChatProvider>
-    </LayoutProvider>
+
   );
 }
 
