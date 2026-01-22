@@ -2,9 +2,9 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
-    Send, MapPin, Clock, Users, MousePointer2,
-    Search, LayoutList, X, GripVertical, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid, ArrowLeft, Check, Layout
+    Send, MapPin, Clock, Users,
+    Search, LayoutList, X, AlertTriangle, Edit,
+    Table as TableIcon, LayoutGrid, Check, Layout
 } from 'lucide-react';
 import {
     DndContext,
@@ -30,7 +30,7 @@ import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import type { Servico, Notification, ScaleBatch } from '../../types';
+import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface NewServiceState {
@@ -109,6 +109,15 @@ export default function Escalas() {
     const [selectedCentroCusto, setSelectedCentroCusto] = useState<string>('all');
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+
+    // --- Draggable Grid Fix ---
+    const [gridKey, setGridKey] = useState(0);
+
+    useEffect(() => {
+        // Force DraggableGrid remount after initial layout paint
+        const t = setTimeout(() => setGridKey(k => k + 1), 0);
+        return () => clearTimeout(t);
+    }, []);
 
     // Mobile sidebar state
     // const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false); // Removed: Use layout directly
@@ -815,6 +824,7 @@ export default function Escalas() {
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 overflow-hidden relative">
                 <DraggableGrid
+                    key={gridKey}
                     zoneId="escalas_layout_rgl"
                     className="h-full w-full"
                     defaultLayouts={{

@@ -558,28 +558,15 @@ function AppContent() {
   );
 }
 
-import IntroVideo from './components/IntroVideo';
+import IntroVideo from './components/IntroVideo'; // Keeping import if user decides to revert, but commenting out usage below caused lint error. Actually I should remove it.
 
 function App() {
-  const { isAuthenticated } = useAuth();
-  const [showIntro, setShowIntro] = useState(false);
-  const [hasShownIntro, setHasShownIntro] = useState(false);
-
-  useEffect(() => {
-    if (isAuthenticated && !hasShownIntro) {
-      setShowIntro(true);
-      setHasShownIntro(true);
-    }
-  }, [isAuthenticated, hasShownIntro]);
+  // const { isAuthenticated } = useAuth(); // Unused now
 
   return (
     <LayoutProvider>
       <ChatProvider>
-        {showIntro ? (
-          <IntroVideo onComplete={() => setShowIntro(false)} />
-        ) : (
-          <AppContent />
-        )}
+        <AppContent />
       </ChatProvider>
     </LayoutProvider>
   );
