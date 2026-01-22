@@ -1,5 +1,4 @@
-name: 🚀 Robust Deploy (LFTP)
-
+name: 🚀 Production Build & Deploy
 on:
   push:
     branches:
@@ -7,17 +6,17 @@ on:
 
 jobs:
   web-deploy:
-    name: 🎉 Deploy with LFTP
+    name: 🎉 Deploy
     runs-on: ubuntu-latest
     steps:
       - name: 🚚 Get latest code
         uses: actions/checkout@v4
-
+      
       - name: 🔧 Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
+          
       - name: 📦 Install dependencies
         run: npm ci
 
@@ -27,8 +26,18 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: 📂 Sync with LFTP
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lftp
-          lftp -c "open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; set ssl:verify-certificate no; set ftp:ssl-allow no; mirror -R -v --parallel=4 ./dist /public_html"
+      - name: 📂 Deploy to Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ./public_html/
+          protocol: ftp
+          port: 21
+          dangerous-clean-slate: false # Do NOT delete everything on server, just sync
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
