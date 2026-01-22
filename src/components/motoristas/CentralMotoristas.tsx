@@ -358,11 +358,11 @@ export default function CentralMotoristas() {
 
                     {showTagModal && <TagRegistrationModal onSave={handleTagSave} />}
 
-                    {/* Content Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 h-full w-full">
+                    {/* Content Grid - REFACTORED to Flex for Full Width */}
+                    <div className="flex flex-col gap-6 w-full h-full">
 
                         {activeTab === 'escala' && (
-                            <div className="lg:col-span-3 h-full">
+                            <div className="w-full h-full">
                                 <MyScheduleView
                                     services={mySchedule}
                                     onBack={() => setActiveTab('overview')}
@@ -372,7 +372,7 @@ export default function CentralMotoristas() {
                         )}
 
                         {activeTab === 'navegacao' && (
-                            <div className="lg:col-span-3 h-[80vh] rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
+                            <div className="w-full h-[80vh] rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
                                 <NavigationApp
                                     driverLocation={(() => {
                                         const myCV = (currentUser as any)?.currentVehicle;
@@ -390,7 +390,7 @@ export default function CentralMotoristas() {
                             </div>
                         )}
 
-                        <div className={`lg:col-span-3 space-y-6 ${activeTab === 'escala' || activeTab === 'navegacao' ? 'hidden' : ''} w-full`}>
+                        <div className={`w-full space-y-6 ${activeTab === 'escala' || activeTab === 'navegacao' ? 'hidden' : ''}`}>
 
                             {activeTab === 'overview' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
