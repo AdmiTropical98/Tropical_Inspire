@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
-          server-dir: ./public_html/
+          server-dir: ./
           protocol: ftp
           port: 21
           dangerous-clean-slate: false # Do NOT delete everything on server, just sync
