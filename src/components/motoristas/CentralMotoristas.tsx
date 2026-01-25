@@ -319,10 +319,6 @@ export default function CentralMotoristas() {
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-8">
 
-                    {/* Header */}
-                    <div className="w-full bg-red-600 text-white font-bold p-4 text-center rounded-xl mb-4 animate-pulse border-4 border-yellow-400">
-                        DEBUG MODE: LAYOUT V3 - SE NAO VISTO ISSO, É CACHE OU BUILD ANTIGA
-                    </div>
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
                             <h1 className="text-4xl font-black text-white tracking-tight mb-2 flex items-center gap-4">

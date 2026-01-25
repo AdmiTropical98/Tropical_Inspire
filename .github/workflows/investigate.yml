@@ -13,4 +13,4 @@ jobs:
 
       - name: 🕵️ List All Files (Debug)
         run: |
-          lftp -c "set ssl:verify-certificate no; open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; echo '--- START PROBE ---'; pwd; ls -R"
+          lftp -c "set ssl:verify-certificate no; open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; echo '--- START PROBE $(date) ---'; pwd; ls -R"
