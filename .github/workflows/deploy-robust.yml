@@ -26,6 +26,13 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
+      - name: 🕵️ Debug FTP Files
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+          lftp -c "set ssl:verify-certificate no; open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; echo '--- REMOTE FILES START ---'; ls -R; echo '--- REMOTE FILES END ---'"
+        continue-on-error: true
+
       - name: 📂 Deploy to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
