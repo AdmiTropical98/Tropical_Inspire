@@ -113,7 +113,7 @@ const SidebarGroup = ({ title, children, defaultOpen = true }: { title: string, 
 
 
 function AppContent() {
-  console.log('--- APP CONTENT RENDERING v2.1 (Test Deploy) ---');
+  console.log('--- APP CONTENT RENDERING v2.2 (Test Deploy) ---');
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
@@ -250,6 +250,7 @@ function AppContent() {
           >
             <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="w-full h-full object-cover" />
           </button>
+          <div className="text-[10px] text-slate-600 text-center py-1 font-mono uppercase tracking-widest border-b border-slate-800/30">v2.2 Test</div>
 
           <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
             {/* MAIN MENU */}
