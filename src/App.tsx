@@ -113,7 +113,7 @@ const SidebarGroup = ({ title, children, defaultOpen = true }: { title: string, 
 
 
 function AppContent() {
-  console.log('--- APP CONTENT RENDERING ---');
+  console.log('--- APP CONTENT RENDERING v2.0 (Test Deploy) ---');
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
