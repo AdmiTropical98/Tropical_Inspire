@@ -113,7 +113,7 @@ const SidebarGroup = ({ title, children, defaultOpen = true }: { title: string, 
 
 
 function AppContent() {
-  console.log('--- APP CONTENT RENDERING v2.0 (Test Deploy) ---');
+  console.log('--- APP CONTENT RENDERING v2.1 (Test Deploy) ---');
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { notifications } = useWorkshop();
@@ -405,7 +405,7 @@ function AppContent() {
           {isMobileMenuOpen && (
             <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 animate-in slide-in-from-right duration-300">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-white">Menu <span className="text-sm font-normal text-slate-500">v1.9</span></h2>
+                <h2 className="text-2xl font-bold text-white">Menu <span className="text-sm font-normal text-slate-500">v2.1</span></h2>
                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
                   <X className="w-6 h-6" />
                 </button>
