@@ -372,7 +372,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const refreshData = async () => {
         try {
             setCartrackError(null);
-            setDbConnectionError(null); 
+            setDbConnectionError(null);
 
             // 1. Core Data
             try {
@@ -1351,7 +1351,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             centro_custo_id: r.centroCustoId,
             obs: r.obs || '',
             status: r.status,
-            criado_por: r.criadoPor
+            criado_por: r.criadoPor,
+            itens: r.itens
         }).eq('id', r.id);
         if (!error) setRequisicoes(prev => prev.map(curr => curr.id === r.id ? r : curr));
     };
@@ -1368,6 +1369,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (newStatus === 'concluida') {
                 if (fatura) updates.fatura = fatura;
                 if (custo) updates.custo = custo;
+            } else {
+                // Se voltar para pendente, limpar fatura e custo
+                updates.fatura = null;
+                updates.custo = null;
             }
 
             const { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
@@ -1377,8 +1382,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         return {
                             ...req,
                             status: newStatus,
-                            fatura: (newStatus === 'concluida' && fatura) ? fatura : req.fatura,
-                            custo: (newStatus === 'concluida' && custo) ? custo : req.custo
+                            fatura: (newStatus === 'concluida' && fatura) ? fatura : undefined,
+                            custo: (newStatus === 'concluida' && custo) ? custo : undefined
                         };
                     }
                     return req;

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Plus, Search, FileText, Trash2, Printer, Package, CheckCircle, RotateCcw,
-  LayoutTemplate, List, PlusCircle, TrendingUp, Clock, AlertCircle, Calendar,
-  ArrowRight, Box, User, Building, Truck, X, Pencil
+    Plus, Search, FileText, Trash2, Printer, Package, CheckCircle, RotateCcw,
+    LayoutTemplate, List, PlusCircle, TrendingUp, Clock, AlertCircle, Calendar,
+    ArrowRight, Box, User, Building, Truck, X, Pencil
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,18 +13,22 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function Requisicoes() {
-    const { requisicoes, fornecedores, viaturas, addRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos } = useWorkshop();
+    const { requisicoes, fornecedores, viaturas, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos } = useWorkshop();
     const { currentUser, userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
     const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
+
+    // Edit Request State
+    const [editingId, setEditingId] = useState<string | null>(null);
+
     const editarItem = (item: ItemRequisicao) => {
-  setItemEmEdicao(item);
-  setNewItemDesc(item.descricao);
-  setNewItemQtd(item.quantidade);
-  setShowEditModal(true);
-};
+        setItemEmEdicao(item);
+        setNewItemDesc(item.descricao);
+        setNewItemQtd(item.quantidade);
+        setShowEditModal(true);
+    };
 
 
     // Navigation State
@@ -44,7 +48,7 @@ export default function Requisicoes() {
     const [items, setItems] = useState<ItemRequisicao[]>([]);
     const [newItemDesc, setNewItemDesc] = useState('');
     const [newItemQtd, setNewItemQtd] = useState(1);
-    
+
 
     // Confirmation Modal State
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -86,39 +90,64 @@ export default function Requisicoes() {
         setConfirmingId(null);
         setInvoiceNumber('');
         setInvoiceAmount('');
+
+    };
+
+    const handleEdit = (req: Requisicao) => {
+        setEditingId(req.id);
+        setData(req.data);
+        setTipo(req.tipo);
+        setFornecedorId(req.fornecedorId);
+        setViaturaId(req.viaturaId || '');
+        setCentroCustoId(req.centroCustoId);
+        setObs(req.obs || '');
+        setItems(req.itens || []);
+        setActiveTab('create');
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setData(new Date().toISOString().split('T')[0]);
+        setTipo('Oficina');
+        setFornecedorId('');
+        setViaturaId('');
+        setCentroCustoId(undefined);
+        setObs('');
+        setItems([]);
+        setActiveTab('list');
     };
 
     const addItem = () => {
-  if (!newItemDesc.trim()) return;
+        if (!newItemDesc.trim()) return;
 
-  // 👉 SE ESTIVER A EDITAR
-  if (itemEmEdicao) {
-    setItems(items.map(i =>
-      i.id === itemEmEdicao.id
-        ? { ...i, descricao: newItemDesc, quantidade: newItemQtd }
-        : i
-    ));
+        // 👉 SE ESTIVER A EDITAR
+        if (itemEmEdicao) {
+            setItems(items.map(i =>
+                i.id === itemEmEdicao.id
+                    ? { ...i, descricao: newItemDesc, quantidade: newItemQtd }
+                    : i
+            ));
 
-    // limpar estado de edição
-    setItemEmEdicao(null);
-    setNewItemDesc('');
-    setNewItemQtd(1);
-    return;
-  }
+            // limpar estado de edição
+            setItemEmEdicao(null);
+            setNewItemDesc('');
+            setNewItemQtd(1);
+            return;
+        }
 
-  // 👉 SE FOR ITEM NOVO
-  setItems([
-    ...items,
-    {
-      id: crypto.randomUUID(),
-      descricao: newItemDesc,
-      quantidade: newItemQtd
-    }
-  ]);
+        // 👉 SE FOR ITEM NOVO
+        setItems([
+            ...items,
+            {
+                id: crypto.randomUUID(),
+                descricao: newItemDesc,
+                quantidade: newItemQtd
+            }
+        ]);
 
-  setNewItemDesc('');
-  setNewItemQtd(1);
-};
+        setNewItemDesc('');
+        setNewItemQtd(1);
+    };
 
     const removeItem = (id: string) => {
         setItems(items.filter(i => i.id !== id));
@@ -133,36 +162,53 @@ export default function Requisicoes() {
         const currentYear = new Date().getFullYear().toString().slice(-2);
         const prefix = `${currentYear}/`;
 
-        const yearRequisicoes = requisicoes.filter(r => {
-            const numStr = String(r.numero || '');
-            return numStr.startsWith(prefix);
-        });
+        if (editingId) {
+            const updatedReq: Requisicao = {
+                ...requisicoes.find(r => r.id === editingId)!,
+                data,
+                tipo,
+                fornecedorId,
+                viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
+                centroCustoId: centroCustoId,
+                itens: items,
+                obs
+            };
+            updateRequisicao(updatedReq);
+            setEditingId(null);
+            setActiveTab('list');
+            setListFilter('pendentes');
+        } else {
+            const yearRequisicoes = requisicoes.filter(r => {
+                const numStr = String(r.numero || '');
+                return numStr.startsWith(prefix);
+            });
 
-        const maxSeq = yearRequisicoes.reduce((max, r) => {
-            const parts = String(r.numero).split('/');
-            if (parts.length === 2) {
-                const seq = parseInt(parts[1], 10);
-                return !isNaN(seq) && seq > max ? seq : max;
-            }
-            return max;
-        }, 0);
+            const maxSeq = yearRequisicoes.reduce((max, r) => {
+                const parts = String(r.numero).split('/');
+                if (parts.length === 2) {
+                    const seq = parseInt(parts[1], 10);
+                    return !isNaN(seq) && seq > max ? seq : max;
+                }
+                return max;
+            }, 0);
 
-        const newReq: Requisicao = {
-            id: crypto.randomUUID(),
-            numero: `${prefix}${(maxSeq + 1).toString().padStart(4, '0')}`,
-            data,
-            tipo,
-            fornecedorId,
-            viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
-            centroCustoId: centroCustoId,
-            itens: items,
-            obs,
-            criadoPor: currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Staff')
-        };
+            const newReq: Requisicao = {
+                id: crypto.randomUUID(),
+                numero: `${prefix}${(maxSeq + 1).toString().padStart(4, '0')}`,
+                data,
+                tipo,
+                fornecedorId,
+                viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
+                centroCustoId: centroCustoId,
+                itens: items,
+                obs,
+                criadoPor: currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Staff')
+            };
 
-        addRequisicao(newReq);
-        setActiveTab('list'); // Switch to list view after creating
-        setListFilter('pendentes');
+            addRequisicao(newReq);
+            setActiveTab('list');
+            setListFilter('pendentes');
+        }
 
         // Reset Form
         setData(new Date().toISOString().split('T')[0]);
@@ -625,9 +671,9 @@ export default function Requisicoes() {
                                                                 ${req.tipo === 'Stock' ? 'bg-purple-900/30 border-purple-500/30 text-purple-400' : ''}
                                                                 ${req.tipo === 'Viatura' ? 'bg-indigo-900/30 border-indigo-500/30 text-indigo-400' : ''}
                                                             `}>
-                                                               {req.tipo === 'Oficina' && (
-  <Building className="w-3 h-3" />
-)}
+                                                                {req.tipo === 'Oficina' && (
+                                                                    <Building className="w-3 h-3" />
+                                                                )}
                                                                 {req.tipo === 'Stock' && <Box className="w-3 h-3" />}
                                                                 {req.tipo === 'Viatura' && <Truck className="w-3 h-3" />}
                                                                 {req.tipo}
@@ -703,6 +749,18 @@ export default function Requisicoes() {
                                                                 {listFilter === 'pendentes' ? <CheckCircle className="w-5 h-5" /> : <RotateCcw className="w-5 h-5" />}
                                                             </button>
                                                         )}
+
+                                                        {/* Edit Button */}
+                                                        {listFilter === 'pendentes' && hasAccess(userRole, 'requisicoes_edit') && (
+                                                            <button
+                                                                onClick={() => handleEdit(req)}
+                                                                className="p-3 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-colors border border-transparent hover:border-blue-500/20"
+                                                                title="Editar"
+                                                                type="button"
+                                                            >
+                                                                <Pencil className="w-5 h-5" />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -738,10 +796,21 @@ export default function Requisicoes() {
                                         <PlusCircle className="w-7 h-7" />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black text-white tracking-tight">{t('req.form.title')}</h2>
-                                        <p className="text-slate-400 text-md">Preencha os dados para processar o pedido de material.</p>
+                                        <h2 className="text-2xl font-black text-white tracking-tight">{editingId ? 'Editar Requisição' : t('req.form.title')}</h2>
+                                        <p className="text-slate-400 text-md">{editingId ? 'Atualize os dados da requisição.' : 'Preencha os dados para processar o pedido de material.'}</p>
                                     </div>
                                 </div>
+
+                                {editingId && (
+                                    <div className="absolute top-8 right-8">
+                                        <button
+                                            onClick={cancelEdit}
+                                            className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-all font-bold text-sm"
+                                        >
+                                            Cancelar Edição
+                                        </button>
+                                    </div>
+                                )}
 
                                 <form onSubmit={handleSubmit} className="space-y-8">
                                     {/* Form Fields Grid */}
@@ -884,54 +953,54 @@ export default function Requisicoes() {
                                             </div>
                                         </div>
 
-                                       {/* Added Items List */}
-<div className="space-y-2">
-  {items.map(item => (
-    <div
-      key={item.id}
-      className="flex items-center justify-between p-4 bg-slate-800/40 rounded-xl border border-slate-700"
-    >
-      {/* ESQUERDA */}
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center font-mono font-bold">
-          {item.quantidade}
-        </div>
+                                        {/* Added Items List */}
+                                        <div className="space-y-2">
+                                            {items.map(item => (
+                                                <div
+                                                    key={item.id}
+                                                    className="flex items-center justify-between p-4 bg-slate-800/40 rounded-xl border border-slate-700"
+                                                >
+                                                    {/* ESQUERDA */}
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center font-mono font-bold">
+                                                            {item.quantidade}
+                                                        </div>
 
-        <span className="text-slate-200 font-medium">
-          {item.descricao}
-        </span>
-      </div>
+                                                        <span className="text-slate-200 font-medium">
+                                                            {item.descricao}
+                                                        </span>
+                                                    </div>
 
-      {/* DIREITA — BOTÕES */}
-      <div className="flex items-center gap-2">
-        {/* EDITAR */}
-        <button
-          type="button"
-          onClick={() => editarItem(item)}
-          className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition"
-          title="Editar"
-        >
-          ✏️
-        </button>
+                                                    {/* DIREITA — BOTÕES */}
+                                                    <div className="flex items-center gap-2">
+                                                        {/* EDITAR */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => editarItem(item)}
+                                                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition"
+                                                            title="Editar"
+                                                        >
+                                                            ✏️
+                                                        </button>
 
-        {/* REMOVER */}
-        <button
-          type="button"
-          onClick={() => removeItem(item.id)}
-          className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
-          title="Remover"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-    </div>
-  ))}
+                                                        {/* REMOVER */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeItem(item.id)}
+                                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                                                            title="Remover"
+                                                        >
+                                                            <X className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
 
-  {items.length === 0 && (
-    <div className="text-center py-6 text-slate-500 text-sm italic border-2 border-dashed border-slate-800 rounded-xl">
-      Nenhum item adicionado à lista.
-    </div>
-  )}
+                                            {items.length === 0 && (
+                                                <div className="text-center py-6 text-slate-500 text-sm italic border-2 border-dashed border-slate-800 rounded-xl">
+                                                    Nenhum item adicionado à lista.
+                                                </div>
+                                            )}
 
 
                                             {items.length === 0 && (
@@ -1015,10 +1084,10 @@ export default function Requisicoes() {
                                             setItems(items.map(i =>
                                                 i.id === itemEmEdicao.id
                                                     ? {
-                                                          ...i,
-                                                          descricao: newItemDesc,
-                                                          quantidade: newItemQtd
-                                                      }
+                                                        ...i,
+                                                        descricao: newItemDesc,
+                                                        quantidade: newItemQtd
+                                                    }
                                                     : i
                                             ));
                                             setItemEmEdicao(null);
