@@ -1,7 +1,7 @@
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 interface HoursMonthlyReportProps {
     selectedMonth: string; // YYYY-MM
@@ -96,7 +96,7 @@ export default function HoursMonthlyReport({ selectedMonth }: HoursMonthlyReport
         ]);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (doc as any).autoTable({
+        autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
             startY: 40,
