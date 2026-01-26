@@ -39,6 +39,7 @@ export const parseCartrackD103 = async (file: File): Promise<CartrackTrip[]> => 
 
         // Simple extraction: join all items with space
         // Note: Sometimes items are separate, sometimes grouped. Space joining is usually safe for this layout.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pageText = textContent.items.map((item: any) => item.str).join(' ');
 
         // Split by likely newlines if the join merged them, OR just scan the whole text? 
@@ -47,8 +48,6 @@ export const parseCartrackD103 = async (file: File): Promise<CartrackTrip[]> => 
         // Let's try splitting by Plate pattern look-ahead if possible or just extracting all matches.
 
         // We can just iterate matches in the specific string.
-        let match;
-        // Reset lastIndex is not needed for loop over string if we use matchAll or simplistic loop
         // But let's use a global regex match
         const globalRegex = new RegExp(tripLineRegex, 'g');
 

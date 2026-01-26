@@ -1,9 +1,7 @@
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { Download, Calculator } from 'lucide-react';
+import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
 
 interface HoursMonthlyReportProps {
     selectedMonth: string; // YYYY-MM
@@ -97,6 +95,7 @@ export default function HoursMonthlyReport({ selectedMonth }: HoursMonthlyReport
             row.totalPay.toFixed(2) + '€'
         ]);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (doc as any).autoTable({
             head: [tableColumn],
             body: tableRows,

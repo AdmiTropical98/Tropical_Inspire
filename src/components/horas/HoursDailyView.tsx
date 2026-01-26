@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Upload, FileText, Check, AlertTriangle, Trash2, Plus } from 'lucide-react';
+import { Upload, Trash2, Plus } from 'lucide-react';
 import { parseCartrackD103 } from '../../utils/pdfParser';
 import { calculateWorkHoursFromTrips } from './ImportLogic';
-import type { ManualHourRecord, Motorista } from '../../types';
 
 interface HoursDailyViewProps {
     selectedDate: string;
 }
 
 export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
-    const { motoristas, manualHours, addManualHourRecord, deleteManualHourRecord, notifications, addNotification } = useWorkshop();
+    const { motoristas, manualHours, addManualHourRecord, deleteManualHourRecord } = useWorkshop();
     const { currentUser } = useAuth();
 
     const [isImporting, setIsImporting] = useState(false);
@@ -89,7 +88,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                     // errors.push(`Matrícula ${sugg.plate} não associada a nenhum motorista.`);
                 }
             }
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error(err);
             errors.push(`Erro ao processar ficheiro: ${err.message}`);
