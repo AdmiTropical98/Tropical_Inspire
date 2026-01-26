@@ -13,6 +13,58 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
     const { motoristas, manualHours, addManualHourRecord, deleteManualHourRecord } = useWorkshop();
     const { currentUser } = useAuth();
 
+    const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(new Set());
+
+    // Toggle Selection
+    const toggleDriver = (id: string) => {
+        const newSet = new Set(selectedDrivers);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setSelectedDrivers(newSet);
+    };
+
+    const toggleAll = () => {
+        if (selectedDrivers.size === motoristas.length) {
+            setSelectedDrivers(new Set());
+        } else {
+            setSelectedDrivers(new Set(motoristas.map(m => m.id)));
+        }
+    };
+
+    // Bulk Action: Quick Register 09-18
+    const handleBulkQuickRegister = async () => {
+        if (selectedDrivers.size === 0) return;
+        setIsImporting(true); // Reuse loading state
+        let count = 0;
+
+        try {
+            for (const driverId of selectedDrivers) {
+                // Remove existing
+                const existing = manualHours.find(r => r.motoristaId === driverId && r.date === selectedDate);
+                if (existing) await deleteManualHourRecord(existing.id);
+
+                // Add New
+                await addManualHourRecord({
+                    id: crypto.randomUUID(),
+                    adminId: currentUser?.id,
+                    motoristaId: driverId,
+                    date: selectedDate,
+                    startTime: '09:00',
+                    endTime: '18:00',
+                    breakDuration: 60,
+                    obs: 'Registo Rápido (Bulk)'
+                });
+                count++;
+            }
+            setSelectedDrivers(new Set()); // Clear selection
+            setImportStats({ processed: count, updated: count, errors: [] });
+        } catch (e: any) {
+            console.error(e);
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     const [isImporting, setIsImporting] = useState(false);
     const [importStats, setImportStats] = useState<{ processed: number, updated: number, errors: string[] } | null>(null);
 
@@ -153,10 +205,24 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                 </div>
             </div>
 
+            {/* Bulk Actions Bar */}
+            {selectedDrivers.size > 0 && (
+                <div className="bg-blue-900/30 border border-blue-500/50 p-3 rounded-lg flex items-center justify-between">
+                    <span className="text-blue-200 text-sm font-medium">{selectedDrivers.size} motoristas selecionados</span>
+                    <button
+                        onClick={handleBulkQuickRegister}
+                        disabled={isImporting}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow-lg transition-all"
+                    >
+                        {isImporting ? 'A processar...' : 'Definir 09:00 - 18:00 (Rápido)'}
+                    </button>
+                </div>
+            )}
+
             {/* Import Stats */}
             {importStats && (
                 <div className={`p-4 rounded-lg border ${importStats.errors.length > 0 ? 'bg-amber-900/20 border-amber-500/30' : 'bg-emerald-900/20 border-emerald-500/30'}`}>
-                    <p className="text-white font-medium">Resultados da Importação:</p>
+                    <p className="text-white font-medium">Resultados:</p>
                     <p className="text-slate-300 text-sm">{importStats.updated} registos criados/atualizados.</p>
                     {importStats.errors.length > 0 && (
                         <ul className="mt-2 text-amber-400 text-xs list-disc list-inside">
@@ -172,6 +238,14 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                 <table className="w-full text-left text-sm text-slate-300">
                     <thead className="bg-[#0f172a]/80 text-slate-400 uppercase text-xs tracking-wider">
                         <tr>
+                            <th className="p-4 w-4">
+                                <input
+                                    type="checkbox"
+                                    className="rounded bg-slate-800 border-slate-600"
+                                    checked={selectedDrivers.size === motoristas.length && motoristas.length > 0}
+                                    onChange={toggleAll}
+                                />
+                            </th>
                             <th className="p-4 font-bold border-b border-slate-700">Motorista</th>
                             <th className="p-4 font-bold border-b border-slate-700">Entrada</th>
                             <th className="p-4 font-bold border-b border-slate-700">Saída</th>
@@ -182,44 +256,61 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/50">
-                        {dailyRecords.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="p-8 text-center text-slate-500">
-                                    Nenhum registo manual para este dia.
-                                </td>
-                            </tr>
+                        {motoristas.length === 0 ? (
+                            <tr><td colSpan={8} className="p-8 text-center text-slate-500">Sem motoristas registados.</td></tr>
                         ) : (
-                            dailyRecords.map(record => {
-                                const driver = motoristas.find(m => m.id === record.motoristaId);
+                            // Iterate MOTORISTAS instead of records to show missing ones too?
+                            // User request: "REGISTAR RAPIDO" usually implies checking off list.
+                            // Better: Show ALL drivers. If record exists, show it. If not, show empty/button.
+                            motoristas.map(driver => {
+                                const record = dailyRecords.find(r => r.motoristaId === driver.id);
+                                const isSelected = selectedDrivers.has(driver.id);
 
-                                // Calc duration
-                                const [h1, m1] = record.startTime.split(':').map(Number);
-                                const [h2, m2] = record.endTime.split(':').map(Number);
-                                const diffMin = (h2 * 60 + m2) - (h1 * 60 + m1) - record.breakDuration;
-                                const h = Math.floor(diffMin / 60);
-                                const m = diffMin % 60;
+                                let durationDisplay = '-';
+                                let rowClass = 'hover:bg-slate-800/30';
+
+                                if (record) {
+                                    const [h1, m1] = record.startTime.split(':').map(Number);
+                                    const [h2, m2] = record.endTime.split(':').map(Number);
+                                    const diffMin = (h2 * 60 + m2) - (h1 * 60 + m1) - record.breakDuration;
+                                    const h = Math.floor(diffMin / 60);
+                                    const m = diffMin % 60;
+                                    durationDisplay = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                                    rowClass = 'bg-emerald-900/10 hover:bg-emerald-900/20'; // Highlight present
+                                }
 
                                 return (
-                                    <tr key={record.id} className="hover:bg-slate-800/30">
-                                        <td className="p-4 font-medium text-white">
-                                            {driver?.nome || 'Desconhecido'}
+                                    <tr key={driver.id} className={rowClass}>
+                                        <td className="p-4 text-center">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded bg-slate-800 border-slate-600"
+                                                checked={isSelected}
+                                                onChange={() => toggleDriver(driver.id)}
+                                            />
                                         </td>
-                                        <td className="p-4 font-mono">{record.startTime}</td>
-                                        <td className="p-4 font-mono">{record.endTime}</td>
-                                        <td className="p-4 font-mono text-center">{record.breakDuration}</td>
-                                        <td className="p-4 font-mono font-bold text-emerald-400">
-                                            {h.toString().padStart(2, '0')}:{m.toString().padStart(2, '0')}
+                                        <td className="p-4 font-medium text-white flex items-center gap-3">
+                                            {/* Avatar or Initials could go here */}
+                                            {driver.nome}
                                         </td>
-                                        <td className="p-4 text-xs text-slate-500 max-w-xs truncate" title={record.obs}>
-                                            {record.obs}
+                                        <td className="p-4 font-mono">{record?.startTime || '-'}</td>
+                                        <td className="p-4 font-mono">{record?.endTime || '-'}</td>
+                                        <td className="p-4 font-mono text-center">{record?.breakDuration || '-'}</td>
+                                        <td className={`p-4 font-mono font-bold ${record ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                            {durationDisplay}
+                                        </td>
+                                        <td className="p-4 text-xs text-slate-500 max-w-xs truncate">
+                                            {record?.obs || '-'}
                                         </td>
                                         <td className="p-4 text-right">
-                                            <button
-                                                onClick={() => deleteManualHourRecord(record.id)}
-                                                className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded transition-colors"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {record && (
+                                                <button
+                                                    onClick={() => deleteManualHourRecord(record.id)}
+                                                    className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 );
