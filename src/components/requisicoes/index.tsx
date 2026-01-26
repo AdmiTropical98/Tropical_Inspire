@@ -796,7 +796,10 @@ export default function Requisicoes() {
                                         <PlusCircle className="w-7 h-7" />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black text-white tracking-tight">{editingId ? 'Editar Requisição' : t('req.form.title')}</h2>
+                                        <h2 className="text-2xl font-black text-white tracking-tight">
+                                            {editingId ? 'Editar Requisição' : t('req.form.title')}
+                                            <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">v2.2</span>
+                                        </h2>
                                         <p className="text-slate-400 text-md">{editingId ? 'Atualize os dados da requisição.' : 'Preencha os dados para processar o pedido de material.'}</p>
                                     </div>
                                 </div>

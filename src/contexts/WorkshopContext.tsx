@@ -1371,18 +1371,25 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 if (custo) updates.custo = custo;
             } else {
                 // Se voltar para pendente, limpar fatura e custo
-                updates.fatura = null;
+                updates.fatura = "";
                 updates.custo = null;
             }
 
             const { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
+
+            if (error) {
+                console.error('Error toggling status:', error);
+                alert('Erro ao atualizar estado: ' + error.message);
+            }
+
             if (!error) {
+                console.log('Status updated successfully. New Status:', newStatus, 'Updates:', updates);
                 setRequisicoes(prev => prev.map(req => {
                     if (req.id === id) {
                         return {
                             ...req,
                             status: newStatus,
-                            fatura: (newStatus === 'concluida' && fatura) ? fatura : undefined,
+                            fatura: (newStatus === 'concluida' && fatura) ? fatura : "",
                             custo: (newStatus === 'concluida' && custo) ? custo : undefined
                         };
                     }
