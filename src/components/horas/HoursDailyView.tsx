@@ -75,6 +75,11 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
     const [showAddModal, setShowAddModal] = useState(false);
     const [newData, setNewData] = useState({ motoristaId: '', startTime: '09:00', endTime: '18:00', breakDuration: 60, obs: '' });
 
+    // PDF Import State
+    const [showDriverSelectModal, setShowDriverSelectModal] = useState(false);
+    const [pendingTrips, setPendingTrips] = useState<import('./ImportLogic').DailyWorkSuggestion[]>([]);
+    const [targetDriverId, setTargetDriverId] = useState('');
+
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -82,72 +87,87 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
         setIsImporting(true);
         setImportStats(null);
         const errors: string[] = [];
-        let updatedCount = 0;
 
         try {
             // 1. Parse PDF
             const trips = await parseCartrackD103(file);
             if (trips.length === 0) {
                 errors.push("Nenhuma viagem encontrada no PDF. Verifique se é um relatório D103 válido.");
+                setImportStats({ processed: 0, updated: 0, errors });
+                setIsImporting(false);
+                return;
             }
 
-            // 2. Calculate Suggestions (Logic B+C)
+            // 2. Calculate Suggestions
             const suggestions = calculateWorkHoursFromTrips(trips);
 
-            // 3. Apply to Drivers matching the Plate
-            for (const sugg of suggestions) {
-                // Determine Driver
-                // Normalize Plate
-                const plateClean = sugg.plate.replace(/[^A-Z0-9]/g, '');
-
-                const driver = motoristas.find(m =>
-                    (m.currentVehicle && m.currentVehicle.replace(/[^a-zA-Z0-9]/g, '') === plateClean)
-                    // Could also check cartrack link if we had vehicle list with plates here, 
-                    // but usually currentVehicle is the association source of truth for "Assignment".
-                    // OR: Cartrack ID. But PDF only gives Plate.
-                );
-
-                if (driver) {
-                    // Update or Create Record
-                    // Delete existing for this day first? Or overwrite locally?
-                    // Let's Find existing
-                    const existing = dailyRecords.find(r => r.motoristaId === driver.id);
-                    if (existing) {
-                        await deleteManualHourRecord(existing.id);
-                    }
-
-                    // Add New
-                    await addManualHourRecord({
-                        id: crypto.randomUUID(),
-                        adminId: currentUser?.id,
-                        motoristaId: driver.id,
-                        date: sugg.date, // Careful: PDF might have multiple dates. 
-                        // If view is "Daily", we should only import for selectedDate?
-                        // USER REQUEST: "IMPORTAR ESTES RELATÓRIOS ... E NOS DIAS QUE ELES ANDARAM"
-                        // This implies the PDF might cover a MONTH.
-                        // So we should NOT filter by 'selectedDate' strictly, 
-                        // but maybe we should confirm if this View is just for VIEWING a single day.
-                        // Actually `addManualHourRecord` works for any date.
-                        startTime: sugg.startTime,
-                        endTime: sugg.endTime,
-                        breakDuration: sugg.breakDuration,
-                        obs: `Importado PDF (${sugg.plate}) - ${sugg.log.length > 0 ? sugg.log.length + ' pausas detetadas' : 'Sem pausas longas'}`
-                    });
-                    updatedCount++;
-                } else {
-                    // Driver not found for plate
-                    // Maybe we can log this?
-                    // errors.push(`Matrícula ${sugg.plate} não associada a nenhum motorista.`);
-                }
+            if (suggestions.length === 0) {
+                errors.push("Não foi possível calcular horários a partir das viagens.");
+                setImportStats({ processed: 0, updated: 0, errors });
+                setIsImporting(false);
+                return;
             }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+            // 3. Prompt User for Driver
+            setPendingTrips(suggestions);
+            setTargetDriverId(''); // Reset selection
+            setShowDriverSelectModal(true);
+
+            // We don't finish importing here. We wait for Modal confirm.
+
         } catch (err: any) {
             console.error(err);
-            errors.push(`Erro ao processar ficheiro: ${err.message}`);
+            setImportStats({ processed: 0, updated: 0, errors: [`Erro ao processar ficheiro: ${err.message}`] });
+            setIsImporting(false);
+        }
+        e.target.value = ''; // Reset input to allow same file again
+    };
+
+    const confirmImportWithDriver = async () => {
+        if (!targetDriverId) return;
+
+        setIsImporting(true);
+        let updatedCount = 0;
+        const errors: string[] = [];
+
+        try {
+            for (const sugg of pendingTrips) {
+                // Check overlap? OR just overwrite.
+                // Let's delete existing for that day/driver first to avoid duplicates
+                // Note: dailyRecords is currently filtered by *selectedDate*. 
+                // BUT sugg.date might be different if PDF covers multiple days.
+
+                // We should probably check against global manualHours or simpler: just add. 
+                // But preventing duplicates is good. 
+                // Let's rely on the backend or context to handle? 
+                // The context `addManualHourRecord` just inserts.
+
+                // For safety: Check if we have a record in `manualHours` (the full list)
+                const conflict = manualHours.find(h => h.motoristaId === targetDriverId && h.date === sugg.date);
+                if (conflict) {
+                    await deleteManualHourRecord(conflict.id);
+                }
+
+                await addManualHourRecord({
+                    id: crypto.randomUUID(),
+                    adminId: currentUser?.id,
+                    motoristaId: targetDriverId,
+                    date: sugg.date,
+                    startTime: sugg.startTime,
+                    endTime: sugg.endTime,
+                    breakDuration: sugg.breakDuration,
+                    obs: `Importado PDF (${sugg.plate}) - ${sugg.log.length > 0 ? sugg.log.length + ' pausas' : 'Sem pausas'}`
+                });
+                updatedCount++;
+            }
+        } catch (err: any) {
+            console.error(err);
+            errors.push(`Erro ao gravar: ${err.message}`);
         } finally {
             setIsImporting(false);
-            setImportStats({ processed: 0, updated: updatedCount, errors });
-            e.target.value = ''; // Reset input
+            setShowDriverSelectModal(false);
+            setImportStats({ processed: pendingTrips.length, updated: updatedCount, errors });
+            setPendingTrips([]);
         }
     };
 
@@ -385,6 +405,48 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                 <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-lg font-bold">Guardar</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Driver Select Modal for PDF */}
+            {showDriverSelectModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl border border-slate-700 shadow-2xl p-6">
+                        <h3 className="text-lg font-bold text-white mb-2">Selecione o Motorista</h3>
+                        <p className="text-slate-400 text-sm mb-4">
+                            O PDF contém {pendingTrips.length} dias de atividade.
+                            A quem pertence este relatório?
+                        </p>
+
+                        <div className="mb-6">
+                            <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Motorista</label>
+                            <select
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
+                                value={targetDriverId}
+                                onChange={e => setTargetDriverId(e.target.value)}
+                            >
+                                <option value="">Selecione...</option>
+                                {motoristas.map(m => (
+                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setShowDriverSelectModal(false); setIsImporting(false); setPendingTrips([]); }}
+                                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white p-3 rounded-lg"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmImportWithDriver}
+                                disabled={!targetDriverId || isImporting}
+                                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white p-3 rounded-lg font-bold"
+                            >
+                                Confirmar Importação
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
