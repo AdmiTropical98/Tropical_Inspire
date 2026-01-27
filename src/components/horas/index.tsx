@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Clock, Calendar, FileText } from 'lucide-react';
+import { Clock, Calendar, FileText, Layers } from 'lucide-react';
 import HoursDailyView from './HoursDailyView';
 import HoursMonthlyReport from './HoursMonthlyReport';
+import HoursBatchView from './HoursBatchView';
 
 export default function Horas() {
-    const [activeTab, setActiveTab] = useState<'daily' | 'monthly'>('daily');
+    const [activeTab, setActiveTab] = useState<'daily' | 'monthly' | 'batch'>('daily');
 
     // Date States
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -28,6 +29,12 @@ export default function Horas() {
                         Registo Diário
                     </button>
                     <button
+                        onClick={() => setActiveTab('batch')}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'batch' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                    >
+                        Lançamento em Massa
+                    </button>
+                    <button
                         onClick={() => setActiveTab('monthly')}
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'monthly' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                     >
@@ -37,7 +44,7 @@ export default function Horas() {
 
                 {/* Date Controls */}
                 <div className="flex items-center gap-4">
-                    {activeTab === 'daily' ? (
+                    {activeTab === 'daily' && (
                         <div className="flex items-center gap-2 text-sm bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700/50">
                             <Calendar className="w-4 h-4 text-slate-400" />
                             <input
@@ -47,7 +54,8 @@ export default function Horas() {
                                 className="bg-transparent text-white border-none focus:ring-0 p-0 text-sm"
                             />
                         </div>
-                    ) : (
+                    )}
+                    {activeTab === 'monthly' && (
                         <div className="flex items-center gap-2 text-sm bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700/50">
                             <FileText className="w-4 h-4 text-slate-400" />
                             <input
@@ -58,17 +66,21 @@ export default function Horas() {
                             />
                         </div>
                     )}
+                    {activeTab === 'batch' && (
+                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                            <Layers className="w-4 h-4" />
+                            <span>Modo em Lote</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
                 <div className="max-w-7xl mx-auto">
-                    {activeTab === 'daily' ? (
-                        <HoursDailyView selectedDate={selectedDate} />
-                    ) : (
-                        <HoursMonthlyReport selectedMonth={selectedMonth} />
-                    )}
+                    {activeTab === 'daily' && <HoursDailyView selectedDate={selectedDate} />}
+                    {activeTab === 'batch' && <HoursBatchView />}
+                    {activeTab === 'monthly' && <HoursMonthlyReport selectedMonth={selectedMonth} />}
                 </div>
             </div>
         </div>
