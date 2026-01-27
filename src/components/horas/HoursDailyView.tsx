@@ -283,57 +283,103 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                             // User request: "REGISTAR RAPIDO" usually implies checking off list.
                             // Better: Show ALL drivers. If record exists, show it. If not, show empty/button.
                             motoristas.map(driver => {
-                                const record = dailyRecords.find(r => r.motoristaId === driver.id);
+                                const records = dailyRecords.filter(r => r.motoristaId === driver.id);
                                 const isSelected = selectedDrivers.has(driver.id);
 
-                                let durationDisplay = '-';
-                                let rowClass = 'hover:bg-slate-800/30';
+                                // If no records, render one empty row (or just the driver info)
+                                if (records.length === 0) {
+                                    return (
+                                        <tr key={driver.id} className="hover:bg-slate-800/30">
+                                            <td className="p-4 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded bg-slate-800 border-slate-600"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleDriver(driver.id)}
+                                                />
+                                            </td>
+                                            <td className="p-4 font-medium text-white">
+                                                {driver.nome}
+                                                <button
+                                                    onClick={() => {
+                                                        setNewData(d => ({ ...d, motoristaId: driver.id }));
+                                                        setShowAddModal(true);
+                                                    }}
+                                                    className="ml-2 p-1 bg-slate-800 hover:bg-slate-700 rounded text-xs text-blue-400 opacity-50 hover:opacity-100 transition-opacity"
+                                                    title="Adicionar horas"
+                                                >
+                                                    <Plus className="w-3 h-3" />
+                                                </button>
+                                            </td>
+                                            <td className="p-4 text-center text-slate-600">-</td>
+                                            <td className="p-4 text-center text-slate-600">-</td>
+                                            <td className="p-4 text-center text-slate-600">-</td>
+                                            <td className="p-4 text-center text-slate-600">-</td>
+                                            <td className="p-4">-</td>
+                                            <td className="p-4"></td>
+                                        </tr>
+                                    );
+                                }
 
-                                if (record) {
+                                // If records, render them. 
+                                // First record gets the Checkbox and Name.
+                                // Subsequent records get empty cells for those columns (or maybe just rowSpan).
+                                // Let's use mapping to render distinct rows but visually grouped.
+                                return records.map((record, index) => {
                                     const [h1, m1] = record.startTime.split(':').map(Number);
                                     const [h2, m2] = record.endTime.split(':').map(Number);
                                     const diffMin = (h2 * 60 + m2) - (h1 * 60 + m1) - record.breakDuration;
                                     const h = Math.floor(diffMin / 60);
                                     const m = diffMin % 60;
-                                    durationDisplay = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                                    rowClass = 'bg-emerald-900/10 hover:bg-emerald-900/20'; // Highlight present
-                                }
+                                    const durationDisplay = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 
-                                return (
-                                    <tr key={driver.id} className={rowClass}>
-                                        <td className="p-4 text-center">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded bg-slate-800 border-slate-600"
-                                                checked={isSelected}
-                                                onChange={() => toggleDriver(driver.id)}
-                                            />
-                                        </td>
-                                        <td className="p-4 font-medium text-white flex items-center gap-3">
-                                            {/* Avatar or Initials could go here */}
-                                            {driver.nome}
-                                        </td>
-                                        <td className="p-4 font-mono">{record?.startTime || '-'}</td>
-                                        <td className="p-4 font-mono">{record?.endTime || '-'}</td>
-                                        <td className="p-4 font-mono text-center">{record?.breakDuration || '-'}</td>
-                                        <td className={`p-4 font-mono font-bold ${record ? 'text-emerald-400' : 'text-slate-600'}`}>
-                                            {durationDisplay}
-                                        </td>
-                                        <td className="p-4 text-xs text-slate-500 max-w-xs truncate">
-                                            {record?.obs || '-'}
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            {record && (
+                                    const isFirst = index === 0;
+
+                                    return (
+                                        <tr key={record.id} className="bg-emerald-900/10 hover:bg-emerald-900/20 border-b border-slate-800/50">
+                                            {/* Checkbox & Name - Only on first row (or rowspan) */}
+                                            {isFirst ? (
+                                                <>
+                                                    <td className="p-4 text-center align-middle" rowSpan={records.length}>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="rounded bg-slate-800 border-slate-600"
+                                                            checked={isSelected}
+                                                            onChange={() => toggleDriver(driver.id)}
+                                                        />
+                                                    </td>
+                                                    <td className="p-4 font-medium text-white align-middle" rowSpan={records.length}>
+                                                        {driver.nome}
+                                                        <button
+                                                            onClick={() => {
+                                                                setNewData(d => ({ ...d, motoristaId: driver.id }));
+                                                                setShowAddModal(true);
+                                                            }}
+                                                            className="ml-2 p-1 bg-slate-800 hover:bg-slate-700 rounded text-xs text-blue-400 opacity-50 hover:opacity-100 transition-opacity"
+                                                            title="Adicionar mais horas"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                        </button>
+                                                    </td>
+                                                </>
+                                            ) : null}
+
+                                            <td className="p-4 font-mono">{record.startTime}</td>
+                                            <td className="p-4 font-mono">{record.endTime}</td>
+                                            <td className="p-4 font-mono text-center">{record.breakDuration}</td>
+                                            <td className="p-4 font-mono font-bold text-emerald-400">{durationDisplay}</td>
+                                            <td className="p-4 text-xs text-slate-500 max-w-xs truncate">{record.obs}</td>
+                                            <td className="p-4 text-right">
                                                 <button
                                                     onClick={() => deleteManualHourRecord(record.id)}
                                                     className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded transition-colors"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
+                                            </td>
+                                        </tr>
+                                    );
+                                });
                             })
                         )}
                     </tbody>
