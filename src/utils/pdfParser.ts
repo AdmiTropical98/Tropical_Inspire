@@ -1,11 +1,9 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set worker source - essential for Vite
-// Note: This relies on the bundler to handle the worker file. 
-// If this fails in production, we might need to copy the worker to public/ or use a CDN.
-// For now, we try the standard ESM import way.
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+// Set worker source - using CDN to avoid Vite build path issues
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export interface CartrackTrip {
     matricula: string;
