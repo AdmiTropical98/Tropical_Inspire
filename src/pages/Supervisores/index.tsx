@@ -4,7 +4,7 @@ import { UserCog, Plus, Trash2, AlertCircle, Shield, Share2, MessageSquare, Sear
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Supervisor, Notification } from '../../types';
-import UserPermissionsModal from '../permissoes/UserPermissionsModal';
+import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
 
 export default function Supervisores() {
     const { supervisors, addSupervisor, updateSupervisor, deleteSupervisor, notifications, updateNotification } = useWorkshop();
