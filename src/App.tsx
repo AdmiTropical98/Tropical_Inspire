@@ -12,42 +12,42 @@ import { useWorkshop } from './contexts/WorkshopContext';
 import { ChatProvider, useChat } from './contexts/ChatContext';
 
 // Components
-import Login from './components/Login';
-import ResetPassword from './components/ResetPassword';
-import Dashboard from './components/dashboard';
+import Login from './pages/Auth/Login';
+import ResetPassword from './pages/Auth/ResetPassword';
+import Dashboard from './pages/Dashboard';
 import { supabase } from './lib/supabase'; // Import Supabase client
-import Fornecedores from './components/fornecedores';
-import Viaturas from './components/viaturas';
-import Drivers from './components/motoristas';
-import Requisicoes from './components/requisicoes';
-import Escalas from './components/escalas';
-import Horas from './components/horas';
-import FuelManager from './components/combustivel';
-import EquipaOficina from './components/equipa-oficina';
-import Supervisores from './components/supervisores';
-import ExternalServices from './components/external';
-import ChatWidget from './components/chat/ChatWidget';
-import ChatPage from './components/chat/ChatPage'; // New Chat Page
-import CentrosCustos from './components/centros-custos';
+import Fornecedores from './pages/Fornecedores';
+import Viaturas from './pages/Viaturas';
+import Drivers from './pages/Motoristas';
+import Requisicoes from './pages/Requisicoes';
+import Escalas from './pages/Escalas';
+import Horas from './pages/Horas';
+import FuelManager from './pages/Combustivel';
+import EquipaOficina from './pages/EquipaOficina';
+import Supervisores from './pages/Supervisores';
+import ExternalServices from './pages/ExternalServices';
+import ChatWidget from './pages/Chat/ChatWidget';
+import ChatPage from './pages/Chat/ChatPage'; // New Chat Page
+import CentrosCustos from './pages/CentrosCustos';
 // Lazy Load CentralMotorista
-const CentralMotorista = lazy(() => import('./components/motoristas/CentralMotoristas'));
+const CentralMotorista = lazy(() => import('./pages/Motoristas/CentralMotoristas'));
 
-import TransportesEva from './components/transportes-eva';
+import TransportesEva from './pages/TransportesEva';
 import UserProfileMenu from './components/common/UserProfileMenu';
-import Contabilidade from './components/contabilidade';
-import Clientes from './components/clientes';
-import Relatorios from './components/relatorios'; // Import Relatorios
-import AvaliacaoMotorista from './components/avaliacao'; // Import AvaliacaoMotorista
-import Geofences from './components/geofences'; // Import Geofences component
-import UsersPage from './components/users'; // Import UsersPage
-import Locais from './components/locais'; // Import Locais (POIs)
-import Permissoes from './components/permissoes';
-import MyProfile from './components/profile/MyProfile';
-import Gestores from './components/gestores';
+import Contabilidade from './pages/Contabilidade';
+import Clientes from './pages/Clientes';
+import Relatorios from './pages/Relatorios'; // Import Relatorios
+import AvaliacaoMotorista from './pages/Avaliacao'; // Import AvaliacaoMotorista
+import Geofences from './pages/Geofences'; // Import Geofences component
+import UsersPage from './pages/Users'; // Import UsersPage
+import Locais from './pages/Locais'; // Import Locais (POIs)
+import Permissoes from './pages/Permissoes';
+import MyProfile from './pages/Profile/MyProfile';
+import Gestores from './pages/Gestores';
 // Lazy Load LancarEscala
 const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 
-import SplashScreen from './components/SplashScreen';
+import SplashScreen from './components/common/SplashScreen';
 
 
 
@@ -557,16 +557,16 @@ function AppContent() {
   );
 }
 
-import IntroVideo from './components/IntroVideo'; // Keeping import if user decides to revert, but commenting out usage below caused lint error. Actually I should remove it.
+import IntroVideo from './components/common/IntroVideo'; // Keeping import if user decides to revert, but commenting out usage below caused lint error. Actually I should remove it.
 
 function App() {
   // const { isAuthenticated } = useAuth(); // Unused now
 
   return (
 
-      <ChatProvider>
-        <AppContent />
-      </ChatProvider>
+    <ChatProvider>
+      <AppContent />
+    </ChatProvider>
 
   );
 }

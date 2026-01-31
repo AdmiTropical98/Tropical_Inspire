@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { Lock, Eye, EyeOff, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function ResetPassword() {
