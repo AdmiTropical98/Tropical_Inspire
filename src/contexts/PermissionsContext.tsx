@@ -208,38 +208,32 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
             }
 
             const updatedAll = { ...prev, [role]: nextPerms };
-
-            // Persist to DB immediately
-            const dbKey = `permissions_${role}`;
-            supabase
-                .from('app_settings')
-                .upsert({ key: dbKey, value: nextPerms }, { onConflict: 'key' })
-                .then(({ error }) => {
-                    if (error) {
-                        console.error(`Error saving ${dbKey}:`, error);
-                        // Optional: Revert state on failure
-                    } else {
-                        console.log(`Successfully saved ${dbKey}`);
-                    }
-                });
-
             return updatedAll;
         });
     };
 
     const saveAllPermissions = async (newPermissions: RolePermissions) => {
-        setPermissions(newPermissions);
-
         const roles: (keyof RolePermissions)[] = ['supervisor', 'motorista', 'oficina', 'gestor'];
         const updates = roles.map(role => {
             const dbKey = `permissions_${role}`;
             return supabase
                 .from('app_settings')
-                .upsert({ key: dbKey, value: newPermissions[role] }, { onConflict: 'key' });
+                .upsert({ key: dbKey, value: newPermissions[role] }, { onConflict: 'key' })
+                .select();
         });
 
         try {
-            await Promise.all(updates);
+            const results = await Promise.all(updates);
+
+            // Check for any errors in the batch
+            const errors = results.filter(r => r.error);
+            if (errors.length > 0) {
+                console.error('Errors saving permissions:', errors);
+                throw new Error('Falha ao gravar permissões na base de dados.');
+            }
+
+            // Only update local state if successful
+            setPermissions(newPermissions);
             console.log('All permissions saved successfully');
         } catch (error) {
             console.error('Error batch saving permissions:', error);
