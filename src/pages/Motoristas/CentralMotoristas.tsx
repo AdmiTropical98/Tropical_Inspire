@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import MyScheduleView from './MyScheduleView';
 import NavigationApp from './NavigationApp';
-import TagRegistrationModal from '../common/TagRegistrationModal';
+import TagRegistrationModal from '../../components/common/TagRegistrationModal';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { cleanTagId } from '../../services/cartrack';
