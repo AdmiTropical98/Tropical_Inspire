@@ -1676,10 +1676,66 @@ export default function Escalas() {
                                     {/* List */}
                                     <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
                                         {/* Ad-Hoc */}
+                                        {/* Ad-Hoc */}
                                         {adHocPendentes.length > 0 && (
-                                            <div onClick={() => { setSelectedBatchId(null); }} className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedBatchId === null ? 'bg-blue-600/10 border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
-                                                <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Avulsas</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHocPendentes.length}</span></div>
-                                                <div className="text-xs text-slate-500">Serviços sem lote associado</div>
+                                            <div className={`rounded-xl border transition-all overflow-hidden ${expandedBatchId === 'adhoc' ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                                <div
+                                                    onClick={() => setExpandedBatchId(expandedBatchId === 'adhoc' ? null : 'adhoc')}
+                                                    className="p-4 cursor-pointer"
+                                                >
+                                                    <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Avulsas</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHocPendentes.length}</span></div>
+                                                    <div className="text-xs text-slate-500">Serviços sem lote associado</div>
+                                                </div>
+
+                                                {/* EXPANDED CONTENT AD-HOC */}
+                                                {expandedBatchId === 'adhoc' && (
+                                                    <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
+                                                        {adHocPendentes.map(service => (
+                                                            <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
+                                                                        <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={(e) => handleDeleteService(service.id, e)}
+                                                                        className="text-slate-600 hover:text-red-400 p-1"
+                                                                        title="Eliminar"
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
+                                                                    <span className="truncate" title={service.origem}>{service.origem}</span>
+                                                                    <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                    <span className="truncate text-right" title={service.destino}>{service.destino}</span>
+                                                                </div>
+
+                                                                <div className="pt-2 border-t border-white/5">
+                                                                    <select
+                                                                        className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
+                                                                        value=""
+                                                                        onChange={(e) => {
+                                                                            if (e.target.value) {
+                                                                                updateServico({ ...service, motoristaId: e.target.value });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <option value="">Atribuir a...</option>
+                                                                        {motoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                                            <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                        ))}
+                                                                        <option disabled>──────────</option>
+                                                                        {motoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                                            <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                         {/* Batches */}
@@ -1726,6 +1782,13 @@ export default function Escalas() {
                                                                             <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
                                                                             <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
                                                                         </div>
+                                                                        <button
+                                                                            onClick={(e) => handleDeleteService(service.id, e)}
+                                                                            className="text-slate-600 hover:text-red-400 p-1"
+                                                                            title="Eliminar"
+                                                                        >
+                                                                            <Trash2 className="w-3 h-3" />
+                                                                        </button>
                                                                     </div>
 
                                                                     <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
