@@ -118,7 +118,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     const { currentUser, userRole } = useAuth();
     const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_PERMISSIONS);
 
-    // Initial Fetch from DB
+    // Initial Fetch from DB and Realtime Subscription
     useEffect(() => {
         const fetchPermissions = async () => {
             try {
@@ -158,6 +158,41 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         };
 
         fetchPermissions();
+
+        // Realtime subscription
+        const channel = supabase
+            .channel('permissions_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'app_settings',
+                    filter: 'key=in.(permissions_supervisor,permissions_motorista,permissions_oficina,permissions_gestor)'
+                },
+                (payload) => {
+                    const { key, value } = payload.new as { key: string; value: PermissionModule[] };
+
+                    setPermissions(prev => {
+                        const nextPerms = { ...prev };
+                        if (key === 'permissions_supervisor' && Array.isArray(value)) {
+                            nextPerms.supervisor = value;
+                        } else if (key === 'permissions_motorista' && Array.isArray(value)) {
+                            nextPerms.motorista = value;
+                        } else if (key === 'permissions_oficina' && Array.isArray(value)) {
+                            nextPerms.oficina = value;
+                        } else if (key === 'permissions_gestor' && Array.isArray(value)) {
+                            nextPerms.gestor = value;
+                        }
+                        return nextPerms;
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const updatePermission = async (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', module: PermissionModule, hasAccess: boolean) => {
