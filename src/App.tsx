@@ -287,7 +287,7 @@ function AppContent() {
                 {hasAccess(userRole, 'escalas') && (
                   <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => setActiveTab('escalas')} />
                 )}
-                {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor' || userRole === 'gestor') && (
+                {hasAccess(userRole, 'escalas_create') && (
                   <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => setActiveTab('lancar-escala')} />
                 )}
                 {hasAccess(userRole, 'horas') && (
@@ -328,7 +328,7 @@ function AppContent() {
 
             {showSysGroup && (
               <SidebarGroup title="Equipa">
-                {(userRole === 'admin' || userRole === 'gestor') && (
+                {hasAccess(userRole, 'gestores') && (
                   <SidebarItem icon={UserCheck} label="Gestores" active={activeTab === 'gestores'} onClick={() => setActiveTab('gestores')} />
                 )}
                 {hasAccess(userRole, 'equipa-oficina') && (
@@ -369,7 +369,7 @@ function AppContent() {
                 <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => setActiveTab('admin_users')} />
               )}
               {userRole === 'admin' && (
-                <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => setActiveTab('permissions')} />
+                <SidebarItem icon={Shield} label="Gestão de Permissões" active={activeTab === 'permissions'} onClick={() => setActiveTab('permissions')} />
               )}
             </SidebarGroup>
 
@@ -448,7 +448,7 @@ function AppContent() {
                 {hasAccess(userRole, 'escalas') && (
                   <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { setActiveTab('escalas'); setIsMobileMenuOpen(false); }} />
                 )}
-                {hasAccess(userRole, 'escalas') && (userRole === 'admin' || userRole === 'supervisor' || userRole === 'gestor') && (
+                {hasAccess(userRole, 'escalas_create') && (
                   <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => { setActiveTab('lancar-escala'); setIsMobileMenuOpen(false); }} />
                 )}
                 {hasAccess(userRole, 'horas') && (
@@ -469,7 +469,7 @@ function AppContent() {
 
                 {/* 4. EQUIPA */}
                 {showSysGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Equipa</div>}
-                {(userRole === 'admin' || userRole === 'gestor') && (
+                {hasAccess(userRole, 'gestores') && (
                   <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => { setActiveTab('gestores'); setIsMobileMenuOpen(false); }} />
                 )}
                 {hasAccess(userRole, 'equipa-oficina') && (

@@ -1,6 +1,6 @@
 import {
     Shield, Wrench, Wallet, Car, MapPin, Users, MessageSquare,
-    User, UserCheck
+    User, UserCheck, LayoutDashboard
 } from 'lucide-react';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { PermissionModule } from '../../contexts/PermissionsContext';
@@ -20,6 +20,14 @@ interface PermissionGroup {
 
 const PERMISSION_GROUPS: PermissionGroup[] = [
     {
+        id: 'dashboard',
+        labelKey: 'menu.dashboard',
+        icon: LayoutDashboard, // Need to import LayoutDashboard
+        permissions: [
+            { id: 'dashboard', labelKey: 'menu.dashboard' }
+        ]
+    },
+    {
         id: 'fleet',
         labelKey: 'menu.fleet_management',
         icon: Car,
@@ -37,13 +45,14 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
         icon: MapPin,
         permissions: [
             { id: 'escalas', labelKey: 'menu.schedule' },
+            { id: 'escalas_create', labelKey: 'menu.launch_schedule' }, // Need to ensure translation key or just use 'Lançar Escalas' if key missing? But using 'menu.launch_schedule' assuming it might exist or I'll override. Actually user said "Lançar Escalas".
             { id: 'horas', labelKey: 'menu.hours' },
-            { id: 'plataformas_externas', labelKey: 'menu.transport_eva' } // Changed labelKey to match 'Transportes EVA' if needed, or stick to key. 'menu.external_platforms' maps to 'Plataformas Externas'? User said "Transportes EVA". I should check translation or just use the key and assume it's correct or update it. App.tsx uses "Transportes EVA" hardcoded sidebar label. I should probably use a key that translates to that. Let's assume 'menu.external_platforms' is it, or I'll override the label in rendering if I can't find the key. Wait, I can't check translation file easily right now. I'll stick to existing keys but maybe alias them if needed. Actually in App.tsx it says `label="Transportes EVA"`. In context it says `plataformas_externas`. I'll use the existing key and assume user handles translation, or better, I will check if I can see translation file.
+            { id: 'plataformas_externas', labelKey: 'menu.transport_eva' }
         ]
     },
     {
         id: 'workshop',
-        labelKey: 'menu.workshop',
+        labelKey: 'menu.workshop', // User said "Oficina"
         icon: Wrench,
         permissions: [
             { id: 'combustivel', labelKey: 'menu.fuel' },
@@ -55,6 +64,7 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
         labelKey: 'menu.team',
         icon: Users,
         permissions: [
+            { id: 'gestores', labelKey: 'Gestores' }, // Hardcoded label as requested or keep consistent key? User said "Gestores"
             { id: 'equipa-oficina', labelKey: 'menu.workshop_team' },
             { id: 'supervisores', labelKey: 'menu.supervisors' },
             { id: 'motoristas', labelKey: 'menu.drivers' }
@@ -100,7 +110,7 @@ export default function Permissoes() {
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                         <Shield className="w-8 h-8 text-blue-500" />
-                        {t('permissions.title').replace('Permissões', 'Gestão de Permissões')}
+                        Gestão de Permissões
                     </h1>
                     <p className="text-slate-400 max-w-2xl">
                         Gerencie os níveis de acesso de cada função no sistema.

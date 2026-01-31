@@ -21,6 +21,7 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'mensagens' |
     'geofences' |
     'locais' |
+    'gestores' |
     'avaliacao';
 
 export interface RolePermissions {
