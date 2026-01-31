@@ -25,42 +25,22 @@ interface PermissionGroup {
 
 const PERMISSION_GROUPS: PermissionGroup[] = [
     {
-        id: 'requisicoes',
-        labelKey: 'menu.requisitions',
+        id: 'fleet',
+        labelKey: 'menu.fleet_management',
         permissions: [
-            { id: 'requisicoes', labelKey: 'menu.requisitions' },
-            { id: 'requisicoes_edit', labelKey: 'permission.edit' },
-            { id: 'requisicoes_delete', labelKey: 'permission.delete' },
+            { id: 'central_motorista', labelKey: 'menu.driver_central' },
+            { id: 'viaturas', labelKey: 'menu.vehicles' },
+            { id: 'geofences', labelKey: 'menu.geofences' },
+            { id: 'locais', labelKey: 'menu.places' },
+            { id: 'avaliacao', labelKey: 'menu.evaluation' },
+            // Add granular permissions from old list if they fit here
+            // Old list had 'viaturas', 'motoristas', 'fornecedores' as single items in separate groups.
+            // Check 'motoristas' is in 'Equipa' now.
         ]
     },
     {
-        id: 'viaturas',
-        labelKey: 'menu.vehicles',
-        permissions: [{ id: 'viaturas', labelKey: 'menu.vehicles' }]
-    },
-    {
-        id: 'motoristas',
-        labelKey: 'menu.drivers',
-        permissions: [{ id: 'motoristas', labelKey: 'menu.drivers' }]
-    },
-    {
-        id: 'fornecedores',
-        labelKey: 'menu.suppliers',
-        permissions: [{ id: 'fornecedores', labelKey: 'menu.suppliers' }]
-    },
-    {
-        id: 'equipa-oficina',
-        labelKey: 'menu.workshop_team',
-        permissions: [{ id: 'equipa-oficina', labelKey: 'menu.workshop_team' }]
-    },
-    {
-        id: 'supervisores',
-        labelKey: 'menu.supervisors',
-        permissions: [{ id: 'supervisores', labelKey: 'menu.supervisors' }]
-    },
-    {
-        id: 'escalas',
-        labelKey: 'menu.schedule',
+        id: 'operations',
+        labelKey: 'menu.operations',
         permissions: [
             { id: 'escalas', labelKey: 'menu.schedule' },
             { id: 'escalas_import', labelKey: 'schedule.action.import' },
@@ -68,44 +48,48 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
             { id: 'escalas_create', labelKey: 'schedule.action.manual' },
             { id: 'escalas_urgent', labelKey: 'schedule.action.urgent' },
             { id: 'escalas_view_pending', labelKey: 'schedule.action.pending' },
-        ]
-    },
-    {
-        id: 'horas',
-        labelKey: 'menu.hours',
-        permissions: [
             { id: 'horas', labelKey: 'menu.hours' },
-            { id: 'hours_view_costs', labelKey: 'hours.view_costs' }
+            { id: 'hours_view_costs', labelKey: 'hours.view_costs' },
+            { id: 'plataformas_externas', labelKey: 'menu.transport_eva' }
         ]
     },
     {
-        id: 'combustivel',
-        labelKey: 'menu.fuel',
+        id: 'workshop',
+        labelKey: 'menu.workshop',
         permissions: [
             { id: 'combustivel', labelKey: 'menu.fuel' },
             { id: 'combustivel_calibrate', labelKey: 'fuel.entry.calibrate' },
-            { id: 'combustivel_edit_history', labelKey: 'fuel.action.history' }
+            { id: 'combustivel_edit_history', labelKey: 'fuel.action.history' },
+            { id: 'requisicoes', labelKey: 'menu.requisitions' },
+            { id: 'requisicoes_edit', labelKey: 'permission.edit' },
+            { id: 'requisicoes_delete', labelKey: 'permission.delete' }
         ]
     },
     {
-        id: 'central_motorista',
-        labelKey: 'menu.driver_central',
+        id: 'team',
+        labelKey: 'menu.team',
         permissions: [
-            { id: 'central_motorista', labelKey: 'menu.driver_central' }
+            { id: 'equipa-oficina', labelKey: 'menu.workshop_team' },
+            { id: 'supervisores', labelKey: 'menu.supervisors' },
+            { id: 'motoristas', labelKey: 'menu.drivers' }
         ]
     },
     {
-        id: 'centros_custos',
-        labelKey: 'menu.cost_centers',
+        id: 'financial',
+        labelKey: 'menu.financial',
         permissions: [
-            { id: 'centros_custos', labelKey: 'menu.cost_centers' }
+            { id: 'contabilidade', labelKey: 'menu.accounting' },
+            { id: 'centros_custos', labelKey: 'menu.cost_centers' },
+            { id: 'fornecedores', labelKey: 'menu.suppliers' },
+            { id: 'clientes', labelKey: 'menu.clients' },
+            { id: 'relatorios', labelKey: 'menu.reports' }
         ]
     },
     {
-        id: 'plataformas_externas',
-        labelKey: 'menu.external_platforms',
+        id: 'communication',
+        labelKey: 'menu.communication',
         permissions: [
-            { id: 'plataformas_externas', labelKey: 'menu.external_platforms' }
+            { id: 'mensagens', labelKey: 'menu.messages' }
         ]
     }
 ];

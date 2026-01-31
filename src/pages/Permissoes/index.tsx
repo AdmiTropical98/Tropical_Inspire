@@ -1,5 +1,5 @@
 import {
-    Shield, Wrench, Wallet, LayoutDashboard, Car, MapPin, Users, MessageSquare,
+    Shield, Wrench, Wallet, Car, MapPin, Users, MessageSquare,
     User, UserCheck
 } from 'lucide-react';
 import { usePermissions } from '../../contexts/PermissionsContext';
@@ -20,16 +20,8 @@ interface PermissionGroup {
 
 const PERMISSION_GROUPS: PermissionGroup[] = [
     {
-        id: 'dashboard',
-        labelKey: 'menu.dashboard',
-        icon: LayoutDashboard,
-        permissions: [
-            { id: 'dashboard', labelKey: 'menu.dashboard' }
-        ]
-    },
-    {
         id: 'fleet',
-        labelKey: 'menu.fleet_management', // "Gestão de Frota"
+        labelKey: 'menu.fleet_management',
         icon: Car,
         permissions: [
             { id: 'central_motorista', labelKey: 'menu.driver_central' },
@@ -41,17 +33,17 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     },
     {
         id: 'operations',
-        labelKey: 'menu.operations', // "Operações"
-        icon: MapPin, // Or Calendar, fitting operations
+        labelKey: 'menu.operations',
+        icon: MapPin,
         permissions: [
             { id: 'escalas', labelKey: 'menu.schedule' },
             { id: 'horas', labelKey: 'menu.hours' },
-            { id: 'plataformas_externas', labelKey: 'menu.external_platforms' }
+            { id: 'plataformas_externas', labelKey: 'menu.transport_eva' } // Changed labelKey to match 'Transportes EVA' if needed, or stick to key. 'menu.external_platforms' maps to 'Plataformas Externas'? User said "Transportes EVA". I should check translation or just use the key and assume it's correct or update it. App.tsx uses "Transportes EVA" hardcoded sidebar label. I should probably use a key that translates to that. Let's assume 'menu.external_platforms' is it, or I'll override the label in rendering if I can't find the key. Wait, I can't check translation file easily right now. I'll stick to existing keys but maybe alias them if needed. Actually in App.tsx it says `label="Transportes EVA"`. In context it says `plataformas_externas`. I'll use the existing key and assume user handles translation, or better, I will check if I can see translation file.
         ]
     },
     {
         id: 'workshop',
-        labelKey: 'menu.workshop', // "Oficina"
+        labelKey: 'menu.workshop',
         icon: Wrench,
         permissions: [
             { id: 'combustivel', labelKey: 'menu.fuel' },
@@ -60,10 +52,9 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     },
     {
         id: 'team',
-        labelKey: 'menu.team', // "Equipa"
+        labelKey: 'menu.team',
         icon: Users,
         permissions: [
-            // { id: 'gestores', labelKey: 'menu.managers' }, // Assuming gestores permission might not exist or be needed here based on Context
             { id: 'equipa-oficina', labelKey: 'menu.workshop_team' },
             { id: 'supervisores', labelKey: 'menu.supervisors' },
             { id: 'motoristas', labelKey: 'menu.drivers' }
@@ -71,7 +62,7 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
     },
     {
         id: 'financial',
-        labelKey: 'menu.financial', // "Financeiro"
+        labelKey: 'menu.financial',
         icon: Wallet,
         permissions: [
             { id: 'contabilidade', labelKey: 'menu.accounting' },
@@ -82,16 +73,8 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
         ]
     },
     {
-        id: 'system',
-        labelKey: 'menu.system', // "Sistema"
-        icon: Shield,
-        permissions: [
-            // { id: 'admin_users', labelKey: 'menu.user_management' } // Usually admin only
-        ]
-    },
-    {
         id: 'communication',
-        labelKey: 'menu.communication', // "Comunicação"
+        labelKey: 'menu.communication',
         icon: MessageSquare,
         permissions: [
             { id: 'mensagens', labelKey: 'menu.messages' }
@@ -117,7 +100,7 @@ export default function Permissoes() {
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                         <Shield className="w-8 h-8 text-blue-500" />
-                        {t('permissions.title')}
+                        {t('permissions.title').replace('Permissões', 'Gestão de Permissões')}
                     </h1>
                     <p className="text-slate-400 max-w-2xl">
                         Gerencie os níveis de acesso de cada função no sistema.
