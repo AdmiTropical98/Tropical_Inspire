@@ -26,6 +26,7 @@ export default function CentralMotoristas() {
         confirmRefuel,
         updateMotorista,
         cartrackVehicles,
+        motoristas,
         geofences,
         updateServico,
         refreshData
@@ -196,13 +197,16 @@ export default function CentralMotoristas() {
         }
     };
 
-    // Vehicle Detection Logic
+    // Vehicle Detection Logic using LIVE data from motoristas context
     const myVehicle = (() => {
         if (!currentUser) return null;
-        const driver = currentUser as any;
+
+        // Use 'motoristas' from context to get real-time updates, fallback to currentUser
+        // This ensures when WorkshopContext updates the DB and local state, this component reflects it immediately.
+        const freshDriver = motoristas.find((m: any) => m.id === currentUser.id) || currentUser as any;
 
         // 1. Try to find by Cartrack Key (Tag)
-        const userKey = driver.cartrackKey || driver.cartrack_key;
+        const userKey = freshDriver.cartrackKey || freshDriver.cartrack_key;
         if (userKey) {
             const cleanKey = cleanTagId(userKey);
             const taggedVehicle = cartrackVehicles.find(v =>
@@ -212,10 +216,10 @@ export default function CentralMotoristas() {
         }
 
         // 2. Fallback: Try to find by assigned 'currentVehicle' string (Plate)
-        if (driver.currentVehicle) {
+        if (freshDriver.currentVehicle) {
             const normalize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             const assignedVehicle = cartrackVehicles.find(v =>
-                normalize(v.registration) === normalize(driver.currentVehicle)
+                normalize(v.registration) === normalize(freshDriver.currentVehicle)
             );
             if (assignedVehicle) return assignedVehicle;
         }

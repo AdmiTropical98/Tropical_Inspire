@@ -558,6 +558,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                                 (m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle))
                             );
 
+                            // PERSIFTENCE: If we detected a NEW vehicle via Cartrack that differs from DB, save it!
+                            if (activeVehicle && activeVehicle.registration !== m.current_vehicle) {
+                                console.log(`[Auto-Sync] Updating vehicle for ${m.nome}: ${activeVehicle.registration}`);
+                                // Fire and forget update to avoid blocking UI
+                                supabase.from('motoristas')
+                                    .update({ current_vehicle: activeVehicle.registration })
+                                    .eq('id', m.id)
+                                    .then(({ error }) => {
+                                        if (error) console.error('Failed to persist auto-detected vehicle:', error);
+                                    });
+                            }
+
                             return {
                                 ...m,
                                 vencimentoBase: m.vencimento_base,

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
-    Send, MapPin, Clock, Users,
+    Send, MapPin, Clock, Users, Car,
     Search, LayoutList, AlertTriangle, Edit,
     Table as TableIcon, LayoutGrid
 } from 'lucide-react';
@@ -875,6 +875,12 @@ export default function Escalas() {
                                                                                     <MapPin className="w-2.5 h-2.5 text-blue-400" />
                                                                                     {driverServices.length} {t('schedule.trips')}
                                                                                 </span>
+                                                                                {driver.currentVehicle && (
+                                                                                    <span className="flex items-center gap-1.5 ml-2 text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20" title="Viatura atual">
+                                                                                        <Car className="w-2.5 h-2.5" />
+                                                                                        {driver.currentVehicle}
+                                                                                    </span>
+                                                                                )}
                                                                             </div>
                                                                         </div>
                                                                     </div>
