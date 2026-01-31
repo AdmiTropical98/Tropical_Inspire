@@ -34,6 +34,7 @@ export interface RolePermissions {
 interface PermissionsContextType {
     permissions: RolePermissions;
     updatePermission: (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', module: PermissionModule, hasAccess: boolean) => void;
+    saveAllPermissions: (newPermissions: RolePermissions) => Promise<void>;
     hasAccess: (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule) => boolean;
 }
 
@@ -191,6 +192,26 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         });
     };
 
+    const saveAllPermissions = async (newPermissions: RolePermissions) => {
+        setPermissions(newPermissions);
+
+        const roles: (keyof RolePermissions)[] = ['supervisor', 'motorista', 'oficina', 'gestor'];
+        const updates = roles.map(role => {
+            const dbKey = `permissions_${role}`;
+            return supabase
+                .from('app_settings')
+                .upsert({ key: dbKey, value: newPermissions[role] }, { onConflict: 'key' });
+        });
+
+        try {
+            await Promise.all(updates);
+            console.log('All permissions saved successfully');
+        } catch (error) {
+            console.error('Error batch saving permissions:', error);
+            throw error; // Let the caller handle the error UI
+        }
+    };
+
     const hasAccess = (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule): boolean => {
         if (!role) return false;
         if (role === 'admin') return true; // Admin always has access
@@ -211,7 +232,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     };
 
     return (
-        <PermissionsContext.Provider value={{ permissions, updatePermission, hasAccess }}>
+        <PermissionsContext.Provider value={{ permissions, updatePermission, saveAllPermissions, hasAccess }}>
             {children}
         </PermissionsContext.Provider>
     );

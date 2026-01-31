@@ -1,9 +1,10 @@
+import React, { useState, useEffect } from 'react';
 import {
     Shield, Wrench, Wallet, Car, MapPin, Users, MessageSquare,
-    User, UserCheck, LayoutDashboard
+    User, UserCheck, LayoutDashboard, Save
 } from 'lucide-react';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import type { PermissionModule } from '../../contexts/PermissionsContext';
+import type { PermissionModule, RolePermissions } from '../../contexts/PermissionsContext';
 
 
 interface PermissionGroup {
@@ -93,32 +94,71 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
 ];
 
 export default function Permissoes() {
-    const { permissions, updatePermission } = usePermissions();
+    const { permissions: contextPermissions, saveAllPermissions } = usePermissions();
+    const [localPermissions, setLocalPermissions] = useState<RolePermissions>(contextPermissions);
+    const [hasChanges, setHasChanges] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Sync with context on load
+    useEffect(() => {
+        setLocalPermissions(contextPermissions);
+        setHasChanges(false);
+    }, [contextPermissions]);
 
     const togglePermission = (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', module: PermissionModule) => {
-        const rolePermissions = permissions[role] as PermissionModule[];
-        const hasAccess = rolePermissions.includes(module);
-        updatePermission(role, module, !hasAccess);
+        setLocalPermissions(prev => {
+            const currentRolePerms = prev[role];
+            const hasAccess = currentRolePerms.includes(module);
+
+            const newRolePerms = hasAccess
+                ? currentRolePerms.filter(p => p !== module)
+                : [...currentRolePerms, module];
+
+            return {
+                ...prev,
+                [role]: newRolePerms
+            };
+        });
+        setHasChanges(true);
     };
 
     const toggleGroupPermission = (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', group: PermissionGroup) => {
-        const rolePermissions = permissions[role] as PermissionModule[];
-        // Check if all permissions in this group are currently enabled for this role
-        const allEnabled = group.permissions.every(p => rolePermissions.includes(p.id));
+        setLocalPermissions(prev => {
+            const currentRolePerms = prev[role];
+            const allEnabled = group.permissions.every(p => currentRolePerms.includes(p.id));
+            const shouldEnable = !allEnabled;
 
-        // If all match, we disable all. If not all match (some or none), we enable all.
-        const newState = !allEnabled;
+            let newRolePerms = [...currentRolePerms];
 
-        group.permissions.forEach(p => {
-            // Only update if it's different from desired state to minimize renders/calls, 
-            // but updatePermission might handle uniqueness. 
-            // To be safe and simple, just set them all to newState.
-            // Optimize: Check current state before update to avoid redundancy if context doesn't check.
-            const currentAccess = rolePermissions.includes(p.id);
-            if (currentAccess !== newState) {
-                updatePermission(role, p.id, newState);
-            }
+            group.permissions.forEach(p => {
+                if (shouldEnable) {
+                    if (!newRolePerms.includes(p.id)) {
+                        newRolePerms.push(p.id);
+                    }
+                } else {
+                    newRolePerms = newRolePerms.filter(id => id !== p.id);
+                }
+            });
+
+            return {
+                ...prev,
+                [role]: newRolePerms
+            };
         });
+        setHasChanges(true);
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await saveAllPermissions(localPermissions);
+            setHasChanges(false);
+            alert('Permissões gravadas com sucesso!'); // Using simple alert for now
+        } catch (error) {
+            alert('Erro ao gravar permissões. Tente novamente.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -133,6 +173,18 @@ export default function Permissoes() {
                         Gerencie os níveis de acesso de cada função no sistema.
                     </p>
                 </div>
+                {/* Save Button */}
+                <button
+                    onClick={handleSave}
+                    disabled={!hasChanges || isSaving}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg ${hasChanges
+                            ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20 translate-y-0 opacity-100'
+                            : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
+                        }`}
+                >
+                    <Save className={`w-5 h-5 ${isSaving ? 'animate-spin' : ''}`} />
+                    {isSaving ? 'Gravando...' : 'Gravar Alterações'}
+                </button>
             </div>
 
             {/* Mobile View (Cards) */}
@@ -156,7 +208,7 @@ export default function Permissoes() {
                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Selecionar Tudo</span>
                                 <div className="flex gap-2">
                                     {(['supervisor', 'oficina', 'motorista', 'gestor'] as const).map((role) => {
-                                        const allEnabled = group.permissions.every(p => permissions[role].includes(p.id));
+                                        const allEnabled = group.permissions.every(p => localPermissions[role].includes(p.id));
 
                                         return (
                                             <button
@@ -185,7 +237,7 @@ export default function Permissoes() {
                                         {/* Toggles Grid */}
                                         <div className="grid grid-cols-4 gap-2">
                                             {(['supervisor', 'oficina', 'motorista', 'gestor'] as const).map((role) => {
-                                                const isActive = permissions[role].includes(perm.id);
+                                                const isActive = localPermissions[role].includes(perm.id);
                                                 const roleLabel = role === 'supervisor' ? 'Sup' : role === 'oficina' ? 'Ofc' : role === 'motorista' ? 'Mot' : 'Ges';
 
                                                 const activeColor = role === 'supervisor' ? 'bg-purple-500' : role === 'oficina' ? 'bg-orange-500' : role === 'gestor' ? 'bg-cyan-500' : 'bg-emerald-500';
@@ -276,7 +328,7 @@ export default function Permissoes() {
                                             </td>
                                             {/* Group Select All Toggles */}
                                             {(['supervisor', 'oficina', 'motorista', 'gestor'] as const).map((role) => {
-                                                const allEnabled = group.permissions.every(p => permissions[role].includes(p.id));
+                                                const allEnabled = group.permissions.every(p => localPermissions[role].includes(p.id));
                                                 return (
                                                     <td key={`group-toggle-${role}-${group.id}`} className="px-6 py-4 text-center">
                                                         <button
@@ -304,7 +356,7 @@ export default function Permissoes() {
 
                                                 {/* Role Toggles */}
                                                 {(['supervisor', 'oficina', 'motorista', 'gestor'] as const).map((role) => {
-                                                    const isActive = permissions[role].includes(perm.id);
+                                                    const isActive = localPermissions[role].includes(perm.id);
                                                     const colorClass = role === 'supervisor' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.4)]'
                                                         : role === 'oficina' ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]'
                                                             : role === 'gestor' ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
