@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Plus, Search, User, Phone, Mail, FileText, Trash2, Calendar, Share2, Shield, MessageSquare, TrendingUp, AlertTriangle, Euro, Grid3x3, List } from 'lucide-react';
+import { Plus, Search, User, Phone, Mail, FileText, Trash2, Calendar, Share2, Shield, MessageSquare, TrendingUp, AlertTriangle, Euro, Grid3x3, List, Truck } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Motorista } from '../../types';
@@ -27,7 +27,6 @@ export default function Motoristas() {
         vencimentoBase: 0,
         valorHora: 0,
         obs: '',
-        foto: '',
         cartrackKey: ''
     });
 
@@ -51,7 +50,7 @@ export default function Motoristas() {
         };
 
         addMotorista(newMotorista);
-        setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', foto: '', cartrackKey: '', centroCustoId: '' });
+        setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', cartrackKey: '', centroCustoId: '' });
         setContractType(null);
 
         alert(`${t('drivers.success_msg')}: ${newPin} `);
@@ -506,12 +505,8 @@ export default function Motoristas() {
                                     >
                                         <div className={`flex items-center gap-4 w-full ${viewMode === 'grid' ? 'flex-col text-center' : 'flex-row md:flex-1 min-w-0 mb-4 md:mb-0 md:mr-4'}`}>
                                             <div className="relative">
-                                                <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
-                                                    {motorista.foto ? (
-                                                        <img src={motorista.foto} alt={motorista.nome} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span className="text-blue-400 font-bold text-lg">{motorista.nome.charAt(0)}</span>
-                                                    )}
+                                                <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                                    <Truck className="w-6 h-6 text-blue-400" />
                                                 </div>
                                                 {status && (
                                                     <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold border shadow-sm whitespace-nowrap ${status.color}`}>

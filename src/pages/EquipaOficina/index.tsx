@@ -7,14 +7,14 @@ import type { OficinaUser } from '../../types';
 import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
 
 export default function EquipaOficina() {
-    const { oficinaUsers, addOficinaUser, updateOficinaUser, deleteOficinaUser } = useWorkshop();
+    const { oficinaUsers, addOficinaUser, updateOficinaUser, deleteOficinaUser, centrosCustos } = useWorkshop();
     const { t } = useTranslation();
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
     const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
-    const [newOficinaUser, setNewOficinaUser] = useState({ nome: '', telemovel: '', pin: '', foto: '' });
+    const [newOficinaUser, setNewOficinaUser] = useState({ nome: '', telemovel: '', foto: '', centroCustoId: '' });
     const [permissionUser, setPermissionUser] = useState<OficinaUser | null>(null);
 
 
@@ -28,16 +28,19 @@ export default function EquipaOficina() {
             return;
         }
 
+        const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+
         const result = await addOficinaUser({
             id: crypto.randomUUID(),
             nome: newOficinaUser.nome,
             telemovel: newOficinaUser.telemovel,
-            pin: newOficinaUser.pin,
+            pin: randomPin,
             foto: newOficinaUser.foto,
             status: 'active',
             dataRegisto: new Date().toISOString().split('T')[0],
             email: '', // Add default empty email if not provided
-            blockedPermissions: []
+            blockedPermissions: [],
+            centroCustoId: newOficinaUser.centroCustoId
         });
 
         if (result && result.error) {
@@ -45,9 +48,9 @@ export default function EquipaOficina() {
             return;
         }
 
-        setNewOficinaUser({ nome: '', telemovel: '', pin: '', foto: '' });
+        setNewOficinaUser({ nome: '', telemovel: '', foto: '', centroCustoId: '' });
 
-        alert(t('team.success_create'));
+        alert(`${t('team.success_create')} PIN: ${randomPin}`);
     };
 
     const handleDeleteOficinaUser = (id: string, name: string) => {
@@ -197,22 +200,17 @@ export default function EquipaOficina() {
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">{t('team.form.pin')}</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={newOficinaUser.pin}
-                                    onChange={e => {
-                                        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                                        setNewOficinaUser({ ...newOficinaUser, pin: val });
-                                    }}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-orange-500 outline-none mt-1 font-mono tracking-widest text-center transition-all hover:border-slate-700"
-                                    placeholder="000000"
-                                    pattern="\d{6}"
-                                    minLength={6}
-                                    maxLength={6}
-                                    title="O PIN deve ter exatamente 6 dígitos numéricos"
-                                />
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Centro de Custos</label>
+                                <select
+                                    value={newOficinaUser.centroCustoId}
+                                    onChange={e => setNewOficinaUser({ ...newOficinaUser, centroCustoId: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-orange-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                >
+                                    <option value="">Selecionar...</option>
+                                    {centrosCustos.map(cc => (
+                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                         <button type="submit" className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-orange-500/20 active:scale-95 flex items-center justify-center gap-2 mt-2">

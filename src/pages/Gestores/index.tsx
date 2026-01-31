@@ -7,43 +7,67 @@ import type { Gestor, Notification } from '../../types';
 import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
 
 export default function Gestores() {
-    const { gestores, addGestor, updateGestor, deleteGestor, notifications, updateNotification } = useWorkshop();
-    const { } = useTranslation(); // Removed unused 't'
-    // TODO: Ideally update translation files, but for now will hardcode or reuse similar keys
+    const { gestores, addGestor, updateGestor, deleteGestor, notifications, updateNotification, centrosCustos } = useWorkshop();
+    const { t } = useTranslation();
 
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'blocked'>('all');
     const [sortBy] = useState<'name' | 'date'>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
-    const [newGestor, setNewGestor] = useState({ nome: '', email: '', telemovel: '', foto: '' });
+    const [newGestor, setNewGestor] = useState<{
+        nome: string;
+        email: string;
+        telemovel: string;
+        foto: string;
+        centroCustoIds: string[];
+        allCostCenters: boolean;
+    }>({
+        nome: '',
+        email: '',
+        telemovel: '',
+        foto: '',
+        centroCustoIds: [],
+        allCostCenters: false
+    });
     const [permissionUser, setPermissionUser] = useState<Gestor | null>(null);
 
-    // Pending Requests Logic
     const pendingRequests = useMemo(() => {
         return notifications.filter(n =>
             n.type === 'registration_request' &&
             n.status === 'pending' &&
-            n.data?.role === 'gestor'
+            (!n.data.role || n.data.role === 'gestor')
         );
     }, [notifications]);
 
-    const handleApproveRequest = async (request: Notification) => {
-        const pin = Math.floor(100000 + Math.random() * 900000).toString();
+    const handleApproveRequest = async (notification: Notification) => {
+        const userData = notification.data;
+        const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // 1. Approve Notification
-        await updateNotification({
-            ...request,
-            status: 'approved',
-            response: { pin }
-        });
+        try {
+            await addGestor({
+                id: crypto.randomUUID(),
+                nome: userData.nome || 'Novo Gestor',
+                email: userData.email || '',
+                telemovel: userData.telemovel || '',
+                foto: userData.foto || '',
+                status: 'active',
+                pin: randomPin,
+                dataRegisto: new Date().toISOString().split('T')[0],
+                centroCustoIds: [],
+                allCostCenters: false
+            });
 
-        // WhatsApp Link creation with the generated PIN
-        const cleanPhone = (request.data.telemovel || '').replace(/[^0-9]/g, '');
-        const whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Olá ${request.data.nome}, o seu pedido de registo foi aprovado. O seu PIN de acesso é: ${pin}`)}`;
+            await updateNotification({
+                ...notification,
+                status: 'approved',
+                response: { pin: randomPin }
+            });
 
-        if (confirm(`Pedido Aprovado!\n\nPIN Gerado: ${pin}\n\nDeseja enviar o PIN agora via WhatsApp?`)) {
-            window.open(whatsappLink, '_blank');
+            alert(`Gestor aprovado com sucesso! PIN: ${randomPin}`);
+        } catch (error: any) {
+            console.error("Erro ao aprovar:", error);
+            alert(`Erro ao aprovar: ${error.message || 'Desconhecido'}`);
         }
     };
 
@@ -59,15 +83,17 @@ export default function Gestores() {
             foto: newGestor.foto,
             status: 'active',
             pin: randomPin,
-            dataRegisto: new Date().toISOString().split('T')[0]
+            dataRegisto: new Date().toISOString().split('T')[0],
+            centroCustoIds: newGestor.centroCustoIds,
+            allCostCenters: newGestor.allCostCenters
         });
 
         if (result && result.error) {
             alert(`Erro ao criar gestor: ${result.error.message || 'Erro desconhecido'}`);
-            return; // Stop here on error
+            return;
         }
 
-        setNewGestor({ nome: '', email: '', telemovel: '', foto: '' });
+        setNewGestor({ nome: '', email: '', telemovel: '', foto: '', centroCustoIds: [], allCostCenters: false });
 
         alert(`Gestor criado com sucesso!\n\nPIN: ${randomPin}\n\nO gestor pode entrar usando:\n- E-mail ou Telemóvel\n- PIN: ${randomPin}`);
     };
@@ -291,6 +317,45 @@ export default function Gestores() {
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
                                     placeholder="910000000"
                                 />
+                            </div>
+                        </div>
+
+                        {/* Cost Centers */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase ml-1">Centros de Custo</label>
+                            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                <label className="flex items-center gap-3 mb-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={newGestor.allCostCenters}
+                                        onChange={e => setNewGestor({ ...newGestor, allCostCenters: e.target.checked })}
+                                        className="w-4 h-4 rounded border-slate-700 text-teal-600 focus:ring-teal-500 bg-slate-900"
+                                    />
+                                    <span className="text-sm text-white font-medium">Todos os Centros de Custo</span>
+                                </label>
+
+                                {!newGestor.allCostCenters && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-7 max-h-40 overflow-y-auto custom-scrollbar">
+                                        {centrosCustos.map(cc => (
+                                            <label key={cc.id} className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newGestor.centroCustoIds.includes(cc.id)}
+                                                    onChange={e => {
+                                                        const current = newGestor.centroCustoIds;
+                                                        if (e.target.checked) {
+                                                            setNewGestor({ ...newGestor, centroCustoIds: [...current, cc.id] });
+                                                        } else {
+                                                            setNewGestor({ ...newGestor, centroCustoIds: current.filter(id => id !== cc.id) });
+                                                        }
+                                                    }}
+                                                    className="w-3.5 h-3.5 rounded border-slate-700 text-teal-600 focus:ring-teal-500 bg-slate-900"
+                                                />
+                                                <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{cc.nome}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2 mt-2">

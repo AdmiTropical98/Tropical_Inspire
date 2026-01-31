@@ -7,14 +7,21 @@ import type { Supervisor, Notification } from '../../types';
 import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
 
 export default function Supervisores() {
-    const { supervisors, addSupervisor, updateSupervisor, deleteSupervisor, notifications, updateNotification } = useWorkshop();
+    const { supervisors, addSupervisor, updateSupervisor, deleteSupervisor, notifications, updateNotification, centrosCustos } = useWorkshop();
     const { t } = useTranslation();
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'blocked'>('all');
     const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
-    const [newSupervisor, setNewSupervisor] = useState({ nome: '', email: '', telemovel: '', foto: '' });
+    const [newSupervisor, setNewSupervisor] = useState({
+        nome: '',
+        email: '',
+        telemovel: '',
+        foto: '',
+        cartrackKey: '',
+        centroCustoId: ''
+    });
     const [permissionUser, setPermissionUser] = useState<Supervisor | null>(null);
 
 
@@ -31,10 +38,12 @@ export default function Supervisores() {
             foto: newSupervisor.foto,
             status: 'active',
             pin: randomPin,
-            dataRegisto: new Date().toISOString().split('T')[0]
+            dataRegisto: new Date().toISOString().split('T')[0],
+            cartrackKey: newSupervisor.cartrackKey,
+            centroCustoId: newSupervisor.centroCustoId
         });
 
-        setNewSupervisor({ nome: '', email: '', telemovel: '', foto: '' });
+        setNewSupervisor({ nome: '', email: '', telemovel: '', foto: '', cartrackKey: '', centroCustoId: '' });
 
 
         alert(`Supervisor criado com sucesso!\n\nPIN: ${randomPin}\n\nO supervisor pode entrar usando:\n- E-mail ou Telemóvel\n- PIN: ${randomPin}`);
@@ -201,6 +210,33 @@ export default function Supervisores() {
                                     onChange={e => setNewSupervisor({ ...newSupervisor, telemovel: e.target.value })}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
                                     placeholder="910000000"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Cost Center & Cartrack */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Centro de Custos</label>
+                                <select
+                                    value={newSupervisor.centroCustoId}
+                                    onChange={e => setNewSupervisor({ ...newSupervisor, centroCustoId: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                >
+                                    <option value="">Selecionar...</option>
+                                    {centrosCustos.map(cc => (
+                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Tag Cartrack (Opcional)</label>
+                                <input
+                                    type="text"
+                                    value={newSupervisor.cartrackKey}
+                                    onChange={e => setNewSupervisor({ ...newSupervisor, cartrackKey: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700 font-mono"
+                                    placeholder="Chave Cartrack"
                                 />
                             </div>
                         </div>
