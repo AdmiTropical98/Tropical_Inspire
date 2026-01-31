@@ -155,7 +155,7 @@ export default function Gestores() {
     }, [gestores, filter, statusFilter, sortBy]);
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
+        <div className="w-full max-w-[1600px] mx-auto p-6 space-y-8 fade-in">
             {permissionUser && (
                 <UserPermissionsModal
                     isOpen={true}

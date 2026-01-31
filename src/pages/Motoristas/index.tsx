@@ -170,7 +170,7 @@ export default function Motoristas() {
     }, [motoristas, filter, statusFilter, sortBy]);
 
     return (
-        <div className="max-w-7xl mx-auto p-4 lg:p-8 h-full overflow-y-auto custom-scrollbar relative">
+        <div className="w-full max-w-[1600px] mx-auto p-6 space-y-8 fade-in">
             {selectedDriver && (
                 <DriverProfile
                     motorista={selectedDriver}
