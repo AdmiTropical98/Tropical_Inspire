@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useWorkshop } from './WorkshopContext';
 import type { Motorista, Supervisor, OficinaUser, AdminUser, Gestor } from '../types';
 import { supabase } from '../lib/supabase';
-import SplashScreen from '../components/SplashScreen';
+import SplashScreen from '../components/common/SplashScreen';
 
 interface AuthContextType {
     isAuthenticated: boolean;
