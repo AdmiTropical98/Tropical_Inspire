@@ -4,7 +4,7 @@ import { Wrench, Plus, Trash2, Shield, Share2, MessageSquare, Search, TrendingUp
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { OficinaUser } from '../../types';
-import UserPermissionsModal from '../permissoes/UserPermissionsModal';
+import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
 
 export default function EquipaOficina() {
     const { oficinaUsers, addOficinaUser, updateOficinaUser, deleteOficinaUser } = useWorkshop();
@@ -37,7 +37,7 @@ export default function EquipaOficina() {
             status: 'active',
             dataRegisto: new Date().toISOString().split('T')[0],
             email: '', // Add default empty email if not provided
-            blockedPermissions: [] 
+            blockedPermissions: []
         });
 
         if (result && result.error) {
