@@ -42,8 +42,8 @@ const PERMISSION_LABELS: Record<string, string> = {
 
 export default function UserFormModal({ isOpen, onClose, user, initialRole = 'motorista' }: UserFormModalProps) {
     const { permissions: defaultPermissions } = usePermissions();
-    const { 
-        addMotorista, updateMotorista, 
+    const {
+        addMotorista, updateMotorista,
         addSupervisor, updateSupervisor,
         addOficinaUser, updateOficinaUser,
         addGestor, updateGestor,
@@ -105,8 +105,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
 
     if (!isOpen) return null;
 
-    const availableModules = defaultPermissions[role === 'admin' ? 'supervisor' : role] || []; 
-    
+    const availableModules = defaultPermissions[role === 'admin' ? 'supervisor' : role] || [];
+
     const togglePermission = (module: string) => {
         setFormData((prev: any) => {
             const blocked = prev.blockedPermissions;
@@ -120,7 +120,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         const baseData = {
             id: user?.id || crypto.randomUUID(),
             ...formData
@@ -144,7 +144,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     blockedPermissions: baseData.blockedPermissions,
                     status: (baseData.status === 'active' ? 'disponivel' : 'indisponivel') as any, // Cast to satisfy type
                     obs: baseData.obs || '',
-                    centroCustoId: baseData.centroCustoId
+                    centroCustoId: baseData.centroCustoId || null
                 };
                 if (user) await updateMotorista(driverData);
                 else await addMotorista(driverData);
@@ -212,7 +212,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     }
                 }
             }
-            
+
+            alert('Utilizador gravado com sucesso!');
             onClose();
         } catch (error: any) {
             console.error(error);
@@ -223,7 +224,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
             <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-                
+
                 {/* Header */}
                 <div className="p-6 border-b border-slate-800 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -239,7 +240,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
 
                 {/* Body */}
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto max-h-[90vh] flex flex-col custom-scrollbar">
-                    
+
                     <div className="p-6 space-y-8 flex-1">
                         {/* Role Selector (Only on Created) */}
                         {!user && (
@@ -436,7 +437,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                                         : 'bg-slate-900 border-slate-600'
                                                     }`}
                                                 >
-                                                    {!isBlocked && <Save className="w-3 h-3 text-white" />} 
+                                                    {!isBlocked && <Save className="w-3 h-3 text-white" />}
                                                 </div>
                                                 <input
                                                     type="checkbox"
