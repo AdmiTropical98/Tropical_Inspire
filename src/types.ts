@@ -192,6 +192,7 @@ export interface ScaleBatch {
     reference_date: string;
     notes?: string;
     created_at: string;
+    created_by_role?: string; // NEW
 }
 
 export interface Supervisor {

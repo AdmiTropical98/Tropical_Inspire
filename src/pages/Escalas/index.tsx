@@ -139,6 +139,7 @@ export default function Escalas() {
 
     // New Manual Service State
     const [showNewServiceModal, setShowNewServiceModal] = useState(false);
+    const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null); // NEW
     const [newService, setNewService] = useState<NewServiceState>({
         hora: '09:00',
         passageiro: '',
@@ -1684,16 +1685,79 @@ export default function Escalas() {
                                         {/* Batches */}
                                         {pendingBatches.map(batch => {
                                             const count = globalPendentes.filter(s => s.batchId === batch.id).length;
+                                            const isExpanded = expandedBatchId === batch.id;
+
+                                            // Get services for this batch
+                                            const batchServices = globalPendentes.filter(s => s.batchId === batch.id).sort((a, b) => a.hora.localeCompare(b.hora));
+
                                             return (
-                                                <div key={batch.id} onClick={() => { setSelectedBatchId(batch.id); setSelectedDate(batch.reference_date); }} className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedBatchId === batch.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">{batch.created_by.charAt(0).toUpperCase()}</div>
-                                                            <div><div className="font-bold text-white text-sm">{batch.created_by}</div><div className="text-[10px] text-slate-500 font-mono">{batch.created_at.split('T')[1].substring(0, 5)}</div></div>
+                                                <div key={batch.id} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                                    <div
+                                                        onClick={() => setExpandedBatchId(isExpanded ? null : batch.id)}
+                                                        className="p-4 cursor-pointer"
+                                                    >
+                                                        <div className="flex justify-between items-start mb-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">{batch.created_by.charAt(0).toUpperCase()}</div>
+                                                                <div>
+                                                                    <div className="font-bold text-white text-sm flex items-center gap-2">
+                                                                        {batch.created_by}
+                                                                        {batch.created_by_role && (
+                                                                            <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-white/10 font-normal capitalize">
+                                                                                {batch.created_by_role}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-slate-500 font-mono">{batch.created_at.split('T')[1].substring(0, 5)}</div>
+                                                                </div>
+                                                            </div>
+                                                            <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{count}</span>
                                                         </div>
-                                                        <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{count}</span>
+                                                        <div className="flex items-center gap-2 text-xs text-slate-400"><Calendar className="w-3.5 h-3.5" /><span className="font-mono">{batch.reference_date}</span></div>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-xs text-slate-400"><Calendar className="w-3.5 h-3.5" /><span className="font-mono">{batch.reference_date}</span></div>
+
+                                                    {/* EXPANDED CONTENT */}
+                                                    {isExpanded && (
+                                                        <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
+                                                            {batchServices.map(service => (
+                                                                <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
+                                                                    <div className="flex justify-between items-start">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
+                                                                            <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
+                                                                        <span className="truncate" title={service.origem}>{service.origem}</span>
+                                                                        <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                        <span className="truncate text-right" title={service.destino}>{service.destino}</span>
+                                                                    </div>
+
+                                                                    <div className="pt-2 border-t border-white/5">
+                                                                        <select
+                                                                            className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
+                                                                            value=""
+                                                                            onChange={(e) => {
+                                                                                if (e.target.value) {
+                                                                                    updateServico({ ...service, motoristaId: e.target.value });
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            <option value="">Atribuir a...</option>
+                                                                            {motoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                                                <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                            ))}
+                                                                            <option disabled>──────────</option>
+                                                                            {motoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                                                <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}

@@ -2017,12 +2017,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             createScaleBatch: async (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => {
                 try {
                     const storedUser = localStorage.getItem('currentUser');
+                    const storedRole = localStorage.getItem('userRole'); // NEW
                     let user = null;
                     if (storedUser) user = JSON.parse(storedUser);
 
                     // 1. Create Batch
                     const { data: batch, error: batchError } = await supabase.from('scale_batches').insert({
                         created_by: user?.nome || 'Sistema',
+                        created_by_role: storedRole || null, // NEW
                         centro_custo_id: batchData.centroCustoId,
                         reference_date: batchData.referenceDate,
                         notes: batchData.notes
