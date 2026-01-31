@@ -214,22 +214,43 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
 
     const saveAllPermissions = async (newPermissions: RolePermissions) => {
         const roles: (keyof RolePermissions)[] = ['supervisor', 'motorista', 'oficina', 'gestor'];
-        const updates = roles.map(role => {
+
+        // We use a clean-write approach: Delete existings globals then Insert new
+        // This avoids "onConflict" issues with (user_id, key) if user_id is null vs undefined
+        const updates = roles.map(async (role) => {
             const dbKey = `permissions_${role}`;
+
+            // 1. Delete Query
+            const { error: delError } = await supabase
+                .from('app_settings')
+                .delete()
+                .eq('key', dbKey)
+                .is('user_id', null); // Target global settings
+
+            if (delError) {
+                return { error: delError };
+            }
+
+            // 2. Insert Query
             return supabase
                 .from('app_settings')
-                .upsert({ key: dbKey, value: newPermissions[role] }, { onConflict: 'key' })
+                .insert({
+                    key: dbKey,
+                    value: newPermissions[role],
+                    user_id: null // Explicitly global
+                })
                 .select();
         });
 
         try {
             const results = await Promise.all(updates);
 
-            // Check for any errors in the batch
+            // Check for any errors in the batch (nested responses)
+            // results[i] might be { error } from delete or { data, error } from insert
             const errors = results.filter(r => r.error);
             if (errors.length > 0) {
                 console.error('Errors saving permissions:', errors);
-                throw new Error('Falha ao gravar permissões na base de dados.');
+                throw new Error('Falha ao gravar permissões (conflito de dados).');
             }
 
             // Only update local state if successful
