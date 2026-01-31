@@ -1,6 +1,6 @@
 import {
-    Shield, Wrench, Globe, FileText, Truck, UserCog, Building2,
-    Briefcase, Fuel, Calendar, Lock, UserCheck, User, Wallet, Clock
+    Shield, Wrench, Wallet, LayoutDashboard, Car, MapPin, Users, MessageSquare,
+    User, UserCheck
 } from 'lucide-react';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { PermissionModule } from '../../contexts/PermissionsContext';
@@ -14,128 +14,87 @@ interface PermissionGroup {
     permissions: {
         id: PermissionModule;
         labelKey: string;
-        descriptionKey?: string; 
+        descriptionKey?: string;
     }[];
 }
 
 const PERMISSION_GROUPS: PermissionGroup[] = [
     {
-        id: 'geral',
-        labelKey: 'menu.general',
-        icon: Globe,
+        id: 'dashboard',
+        labelKey: 'menu.dashboard',
+        icon: LayoutDashboard,
         permissions: [
-            { id: 'dashboard', labelKey: 'menu.dashboard' },
-            { id: 'mensagens', labelKey: 'menu.messages' },
-            { id: 'dashboard', labelKey: 'menu.dashboard' },
-            { id: 'mensagens', labelKey: 'menu.messages' },
+            { id: 'dashboard', labelKey: 'menu.dashboard' }
+        ]
+    },
+    {
+        id: 'fleet',
+        labelKey: 'menu.fleet_management', // "Gestão de Frota"
+        icon: Car,
+        permissions: [
+            { id: 'central_motorista', labelKey: 'menu.driver_central' },
+            { id: 'viaturas', labelKey: 'menu.vehicles' },
             { id: 'geofences', labelKey: 'menu.geofences' },
             { id: 'locais', labelKey: 'menu.places' },
             { id: 'avaliacao', labelKey: 'menu.evaluation' }
         ]
     },
     {
-        id: 'requisicoes',
-        labelKey: 'menu.requisitions',
-        icon: FileText,
-        descriptionKey: 'permission.description.requisicoes',
-        permissions: [
-            { id: 'requisicoes', labelKey: 'menu.requisitions' },
-            { id: 'requisicoes_edit', labelKey: 'permission.edit' },
-            { id: 'requisicoes_delete', labelKey: 'permission.delete' },
-        ]
-    },
-    {
-        id: 'viaturas',
-        labelKey: 'menu.vehicles',
-        icon: Truck,
-        descriptionKey: 'permission.description.viaturas',
-        permissions: [{ id: 'viaturas', labelKey: 'menu.vehicles' }]
-    },
-    {
-        id: 'motoristas',
-        labelKey: 'menu.drivers',
-        icon: UserCog,
-        descriptionKey: 'permission.description.motoristas',
-        permissions: [{ id: 'motoristas', labelKey: 'menu.drivers' }]
-    },
-    {
-        id: 'fornecedores',
-        labelKey: 'menu.suppliers',
-        icon: Building2,
-        descriptionKey: 'permission.description.fornecedores',
-        permissions: [{ id: 'fornecedores', labelKey: 'menu.suppliers' }]
-    },
-    {
-        id: 'clientes',
-        labelKey: 'menu.clients',
-        icon: Briefcase,
-        permissions: [{ id: 'clientes', labelKey: 'menu.clients' }]
-    },
-    {
-        id: 'equipa-oficina',
-        labelKey: 'menu.workshop_team',
-        icon: Wrench,
-        permissions: [{ id: 'equipa-oficina', labelKey: 'menu.workshop_team' }]
-    },
-    {
-        id: 'supervisores',
-        labelKey: 'menu.supervisors',
-        icon: Shield,
-        permissions: [{ id: 'supervisores', labelKey: 'menu.supervisors' }]
-    },
-    {
-        id: 'escalas',
-        labelKey: 'menu.schedule',
-        icon: Calendar,
-        descriptionKey: 'permission.description.escalas',
+        id: 'operations',
+        labelKey: 'menu.operations', // "Operações"
+        icon: MapPin, // Or Calendar, fitting operations
         permissions: [
             { id: 'escalas', labelKey: 'menu.schedule' },
-            { id: 'escalas_import', labelKey: 'schedule.action.import' },
-            { id: 'escalas_print', labelKey: 'schedule.action.pdf' },
-            { id: 'escalas_create', labelKey: 'schedule.action.manual' },
-            { id: 'escalas_urgent', labelKey: 'schedule.action.urgent' },
-            { id: 'escalas_view_pending', labelKey: 'schedule.action.pending' },
-        ]
-    },
-    {
-        id: 'horas',
-        labelKey: 'menu.hours',
-        icon: Clock,
-        permissions: [
             { id: 'horas', labelKey: 'menu.hours' },
-            { id: 'hours_view_costs', labelKey: 'hours.view_costs' }
+            { id: 'plataformas_externas', labelKey: 'menu.external_platforms' }
         ]
     },
     {
-        id: 'combustivel',
-        labelKey: 'menu.fuel',
-        icon: Fuel,
-        descriptionKey: 'permission.description.combustivel',
+        id: 'workshop',
+        labelKey: 'menu.workshop', // "Oficina"
+        icon: Wrench,
         permissions: [
             { id: 'combustivel', labelKey: 'menu.fuel' },
-            { id: 'combustivel_calibrate', labelKey: 'fuel.entry.calibrate' },
-            { id: 'combustivel_edit_history', labelKey: 'fuel.action.history' }
+            { id: 'requisicoes', labelKey: 'menu.requisitions' }
         ]
     },
     {
-        id: 'admin_financas',
-        labelKey: 'menu.admin',
+        id: 'team',
+        labelKey: 'menu.team', // "Equipa"
+        icon: Users,
+        permissions: [
+            // { id: 'gestores', labelKey: 'menu.managers' }, // Assuming gestores permission might not exist or be needed here based on Context
+            { id: 'equipa-oficina', labelKey: 'menu.workshop_team' },
+            { id: 'supervisores', labelKey: 'menu.supervisors' },
+            { id: 'motoristas', labelKey: 'menu.drivers' }
+        ]
+    },
+    {
+        id: 'financial',
+        labelKey: 'menu.financial', // "Financeiro"
         icon: Wallet,
         permissions: [
             { id: 'contabilidade', labelKey: 'menu.accounting' },
             { id: 'centros_custos', labelKey: 'menu.cost_centers' },
+            { id: 'fornecedores', labelKey: 'menu.suppliers' },
+            { id: 'clientes', labelKey: 'menu.clients' },
             { id: 'relatorios', labelKey: 'menu.reports' }
         ]
     },
     {
-        id: 'extras',
-        labelKey: 'menu.extras',
-        icon: Lock,
+        id: 'system',
+        labelKey: 'menu.system', // "Sistema"
+        icon: Shield,
         permissions: [
-            { id: 'central_motorista', labelKey: 'menu.driver_central' },
-            { id: 'central_navegacao', labelKey: 'permission.central_navegacao' },
-            { id: 'central_recibos', labelKey: 'permission.central_recibos' },
-            { id: 'plataformas_externas', labelKey: 'menu.external_platforms' }
+            // { id: 'admin_users', labelKey: 'menu.user_management' } // Usually admin only
+        ]
+    },
+    {
+        id: 'communication',
+        labelKey: 'menu.communication', // "Comunicação"
+        icon: MessageSquare,
+        permissions: [
+            { id: 'mensagens', labelKey: 'menu.messages' }
         ]
     }
 ];
@@ -207,7 +166,7 @@ export default function Permissoes() {
                                                 return (
                                                     <div key={`${role}-${perm.id}`} className="flex flex-col items-center gap-2 bg-slate-900/50 p-2 rounded-lg border border-white/5">
                                                         <span className={`text-[10px] font-bold uppercase ${role === 'supervisor' ? 'text-purple-400' :
-                                                                role === 'oficina' ? 'text-orange-400' :
+                                                            role === 'oficina' ? 'text-orange-400' :
                                                                 role === 'gestor' ? 'text-cyan-400' :
                                                                     'text-emerald-400'
                                                             }`}>
@@ -342,7 +301,7 @@ export default function Permissoes() {
                                                             >
                                                                 <span
                                                                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${isActive ? 'translate-x-6' : 'translate-x-1'
-                                                                    }`}
+                                                                        }`}
                                                                 />
                                                             </button>
                                                         </td>
