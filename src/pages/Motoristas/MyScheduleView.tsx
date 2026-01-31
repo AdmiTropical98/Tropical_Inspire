@@ -63,7 +63,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
 
     // Group services by date (now only one date essentially, but keeping structure/logic is fine)
     const groupedServices = filteredServices.reduce((groups, service) => {
-        let dateKey = 'Data Inv├ílida';
+        let dateKey = 'Data Inválida';
         let rawDate = 0;
 
         try {
@@ -128,7 +128,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
         if (!selectedServiceId || !onUpdateStatus) return;
         const service = services.find(s => s.id === selectedServiceId);
         if (service) {
-            onUpdateStatus({ ...service, status: 'failed', failureReason: failureReason || 'N├úo especificado', concluido: true }); // Failed is also "Finalized" in terms of schedule
+            onUpdateStatus({ ...service, status: 'failed', failureReason: failureReason || 'Não especificado', concluido: true }); // Failed is also "Finalized" in terms of schedule
         }
         setFailureModalOpen(false);
         setSelectedServiceId(null);
@@ -144,12 +144,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                             <div className="p-3 bg-red-500/10 rounded-full">
                                 <AlertTriangle className="w-6 h-6" />
                             </div>
-                            <h3 className="text-xl font-bold text-white">Passageiro N├úo Recolhido</h3>
+                            <h3 className="text-xl font-bold text-white">Passageiro Não Recolhido</h3>
                         </div>
                         <p className="text-slate-400 mb-4 text-sm">Por favor, indique o motivo da falha na recolha:</p>
 
                         <div className="space-y-2 mb-6">
-                            {['N├úo compareceu ├á paragem', 'Folga / N├úo necessita', 'Erro na escala / Cancelado', 'Viatura Avariada', 'Outros'].map(reason => (
+                            {['Não compareceu à paragem', 'Folga / Não necessita', 'Erro na escala / Cancelado', 'Viatura Avariada', 'Outros'].map(reason => (
                                 <button
                                     key={reason}
                                     onClick={() => setFailureReason(reason)}
@@ -192,7 +192,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 </button>
                 <div>
                     <h2 className="text-lg font-bold text-white leading-tight">Minha Escala</h2>
-                    <p className="text-xs text-slate-400">Servi├ºos Atribu├¡dos</p>
+                    <p className="text-xs text-slate-400">Serviços Atribuídos</p>
                 </div>
             </div>
 
@@ -203,7 +203,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                         <Calendar className="w-5 h-5 text-blue-400" />
                         Minha Escala
                     </h2>
-                    <p className="text-slate-400 text-sm">Consulta os teus servi├ºos agendados</p>
+                    <p className="text-slate-400 text-sm">Consulta os teus serviços agendados</p>
                 </div>
 
                 {/* DATE NAVIGATOR */}
@@ -234,7 +234,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                     <span className="text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:block">Status:</span>
                     <div className="flex gap-2">
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 rounded text-xs text-emerald-400 border border-emerald-500/20">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Conclu├¡dos
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Concluídos
                         </div>
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 rounded text-xs text-amber-400 border border-amber-500/20">
                             <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> Agendados
@@ -272,9 +272,9 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                     <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Calendar className="w-8 h-8 text-slate-500" />
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-1">Sem servi├ºos agendados</h3>
+                    <h3 className="text-lg font-medium text-white mb-1">Sem serviços agendados</h3>
                     <p className="text-slate-400 max-w-sm mx-auto">
-                        N├úo tens servi├ºos atribu├¡dos para os pr├│ximos dias.
+                        Não tens serviços atribuídos para os próximos dias.
                     </p>
                 </div>
             ) : (
@@ -296,11 +296,11 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                     <table className="w-full text-left">
                                         <thead>
                                             <tr className="bg-slate-900/50 border-b border-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                                                <th className="px-6 py-4 font-bold">Hor├írio</th>
+                                                <th className="px-6 py-4 font-bold">Horário</th>
                                                 <th className="px-6 py-4 font-bold">Passageiro</th>
-                                                <th className="px-6 py-4 font-bold">Itiner├írio</th>
-                                                <th className="px-6 py-4 font-bold w-1/4">Observa├º├╡es</th>
-                                                <th className="px-6 py-4 font-bold text-right">A├º├╡es</th>
+                                                <th className="px-6 py-4 font-bold">Itinerário</th>
+                                                <th className="px-6 py-4 font-bold w-1/4">Observações</th>
+                                                <th className="px-6 py-4 font-bold text-right">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-700/50">
@@ -319,7 +319,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                 <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
                                                                     <User className="w-4 h-4" />
                                                                 </div>
-                                                                <span className="text-white font-medium">{service.passageiro || 'N├úo definido'}</span>
+                                                                <span className="text-white font-medium">{service.passageiro || 'Não definido'}</span>
                                                             </div>
                                                             {/* COMPLIANCE DESKTOP */}
                                                             {complianceStats?.[service.id] && (
@@ -362,28 +362,28 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                     </>
                                                                 ) : (
                                                                     <>
-                                                                        <CheckCircle className="w-3.5 h-3.5" /> Conclu├¡do
+                                                                        <CheckCircle className="w-3.5 h-3.5" /> Concluído
                                                                     </>
                                                                 )}
                                                             </span>
                                                         ) : (
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button
-                                                                        onClick={() => handleFailure(service.id)}
-                                                                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
-                                                                        title="N├úo Pegou"
-                                                                    >
-                                                                        <User className="w-5 h-5 text-red-500/50 hover:text-red-500" />
-                                                                        <span className="sr-only">N├úo Pegou</span>
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleSuccess(service)}
-                                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-1"
-                                                                    >
-                                                                        <CheckCircle className="w-4 h-4" />
-                                                                        Pegou
-                                                                    </button>
-                                                                </div>
+                                                            <div className="flex justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => handleFailure(service.id)}
+                                                                    className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                                                                    title="Não Pegou"
+                                                                >
+                                                                    <User className="w-5 h-5 text-red-500/50 hover:text-red-500" />
+                                                                    <span className="sr-only">Não Pegou</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleSuccess(service)}
+                                                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-1"
+                                                                >
+                                                                    <CheckCircle className="w-4 h-4" />
+                                                                    Pegou
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -424,7 +424,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                         const statuses = service.ids.map((id: string) => complianceStats[id]);
                                         if (statuses.some((s: any) => s?.status === 'failed')) {
                                             groupComplianceStatus = 'failed';
-                                            groupComplianceMsg = statuses.find((s: any) => s?.status === 'failed')?.message || 'Falha na valida├º├úo';
+                                            groupComplianceMsg = statuses.find((s: any) => s?.status === 'failed')?.message || 'Falha na validação';
                                         } else if (statuses.every((s: any) => s?.status === 'success')) {
                                             groupComplianceStatus = 'success';
                                             groupComplianceMsg = statuses[0]?.message || 'Validado';
@@ -458,12 +458,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                             </span>
                                                         </div>
                                                         <div className="flex flex-col w-full">
-                                                            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Estado do Servi├ºo</span>
+                                                            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Estado do Serviço</span>
                                                             <div className="flex justify-between items-center w-full pr-2">
                                                                 {service.concluido ? (
                                                                     <div className={`flex items-center gap-1.5 ${service.status === 'failed' ? 'text-red-400' : 'text-blue-400'} font-bold text-sm`}>
                                                                         {service.status === 'failed' ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                                                                        <span>{service.status === 'failed' ? 'Falhou' : 'Conclu├¡do'}</span>
+                                                                        <span>{service.status === 'failed' ? 'Falhou' : 'Concluído'}</span>
                                                                     </div>
                                                                 ) : (
                                                                     <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
@@ -508,7 +508,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                         </div>
                                                     ) : (
                                                         <div className="pl-8">
-                                                            <span className="text-white font-bold text-base truncate block">{service.passageiro || 'Nome n├úo indicado'}</span>
+                                                            <span className="text-white font-bold text-base truncate block">{service.passageiro || 'Nome não indicado'}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -551,7 +551,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                             className="flex items-center justify-center gap-2 py-2.5 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-xl font-bold text-xs transition-colors"
                                                         >
                                                             <AlertTriangle className="w-4 h-4 text-red-500" />
-                                                            N├úo Pegou
+                                                            Não Pegou
                                                         </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleSuccess(service); }}
@@ -569,7 +569,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                         {(() => {
                                                             const txt = service.obs.toLowerCase();
                                                             const isEntrada = txt.includes('entrada');
-                                                            const isSaida = txt.includes('sa├¡da') || txt.includes('saida');
+                                                            const isSaida = txt.includes('saída') || txt.includes('saida');
 
                                                             if (isEntrada) {
                                                                 return (
@@ -592,7 +592,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                             <LogOut className="w-4 h-4" />
                                                                         </div>
                                                                         <div>
-                                                                            <span className="text-rose-400 text-xs font-bold uppercase tracking-wider block">Sa├¡da</span>
+                                                                            <span className="text-rose-400 text-xs font-bold uppercase tracking-wider block">Saída</span>
                                                                             {service.obs.length > 10 && <p className="text-slate-400 text-xs mt-0.5">{service.obs}</p>}
                                                                         </div>
                                                                     </div>
