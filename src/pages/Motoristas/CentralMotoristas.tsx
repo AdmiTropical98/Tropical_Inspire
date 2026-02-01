@@ -294,7 +294,7 @@ export default function CentralMotoristas() {
     const navTabs = [
         { id: 'overview', icon: LayoutTemplate, label: 'Visão Geral', color: 'blue' },
         { id: 'escala', icon: Calendar, label: 'Minha Escala', color: 'blue' },
-        { id: 'viatura', icon: Car, label: 'Minha Viatura', color: 'indigo' },
+
         { id: 'pedidos', icon: Share2, label: t('central.tab.requests'), color: 'purple' },
         { id: 'abastecimentos', icon: Fuel, label: 'Abastecimentos', color: 'orange' },
         { id: 'navegacao', icon: Navigation, label: 'Navegação', color: 'blue' },
@@ -738,7 +738,7 @@ export default function CentralMotoristas() {
                                         <div className="space-y-2">
                                             <label className="text-sm font-bold text-slate-400 uppercase tracking-wide">Tipo de Pedido</label>
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                {['ferias', 'folga', 'adiantamento', 'documentos'].map(type => (
+                                                {['ferias', 'folga', 'documentos'].map(type => (
                                                     <button
                                                         key={type}
                                                         type="button"
