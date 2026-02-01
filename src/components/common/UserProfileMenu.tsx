@@ -4,9 +4,10 @@ import { LogOut, Check, User, Car, Wrench, UserCog, ClipboardCheck } from 'lucid
 
 interface UserProfileMenuProps {
     onNavigate?: () => void;
+    showName?: boolean;
 }
 
-export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
+export default function UserProfileMenu({ onNavigate, showName = true }: UserProfileMenuProps) {
     const { userRole, currentUser, logout, updateStatus: updateContextStatus } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [userStatus, setUserStatus] = useState<'online' | 'absent' | 'busy' | 'offline'>('online');
@@ -107,28 +108,32 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
                 className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-white/5 transition-all group"
             >
                 {/* Status Indicator (Mobile/Compact) */}
-                <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 border bg-opacity-10 
+                {showName && (
+                    <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 border bg-opacity-10 
                     ${userStatus === 'online' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                        userStatus === 'absent' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                            'bg-red-500/10 border-red-500/20 text-red-500'}
+                            userStatus === 'absent' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                                'bg-red-500/10 border-red-500/20 text-red-500'}
                 `}>
-                    <div className={`w-2 h-2 rounded-full ${getStatusColor(userStatus)} ${userStatus === 'online' ? 'animate-pulse' : ''}`}></div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{getStatusLabel(userStatus)}</span>
-                </div>
+                        <div className={`w-2 h-2 rounded-full ${getStatusColor(userStatus)} ${userStatus === 'online' ? 'animate-pulse' : ''}`}></div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{getStatusLabel(userStatus)}</span>
+                    </div>
+                )}
 
                 {/* Avatar / Role Icon */}
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center text-white font-bold shadow-lg overflow-hidden border border-white/10`}>
                     {getRoleIcon()}
                 </div>
 
-                <div className="hidden md:block text-left">
-                    <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">
-                        {getDisplayName()}
-                    </p>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">
-                        {userRole}
-                    </p>
-                </div>
+                {showName && (
+                    <div className="hidden md:block text-left">
+                        <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">
+                            {getDisplayName()}
+                        </p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider">
+                            {userRole}
+                        </p>
+                    </div>
+                )}
             </button>
 
             {isOpen && (
@@ -147,7 +152,7 @@ export default function UserProfileMenu({ onNavigate }: UserProfileMenuProps) {
 
                     {/* Navigation */}
                     <div className="mb-2 p-2">
-                        <button 
+                        <button
                             onClick={handleProfileClick}
                             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-sm text-slate-300 hover:text-white transition-colors mb-1"
                         >
