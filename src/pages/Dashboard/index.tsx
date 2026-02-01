@@ -73,7 +73,7 @@ export default function Dashboard({
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                 <div className="p-6 pr-12 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-purple-500/20 blur-3xl rounded-full -mr-10 -mt-10 pointer-events-none" />
+
 
                     <h1 className="text-4xl font-black text-white mb-2 tracking-tight flex items-center gap-3">
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 animate-gradient-x">{greeting},</span>
