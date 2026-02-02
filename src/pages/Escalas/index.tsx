@@ -574,10 +574,7 @@ export default function Escalas() {
                 title="Gestão de Viaturas"
                 subtitle="Mapas, Escalas e Distribuição"
                 icon={Calendar}
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/' },
-                    { label: 'Escalas' }
-                ]}
+                breadcrumbs={[]}
                 actions={
                     <>
                         <div className="flex items-center gap-2">
@@ -596,31 +593,7 @@ export default function Escalas() {
                             </div>
 
                             {/* Action Buttons */}
-                            {hasAccess(userRole, 'escalas_create') && (
-                                <button
-                                    onClick={() => setShowNewServiceModal(true)}
-                                    className="flex bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-bold items-center gap-2 transition-all shadow-lg hover:shadow-blue-600/20 whitespace-nowrap"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Novo</span>
-                                </button>
-                            )}
 
-                            <button
-                                onClick={() => setShowUrgentModal(true)}
-                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
-                            >
-                                <AlertTriangle className="w-4 h-4" />
-                                <span className="hidden sm:inline">Urgência</span>
-                            </button>
-
-                            <button
-                                onClick={runComplianceDemo}
-                                className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
-                                title="Gerar dados de exemplo"
-                            >
-                                <span className="hidden sm:inline">Demo</span>
-                            </button>
 
 
                         </div>
@@ -778,24 +751,7 @@ export default function Escalas() {
 
                                             <div className="h-6 w-px bg-white/10 hidden md:block"></div>
 
-                                            {/* Cost Center Filter */}
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative group">
-                                                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                                                        <LayoutList className="h-3.5 w-3.5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                                    </div>
-                                                    <select
-                                                        value={selectedCentroCustoFilter}
-                                                        onChange={(e) => setSelectedCentroCustoFilter(e.target.value)}
-                                                        className="bg-[#1e293b] border border-white/10 text-slate-300 text-xs rounded-lg pl-8 pr-8 py-1.5 outline-none focus:border-blue-500 appearance-none hover:bg-slate-800 transition-colors cursor-pointer min-w-[140px]"
-                                                    >
-                                                        <option value="all">Todos Centros</option>
-                                                        {centrosCustos.map(cc => (
-                                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
+
 
                                             {/* Layout Controls */}
                                             <div className="ml-auto flex items-center gap-3">

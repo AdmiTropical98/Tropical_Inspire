@@ -69,21 +69,23 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, badge, collapsed }: {
         ? 'text-white bg-gradient-to-r from-blue-600/20 to-transparent border-l-[3px] border-blue-500'
         : 'text-slate-400 hover:text-white hover:bg-white/5 border-l-[3px] border-transparent'
       }
-      ${collapsed ? 'justify-center px-2' : ''}
+      ${collapsed ? 'justify-center px-0' : ''}
     `}
   >
-    <Icon className={`w-5 h-5 transition-transform duration-300 flex-shrink-0 ${active ? 'text-blue-400 scale-110' : 'group-hover:text-blue-400 group-hover:scale-110'}`} />
+    <div className={`${collapsed ? 'w-full flex justify-center' : ''}`}>
+      <Icon className={`w-5 h-5 transition-transform duration-300 flex-shrink-0 ${active ? 'text-blue-400 scale-110' : 'group-hover:text-blue-400 group-hover:scale-110'}`} />
+    </div>
 
-    <span className={`relative z-10 transition-opacity duration-200 whitespace-nowrap ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
-      {label}
-    </span>
+    <div className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${collapsed ? 'w-0 opacity-0 absolute' : 'w-auto opacity-100 relative'}`}>
+      <span className="relative z-10">{label}</span>
+    </div>
 
     {active && <div className="absolute inset-0 bg-blue-500/5 blur-xl pointer-events-none" />}
 
     {badge ? (
       <span className={`
-        bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/30
-        ${collapsed ? 'absolute top-1 right-1 px-1 py-0 text-[8px]' : 'ml-auto'}
+        bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/30 transition-all duration-300
+        ${collapsed ? 'absolute top-2 right-2 px-1.5 py-0.5 text-[9px] w-auto h-auto min-w-[1.2rem]' : 'ml-auto'}
       `}>
         {badge}
       </span>
