@@ -1867,6 +1867,8 @@ export default function Escalas() {
                 </div >
             )}
 
+            {activeTab === 'history' && <EscalasHistory />}
+
             {/* MODAL: URGENT REQUEST */}
             {
                 showUrgentModal && (
@@ -1976,7 +1978,3 @@ export default function Escalas() {
     )
 }
 
-{ activeTab === 'history' && <EscalasHistory /> }
-        </div >
-    );
-}
