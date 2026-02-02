@@ -56,6 +56,9 @@ export default function Requisicoes() {
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [invoiceAmount, setInvoiceAmount] = useState('');
 
+    // NEW: Multiple Invoices State
+    const [invoicesList, setInvoicesList] = useState<{ numero: string; valor: number }[]>([]);
+
     // Statistics for Overview
     const stats = {
         pending: requisicoes.filter(r => !r.status || r.status === 'pendente').length,
@@ -68,29 +71,52 @@ export default function Requisicoes() {
         setConfirmingId(id);
         setInvoiceNumber('');
         setInvoiceAmount('');
+        setInvoicesList([]); // Reset list
         setShowConfirmModal(true);
+    };
+
+    const addInvoiceToList = () => {
+        if (!invoiceNumber.trim() || !invoiceAmount.trim()) return;
+        const amount = parseFloat(invoiceAmount.replace(',', '.'));
+        if (isNaN(amount)) return alert('Valor inválido');
+
+        setInvoicesList([...invoicesList, { numero: invoiceNumber, valor: amount }]);
+        setInvoiceNumber('');
+        setInvoiceAmount('');
+    };
+
+    const removeInvoiceFromList = (idx: number) => {
+        setInvoicesList(invoicesList.filter((_, i) => i !== idx));
     };
 
     const handleConfirmRequisition = (e: React.FormEvent) => {
         e.preventDefault();
         if (!confirmingId) return;
-        if (!invoiceNumber.trim() || !invoiceAmount.trim()) {
-            alert(t('req.valid.invoice_required')); // Ensure translation handles both or generic message
+
+        // If user filled input but didn't click "Add", try to add it seamlessly if list is empty
+        // Or if list is not empty but input has data, maybe warn? 
+        // Let's assume: if list is empty, use current input. If list has items, use list.
+
+        let finalInvoices = [...invoicesList];
+
+        if (invoiceNumber.trim() && invoiceAmount.trim()) {
+            const amount = parseFloat(invoiceAmount.replace(',', '.'));
+            if (!isNaN(amount)) {
+                finalInvoices.push({ numero: invoiceNumber, valor: amount });
+            }
+        }
+
+        if (finalInvoices.length === 0) {
+            alert(t('req.valid.invoice_required'));
             return;
         }
 
-        const amount = parseFloat(invoiceAmount.replace(',', '.'));
-        if (isNaN(amount)) {
-            alert('Valor inválido');
-            return;
-        }
-
-        toggleRequisicaoStatus(confirmingId, invoiceNumber, amount);
+        toggleRequisicaoStatus(confirmingId, finalInvoices);
         setShowConfirmModal(false);
         setConfirmingId(null);
         setInvoiceNumber('');
         setInvoiceAmount('');
-
+        setInvoicesList([]);
     };
 
     const handleEdit = (req: Requisicao) => {
@@ -1105,69 +1131,117 @@ export default function Requisicoes() {
                         </div>
                     )}
 
-                    {/* Confirmation Modal */}
-                    {showConfirmModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-                            ...
-                        </div>
-                    )}
+
 
                     {/* Confirmation Modal */}
+                    {/* Confirmation Modal */}
                     {showConfirmModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
                                 <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
                                     <FileText className="w-32 h-32 text-emerald-500" />
                                 </div>
 
-                                <h3 className="text-2xl font-bold text-white mb-2 relative z-10">Confirmar Requisição</h3>
-                                <p className="text-slate-400 mb-6 relative z-10">Insira os dados da fatura para concluir o processo.</p>
+                                <div className="relative z-10 shrink-0">
+                                    <h3 className="text-2xl font-bold text-white mb-2">Confirmar Requisição</h3>
+                                    <p className="text-slate-400 mb-6">Adicione uma ou mais faturas para concluir.</p>
+                                </div>
 
-                                <form onSubmit={handleConfirmRequisition} className="space-y-5 relative z-10">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Número da Fatura</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
-                                            value={invoiceNumber}
-                                            onChange={e => setInvoiceNumber(e.target.value)}
-                                            placeholder="Ex: FT 2024/123"
-                                        />
+                                <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 relative z-10 min-h-0 space-y-4">
+                                    {/* LIST OF ADDED INVOICES */}
+                                    {invoicesList.length > 0 && (
+                                        <div className="space-y-2 mb-4">
+                                            <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase mb-2">
+                                                <span>Faturas Adicionadas</span>
+                                                <span className="text-emerald-500">Total: {(invoicesList.reduce((acc, curr) => acc + curr.valor, 0)).toFixed(2)} €</span>
+                                            </div>
+                                            {invoicesList.map((inv, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+                                                    <div>
+                                                        <div className="text-sm font-bold text-white">{inv.numero}</div>
+                                                        <div className="text-xs text-emerald-400 font-mono">{inv.valor.toFixed(2)} €</div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeInvoiceFromList(idx)}
+                                                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* INPUT FORM FOR NEW INVOICE */}
+                                    <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Número da Fatura</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
+                                                value={invoiceNumber}
+                                                onChange={e => setInvoiceNumber(e.target.value)}
+                                                placeholder="Ex: FT 2024/123"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        addInvoiceToList();
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Valor (€)</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner font-mono"
+                                                    value={invoiceAmount}
+                                                    onChange={e => setInvoiceAmount(e.target.value)}
+                                                    placeholder="0.00"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            addInvoiceToList();
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={addInvoiceToList}
+                                                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all font-bold"
+                                                >
+                                                    <Plus className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Valor Total (€)</label>
-                                        <input
-                                            required
-                                            type="number"
-                                            step="0.01"
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner font-mono"
-                                            value={invoiceAmount}
-                                            onChange={e => setInvoiceAmount(e.target.value)}
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    <div className="flex gap-3 pt-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowConfirmModal(false)}
-                                            className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-900/20 transition-all"
-                                        >
-                                            Confirmar
-                                        </button>
-                                    </div>
-                                </form>
+                                </div>
+
+                                <div className="flex gap-3 pt-2 shrink-0 relative z-10">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmModal(false)}
+                                        className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmRequisition}
+                                        className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20"
+                                    >
+                                        Confirmar Conclusão
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
-                </main>
-            </div>
-        </div>
+
+                </main >
+            </div >
+        </div >
     );
 }

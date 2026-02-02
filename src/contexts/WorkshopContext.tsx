@@ -90,7 +90,7 @@ interface WorkshopContextType {
     addRequisicao: (r: Requisicao) => void;
     updateRequisicao: (r: Requisicao) => void;
     deleteRequisicao: (id: string) => void;
-    toggleRequisicaoStatus: (id: string, fatura?: string, custo?: number) => void;
+    toggleRequisicaoStatus: (id: string, fatura?: string | { numero: string, valor: number }[], custo?: number) => void;
     addCentroCusto: (cc: CentroCusto) => void; // NEW
     deleteCentroCusto: (id: string) => void; // NEW
     addEvaTransport: (t: EvaTransport) => void;
@@ -430,7 +430,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             try {
                 const { data: r, error } = await supabase.from('requisicoes').select('*');
                 if (error) throw error;
-                if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por, custo: item.custo })));
+                if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por, custo: item.custo, faturas_dados: item.faturas_dados })));
             } catch (e: any) {
                 console.error('Error fetching requisicoes:', e);
                 // Don't override previous critical error if found
@@ -1396,18 +1396,29 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!error) setRequisicoes(prev => prev.filter(r => r.id !== id));
     };
 
-    const toggleRequisicaoStatus = async (id: string, fatura?: string, custo?: number) => {
+    const toggleRequisicaoStatus = async (id: string, fatura?: string | { numero: string, valor: number }[], custo?: number) => {
         const r = requisicoes.find(req => req.id === id);
         if (r) {
             const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
             const updates: any = { status: newStatus };
-            if (newStatus === 'concluida') {
-                if (fatura) updates.fatura = fatura;
-                if (custo) updates.custo = custo;
+
+            if (newStatus === 'concluida' && fatura) {
+                if (Array.isArray(fatura)) {
+                    // Multiple invoices
+                    updates.faturas_dados = fatura;
+                    updates.fatura = fatura.map(f => f.numero).join(', '); // Concatenated for legacy display
+                    updates.custo = fatura.reduce((sum, f) => sum + f.valor, 0); // Total cost
+                } else {
+                    // Legacy Single Invoice
+                    updates.fatura = fatura;
+                    updates.custo = custo;
+                    updates.faturas_dados = [{ numero: fatura, valor: custo || 0 }]; // Store as array for consistency
+                }
             } else {
                 // Se voltar para pendente, limpar fatura e custo
                 updates.fatura = "";
                 updates.custo = null;
+                updates.faturas_dados = null;
             }
 
             const { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
@@ -1419,17 +1430,20 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             if (!error) {
                 console.log('Status updated successfully. New Status:', newStatus, 'Updates:', updates);
-                setRequisicoes(prev => prev.map(req => {
-                    if (req.id === id) {
-                        return {
-                            ...req,
-                            status: newStatus,
-                            fatura: (newStatus === 'concluida' && fatura) ? fatura : "",
-                            custo: (newStatus === 'concluida' && custo) ? custo : undefined
-                        };
-                    }
-                    return req;
-                }));
+                if (newStatus === 'concluida') {
+                    // Refresh data to get everything consistent
+                    await refreshData();
+                } else {
+                    setRequisicoes(prev => prev.map(req => {
+                        if (req.id === id) {
+                            return {
+                                ...req,
+                                ...updates
+                            };
+                        }
+                        return req;
+                    }));
+                }
             }
         }
     };
