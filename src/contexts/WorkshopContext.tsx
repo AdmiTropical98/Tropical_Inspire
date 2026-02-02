@@ -741,8 +741,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 })));
             }
 
-            const { data: batches } = await supabase.from('scale_batches').select('*');
-            if (batches) setScaleBatches(batches);
+            const { data: batches, error: batchError } = await supabase.from('scale_batches').select('*');
+            if (batchError) console.error('Error fetching batches:', batchError);
+            if (batches) {
+                console.log('[DEBUG] Scale Batches Fetched:', batches.length);
+                setScaleBatches(batches);
+            }
 
             // 5. Fuel
             const { data: tankData } = await supabase.from('fuel_tank').select('*').eq('id', 'main').single();
@@ -820,10 +824,23 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    // INITIAL DATA FETCH
+    // INITIAL DATA FETCH & AUTH LISTENER
     useEffect(() => {
+        // Initial fetch
         refreshData();
-    }, []); // Empty dependency array = run once on mount
+
+        // Listen for Auth Changes to ensure data is re-fetched on login/token refresh
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log(`[WorkshopContext] Auth Event: ${event}`);
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                refreshData();
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
 
     // Manual Hours Implementation
     const logServiceHistory = async (servicoId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', previousData: any, newData: any) => {
