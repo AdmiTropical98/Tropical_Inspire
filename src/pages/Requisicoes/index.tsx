@@ -54,10 +54,17 @@ export default function Requisicoes() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [invoiceNumber, setInvoiceNumber] = useState('');
-    const [invoiceAmount, setInvoiceAmount] = useState('');
+    const [invoiceNetAmount, setInvoiceNetAmount] = useState('');
+    const [invoiceVatRate, setInvoiceVatRate] = useState<number>(0.23); // Default 23%
 
     // NEW: Multiple Invoices State
-    const [invoicesList, setInvoicesList] = useState<{ numero: string; valor: number }[]>([]);
+    const [invoicesList, setInvoicesList] = useState<{
+        numero: string;
+        valor_liquido: number;
+        iva_taxa: number;
+        iva_valor: number;
+        valor_total: number;
+    }[]>([]);
 
     // Statistics for Overview
     const stats = {
@@ -70,19 +77,31 @@ export default function Requisicoes() {
     const handleOpenConfirm = (id: string) => {
         setConfirmingId(id);
         setInvoiceNumber('');
-        setInvoiceAmount('');
+        setInvoiceNetAmount('');
+        setInvoiceVatRate(0.23);
         setInvoicesList([]); // Reset list
         setShowConfirmModal(true);
     };
 
     const addInvoiceToList = () => {
-        if (!invoiceNumber.trim() || !invoiceAmount.trim()) return;
-        const amount = parseFloat(invoiceAmount.replace(',', '.'));
-        if (isNaN(amount)) return alert('Valor inválido');
+        if (!invoiceNumber.trim() || !invoiceNetAmount.trim()) return;
+        const net = parseFloat(invoiceNetAmount.replace(',', '.'));
+        if (isNaN(net)) return alert('Valor inválido');
 
-        setInvoicesList([...invoicesList, { numero: invoiceNumber, valor: amount }]);
+        const vatAmount = net * invoiceVatRate;
+        const total = net + vatAmount;
+
+        setInvoicesList([...invoicesList, {
+            numero: invoiceNumber,
+            valor_liquido: net,
+            iva_taxa: invoiceVatRate,
+            iva_valor: vatAmount,
+            valor_total: total
+        }]);
+
         setInvoiceNumber('');
-        setInvoiceAmount('');
+        setInvoiceNetAmount('');
+        setInvoiceVatRate(0.23); // Reset to default
     };
 
     const removeInvoiceFromList = (idx: number) => {
@@ -99,10 +118,18 @@ export default function Requisicoes() {
 
         let finalInvoices = [...invoicesList];
 
-        if (invoiceNumber.trim() && invoiceAmount.trim()) {
-            const amount = parseFloat(invoiceAmount.replace(',', '.'));
-            if (!isNaN(amount)) {
-                finalInvoices.push({ numero: invoiceNumber, valor: amount });
+        if (invoiceNumber.trim() && invoiceNetAmount.trim()) {
+            const net = parseFloat(invoiceNetAmount.replace(',', '.'));
+            if (!isNaN(net)) {
+                const vat = net * invoiceVatRate;
+                const total = net + vat;
+                finalInvoices.push({
+                    numero: invoiceNumber,
+                    valor_liquido: net,
+                    iva_taxa: invoiceVatRate,
+                    iva_valor: vat,
+                    valor_total: total
+                });
             }
         }
 
@@ -115,7 +142,8 @@ export default function Requisicoes() {
         setShowConfirmModal(false);
         setConfirmingId(null);
         setInvoiceNumber('');
-        setInvoiceAmount('');
+        setInvoiceNetAmount('');
+        setInvoiceVatRate(0.23);
         setInvoicesList([]);
     };
 
@@ -1153,13 +1181,18 @@ export default function Requisicoes() {
                                         <div className="space-y-2 mb-4">
                                             <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase mb-2">
                                                 <span>Faturas Adicionadas</span>
-                                                <span className="text-emerald-500">Total: {(invoicesList.reduce((acc, curr) => acc + curr.valor, 0)).toFixed(2)} €</span>
+                                                <span className="text-emerald-500">Total: {(invoicesList.reduce((acc, curr) => acc + curr.valor_total, 0)).toFixed(2)} €</span>
                                             </div>
                                             {invoicesList.map((inv, idx) => (
                                                 <div key={idx} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700">
                                                     <div>
                                                         <div className="text-sm font-bold text-white">{inv.numero}</div>
-                                                        <div className="text-xs text-emerald-400 font-mono">{inv.valor.toFixed(2)} €</div>
+                                                        <div className="text-xs text-slate-400 font-mono">
+                                                            {inv.valor_liquido.toFixed(2)} € + {(inv.iva_taxa * 100).toFixed(0)}% IVA
+                                                        </div>
+                                                        <div className="text-sm text-emerald-400 font-mono font-bold">
+                                                            = {inv.valor_total.toFixed(2)} €
+                                                        </div>
                                                     </div>
                                                     <button
                                                         type="button"
@@ -1186,37 +1219,55 @@ export default function Requisicoes() {
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
-                                                        addInvoiceToList();
+                                                        // Focus next field or add
                                                     }
                                                 }}
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Valor (€)</label>
-                                            <div className="flex gap-2">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Valor Líquido (€)</label>
                                                 <input
                                                     type="number"
                                                     step="0.01"
                                                     className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner font-mono"
-                                                    value={invoiceAmount}
-                                                    onChange={e => setInvoiceAmount(e.target.value)}
+                                                    value={invoiceNetAmount}
+                                                    onChange={e => setInvoiceNetAmount(e.target.value)}
                                                     placeholder="0.00"
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            e.preventDefault();
-                                                            addInvoiceToList();
-                                                        }
-                                                    }}
                                                 />
-                                                <button
-                                                    type="button"
-                                                    onClick={addInvoiceToList}
-                                                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all font-bold"
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Taxa IVA</label>
+                                                <select
+                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
+                                                    value={invoiceVatRate}
+                                                    onChange={e => setInvoiceVatRate(parseFloat(e.target.value))}
                                                 >
-                                                    <Plus className="w-5 h-5" />
-                                                </button>
+                                                    <option value={0.23}>23%</option>
+                                                    <option value={0.13}>13%</option>
+                                                    <option value={0.06}>6%</option>
+                                                    <option value={0}>Isento</option>
+                                                </select>
                                             </div>
                                         </div>
+
+                                        {/* Auto-calculated Total Preview */}
+                                        {invoiceNetAmount && (
+                                            <div className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-800">
+                                                <span className="text-xs text-slate-500 font-bold uppercase">Total com IVA</span>
+                                                <span className="text-emerald-400 font-mono font-bold">
+                                                    {(parseFloat(invoiceNetAmount.replace(',', '.')) * (1 + invoiceVatRate)).toFixed(2)} €
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={addInvoiceToList}
+                                            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all font-bold flex items-center justify-center gap-2"
+                                        >
+                                            <Plus className="w-5 h-5" /> Adicionar Fatura
+                                        </button>
                                     </div>
                                 </div>
 

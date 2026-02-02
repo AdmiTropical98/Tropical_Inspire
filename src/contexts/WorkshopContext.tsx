@@ -90,7 +90,7 @@ interface WorkshopContextType {
     addRequisicao: (r: Requisicao) => void;
     updateRequisicao: (r: Requisicao) => void;
     deleteRequisicao: (id: string) => void;
-    toggleRequisicaoStatus: (id: string, fatura?: string | { numero: string, valor: number }[], custo?: number) => void;
+    toggleRequisicaoStatus: (id: string, fatura?: string | { numero: string, valor_liquido: number, iva_taxa: number, iva_valor: number, valor_total: number }[], custo?: number) => void;
     addCentroCusto: (cc: CentroCusto) => void; // NEW
     deleteCentroCusto: (id: string) => void; // NEW
     addEvaTransport: (t: EvaTransport) => void;
@@ -1396,7 +1396,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!error) setRequisicoes(prev => prev.filter(r => r.id !== id));
     };
 
-    const toggleRequisicaoStatus = async (id: string, fatura?: string | { numero: string, valor: number }[], custo?: number) => {
+    const toggleRequisicaoStatus = async (id: string, fatura?: string | { numero: string, valor_liquido: number, iva_taxa: number, iva_valor: number, valor_total: number }[], custo?: number) => {
         const r = requisicoes.find(req => req.id === id);
         if (r) {
             const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
@@ -1404,10 +1404,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             if (newStatus === 'concluida' && fatura) {
                 if (Array.isArray(fatura)) {
-                    // Multiple invoices
+                    // Multiple invoices with VAT
                     updates.faturas_dados = fatura;
                     updates.fatura = fatura.map(f => f.numero).join(', '); // Concatenated for legacy display
-                    updates.custo = fatura.reduce((sum, f) => sum + f.valor, 0); // Total cost
+                    updates.custo = fatura.reduce((sum, f) => sum + f.valor_total, 0); // Total cost (with VAT)
                 } else {
                     // Legacy Single Invoice
                     updates.fatura = fatura;

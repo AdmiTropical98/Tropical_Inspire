@@ -77,7 +77,13 @@ export interface Requisicao {
     status?: 'pendente' | 'concluida';
     fatura?: string;
     custo?: number; // Invoice Amount
-    faturas_dados?: { numero: string; valor: number }[]; // Multiple invoices support
+    faturas_dados?: {
+        numero: string;
+        valor_liquido: number;
+        iva_taxa: number;
+        iva_valor: number;
+        valor_total: number;
+    }[]; // Multiple invoices support
     criadoPor?: string; // Name of the user who created it
 }
 
