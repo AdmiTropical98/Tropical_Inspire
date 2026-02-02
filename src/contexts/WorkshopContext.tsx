@@ -1421,7 +1421,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 updates.faturas_dados = null;
             }
 
-            const { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
+            let { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
+
+            // FALLBACK: If "faturas_dados" column is missing (Migration not run), try again without it
+            if (error && error.message.includes('faturas_dados')) {
+                console.warn('Database column "faturas_dados" missing. Falling back to legacy update. PLEASE RUN MIGRATION.');
+                delete updates.faturas_dados;
+                const retry = await supabase.from('requisicoes').update(updates).eq('id', id);
+                error = retry.error;
+            }
 
             if (error) {
                 console.error('Error toggling status:', error);
