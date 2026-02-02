@@ -436,20 +436,66 @@ export default function Requisicoes() {
                 doc.text('Não Identificado', col3X, yPos + 6);
             }
 
-            if (req.fatura) {
+            // INVOICE SECTION
+            yPos += 35; // Move down from header details
+
+            if (req.faturas_dados && Array.isArray(req.faturas_dados) && req.faturas_dados.length > 0) {
+                // Multiple Invoices Table
+                autoTable(doc, {
+                    startY: yPos,
+                    head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
+                    body: req.faturas_dados.map(f => [
+                        f.numero,
+                        `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
+                        `${((f.iva_taxa || 0) * 100).toFixed(0)}%`,
+                        `${f.valor_total?.toFixed(2) || '0.00'}€`
+                    ]),
+                    theme: 'grid',
+                    headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
+                    styles: { fontSize: 8, textColor: 0, lineWidth: 0.1 },
+                    columnStyles: {
+                        0: { fontStyle: 'bold' },
+                        1: { halign: 'right' },
+                        2: { halign: 'center' },
+                        3: { halign: 'right', fontStyle: 'bold' }
+                    }
+                });
+
+                // Calculate Total of Totals
+                const grandTotal = req.faturas_dados.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
+                const finalY = (doc as any).lastAutoTable.finalY + 2;
+
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`TOTAL GERAL: ${grandTotal.toFixed(2)}€`, pageWidth - 15, finalY, { align: 'right' });
+
+                yPos = finalY + 15; // Set Y for next table (Items)
+
+            } else if (req.fatura) {
+                // Legacy Single Invoice (Fallback)
                 const col4X = pageWidth - 60;
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(9);
                 doc.setTextColor(100);
-                doc.text('FATURA Nº', col4X, yPos);
+                doc.text('FATURA Nº', col4X, yPos - 35); // Keep original position for legacy visual
 
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(12);
                 doc.setTextColor(0);
-                doc.text(req.fatura, col4X, yPos + 6);
-            }
+                doc.text(req.fatura, col4X, yPos - 29);
 
-            yPos += 35;
+                if (req.custo) {
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.setTextColor(100);
+                    doc.text('VALOR', col4X + 30, yPos - 35);
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.setTextColor(0);
+                    doc.text(`${req.custo.toFixed(2)}€`, col4X + 30, yPos - 29);
+                }
+            }
 
             const tableBody = req.itens.map(item => [
                 item.descricao.toUpperCase(),
