@@ -451,20 +451,30 @@ export default function Requisicoes() {
                     numero: req.fatura,
                     valor_liquido: req.custo || 0,
                     iva_taxa: 0, // Unknown for legacy
-                    valor_total: req.custo || 0
+                    valor_total: req.custo || 0,
+                    isLegacy: true // Mark as legacy
                 }];
             }
 
             if (displayInvoices.length > 0) {
+                // Calculate Total
+                const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
+
                 autoTable(doc, {
                     startY: yPos,
                     head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
-                    body: displayInvoices.map(f => [
-                        f.numero,
-                        `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
-                        `${((f.iva_taxa || 0) * 100).toFixed(0)}%`,
-                        `${f.valor_total?.toFixed(2) || '0.00'}€`
-                    ]),
+                    body: displayInvoices.map(f => {
+                        // Check if legacy mode (no tax rate)
+                        const isLegacy = f.isLegacy || (f.iva_taxa === 0 && (!f.valor_liquido || f.valor_liquido === f.valor_total));
+
+                        return [
+                            f.numero,
+                            `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
+                            isLegacy ? '-' : `${((f.iva_taxa || 0) * 100).toFixed(0)}%`,
+                            `${f.valor_total?.toFixed(2) || '0.00'}€`
+                        ];
+                    }),
+                    foot: [['', '', 'TOTAL GERAL:', `${grandTotal.toFixed(2)}€`]],
                     theme: 'grid',
                     margin: { left: 10, right: 10 },
                     headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
@@ -474,17 +484,16 @@ export default function Requisicoes() {
                         1: { halign: 'right' },
                         2: { halign: 'center' },
                         3: { halign: 'right', fontStyle: 'bold' }
+                    },
+                    footStyles: {
+                        fillColor: [255, 255, 255],
+                        textColor: 0,
+                        fontStyle: 'bold',
+                        halign: 'right'
                     }
                 });
 
-                // Calculate Total
-                const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
-                const finalY = (doc as any).lastAutoTable.finalY + 4;
-
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`TOTAL GERAL: ${grandTotal.toFixed(2)}€`, pageWidth - 10, finalY, { align: 'right' });
-
+                const finalY = (doc as any).lastAutoTable.finalY + 2;
                 yPos = finalY + 15; // Set Y for next table (Items)
             }
 
