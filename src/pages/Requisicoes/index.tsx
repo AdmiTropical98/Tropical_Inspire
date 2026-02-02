@@ -466,7 +466,8 @@ export default function Requisicoes() {
                         `${f.valor_total?.toFixed(2) || '0.00'}€`
                     ]),
                     theme: 'grid',
-                    headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
+                    margin: { left: 10, right: 10 },
+                    headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
                     styles: { fontSize: 8, textColor: 0, lineWidth: 0.1 },
                     columnStyles: {
                         0: { fontStyle: 'bold' },
@@ -478,11 +479,11 @@ export default function Requisicoes() {
 
                 // Calculate Total
                 const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
-                const finalY = (doc as any).lastAutoTable.finalY + 2;
+                const finalY = (doc as any).lastAutoTable.finalY + 4;
 
                 doc.setFontSize(9);
                 doc.setFont('helvetica', 'bold');
-                doc.text(`TOTAL GERAL: ${grandTotal.toFixed(2)}€`, pageWidth - 15, finalY, { align: 'right' });
+                doc.text(`TOTAL GERAL: ${grandTotal.toFixed(2)}€`, pageWidth - 10, finalY, { align: 'right' });
 
                 yPos = finalY + 15; // Set Y for next table (Items)
             }
@@ -497,6 +498,7 @@ export default function Requisicoes() {
                 head: [['DESCRIÇÃO DO MATERIAL', 'QTD.']],
                 body: tableBody,
                 theme: 'grid',
+                margin: { left: 10, right: 10 },
                 headStyles: {
                     fillColor: [20, 60, 140],
                     textColor: 255,
