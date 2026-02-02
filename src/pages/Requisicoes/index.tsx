@@ -437,14 +437,29 @@ export default function Requisicoes() {
             }
 
             // INVOICE SECTION
+            // INVOICE SECTION
             yPos += 35; // Move down from header details
 
+            // Normalize data: always use array for display
+            let displayInvoices = [];
+
             if (req.faturas_dados && Array.isArray(req.faturas_dados) && req.faturas_dados.length > 0) {
-                // Multiple Invoices Table
+                displayInvoices = req.faturas_dados;
+            } else if (req.fatura) {
+                // Convert legacy single invoice to array format
+                displayInvoices = [{
+                    numero: req.fatura,
+                    valor_liquido: req.custo || 0,
+                    iva_taxa: 0, // Unknown for legacy
+                    valor_total: req.custo || 0
+                }];
+            }
+
+            if (displayInvoices.length > 0) {
                 autoTable(doc, {
                     startY: yPos,
                     head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
-                    body: req.faturas_dados.map(f => [
+                    body: displayInvoices.map(f => [
                         f.numero,
                         `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
                         `${((f.iva_taxa || 0) * 100).toFixed(0)}%`,
@@ -461,8 +476,8 @@ export default function Requisicoes() {
                     }
                 });
 
-                // Calculate Total of Totals
-                const grandTotal = req.faturas_dados.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
+                // Calculate Total
+                const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
                 const finalY = (doc as any).lastAutoTable.finalY + 2;
 
                 doc.setFontSize(9);
@@ -470,31 +485,6 @@ export default function Requisicoes() {
                 doc.text(`TOTAL GERAL: ${grandTotal.toFixed(2)}€`, pageWidth - 15, finalY, { align: 'right' });
 
                 yPos = finalY + 15; // Set Y for next table (Items)
-
-            } else if (req.fatura) {
-                // Legacy Single Invoice (Fallback)
-                const col4X = pageWidth - 60;
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(9);
-                doc.setTextColor(100);
-                doc.text('FATURA Nº', col4X, yPos - 35); // Keep original position for legacy visual
-
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.setTextColor(0);
-                doc.text(req.fatura, col4X, yPos - 29);
-
-                if (req.custo) {
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(9);
-                    doc.setTextColor(100);
-                    doc.text('VALOR', col4X + 30, yPos - 35);
-
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(0);
-                    doc.text(`${req.custo.toFixed(2)}€`, col4X + 30, yPos - 29);
-                }
             }
 
             const tableBody = req.itens.map(item => [
