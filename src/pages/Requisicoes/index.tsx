@@ -474,7 +474,10 @@ export default function Requisicoes() {
                             `${f.valor_total?.toFixed(2) || '0.00'}€`
                         ];
                     }),
-                    foot: [['', '', 'TOTAL GERAL:', `${grandTotal.toFixed(2)}€`]],
+                    foot: [[
+                        { content: 'TOTAL GERAL:', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+                        { content: `${grandTotal.toFixed(2)}€`, styles: { halign: 'right', fontStyle: 'bold' } }
+                    ]],
                     theme: 'grid',
                     margin: { left: 10, right: 10 },
                     headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
