@@ -475,8 +475,8 @@ export default function Requisicoes() {
                         ];
                     }),
                     foot: [[
-                        { content: 'TOTAL GERAL:', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
-                        { content: `${grandTotal.toFixed(2)}€`, styles: { halign: 'right', fontStyle: 'bold' } }
+                        { content: 'TOTAL GERAL:', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } },
+                        { content: `${grandTotal.toFixed(2)}€`, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } }
                     ]],
                     theme: 'grid',
                     margin: { left: 10, right: 10 },
@@ -492,7 +492,9 @@ export default function Requisicoes() {
                         fillColor: [255, 255, 255],
                         textColor: 0,
                         fontStyle: 'bold',
-                        halign: 'right'
+                        halign: 'right',
+                        lineColor: [255, 255, 255],
+                        lineWidth: 0
                     }
                 });
 
