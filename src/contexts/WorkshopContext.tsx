@@ -743,7 +743,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     motoristaId: s.motorista_id,
                     centroCustoId: s.centro_custo_id,
                     status: s.status,
-                    failureReason: s.failure_reason
+                    failureReason: s.failure_reason,
+                    batchId: s.batch_id, // FIX: Ensure batch association persists
+                    tipo: s.tipo,
+                    departamento: s.departamento
                 })));
             }
 
