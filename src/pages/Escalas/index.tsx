@@ -279,7 +279,11 @@ export default function Escalas() {
     });
 
     // Global Pending Calculation for Sidebar Grouping
-    const globalPendentes = servicos.filter(s => !s.motoristaId && !s.concluido);
+    const globalPendentes = servicos.filter(s => {
+        if (s.motoristaId || s.concluido) return false;
+        if (selectedCentroCusto !== 'all' && s.centroCustoId !== selectedCentroCusto) return false;
+        return true;
+    });
 
     // Compute Batches that have pending services
     const pendingBatches = scaleBatches.filter(batch => {
