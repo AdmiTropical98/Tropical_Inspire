@@ -55,7 +55,13 @@ interface WorkshopContextType {
     addLocal: (l: Local) => Promise<void>;
     updateLocal: (l: Local) => Promise<void>;
     deleteLocal: (id: string) => Promise<void>;
+    deleteLocal: (id: string) => Promise<void>;
     checkRouteValidation: (serviceId: string) => Promise<Record<string, { status: 'success' | 'failed'; time?: string; distance?: number }>>;
+
+    // Scale Batch Actions
+    createScaleBatch: (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; data?: any; error?: any }>;
+    cancelScaleBatch: (batchId: string) => Promise<{ success: boolean; error?: any }>;
+
     // Fuel
     fuelTank: FuelTank;
     fuelTransactions: FuelTransaction[];
@@ -2044,7 +2050,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         created_by_role: storedRole || null, // NEW
                         centro_custo_id: batchData.centroCustoId,
                         reference_date: batchData.referenceDate,
-                        notes: batchData.notes
+                        notes: batchData.notes,
+                        status: 'active' // NEW: Default status
                     }).select().single();
 
                     if (batchError) throw batchError;
@@ -2105,6 +2112,26 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 } catch (error: any) {
                     console.error('Error creating batch:', error);
+                }
+            },
+            cancelScaleBatch: async (batchId: string) => {
+                try {
+                    // Update Database
+                    const { error } = await supabase
+                        .from('scale_batches')
+                        .update({ status: 'cancelled' })
+                        .eq('id', batchId);
+
+                    if (error) throw error;
+
+                    // Update Local State
+                    setScaleBatches(prev => prev.map(b =>
+                        b.id === batchId ? { ...b, status: 'cancelled' } : b
+                    ));
+
+                    return { success: true };
+                } catch (error: any) {
+                    console.error('Error cancelling batch:', error);
                     return { success: false, error: error.message };
                 }
             },

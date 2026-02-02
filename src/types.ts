@@ -193,6 +193,7 @@ export interface ScaleBatch {
     notes?: string;
     created_at: string;
     created_by_role?: string; // NEW
+    status?: 'active' | 'cancelled'; // NEW: Soft delete status
 }
 
 export interface Supervisor {
