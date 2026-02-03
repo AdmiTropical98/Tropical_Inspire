@@ -1886,7 +1886,6 @@ export default function Escalas() {
 
                                 </div>
                             </div>
-
                         )
                     }
 
