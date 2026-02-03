@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, UserCheck, History
+  ChevronDown, ChevronRight, UserCheck, History, Navigation
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -45,6 +45,7 @@ import Locais from './pages/Locais'; // Import Locais (POIs)
 import Permissoes from './pages/Permissoes';
 import MyProfile from './pages/Profile/MyProfile';
 import Gestores from './pages/Gestores';
+import Roteirizacao from './pages/Roteirizacao';
 // Lazy Load LancarEscala
 const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 
@@ -148,7 +149,7 @@ function AppContent() {
   const { notifications } = useWorkshop();
   const { unreadCount } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao'>('dashboard');
 
   // Sidebar State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -163,7 +164,7 @@ function AppContent() {
 
   // Sidebar Visibility Flags
   const showFleetGroup = hasAccess(userRole, 'central_motorista') || hasAccess(userRole, 'viaturas') || hasAccess(userRole, 'motoristas') || hasAccess(userRole, 'geofences') || userRole === 'admin' || userRole === 'gestor';
-  const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'requisicoes') || hasAccess(userRole, 'horas') || hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'plataformas_externas');
+  const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'requisicoes') || hasAccess(userRole, 'horas') || hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'plataformas_externas') || hasAccess(userRole, 'roteirizacao') || userRole === 'admin';
   const showFinGroup = hasAccess(userRole, 'contabilidade') || hasAccess(userRole, 'centros_custos') || hasAccess(userRole, 'fornecedores') || hasAccess(userRole, 'clientes') || hasAccess(userRole, 'relatorios');
   const showSysGroup = hasAccess(userRole, 'equipa-oficina') || hasAccess(userRole, 'supervisores') || userRole === 'admin' || userRole === 'gestor';
 
@@ -249,6 +250,7 @@ function AppContent() {
       case 'locais': return <Locais />;
       case 'external': return <ExternalServices />;
       case 'meu-perfil': return <MyProfile />;
+      case 'roteirizacao': return <Roteirizacao />;
       default: return <Dashboard setActiveTab={handleNavigate} />;
     }
   };
@@ -364,6 +366,9 @@ function AppContent() {
                 )}
                 {hasAccess(userRole, 'plataformas_externas') && (
                   <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => handleNavigate('transportes-eva')} collapsed={isSidebarCollapsed} />
+                )}
+                {(hasAccess(userRole, 'roteirizacao') || userRole === 'admin' || userRole === 'gestor') && (
+                  <SidebarItem icon={Navigation} label="Roteirização" active={activeTab === 'roteirizacao'} onClick={() => handleNavigate('roteirizacao')} collapsed={isSidebarCollapsed} />
                 )}
               </SidebarGroup>
             )}
