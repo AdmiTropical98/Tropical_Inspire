@@ -1,9 +1,9 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, UserCheck
+  ChevronDown, ChevronRight, UserCheck, History
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -21,6 +21,7 @@ import Viaturas from './pages/Viaturas';
 import Drivers from './pages/Motoristas';
 import Requisicoes from './pages/Requisicoes';
 import Escalas from './pages/Escalas';
+import EscalasHistory from './pages/Escalas/EscalasHistory';
 import Horas from './pages/Horas';
 import FuelManager from './pages/Combustivel';
 import EquipaOficina from './pages/EquipaOficina';
@@ -147,7 +148,7 @@ function AppContent() {
   const { notifications } = useWorkshop();
   const { unreadCount } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores'>('dashboard');
 
   // Sidebar State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -217,6 +218,7 @@ function AppContent() {
           </div>
         );
       case 'escalas': return <Escalas />;
+      case 'escalas-history': return <EscalasHistory />;
       case 'lancar-escala': return (
         <Suspense fallback={<PageLoading />}>
           <LancarEscala onNavigate={(tab) => handleNavigate(tab as any)} />
@@ -340,14 +342,23 @@ function AppContent() {
               </SidebarGroup>
             )}
 
-            {showOpsGroup && (
-              <SidebarGroup title="Operações" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-                {hasAccess(userRole, 'escalas') && (
-                  <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => handleNavigate('escalas')} collapsed={isSidebarCollapsed} />
-                )}
+            {/* NEW ESCALAS GROUP */}
+            {(hasAccess(userRole, 'escalas') || hasAccess(userRole, 'escalas_create')) && (
+              <SidebarGroup title="Escalas" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
                 {hasAccess(userRole, 'escalas_create') && (
                   <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => handleNavigate('lancar-escala')} collapsed={isSidebarCollapsed} />
                 )}
+                {hasAccess(userRole, 'escalas') && (
+                  <SidebarItem icon={Calendar} label="Atribuir Escalas" active={activeTab === 'escalas'} onClick={() => handleNavigate('escalas')} collapsed={isSidebarCollapsed} />
+                )}
+                {hasAccess(userRole, 'escalas') && (
+                  <SidebarItem icon={History} label="Histórico de Escalas" active={activeTab === 'escalas-history'} onClick={() => handleNavigate('escalas-history')} collapsed={isSidebarCollapsed} />
+                )}
+              </SidebarGroup>
+            )}
+
+            {showOpsGroup && (
+              <SidebarGroup title="Operações" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
                 {hasAccess(userRole, 'horas') && (
                   <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => handleNavigate('horas')} collapsed={isSidebarCollapsed} />
                 )}

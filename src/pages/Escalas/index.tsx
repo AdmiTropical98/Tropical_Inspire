@@ -1,12 +1,12 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, Car,
     Search, LayoutList, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid, History
+    Table as TableIcon, LayoutGrid
 } from 'lucide-react';
-import EscalasHistory from './EscalasHistory';
+
 import {
     DndContext,
     closestCenter,
@@ -95,7 +95,7 @@ export default function Escalas() {
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
-    const [activeTab, setActiveTab] = useState<'assign' | 'history'>('assign');
+
     const { t } = useTranslation();
 
 
@@ -617,54 +617,30 @@ export default function Escalas() {
                 breadcrumbs={[]}
                 actions={
                     <>
-                        {/* Tab Switcher */}
-                        <div className="flex bg-[#1e293b] p-1 rounded-lg border border-white/5 mr-4">
-                            <button
-                                onClick={() => setActiveTab('assign')}
-                                className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2
-                                    ${activeTab === 'assign'
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                <LayoutGrid className="w-4 h-4" />
-                                Atribuir Escalas
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('history')}
-                                className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2
-                                    ${activeTab === 'history'
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                <History className="w-4 h-4" />
-                                Histórico de Escalas
-                            </button>
+
+
+
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                            {/* Date Picker */}
+                            <div className="relative group">
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => {
+                                        setSelectedDate(e.target.value);
+                                        setSelectedBatchId(null);
+                                    }}
+                                    className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/5 outline-none focus:border-blue-500 transition-colors shadow-sm"
+                                />
+                                <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            </div>
+
+                            {/* Action Buttons */}
+
+
+
                         </div>
 
-                        {activeTab === 'assign' && (
-                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                                {/* Date Picker */}
-                                <div className="relative group">
-                                    <input
-                                        type="date"
-                                        value={selectedDate}
-                                        onChange={(e) => {
-                                            setSelectedDate(e.target.value);
-                                            setSelectedBatchId(null);
-                                        }}
-                                        className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/5 outline-none focus:border-blue-500 transition-colors shadow-sm"
-                                    />
-                                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                                </div>
-
-                                {/* Action Buttons */}
-
-
-
-                            </div>
-                        )}
                     </>
                 }
             >
@@ -768,1007 +744,1109 @@ export default function Escalas() {
             </PageHeader>
 
             {/* MAIN CONTENT AREA */}
-            {activeTab === 'assign' && (
-                <div className="flex-1 overflow-hidden relative">
-                    <div className="flex flex-col md:flex-row h-full w-full overflow-hidden">
-                        {/* DRIVERS GRID WIDGET */}
-                        <div className="flex-1 flex flex-col min-w-0 h-full relative md:border-r border-white/5">
 
-                            {/* Status Tabs (Stick to top of widget) */}
+            <div className="flex-1 overflow-hidden relative">
+                <div className="flex flex-col md:flex-row h-full w-full overflow-hidden">
+                    {/* DRIVERS GRID WIDGET */}
+                    <div className="flex-1 flex flex-col min-w-0 h-full relative md:border-r border-white/5">
 
-                            {viewMode === 'cards' && (
-                                /* CARD VIEW (Existing) */
-                                <>
+                        {/* Status Tabs (Stick to top of widget) */}
 
-                                    <div className={`flex-1 md:overflow-hidden p-0 transition-colors duration-300
+                        {viewMode === 'cards' && (
+                            /* CARD VIEW (Existing) */
+                            <>
+
+                                <div className={`flex-1 md:overflow-hidden p-0 transition-colors duration-300
                     ${isDistributeMode ? 'bg-[#1e293b]/20' : ''}
                 `}>
-                                        <div className="h-auto md:h-full flex flex-col">
-                                            {/* TOOLBAR: Status - CC Filters - View Options */}
-                                            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2 px-2 md:px-8 mt-2 md:mt-6 overflow-x-auto pb-1 shrink-0 scrollbar-hide">
+                                    <div className="h-auto md:h-full flex flex-col">
+                                        {/* TOOLBAR: Status - CC Filters - View Options */}
+                                        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2 px-2 md:px-8 mt-2 md:mt-6 overflow-x-auto pb-1 shrink-0 scrollbar-hide">
 
-                                                {/* Status Filters */}
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => setFilterStatus('all')}
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
-                                                            ? 'bg-blue-600 text-white border-blue-500'
-                                                            : 'bg-[#1e293b] text-slate-400 border-white/5 hover:border-white/10'
-                                                            }`}
-                                                    >
-                                                        Todos
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setFilterStatus('available')}
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'available'
-                                                            ? 'bg-emerald-600 text-white border-emerald-500'
-                                                            : 'bg-[#1e293b] text-emerald-400 border-white/5 hover:border-white/10'
-                                                            }`}
-                                                    >
-                                                        Disponíveis ({motoristas.filter(m => m.status === 'disponivel').length})
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setFilterStatus('busy')}
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'busy'
-                                                            ? 'bg-amber-600 text-white border-amber-500'
-                                                            : 'bg-[#1e293b] text-amber-400 border-white/5 hover:border-white/10'
-                                                            }`}
-                                                    >
-                                                        Em Serviço ({motoristas.filter(m => m.status === 'ocupado').length})
-                                                    </button>
-                                                </div>
-
-                                                <div className="h-6 w-px bg-white/10 hidden md:block"></div>
-
-
-
-                                                {/* Layout Controls */}
-                                                <div className="ml-auto flex items-center gap-3">
-                                                    <div className="flex items-center gap-2 bg-[#1e293b] border border-white/10 px-3 py-1 rounded-lg">
-                                                        <span className="text-[10px] uppercase font-bold text-slate-500">Colunas</span>
-                                                        <input
-                                                            type="range"
-                                                            min="1"
-                                                            max="6"
-                                                            value={layoutCols}
-                                                            onChange={(e) => setLayoutCols(parseInt(e.target.value))}
-                                                            className="w-20 accent-blue-500 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                                                        />
-                                                        <span className="text-xs text-white px-2 py-0.5 bg-slate-800 rounded">{layoutCols}</span>
-                                                    </div>
-                                                </div>
-
+                                            {/* Status Filters */}
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setFilterStatus('all')}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
+                                                        ? 'bg-blue-600 text-white border-blue-500'
+                                                        : 'bg-[#1e293b] text-slate-400 border-white/5 hover:border-white/10'
+                                                        }`}
+                                                >
+                                                    Todos
+                                                </button>
+                                                <button
+                                                    onClick={() => setFilterStatus('available')}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'available'
+                                                        ? 'bg-emerald-600 text-white border-emerald-500'
+                                                        : 'bg-[#1e293b] text-emerald-400 border-white/5 hover:border-white/10'
+                                                        }`}
+                                                >
+                                                    Disponíveis ({motoristas.filter(m => m.status === 'disponivel').length})
+                                                </button>
+                                                <button
+                                                    onClick={() => setFilterStatus('busy')}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'busy'
+                                                        ? 'bg-amber-600 text-white border-amber-500'
+                                                        : 'bg-[#1e293b] text-amber-400 border-white/5 hover:border-white/10'
+                                                        }`}
+                                                >
+                                                    Em Serviço ({motoristas.filter(m => m.status === 'ocupado').length})
+                                                </button>
                                             </div>
 
-                                            {/* Drivers Grid View (With DND) */}
-                                            <DndContext
-                                                sensors={sensors}
-                                                collisionDetection={closestCenter}
-                                                onDragEnd={handleDragDriverEnd}
+                                            <div className="h-6 w-px bg-white/10 hidden md:block"></div>
+
+
+
+                                            {/* Layout Controls */}
+                                            <div className="ml-auto flex items-center gap-3">
+                                                <div className="flex items-center gap-2 bg-[#1e293b] border border-white/10 px-3 py-1 rounded-lg">
+                                                    <span className="text-[10px] uppercase font-bold text-slate-500">Colunas</span>
+                                                    <input
+                                                        type="range"
+                                                        min="1"
+                                                        max="6"
+                                                        value={layoutCols}
+                                                        onChange={(e) => setLayoutCols(parseInt(e.target.value))}
+                                                        className="w-20 accent-blue-500 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                                                    />
+                                                    <span className="text-xs text-white px-2 py-0.5 bg-slate-800 rounded">{layoutCols}</span>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        {/* Drivers Grid View (With DND) */}
+                                        <DndContext
+                                            sensors={sensors}
+                                            collisionDetection={closestCenter}
+                                            onDragEnd={handleDragDriverEnd}
+                                        >
+                                            <SortableContext
+                                                items={processedMotoristas.map(m => m.id)}
+                                                strategy={rectSortingStrategy}
                                             >
-                                                <SortableContext
-                                                    items={processedMotoristas.map(m => m.id)}
-                                                    strategy={rectSortingStrategy}
+                                                <div
+                                                    className="flex-1 min-h-0 grid gap-4 overflow-y-auto pb-24 md:pb-6 px-2 md:px-4 custom-scrollbar"
+                                                    style={{
+                                                        gridTemplateColumns: `repeat(${layoutCols}, minmax(0, 1fr))`
+                                                    }}
                                                 >
-                                                    <div
-                                                        className="flex-1 min-h-0 grid gap-4 overflow-y-auto pb-24 md:pb-6 px-2 md:px-4 custom-scrollbar"
-                                                        style={{
-                                                            gridTemplateColumns: `repeat(${layoutCols}, minmax(0, 1fr))`
-                                                        }}
-                                                    >
-                                                        {processedMotoristas.map(driver => {
-                                                            // Calculate Driver Stats
-                                                            const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
+                                                    {processedMotoristas.map(driver => {
+                                                        // Calculate Driver Stats
+                                                        const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
 
-                                                            return (
-                                                                <SortableDriverCard
-                                                                    key={driver.id}
-                                                                    driver={driver}
-                                                                    isDistributeMode={isDistributeMode}
-                                                                    activeDriverId={activeDriverId}
-                                                                    activeDriverMenuId={activeDriverMenuId}
-                                                                    onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
-                                                                    onDragOver={(e: any) => {
-                                                                        e.preventDefault();
-                                                                        e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-                                                                    }}
-                                                                    onDragLeave={(e: any) => {
-                                                                        e.preventDefault();
-                                                                        e.currentTarget.style.borderColor = '';
-                                                                        e.currentTarget.style.backgroundColor = '';
-                                                                    }}
-                                                                >
-                                                                    {/* Card Header (Handle) */}
-                                                                    <div className="p-3 bg-slate-900/50 border-b border-white/5 flex items-center justify-between rounded-t-2xl cursor-grab active:cursor-grabbing">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="relative">
-                                                                                {driver.foto ? (
-                                                                                    <img src={driver.foto} alt={driver.nome} className="w-9 h-9 rounded-full object-cover border-2 border-slate-700" />
-                                                                                ) : (
-                                                                                    <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
-                                                                                        {driver.nome.charAt(0)}
-                                                                                    </div>
-                                                                                )}
-                                                                                <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-[#1e293b] rounded-full shadow-sm
-                                                                        ${driver.status === 'disponivel' ? 'bg-emerald-500' :
-                                                                                        driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
-                                                                    `}></div>
-                                                                            </div>
-                                                                            <div>
-                                                                                <h3 className="font-bold text-white text-sm md:text-base leading-tight">{driver.nome}</h3>
-                                                                                <div className="flex items-center gap-3 mt-0.5 text-[10px] md:text-xs text-slate-400">
-                                                                                    <span className="flex items-center gap-1.5">
-                                                                                        <MapPin className="w-2.5 h-2.5 text-blue-400" />
-                                                                                        {driverServices.length} {t('schedule.trips')}
-                                                                                    </span>
-                                                                                    {driver.currentVehicle && (
-                                                                                        <span className="flex items-center gap-1.5 ml-2 text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20" title="Viatura atual">
-                                                                                            <Car className="w-2.5 h-2.5" />
-                                                                                            {driver.currentVehicle}
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
+                                                        return (
+                                                            <SortableDriverCard
+                                                                key={driver.id}
+                                                                driver={driver}
+                                                                isDistributeMode={isDistributeMode}
+                                                                activeDriverId={activeDriverId}
+                                                                activeDriverMenuId={activeDriverMenuId}
+                                                                onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
+                                                                onDragOver={(e: any) => {
+                                                                    e.preventDefault();
+                                                                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                                                                }}
+                                                                onDragLeave={(e: any) => {
+                                                                    e.preventDefault();
+                                                                    e.currentTarget.style.borderColor = '';
+                                                                    e.currentTarget.style.backgroundColor = '';
+                                                                }}
+                                                            >
+                                                                {/* Card Header (Handle) */}
+                                                                <div className="p-3 bg-slate-900/50 border-b border-white/5 flex items-center justify-between rounded-t-2xl cursor-grab active:cursor-grabbing">
+                                                                    <div className="flex items-center gap-3">
                                                                         <div className="relative">
-                                                                            <button
-                                                                                onMouseDown={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setActiveDriverMenuId(activeDriverMenuId === driver.id ? null : driver.id);
-                                                                                }}
-                                                                                className={`p-2 rounded-lg transition-colors ${activeDriverMenuId === driver.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
-                                                                            >
-                                                                                <MoreVertical className="w-5 h-5" />
-                                                                            </button>
-
-                                                                            {activeDriverMenuId === driver.id && (
-                                                                                <>
-                                                                                    <div
-                                                                                        className="fixed inset-0 z-40"
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            setActiveDriverMenuId(null);
-                                                                                        }}
-                                                                                    />
-                                                                                    <div className="absolute right-0 top-full mt-2 w-32 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
-                                                                                        <div className="p-1">
-                                                                                            <button
-                                                                                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
-                                                                                                onClick={(e) => {
-                                                                                                    e.stopPropagation();
-                                                                                                    handleEditDriver(driver);
-                                                                                                }}
-                                                                                            >
-                                                                                                <Edit className="w-4 h-4" />
-                                                                                                <span>Editar</span>
-                                                                                            </button>
-                                                                                            <div className="h-px bg-white/10 my-1" />
-                                                                                            <button
-                                                                                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-left"
-                                                                                                onClick={(e) => {
-                                                                                                    e.stopPropagation();
-                                                                                                    handleDeleteDriver(driver.id, driver.nome);
-                                                                                                }}
-                                                                                            >
-                                                                                                <Trash2 className="w-4 h-4" />
-                                                                                                <span>Eliminar</span>
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </>
+                                                                            {driver.foto ? (
+                                                                                <img src={driver.foto} alt={driver.nome} className="w-9 h-9 rounded-full object-cover border-2 border-slate-700" />
+                                                                            ) : (
+                                                                                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
+                                                                                    {driver.nome.charAt(0)}
+                                                                                </div>
                                                                             )}
+                                                                            <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-[#1e293b] rounded-full shadow-sm
+                                                                        ${driver.status === 'disponivel' ? 'bg-emerald-500' :
+                                                                                    driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
+                                                                    `}></div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <h3 className="font-bold text-white text-sm md:text-base leading-tight">{driver.nome}</h3>
+                                                                            <div className="flex items-center gap-3 mt-0.5 text-[10px] md:text-xs text-slate-400">
+                                                                                <span className="flex items-center gap-1.5">
+                                                                                    <MapPin className="w-2.5 h-2.5 text-blue-400" />
+                                                                                    {driverServices.length} {t('schedule.trips')}
+                                                                                </span>
+                                                                                {driver.currentVehicle && (
+                                                                                    <span className="flex items-center gap-1.5 ml-2 text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20" title="Viatura atual">
+                                                                                        <Car className="w-2.5 h-2.5" />
+                                                                                        {driver.currentVehicle}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
                                                                     </div>
+                                                                    <div className="relative">
+                                                                        <button
+                                                                            onMouseDown={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setActiveDriverMenuId(activeDriverMenuId === driver.id ? null : driver.id);
+                                                                            }}
+                                                                            className={`p-2 rounded-lg transition-colors ${activeDriverMenuId === driver.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                                                                        >
+                                                                            <MoreVertical className="w-5 h-5" />
+                                                                        </button>
 
-                                                                    {/* Timeline */}
-                                                                    <div className="p-2 md:p-3 flex-1 bg-[#0b1120]/30 min-h-[150px] overflow-y-auto custom-scrollbar relative">
-                                                                        <div className="space-y-3 relative">
-                                                                            {/* Vertical Timeline Line */}
-                                                                            {driverServices.length > 1 && (
-                                                                                <div className="absolute left-[2.35rem] top-4 bottom-4 w-px bg-slate-800/80 z-0"></div>
-                                                                            )}
-
-                                                                            {driverServices.length === 0 ? (
-                                                                                <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-500/50 text-xs text-center">
-                                                                                    <div className="p-4 bg-slate-800/30 rounded-full mb-3 shadow-inner">
-                                                                                        <Clock className="w-8 h-8 opacity-40" />
+                                                                        {activeDriverMenuId === driver.id && (
+                                                                            <>
+                                                                                <div
+                                                                                    className="fixed inset-0 z-40"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setActiveDriverMenuId(null);
+                                                                                    }}
+                                                                                />
+                                                                                <div className="absolute right-0 top-full mt-2 w-32 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                                                                                    <div className="p-1">
+                                                                                        <button
+                                                                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                handleEditDriver(driver);
+                                                                                            }}
+                                                                                        >
+                                                                                            <Edit className="w-4 h-4" />
+                                                                                            <span>Editar</span>
+                                                                                        </button>
+                                                                                        <div className="h-px bg-white/10 my-1" />
+                                                                                        <button
+                                                                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-left"
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                handleDeleteDriver(driver.id, driver.nome);
+                                                                                            }}
+                                                                                        >
+                                                                                            <Trash2 className="w-4 h-4" />
+                                                                                            <span>Eliminar</span>
+                                                                                        </button>
                                                                                     </div>
-                                                                                    <span className="font-medium">Motorista Disponível</span>
-                                                                                    <span className="text-[10px] opacity-60 mt-1">Arraste serviços para aqui</span>
                                                                                 </div>
-                                                                            ) : (
-                                                                                /* GROUPING LOGIC */
-                                                                                (() => {
-                                                                                    // Group services
-                                                                                    const groupedServices: { [key: string]: typeof driverServices } = {};
-                                                                                    driverServices.forEach(s => {
-                                                                                        const key = `${s.hora}|${s.origem}`;
-                                                                                        if (!groupedServices[key]) groupedServices[key] = [];
-                                                                                        groupedServices[key].push(s);
-                                                                                    });
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
 
-                                                                                    // Convert to array and sort
-                                                                                    const groups = Object.values(groupedServices).sort((a, b) => a[0].hora.localeCompare(b[0].hora));
+                                                                {/* Timeline */}
+                                                                <div className="p-2 md:p-3 flex-1 bg-[#0b1120]/30 min-h-[150px] overflow-y-auto custom-scrollbar relative">
+                                                                    <div className="space-y-3 relative">
+                                                                        {/* Vertical Timeline Line */}
+                                                                        {driverServices.length > 1 && (
+                                                                            <div className="absolute left-[2.35rem] top-4 bottom-4 w-px bg-slate-800/80 z-0"></div>
+                                                                        )}
 
-                                                                                    return groups.map((group) => {
-                                                                                        const isGroup = group.length > 1;
-                                                                                        const firstService = group[0];
-                                                                                        const groupKey = `${driver.id}-${firstService.hora}-${firstService.origem}`;
-                                                                                        const isExpanded = expandedGroups[groupKey];
+                                                                        {driverServices.length === 0 ? (
+                                                                            <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-500/50 text-xs text-center">
+                                                                                <div className="p-4 bg-slate-800/30 rounded-full mb-3 shadow-inner">
+                                                                                    <Clock className="w-8 h-8 opacity-40" />
+                                                                                </div>
+                                                                                <span className="font-medium">Motorista Disponível</span>
+                                                                                <span className="text-[10px] opacity-60 mt-1">Arraste serviços para aqui</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            /* GROUPING LOGIC */
+                                                                            (() => {
+                                                                                // Group services
+                                                                                const groupedServices: { [key: string]: typeof driverServices } = {};
+                                                                                driverServices.forEach(s => {
+                                                                                    const key = `${s.hora}|${s.origem}`;
+                                                                                    if (!groupedServices[key]) groupedServices[key] = [];
+                                                                                    groupedServices[key].push(s);
+                                                                                });
 
-                                                                                        if (!isGroup) {
-                                                                                            // RENDER SINGLE SERVICE (Legacy)
-                                                                                            const service = firstService;
-                                                                                            const compliance = complianceStats?.[service.id];
-                                                                                            const complianceColor = compliance?.status === 'success'
-                                                                                                ? 'border-emerald-500 bg-emerald-500/10'
-                                                                                                : compliance?.status === 'failed'
-                                                                                                    ? 'border-red-500 bg-red-500/10'
-                                                                                                    : 'border-white/5 hover:border-blue-500/30';
+                                                                                // Convert to array and sort
+                                                                                const groups = Object.values(groupedServices).sort((a, b) => a[0].hora.localeCompare(b[0].hora));
 
-                                                                                            return (
-                                                                                                <div key={service.id} className="relative z-10 flex gap-2 md:gap-4 group/item">
-                                                                                                    {/* Time Column */}
-                                                                                                    <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
-                                                                                                        <span className={`text-[11px] md:text-sm font-bold text-white font-mono px-1.5 md:px-2 py-0.5 md:py-1 rounded border shadow-sm ${compliance?.status === 'success' ? 'bg-emerald-600 border-emerald-400' : compliance?.status === 'failed' ? 'bg-red-600 border-red-400' : 'bg-slate-800/80 border-white/5'}`}>
-                                                                                                            {service.hora}
+                                                                                return groups.map((group) => {
+                                                                                    const isGroup = group.length > 1;
+                                                                                    const firstService = group[0];
+                                                                                    const groupKey = `${driver.id}-${firstService.hora}-${firstService.origem}`;
+                                                                                    const isExpanded = expandedGroups[groupKey];
+
+                                                                                    if (!isGroup) {
+                                                                                        // RENDER SINGLE SERVICE (Legacy)
+                                                                                        const service = firstService;
+                                                                                        const compliance = complianceStats?.[service.id];
+                                                                                        const complianceColor = compliance?.status === 'success'
+                                                                                            ? 'border-emerald-500 bg-emerald-500/10'
+                                                                                            : compliance?.status === 'failed'
+                                                                                                ? 'border-red-500 bg-red-500/10'
+                                                                                                : 'border-white/5 hover:border-blue-500/30';
+
+                                                                                        return (
+                                                                                            <div key={service.id} className="relative z-10 flex gap-2 md:gap-4 group/item">
+                                                                                                {/* Time Column */}
+                                                                                                <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
+                                                                                                    <span className={`text-[11px] md:text-sm font-bold text-white font-mono px-1.5 md:px-2 py-0.5 md:py-1 rounded border shadow-sm ${compliance?.status === 'success' ? 'bg-emerald-600 border-emerald-400' : compliance?.status === 'failed' ? 'bg-red-600 border-red-400' : 'bg-slate-800/80 border-white/5'}`}>
+                                                                                                        {service.hora}
+                                                                                                    </span>
+                                                                                                    {service.voo && (
+                                                                                                        <span className="px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30 max-w-full truncate">
+                                                                                                            {service.voo}
                                                                                                         </span>
-                                                                                                        {service.voo && (
-                                                                                                            <span className="px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30 max-w-full truncate">
-                                                                                                                {service.voo}
-                                                                                                            </span>
-                                                                                                        )}
-                                                                                                    </div>
-
-                                                                                                    {/* Content Card */}
-                                                                                                    <div className={`flex-1 ${complianceColor} hover:bg-slate-800/60 border rounded-lg p-2 flex flex-col gap-1.5 transition-all relative overflow-hidden`}>
-                                                                                                        <button
-                                                                                                            onClick={(e) => {
-                                                                                                                e.stopPropagation();
-                                                                                                                unassignService(service.id);
-                                                                                                            }}
-                                                                                                            className="absolute top-1 right-1 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
-                                                                                                            title={t('schedule.remove_assignment')}
-                                                                                                        >
-                                                                                                            <Trash2 className="w-3 h-3" />
-                                                                                                        </button>
-
-                                                                                                        <div className="flex items-start justify-between pr-8 md:pr-10">
-                                                                                                            <div className="flex flex-col">
-                                                                                                                <span className="text-xs font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
-                                                                                                                    {service.passageiro}
-                                                                                                                </span>
-                                                                                                                {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
-                                                                                                                    <span className="text-[9px] text-slate-500 italic line-clamp-1">{service.obs}</span>
-                                                                                                                )}
-                                                                                                                {/* COMPLIANCE MESSAGE */}
-                                                                                                                {compliance && (
-                                                                                                                    <div className={`flex items-center gap-1 text-[10px] font-bold mt-0.5 ${compliance.status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                                                                                        {compliance.status === 'success' ? <CheckSquare className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-                                                                                                                        <span>{compliance.message}</span>
-                                                                                                                    </div>
-                                                                                                                )}
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                    </div>
-
-                                                                                                    {/* Validation POIs Indicator */}
-                                                                                                    {service.validationPoints && service.validationPoints.length > 0 && (
-                                                                                                        <button
-                                                                                                            onClick={async (e) => {
-                                                                                                                e.stopPropagation();
-                                                                                                                const res = await checkRouteValidation(service.id);
-                                                                                                                const passed = Object.values(res).every(r => r.status === 'success');
-                                                                                                                const details = Object.entries(res).map(([pid, r]) => {
-                                                                                                                    const loc = locais.find(l => l.id === pid);
-                                                                                                                    return `${loc?.nome || 'POI'}: ${r.status === 'success' ? '✅' : '❌'} (${Math.round(r.distance || 0)}m)`;
-                                                                                                                }).join('\n');
-                                                                                                                alert(`Validação de Rota:\n\n${details}\n\nResultado Final: ${passed ? 'APROVADO' : 'FALHOU'}`);
-                                                                                                            }}
-                                                                                                            className="flex items-center gap-1.5 text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/30 p-1.5 rounded hover:bg-purple-500/20 transition-colors mt-1"
-                                                                                                        >
-                                                                                                            <MapPin className="w-3 h-3" />
-                                                                                                            <span className="font-bold">{service.validationPoints.length} POIs de Controlo</span>
-                                                                                                        </button>
                                                                                                     )}
-                                                                                                    <div className="flex items-center gap-1.5 text-[10px] bg-[#0f172a]/40 p-1.5 rounded border border-white/5">
-                                                                                                        <div className="w-1 h-1 rounded-full bg-slate-500 shrink-0"></div>
-                                                                                                        <span className="text-slate-400 truncate flex-1" title={service.origem}>{service.origem}</span>
-                                                                                                        <ArrowRight className="w-2.5 h-2.5 text-slate-600 shrink-0" />
-                                                                                                        <div className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></div>
-                                                                                                        <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
-                                                                                                    </div>
                                                                                                 </div>
 
-                                                                                            );
-                                                                                        } else {
-                                                                                            // RENDER GROUP CARD
-                                                                                            return (
-                                                                                                <div key={groupKey} className="relative z-10 flex gap-2 md:gap-4">
-                                                                                                    {/* Time Column */}
-                                                                                                    <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
-                                                                                                        <span className="text-[11px] md:text-sm font-bold text-white font-mono bg-blue-600 px-1.5 md:px-2 py-0.5 md:py-1 rounded border border-blue-400/30 shadow-lg shadow-blue-900/20">
-                                                                                                            {firstService.hora}
-                                                                                                        </span>
-                                                                                                        <div className="w-px h-full bg-blue-500/20 mx-auto my-1"></div>
-                                                                                                    </div>
-
-                                                                                                    {/* Group Container */}
-                                                                                                    <div
-                                                                                                        className={`flex-1 rounded-xl border transition-all duration-300 overflow-hidden
-                                                                                    ${isExpanded
-                                                                                                                ? 'bg-slate-800/80 border-blue-500/50'
-                                                                                                                : 'bg-gradient-to-br from-blue-900/20 to-slate-900/50 border-blue-500/20 hover:border-blue-500/40 cursor-pointer'
-                                                                                                            }
-                                                                                `}
-                                                                                                        onClick={() => {
-                                                                                                            setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+                                                                                                {/* Content Card */}
+                                                                                                <div className={`flex-1 ${complianceColor} hover:bg-slate-800/60 border rounded-lg p-2 flex flex-col gap-1.5 transition-all relative overflow-hidden`}>
+                                                                                                    <button
+                                                                                                        onClick={(e) => {
+                                                                                                            e.stopPropagation();
+                                                                                                            unassignService(service.id);
                                                                                                         }}
+                                                                                                        className="absolute top-1 right-1 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
+                                                                                                        title={t('schedule.remove_assignment')}
                                                                                                     >
-                                                                                                        {/* Group Header */}
-                                                                                                        <div className="p-3">
-                                                                                                            <div className="flex items-center justify-between mb-2">
-                                                                                                                <div className="flex items-center gap-2">
-                                                                                                                    <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold text-white">
-                                                                                                                        {group.length}
-                                                                                                                    </div>
-                                                                                                                    <span className="font-bold text-blue-100 text-sm">Passageiros</span>
-                                                                                                                </div>
-                                                                                                                <div className={`p-1 rounded-lg transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-white/10' : ''}`}>
-                                                                                                                    <LayoutList className="w-4 h-4 text-blue-400" />
-                                                                                                                </div>
-                                                                                                            </div>
+                                                                                                        <Trash2 className="w-3 h-3" />
+                                                                                                    </button>
 
-                                                                                                            <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
-                                                                                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
-                                                                                                                <span className="text-slate-300 truncate flex-1 font-medium">{firstService.origem}</span>
-                                                                                                                {isExpanded && (
-                                                                                                                    <>
-                                                                                                                        <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
-                                                                                                                        <span className="text-slate-500 text-[10px] italic shrink-0">Vários Destinos</span>
-                                                                                                                    </>
-                                                                                                                )}
-                                                                                                            </div>
-
-                                                                                                            {!isExpanded && (
-                                                                                                                <div className="mt-2 text-xs text-slate-500 pl-1">
-                                                                                                                    <span className="truncate block opacity-70">
-                                                                                                                        {group.map(s => s.passageiro).join(', ')}
-                                                                                                                    </span>
+                                                                                                    <div className="flex items-start justify-between pr-8 md:pr-10">
+                                                                                                        <div className="flex flex-col">
+                                                                                                            <span className="text-xs font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
+                                                                                                                {service.passageiro}
+                                                                                                            </span>
+                                                                                                            {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
+                                                                                                                <span className="text-[9px] text-slate-500 italic line-clamp-1">{service.obs}</span>
+                                                                                                            )}
+                                                                                                            {/* COMPLIANCE MESSAGE */}
+                                                                                                            {compliance && (
+                                                                                                                <div className={`flex items-center gap-1 text-[10px] font-bold mt-0.5 ${compliance.status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                                                                    {compliance.status === 'success' ? <CheckSquare className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                                                                                                                    <span>{compliance.message}</span>
                                                                                                                 </div>
                                                                                                             )}
                                                                                                         </div>
+                                                                                                    </div>
+                                                                                                </div>
 
-                                                                                                        {/* Expanded Content */}
-                                                                                                        {isExpanded && (
-                                                                                                            <div className="border-t border-white/5 bg-[#0b1120]/30 divide-y divide-white/5">
-                                                                                                                {group.map(service => (
-                                                                                                                    <div key={service.id} className="p-3 hover:bg-white/5 transition-colors relative group/subitem">
-                                                                                                                        <button
-                                                                                                                            onClick={(e) => {
-                                                                                                                                e.stopPropagation();
-                                                                                                                                unassignService(service.id);
-                                                                                                                            }}
-                                                                                                                            className="absolute top-3 right-3 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/subitem:opacity-100"
-                                                                                                                            title={t('schedule.remove_assignment')}
-                                                                                                                        >
-                                                                                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                                                                                        </button>
+                                                                                                {/* Validation POIs Indicator */}
+                                                                                                {service.validationPoints && service.validationPoints.length > 0 && (
+                                                                                                    <button
+                                                                                                        onClick={async (e) => {
+                                                                                                            e.stopPropagation();
+                                                                                                            const res = await checkRouteValidation(service.id);
+                                                                                                            const passed = Object.values(res).every(r => r.status === 'success');
+                                                                                                            const details = Object.entries(res).map(([pid, r]) => {
+                                                                                                                const loc = locais.find(l => l.id === pid);
+                                                                                                                return `${loc?.nome || 'POI'}: ${r.status === 'success' ? '✅' : '❌'} (${Math.round(r.distance || 0)}m)`;
+                                                                                                            }).join('\n');
+                                                                                                            alert(`Validação de Rota:\n\n${details}\n\nResultado Final: ${passed ? 'APROVADO' : 'FALHOU'}`);
+                                                                                                        }}
+                                                                                                        className="flex items-center gap-1.5 text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/30 p-1.5 rounded hover:bg-purple-500/20 transition-colors mt-1"
+                                                                                                    >
+                                                                                                        <MapPin className="w-3 h-3" />
+                                                                                                        <span className="font-bold">{service.validationPoints.length} POIs de Controlo</span>
+                                                                                                    </button>
+                                                                                                )}
+                                                                                                <div className="flex items-center gap-1.5 text-[10px] bg-[#0f172a]/40 p-1.5 rounded border border-white/5">
+                                                                                                    <div className="w-1 h-1 rounded-full bg-slate-500 shrink-0"></div>
+                                                                                                    <span className="text-slate-400 truncate flex-1" title={service.origem}>{service.origem}</span>
+                                                                                                    <ArrowRight className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                                                                                                    <div className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></div>
+                                                                                                    <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
+                                                                                                </div>
+                                                                                            </div>
 
-                                                                                                                        <div className="pr-8">
-                                                                                                                            <div className="font-medium text-slate-200 text-sm mb-1">{service.passageiro}</div>
-                                                                                                                            <div className="flex items-center gap-2 text-xs">
-                                                                                                                                <ArrowRight className="w-3 h-3 text-slate-600" />
-                                                                                                                                <span className="text-slate-400 truncate">{service.destino}</span>
-                                                                                                                            </div>
-                                                                                                                            <div className="text-[10px] text-slate-500 italic mt-1 pl-5">"{service.obs}"</div>
+                                                                                        );
+                                                                                    } else {
+                                                                                        // RENDER GROUP CARD
+                                                                                        return (
+                                                                                            <div key={groupKey} className="relative z-10 flex gap-2 md:gap-4">
+                                                                                                {/* Time Column */}
+                                                                                                <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
+                                                                                                    <span className="text-[11px] md:text-sm font-bold text-white font-mono bg-blue-600 px-1.5 md:px-2 py-0.5 md:py-1 rounded border border-blue-400/30 shadow-lg shadow-blue-900/20">
+                                                                                                        {firstService.hora}
+                                                                                                    </span>
+                                                                                                    <div className="w-px h-full bg-blue-500/20 mx-auto my-1"></div>
+                                                                                                </div>
 
-                                                                                                                            {service.validationPoints && service.validationPoints.length > 0 && (
-                                                                                                                                <div className="mt-1 pl-5">
-                                                                                                                                    <button
-                                                                                                                                        onClick={async (e) => {
-                                                                                                                                            e.stopPropagation();
-                                                                                                                                            const res = await checkRouteValidation(service.id);
-                                                                                                                                            const passed = Object.values(res).every(r => r.status === 'success');
-                                                                                                                                            const details = Object.entries(res).map(([pid, r]) => {
-                                                                                                                                                const loc = locais.find(l => l.id === pid);
-                                                                                                                                                return `${loc?.nome || 'POI'}: ${r.status === 'success' ? '✅' : '❌'} (${Math.round(r.distance || 0)}m)`;
-                                                                                                                                            }).join('\n');
-                                                                                                                                            alert(`Validação de Rota:\n\n${details}\n\nResultado Final: ${passed ? 'APROVADO' : 'FALHOU'}`);
-                                                                                                                                        }}
-                                                                                                                                        className="flex items-center gap-1 text-[9px] text-purple-400 bg-purple-500/5 px-2 py-1 rounded border border-purple-500/20 hover:bg-purple-500/10 transition-colors"
-                                                                                                                                    >
-                                                                                                                                        <MapPin className="w-2.5 h-2.5" />
-                                                                                                                                        <span>Validar {service.validationPoints.length} POIs</span>
-                                                                                                                                    </button>
-                                                                                                                                </div>
-                                                                                                                            )}
-                                                                                                                        </div>
-                                                                                                                    </div>
-                                                                                                                ))}
+                                                                                                {/* Group Container */}
+                                                                                                <div
+                                                                                                    className={`flex-1 rounded-xl border transition-all duration-300 overflow-hidden
+                                                                                    ${isExpanded
+                                                                                                            ? 'bg-slate-800/80 border-blue-500/50'
+                                                                                                            : 'bg-gradient-to-br from-blue-900/20 to-slate-900/50 border-blue-500/20 hover:border-blue-500/40 cursor-pointer'
+                                                                                                        }
+                                                                                `}
+                                                                                                    onClick={() => {
+                                                                                                        setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+                                                                                                    }}
+                                                                                                >
+                                                                                                    {/* Group Header */}
+                                                                                                    <div className="p-3">
+                                                                                                        <div className="flex items-center justify-between mb-2">
+                                                                                                            <div className="flex items-center gap-2">
+                                                                                                                <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold text-white">
+                                                                                                                    {group.length}
+                                                                                                                </div>
+                                                                                                                <span className="font-bold text-blue-100 text-sm">Passageiros</span>
+                                                                                                            </div>
+                                                                                                            <div className={`p-1 rounded-lg transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-white/10' : ''}`}>
+                                                                                                                <LayoutList className="w-4 h-4 text-blue-400" />
+                                                                                                            </div>
+                                                                                                        </div>
+
+                                                                                                        <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
+                                                                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
+                                                                                                            <span className="text-slate-300 truncate flex-1 font-medium">{firstService.origem}</span>
+                                                                                                            {isExpanded && (
+                                                                                                                <>
+                                                                                                                    <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
+                                                                                                                    <span className="text-slate-500 text-[10px] italic shrink-0">Vários Destinos</span>
+                                                                                                                </>
+                                                                                                            )}
+                                                                                                        </div>
+
+                                                                                                        {!isExpanded && (
+                                                                                                            <div className="mt-2 text-xs text-slate-500 pl-1">
+                                                                                                                <span className="truncate block opacity-70">
+                                                                                                                    {group.map(s => s.passageiro).join(', ')}
+                                                                                                                </span>
                                                                                                             </div>
                                                                                                         )}
                                                                                                     </div>
+
+                                                                                                    {/* Expanded Content */}
+                                                                                                    {isExpanded && (
+                                                                                                        <div className="border-t border-white/5 bg-[#0b1120]/30 divide-y divide-white/5">
+                                                                                                            {group.map(service => (
+                                                                                                                <div key={service.id} className="p-3 hover:bg-white/5 transition-colors relative group/subitem">
+                                                                                                                    <button
+                                                                                                                        onClick={(e) => {
+                                                                                                                            e.stopPropagation();
+                                                                                                                            unassignService(service.id);
+                                                                                                                        }}
+                                                                                                                        className="absolute top-3 right-3 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/subitem:opacity-100"
+                                                                                                                        title={t('schedule.remove_assignment')}
+                                                                                                                    >
+                                                                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                                                                    </button>
+
+                                                                                                                    <div className="pr-8">
+                                                                                                                        <div className="font-medium text-slate-200 text-sm mb-1">{service.passageiro}</div>
+                                                                                                                        <div className="flex items-center gap-2 text-xs">
+                                                                                                                            <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                                                                            <span className="text-slate-400 truncate">{service.destino}</span>
+                                                                                                                        </div>
+                                                                                                                        <div className="text-[10px] text-slate-500 italic mt-1 pl-5">"{service.obs}"</div>
+
+                                                                                                                        {service.validationPoints && service.validationPoints.length > 0 && (
+                                                                                                                            <div className="mt-1 pl-5">
+                                                                                                                                <button
+                                                                                                                                    onClick={async (e) => {
+                                                                                                                                        e.stopPropagation();
+                                                                                                                                        const res = await checkRouteValidation(service.id);
+                                                                                                                                        const passed = Object.values(res).every(r => r.status === 'success');
+                                                                                                                                        const details = Object.entries(res).map(([pid, r]) => {
+                                                                                                                                            const loc = locais.find(l => l.id === pid);
+                                                                                                                                            return `${loc?.nome || 'POI'}: ${r.status === 'success' ? '✅' : '❌'} (${Math.round(r.distance || 0)}m)`;
+                                                                                                                                        }).join('\n');
+                                                                                                                                        alert(`Validação de Rota:\n\n${details}\n\nResultado Final: ${passed ? 'APROVADO' : 'FALHOU'}`);
+                                                                                                                                    }}
+                                                                                                                                    className="flex items-center gap-1 text-[9px] text-purple-400 bg-purple-500/5 px-2 py-1 rounded border border-purple-500/20 hover:bg-purple-500/10 transition-colors"
+                                                                                                                                >
+                                                                                                                                    <MapPin className="w-2.5 h-2.5" />
+                                                                                                                                    <span>Validar {service.validationPoints.length} POIs</span>
+                                                                                                                                </button>
+                                                                                                                            </div>
+                                                                                                                        )}
+                                                                                                                    </div>
+                                                                                                                </div>
+                                                                                                            ))}
+                                                                                                        </div>
+                                                                                                    )}
                                                                                                 </div>
-                                                                                            );
-                                                                                        }
-                                                                                    });
-                                                                                })()
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* DRIVER FOOTER ACTIONS */}
-                                                                    <div className="px-4 py-3 bg-slate-900/50 border-t border-white/5 flex justify-end gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider rounded-b-2xl">
-                                                                        <button className="hover:text-blue-400 transition-colors">Ver Perfil</button>
-                                                                        <span>•</span>
-                                                                        <button className="hover:text-blue-400 transition-colors">Enviar Msg</button>
-                                                                    </div>
-                                                                </SortableDriverCard>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </SortableContext>
-                                            </DndContext>
-
-                                            {/* URGENT REQUEST SECTION (Supervisor/Admin View Only) */}
-                                            {(userRole === 'admin' || userRole === 'supervisor') && notifications.some(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned')) && (
-                                                <div className="mt-8 pt-8 border-t border-white/10">
-                                                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                        <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                                                            <Siren className="w-5 h-5 text-red-500" />
-                                                        </div>
-                                                        {t('schedule.my_urgent_requests')}
-                                                    </h3>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                        {notifications
-                                                            .filter(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned'))
-                                                            .map(req => (
-                                                                <div key={req.id} className={`bg-[#182338]/80 backdrop-blur-md border ${req.status === 'assigned' ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.05)]'} rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300`}>
-                                                                    {/* Status Badge */}
-                                                                    <div className="flex justify-between items-start z-10">
-                                                                        {req.status === 'pending' ? (
-                                                                            <span className="bg-red-500/20 text-red-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-red-500/20 flex items-center gap-1.5 animate-pulse">
-                                                                                <Clock className="w-3 h-3" />
-                                                                                {t('schedule.status.pending')}
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-blue-500/20 flex items-center gap-1.5">
-                                                                                <CheckSquare className="w-3 h-3" />
-                                                                                {t('schedule.status.assigned')}
-                                                                            </span>
+                                                                                            </div>
+                                                                                        );
+                                                                                    }
+                                                                                });
+                                                                            })()
                                                                         )}
-                                                                        <span className="text-slate-400 font-mono text-xs bg-black/20 px-2 py-1 rounded">{req.data.time}</span>
                                                                     </div>
-
-                                                                    <div className="z-10 bg-black/20 p-3 rounded-xl border border-white/5">
-                                                                        <div className="font-bold text-white text-base mb-1">{req.data.passenger}</div>
-                                                                        <div className="flex flex-col gap-1.5 text-xs text-slate-400">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
-                                                                                <span className="truncate">{req.data.origin}</span>
-                                                                            </div>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-                                                                                <span className="text-slate-200 truncate font-medium">{req.data.destination}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {req.data.obs && (
-                                                                        <div className="text-xs text-slate-500 italic px-2">
-                                                                            "{req.data.obs}"
-                                                                        </div>
-                                                                    )}
-
-                                                                    <button
-                                                                        onClick={() => handleSupervisorCancel(req)}
-                                                                        className="mt-auto z-10 w-full py-2.5 bg-slate-800/50 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
-                                                                    >
-                                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                                        {t('schedule.actions.cancel')}
-                                                                    </button>
                                                                 </div>
-                                                            ))
-                                                        }
+
+                                                                {/* DRIVER FOOTER ACTIONS */}
+                                                                <div className="px-4 py-3 bg-slate-900/50 border-t border-white/5 flex justify-end gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider rounded-b-2xl">
+                                                                    <button className="hover:text-blue-400 transition-colors">Ver Perfil</button>
+                                                                    <span>•</span>
+                                                                    <button className="hover:text-blue-400 transition-colors">Enviar Msg</button>
+                                                                </div>
+                                                            </SortableDriverCard>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </SortableContext>
+                                        </DndContext>
+
+                                        {/* URGENT REQUEST SECTION (Supervisor/Admin View Only) */}
+                                        {(userRole === 'admin' || userRole === 'supervisor') && notifications.some(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned')) && (
+                                            <div className="mt-8 pt-8 border-t border-white/10">
+                                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+                                                    <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
+                                                        <Siren className="w-5 h-5 text-red-500" />
                                                     </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                                    {t('schedule.my_urgent_requests')}
+                                                </h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                    {notifications
+                                                        .filter(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned'))
+                                                        .map(req => (
+                                                            <div key={req.id} className={`bg-[#182338]/80 backdrop-blur-md border ${req.status === 'assigned' ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.05)]'} rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300`}>
+                                                                {/* Status Badge */}
+                                                                <div className="flex justify-between items-start z-10">
+                                                                    {req.status === 'pending' ? (
+                                                                        <span className="bg-red-500/20 text-red-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-red-500/20 flex items-center gap-1.5 animate-pulse">
+                                                                            <Clock className="w-3 h-3" />
+                                                                            {t('schedule.status.pending')}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-blue-500/20 flex items-center gap-1.5">
+                                                                            <CheckSquare className="w-3 h-3" />
+                                                                            {t('schedule.status.assigned')}
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-slate-400 font-mono text-xs bg-black/20 px-2 py-1 rounded">{req.data.time}</span>
+                                                                </div>
 
-                                    {/* Sidebar moved to independent widget */}
-                                </>
-                            )}
+                                                                <div className="z-10 bg-black/20 p-3 rounded-xl border border-white/5">
+                                                                    <div className="font-bold text-white text-base mb-1">{req.data.passenger}</div>
+                                                                    <div className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+                                                                            <span className="truncate">{req.data.origin}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                                                                            <span className="text-slate-200 truncate font-medium">{req.data.destination}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
 
-                            {viewMode === 'table' && (
-                                /* TABLE VIEW (New) */
-                                <div className="flex-1 flex flex-col bg-[#1e293b]/30 overflow-hidden h-full">
-                                    {/* Bulk Action Bar */}
-                                    <div className="h-16 bg-[#1e293b] border-b border-white/5 px-6 flex items-center justify-between shrink-0">
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-slate-400 text-sm">
-                                                <span className="text-white font-bold">{filteredServicos.length}</span> serviços encontrados
-                                            </span>
-                                            {selectedPendentes.length > 0 && (
-                                                <>
-                                                    <div className="h-4 w-px bg-white/10" />
-                                                    <span className="text-blue-400 text-sm font-bold">
-                                                        {selectedPendentes.length} selecionados
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
+                                                                {req.data.obs && (
+                                                                    <div className="text-xs text-slate-500 italic px-2">
+                                                                        "{req.data.obs}"
+                                                                    </div>
+                                                                )}
 
-                                        <div className="flex items-center gap-4">
-                                            {selectedPendentes.length > 0 ? (
-                                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                                                    <div className="flex items-center gap-2 bg-[#0f172a] p-1 pr-2 rounded-lg border border-white/10">
-                                                        <select
-                                                            className="bg-transparent text-sm px-3 py-1.5 text-slate-300 outline-none focus:text-white cursor-pointer min-w-[200px]"
-                                                            value={selectedMotoristaForAssign}
-                                                            onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
-                                                        >
-                                                            <option value="" className="bg-slate-900">Atribuir a motorista...</option>
-                                                            {motoristas.filter(m => m.status === 'disponivel').map(m => (
-                                                                <option key={m.id} value={m.id} className="bg-slate-900">{m.nome} (Disponível)</option>
-                                                            ))}
-                                                            <option disabled>──────────</option>
-                                                            {motoristas.filter(m => m.status !== 'disponivel').map(m => (
-                                                                <option key={m.id} value={m.id} className="bg-slate-900 text-slate-500">{m.nome} ({m.status})</option>
-                                                            ))}
-                                                        </select>
-                                                        <button
-                                                            onClick={handleAssign}
-                                                            disabled={!selectedMotoristaForAssign}
-                                                            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white p-1.5 rounded-md transition-all"
-                                                            title="Confirmar atribuição"
-                                                        >
-                                                            <CheckSquare className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={handleBatchDelete}
-                                                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                        <span>Apagar</span>
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="text-xs text-slate-500 italic">
-                                                    Selecione serviços para ações em massa
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Table Header */}
-                                    <div className="bg-[#0f172a] border-b border-white/5 grid grid-cols-[50px_80px_1fr_1fr_1fr_120px_200px_120px] gap-4 px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider sticky top-0 z-10">
-                                        <div className="flex items-center justify-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedPendentes.length === filteredServicos.length && filteredServicos.length > 0}
-                                                onChange={() => {
-                                                    if (selectedPendentes.length === filteredServicos.length) {
-                                                        setSelectedPendentes([]);
-                                                    } else {
-                                                        setSelectedPendentes(filteredServicos.map(s => s.id));
-                                                    }
-                                                }}
-                                                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-offset-0 focus:ring-transparent"
-                                            />
-                                        </div>
-                                        <div>Hora</div>
-                                        <div>Passageiro</div>
-                                        <div>Origem</div>
-                                        <div>Destino</div>
-                                        <div>Ref/Voo</div>
-                                        <div>Motorista</div>
-                                        <div className="text-right">Ações</div>
-                                    </div>
-
-                                    {/* Table Body */}
-                                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                        {filteredServicos.length === 0 ? (
-                                            <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                                                <Search className="w-12 h-12 mb-4 opacity-20" />
-                                                <p className="text-lg font-medium">Nenhum serviço encontrado</p>
-                                            </div>
-                                        ) : (
-                                            <div className="divide-y divide-white/5">
-                                                {filteredServicos.map((service) => {
-
-                                                    return (
-                                                        <div
-                                                            key={service.id}
-                                                            className={`grid grid-cols-[50px_80px_1fr_1fr_1fr_120px_200px_120px] gap-4 px-6 py-3 items-center hover:bg-white/[0.02] transition-colors
-                                            ${selectedPendentes.includes(service.id) ? 'bg-blue-500/5' : ''}
-                                        `}
-                                                            onClick={() => togglePendenteSelection(service.id)}
-                                                        >
-                                                            {/* Checkbox */}
-                                                            <div className="flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={selectedPendentes.includes(service.id)}
-                                                                    onChange={() => togglePendenteSelection(service.id)}
-                                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-offset-0 focus:ring-transparent"
-                                                                />
-                                                            </div>
-
-                                                            {/* Hora */}
-                                                            <div className="font-mono text-sm text-white font-medium flex items-center gap-2">
-                                                                {service.hora}
-                                                            </div>
-
-                                                            {/* Passageiro */}
-                                                            <div className="text-sm font-medium text-slate-200 truncate" title={service.passageiro}>
-                                                                {service.passageiro}
-                                                            </div>
-
-                                                            {/* Origem */}
-                                                            <div className="text-sm text-slate-400 truncate" title={service.origem}>
-                                                                {service.origem}
-                                                            </div>
-
-                                                            {/* Destino */}
-                                                            <div className="text-sm text-slate-400 truncate" title={service.destino}>
-                                                                {service.destino}
-                                                            </div>
-
-                                                            {/* Ref */}
-                                                            <div className="text-xs text-slate-500 truncate">
-                                                                {service.voo || '-'}
-                                                            </div>
-
-                                                            {/* Motorista */}
-                                                            <div onClick={e => e.stopPropagation()}>
-                                                                <select
-                                                                    className={`w-full bg-[#0f172a] border ${service.motoristaId ? 'border-blue-500/30 text-blue-200' : 'border-white/10 text-slate-400'} text-xs rounded-lg px-2 py-1.5 focus:border-blue-500 outline-none cursor-pointer`}
-                                                                    value={service.motoristaId || ''}
-                                                                    onChange={async (e) => {
-                                                                        const newDriverId = e.target.value;
-                                                                        if (newDriverId) {
-                                                                            await updateServico({ ...service, motoristaId: newDriverId });
-                                                                        } else {
-                                                                            await updateServico({ ...service, motoristaId: undefined });
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <option value="">-- Por atribuir --</option>
-                                                                    {motoristas.filter(m => m.status === 'disponivel' || m.id === service.motoristaId).map(m => (
-                                                                        <option key={m.id} value={m.id}>{m.nome}</option>
-                                                                    ))}
-                                                                    <option disabled>──────────</option>
-                                                                    {motoristas.filter(m => m.status !== 'disponivel' && m.id !== service.motoristaId).map(m => (
-                                                                        <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
-                                                                    ))}
-                                                                </select>
-                                                            </div>
-
-                                                            {/* Ações */}
-                                                            <div className="flex justify-end items-center gap-2" onClick={e => e.stopPropagation()}>
                                                                 <button
-                                                                    onClick={(e) => handleDeleteService(service.id, e)}
-                                                                    className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                                    title="Eliminar"
+                                                                    onClick={() => handleSupervisorCancel(req)}
+                                                                    className="mt-auto z-10 w-full py-2.5 bg-slate-800/50 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
                                                                 >
-                                                                    <Trash2 className="w-4 h-4" />
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                    {t('schedule.actions.cancel')}
                                                                 </button>
                                                             </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        ))
+                                                    }
+                                                </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            )}
-                        </div>
 
-                        {/* MODAL: NEW SERVICE */}
-                        {
-                            showNewServiceModal && (
-                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                                    <div className="bg-[#1e293b] border border-white/10 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                        <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center gap-3">
-                                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                                                <Plus className="w-5 h-5" />
-                                            </div>
-                                            <h2 className="text-xl font-bold text-white">{t('schedule.modal.new.title')}</h2>
-                                        </div>
+                                {/* Sidebar moved to independent widget */}
+                            </>
+                        )}
 
-                                        <form onSubmit={handleCreateService} className="p-6 space-y-5">
-                                            <div className="grid grid-cols-3 gap-5">
-                                                <div className="col-span-1">
-                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.entry_time')}</label>
-                                                    <input
-                                                        type="time"
-                                                        required
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                                                        value={newService.hora}
-                                                        onChange={e => setNewService({ ...newService, hora: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.passenger')}</label>
-                                                    <div className="relative">
-                                                        <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                                        <input
-                                                            type="text"
-                                                            required
-                                                            placeholder="Nome do passageiro..."
-                                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                            value={newService.passageiro}
-                                                            onChange={e => setNewService({ ...newService, passageiro: e.target.value })}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-5">
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.pickup')}</label>
-                                                    <input
-                                                        type="text"
-                                                        required
-                                                        list="geofences-list"
-                                                        placeholder="Onde apanhar..."
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                        value={newService.origem}
-                                                        onChange={e => setNewService({ ...newService, origem: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.workplace')}</label>
-                                                    <input
-                                                        type="text"
-                                                        required
-                                                        list="geofences-list"
-                                                        placeholder="Destino..."
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                        value={newService.destino}
-                                                        onChange={e => setNewService({ ...newService, destino: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-5">
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.ref')}</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Ex: Voo LX123"
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                        value={newService.referencia}
-                                                        onChange={e => setNewService({ ...newService, referencia: e.target.value })}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('menu.cost_centers')}</label>
-                                                    <select
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                                                        value={newService.centroCustoId}
-                                                        onChange={e => setNewService({ ...newService, centroCustoId: e.target.value })}
-                                                    >
-                                                        <option value="">(Sem custo associado)</option>
-                                                        {centrosCustos.map(cc => (
-                                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-
-
-                                            {/* Validation Points Selection */}
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pontos de Validação (POIs)</label>
-                                                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto custom-scrollbar p-2 border border-slate-700 rounded-xl bg-slate-950/50">
-                                                    {locais.map(poi => (
-                                                        <label key={poi.id} className="flex items-center gap-2 p-1.5 hover:bg-white/5 rounded-lg cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={newService.validationPoints.includes(poi.id)}
-                                                                onChange={e => {
-                                                                    const isChecked = e.target.checked;
-                                                                    setNewService(prev => ({
-                                                                        ...prev,
-                                                                        validationPoints: isChecked
-                                                                            ? [...prev.validationPoints, poi.id]
-                                                                            : prev.validationPoints.filter(id => id !== poi.id)
-                                                                    }));
-                                                                }}
-                                                                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-0"
-                                                            />
-                                                            <span className="text-xs text-slate-300">{poi.nome}</span>
-                                                        </label>
-                                                    ))}
-                                                    {locais.length === 0 && <span className="text-xs text-slate-500 italic p-1">Nenhum POI criado.</span>}
-                                                </div>
-                                            </div>
-
-                                            <div className="pt-4 border-t border-white/5">
-                                                <label className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-xl border border-white/5 cursor-pointer hover:bg-slate-900 transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={newService.temRegresso}
-                                                        onChange={e => setNewService({ ...newService, temRegresso: e.target.checked })}
-                                                        className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900"
-                                                    />
-                                                    <span className="text-sm font-bold text-slate-300">
-                                                        {t('schedule.modal.new.return_check')}
-                                                    </span>
-                                                </label>
-
-                                                {newService.temRegresso && (
-                                                    <div className="mt-4 pl-4 border-l-2 border-slate-700 space-y-4 animate-in slide-in-from-top-2">
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div>
-                                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.exit_time')}</label>
-                                                                <input
-                                                                    type="time"
-                                                                    required
-                                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                                                                    value={newService.horaRegresso}
-                                                                    onChange={e => setNewService({ ...newService, horaRegresso: e.target.value })}
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.diff_dest')}</label>
-                                                                <input
-                                                                    type="text"
-                                                                    list="geofences-list"
-                                                                    placeholder="Opcional..."
-                                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                                    value={newService.destinoRegresso}
-                                                                    onChange={e => setNewService({ ...newService, destinoRegresso: e.target.value })}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex justify-end gap-3 pt-4">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowNewServiceModal(false)}
-                                                    className="px-6 py-3 text-slate-400 hover:text-white transition-colors text-sm font-medium"
-                                                >
-                                                    Cancelar
-                                                </button>
-                                            </div>
-                                        </form>
+                        {viewMode === 'table' && (
+                            /* TABLE VIEW (New) */
+                            <div className="flex-1 flex flex-col bg-[#1e293b]/30 overflow-hidden h-full">
+                                {/* Bulk Action Bar */}
+                                <div className="h-16 bg-[#1e293b] border-b border-white/5 px-6 flex items-center justify-between shrink-0">
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-slate-400 text-sm">
+                                            <span className="text-white font-bold">{filteredServicos.length}</span> serviços encontrados
+                                        </span>
+                                        {selectedPendentes.length > 0 && (
+                                            <>
+                                                <div className="h-4 w-px bg-white/10" />
+                                                <span className="text-blue-400 text-sm font-bold">
+                                                    {selectedPendentes.length} selecionados
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
-                                </div>
-                            )
-                        }
-                        {
-                            hasAccess(userRole, 'escalas_view_pending') && (
-                                <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-[#0f172a] border-t md:border-t-0 md:border-l border-white/5">
-                                    <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
-                                        <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
-                                            <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
-                                                <Upload className="w-4 h-4 text-white" />
-                                            </div>
-                                            <h2 className="text-lg font-bold text-white truncate flex-1">
-                                                {t('schedule.pending.title')}
-                                            </h2>
-                                            <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                                                {globalPendentes.length}
-                                            </span>
-                                        </div>
 
-                                        {/* Batch Assign Control */}
-                                        {!isDistributeMode && pendentes.length > 0 && (
-                                            <div className="p-4 border-b border-white/5 space-y-2">
-                                                <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
+                                    <div className="flex items-center gap-4">
+                                        {selectedPendentes.length > 0 ? (
+                                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                                                <div className="flex items-center gap-2 bg-[#0f172a] p-1 pr-2 rounded-lg border border-white/10">
                                                     <select
-                                                        className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer w-full"
+                                                        className="bg-transparent text-sm px-3 py-1.5 text-slate-300 outline-none focus:text-white cursor-pointer min-w-[200px]"
                                                         value={selectedMotoristaForAssign}
                                                         onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
                                                     >
-                                                        <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
-                                                        {motoristas.map(m => (
-                                                            <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
+                                                        <option value="" className="bg-slate-900">Atribuir a motorista...</option>
+                                                        {motoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                            <option key={m.id} value={m.id} className="bg-slate-900">{m.nome} (Disponível)</option>
+                                                        ))}
+                                                        <option disabled>──────────</option>
+                                                        {motoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                            <option key={m.id} value={m.id} className="bg-slate-900 text-slate-500">{m.nome} ({m.status})</option>
                                                         ))}
                                                     </select>
                                                     <button
                                                         onClick={handleAssign}
-                                                        disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
-                                                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg shrink-0"
-                                                        title="Atribuir"
+                                                        disabled={!selectedMotoristaForAssign}
+                                                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white p-1.5 rounded-md transition-all"
+                                                        title="Confirmar atribuição"
                                                     >
-                                                        <ArrowRight className="w-4 h-4" />
+                                                        <CheckSquare className="w-4 h-4" />
                                                     </button>
-                                                    {selectedPendentes.length > 0 && (
-                                                        <button
-                                                            onClick={handleBatchDelete}
-                                                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 p-2 rounded-lg transition-all shrink-0"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
                                                 </div>
-                                                <div className="flex items-center justify-between px-1">
-                                                    <button onClick={toggleSelectAll} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white">Selecionar Todos</button>
-                                                    <span className="text-[10px] text-slate-600">{selectedPendentes.length} selecionados</span>
-                                                </div>
+
+                                                <button
+                                                    onClick={handleBatchDelete}
+                                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                    <span>Apagar</span>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-slate-500 italic">
+                                                Selecione serviços para ações em massa
                                             </div>
                                         )}
+                                    </div>
+                                </div>
 
-                                        {/* List */}
-                                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
-                                            {(() => {
-                                                // 1. Group ALL services by batchId
-                                                const batchesMap = new Map<string, typeof globalPendentes>();
-                                                const adHoc: typeof globalPendentes = [];
+                                {/* Table Header */}
+                                <div className="bg-[#0f172a] border-b border-white/5 grid grid-cols-[50px_80px_1fr_1fr_1fr_120px_200px_120px] gap-4 px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider sticky top-0 z-10">
+                                    <div className="flex items-center justify-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedPendentes.length === filteredServicos.length && filteredServicos.length > 0}
+                                            onChange={() => {
+                                                if (selectedPendentes.length === filteredServicos.length) {
+                                                    setSelectedPendentes([]);
+                                                } else {
+                                                    setSelectedPendentes(filteredServicos.map(s => s.id));
+                                                }
+                                            }}
+                                            className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-offset-0 focus:ring-transparent"
+                                        />
+                                    </div>
+                                    <div>Hora</div>
+                                    <div>Passageiro</div>
+                                    <div>Origem</div>
+                                    <div>Destino</div>
+                                    <div>Ref/Voo</div>
+                                    <div>Motorista</div>
+                                    <div className="text-right">Ações</div>
+                                </div>
 
-                                                globalPendentes.forEach(s => {
-                                                    if (s.batchId) {
-                                                        const existing = batchesMap.get(s.batchId) || [];
-                                                        existing.push(s);
-                                                        batchesMap.set(s.batchId, existing);
-                                                    } else {
-                                                        adHoc.push(s);
-                                                    }
-                                                });
-
-                                                // 2. Resolve Batches (Real or Pseudo)
-                                                // Get all batch IDs that have services
-                                                const activeBatchIds = Array.from(batchesMap.keys());
-
-                                                // Sort batches by creation time (using ScaleBatch info if available, or fallback)
-                                                // We prioritize showing the NEWEST batches first
-                                                const sortedBatchIds = activeBatchIds.sort((a, b) => {
-                                                    const batchA = scaleBatches.find(sb => sb.id === a);
-                                                    const batchB = scaleBatches.find(sb => sb.id === b);
-                                                    const timeA = batchA ? new Date(batchA.created_at).getTime() : 0;
-                                                    const timeB = batchB ? new Date(batchB.created_at).getTime() : 0;
-                                                    return timeB - timeA;
-                                                });
+                                {/* Table Body */}
+                                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                    {filteredServicos.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                                            <Search className="w-12 h-12 mb-4 opacity-20" />
+                                            <p className="text-lg font-medium">Nenhum serviço encontrado</p>
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y divide-white/5">
+                                            {filteredServicos.map((service) => {
 
                                                 return (
-                                                    <>
-                                                        {/* Ad-Hoc (Ideally empty now) */}
-                                                        {adHoc.length > 0 && (
-                                                            <div className={`rounded-xl border transition-all overflow-hidden ${expandedBatchId === 'adhoc' ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                                    <div
+                                                        key={service.id}
+                                                        className={`grid grid-cols-[50px_80px_1fr_1fr_1fr_120px_200px_120px] gap-4 px-6 py-3 items-center hover:bg-white/[0.02] transition-colors
+                                            ${selectedPendentes.includes(service.id) ? 'bg-blue-500/5' : ''}
+                                        `}
+                                                        onClick={() => togglePendenteSelection(service.id)}
+                                                    >
+                                                        {/* Checkbox */}
+                                                        <div className="flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedPendentes.includes(service.id)}
+                                                                onChange={() => togglePendenteSelection(service.id)}
+                                                                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-offset-0 focus:ring-transparent"
+                                                            />
+                                                        </div>
+
+                                                        {/* Hora */}
+                                                        <div className="font-mono text-sm text-white font-medium flex items-center gap-2">
+                                                            {service.hora}
+                                                        </div>
+
+                                                        {/* Passageiro */}
+                                                        <div className="text-sm font-medium text-slate-200 truncate" title={service.passageiro}>
+                                                            {service.passageiro}
+                                                        </div>
+
+                                                        {/* Origem */}
+                                                        <div className="text-sm text-slate-400 truncate" title={service.origem}>
+                                                            {service.origem}
+                                                        </div>
+
+                                                        {/* Destino */}
+                                                        <div className="text-sm text-slate-400 truncate" title={service.destino}>
+                                                            {service.destino}
+                                                        </div>
+
+                                                        {/* Ref */}
+                                                        <div className="text-xs text-slate-500 truncate">
+                                                            {service.voo || '-'}
+                                                        </div>
+
+                                                        {/* Motorista */}
+                                                        <div onClick={e => e.stopPropagation()}>
+                                                            <select
+                                                                className={`w-full bg-[#0f172a] border ${service.motoristaId ? 'border-blue-500/30 text-blue-200' : 'border-white/10 text-slate-400'} text-xs rounded-lg px-2 py-1.5 focus:border-blue-500 outline-none cursor-pointer`}
+                                                                value={service.motoristaId || ''}
+                                                                onChange={async (e) => {
+                                                                    const newDriverId = e.target.value;
+                                                                    if (newDriverId) {
+                                                                        await updateServico({ ...service, motoristaId: newDriverId });
+                                                                    } else {
+                                                                        await updateServico({ ...service, motoristaId: undefined });
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <option value="">-- Por atribuir --</option>
+                                                                {motoristas.filter(m => m.status === 'disponivel' || m.id === service.motoristaId).map(m => (
+                                                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                ))}
+                                                                <option disabled>──────────</option>
+                                                                {motoristas.filter(m => m.status !== 'disponivel' && m.id !== service.motoristaId).map(m => (
+                                                                    <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+
+                                                        {/* Ações */}
+                                                        <div className="flex justify-end items-center gap-2" onClick={e => e.stopPropagation()}>
+                                                            <button
+                                                                onClick={(e) => handleDeleteService(service.id, e)}
+                                                                className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                                title="Eliminar"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* MODAL: NEW SERVICE */}
+                    {
+                        showNewServiceModal && (
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                                <div className="bg-[#1e293b] border border-white/10 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center gap-3">
+                                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                                            <Plus className="w-5 h-5" />
+                                        </div>
+                                        <h2 className="text-xl font-bold text-white">{t('schedule.modal.new.title')}</h2>
+                                    </div>
+
+                                    <form onSubmit={handleCreateService} className="p-6 space-y-5">
+                                        <div className="grid grid-cols-3 gap-5">
+                                            <div className="col-span-1">
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.entry_time')}</label>
+                                                <input
+                                                    type="time"
+                                                    required
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                                    value={newService.hora}
+                                                    onChange={e => setNewService({ ...newService, hora: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.passenger')}</label>
+                                                <div className="relative">
+                                                    <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        placeholder="Nome do passageiro..."
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={newService.passageiro}
+                                                        onChange={e => setNewService({ ...newService, passageiro: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-5">
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.pickup')}</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    list="geofences-list"
+                                                    placeholder="Onde apanhar..."
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={newService.origem}
+                                                    onChange={e => setNewService({ ...newService, origem: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.workplace')}</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    list="geofences-list"
+                                                    placeholder="Destino..."
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={newService.destino}
+                                                    onChange={e => setNewService({ ...newService, destino: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-5">
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.ref')}</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Ex: Voo LX123"
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={newService.referencia}
+                                                    onChange={e => setNewService({ ...newService, referencia: e.target.value })}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('menu.cost_centers')}</label>
+                                                <select
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                                    value={newService.centroCustoId}
+                                                    onChange={e => setNewService({ ...newService, centroCustoId: e.target.value })}
+                                                >
+                                                    <option value="">(Sem custo associado)</option>
+                                                    {centrosCustos.map(cc => (
+                                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+
+
+                                        {/* Validation Points Selection */}
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pontos de Validação (POIs)</label>
+                                            <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto custom-scrollbar p-2 border border-slate-700 rounded-xl bg-slate-950/50">
+                                                {locais.map(poi => (
+                                                    <label key={poi.id} className="flex items-center gap-2 p-1.5 hover:bg-white/5 rounded-lg cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={newService.validationPoints.includes(poi.id)}
+                                                            onChange={e => {
+                                                                const isChecked = e.target.checked;
+                                                                setNewService(prev => ({
+                                                                    ...prev,
+                                                                    validationPoints: isChecked
+                                                                        ? [...prev.validationPoints, poi.id]
+                                                                        : prev.validationPoints.filter(id => id !== poi.id)
+                                                                }));
+                                                            }}
+                                                            className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-0"
+                                                        />
+                                                        <span className="text-xs text-slate-300">{poi.nome}</span>
+                                                    </label>
+                                                ))}
+                                                {locais.length === 0 && <span className="text-xs text-slate-500 italic p-1">Nenhum POI criado.</span>}
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-white/5">
+                                            <label className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-xl border border-white/5 cursor-pointer hover:bg-slate-900 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newService.temRegresso}
+                                                    onChange={e => setNewService({ ...newService, temRegresso: e.target.checked })}
+                                                    className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900"
+                                                />
+                                                <span className="text-sm font-bold text-slate-300">
+                                                    {t('schedule.modal.new.return_check')}
+                                                </span>
+                                            </label>
+
+                                            {newService.temRegresso && (
+                                                <div className="mt-4 pl-4 border-l-2 border-slate-700 space-y-4 animate-in slide-in-from-top-2">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.exit_time')}</label>
+                                                            <input
+                                                                type="time"
+                                                                required
+                                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                                                value={newService.horaRegresso}
+                                                                onChange={e => setNewService({ ...newService, horaRegresso: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.diff_dest')}</label>
+                                                            <input
+                                                                type="text"
+                                                                list="geofences-list"
+                                                                placeholder="Opcional..."
+                                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                value={newService.destinoRegresso}
+                                                                onChange={e => setNewService({ ...newService, destinoRegresso: e.target.value })}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex justify-end gap-3 pt-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowNewServiceModal(false)}
+                                                className="px-6 py-3 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )
+                    }
+                    {
+                        hasAccess(userRole, 'escalas_view_pending') && (
+                            <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-[#0f172a] border-t md:border-t-0 md:border-l border-white/5">
+                                <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
+                                    <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
+                                        <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
+                                            <Upload className="w-4 h-4 text-white" />
+                                        </div>
+                                        <h2 className="text-lg font-bold text-white truncate flex-1">
+                                            {t('schedule.pending.title')}
+                                        </h2>
+                                        <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
+                                            {globalPendentes.length}
+                                        </span>
+                                    </div>
+
+                                    {/* Batch Assign Control */}
+                                    {!isDistributeMode && pendentes.length > 0 && (
+                                        <div className="p-4 border-b border-white/5 space-y-2">
+                                            <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
+                                                <select
+                                                    className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer w-full"
+                                                    value={selectedMotoristaForAssign}
+                                                    onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
+                                                >
+                                                    <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
+                                                    {motoristas.map(m => (
+                                                        <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={handleAssign}
+                                                    disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
+                                                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg shrink-0"
+                                                    title="Atribuir"
+                                                >
+                                                    <ArrowRight className="w-4 h-4" />
+                                                </button>
+                                                {selectedPendentes.length > 0 && (
+                                                    <button
+                                                        onClick={handleBatchDelete}
+                                                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 p-2 rounded-lg transition-all shrink-0"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center justify-between px-1">
+                                                <button onClick={toggleSelectAll} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white">Selecionar Todos</button>
+                                                <span className="text-[10px] text-slate-600">{selectedPendentes.length} selecionados</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* List */}
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
+                                        {(() => {
+                                            // 1. Group ALL services by batchId
+                                            const batchesMap = new Map<string, typeof globalPendentes>();
+                                            const adHoc: typeof globalPendentes = [];
+
+                                            globalPendentes.forEach(s => {
+                                                if (s.batchId) {
+                                                    const existing = batchesMap.get(s.batchId) || [];
+                                                    existing.push(s);
+                                                    batchesMap.set(s.batchId, existing);
+                                                } else {
+                                                    adHoc.push(s);
+                                                }
+                                            });
+
+                                            // 2. Resolve Batches (Real or Pseudo)
+                                            // Get all batch IDs that have services
+                                            const activeBatchIds = Array.from(batchesMap.keys());
+
+                                            // Sort batches by creation time (using ScaleBatch info if available, or fallback)
+                                            // We prioritize showing the NEWEST batches first
+                                            const sortedBatchIds = activeBatchIds.sort((a, b) => {
+                                                const batchA = scaleBatches.find(sb => sb.id === a);
+                                                const batchB = scaleBatches.find(sb => sb.id === b);
+                                                const timeA = batchA ? new Date(batchA.created_at).getTime() : 0;
+                                                const timeB = batchB ? new Date(batchB.created_at).getTime() : 0;
+                                                return timeB - timeA;
+                                            });
+
+                                            return (
+                                                <>
+                                                    {/* Ad-Hoc (Ideally empty now) */}
+                                                    {adHoc.length > 0 && (
+                                                        <div className={`rounded-xl border transition-all overflow-hidden ${expandedBatchId === 'adhoc' ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                                            <div
+                                                                onClick={() => setExpandedBatchId(expandedBatchId === 'adhoc' ? null : 'adhoc')}
+                                                                className="p-4 cursor-pointer"
+                                                            >
+                                                                <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Manuais / Legado</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHoc.length}</span></div>
+                                                                <div className="text-xs text-slate-500">Serviços sem lote associado</div>
+                                                            </div>
+
+                                                            {/* EXPANDED CONTENT AD-HOC */}
+                                                            {expandedBatchId === 'adhoc' && (
+                                                                <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
+                                                                    {adHoc.map(service => (
+                                                                        <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
+                                                                            <div className="flex justify-between items-start">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
+                                                                                    <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
+                                                                                </div>
+                                                                                <div className="flex gap-2">
+                                                                                    <button
+                                                                                        onClick={(e) => handleDeleteService(service.id, e)}
+                                                                                        className="text-slate-600 hover:text-red-400 p-1"
+                                                                                        title="Eliminar"
+                                                                                    >
+                                                                                        <Trash2 className="w-3 h-3" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
+                                                                                <span className="truncate" title={service.origem}>{service.origem}</span>
+                                                                                <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                                <span className="truncate text-right" title={service.destino}>{service.destino}</span>
+                                                                            </div>
+                                                                            <div className="pt-2 border-t border-white/5">
+                                                                                <select
+                                                                                    className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
+                                                                                    value=""
+                                                                                    onChange={(e) => {
+                                                                                        if (e.target.value) {
+                                                                                            updateServico({ ...service, motoristaId: e.target.value });
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <option value="">Atribuir a...</option>
+                                                                                    {motoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                                                        <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                                    ))}
+                                                                                    <option disabled>──────────</option>
+                                                                                    {motoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                                                        <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Batches (Real & Orphaned) */}
+                                                    {sortedBatchIds.map(batchId => {
+                                                        const batchServices = batchesMap.get(batchId) || [];
+                                                        const batch = scaleBatches.find(b => b.id === batchId);
+                                                        const isExpanded = expandedBatchId === batchId;
+
+                                                        // Fallback info if batch is missing (Orphaned due to RLS/Sync)
+                                                        const createdBy = batch?.created_by || 'Lote Desconhecido';
+                                                        const createdByRole = batch?.created_by_role || 'Erro Sync';
+                                                        const createdAt = batch?.created_at ? batch.created_at.split('T')[1].substring(0, 5) : '--:--';
+                                                        const centroCustoName = batch?.centro_custo_id ? centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome : 'Sem Centro Custo';
+
+                                                        return (
+                                                            <div key={batchId} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
                                                                 <div
-                                                                    onClick={() => setExpandedBatchId(expandedBatchId === 'adhoc' ? null : 'adhoc')}
+                                                                    onClick={() => setExpandedBatchId(isExpanded ? null : batchId)}
                                                                     className="p-4 cursor-pointer"
                                                                 >
-                                                                    <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Manuais / Legado</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHoc.length}</span></div>
-                                                                    <div className="text-xs text-slate-500">Serviços sem lote associado</div>
+                                                                    <div className="flex justify-between items-start mb-3">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs ${batch ? 'bg-gradient-to-br from-blue-500 to-cyan-500' : 'bg-slate-700'}`}>
+                                                                                {createdBy.charAt(0).toUpperCase()}
+                                                                            </div>
+                                                                            <div>
+                                                                                <div className="font-bold text-white text-sm flex items-center gap-2">
+                                                                                    {createdBy}
+                                                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-normal capitalize ${batch ? 'bg-slate-800 text-slate-400 border-white/10' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                                                        {createdByRole}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                                    {batch?.centro_custo_id && (
+                                                                                        <span className="text-[10px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 truncate max-w-[150px]">
+                                                                                            {centroCustoName}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    <span className="text-[10px] text-slate-500 font-mono">{createdAt}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{batchServices.length}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                                        <Calendar className="w-3.5 h-3.5" />
+                                                                        <span className="font-mono">{batch?.reference_date || selectedDate}</span>
+                                                                        {!batch && <span className="text-red-400 text-[10px] ml-auto italic">Erro de Sincronização</span>}
+                                                                    </div>
+
                                                                 </div>
 
-                                                                {/* EXPANDED CONTENT AD-HOC */}
-                                                                {expandedBatchId === 'adhoc' && (
+                                                                {/* EXPANDED CONTENT */}
+                                                                {isExpanded && (
                                                                     <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
-                                                                        {adHoc.map(service => (
+                                                                        {batchServices.map(service => (
                                                                             <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
                                                                                 <div className="flex justify-between items-start">
                                                                                     <div className="flex items-center gap-2">
                                                                                         <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
                                                                                         <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
                                                                                     </div>
-                                                                                    <div className="flex gap-2">
-                                                                                        <button
-                                                                                            onClick={(e) => handleDeleteService(service.id, e)}
-                                                                                            className="text-slate-600 hover:text-red-400 p-1"
-                                                                                            title="Eliminar"
-                                                                                        >
-                                                                                            <Trash2 className="w-3 h-3" />
-                                                                                        </button>
-                                                                                    </div>
+                                                                                    <button
+                                                                                        onClick={(e) => handleDeleteService(service.id, e)}
+                                                                                        className="text-slate-600 hover:text-red-400 p-1"
+                                                                                        title="Eliminar"
+                                                                                    >
+                                                                                        <Trash2 className="w-3 h-3" />
+                                                                                    </button>
                                                                                 </div>
+
                                                                                 <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
                                                                                     <span className="truncate" title={service.origem}>{service.origem}</span>
                                                                                     <ArrowRight className="w-3 h-3 text-slate-600" />
                                                                                     <span className="truncate text-right" title={service.destino}>{service.destino}</span>
                                                                                 </div>
+
                                                                                 <div className="pt-2 border-t border-white/5">
                                                                                     <select
                                                                                         className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
@@ -1794,233 +1872,131 @@ export default function Escalas() {
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                        )}
-
-                                                        {/* Batches (Real & Orphaned) */}
-                                                        {sortedBatchIds.map(batchId => {
-                                                            const batchServices = batchesMap.get(batchId) || [];
-                                                            const batch = scaleBatches.find(b => b.id === batchId);
-                                                            const isExpanded = expandedBatchId === batchId;
-
-                                                            // Fallback info if batch is missing (Orphaned due to RLS/Sync)
-                                                            const createdBy = batch?.created_by || 'Lote Desconhecido';
-                                                            const createdByRole = batch?.created_by_role || 'Erro Sync';
-                                                            const createdAt = batch?.created_at ? batch.created_at.split('T')[1].substring(0, 5) : '--:--';
-                                                            const centroCustoName = batch?.centro_custo_id ? centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome : 'Sem Centro Custo';
-
-                                                            return (
-                                                                <div key={batchId} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
-                                                                    <div
-                                                                        onClick={() => setExpandedBatchId(isExpanded ? null : batchId)}
-                                                                        className="p-4 cursor-pointer"
-                                                                    >
-                                                                        <div className="flex justify-between items-start mb-3">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs ${batch ? 'bg-gradient-to-br from-blue-500 to-cyan-500' : 'bg-slate-700'}`}>
-                                                                                    {createdBy.charAt(0).toUpperCase()}
-                                                                                </div>
-                                                                                <div>
-                                                                                    <div className="font-bold text-white text-sm flex items-center gap-2">
-                                                                                        {createdBy}
-                                                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-normal capitalize ${batch ? 'bg-slate-800 text-slate-400 border-white/10' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                                                                            {createdByRole}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                                                        {batch?.centro_custo_id && (
-                                                                                            <span className="text-[10px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 truncate max-w-[150px]">
-                                                                                                {centroCustoName}
-                                                                                            </span>
-                                                                                        )}
-                                                                                        <span className="text-[10px] text-slate-500 font-mono">{createdAt}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                            <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{batchServices.length}</span>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                                                                            <Calendar className="w-3.5 h-3.5" />
-                                                                            <span className="font-mono">{batch?.reference_date || selectedDate}</span>
-                                                                            {!batch && <span className="text-red-400 text-[10px] ml-auto italic">Erro de Sincronização</span>}
-                                                                        </div>
-
-                                                                    </div>
-
-                                                                    {/* EXPANDED CONTENT */}
-                                                                    {isExpanded && (
-                                                                        <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
-                                                                            {batchServices.map(service => (
-                                                                                <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
-                                                                                    <div className="flex justify-between items-start">
-                                                                                        <div className="flex items-center gap-2">
-                                                                                            <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
-                                                                                            <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
-                                                                                        </div>
-                                                                                        <button
-                                                                                            onClick={(e) => handleDeleteService(service.id, e)}
-                                                                                            className="text-slate-600 hover:text-red-400 p-1"
-                                                                                            title="Eliminar"
-                                                                                        >
-                                                                                            <Trash2 className="w-3 h-3" />
-                                                                                        </button>
-                                                                                    </div>
-
-                                                                                    <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
-                                                                                        <span className="truncate" title={service.origem}>{service.origem}</span>
-                                                                                        <ArrowRight className="w-3 h-3 text-slate-600" />
-                                                                                        <span className="truncate text-right" title={service.destino}>{service.destino}</span>
-                                                                                    </div>
-
-                                                                                    <div className="pt-2 border-t border-white/5">
-                                                                                        <select
-                                                                                            className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
-                                                                                            value=""
-                                                                                            onChange={(e) => {
-                                                                                                if (e.target.value) {
-                                                                                                    updateServico({ ...service, motoristaId: e.target.value });
-                                                                                                }
-                                                                                            }}
-                                                                                        >
-                                                                                            <option value="">Atribuir a...</option>
-                                                                                            {motoristas.filter(m => m.status === 'disponivel').map(m => (
-                                                                                                <option key={m.id} value={m.id}>{m.nome}</option>
-                                                                                            ))}
-                                                                                            <option disabled>──────────</option>
-                                                                                            {motoristas.filter(m => m.status !== 'disponivel').map(m => (
-                                                                                                <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
-                                                                                            ))}
-                                                                                        </select>
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        {pendingBatches.length === 0 && adHocPendentes.length === 0 && (
-                                                            <div className="h-40 flex flex-col items-center justify-center text-slate-600 text-center"><CheckSquare className="w-8 h-8 mb-3 opacity-20" /><p className="text-sm">Tudo limpo!</p></div>
-                                                        )}
-                                                    </div >
+                                                        );
+                                                    })}
+                                                    {pendingBatches.length === 0 && adHocPendentes.length === 0 && (
+                                                        <div className="h-40 flex flex-col items-center justify-center text-slate-600 text-center"><CheckSquare className="w-8 h-8 mb-3 opacity-20" /><p className="text-sm">Tudo limpo!</p></div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
-                                    </div>
-                                    )
-                        }
 
 
 
                                 </div>
-                </div >
-            )}
+                            </div >
+                        </div>
 
-                    {activeTab === 'history' && <EscalasHistory />}
 
-                    {/* MODAL: URGENT REQUEST */}
-                    {
-                        showUrgentModal && (
-                            <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-                                <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
-                                    <div className="flex items-center gap-4 mb-8 text-red-500">
-                                        <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
-                                            <Siren className="w-8 h-8" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-white">{t('schedule.modal.urgent.title')}</h2>
-                                            <p className="text-red-400/80 text-sm font-medium">Este pedido será notificado aos supervisores.</p>
-                                        </div>
+
+
+                {/* MODAL: URGENT REQUEST */}
+                {
+                    showUrgentModal && (
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+                            <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
+                                <div className="flex items-center gap-4 mb-8 text-red-500">
+                                    <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
+                                        <Siren className="w-8 h-8" />
                                     </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white">{t('schedule.modal.urgent.title')}</h2>
+                                        <p className="text-red-400/80 text-sm font-medium">Este pedido será notificado aos supervisores.</p>
+                                    </div>
+                                </div>
 
-                                    <form onSubmit={handleUrgentRequest} className="space-y-6">
+                                <form onSubmit={handleUrgentRequest} className="space-y-6">
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.time')}</label>
-                                                <input
-                                                    type="time"
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                                    value={urgentData.hora}
-                                                    onChange={e => setUrgentData({ ...urgentData, hora: e.target.value })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.passenger')}</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    placeholder="Nome..."
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                                    value={urgentData.passageiro}
-                                                    onChange={e => setUrgentData({ ...urgentData, passageiro: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.pickup')}</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    list="geofences-list"
-                                                    placeholder="Onde está..."
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                                    value={urgentData.origem}
-                                                    onChange={e => setUrgentData({ ...urgentData, origem: e.target.value })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.dropoff')}</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    list="geofences-list"
-                                                    placeholder="Para onde vai..."
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                                    value={urgentData.destino}
-                                                    onChange={e => setUrgentData({ ...urgentData, destino: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.obs')}</label>
-                                            <textarea
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
-                                                rows={3}
-                                                placeholder="Detalhes adicionais..."
-                                                value={urgentData.obs}
-                                                onChange={e => setUrgentData({ ...urgentData, obs: e.target.value })}
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.time')}</label>
+                                            <input
+                                                type="time"
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                                value={urgentData.hora}
+                                                onChange={e => setUrgentData({ ...urgentData, hora: e.target.value })}
                                             />
                                         </div>
-
-                                        <div className="flex gap-4 pt-4 border-t border-white/5">
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowUrgentModal(false)}
-                                                className="flex-1 py-4 bg-slate-800 text-slate-300 hover:text-white rounded-xl font-bold transition-colors"
-                                            >
-                                                Cancelar
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                className="flex-[2] py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-900/40 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all"
-                                            >
-                                                <Send className="w-5 h-5" />
-                                                {t('schedule.modal.urgent.send')}
-                                            </button>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.passenger')}</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Nome..."
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                                value={urgentData.passageiro}
+                                                onChange={e => setUrgentData({ ...urgentData, passageiro: e.target.value })}
+                                            />
                                         </div>
-                                    </form>
-                                </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.pickup')}</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                list="geofences-list"
+                                                placeholder="Onde está..."
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                                value={urgentData.origem}
+                                                onChange={e => setUrgentData({ ...urgentData, origem: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.dropoff')}</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                list="geofences-list"
+                                                placeholder="Para onde vai..."
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                                value={urgentData.destino}
+                                                onChange={e => setUrgentData({ ...urgentData, destino: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.obs')}</label>
+                                        <textarea
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
+                                            rows={3}
+                                            placeholder="Detalhes adicionais..."
+                                            value={urgentData.obs}
+                                            onChange={e => setUrgentData({ ...urgentData, obs: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-4 pt-4 border-t border-white/5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowUrgentModal(false)}
+                                            className="flex-1 py-4 bg-slate-800 text-slate-300 hover:text-white rounded-xl font-bold transition-colors"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="flex-[2] py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-900/40 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all"
+                                        >
+                                            <Send className="w-5 h-5" />
+                                            {t('schedule.modal.urgent.send')}
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
-                        )
-                    }
-                    {/* Datalist for geofences suggestions */}
-                    <datalist id="geofences-list">
-                        {geofences.map(geo => (
-                            <option key={geo.id} value={geo.name} />
-                        ))}
-                    </datalist>
-                </div>
+                        </div>
+                    )
+                }
+                {/* Datalist for geofences suggestions */}
+                <datalist id="geofences-list">
+                    {geofences.map(geo => (
+                        <option key={geo.id} value={geo.name} />
+                    ))}
+                </datalist>
+            </div>
             )
             }
 
