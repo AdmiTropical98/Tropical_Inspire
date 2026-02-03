@@ -294,8 +294,7 @@ export default function Escalas() {
         return globalPendentes.some(s => s.batchId === batch.id);
     }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    // Legacy/Ad-hoc pending (no batch or batch not found)
-    const adHocPendentes = globalPendentes.filter(s => !s.batchId || !scaleBatches.find(b => b.id === s.batchId));
+    const adHocPendentes = globalPendentes.filter(s => !s.batchId);
 
     // Sidebar Count
 
@@ -1741,7 +1740,7 @@ export default function Escalas() {
                                                                     onClick={() => setExpandedBatchId(expandedBatchId === 'adhoc' ? null : 'adhoc')}
                                                                     className="p-4 cursor-pointer"
                                                                 >
-                                                                    <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Avulsas</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHoc.length}</span></div>
+                                                                    <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Manuais / Legado</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHoc.length}</span></div>
                                                                     <div className="text-xs text-slate-500">Serviços sem lote associado</div>
                                                                 </div>
 
@@ -1804,9 +1803,10 @@ export default function Escalas() {
                                                             const isExpanded = expandedBatchId === batchId;
 
                                                             // Fallback info if batch is missing (Orphaned due to RLS/Sync)
-                                                            const createdBy = batch?.created_by || 'Carregando...';
-                                                            const createdByRole = batch?.created_by_role;
+                                                            const createdBy = batch?.created_by || 'Lote Desconhecido';
+                                                            const createdByRole = batch?.created_by_role || 'Erro Sync';
                                                             const createdAt = batch?.created_at ? batch.created_at.split('T')[1].substring(0, 5) : '--:--';
+                                                            const centroCustoName = batch?.centro_custo_id ? centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome : 'Sem Centro Custo';
 
                                                             return (
                                                                 <div key={batchId} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
@@ -1816,24 +1816,33 @@ export default function Escalas() {
                                                                     >
                                                                         <div className="flex justify-between items-start mb-3">
                                                                             <div className="flex items-center gap-2">
-                                                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
+                                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs ${batch ? 'bg-gradient-to-br from-blue-500 to-cyan-500' : 'bg-slate-700'}`}>
                                                                                     {createdBy.charAt(0).toUpperCase()}
                                                                                 </div>
                                                                                 <div>
                                                                                     <div className="font-bold text-white text-sm flex items-center gap-2">
                                                                                         {createdBy}
-                                                                                        {createdByRole && (
-                                                                                            <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-white/10 font-normal capitalize">
-                                                                                                {createdByRole}
+                                                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-normal capitalize ${batch ? 'bg-slate-800 text-slate-400 border-white/10' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                                                            {createdByRole}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                                        {batch?.centro_custo_id && (
+                                                                                            <span className="text-[10px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 truncate max-w-[150px]">
+                                                                                                {centroCustoName}
                                                                                             </span>
                                                                                         )}
+                                                                                        <span className="text-[10px] text-slate-500 font-mono">{createdAt}</span>
                                                                                     </div>
-                                                                                    <div className="text-[10px] text-slate-500 font-mono">{createdAt}</div>
                                                                                 </div>
                                                                             </div>
                                                                             <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{batchServices.length}</span>
                                                                         </div>
-                                                                        <div className="flex items-center gap-2 text-xs text-slate-400"><Calendar className="w-3.5 h-3.5" /><span className="font-mono">{batch?.reference_date || selectedDate}</span></div>
+                                                                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                                            <Calendar className="w-3.5 h-3.5" />
+                                                                            <span className="font-mono">{batch?.reference_date || selectedDate}</span>
+                                                                            {!batch && <span className="text-red-400 text-[10px] ml-auto italic">Erro de Sincronização</span>}
+                                                                        </div>
 
                                                                     </div>
 
