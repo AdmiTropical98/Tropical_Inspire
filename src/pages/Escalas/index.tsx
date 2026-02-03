@@ -1627,6 +1627,7 @@ export default function Escalas() {
         )
     }
     </div >
+    </div >
     {
         hasAccess(userRole, 'escalas_view_pending') && (
             <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-[#0f172a] border-t md:border-t-0 md:border-l border-white/5">
