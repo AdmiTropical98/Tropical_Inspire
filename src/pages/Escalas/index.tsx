@@ -1886,121 +1886,121 @@ export default function Escalas() {
 
                                 </div>
                             </div>
-                        </div>
-                )
-                }
+
+                        )
+                    }
 
 
 
 
-                {/* MODAL: URGENT REQUEST */}
-                {
-                    showUrgentModal && (
-                        <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-                            <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
-                                <div className="flex items-center gap-4 mb-8 text-red-500">
-                                    <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
-                                        <Siren className="w-8 h-8" />
+                    {/* MODAL: URGENT REQUEST */}
+                    {
+                        showUrgentModal && (
+                            <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+                                <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
+                                    <div className="flex items-center gap-4 mb-8 text-red-500">
+                                        <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
+                                            <Siren className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-white">{t('schedule.modal.urgent.title')}</h2>
+                                            <p className="text-red-400/80 text-sm font-medium">Este pedido será notificado aos supervisores.</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-white">{t('schedule.modal.urgent.title')}</h2>
-                                        <p className="text-red-400/80 text-sm font-medium">Este pedido será notificado aos supervisores.</p>
-                                    </div>
+
+                                    <form onSubmit={handleUrgentRequest} className="space-y-6">
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.time')}</label>
+                                                <input
+                                                    type="time"
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                                    value={urgentData.hora}
+                                                    onChange={e => setUrgentData({ ...urgentData, hora: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.passenger')}</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Nome..."
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                                    value={urgentData.passageiro}
+                                                    onChange={e => setUrgentData({ ...urgentData, passageiro: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.pickup')}</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    list="geofences-list"
+                                                    placeholder="Onde está..."
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                                    value={urgentData.origem}
+                                                    onChange={e => setUrgentData({ ...urgentData, origem: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.dropoff')}</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    list="geofences-list"
+                                                    placeholder="Para onde vai..."
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                                    value={urgentData.destino}
+                                                    onChange={e => setUrgentData({ ...urgentData, destino: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.obs')}</label>
+                                            <textarea
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
+                                                rows={3}
+                                                placeholder="Detalhes adicionais..."
+                                                value={urgentData.obs}
+                                                onChange={e => setUrgentData({ ...urgentData, obs: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="flex gap-4 pt-4 border-t border-white/5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowUrgentModal(false)}
+                                                className="flex-1 py-4 bg-slate-800 text-slate-300 hover:text-white rounded-xl font-bold transition-colors"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="flex-[2] py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-900/40 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all"
+                                            >
+                                                <Send className="w-5 h-5" />
+                                                {t('schedule.modal.urgent.send')}
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
-
-                                <form onSubmit={handleUrgentRequest} className="space-y-6">
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.time')}</label>
-                                            <input
-                                                type="time"
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                                value={urgentData.hora}
-                                                onChange={e => setUrgentData({ ...urgentData, hora: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.passenger')}</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="Nome..."
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                                value={urgentData.passageiro}
-                                                onChange={e => setUrgentData({ ...urgentData, passageiro: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.pickup')}</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                list="geofences-list"
-                                                placeholder="Onde está..."
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                                value={urgentData.origem}
-                                                onChange={e => setUrgentData({ ...urgentData, origem: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.dropoff')}</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                list="geofences-list"
-                                                placeholder="Para onde vai..."
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                                value={urgentData.destino}
-                                                onChange={e => setUrgentData({ ...urgentData, destino: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.obs')}</label>
-                                        <textarea
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
-                                            rows={3}
-                                            placeholder="Detalhes adicionais..."
-                                            value={urgentData.obs}
-                                            onChange={e => setUrgentData({ ...urgentData, obs: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="flex gap-4 pt-4 border-t border-white/5">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowUrgentModal(false)}
-                                            className="flex-1 py-4 bg-slate-800 text-slate-300 hover:text-white rounded-xl font-bold transition-colors"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="flex-[2] py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-900/40 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all"
-                                        >
-                                            <Send className="w-5 h-5" />
-                                            {t('schedule.modal.urgent.send')}
-                                        </button>
-                                    </div>
-                                </form>
                             </div>
-                        </div>
-                    )
-                }
-                {/* Datalist for geofences suggestions */}
-                <datalist id="geofences-list">
-                    {geofences.map(geo => (
-                        <option key={geo.id} value={geo.name} />
-                    ))}
-                </datalist>
+                        )
+                    }
+                    {/* Datalist for geofences suggestions */}
+                    <datalist id="geofences-list">
+                        {geofences.map(geo => (
+                            <option key={geo.id} value={geo.name} />
+                        ))}
+                    </datalist>
+                </div>
             </div>
-        </div>
 
-    )
+            )
 }
 
