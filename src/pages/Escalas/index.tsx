@@ -1885,7 +1885,7 @@ export default function Escalas() {
 
 
                                 </div>
-                            </div >
+                            </div>
                         </div>
 
 
@@ -1997,6 +1997,8 @@ export default function Escalas() {
                     ))}
                 </datalist>
             </div>
-            )
-            }
+        </div>
+
+    )
+}
 
