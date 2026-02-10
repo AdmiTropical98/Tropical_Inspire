@@ -1435,421 +1435,318 @@ export default function Escalas() {
                                                             </button>
                                                         </div>
                                                     </div>
-                                                </div>
-                                    );
-                                        })}
-                                </div>
-                                )}
-                            </div>
-                        </div>
-                    )
-                }
-
-                    {/* MODAL: NEW SERVICE */}
-                    {
-                        showNewServiceModal && (
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                                <div className="bg-[#1e293b] border border-white/10 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center gap-3">
-                                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                                            <Plus className="w-5 h-5" />
+                                                );
+                                            })}
                                         </div>
-                                        <h2 className="text-xl font-bold text-white">{t('schedule.modal.new.title')}</h2>
-                                    </div>
-
-                                    <form onSubmit={handleCreateService} className="p-6 space-y-5">
-                                        <div className="grid grid-cols-3 gap-5">
-                                            <div className="col-span-1">
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.entry_time')}</label>
-                                                <input
-                                                    type="time"
-                                                    required
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                                                    value={newService.hora}
-                                                    onChange={e => setNewService({ ...newService, hora: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="col-span-2">
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.passenger')}</label>
-                                                <div className="relative">
-                                                    <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                                    <input
-                                                        type="text"
-                                                        required
-                                                        placeholder="Nome do passageiro..."
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                        value={newService.passageiro}
-                                                        onChange={e => setNewService({ ...newService, passageiro: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-5">
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.pickup')}</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    list="geofences-list"
-                                                    placeholder="Onde apanhar..."
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                    value={newService.origem}
-                                                    onChange={e => setNewService({ ...newService, origem: e.target.value })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.workplace')}</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    list="geofences-list"
-                                                    placeholder="Destino..."
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                    value={newService.destino}
-                                                    onChange={e => setNewService({ ...newService, destino: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-5">
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.ref')}</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Ex: Voo LX123"
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                    value={newService.referencia}
-                                                    onChange={e => setNewService({ ...newService, referencia: e.target.value })}
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('menu.cost_centers')}</label>
-                                                <select
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                                                    value={newService.centroCustoId}
-                                                    onChange={e => setNewService({ ...newService, centroCustoId: e.target.value })}
-                                                >
-                                                    <option value="">(Sem custo associado)</option>
-                                                    {centrosCustos.map(cc => (
-                                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-
-                                        {/* Validation Points Selection */}
-                                        <div>
-                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pontos de Validação (POIs)</label>
-                                            <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto custom-scrollbar p-2 border border-slate-700 rounded-xl bg-slate-950/50">
-                                                {locais.map(poi => (
-                                                    <label key={poi.id} className="flex items-center gap-2 p-1.5 hover:bg-white/5 rounded-lg cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={newService.validationPoints.includes(poi.id)}
-                                                            onChange={e => {
-                                                                const isChecked = e.target.checked;
-                                                                setNewService(prev => ({
-                                                                    ...prev,
-                                                                    validationPoints: isChecked
-                                                                        ? [...prev.validationPoints, poi.id]
-                                                                        : prev.validationPoints.filter(id => id !== poi.id)
-                                                                }));
-                                                            }}
-                                                            className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-0"
-                                                        />
-                                                        <span className="text-xs text-slate-300">{poi.nome}</span>
-                                                    </label>
-                                                ))}
-                                                {locais.length === 0 && <span className="text-xs text-slate-500 italic p-1">Nenhum POI criado.</span>}
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-white/5">
-                                            <label className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-xl border border-white/5 cursor-pointer hover:bg-slate-900 transition-colors">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={newService.temRegresso}
-                                                    onChange={e => setNewService({ ...newService, temRegresso: e.target.checked })}
-                                                    className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900"
-                                                />
-                                                <span className="text-sm font-bold text-slate-300">
-                                                    {t('schedule.modal.new.return_check')}
-                                                </span>
-                                            </label>
-
-                                            {newService.temRegresso && (
-                                                <div className="mt-4 pl-4 border-l-2 border-slate-700 space-y-4 animate-in slide-in-from-top-2">
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.exit_time')}</label>
-                                                            <input
-                                                                type="time"
-                                                                required
-                                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                                                                value={newService.horaRegresso}
-                                                                onChange={e => setNewService({ ...newService, horaRegresso: e.target.value })}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.diff_dest')}</label>
-                                                            <input
-                                                                type="text"
-                                                                list="geofences-list"
-                                                                placeholder="Opcional..."
-                                                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                                value={newService.destinoRegresso}
-                                                                onChange={e => setNewService({ ...newService, destinoRegresso: e.target.value })}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="flex justify-end gap-3 pt-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowNewServiceModal(false)}
-                                                className="px-6 py-3 text-slate-400 hover:text-white transition-colors text-sm font-medium"
-                                            >
-                                                Cancelar
-                                            </button>
-                                        </div>
-                                    </form>
+                                    )}
                                 </div>
                             </div>
                         )
-                    }
-                </div >
-            </div >
-            {
-                hasAccess(userRole, 'escalas_view_pending') && (
-                    <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-[#0f172a] border-t md:border-t-0 md:border-l border-white/5">
-                        <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
-                            <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
-                                <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
-                                    <Upload className="w-4 h-4 text-white" />
-                                </div>
-                                <h2 className="text-lg font-bold text-white truncate flex-1">
-                                    {t('schedule.pending.title')}
-                                </h2>
-                                <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                                    {globalPendentes.length}
-                                </span>
-                            </div>
+                        }
 
-                            {/* Batch Assign Control */}
-                            {!isDistributeMode && pendentes.length > 0 && (
-                                <div className="p-4 border-b border-white/5 space-y-2">
-                                    <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
-                                        <select
-                                            className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer w-full"
-                                            value={selectedMotoristaForAssign}
-                                            onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
-                                        >
-                                            <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
-                                            {motoristas.map(m => (
-                                                <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            onClick={handleAssign}
-                                            disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
-                                            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg shrink-0"
-                                            title="Atribuir"
-                                        >
-                                            <ArrowRight className="w-4 h-4" />
-                                        </button>
-                                        {selectedPendentes.length > 0 && (
-                                            <button
-                                                onClick={handleBatchDelete}
-                                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 p-2 rounded-lg transition-all shrink-0"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center justify-between px-1">
-                                        <button onClick={toggleSelectAll} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white">Selecionar Todos</button>
-                                        <span className="text-[10px] text-slate-600">{selectedPendentes.length} selecionados</span>
-                                    </div>
-                                </div>
-                            )}
+                        {/* MODAL: NEW SERVICE */}
+                        {
+                            showNewServiceModal && (
+                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                                    <div className="bg-[#1e293b] border border-white/10 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center gap-3">
+                                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                                                <Plus className="w-5 h-5" />
+                                            </div>
+                                            <h2 className="text-xl font-bold text-white">{t('schedule.modal.new.title')}</h2>
+                                        </div>
 
-                            {/* List */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
-                                {(() => {
-                                    // 1. Group ALL services by batchId
-                                    const batchesMap = new Map<string, typeof globalPendentes>();
-                                    const adHoc: typeof globalPendentes = [];
-
-                                    globalPendentes.forEach(s => {
-                                        if (s.batchId) {
-                                            const existing = batchesMap.get(s.batchId) || [];
-                                            existing.push(s);
-                                            batchesMap.set(s.batchId, existing);
-                                        } else {
-                                            adHoc.push(s);
-                                        }
-                                    });
-
-                                    // 2. Resolve Batches (Real or Pseudo)
-                                    // Get all batch IDs that have services
-                                    const activeBatchIds = Array.from(batchesMap.keys());
-
-                                    // Sort batches by creation time (using ScaleBatch info if available, or fallback)
-                                    // We prioritize showing the NEWEST batches first
-                                    const sortedBatchIds = activeBatchIds.sort((a, b) => {
-                                        const batchA = scaleBatches.find(sb => sb.id === a);
-                                        const batchB = scaleBatches.find(sb => sb.id === b);
-                                        const timeA = batchA ? new Date(batchA.created_at).getTime() : 0;
-                                        const timeB = batchB ? new Date(batchB.created_at).getTime() : 0;
-                                        return timeB - timeA;
-                                    });
-
-                                    return (
-                                        <>
-                                            {/* Ad-Hoc (Ideally empty now) */}
-                                            {adHoc.length > 0 && (
-                                                <div className={`rounded-xl border transition-all overflow-hidden ${expandedBatchId === 'adhoc' ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
-                                                    <div
-                                                        onClick={() => setExpandedBatchId(expandedBatchId === 'adhoc' ? null : 'adhoc')}
-                                                        className="p-4 cursor-pointer"
-                                                    >
-                                                        <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Manuais / Legado</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHoc.length}</span></div>
-                                                        <div className="text-xs text-slate-500">Serviços sem lote associado</div>
-                                                    </div>
-
-                                                    {/* EXPANDED CONTENT AD-HOC */}
-                                                    {expandedBatchId === 'adhoc' && (
-                                                        <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
-                                                            {adHoc.map(service => (
-                                                                <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
-                                                                    <div className="flex justify-between items-start">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
-                                                                            <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
-                                                                        </div>
-                                                                        <div className="flex gap-2">
-                                                                            <button
-                                                                                onClick={(e) => handleDeleteService(service.id, e)}
-                                                                                className="text-slate-600 hover:text-red-400 p-1"
-                                                                                title="Eliminar"
-                                                                            >
-                                                                                <Trash2 className="w-3 h-3" />
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
-                                                                        <span className="truncate" title={service.origem}>{service.origem}</span>
-                                                                        <ArrowRight className="w-3 h-3 text-slate-600" />
-                                                                        <span className="truncate text-right" title={service.destino}>{service.destino}</span>
-                                                                    </div>
-                                                                    <div className="pt-2 border-t border-white/5">
-                                                                        <select
-                                                                            className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
-                                                                            value=""
-                                                                            onChange={(e) => {
-                                                                                if (e.target.value) {
-                                                                                    updateServico({ ...service, motoristaId: e.target.value });
-                                                                                }
-                                                                            }}
-                                                                        >
-                                                                            <option value="">Atribuir a...</option>
-                                                                            {motoristas.filter(m => m.status === 'disponivel').map(m => (
-                                                                                <option key={m.id} value={m.id}>{m.nome}</option>
-                                                                            ))}
-                                                                            <option disabled>──────────</option>
-                                                                            {motoristas.filter(m => m.status !== 'disponivel').map(m => (
-                                                                                <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
-                                                                            ))}
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                        <form onSubmit={handleCreateService} className="p-6 space-y-5">
+                                            <div className="grid grid-cols-3 gap-5">
+                                                <div className="col-span-1">
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.entry_time')}</label>
+                                                    <input
+                                                        type="time"
+                                                        required
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                                        value={newService.hora}
+                                                        onChange={e => setNewService({ ...newService, hora: e.target.value })}
+                                                    />
                                                 </div>
+                                                <div className="col-span-2">
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.passenger')}</label>
+                                                    <div className="relative">
+                                                        <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                                        <input
+                                                            type="text"
+                                                            required
+                                                            placeholder="Nome do passageiro..."
+                                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                            value={newService.passageiro}
+                                                            onChange={e => setNewService({ ...newService, passageiro: e.target.value })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-5">
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.pickup')}</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        list="geofences-list"
+                                                        placeholder="Onde apanhar..."
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={newService.origem}
+                                                        onChange={e => setNewService({ ...newService, origem: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.workplace')}</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        list="geofences-list"
+                                                        placeholder="Destino..."
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={newService.destino}
+                                                        onChange={e => setNewService({ ...newService, destino: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-5">
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.ref')}</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Ex: Voo LX123"
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={newService.referencia}
+                                                        onChange={e => setNewService({ ...newService, referencia: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('menu.cost_centers')}</label>
+                                                    <select
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                                        value={newService.centroCustoId}
+                                                        onChange={e => setNewService({ ...newService, centroCustoId: e.target.value })}
+                                                    >
+                                                        <option value="">(Sem custo associado)</option>
+                                                        {centrosCustos.map(cc => (
+                                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+
+
+                                            {/* Validation Points Selection */}
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pontos de Validação (POIs)</label>
+                                                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto custom-scrollbar p-2 border border-slate-700 rounded-xl bg-slate-950/50">
+                                                    {locais.map(poi => (
+                                                        <label key={poi.id} className="flex items-center gap-2 p-1.5 hover:bg-white/5 rounded-lg cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={newService.validationPoints.includes(poi.id)}
+                                                                onChange={e => {
+                                                                    const isChecked = e.target.checked;
+                                                                    setNewService(prev => ({
+                                                                        ...prev,
+                                                                        validationPoints: isChecked
+                                                                            ? [...prev.validationPoints, poi.id]
+                                                                            : prev.validationPoints.filter(id => id !== poi.id)
+                                                                    }));
+                                                                }}
+                                                                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-0"
+                                                            />
+                                                            <span className="text-xs text-slate-300">{poi.nome}</span>
+                                                        </label>
+                                                    ))}
+                                                    {locais.length === 0 && <span className="text-xs text-slate-500 italic p-1">Nenhum POI criado.</span>}
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-4 border-t border-white/5">
+                                                <label className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-xl border border-white/5 cursor-pointer hover:bg-slate-900 transition-colors">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={newService.temRegresso}
+                                                        onChange={e => setNewService({ ...newService, temRegresso: e.target.checked })}
+                                                        className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900"
+                                                    />
+                                                    <span className="text-sm font-bold text-slate-300">
+                                                        {t('schedule.modal.new.return_check')}
+                                                    </span>
+                                                </label>
+
+                                                {newService.temRegresso && (
+                                                    <div className="mt-4 pl-4 border-l-2 border-slate-700 space-y-4 animate-in slide-in-from-top-2">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.exit_time')}</label>
+                                                                <input
+                                                                    type="time"
+                                                                    required
+                                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                                                    value={newService.horaRegresso}
+                                                                    onChange={e => setNewService({ ...newService, horaRegresso: e.target.value })}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.diff_dest')}</label>
+                                                                <input
+                                                                    type="text"
+                                                                    list="geofences-list"
+                                                                    placeholder="Opcional..."
+                                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                    value={newService.destinoRegresso}
+                                                                    onChange={e => setNewService({ ...newService, destinoRegresso: e.target.value })}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex justify-end gap-3 pt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowNewServiceModal(false)}
+                                                    className="px-6 py-3 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            )
+                        }
+                    </div >
+                </div >
+                {
+                    hasAccess(userRole, 'escalas_view_pending') && (
+                        <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-[#0f172a] border-t md:border-t-0 md:border-l border-white/5">
+                            <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
+                                <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
+                                    <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
+                                        <Upload className="w-4 h-4 text-white" />
+                                    </div>
+                                    <h2 className="text-lg font-bold text-white truncate flex-1">
+                                        {t('schedule.pending.title')}
+                                    </h2>
+                                    <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
+                                        {globalPendentes.length}
+                                    </span>
+                                </div>
+
+                                {/* Batch Assign Control */}
+                                {!isDistributeMode && pendentes.length > 0 && (
+                                    <div className="p-4 border-b border-white/5 space-y-2">
+                                        <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
+                                            <select
+                                                className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer w-full"
+                                                value={selectedMotoristaForAssign}
+                                                onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
+                                            >
+                                                <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
+                                                {motoristas.map(m => (
+                                                    <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={handleAssign}
+                                                disabled={!selectedMotoristaForAssign || selectedPendentes.length === 0}
+                                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all shadow-lg shrink-0"
+                                                title="Atribuir"
+                                            >
+                                                <ArrowRight className="w-4 h-4" />
+                                            </button>
+                                            {selectedPendentes.length > 0 && (
+                                                <button
+                                                    onClick={handleBatchDelete}
+                                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 p-2 rounded-lg transition-all shrink-0"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             )}
+                                        </div>
+                                        <div className="flex items-center justify-between px-1">
+                                            <button onClick={toggleSelectAll} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white">Selecionar Todos</button>
+                                            <span className="text-[10px] text-slate-600">{selectedPendentes.length} selecionados</span>
+                                        </div>
+                                    </div>
+                                )}
 
-                                            {/* Batches (Real & Orphaned) */}
-                                            {sortedBatchIds.map(batchId => {
-                                                const batchServices = batchesMap.get(batchId) || [];
-                                                const batch = scaleBatches.find(b => b.id === batchId);
-                                                const isExpanded = expandedBatchId === batchId;
+                                {/* List */}
+                                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
+                                    {(() => {
+                                        // 1. Group ALL services by batchId
+                                        const batchesMap = new Map<string, typeof globalPendentes>();
+                                        const adHoc: typeof globalPendentes = [];
 
-                                                // Fallback info if batch is missing (Orphaned due to RLS/Sync)
-                                                const createdBy = batch?.created_by || 'Lote Desconhecido';
-                                                const createdByRole = batch?.created_by_role || 'Erro Sync';
-                                                const createdAt = batch?.created_at ? batch.created_at.split('T')[1].substring(0, 5) : '--:--';
-                                                const centroCustoName = batch?.centro_custo_id ? centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome : 'Sem Centro Custo';
+                                        globalPendentes.forEach(s => {
+                                            if (s.batchId) {
+                                                const existing = batchesMap.get(s.batchId) || [];
+                                                existing.push(s);
+                                                batchesMap.set(s.batchId, existing);
+                                            } else {
+                                                adHoc.push(s);
+                                            }
+                                        });
 
-                                                return (
-                                                    <div key={batchId} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                        // 2. Resolve Batches (Real or Pseudo)
+                                        // Get all batch IDs that have services
+                                        const activeBatchIds = Array.from(batchesMap.keys());
+
+                                        // Sort batches by creation time (using ScaleBatch info if available, or fallback)
+                                        // We prioritize showing the NEWEST batches first
+                                        const sortedBatchIds = activeBatchIds.sort((a, b) => {
+                                            const batchA = scaleBatches.find(sb => sb.id === a);
+                                            const batchB = scaleBatches.find(sb => sb.id === b);
+                                            const timeA = batchA ? new Date(batchA.created_at).getTime() : 0;
+                                            const timeB = batchB ? new Date(batchB.created_at).getTime() : 0;
+                                            return timeB - timeA;
+                                        });
+
+                                        return (
+                                            <>
+                                                {/* Ad-Hoc (Ideally empty now) */}
+                                                {adHoc.length > 0 && (
+                                                    <div className={`rounded-xl border transition-all overflow-hidden ${expandedBatchId === 'adhoc' ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
                                                         <div
-                                                            onClick={() => setExpandedBatchId(isExpanded ? null : batchId)}
+                                                            onClick={() => setExpandedBatchId(expandedBatchId === 'adhoc' ? null : 'adhoc')}
                                                             className="p-4 cursor-pointer"
                                                         >
-                                                            <div className="flex justify-between items-start mb-3">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs ${batch ? 'bg-gradient-to-br from-blue-500 to-cyan-500' : 'bg-slate-700'}`}>
-                                                                        {createdBy.charAt(0).toUpperCase()}
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="font-bold text-white text-sm flex items-center gap-2">
-                                                                            {createdBy}
-                                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded border font-normal capitalize ${batch ? 'bg-slate-800 text-slate-400 border-white/10' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                                                                {createdByRole}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                                            {batch?.centro_custo_id && (
-                                                                                <span className="text-[10px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 truncate max-w-[150px]">
-                                                                                    {centroCustoName}
-                                                                                </span>
-                                                                            )}
-                                                                            <span className="text-[10px] text-slate-500 font-mono">{createdAt}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{batchServices.length}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                                                                <Calendar className="w-3.5 h-3.5" />
-                                                                <span className="font-mono">{batch?.reference_date || selectedDate}</span>
-                                                                {!batch && <span className="text-red-400 text-[10px] ml-auto italic">Erro de Sincronização</span>}
-                                                            </div>
-
+                                                            <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Manuais / Legado</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHoc.length}</span></div>
+                                                            <div className="text-xs text-slate-500">Serviços sem lote associado</div>
                                                         </div>
 
-                                                        {/* EXPANDED CONTENT */}
-                                                        {isExpanded && (
+                                                        {/* EXPANDED CONTENT AD-HOC */}
+                                                        {expandedBatchId === 'adhoc' && (
                                                             <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
-                                                                {batchServices.map(service => (
+                                                                {adHoc.map(service => (
                                                                     <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
                                                                         <div className="flex justify-between items-start">
                                                                             <div className="flex items-center gap-2">
                                                                                 <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
                                                                                 <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
                                                                             </div>
-                                                                            <button
-                                                                                onClick={(e) => handleDeleteService(service.id, e)}
-                                                                                className="text-slate-600 hover:text-red-400 p-1"
-                                                                                title="Eliminar"
-                                                                            >
-                                                                                <Trash2 className="w-3 h-3" />
-                                                                            </button>
+                                                                            <div className="flex gap-2">
+                                                                                <button
+                                                                                    onClick={(e) => handleDeleteService(service.id, e)}
+                                                                                    className="text-slate-600 hover:text-red-400 p-1"
+                                                                                    title="Eliminar"
+                                                                                >
+                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
                                                                         </div>
-
                                                                         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
                                                                             <span className="truncate" title={service.origem}>{service.origem}</span>
                                                                             <ArrowRight className="w-3 h-3 text-slate-600" />
                                                                             <span className="truncate text-right" title={service.destino}>{service.destino}</span>
                                                                         </div>
-
                                                                         <div className="pt-2 border-t border-white/5">
                                                                             <select
                                                                                 className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
@@ -1875,134 +1772,236 @@ export default function Escalas() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                );
-                                            })}
-                                            {pendingBatches.length === 0 && adHocPendentes.length === 0 && (
-                                                <div className="h-40 flex flex-col items-center justify-center text-slate-600 text-center"><CheckSquare className="w-8 h-8 mb-3 opacity-20" /><p className="text-sm">Tudo limpo!</p></div>
-                                            )}
-                                        </>
-                                    );
-                                })()}
+                                                )}
+
+                                                {/* Batches (Real & Orphaned) */}
+                                                {sortedBatchIds.map(batchId => {
+                                                    const batchServices = batchesMap.get(batchId) || [];
+                                                    const batch = scaleBatches.find(b => b.id === batchId);
+                                                    const isExpanded = expandedBatchId === batchId;
+
+                                                    // Fallback info if batch is missing (Orphaned due to RLS/Sync)
+                                                    const createdBy = batch?.created_by || 'Lote Desconhecido';
+                                                    const createdByRole = batch?.created_by_role || 'Erro Sync';
+                                                    const createdAt = batch?.created_at ? batch.created_at.split('T')[1].substring(0, 5) : '--:--';
+                                                    const centroCustoName = batch?.centro_custo_id ? centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome : 'Sem Centro Custo';
+
+                                                    return (
+                                                        <div key={batchId} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                                            <div
+                                                                onClick={() => setExpandedBatchId(isExpanded ? null : batchId)}
+                                                                className="p-4 cursor-pointer"
+                                                            >
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs ${batch ? 'bg-gradient-to-br from-blue-500 to-cyan-500' : 'bg-slate-700'}`}>
+                                                                            {createdBy.charAt(0).toUpperCase()}
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="font-bold text-white text-sm flex items-center gap-2">
+                                                                                {createdBy}
+                                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-normal capitalize ${batch ? 'bg-slate-800 text-slate-400 border-white/10' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                                                    {createdByRole}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                                {batch?.centro_custo_id && (
+                                                                                    <span className="text-[10px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 truncate max-w-[150px]">
+                                                                                        {centroCustoName}
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className="text-[10px] text-slate-500 font-mono">{createdAt}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{batchServices.length}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                                    <Calendar className="w-3.5 h-3.5" />
+                                                                    <span className="font-mono">{batch?.reference_date || selectedDate}</span>
+                                                                    {!batch && <span className="text-red-400 text-[10px] ml-auto italic">Erro de Sincronização</span>}
+                                                                </div>
+
+                                                            </div>
+
+                                                            {/* EXPANDED CONTENT */}
+                                                            {isExpanded && (
+                                                                <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
+                                                                    {batchServices.map(service => (
+                                                                        <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
+                                                                            <div className="flex justify-between items-start">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
+                                                                                    <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
+                                                                                </div>
+                                                                                <button
+                                                                                    onClick={(e) => handleDeleteService(service.id, e)}
+                                                                                    className="text-slate-600 hover:text-red-400 p-1"
+                                                                                    title="Eliminar"
+                                                                                >
+                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
+
+                                                                            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[10px] text-slate-500">
+                                                                                <span className="truncate" title={service.origem}>{service.origem}</span>
+                                                                                <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                                <span className="truncate text-right" title={service.destino}>{service.destino}</span>
+                                                                            </div>
+
+                                                                            <div className="pt-2 border-t border-white/5">
+                                                                                <select
+                                                                                    className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
+                                                                                    value=""
+                                                                                    onChange={(e) => {
+                                                                                        if (e.target.value) {
+                                                                                            updateServico({ ...service, motoristaId: e.target.value });
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <option value="">Atribuir a...</option>
+                                                                                    {motoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                                                        <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                                    ))}
+                                                                                    <option disabled>──────────</option>
+                                                                                    {motoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                                                        <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {pendingBatches.length === 0 && adHocPendentes.length === 0 && (
+                                                    <div className="h-40 flex flex-col items-center justify-center text-slate-600 text-center"><CheckSquare className="w-8 h-8 mb-3 opacity-20" /><p className="text-sm">Tudo limpo!</p></div>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                    )
+                }
+            </div >
+
+
+
+
+            {/* MODAL: URGENT REQUEST */}
+            {
+                showUrgentModal && (
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+                        <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
+                            <div className="flex items-center gap-4 mb-8 text-red-500">
+                                <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
+                                    <Siren className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">{t('schedule.modal.urgent.title')}</h2>
+                                    <p className="text-red-400/80 text-sm font-medium">Este pedido será notificado aos supervisores.</p>
+                                </div>
                             </div>
 
+                            <form onSubmit={handleUrgentRequest} className="space-y-6">
 
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.time')}</label>
+                                        <input
+                                            type="time"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            value={urgentData.hora}
+                                            onChange={e => setUrgentData({ ...urgentData, hora: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.passenger')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Nome..."
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            value={urgentData.passageiro}
+                                            onChange={e => setUrgentData({ ...urgentData, passageiro: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
 
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.pickup')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            list="geofences-list"
+                                            placeholder="Onde está..."
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            value={urgentData.origem}
+                                            onChange={e => setUrgentData({ ...urgentData, origem: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.dropoff')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            list="geofences-list"
+                                            placeholder="Para onde vai..."
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            value={urgentData.destino}
+                                            onChange={e => setUrgentData({ ...urgentData, destino: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.obs')}</label>
+                                    <textarea
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
+                                        rows={3}
+                                        placeholder="Detalhes adicionais..."
+                                        value={urgentData.obs}
+                                        onChange={e => setUrgentData({ ...urgentData, obs: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="flex gap-4 pt-4 border-t border-white/5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowUrgentModal(false)}
+                                        className="flex-1 py-4 bg-slate-800 text-slate-300 hover:text-white rounded-xl font-bold transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-[2] py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-900/40 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all"
+                                    >
+                                        <Send className="w-5 h-5" />
+                                        {t('schedule.modal.urgent.send')}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 )
             }
-        </div >
-
-
-
-
-    {/* MODAL: URGENT REQUEST */ }
-    {
-        showUrgentModal && (
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-                <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
-                    <div className="flex items-center gap-4 mb-8 text-red-500">
-                        <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
-                            <Siren className="w-8 h-8" />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-bold text-white">{t('schedule.modal.urgent.title')}</h2>
-                            <p className="text-red-400/80 text-sm font-medium">Este pedido será notificado aos supervisores.</p>
-                        </div>
-                    </div>
-
-                    <form onSubmit={handleUrgentRequest} className="space-y-6">
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.time')}</label>
-                                <input
-                                    type="time"
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                    value={urgentData.hora}
-                                    onChange={e => setUrgentData({ ...urgentData, hora: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.passenger')}</label>
-                                <input
-                                    type="text"
-                                    required
-                                    placeholder="Nome..."
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                    value={urgentData.passageiro}
-                                    onChange={e => setUrgentData({ ...urgentData, passageiro: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.pickup')}</label>
-                                <input
-                                    type="text"
-                                    required
-                                    list="geofences-list"
-                                    placeholder="Onde está..."
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                    value={urgentData.origem}
-                                    onChange={e => setUrgentData({ ...urgentData, origem: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.dropoff')}</label>
-                                <input
-                                    type="text"
-                                    required
-                                    list="geofences-list"
-                                    placeholder="Para onde vai..."
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
-                                    value={urgentData.destino}
-                                    onChange={e => setUrgentData({ ...urgentData, destino: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.obs')}</label>
-                            <textarea
-                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
-                                rows={3}
-                                placeholder="Detalhes adicionais..."
-                                value={urgentData.obs}
-                                onChange={e => setUrgentData({ ...urgentData, obs: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="flex gap-4 pt-4 border-t border-white/5">
-                            <button
-                                type="button"
-                                onClick={() => setShowUrgentModal(false)}
-                                className="flex-1 py-4 bg-slate-800 text-slate-300 hover:text-white rounded-xl font-bold transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                className="flex-[2] py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-900/40 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all"
-                            >
-                                <Send className="w-5 h-5" />
-                                {t('schedule.modal.urgent.send')}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        )
-    }
-    {/* Datalist for geofences suggestions */ }
-    <datalist id="geofences-list">
-        {geofences.map(geo => (
-            <option key={geo.id} value={geo.name} />
-        ))}
-    </datalist>
-        </div >
-            </div >
+            {/* Datalist for geofences suggestions */}
+            <datalist id="geofences-list">
+                {geofences.map(geo => (
+                    <option key={geo.id} value={geo.name} />
+                ))}
+            </datalist>
+        </div>
+    </div >
 
             )
 }
