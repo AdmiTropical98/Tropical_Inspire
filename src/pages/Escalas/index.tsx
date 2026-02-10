@@ -1441,8 +1441,7 @@ export default function Escalas() {
                                     )}
                                 </div>
                             </div>
-                        )
-                        }
+                        )}
 
                         {/* MODAL: NEW SERVICE */}
                         {
