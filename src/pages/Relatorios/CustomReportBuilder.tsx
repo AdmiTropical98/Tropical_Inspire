@@ -28,37 +28,88 @@ export default function CustomReportBuilder() {
         setGeneratedData([]);
 
         try {
-            let query = supabase.from(reportType).select('*');
+            let data: any[] = [];
 
-            // Apply Date Filters
-            if (startDate && endDate) {
-                switch (reportType) {
-                    case 'manutencoes':
-                        query = query.gte('data', startDate).lte('data', endDate);
-                        break;
-                    case 'fuel_transactions':
-                    case 'tank_refills':
-                        // timestamp strings
-                        query = query.gte('timestamp', startDate).lte('timestamp', endDate);
-                        break;
-                    case 'faturas':
-                        query = query.gte('data', startDate).lte('data', endDate);
-                        break;
-                    case 'eva_transports':
-                        query = query.gte('reference_date', startDate).lte('reference_date', endDate);
-                        break;
-                    case 'servicos':
-                        // query = query.gte('created_at', startDate).lte('created_at', endDate);
-                        break;
-                    default:
-                        break;
+            if (reportType === 'fuel_transactions') {
+                // 1. Fetch Transactions
+                let query = supabase.from('fuel_transactions').select('*');
+
+                if (startDate && endDate) {
+                    query = query.gte('timestamp', startDate).lte('timestamp', endDate);
                 }
+
+                const { data: transactions, error: txError } = await query;
+                if (txError) throw txError;
+
+                // 2. Fetch Related Data in Parallel
+                const [
+                    { data: viaturas },
+                    { data: motoristas },
+                    { data: centros }
+                ] = await Promise.all([
+                    supabase.from('viaturas').select('id, matricula, marca, modelo'),
+                    supabase.from('motoristas').select('id, nome'),
+                    supabase.from('centros_custos').select('id, nome')
+                ]);
+
+                // 3. Map IDs to Names & Format Data
+                data = (transactions || []).map(tx => {
+                    const vehicle = viaturas?.find(v => v.id === tx.vehicleId || v.id === tx.vehicle_id); // Support both cases
+                    const driver = motoristas?.find(m => m.id === tx.driverId || m.id === tx.driver_id);
+                    const cc = centros?.find(c => c.id === tx.centroCustoId || c.id === tx.centro_custo_id);
+
+                    // Normalize vehicle ID lookup effectively
+                    // Sometimes vehicle_id might be the matricula if legacy imported, but usually UUID
+                    let vehicleDisplay = tx.vehicleId || tx.vehicle_id;
+                    if (vehicle) {
+                        vehicleDisplay = `${vehicle.matricula} (${vehicle.marca} ${vehicle.modelo})`;
+                    }
+
+                    return {
+                        'Data': new Date(tx.timestamp).toLocaleString('pt-PT'),
+                        'Viatura': vehicleDisplay,
+                        'Condutor': driver ? driver.nome : (tx.driver_id || 'N/A'),
+                        'Litros': tx.liters,
+                        'KM': tx.km,
+                        'Preço/L': tx.pricePerLiter || tx.price_per_liter ? `${Number(tx.pricePerLiter || tx.price_per_liter).toFixed(3)} €` : '-',
+                        'Total': tx.totalCost || tx.total_cost ? `${Number(tx.totalCost || tx.total_cost).toFixed(2)} €` : '-',
+                        'Centro Custo': cc ? cc.nome : (tx.centroCustoId || tx.centro_custo_id || '-'),
+                        'Registado Por': tx.staffName || tx.staff_name || 'Sistema',
+                        'Estado': tx.status === 'confirmed' ? 'Confirmado' : 'Pendente',
+                        'Posto': tx.isExternal ? (tx.station || 'Externo/BP') : 'Interno',
+                    };
+                });
+
+            } else {
+                // Standard Logic for other reports
+                let query = supabase.from(reportType).select('*');
+
+                // Apply Date Filters
+                if (startDate && endDate) {
+                    switch (reportType) {
+                        case 'manutencoes':
+                            query = query.gte('data', startDate).lte('data', endDate);
+                            break;
+                        case 'tank_refills':
+                            query = query.gte('timestamp', startDate).lte('timestamp', endDate);
+                            break;
+                        case 'faturas':
+                            query = query.gte('data', startDate).lte('data', endDate);
+                            break;
+                        case 'eva_transports':
+                            query = query.gte('reference_date', startDate).lte('reference_date', endDate);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                const { data: resData, error: resError } = await query;
+                if (resError) throw resError;
+                data = resData || [];
             }
 
-            const { data, error } = await query;
-
-            if (error) throw error;
-            setGeneratedData(data || []);
+            setGeneratedData(data);
 
         } catch (err) {
             console.error('Error generating custom report:', err);
