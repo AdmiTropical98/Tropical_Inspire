@@ -59,7 +59,6 @@ export default function CustomReportBuilder() {
                     const cc = centros?.find(c => c.id === tx.centroCustoId || c.id === tx.centro_custo_id);
 
                     // Normalize vehicle ID lookup effectively
-                    // Sometimes vehicle_id might be the matricula if legacy imported, but usually UUID
                     let vehicleDisplay = tx.vehicleId || tx.vehicle_id;
                     if (vehicle) {
                         vehicleDisplay = `${vehicle.matricula} (${vehicle.marca} ${vehicle.modelo})`;
