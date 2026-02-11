@@ -48,6 +48,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     };
 
+    useEffect(() => {
+        refreshData();
+    }, []);
+
     const fetchExpenses = async () => {
         // Fetch explicit expenses
         const { data: dbExpenses } = await supabase.from('expenses').select('*');

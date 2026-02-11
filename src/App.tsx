@@ -10,6 +10,7 @@ import { useAuth } from './contexts/AuthContext';
 import { usePermissions } from './contexts/PermissionsContext';
 import { useWorkshop } from './contexts/WorkshopContext';
 import { ChatProvider, useChat } from './contexts/ChatContext';
+import { FinancialProvider } from './contexts/FinancialContext';
 
 // Components
 import Login from './pages/Auth/Login';
@@ -648,7 +649,9 @@ function App() {
   return (
 
     <ChatProvider>
-      <AppContent />
+      <FinancialProvider>
+        <AppContent />
+      </FinancialProvider>
     </ChatProvider>
 
   );

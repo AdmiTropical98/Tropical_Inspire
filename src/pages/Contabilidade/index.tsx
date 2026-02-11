@@ -10,7 +10,7 @@ import NovaFatura from './NovaFatura';
 import Alugueres from './Alugueres';
 import ExpensesList from './ExpensesList';
 import FixedCostsManager from './FixedCostsManager';
-import { FinancialProvider, useFinancial } from '../../contexts/FinancialContext';
+import { useFinancial } from '../../contexts/FinancialContext';
 import { formatCurrency } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
 import jsPDF from 'jspdf';
@@ -201,9 +201,7 @@ function ContabilidadeContent() {
 
 export default function Contabilidade() {
     return (
-        <FinancialProvider>
-            <ContabilidadeContent />
-        </FinancialProvider>
+        <ContabilidadeContent />
     );
 }
 
