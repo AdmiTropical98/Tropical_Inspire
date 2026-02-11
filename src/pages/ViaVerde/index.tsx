@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import {
     Zap, Plus, Search,
@@ -8,6 +9,10 @@ import { supabase } from '../../lib/supabase';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import type { TollRecord } from '../../types';
 import toast from 'react-hot-toast';
+
+import * as XLSX from 'xlsx';
+
+// ... existing imports ...
 
 export default function ViaVerde() {
     const { viaturas, motoristas } = useWorkshop();
@@ -25,12 +30,14 @@ export default function ViaVerde() {
         vehicle_id: '',
         driver_id: '',
         entry_point: '',
-        exit_point: '',
         entry_time: '',
         exit_time: '',
+        exit_point: '',
         amount: '',
         distance: ''
     });
+    const [importing, setImporting] = useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchTolls();
@@ -52,7 +59,7 @@ export default function ViaVerde() {
             setTolls(data || []);
         } catch (error) {
             console.error('Error fetching tolls:', error);
-            // toast.error('Erro ao carregar portagens'); 
+            toast.error('Erro ao carregar portagens');
         } finally {
             setLoading(false);
         }
@@ -65,7 +72,7 @@ export default function ViaVerde() {
         try {
             const { error } = await supabase.from('via_verde_toll_records').insert([{
                 vehicle_id: formData.vehicle_id,
-                driver_id: formData.driver_id || null, // Optional
+                driver_id: formData.driver_id || null,
                 entry_point: formData.entry_point,
                 exit_point: formData.exit_point,
                 entry_time: formData.entry_time,
@@ -115,6 +122,140 @@ export default function ViaVerde() {
         }
     };
 
+    // --- BULK IMPORT LOGIC ---
+
+    const handleDownloadTemplate = () => {
+        const headers = [
+            'Matricula',
+            'Data',         // YYYY-MM-DD
+            'Hora Entrada', // HH:MM
+            'Hora Saida',   // HH:MM
+            'Portico Entrada',
+            'Portico Saida',
+            'Valor',
+            'Distancia',
+            'Motorista (Opcional)' // Name or NIF
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Template');
+        XLSX.writeFile(wb, 'ViaVerde_Template.xlsx');
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        const reader = new FileReader();
+
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws);
+
+                if (data.length === 0) {
+                    toast.error('O ficheiro está vazio.');
+                    setImporting(false);
+                    return;
+                }
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const recordsToInsert: any[] = [];
+                let successCount = 0;
+                let failCount = 0;
+
+                // Pre-process vehicles for faster lookup (normalize plate)
+                const vehicleMap = new Map();
+                viaturas.forEach(v => {
+                    const normalized = v.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    vehicleMap.set(normalized, v.id);
+                });
+
+                // Pre-process drivers
+                const driverMap = new Map();
+                motoristas.forEach(d => {
+                    driverMap.set(d.nome.toLowerCase(), d.id);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    if ((d as any).nif) driverMap.set(String((d as any).nif), d.id);
+                });
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                for (const row of data as any[]) {
+                    // MAPPING
+                    const plateRaw = row['Matricula'] || '';
+                    const plateNorm = plateRaw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    const vehicleId = vehicleMap.get(plateNorm);
+
+                    if (!vehicleId) {
+                        failCount++;
+                        console.warn(`Skipping row: Vehicle not found for plate ${plateRaw}`);
+                        continue;
+                    }
+
+                    // Driver matching (optional)
+                    let driverId = null;
+                    const driverRaw = row['Motorista (Opcional)'] ? String(row['Motorista (Opcional)']) : '';
+                    if (driverRaw) {
+                        driverId = driverMap.get(driverRaw.toLowerCase()) || null;
+                    }
+
+                    // Date & Time Parsing
+                    // Excel might return date as number or string. Assuming text YYYY-MM-DD or similar for now, usually safe to require text format in template instructions.
+                    // For robustness, we construct ISO string.
+                    const dateStr = row['Data'];
+                    const timeIn = row['Hora Entrada'] || '00:00';
+                    const timeOut = row['Hora Saida'] || '00:00';
+
+                    // Combine to ISO Timestamp
+                    // Simple check if date is Excel serial number? For now assuming string.
+                    const entryTime = `${dateStr}T${timeIn}:00`;
+                    const exitTime = `${dateStr}T${timeOut}:00`;
+
+                    recordsToInsert.push({
+                        vehicle_id: vehicleId,
+                        driver_id: driverId,
+                        entry_point: row['Portico Entrada'] || 'Desconhecido',
+                        exit_point: row['Portico Saida'] || 'Desconhecido',
+                        entry_time: entryTime, // Supabase handles ISO strings well
+                        exit_time: exitTime,
+                        amount: parseFloat(row['Valor'] || '0'),
+                        distance: parseFloat(row['Distancia'] || '0'),
+                        created_by: (await supabase.auth.getUser()).data.user?.id
+                    });
+                    successCount++;
+                }
+
+                if (recordsToInsert.length > 0) {
+                    const { error } = await supabase
+                        .from('via_verde_toll_records')
+                        .insert(recordsToInsert);
+
+                    if (error) throw error;
+                    toast.success(`${successCount} registos importados com sucesso!`);
+                    if (failCount > 0) toast(`${failCount} linhas ignoradas (viatura não encontrada).`, { icon: '⚠️' });
+                    fetchTolls();
+                } else {
+                    toast.error('Nenhum registo válido encontrado para importar.');
+                }
+
+            } catch (error) {
+                console.error('Import error:', error);
+                toast.error('Erro ao processar ficheiro. Verifique o formato.');
+            } finally {
+                setImporting(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+
+        reader.readAsBinaryString(file);
+    };
+
+
     // Filter Logic
     const filteredTolls = tolls.filter(t => {
         const matchesSearch =
@@ -144,13 +285,42 @@ export default function ViaVerde() {
                     </h1>
                     <p className="text-slate-400 mt-1">Gestão de passagens e custos de portagem</p>
                 </div>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-emerald-500/20 active:scale-95"
-                >
-                    <Plus className="w-5 h-5" />
-                    Novo Registo
-                </button>
+
+                <div className="flex gap-2">
+                    <input
+                        type="file"
+                        accept=".xlsx, .xls"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                    />
+                    <button
+                        onClick={handleDownloadTemplate}
+                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl font-medium transition-all"
+                    >
+                        <TrendingUp className="w-4 h-4 rotate-180" /> {/* Icon choice: Download-ish */}
+                        Template
+                    </button>
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={importing}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-blue-500/20 disabled:opacity-50"
+                    >
+                        {importing ? (
+                            <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                        ) : (
+                            <Truck className="w-4 h-4" /> // Icon: Import-ish
+                        )}
+                        Importar (Excel)
+                    </button>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-emerald-500/20 active:scale-95"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Novo Registo
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}
