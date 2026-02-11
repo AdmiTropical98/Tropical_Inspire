@@ -151,7 +151,7 @@ export default function Carregamentos() {
         reader.onload = async (evt) => {
             try {
                 const bstr = evt.target?.result;
-                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
                 const wsname = wb.SheetNames[0];
                 const ws = wb.Sheets[wsname];
                 const data = XLSX.utils.sheet_to_json(ws);
@@ -166,6 +166,7 @@ export default function Carregamentos() {
                 const recordsToInsert: any[] = [];
                 let successCount = 0;
                 let failCount = 0;
+                const errors: string[] = [];
 
                 // Pre-process vehicles
                 const vehicleMap = new Map();
@@ -188,14 +189,33 @@ export default function Carregamentos() {
                     ccMap.set(c.nome.toLowerCase(), c.id);
                 });
 
+                // Helper to parse dates
+                const parseDate = (val: any): string | null => {
+                    if (!val) return null;
+                    if (val instanceof Date) return val.toISOString();
+                    if (typeof val === 'string') {
+                        // Try standard parsing
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) return d.toISOString();
+                    }
+                    // Handle Excel serial number if cellDates didn't work for some reason
+                    if (typeof val === 'number') {
+                        const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+                        if (!isNaN(d.getTime())) return d.toISOString();
+                    }
+                    return null;
+                };
+
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                for (const row of data as any[]) {
+                for (const [index, row] of (data as any[]).entries()) {
+                    const rowNum = index + 2; // +2 because header is 1
                     const plateRaw = row['Matricula'] || '';
                     const plateNorm = plateRaw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
                     const vehicleId = vehicleMap.get(plateNorm);
 
                     if (!vehicleId) {
                         failCount++;
+                        // errors.push(`Linha ${rowNum}: Viatura '${plateRaw}' não encontrada.`);
                         continue;
                     }
 
@@ -207,12 +227,14 @@ export default function Carregamentos() {
                     const ccRaw = row['Centro Custo (Opcional)'] ? String(row['Centro Custo (Opcional)']) : '';
                     if (ccRaw) costCenterId = ccMap.get(ccRaw.toLowerCase()) || null;
 
-                    // Date Parsing (Assuming text or Excel serial)
+                    // Date Parsing
                     const dateRaw = row['Data'];
-                    // Simple fallback if string
-                    let dateIso = dateRaw;
-                    if (typeof dateRaw === 'string' && !dateRaw.includes('T')) {
-                        dateIso = new Date(dateRaw).toISOString();
+                    const dateIso = parseDate(dateRaw);
+
+                    if (!dateIso) {
+                        failCount++;
+                        errors.push(`Linha ${rowNum}: Data inválida.`);
+                        continue;
                     }
 
                     recordsToInsert.push({
@@ -233,14 +255,21 @@ export default function Carregamentos() {
                     const { error } = await supabase.from('electric_charging_records').insert(recordsToInsert);
                     if (error) throw error;
                     toast.success(`${successCount} registos importados!`);
-                    if (failCount > 0) toast(`${failCount} ignorados (viatura não encontrada).`, { icon: '⚠️' });
+                    if (failCount > 0) {
+                        toast(`${failCount} falhas.`, { icon: '⚠️' });
+                        if (errors.length > 0) {
+                            console.warn('Import errors:', errors);
+                            // Simple alert or modal could be better, but console for now
+                        }
+                    }
                     fetchRecords();
                 } else {
-                    toast.error('Nenhum registo válido.');
+                    toast.error('Nenhum registo válido para importar.');
+                    if (errors.length > 0) console.error(errors);
                 }
             } catch (error) {
                 console.error('Import error:', error);
-                toast.error('Erro ao processar ficheiro.');
+                toast.error('Erro crítico ao processar ficheiro.');
             } finally {
                 setImporting(false);
                 if (fileInputRef.current) fileInputRef.current.value = '';

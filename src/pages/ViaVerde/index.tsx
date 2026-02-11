@@ -137,7 +137,6 @@ export default function ViaVerde() {
             'Portico Entrada',
             'Portico Saida',
             'Valor',
-            'Valor',
             'Distancia',
             'Motorista (Opcional)', // Name or NIF
             'Centro Custo (Opcional)'
@@ -159,7 +158,7 @@ export default function ViaVerde() {
         reader.onload = async (evt) => {
             try {
                 const bstr = evt.target?.result;
-                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
                 const wsname = wb.SheetNames[0];
                 const ws = wb.Sheets[wsname];
                 const data = XLSX.utils.sheet_to_json(ws);
@@ -174,6 +173,7 @@ export default function ViaVerde() {
                 const recordsToInsert: any[] = [];
                 let successCount = 0;
                 let failCount = 0;
+                const errors: string[] = [];
 
                 // Pre-process vehicles for faster lookup (normalize plate)
                 const vehicleMap = new Map();
@@ -196,8 +196,47 @@ export default function ViaVerde() {
                     ccMap.set(c.nome.toLowerCase(), c.id);
                 });
 
+                // Helper for time extraction from string or Date
+                const extractTimeStr = (val: any): string => {
+                    if (!val) return '00:00';
+                    if (val instanceof Date) {
+                        return val.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    }
+                    // If decimal fraction of day (0.5 = 12:00)
+                    if (typeof val === 'number') {
+                        const totalSeconds = Math.floor(val * 86400);
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                    }
+                    return String(val).trim();
+                };
+
+                // Helper for Date extraction
+                const extractDateStr = (val: any): string | null => {
+                    if (!val) return null;
+                    if (val instanceof Date) {
+                        return val.toISOString().split('T')[0];
+                    }
+                    if (typeof val === 'string') {
+                        // Try to parse YYYY-MM-DD
+                        if (val.match(/^\d{4}-\d{2}-\d{2}$/)) return val;
+                        // Try new Date
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+                    }
+                    if (typeof val === 'number') {
+                        // Excel date serial
+                        const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+                        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+                    }
+                    return null;
+                };
+
+
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                for (const row of data as any[]) {
+                for (const [index, row] of (data as any[]).entries()) {
+                    const rowNum = index + 2;
                     // MAPPING
                     const plateRaw = row['Matricula'] || '';
                     const plateNorm = plateRaw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -205,7 +244,7 @@ export default function ViaVerde() {
 
                     if (!vehicleId) {
                         failCount++;
-                        console.warn(`Skipping row: Vehicle not found for plate ${plateRaw}`);
+                        // console.warn(`Skipping row: Vehicle not found for plate ${plateRaw}`);
                         continue;
                     }
 
@@ -222,14 +261,17 @@ export default function ViaVerde() {
                     if (ccRaw) costCenterId = ccMap.get(ccRaw.toLowerCase()) || null;
 
                     // Date & Time Parsing
-                    // Excel might return date as number or string. Assuming text YYYY-MM-DD or similar for now, usually safe to require text format in template instructions.
-                    // For robustness, we construct ISO string.
-                    const dateStr = row['Data'];
-                    const timeIn = row['Hora Entrada'] || '00:00';
-                    const timeOut = row['Hora Saida'] || '00:00';
+                    const dateStr = extractDateStr(row['Data']);
+                    if (!dateStr) {
+                        failCount++;
+                        errors.push(`Linha ${rowNum}: Data inválida.`);
+                        continue;
+                    }
+
+                    const timeIn = extractTimeStr(row['Hora Entrada']);
+                    const timeOut = extractTimeStr(row['Hora Saida']);
 
                     // Combine to ISO Timestamp
-                    // Simple check if date is Excel serial number? For now assuming string.
                     const entryTime = `${dateStr}T${timeIn}:00`;
                     const exitTime = `${dateStr}T${timeOut}:00`;
 
@@ -255,7 +297,12 @@ export default function ViaVerde() {
 
                     if (error) throw error;
                     toast.success(`${successCount} registos importados com sucesso!`);
-                    if (failCount > 0) toast(`${failCount} linhas ignoradas (viatura não encontrada).`, { icon: '⚠️' });
+                    if (failCount > 0) {
+                        toast(`${failCount} falhas de importação.`, { icon: '⚠️' });
+                        if (errors.length > 0) {
+                            console.warn('Import errors:', errors);
+                        }
+                    }
                     fetchTolls();
                 } else {
                     toast.error('Nenhum registo válido encontrado para importar.');
