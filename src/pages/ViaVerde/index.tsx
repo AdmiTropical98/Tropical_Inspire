@@ -150,6 +150,41 @@ export default function ViaVerde() {
         XLSX.writeFile(wb, 'ViaVerde_Template.xlsx');
     };
 
+    const runDiagnostics = async () => {
+        const toastId = toast.loading('A executar diagnóstico...');
+        try {
+            // 1. Check Auth
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Utilizador não autenticado.');
+
+            // 2. Check Table Existence & SELECT Permission
+            const { count, error: selectError } = await supabase
+                .from('via_verde_toll_records')
+                .select('*', { count: 'exact', head: true });
+
+            if (selectError) {
+                // Determine specific error
+                if (selectError.message.includes('relation') && selectError.message.includes('does not exist')) {
+                    throw new Error('A tabela "via_verde_toll_records" NÃO EXISTE na base de dados. Por favor corra o Script SQL.');
+                }
+                if (selectError.message.includes('permission denied')) {
+                    throw new Error('Permissão negada (RLS). Por favor corra o Script SQL para corrigir as permissões.');
+                }
+                throw selectError;
+            }
+
+            toast.success(`Diagnóstico OK! Tabela existe. (${count} registos)`, { id: toastId, duration: 5000 });
+            alert(`SISTEMA OPERACIONAL\n\n- Autenticação: OK (${session.user.email})\n- Tabela Via Verde: EXISTE\n- Total de registos: ${count}\n\nConexão funcional.`);
+
+        } catch (error: any) {
+            console.error('Diagnostic failed:', error);
+            const msg = error.message || 'Erro desconhecido';
+            toast.error('FALHA NO DIAGNÓSTICO', { id: toastId });
+            setLastError({ diagnostic_error: msg, original_error: error });
+            alert(`⚠️ ERRO CRÍTICO DETETADO ⚠️\n\n${msg}\n\nPor favor envie este erro ao suporte.`);
+        }
+    };
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -625,12 +660,22 @@ export default function ViaVerde() {
                                 </div>
                                 Novo Registo de Portagem
                             </h2>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
-                            >
-                                <Trash2 className="w-5 h-5 rotate-45" /> {/* Close icon */}
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={runDiagnostics}
+                                    className="flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/20 transition-colors border border-red-500/20"
+                                    title="Executar teste de conexão"
+                                >
+                                    <Ticket size={20} />
+                                    <span className="hidden sm:inline">Diagnóstico (TESTE)</span>
+                                </button>
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
+                                >
+                                    <Trash2 className="w-5 h-5 rotate-45" /> {/* Close icon */}
+                                </button>
+                            </div>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
