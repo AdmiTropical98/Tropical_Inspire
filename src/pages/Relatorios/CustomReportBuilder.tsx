@@ -136,28 +136,89 @@ export default function CustomReportBuilder() {
         const title = `Relatório de ${reportType.toUpperCase()}`;
 
         doc.setFontSize(16);
-        doc.text(title, 14, 20);
+        doc.text(title, 14, 15);
         doc.setFontSize(10);
-        doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 28);
+        doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 22);
 
-        // Dynamic Headers based on first item keys (simplified)
-        const headers = Object.keys(generatedData[0]).filter(k =>
-            // Filter out complex objects/arrays or huge ID strings if wanted
-            typeof generatedData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl'
-        );
+        let finalY = 25; // Start Y position
 
-        const rows = generatedData.map(item => headers.map(h => {
-            const val = item[h];
-            return val === undefined || val === null ? '' : String(val).substring(0, 50); // Truncate long text
-        }));
+        if (reportType === 'fuel_transactions') {
+            // Group by Cost Center
+            const costCenters = [...new Set(generatedData.map(item => item['Centro Custo']))];
 
-        autoTable(doc, {
-            head: [headers],
-            body: rows,
-            startY: 35,
-            styles: { fontSize: 8, cellWidth: 'wrap' },
-            theme: 'grid'
-        });
+            costCenters.sort().forEach(ccName => {
+                // Filter data for this CC
+                const groupData = generatedData.filter(item => item['Centro Custo'] === ccName);
+
+                // Calculate Total for this group
+                const totalCost = groupData.reduce((sum, item) => {
+                    // Extract number from "123.45 €" string
+                    const valStr = String(item['Total'] || '0').replace(' €', '').replace(',', '.');
+                    const val = parseFloat(valStr);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                // Header for the Group
+                if (finalY > 180) { doc.addPage(); finalY = 20; } // Page break check
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(`Centro de Custo: ${ccName}`, 14, finalY + 10);
+                doc.setFont(undefined, 'normal');
+
+                // Table Columns (exclude CC since it's the header)
+                const headers = Object.keys(groupData[0]).filter(k =>
+                    typeof groupData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl' && k !== 'Centro Custo'
+                );
+
+                const rows = groupData.map(item => headers.map(h => {
+                    const val = item[h];
+                    return val === undefined || val === null ? '' : String(val).substring(0, 50);
+                }));
+
+                // Append Total Row
+                // rows.push(headers.map(h => h === 'Total' ? `${totalCost.toFixed(2)} €` : (h === 'Viatura' ? 'TOTAL' : '')));
+                // Better approach: use foot property of autoTable or just a final row
+
+                autoTable(doc, {
+                    head: [headers],
+                    body: rows,
+                    startY: finalY + 15,
+                    styles: { fontSize: 8, cellWidth: 'wrap' },
+                    theme: 'grid',
+                    foot: [[...headers.map((h, i) => {
+                        if (h === 'Total') return `${totalCost.toFixed(2)} €`;
+                        if (i === 0) return 'TOTAL DO CENTRO DE CUSTO';
+                        return '';
+                    })]],
+                    footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+                    didDrawPage: (data) => {
+                        // Resets finalY for next loop if on same page context? No, strictly rely on return
+                    }
+                });
+
+                // Update finalY for next loop
+                finalY = (doc as any).lastAutoTable.finalY + 10;
+            });
+
+        } else {
+            // Standard Logic for other reports
+            const headers = Object.keys(generatedData[0]).filter(k =>
+                typeof generatedData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl'
+            );
+
+            const rows = generatedData.map(item => headers.map(h => {
+                const val = item[h];
+                return val === undefined || val === null ? '' : String(val).substring(0, 50);
+            }));
+
+            autoTable(doc, {
+                head: [headers],
+                body: rows,
+                startY: 35,
+                styles: { fontSize: 8, cellWidth: 'wrap' },
+                theme: 'grid'
+            });
+        }
 
         doc.save(`report_${reportType}_${new Date().getTime()}.pdf`);
     };
