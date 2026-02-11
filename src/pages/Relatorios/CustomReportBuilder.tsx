@@ -16,7 +16,7 @@ type ReportType =
     | 'eva_transports'
     | 'centros_custos';
 
-import { FuelTransaction } from '../../types';
+import type { FuelTransaction } from '../../types';
 
 export default function CustomReportBuilder() {
     const [reportType, setReportType] = useState<ReportType>('motoristas');
@@ -145,61 +145,78 @@ export default function CustomReportBuilder() {
         let finalY = 25; // Start Y position
 
         if (reportType === 'fuel_transactions') {
-            // Group by Cost Center
-            const costCenters = [...new Set(generatedData.map(item => item['Centro Custo']))];
+            // 1. Sort Data by Cost Center
+            const sortedData = [...generatedData].sort((a, b) => {
+                const ccA = (a['Centro Custo'] || '').toString().toLowerCase();
+                const ccB = (b['Centro Custo'] || '').toString().toLowerCase();
+                if (ccA < ccB) return -1;
+                if (ccA > ccB) return 1;
+                return new Date(b['Data']).getTime() - new Date(a['Data']).getTime();
+            });
 
-            costCenters.sort().forEach(ccName => {
-                // Filter data for this CC
-                const groupData = generatedData.filter(item => item['Centro Custo'] === ccName);
+            // 2. Prepare Table Body with Group Headers and Subtotals
+            const body: any[] = [];
+            let currentCC = '';
+            let groupTotal = 0;
 
-                // Calculate Total for this group
-                const totalCost = groupData.reduce((sum, item) => {
-                    // Extract number from "123.45 €" string
-                    const valStr = String(item['Total'] || '0').replace(' €', '').replace(',', '.');
-                    const val = parseFloat(valStr);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+            const headers = Object.keys(sortedData[0]).filter(k =>
+                typeof sortedData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl' && k !== 'Centro Custo'
+            );
 
-                // Header for the Group
-                if (finalY > 180) { doc.addPage(); finalY = 20; } // Page break check
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`Centro de Custo: ${ccName}`, 14, finalY + 10);
-                doc.setFont('helvetica', 'normal');
+            sortedData.forEach((item, index) => {
+                const itemCC = item['Centro Custo'] || 'Sem Centro de Custo';
 
-                // Table Columns (exclude CC since it's the header)
-                const headers = Object.keys(groupData[0]).filter(k =>
-                    typeof groupData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl' && k !== 'Centro Custo'
-                );
+                // New Group Detected
+                if (itemCC !== currentCC) {
+                    // Close previous group if exists
+                    if (currentCC !== '') {
+                        // Add Subtotal Row
+                        body.push([
+                            { content: 'TOTAL DO CENTRO DE CUSTO', colSpan: headers.length - 1, styles: { halign: 'right', fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                            { content: `${groupTotal.toFixed(2)} €`, styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } }
+                        ]);
+                    }
 
-                const rows = groupData.map(item => headers.map(h => {
+                    // Start new group
+                    currentCC = itemCC;
+                    groupTotal = 0;
+
+                    // Add Group Header Row
+                    body.push([{
+                        content: `Centro de Custo: ${currentCC}`,
+                        colSpan: headers.length,
+                        styles: { fontStyle: 'bold', fillColor: [220, 220, 230], textColor: [20, 20, 60] }
+                    }]);
+                }
+
+                // Add Data Row
+                const row = headers.map(h => {
                     const val = item[h];
                     return val === undefined || val === null ? '' : String(val).substring(0, 50);
-                }));
-
-                // Append Total Row
-                // rows.push(headers.map(h => h === 'Total' ? `${totalCost.toFixed(2)} €` : (h === 'Viatura' ? 'TOTAL' : '')));
-                // Better approach: use foot property of autoTable or just a final row
-
-                autoTable(doc, {
-                    head: [headers],
-                    body: rows,
-                    startY: finalY + 15,
-                    styles: { fontSize: 8, cellWidth: 'wrap' },
-                    theme: 'grid',
-                    foot: [[...headers.map((h, i) => {
-                        if (h === 'Total') return `${totalCost.toFixed(2)} €`;
-                        if (i === 0) return 'TOTAL DO CENTRO DE CUSTO';
-                        return '';
-                    })]],
-                    footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
-                    didDrawPage: () => {
-                        // Resets finalY for next loop if on same page context? No, strictly rely on return
-                    }
                 });
+                body.push(row);
 
-                // Update finalY for next loop
-                finalY = (doc as any).lastAutoTable.finalY + 10;
+                // Accumulate Total
+                const valStr = String(item['Total'] || '0').replace(' €', '').replace(',', '.');
+                const val = parseFloat(valStr);
+                groupTotal += (isNaN(val) ? 0 : val);
+
+                // Handle Last Item
+                if (index === sortedData.length - 1) {
+                    body.push([
+                        { content: 'TOTAL DO CENTRO DE CUSTO', colSpan: headers.length - 1, styles: { halign: 'right', fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                        { content: `${groupTotal.toFixed(2)} €`, styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } }
+                    ]);
+                }
+            });
+
+            autoTable(doc, {
+                head: [headers],
+                body: body,
+                startY: finalY + 10,
+                styles: { fontSize: 8, cellWidth: 'wrap' },
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' }
             });
 
         } else {
