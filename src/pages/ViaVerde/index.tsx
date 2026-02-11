@@ -293,18 +293,19 @@ export default function ViaVerde() {
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
-                <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <div className="p-2 bg-emerald-500/10 rounded-lg">
-                            <Zap className="w-6 h-6 text-emerald-500" />
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-900/90 to-slate-800/90 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative">
+                    <h1 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight">
+                        <div className="p-3 bg-emerald-500/20 rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                            <Zap className="w-8 h-8 text-emerald-400" />
                         </div>
                         Via Verde & Portagens
                     </h1>
-                    <p className="text-slate-400 mt-1">Gestão de passagens e custos de portagem</p>
+                    <p className="text-slate-400 mt-2 text-lg font-light">Gestão inteligente de passagens e custos de portagem</p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3 relative z-10">
                     <input
                         type="file"
                         accept=".xlsx, .xls"
@@ -314,66 +315,87 @@ export default function ViaVerde() {
                     />
                     <button
                         onClick={handleDownloadTemplate}
-                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl font-medium transition-all"
+                        className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 px-5 py-3 rounded-xl font-medium transition-all border border-slate-700 hover:border-slate-600 shadow-lg"
                     >
-                        <TrendingUp className="w-4 h-4 rotate-180" /> {/* Icon choice: Download-ish */}
-                        Template
+                        <TrendingUp className="w-4 h-4 rotate-180" />
+                        <span className="hidden sm:inline">Template</span>
                     </button>
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={importing}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-blue-500/20 disabled:opacity-50"
+                        className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_20px_rgba(37,99,235,0.2)] hover:shadow-[0_4px_25px_rgba(37,99,235,0.4)] disabled:opacity-50 hover:-translate-y-0.5"
                     >
                         {importing ? (
-                            <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                            <span className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></span>
                         ) : (
-                            <Truck className="w-4 h-4" /> // Icon: Import-ish
+                            <Truck className="w-5 h-5" />
                         )}
-                        Importar (Excel)
+                        <span className="hidden sm:inline">Importar Excel</span>
                     </button>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-emerald-500/20 active:scale-95"
+                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.4)] active:scale-95 hover:-translate-y-0.5"
                     >
                         <Plus className="w-5 h-5" />
-                        Novo Registo
+                        <span className="hidden sm:inline">Novo Registo</span>
                     </button>
                 </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
-                    <div className="flex justify-between items-start">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <DollarSign className="w-24 h-24 text-emerald-500 rotate-12" />
+                    </div>
+                    <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-slate-400 text-sm font-medium">Custo Total (Vista Atual)</p>
-                            <h3 className="text-2xl font-bold text-white mt-2">{totalCost.toFixed(2)} €</h3>
+                            <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Custo Total</p>
+                            <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-emerald-400 transition-colors">{totalCost.toFixed(2)} <span className="text-lg text-slate-500">€</span></h3>
+                            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400">
+                                <TrendingUp className="w-3 h-3" />
+                                <span>Vista Atual</span>
+                            </div>
                         </div>
-                        <div className="p-3 bg-emerald-500/10 rounded-lg">
+                        <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">
                             <DollarSign className="w-6 h-6 text-emerald-500" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
-                    <div className="flex justify-between items-start">
+                <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <MapPin className="w-24 h-24 text-blue-500 rotate-12" />
+                    </div>
+                    <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-slate-400 text-sm font-medium">Distância Total (Vista Atual)</p>
-                            <h3 className="text-2xl font-bold text-white mt-2">{totalDistance.toFixed(1)} km</h3>
+                            <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Distância Total</p>
+                            <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-blue-400 transition-colors">{totalDistance.toFixed(1)} <span className="text-lg text-slate-500">km</span></h3>
+                            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400">
+                                <Truck className="w-3 h-3" />
+                                <span>Km Percorridos</span>
+                            </div>
                         </div>
-                        <div className="p-3 bg-blue-500/10 rounded-lg">
+                        <div className="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors border border-blue-500/20">
                             <MapPin className="w-6 h-6 text-blue-500" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
-                    <div className="flex justify-between items-start">
+                <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-purple-500/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <TrendingUp className="w-24 h-24 text-purple-500 rotate-12" />
+                    </div>
+                    <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-slate-400 text-sm font-medium">Passagens Registadas</p>
-                            <h3 className="text-2xl font-bold text-white mt-2">{filteredTolls.length}</h3>
+                            <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Passagens</p>
+                            <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-purple-400 transition-colors">{filteredTolls.length}</h3>
+                            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs font-medium text-purple-400">
+                                <Zap className="w-3 h-3" />
+                                <span>Registos</span>
+                            </div>
                         </div>
-                        <div className="p-3 bg-purple-500/10 rounded-lg">
+                        <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors border border-purple-500/20">
                             <TrendingUp className="w-6 h-6 text-purple-500" />
                         </div>
                     </div>
@@ -381,22 +403,22 @@ export default function ViaVerde() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="flex flex-col md:flex-row gap-4 bg-slate-800/30 p-1.5 rounded-2xl border border-white/5 backdrop-blur-sm">
+                <div className="relative flex-1 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
                     <input
                         type="text"
                         placeholder="Pesquisar entrada, saída ou matrícula..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-900/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                        className="w-full bg-slate-900/50 border border-transparent rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:bg-slate-900 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                     />
                 </div>
-                <div className="w-full md:w-64">
+                <div className="w-full md:w-72">
                     <select
                         value={filterVehicle}
                         onChange={(e) => setFilterVehicle(e.target.value)}
-                        className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 appearance-none cursor-pointer"
+                        className="w-full bg-slate-900/50 border border-transparent rounded-xl px-4 py-3 text-white focus:outline-none focus:bg-slate-900 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 appearance-none cursor-pointer transition-all"
                     >
                         <option value="all">Todas as Viaturas</option>
                         {viaturas.map(v => (
@@ -407,89 +429,106 @@ export default function ViaVerde() {
             </div>
 
             {/* Table */}
-            <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="bg-slate-900/50 rounded-2xl border border-white/5 overflow-hidden backdrop-blur-sm shadow-xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-900/50 text-slate-400 uppercase font-medium">
+                        <thead className="bg-slate-950/50 text-slate-400 uppercase font-medium border-b border-white/5">
                             <tr>
-                                <th className="px-6 py-4">Data/Hora</th>
-                                <th className="px-6 py-4">Viatura</th>
-                                <th className="px-6 py-4">Motorista / CC</th>
-                                <th className="px-6 py-4">Trajeto</th>
-                                <th className="px-6 py-4 text-right">Valor</th>
-                                <th className="px-6 py-4 text-center">Ações</th>
+                                <th className="px-6 py-5 tracking-wider text-xs">Data/Hora</th>
+                                <th className="px-6 py-5 tracking-wider text-xs">Viatura</th>
+                                <th className="px-6 py-5 tracking-wider text-xs">Motorista / CC</th>
+                                <th className="px-6 py-5 tracking-wider text-xs">Trajeto</th>
+                                <th className="px-6 py-5 tracking-wider text-xs text-right">Valor</th>
+                                <th className="px-6 py-5 tracking-wider text-xs text-center">Ações</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-700/50">
+                        <tbody className="divide-y divide-white/5">
                             {loading ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                                        Carregando registos...
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
+                                            <span>Carregando registos...</span>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : filteredTolls.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                                        Nenhum registo encontrado.
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Search className="w-8 h-8 text-slate-600 mb-2" />
+                                            <p className="text-lg font-medium text-slate-400">Nenhum registo encontrado</p>
+                                            <p className="text-sm">Tente ajustar os filtros ou adicionar um novo registo.</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredTolls.map((toll) => (
-                                    <tr key={toll.id} className="hover:bg-slate-700/30 transition-colors">
+                                    <tr key={toll.id} className="group hover:bg-slate-800/30 transition-all duration-200">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <span className="text-white font-medium">
                                                     {new Date(toll.entry_time).toLocaleDateString()}
                                                 </span>
-                                                <span className="text-slate-400 text-xs">
+                                                <span className="text-slate-500 text-xs font-mono">
                                                     {new Date(toll.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
-                                                    <Truck className="w-4 h-4 text-slate-300" />
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5 group-hover:border-emerald-500/20 transition-colors">
+                                                    <Truck className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
                                                 </div>
                                                 <div>
-                                                    <span className="block text-white font-medium">{toll.vehicle?.matricula}</span>
-                                                    <span className="text-slate-400 text-xs">{toll.vehicle?.marca} {toll.vehicle?.modelo}</span>
+                                                    <span className="block text-white font-medium bg-slate-800 px-2 py-0.5 rounded text-xs w-fit mb-0.5 border border-white/5">{toll.vehicle?.matricula}</span>
+                                                    <span className="text-slate-500 text-xs">{toll.vehicle?.marca} {toll.vehicle?.modelo}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {toll.driver ? (
-                                                <div className="flex items-center gap-2">
-                                                    <User className="w-4 h-4 text-slate-400" />
-                                                    <span className="text-slate-300">{toll.driver.nome}</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-500 italic">--</span>
-                                            )}
-                                            {toll.cost_center && (
-                                                <div className="flex items-center gap-2 mt-1 text-xs">
-                                                    <Building className="w-3 h-3 text-orange-400" />
-                                                    <span className="text-orange-300">{toll.cost_center.nome}</span>
-                                                </div>
-                                            )}
+                                            <div className="space-y-1">
+                                                {toll.driver ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center">
+                                                            <User className="w-3 h-3 text-slate-400" />
+                                                        </div>
+                                                        <span className="text-slate-300 text-sm">{toll.driver.nome}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-600 text-xs italic flex items-center gap-1">
+                                                        <User className="w-3 h-3" /> Sem Condutor
+                                                    </span>
+                                                )}
+                                                {toll.cost_center && (
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <Building className="w-3 h-3 text-orange-400/80" />
+                                                        <span className="text-orange-400/80 font-medium">{toll.cost_center.nome}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2 text-slate-300">
-                                                <span className="font-medium">{toll.entry_point}</span>
-                                                <span className="text-slate-500">→</span>
-                                                <span className="font-medium">{toll.exit_point}</span>
+                                                <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.entry_point || 'N/A'}</span>
+                                                <span className="text-slate-600">→</span>
+                                                <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.exit_point || 'N/A'}</span>
                                             </div>
                                             {toll.distance && (
-                                                <span className="text-xs text-slate-500 block mt-1">{toll.distance} km</span>
+                                                <span className="text-xs text-slate-500 block mt-1.5 flex items-center gap-1">
+                                                    <MapPin className="w-3 h-3" /> {toll.distance} km
+                                                </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right font-bold text-emerald-400">
-                                            {toll.amount.toFixed(2)} €
+                                        <td className="px-6 py-4 text-right">
+                                            <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                                                {toll.amount.toFixed(2)} €
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <button
                                                 onClick={() => handleDelete(toll.id)}
-                                                className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0"
                                                 title="Eliminar registo"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -505,14 +544,20 @@ export default function ViaVerde() {
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-                    <div className="bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-slate-700 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                <Zap className="w-5 h-5 text-emerald-500" /> Novo Registo de Portagem
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    <div className="bg-slate-900 rounded-3xl border border-white/10 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
+                        <div className="p-6 border-b border-white/5 bg-slate-950/50 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                    <Zap className="w-5 h-5 text-emerald-500" />
+                                </div>
+                                Novo Registo de Portagem
                             </h2>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">
-                                <Trash2 className="w-5 h-5 rotate-45" /> {/* Close icon using trash rotate or X */}
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
+                            >
+                                <Trash2 className="w-5 h-5 rotate-45" /> {/* Close icon */}
                             </button>
                         </div>
 
