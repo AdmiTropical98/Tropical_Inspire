@@ -68,7 +68,7 @@ export default function CustomReportBuilder() {
                         'Data': new Date(tx.timestamp).toLocaleString('pt-PT'),
                         'Viatura': vehicleDisplay,
                         'Condutor': driver ? driver.nome : (tx.driver_id || 'N/A'),
-                        'Fonte': tx.isExternal ? 'Cartão' : 'Tanque', // NEW Source Column
+                        'Fonte': (tx.isExternal || tx.is_external) ? 'Importado BP' : 'Abastecido na Oficina',
                         'Litros': tx.liters,
                         'KM': tx.km,
                         'Preço/L': tx.pricePerLiter || tx.price_per_liter ? `${Number(tx.pricePerLiter || tx.price_per_liter).toFixed(3)} €` : '-',
