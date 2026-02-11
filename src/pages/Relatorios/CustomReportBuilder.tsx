@@ -78,7 +78,7 @@ export default function CustomReportBuilder() {
                         'Centro Custo': cc ? cc.nome : (tx.centroCustoId || tx.centro_custo_id || 'Sem Centro de Custo'), // Normalized fallback
                         'Registado Por': tx.staffName || tx.staff_name || 'Sistema',
                         'Estado': tx.status === 'confirmed' ? 'Confirmado' : 'Pendente',
-                        'Posto': tx.isExternal ? (tx.station || 'Externo/BP') : 'Interno',
+                        'Posto': (tx.isExternal || tx.is_external) ? (tx.station || 'Externo/BP') : 'Interno',
                     };
                 });
 
