@@ -489,7 +489,29 @@ export interface TollRecord {
     exit_time?: string;
     amount: number;
     distance?: number;
-    created_at?: string;
+    cost_center_id?: string; // NEW
+    created_at: string;
+    created_by: string;
     vehicle?: Viatura;
-    driver?: { nome: string };
+    driver?: Motorista;
+    cost_center?: CentroCusto; // NEW
 }
+
+export interface ElectricChargingRecord {
+    id: string;
+    vehicle_id: string;
+    driver_id?: string;
+    cost_center_id?: string;
+    station_name: string;
+    date: string;
+    kwh: number;
+    cost: number;
+    duration: number; // minutes
+    created_at: string;
+    created_by: string;
+    vehicle?: Viatura;
+    driver?: Motorista;
+    cost_center?: CentroCusto;
+}
+
+

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Zap, Plus, Search,
     MapPin, DollarSign, Truck, User,
-    Trash2, TrendingUp
+    Trash2, TrendingUp, Building
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -15,7 +15,7 @@ import * as XLSX from 'xlsx';
 // ... existing imports ...
 
 export default function ViaVerde() {
-    const { viaturas, motoristas } = useWorkshop();
+    const { viaturas, motoristas, centrosCustos } = useWorkshop();
     const [tolls, setTolls] = useState<TollRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -29,6 +29,7 @@ export default function ViaVerde() {
     const [formData, setFormData] = useState({
         vehicle_id: '',
         driver_id: '',
+        cost_center_id: '',
         entry_point: '',
         entry_time: '',
         exit_time: '',
@@ -51,7 +52,8 @@ export default function ViaVerde() {
                 .select(`
                     *,
                     vehicle:viaturas(id, matricula, marca, modelo),
-                    driver:motoristas(id, nome)
+                    driver:motoristas(id, nome),
+                    cost_center:centros_custos(id, nome)
                 `)
                 .order('entry_time', { ascending: false });
 
@@ -73,6 +75,7 @@ export default function ViaVerde() {
             const { error } = await supabase.from('via_verde_toll_records').insert([{
                 vehicle_id: formData.vehicle_id,
                 driver_id: formData.driver_id || null,
+                cost_center_id: formData.cost_center_id || null,
                 entry_point: formData.entry_point,
                 exit_point: formData.exit_point,
                 entry_time: formData.entry_time,
@@ -88,6 +91,7 @@ export default function ViaVerde() {
             setFormData({
                 vehicle_id: '',
                 driver_id: '',
+                cost_center_id: '',
                 entry_point: '',
                 exit_point: '',
                 entry_time: '',
@@ -133,8 +137,10 @@ export default function ViaVerde() {
             'Portico Entrada',
             'Portico Saida',
             'Valor',
+            'Valor',
             'Distancia',
-            'Motorista (Opcional)' // Name or NIF
+            'Motorista (Opcional)', // Name or NIF
+            'Centro Custo (Opcional)'
         ];
 
         const ws = XLSX.utils.aoa_to_sheet([headers]);
@@ -184,6 +190,12 @@ export default function ViaVerde() {
                     if ((d as any).nif) driverMap.set(String((d as any).nif), d.id);
                 });
 
+                // Pre-process cost centers
+                const ccMap = new Map();
+                centrosCustos.forEach(c => {
+                    ccMap.set(c.nome.toLowerCase(), c.id);
+                });
+
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 for (const row of data as any[]) {
                     // MAPPING
@@ -204,6 +216,11 @@ export default function ViaVerde() {
                         driverId = driverMap.get(driverRaw.toLowerCase()) || null;
                     }
 
+                    // Cost Center
+                    let costCenterId = null;
+                    const ccRaw = row['Centro Custo (Opcional)'] ? String(row['Centro Custo (Opcional)']) : '';
+                    if (ccRaw) costCenterId = ccMap.get(ccRaw.toLowerCase()) || null;
+
                     // Date & Time Parsing
                     // Excel might return date as number or string. Assuming text YYYY-MM-DD or similar for now, usually safe to require text format in template instructions.
                     // For robustness, we construct ISO string.
@@ -219,6 +236,7 @@ export default function ViaVerde() {
                     recordsToInsert.push({
                         vehicle_id: vehicleId,
                         driver_id: driverId,
+                        cost_center_id: costCenterId,
                         entry_point: row['Portico Entrada'] || 'Desconhecido',
                         exit_point: row['Portico Saida'] || 'Desconhecido',
                         entry_time: entryTime, // Supabase handles ISO strings well
@@ -396,7 +414,7 @@ export default function ViaVerde() {
                             <tr>
                                 <th className="px-6 py-4">Data/Hora</th>
                                 <th className="px-6 py-4">Viatura</th>
-                                <th className="px-6 py-4">Motorista/Responsável</th>
+                                <th className="px-6 py-4">Motorista / CC</th>
                                 <th className="px-6 py-4">Trajeto</th>
                                 <th className="px-6 py-4 text-right">Valor</th>
                                 <th className="px-6 py-4 text-center">Ações</th>
@@ -447,6 +465,12 @@ export default function ViaVerde() {
                                                 </div>
                                             ) : (
                                                 <span className="text-slate-500 italic">--</span>
+                                            )}
+                                            {toll.cost_center && (
+                                                <div className="flex items-center gap-2 mt-1 text-xs">
+                                                    <Building className="w-3 h-3 text-orange-400" />
+                                                    <span className="text-orange-300">{toll.cost_center.nome}</span>
+                                                </div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
@@ -521,6 +545,21 @@ export default function ViaVerde() {
                                         <option value="">Sem Motorista</option>
                                         {motoristas.map(m => (
                                             <option key={m.id} value={m.id}>{m.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Cost Center */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-slate-400 uppercase">Centro de Custo (Opcional)</label>
+                                    <select
+                                        value={formData.cost_center_id}
+                                        onChange={e => setFormData({ ...formData, cost_center_id: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                    >
+                                        <option value="">Nenhum</option>
+                                        {centrosCustos.map(c => (
+                                            <option key={c.id} value={c.id}>{c.nome}</option>
                                         ))}
                                     </select>
                                 </div>

@@ -49,6 +49,7 @@ import Roteirizacao from './pages/Roteirizacao';
 // Lazy Load LancarEscala
 const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 const ViaVerde = lazy(() => import('./pages/ViaVerde'));
+const Carregamentos = lazy(() => import('./pages/Carregamentos'));
 
 import SplashScreen from './components/common/SplashScreen';
 
@@ -150,7 +151,7 @@ function AppContent() {
   const { notifications } = useWorkshop();
   const { unreadCount } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos'>('dashboard');
 
   // Sidebar State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -255,6 +256,11 @@ function AppContent() {
       case 'via-verde': return (
         <Suspense fallback={<PageLoading />}>
           <ViaVerde />
+        </Suspense>
+      );
+      case 'carregamentos': return (
+        <Suspense fallback={<PageLoading />}>
+          <Carregamentos />
         </Suspense>
       );
       default: return <Dashboard setActiveTab={handleNavigate} />;
@@ -379,6 +385,10 @@ function AppContent() {
                 {/* Via Verde - Available to Ops/Admin */}
                 {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
                   <SidebarItem icon={Zap} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />
+                )}
+                {/* Carregamentos - Available to Ops/Admin */}
+                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
+                  <SidebarItem icon={Zap} label="Carregamentos Elétricos" active={activeTab === 'carregamentos'} onClick={() => handleNavigate('carregamentos')} collapsed={isSidebarCollapsed} />
                 )}
               </SidebarGroup>
             )}
