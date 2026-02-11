@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import {
-    Zap, Plus, Search,
+    Ticket, Plus, Search,
     MapPin, DollarSign, Truck, User,
     Trash2, TrendingUp, Building
 } from 'lucide-react';
@@ -298,7 +298,7 @@ export default function ViaVerde() {
                 <div className="relative">
                     <h1 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight">
                         <div className="p-3 bg-emerald-500/20 rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                            <Zap className="w-8 h-8 text-emerald-400" />
+                            <Ticket className="w-8 h-8 text-emerald-400" />
                         </div>
                         Via Verde & Portagens
                     </h1>
@@ -391,7 +391,7 @@ export default function ViaVerde() {
                             <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Passagens</p>
                             <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-purple-400 transition-colors">{filteredTolls.length}</h3>
                             <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs font-medium text-purple-400">
-                                <Zap className="w-3 h-3" />
+                                <Ticket className="w-3 h-3" />
                                 <span>Registos</span>
                             </div>
                         </div>
@@ -549,7 +549,7 @@ export default function ViaVerde() {
                         <div className="p-6 border-b border-white/5 bg-slate-950/50 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white flex items-center gap-3">
                                 <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                                    <Zap className="w-5 h-5 text-emerald-500" />
+                                    <Ticket className="w-5 h-5 text-emerald-500" />
                                 </div>
                                 Novo Registo de Portagem
                             </h2>
@@ -689,9 +689,14 @@ export default function ViaVerde() {
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transform active:scale-95"
                                 >
-                                    {submitting ? 'A guardar...' : 'Guardar Registo'}
+                                    {submitting ? (
+                                        <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                                    ) : (
+                                        <Ticket className="w-4 h-4" />
+                                    )}
+                                    Registar Portagem
                                 </button>
                             </div>
                         </form>

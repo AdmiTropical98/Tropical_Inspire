@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, UserCheck, History, Navigation, Zap
+  ChevronDown, ChevronRight, UserCheck, History, Navigation, Zap, Ticket
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -384,7 +384,7 @@ function AppContent() {
                 )}
                 {/* Via Verde - Available to Ops/Admin */}
                 {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
-                  <SidebarItem icon={Zap} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />
+                  <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />
                 )}
                 {/* Carregamentos - Available to Ops/Admin */}
                 {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
@@ -538,7 +538,7 @@ function AppContent() {
                   <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { handleNavigate('transportes-eva'); setIsMobileMenuOpen(false); }} />
                 )}
                 {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
-                  <SidebarItem icon={Zap} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => { handleNavigate('via-verde'); setIsMobileMenuOpen(false); }} />
+                  <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => { handleNavigate('via-verde'); setIsMobileMenuOpen(false); }} />
                 )}
 
                 {/* 3. OFICINA */}
