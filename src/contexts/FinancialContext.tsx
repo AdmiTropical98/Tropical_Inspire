@@ -1,12 +1,14 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Expense, Fatura, FinancialSummary } from '../types';
+import type { Expense, Fatura, FinancialSummary, TollRecord, ElectricChargingRecord } from '../types';
 
 interface FinancialContextType {
     expenses: Expense[];
     invoices: Fatura[];
     summary: FinancialSummary;
+    tolls: TollRecord[];
+    charging: ElectricChargingRecord[];
     isLoading: boolean;
     refreshData: () => Promise<void>;
     addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
@@ -19,6 +21,8 @@ const FinancialContext = createContext<FinancialContextType | undefined>(undefin
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [invoices, setInvoices] = useState<Fatura[]>([]);
+    const [tolls, setTolls] = useState<TollRecord[]>([]);
+    const [charging, setCharging] = useState<ElectricChargingRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [summary, setSummary] = useState<FinancialSummary>({
         totalRevenue: 0,
@@ -150,8 +154,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
 
         // 5. Via Verde (Tolls & Parking)
-        const { data: tolls } = await supabase.from('via_verde_toll_records').select('*');
-        const tollExpenses: Expense[] = (tolls || []).map((t: any) => ({
+        const { data: tollsData } = await supabase.from('via_verde_toll_records').select('*');
+        if (tollsData) setTolls(tollsData);
+
+        const tollExpenses: Expense[] = (tollsData || []).map((t: any) => ({
             id: `toll-${t.id}`,
             category: 'variavel',
             description: t.type === 'parking' ? `Estacionamento - ${t.entry_point}` : `Portagem - ${t.entry_point} -> ${t.exit_point}`,
@@ -163,8 +169,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }));
 
         // 6. Electric Charging
-        const { data: charging } = await supabase.from('electric_charging_records').select('*');
-        const chargingExpenses: Expense[] = (charging || []).map((c: any) => ({
+        const { data: chargingData } = await supabase.from('electric_charging_records').select('*');
+        if (chargingData) setCharging(chargingData);
+
+        const chargingExpenses: Expense[] = (chargingData || []).map((c: any) => ({
             id: `charge-${c.id}`,
             category: 'variavel',
             description: `Carregamento - ${c.station_name}`,
@@ -261,7 +269,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     return (
-        <FinancialContext.Provider value={{ expenses, invoices, summary, isLoading, refreshData, addExpense, updateExpense, deleteExpense }}>
+        <FinancialContext.Provider value={{
+            expenses, invoices, summary, tolls, charging, isLoading,
+            refreshData, addExpense, updateExpense, deleteExpense
+        }}>
             {children}
         </FinancialContext.Provider>
     );

@@ -1,13 +1,15 @@
 // Force Deployment
 import React, { useState } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { Plus, Trash2, Building2, MapPin, X, Download, Users, Car, Fuel, Wallet, ChevronRight } from 'lucide-react';
+import { useFinancial } from '../../contexts/FinancialContext';
+import { Plus, Trash2, Building2, MapPin, X, Download, Users, Car, Fuel, Wallet, ChevronRight, Zap } from 'lucide-react';
 import type { CentroCusto } from '../../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function CentrosCustos() {
     const { centrosCustos, addCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes, motoristas, manualHours, viaturas } = useWorkshop();
+    const { tolls, charging } = useFinancial(); // Get Via Verde & Charging Data
     const [showForm, setShowForm] = useState(false);
     const [selectedCC, setSelectedCC] = useState<CentroCusto | null>(null);
     const [cardViews, setCardViews] = useState<Record<string, 'financial' | 'operational'>>({});
@@ -55,23 +57,34 @@ export default function CentrosCustos() {
         const ccFuel = fuelTransactions.filter(t => t.centroCustoId === cc.id);
         const ccReqs = requisicoes.filter(r => r.centroCustoId === cc.id);
         const ccDrivers = motoristas.filter(m => m.centroCustoId === cc.id);
+        const ccTolls = (tolls || []).filter(t => t.cost_center_id === cc.id); // Via Verde
+        const ccCharging = (charging || []).filter(c => c.cost_center_id === cc.id); // Charging
 
         let yPos = 50;
 
-        // Fuel Section
+        // Fuel & Charging Section
         doc.setTextColor(30, 41, 59);
         doc.setFontSize(14);
-        doc.text('1. Consumo de Combustível', 15, yPos);
+        doc.text('1. Combustível e Carregamentos', 15, yPos);
+
+        const fuelRows = ccFuel.map(t => [
+            new Date(t.timestamp).toLocaleDateString('pt-PT'),
+            viaturas.find(v => v.id === t.vehicleId)?.matricula || '---',
+            `${(t.liters || 0).toFixed(2)} L`,
+            `${(t.totalCost || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
+        ]);
+
+        const chargingRows = ccCharging.map(c => [
+            new Date(c.date).toLocaleDateString('pt-PT'),
+            viaturas.find(v => v.id === c.vehicle_id)?.matricula || '---',
+            `${(c.kwh || 0).toFixed(2)} kWh`,
+            `${(c.cost || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
+        ]);
 
         autoTable(doc, {
             startY: yPos + 5,
-            head: [['Data', 'Viatura', 'Litros', 'Custo']],
-            body: ccFuel.map(t => [
-                new Date(t.timestamp).toLocaleDateString('pt-PT'),
-                viaturas.find(v => v.id === t.vehicleId)?.matricula || '---',
-                `${(t.liters || 0).toFixed(2)} L`,
-                `${(t.totalCost || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
-            ]),
+            head: [['Data', 'Viatura', 'Qtd (L/kWh)', 'Custo']],
+            body: [...fuelRows, ...chargingRows],
             theme: 'striped',
             headStyles: { fillColor: [59, 130, 246] }
         });
@@ -86,11 +99,28 @@ export default function CentrosCustos() {
             head: [['Data', 'Descrição', 'Valor']],
             body: ccReqs.map(r => [
                 new Date(r.data).toLocaleDateString('pt-PT'),
-                r.descricao,
+                r.itens?.map(i => i.descricao).join(', ') || '---',
                 `${(r.custo || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
             ]),
             theme: 'striped',
             headStyles: { fillColor: [245, 158, 11] }
+        });
+
+        // Via Verde Section (New 2.5)
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+        doc.setFontSize(14);
+        doc.text('3. Via Verde (Portagens/Estacionamento)', 15, yPos);
+
+        autoTable(doc, {
+            startY: yPos + 5,
+            head: [['Data', 'Entrada -> Saída', 'Valor']],
+            body: ccTolls.map(t => [
+                new Date(t.entry_time).toLocaleDateString('pt-PT'),
+                t.type === 'parking' ? t.entry_point : `${t.entry_point} -> ${t.exit_point}`,
+                `${(t.amount || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [16, 185, 129] } // Emerald
         });
 
         // Team Section
@@ -102,8 +132,8 @@ export default function CentrosCustos() {
             startY: yPos + 5,
             head: [['Motorista', 'Status', 'Salário Base']],
             body: ccDrivers.map(m => [
-                m.nome,
-                m.status,
+                m.nome || '---',
+                m.status || '---',
                 `${(m.vencimentoBase || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
             ]),
             theme: 'striped',
@@ -114,8 +144,11 @@ export default function CentrosCustos() {
     };
 
     // --- Global Totals Calculations ---
-    const globalFuelTotal = fuelTransactions.reduce((sum, t) => sum + (t.totalCost || 0), 0);
-    const globalReqTotal = requisicoes.reduce((sum, r) => sum + (r.custo || 0), 0);
+    const globalFuelTotal = fuelTransactions.reduce((sum, t) => sum + (t.totalCost || 0), 0) +
+        (charging || []).reduce((sum, c) => sum + (c.cost || 0), 0);
+
+    const globalReqTotal = requisicoes.reduce((sum, r) => sum + (r.custo || 0), 0) +
+        (tolls || []).reduce((sum, t) => sum + (t.amount || 0), 0);
 
     // Global Labor
     let globalLaborTotal = 0;
@@ -200,11 +233,18 @@ export default function CentrosCustos() {
                     centrosCustos.map(cc => {
                         const currentView = cardViews[cc.id] || 'financial';
                         const ccFuelTrans = fuelTransactions.filter(t => t.centroCustoId === cc.id);
-                        const fuelExpenses = ccFuelTrans.reduce((sum, t) => sum + (t.totalCost || 0), 0);
-                        const fuelLiters = ccFuelTrans.reduce((sum, t) => sum + (t.liters || 0), 0);
+                        const ccChargingRecs = (charging || []).filter(c => c.cost_center_id === cc.id);
+
+                        const fuelExpenses = ccFuelTrans.reduce((sum, t) => sum + (t.totalCost || 0), 0) +
+                            ccChargingRecs.reduce((sum, c) => sum + (c.cost || 0), 0);
+
+                        const fuelLiters = ccFuelTrans.reduce((sum, t) => sum + (t.liters || 0), 0); // Keep liters separate from kWh for now in this card metric
 
                         const ccReqs = requisicoes.filter(r => r.centroCustoId === cc.id);
-                        const reqExpenses = ccReqs.reduce((sum, r) => sum + (r.custo || 0), 0);
+                        const ccTolls = (tolls || []).filter(t => t.cost_center_id === cc.id);
+
+                        const reqExpenses = ccReqs.reduce((sum, r) => sum + (r.custo || 0), 0) +
+                            ccTolls.reduce((sum, t) => sum + (t.amount || 0), 0);
 
                         const ccDrivers = motoristas.filter(m => m.centroCustoId === cc.id);
                         let laborExpenses = 0;
@@ -429,6 +469,15 @@ export default function CentrosCustos() {
                                     </p>
                                 </div>
                                 <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Zap className="w-8 h-8 text-blue-400 mb-4" />
+                                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Via Verde</p>
+                                    <p className="text-2xl font-black text-white">
+                                        {(tolls || []).filter(t => t.cost_center_id === selectedCC.id)
+                                            .reduce((sum, t) => sum + (t.amount || 0), 0)
+                                            .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                                    </p>
+                                </div>
+                                <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
                                     <Wallet className="w-8 h-8 text-amber-500 mb-4" />
                                     <p className="text-xs font-black text-slate-500 uppercase mb-1">Requisições</p>
                                     <p className="text-2xl font-black text-white">
@@ -491,7 +540,7 @@ export default function CentrosCustos() {
                                                 {requisicoes.filter(r => r.centroCustoId === selectedCC.id).slice(0, 10).map((r, i) => (
                                                     <tr key={i} className="hover:bg-white/5 transition-colors">
                                                         <td className="px-6 py-4 text-slate-400">{new Date(r.data).toLocaleDateString('pt-PT')}</td>
-                                                        <td className="px-6 py-4 text-white font-bold truncate max-w-[150px]">{r.descricao}</td>
+                                                        <td className="px-6 py-4 text-white font-bold truncate max-w-[150px]">{r.itens?.map(i => i.descricao).join(', ') || '---'}</td>
                                                         <td className="px-6 py-4 text-right text-amber-500 font-mono font-bold">{(r.custo || 0).toFixed(2)}€</td>
                                                     </tr>
                                                 ))}
