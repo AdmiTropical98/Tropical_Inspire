@@ -11,6 +11,7 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import type { ElectricChargingRecord } from '../../types';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { parseNumber } from '../../utils/number';
 
 export default function Carregamentos() {
     const { viaturas, motoristas, centrosCustos } = useWorkshop();
@@ -295,9 +296,9 @@ export default function Carregamentos() {
                     }
 
                     // Use robust number parsing
-                    const kwhVal = String(row['kWh'] || '0').replace(',', '.');
-                    const costVal = String(row['Custo'] || '0').replace(',', '.');
-                    const durVal = String(row['Duracao (min)'] || '0').replace(',', '.');
+                    // const kwhVal = String(row['kWh'] || '0').replace(',', '.');
+                    // const costVal = String(row['Custo'] || '0').replace(',', '.');
+                    // const durVal = String(row['Duracao (min)'] || '0').replace(',', '.');
 
                     recordsToInsert.push({
                         vehicle_id: vehicleId,
@@ -305,9 +306,9 @@ export default function Carregamentos() {
                         cost_center_id: costCenterId,
                         station_name: row['Estacao'] || 'Desconhecido',
                         date: dateIso,
-                        kwh: parseFloat(kwhVal) || 0,
-                        cost: parseFloat(costVal) || 0,
-                        duration: parseFloat(durVal) || 0,
+                        kwh: parseNumber(row['kWh']),
+                        cost: parseNumber(row['Custo']),
+                        duration: parseNumber(row['Duracao (min)']),
                         created_by: userId
                     });
                     successCount++;

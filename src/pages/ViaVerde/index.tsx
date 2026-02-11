@@ -12,6 +12,7 @@ import type { TollRecord } from '../../types';
 import toast from 'react-hot-toast';
 
 import * as XLSX from 'xlsx';
+import { parseNumber } from '../../utils/number';
 
 // ... existing imports ...
 
@@ -390,8 +391,8 @@ export default function ViaVerde() {
                     const exitTime = `${dateStr}T${timeOut}:00`;
 
                     // Robust Number Parsing
-                    const amountVal = String(row['Valor'] || '0').replace(',', '.');
-                    const distVal = String(row['Distancia'] || '0').replace(',', '.');
+                    // const amountVal = String(row['Valor'] || '0').replace(',', '.');
+                    // const distVal = String(row['Distancia'] || '0').replace(',', '.');
 
                     // Type Parsing
                     let type = 'toll';
@@ -408,8 +409,8 @@ export default function ViaVerde() {
                         exit_point: row['Portico Saida'] || 'Desconhecido',
                         entry_time: entryTime, // Supabase handles ISO strings well
                         exit_time: exitTime,
-                        amount: parseFloat(amountVal) || 0,
-                        distance: parseFloat(distVal) || 0,
+                        amount: parseNumber(row['Valor']),
+                        distance: parseNumber(row['Distancia']),
                         type: type,
                         created_by: userId
                     });
