@@ -9,7 +9,7 @@ interface VehicleProfileProps {
 }
 
 export default function VehicleProfile({ viatura: initialViatura, onClose }: VehicleProfileProps) {
-    const { updateViatura, viaturas, requisicoes, fuelTransactions } = useWorkshop();
+    const { updateViatura, viaturas, requisicoes, fuelTransactions, centrosCustos } = useWorkshop();
 
     // Live data from context to handle updates
     const viatura = viaturas.find(v => v.id === initialViatura.id) || initialViatura;
@@ -206,6 +206,31 @@ export default function VehicleProfile({ viatura: initialViatura, onClose }: Veh
                     {/* --- DETAILS & INSURANCE --- */}
                     {activeTab === 'detalhes' && (
                         <div className="space-y-8">
+                            {/* Cost Center Section */}
+                            <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5">
+                                <h3 className="text-white font-bold flex items-center gap-2 mb-4">
+                                    <TrendingDown className="w-5 h-5 text-indigo-400" />
+                                    Centro de Custo
+                                </h3>
+                                <div className="space-y-4">
+                                    <p className="text-sm text-slate-400">
+                                        Associe esta viatura a um Centro de Custo para que as despesas (Portagens, Carregamentos, etc.) sejam atribuídas automaticamente.
+                                    </p>
+                                    <div className="flex gap-4">
+                                        <select
+                                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white"
+                                            value={viatura.centro_custo_id || ''}
+                                            onChange={(e) => updateViatura({ ...viatura, centro_custo_id: e.target.value })}
+                                        >
+                                            <option value="">-- Sem Centro de Custo --</option>
+                                            {centrosCustos.map(cc => (
+                                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Insurance Section */}
                             <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5">
                                 <div className="flex items-center justify-between mb-4">

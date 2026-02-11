@@ -23,6 +23,7 @@ export interface Viatura {
     multas?: Multa[]; // Reuse Multa type
     manutencoes?: Manutencao[];
     precoDiario?: number; // Daily rental rate
+    centro_custo_id?: string; // Cost Center Association
 }
 
 

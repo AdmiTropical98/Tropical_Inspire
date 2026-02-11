@@ -62,10 +62,10 @@ export default function CentrosCustos() {
 
         let yPos = 50;
 
-        // Fuel & Charging Section
+        // Fuel Section
         doc.setTextColor(30, 41, 59);
         doc.setFontSize(14);
-        doc.text('1. Combustível e Carregamentos', 15, yPos);
+        doc.text('1. Combustível', 15, yPos);
 
         const fuelRows = ccFuel.map(t => [
             new Date(t.timestamp).toLocaleDateString('pt-PT'),
@@ -73,6 +73,18 @@ export default function CentrosCustos() {
             `${(t.liters || 0).toFixed(2)} L`,
             `${(t.totalCost || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
         ]);
+
+        autoTable(doc, {
+            startY: yPos + 5,
+            head: [['Data', 'Viatura', 'Litros', 'Custo']],
+            body: fuelRows,
+            theme: 'striped',
+            headStyles: { fillColor: [59, 130, 246] } // Blue
+        });
+
+        // Charging Section
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+        doc.text('2. Carregamentos Elétricos', 15, yPos);
 
         const chargingRows = ccCharging.map(c => [
             new Date(c.date).toLocaleDateString('pt-PT'),
@@ -83,16 +95,15 @@ export default function CentrosCustos() {
 
         autoTable(doc, {
             startY: yPos + 5,
-            head: [['Data', 'Viatura', 'Qtd (L/kWh)', 'Custo']],
-            body: [...fuelRows, ...chargingRows],
+            head: [['Data', 'Viatura', 'kWh', 'Custo']],
+            body: chargingRows,
             theme: 'striped',
-            headStyles: { fillColor: [59, 130, 246] }
+            headStyles: { fillColor: [34, 211, 238] } // Cyan
         });
 
         // Requisitions Section
         yPos = (doc as any).lastAutoTable.finalY + 15;
-        doc.setFontSize(14);
-        doc.text('2. Requisições e Peças', 15, yPos);
+        doc.text('3. Requisições e Peças', 15, yPos);
 
         autoTable(doc, {
             startY: yPos + 5,
@@ -103,13 +114,12 @@ export default function CentrosCustos() {
                 `${(r.custo || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
             ]),
             theme: 'striped',
-            headStyles: { fillColor: [245, 158, 11] }
+            headStyles: { fillColor: [245, 158, 11] } // Amber
         });
 
-        // Via Verde Section (New 2.5)
+        // Via Verde Section
         yPos = (doc as any).lastAutoTable.finalY + 15;
-        doc.setFontSize(14);
-        doc.text('3. Via Verde (Portagens/Estacionamento)', 15, yPos);
+        doc.text('4. Via Verde (Portagens/Estacionamento)', 15, yPos);
 
         autoTable(doc, {
             startY: yPos + 5,
@@ -125,8 +135,7 @@ export default function CentrosCustos() {
 
         // Team Section
         yPos = (doc as any).lastAutoTable.finalY + 15;
-        doc.setFontSize(14);
-        doc.text('3. Mão de Obra e Equipa', 15, yPos);
+        doc.text('5. Mão de Obra e Equipa', 15, yPos);
 
         autoTable(doc, {
             startY: yPos + 5,
@@ -137,7 +146,7 @@ export default function CentrosCustos() {
                 `${(m.vencimentoBase || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
             ]),
             theme: 'striped',
-            headStyles: { fillColor: [16, 185, 129] }
+            headStyles: { fillColor: [99, 102, 241] } // Indigo
         });
 
         doc.save(`Relatorio_${cc.nome.replace(/\s+/g, '_')}.pdf`);
@@ -211,7 +220,7 @@ export default function CentrosCustos() {
                 </div>
                 <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl backdrop-blur-md">
                     <p className="text-slate-500 text-xs font-black uppercase tracking-widest mb-2">Mão de Obra (Total)</p>
-                    <p className="text-2xl font-bold text-emerald-400">{globalLaborTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
+                    <p className="text-2xl font-bold text-indigo-400">{globalLaborTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
                     <p className="text-[10px] text-slate-500 mt-1">{((globalLaborTotal / (grandTotal || 1)) * 100).toFixed(1)}% do orçamento</p>
                 </div>
                 <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl backdrop-blur-md">
@@ -235,16 +244,16 @@ export default function CentrosCustos() {
                         const ccFuelTrans = fuelTransactions.filter(t => t.centroCustoId === cc.id);
                         const ccChargingRecs = (charging || []).filter(c => c.cost_center_id === cc.id);
 
-                        const fuelExpenses = ccFuelTrans.reduce((sum, t) => sum + (t.totalCost || 0), 0) +
-                            ccChargingRecs.reduce((sum, c) => sum + (c.cost || 0), 0);
+                        const fuelExpenses = ccFuelTrans.reduce((sum, t) => sum + (t.totalCost || 0), 0);
+                        const chargingExpenses = ccChargingRecs.reduce((sum, c) => sum + (c.cost || 0), 0);
 
-                        const fuelLiters = ccFuelTrans.reduce((sum, t) => sum + (t.liters || 0), 0); // Keep liters separate from kWh for now in this card metric
+                        const fuelLiters = ccFuelTrans.reduce((sum, t) => sum + (t.liters || 0), 0);
 
                         const ccReqs = requisicoes.filter(r => r.centroCustoId === cc.id);
                         const ccTolls = (tolls || []).filter(t => t.cost_center_id === cc.id);
 
-                        const reqExpenses = ccReqs.reduce((sum, r) => sum + (r.custo || 0), 0) +
-                            ccTolls.reduce((sum, t) => sum + (t.amount || 0), 0);
+                        const reqExpenses = ccReqs.reduce((sum, r) => sum + (r.custo || 0), 0);
+                        const tollExpenses = ccTolls.reduce((sum, t) => sum + (t.amount || 0), 0);
 
                         const ccDrivers = motoristas.filter(m => m.centroCustoId === cc.id);
                         let laborExpenses = 0;
@@ -271,10 +280,13 @@ export default function CentrosCustos() {
                             }
                         });
 
-                        const totalCC = fuelExpenses + reqExpenses + laborExpenses;
+                        const totalCC = fuelExpenses + chargingExpenses + reqExpenses + tollExpenses + laborExpenses;
+
                         const fuelPct = totalCC > 0 ? (fuelExpenses / totalCC) * 100 : 0;
-                        const laborPct = totalCC > 0 ? (laborExpenses / totalCC) * 100 : 0;
+                        const chargingPct = totalCC > 0 ? (chargingExpenses / totalCC) * 100 : 0;
+                        const tollPct = totalCC > 0 ? (tollExpenses / totalCC) * 100 : 0;
                         const reqPct = totalCC > 0 ? (reqExpenses / totalCC) * 100 : 0;
+                        const laborPct = totalCC > 0 ? (laborExpenses / totalCC) * 100 : 0;
 
                         return (
                             <div key={cc.id} className="group relative bg-[#0f172a] border border-slate-800 rounded-3xl overflow-hidden hover:border-blue-500/50 transition-all duration-500 shadow-2xl hover:shadow-blue-500/5">
@@ -350,25 +362,38 @@ export default function CentrosCustos() {
 
                                         {currentView === 'financial' ? (
                                             <>
-                                                <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden flex shadow-inner">
-                                                    <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${fuelPct}%` }} title={`Combustível: ${fuelPct.toFixed(1)}%`} />
-                                                    <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${laborPct}%` }} title={`Mão de Obra: ${laborPct.toFixed(1)}%`} />
-                                                    <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${reqPct}%` }} title={`Requisições: ${reqPct.toFixed(1)}%`} />
-                                                </div>
-                                                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                        <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                                        <span>Fuel {fuelExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                <>
+                                                    <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden flex shadow-inner">
+                                                        {/* 5 Distinct Segments */}
+                                                        <div className="h-full bg-blue-500" style={{ width: `${fuelPct}%` }} title={`Combustível: ${fuelPct.toFixed(1)}%`} />
+                                                        <div className="h-full bg-cyan-400" style={{ width: `${chargingPct}%` }} title={`Carregamentos: ${chargingPct.toFixed(1)}%`} />
+                                                        <div className="h-full bg-emerald-500" style={{ width: `${tollPct}%` }} title={`Via Verde: ${tollPct.toFixed(1)}%`} />
+                                                        <div className="h-full bg-amber-500" style={{ width: `${reqPct}%` }} title={`Requisições: ${reqPct.toFixed(1)}%`} />
+                                                        <div className="h-full bg-indigo-500" style={{ width: `${laborPct}%` }} title={`Mão de Obra: ${laborPct.toFixed(1)}%`} />
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                                        <span>Work {laborExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                    <div className="flex flex-wrap gap-x-3 gap-y-2">
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                                            <span>Fuel {fuelExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                            <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                                                            <span>EV {chargingExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                            <span>Tolls {tollExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                                            <span>Reqs {reqExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                                                            <span>Team {laborExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                        <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                                        <span>Buy {reqExpenses.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</span>
-                                                    </div>
-                                                </div>
+                                                </>
                                             </>
                                         ) : (
                                             <div className="grid grid-cols-2 gap-2">
@@ -458,38 +483,47 @@ export default function CentrosCustos() {
                         {/* Modal Content */}
                         <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
                             {/* Stats Overview */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
-                                    <Fuel className="w-8 h-8 text-blue-400 mb-4" />
-                                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Combustível</p>
-                                    <p className="text-2xl font-black text-white">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                <div className="p-4 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Fuel className="w-6 h-6 text-blue-400 mb-2" />
+                                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Combustível</p>
+                                    <p className="text-xl font-black text-white">
                                         {fuelTransactions.filter(t => t.centroCustoId === selectedCC.id)
                                             .reduce((sum, t) => sum + (t.totalCost || 0), 0)
                                             .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
                                     </p>
                                 </div>
-                                <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
-                                    <Zap className="w-8 h-8 text-blue-400 mb-4" />
-                                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Via Verde</p>
-                                    <p className="text-2xl font-black text-white">
+                                <div className="p-4 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Zap className="w-6 h-6 text-cyan-400 mb-2" />
+                                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Carregamentos</p>
+                                    <p className="text-xl font-black text-white">
+                                        {(charging || []).filter(c => c.cost_center_id === selectedCC.id)
+                                            .reduce((sum, c) => sum + (c.cost || 0), 0)
+                                            .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Wallet className="w-6 h-6 text-emerald-500 mb-2" />
+                                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Via Verde</p>
+                                    <p className="text-xl font-black text-white">
                                         {(tolls || []).filter(t => t.cost_center_id === selectedCC.id)
                                             .reduce((sum, t) => sum + (t.amount || 0), 0)
                                             .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
                                     </p>
                                 </div>
-                                <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
-                                    <Wallet className="w-8 h-8 text-amber-500 mb-4" />
-                                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Requisições</p>
-                                    <p className="text-2xl font-black text-white">
+                                <div className="p-4 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Building2 className="w-6 h-6 text-amber-500 mb-2" />
+                                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Requisições</p>
+                                    <p className="text-xl font-black text-white">
                                         {requisicoes.filter(r => r.centroCustoId === selectedCC.id)
                                             .reduce((sum, r) => sum + (r.custo || 0), 0)
                                             .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
                                     </p>
                                 </div>
-                                <div className="p-6 bg-slate-900/40 rounded-3xl border border-white/5">
-                                    <Users className="w-8 h-8 text-emerald-500 mb-4" />
-                                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Mão de Obra</p>
-                                    <p className="text-2xl font-black text-white">
+                                <div className="p-4 bg-slate-900/40 rounded-3xl border border-white/5">
+                                    <Users className="w-6 h-6 text-indigo-500 mb-2" />
+                                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Mão de Obra</p>
+                                    <p className="text-xl font-black text-white">
                                         {motoristas.filter(m => m.centroCustoId === selectedCC.id)
                                             .reduce((sum, m) => sum + (m.vencimentoBase || 0), 0)
                                             .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
@@ -512,7 +546,7 @@ export default function CentrosCustos() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
-                                                {fuelTransactions.filter(t => t.centroCustoId === selectedCC.id).slice(0, 10).map((t, i) => (
+                                                {fuelTransactions.filter(t => t.centroCustoId === selectedCC.id).slice(0, 5).map((t, i) => (
                                                     <tr key={i} className="hover:bg-white/5 transition-colors">
                                                         <td className="px-6 py-4 text-slate-400">{new Date(t.timestamp).toLocaleDateString('pt-PT')}</td>
                                                         <td className="px-6 py-4 text-white font-bold">{viaturas.find(v => v.id === t.vehicleId)?.matricula || '---'}</td>
@@ -524,20 +558,77 @@ export default function CentrosCustos() {
                                     </div>
                                 </div>
 
-                                {/* Requisitions Table */}
+                                {/* Charging Table */}
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-black text-white flex items-center gap-2">Pedidos e Custos</h3>
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">Carregamentos Elétricos</h3>
                                     <div className="bg-slate-950/40 rounded-3xl border border-white/5 overflow-hidden">
                                         <table className="w-full text-sm text-left">
                                             <thead className="bg-[#020617] text-slate-500 text-[10px] uppercase font-black tracking-widest">
                                                 <tr>
                                                     <th className="px-6 py-4">Data</th>
-                                                    <th className="px-6 py-4">Peça/Serviço</th>
+                                                    <th className="px-6 py-4">Viatura</th>
+                                                    <th className="px-6 py-4 text-right">kWh / Custo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {(charging || []).filter(c => c.cost_center_id === selectedCC.id).slice(0, 5).map((c, i) => (
+                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                        <td className="px-6 py-4 text-slate-400">{new Date(c.date).toLocaleDateString('pt-PT')}</td>
+                                                        <td className="px-6 py-4 text-white font-bold">{viaturas.find(v => v.id === c.vehicle_id)?.matricula || '---'}</td>
+                                                        <td className="px-6 py-4 text-right text-cyan-400 font-mono font-bold">
+                                                            <div className="flex flex-col items-end">
+                                                                <span>{(c.cost || 0).toFixed(2)}€</span>
+                                                                <span className="text-[10px] text-slate-500">{(c.kwh || 0).toFixed(1)} kWh</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Via Verde Table */}
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">Via Verde</h3>
+                                    <div className="bg-slate-950/40 rounded-3xl border border-white/5 overflow-hidden">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-[#020617] text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                                                <tr>
+                                                    <th className="px-6 py-4">Data</th>
+                                                    <th className="px-6 py-4">Detalhe</th>
                                                     <th className="px-6 py-4 text-right">Valor</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
-                                                {requisicoes.filter(r => r.centroCustoId === selectedCC.id).slice(0, 10).map((r, i) => (
+                                                {(tolls || []).filter(t => t.cost_center_id === selectedCC.id).slice(0, 5).map((t, i) => (
+                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                        <td className="px-6 py-4 text-slate-400">{new Date(t.entry_time).toLocaleDateString('pt-PT')}</td>
+                                                        <td className="px-6 py-4 text-white font-bold text-xs truncate max-w-[150px]">
+                                                            {t.type === 'parking' ? t.entry_point : `${t.entry_point} -> ${t.exit_point}`}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right text-emerald-500 font-mono font-bold">{(t.amount || 0).toFixed(2)}€</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Requisitions Table */}
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">Requisições e Peças</h3>
+                                    <div className="bg-slate-950/40 rounded-3xl border border-white/5 overflow-hidden">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-[#020617] text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                                                <tr>
+                                                    <th className="px-6 py-4">Data</th>
+                                                    <th className="px-6 py-4">Item</th>
+                                                    <th className="px-6 py-4 text-right">Valor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {requisicoes.filter(r => r.centroCustoId === selectedCC.id).slice(0, 5).map((r, i) => (
                                                     <tr key={i} className="hover:bg-white/5 transition-colors">
                                                         <td className="px-6 py-4 text-slate-400">{new Date(r.data).toLocaleDateString('pt-PT')}</td>
                                                         <td className="px-6 py-4 text-white font-bold truncate max-w-[150px]">{r.itens?.map(i => i.descricao).join(', ') || '---'}</td>
