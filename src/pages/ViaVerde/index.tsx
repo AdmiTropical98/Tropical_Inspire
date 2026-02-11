@@ -24,6 +24,7 @@ export default function ViaVerde() {
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [filterVehicle, setFilterVehicle] = useState('all');
+    const [lastError, setLastError] = useState<any>(null); // Debug state
 
     // Form State
     const [formData, setFormData] = useState({
@@ -239,6 +240,12 @@ export default function ViaVerde() {
                 const { data: userData } = await supabase.auth.getUser();
                 const userId = userData.user?.id;
 
+                if (!userId) {
+                    toast.error('Sessão expirada. Por favor faça login novamente.');
+                    setImporting(false);
+                    return;
+                }
+
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 for (const [index, row] of (data as any[]).entries()) {
                     const rowNum = index + 2;
@@ -280,6 +287,10 @@ export default function ViaVerde() {
                     const entryTime = `${dateStr}T${timeIn}:00`;
                     const exitTime = `${dateStr}T${timeOut}:00`;
 
+                    // Robust Number Parsing
+                    const amountVal = String(row['Valor'] || '0').replace(',', '.');
+                    const distVal = String(row['Distancia'] || '0').replace(',', '.');
+
                     recordsToInsert.push({
                         vehicle_id: vehicleId,
                         driver_id: driverId,
@@ -288,8 +299,8 @@ export default function ViaVerde() {
                         exit_point: row['Portico Saida'] || 'Desconhecido',
                         entry_time: entryTime, // Supabase handles ISO strings well
                         exit_time: exitTime,
-                        amount: parseFloat(row['Valor'] || '0') || 0,
-                        distance: parseFloat(row['Distancia'] || '0') || 0,
+                        amount: parseFloat(amountVal) || 0,
+                        distance: parseFloat(distVal) || 0,
                         created_by: userId
                     });
                     successCount++;
@@ -303,19 +314,17 @@ export default function ViaVerde() {
                     if (error) throw error;
                     toast.success(`${successCount} registos importados com sucesso!`);
                     if (failCount > 0) {
-                        toast(`${failCount} falhas de importação.`, { icon: '⚠️' });
-                        if (errors.length > 0) {
-                            console.warn('Import errors:', errors);
-                        }
+                        toast(`${failCount} registos ignorados/falhados`, { icon: '⚠️' });
                     }
                     fetchTolls();
                 } else {
-                    toast.error('Nenhum registo válido encontrado para importar.');
+                    toast.error('Nenhum registo válido encontrado.');
                 }
 
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Import error:', error);
-                toast.error('Erro ao processar ficheiro. Verifique o formato.');
+                setLastError(error);
+                toast.error('Erro crítico: ' + (error.message || 'Erro desconhecido'));
             } finally {
                 setImporting(false);
                 if (fileInputRef.current) fileInputRef.current.value = '';
@@ -393,6 +402,17 @@ export default function ViaVerde() {
                     </button>
                 </div>
             </div>
+
+            {/* Debug Error Display */}
+            {lastError && (
+                <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg text-red-200 text-xs overflow-auto max-h-40">
+                    <div className="flex justify-between items-center mb-2">
+                        <strong>Debug Info (Erro):</strong>
+                        <button onClick={() => setLastError(null)} className="text-white hover:text-red-300">X</button>
+                    </div>
+                    <pre>{JSON.stringify(lastError, null, 2)}</pre>
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

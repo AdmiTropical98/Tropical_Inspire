@@ -22,6 +22,7 @@ export default function Carregamentos() {
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [filterVehicle, setFilterVehicle] = useState('all');
+    const [lastError, setLastError] = useState<any>(null); // Debug state
 
     // Form State
     const [formData, setFormData] = useState({
@@ -210,6 +211,12 @@ export default function Carregamentos() {
                 const { data: userData } = await supabase.auth.getUser();
                 const userId = userData.user?.id;
 
+                if (!userId) {
+                    toast.error('Sessão expirada. Por favor faça login novamente.');
+                    setImporting(false);
+                    return;
+                }
+
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 for (const [index, row] of (data as any[]).entries()) {
                     const rowNum = index + 2; // +2 because header is 1
@@ -241,15 +248,20 @@ export default function Carregamentos() {
                         continue;
                     }
 
+                    // Use robust number parsing
+                    const kwhVal = String(row['kWh'] || '0').replace(',', '.');
+                    const costVal = String(row['Custo'] || '0').replace(',', '.');
+                    const durVal = String(row['Duracao (min)'] || '0').replace(',', '.');
+
                     recordsToInsert.push({
                         vehicle_id: vehicleId,
                         driver_id: driverId,
                         cost_center_id: costCenterId,
                         station_name: row['Estacao'] || 'Desconhecido',
                         date: dateIso,
-                        kwh: parseFloat(row['kWh'] || '0') || 0,
-                        cost: parseFloat(row['Custo'] || '0') || 0,
-                        duration: parseFloat(row['Duracao (min)'] || '0') || 0,
+                        kwh: parseFloat(kwhVal) || 0,
+                        cost: parseFloat(costVal) || 0,
+                        duration: parseFloat(durVal) || 0,
                         created_by: userId
                     });
                     successCount++;
@@ -263,7 +275,6 @@ export default function Carregamentos() {
                         toast(`${failCount} falhas.`, { icon: '⚠️' });
                         if (errors.length > 0) {
                             console.warn('Import errors:', errors);
-                            // Simple alert or modal could be better, but console for now
                         }
                     }
                     fetchRecords();
@@ -271,9 +282,10 @@ export default function Carregamentos() {
                     toast.error('Nenhum registo válido para importar.');
                     if (errors.length > 0) console.error(errors);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Import error:', error);
-                toast.error('Erro crítico ao processar ficheiro.');
+                setLastError(error); // Set state if available
+                toast.error('Erro crítico: ' + (error.message || 'Falha desconhecida'));
             } finally {
                 setImporting(false);
                 if (fileInputRef.current) fileInputRef.current.value = '';
@@ -324,6 +336,17 @@ export default function Carregamentos() {
                     </button>
                 </div>
             </div>
+
+            {/* Debug Error Display */}
+            {lastError && (
+                <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg text-red-200 text-xs overflow-auto max-h-40">
+                    <div className="flex justify-between items-center mb-2">
+                        <strong>Debug Info (Erro):</strong>
+                        <button onClick={() => setLastError(null)} className="text-white hover:text-red-300">X</button>
+                    </div>
+                    <pre>{JSON.stringify(lastError, null, 2)}</pre>
+                </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
