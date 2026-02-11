@@ -128,6 +128,48 @@ export default function ViaVerde() {
         }
     };
 
+    // --- BULK DELETE LOGIC ---
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    const toggleSelection = (id: string) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
+    };
+
+    const toggleAll = () => {
+        if (selectedIds.size === filteredTolls.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(filteredTolls.map(t => t.id)));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!window.confirm(`Tem a certeza que deseja eliminar ${selectedIds.size} registos?`)) return;
+
+        const toastId = toast.loading('A eliminar registos...');
+        try {
+            const { error } = await supabase
+                .from('via_verde_toll_records')
+                .delete()
+                .in('id', Array.from(selectedIds));
+
+            if (error) throw error;
+            toast.success(`${selectedIds.size} registos eliminados!`, { id: toastId });
+            setSelectedIds(new Set());
+            fetchTolls();
+        } catch (error) {
+            console.error('Error bulk deleting:', error);
+            toast.error('Erro ao eliminar registos', { id: toastId });
+        }
+    };
+
     // --- BULK IMPORT LOGIC ---
 
     const handleDownloadTemplate = () => {
@@ -402,6 +444,15 @@ export default function ViaVerde() {
                 </div>
 
                 <div className="flex gap-3 relative z-10">
+                    {selectedIds.size > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-lg animate-in fade-in slide-in-from-right-4"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                            <span className="hidden sm:inline">Eliminar ({selectedIds.size})</span>
+                        </button>
+                    )}
                     <input
                         type="file"
                         accept=".xlsx, .xls"
@@ -541,6 +592,14 @@ export default function ViaVerde() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-950/50 text-slate-400 uppercase font-medium border-b border-white/5">
                             <tr>
+                                <th className="px-6 py-5 w-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={filteredTolls.length > 0 && selectedIds.size === filteredTolls.length}
+                                        onChange={toggleAll}
+                                        className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
+                                    />
+                                </th>
                                 <th className="px-6 py-5 tracking-wider text-xs">Data/Hora</th>
                                 <th className="px-6 py-5 tracking-wider text-xs">Viatura</th>
                                 <th className="px-6 py-5 tracking-wider text-xs">Motorista / CC</th>
@@ -552,7 +611,7 @@ export default function ViaVerde() {
                         <tbody className="divide-y divide-white/5">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
                                             <span>Carregando registos...</span>
@@ -561,7 +620,7 @@ export default function ViaVerde() {
                                 </tr>
                             ) : filteredTolls.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center gap-2">
                                             <Search className="w-8 h-8 text-slate-600 mb-2" />
                                             <p className="text-lg font-medium text-slate-400">Nenhum registo encontrado</p>
@@ -571,7 +630,24 @@ export default function ViaVerde() {
                                 </tr>
                             ) : (
                                 filteredTolls.map((toll) => (
-                                    <tr key={toll.id} className="group hover:bg-slate-800/30 transition-all duration-200">
+                                    <tr
+                                        key={toll.id}
+                                        className={`group transition-all duration-200 ${selectedIds.has(toll.id) ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-slate-800/30'}`}
+                                        onClick={(e) => {
+                                            // Toggle selection when clicking row (unless clicking button/link)
+                                            if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
+                                            toggleSelection(toll.id);
+                                        }}
+                                    >
+                                        <td className="px-6 py-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.has(toll.id)}
+                                                onChange={() => toggleSelection(toll.id)}
+                                                className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <span className="text-white font-medium">
@@ -634,7 +710,10 @@ export default function ViaVerde() {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <button
-                                                onClick={() => handleDelete(toll.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(toll.id);
+                                                }}
                                                 className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0"
                                                 title="Eliminar registo"
                                             >
