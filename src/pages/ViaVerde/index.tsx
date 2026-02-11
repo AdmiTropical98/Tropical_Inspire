@@ -81,7 +81,8 @@ export default function ViaVerde() {
                 entry_time: formData.entry_time,
                 exit_time: formData.exit_time || null,
                 amount: parseFloat(formData.amount),
-                distance: formData.distance ? parseFloat(formData.distance) : null
+                distance: formData.distance ? parseFloat(formData.distance) : null,
+                created_by: (await supabase.auth.getUser()).data.user?.id
             }]);
 
             if (error) throw error;
@@ -100,9 +101,9 @@ export default function ViaVerde() {
                 distance: ''
             });
             fetchTolls();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving toll:', error);
-            toast.error('Erro ao guardar registo');
+            toast.error('Erro: ' + (error.message || 'Falha ao guardar'));
         } finally {
             setSubmitting(false);
         }

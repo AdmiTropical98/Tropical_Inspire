@@ -96,9 +96,9 @@ export default function Carregamentos() {
                 duration: ''
             });
             fetchRecords();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving record:', error);
-            toast.error('Erro ao guardar registo');
+            toast.error('Erro: ' + (error.message || 'Falha ao guardar'));
         } finally {
             setSubmitting(false);
         }
