@@ -149,7 +149,33 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
         }
 
-        setExpenses([...explicitExpenses, ...fuelExpenses, ...maintExpenses, ...reqExpenses, ...salaryExpenses, ...manualHourExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        // 5. Via Verde (Tolls & Parking)
+        const { data: tolls } = await supabase.from('via_verde_toll_records').select('*');
+        const tollExpenses: Expense[] = (tolls || []).map((t: any) => ({
+            id: `toll-${t.id}`,
+            category: 'variavel',
+            description: t.type === 'parking' ? `Estacionamento - ${t.entry_point}` : `Portagem - ${t.entry_point} -> ${t.exit_point}`,
+            amount: t.amount || 0,
+            date: t.entry_time, // usage date
+            paid: true, // Auto-debit
+            recurring: false,
+            cost_center_id: t.cost_center_id
+        }));
+
+        // 6. Electric Charging
+        const { data: charging } = await supabase.from('electric_charging_records').select('*');
+        const chargingExpenses: Expense[] = (charging || []).map((c: any) => ({
+            id: `charge-${c.id}`,
+            category: 'variavel',
+            description: `Carregamento - ${c.station_name}`,
+            amount: c.cost || 0,
+            date: c.date,
+            paid: true, // Usually card/app
+            recurring: false,
+            cost_center_id: c.cost_center_id
+        }));
+
+        setExpenses([...explicitExpenses, ...fuelExpenses, ...maintExpenses, ...reqExpenses, ...salaryExpenses, ...manualHourExpenses, ...tollExpenses, ...chargingExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     };
 
     const fetchInvoices = async () => {
@@ -185,10 +211,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         // Breakdown
         const breakdown = [
-            { category: 'Combustível', value: expenses.filter(e => e.id.startsWith('fuel-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-blue-500' },
+            { category: 'Combustível & Energia', value: expenses.filter(e => e.id.startsWith('fuel-') || e.id.startsWith('charge-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-blue-500' },
             { category: 'Manutenção', value: expenses.filter(e => e.id.startsWith('maint-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-red-500' },
+            { category: 'Via Verde', value: expenses.filter(e => e.id.startsWith('toll-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-emerald-500' },
             { category: 'Requisições', value: expenses.filter(e => e.id.startsWith('req-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-amber-500' },
-            { category: 'Fixos/Outros', value: expenses.filter(e => !e.id.match(/^(fuel|maint|req)-/)).reduce((sum, e) => sum + e.amount, 0), color: 'bg-indigo-500' },
+            { category: 'Fixos/Outros', value: expenses.filter(e => !e.id.match(/^(fuel|maint|req|toll|charge)-/)).reduce((sum, e) => sum + e.amount, 0), color: 'bg-indigo-500' },
         ];
 
         // Top CC
