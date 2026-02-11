@@ -478,3 +478,18 @@ export interface Gestor {
     centroCustoIds?: string[]; // NEW: Multi-select
     allCostCenters?: boolean; // NEW: Access to all
 }
+
+export interface TollRecord {
+    id: string;
+    vehicle_id: string;
+    driver_id?: string;
+    entry_point: string;
+    exit_point: string;
+    entry_time: string;
+    exit_time?: string;
+    amount: number;
+    distance?: number;
+    created_at?: string;
+    vehicle?: Viatura;
+    driver?: { nome: string };
+}

@@ -22,7 +22,9 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'geofences' |
     'locais' |
     'gestores' |
-    'avaliacao';
+    'avaliacao' |
+    'roteirizacao' |
+    'via_verde';
 
 export interface RolePermissions {
     supervisor: PermissionModule[];

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, UserCheck, History, Navigation
+  ChevronDown, ChevronRight, UserCheck, History, Navigation, Zap
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -48,6 +48,7 @@ import Gestores from './pages/Gestores';
 import Roteirizacao from './pages/Roteirizacao';
 // Lazy Load LancarEscala
 const LancarEscala = lazy(() => import('./pages/LancarEscala'));
+const ViaVerde = lazy(() => import('./pages/ViaVerde'));
 
 import SplashScreen from './components/common/SplashScreen';
 
@@ -149,7 +150,7 @@ function AppContent() {
   const { notifications } = useWorkshop();
   const { unreadCount } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde'>('dashboard');
 
   // Sidebar State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -251,6 +252,11 @@ function AppContent() {
       case 'external': return <ExternalServices />;
       case 'meu-perfil': return <MyProfile />;
       case 'roteirizacao': return <Roteirizacao />;
+      case 'via-verde': return (
+        <Suspense fallback={<PageLoading />}>
+          <ViaVerde />
+        </Suspense>
+      );
       default: return <Dashboard setActiveTab={handleNavigate} />;
     }
   };
@@ -369,6 +375,10 @@ function AppContent() {
                 )}
                 {(hasAccess(userRole, 'roteirizacao') || userRole === 'admin' || userRole === 'gestor') && (
                   <SidebarItem icon={Navigation} label="Roteirização" active={activeTab === 'roteirizacao'} onClick={() => handleNavigate('roteirizacao')} collapsed={isSidebarCollapsed} />
+                )}
+                {/* Via Verde - Available to Ops/Admin */}
+                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
+                  <SidebarItem icon={Zap} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />
                 )}
               </SidebarGroup>
             )}
@@ -516,6 +526,9 @@ function AppContent() {
                 )}
                 {hasAccess(userRole, 'plataformas_externas') && (
                   <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { handleNavigate('transportes-eva'); setIsMobileMenuOpen(false); }} />
+                )}
+                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
+                  <SidebarItem icon={Zap} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => { handleNavigate('via-verde'); setIsMobileMenuOpen(false); }} />
                 )}
 
                 {/* 3. OFICINA */}
