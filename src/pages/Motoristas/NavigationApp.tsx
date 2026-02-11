@@ -57,7 +57,7 @@ export default function NavigationApp({
 
     // Refs
     const watchIdRef = useRef<number | null>(null);
-    const wakeLockRef = useRef<any>(null);
+    const wakeLockRef = useRef<EventTarget | null>(null);
 
     // Start GPS Watch
     useEffect(() => {
@@ -224,7 +224,12 @@ export default function NavigationApp({
         // Request Wake Lock
         try {
             if ('wakeLock' in navigator) {
-                wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+                interface NavigatorWithWakeLock extends Navigator {
+                    wakeLock: {
+                        request: (type: 'screen') => Promise<EventTarget>;
+                    };
+                }
+                wakeLockRef.current = await (navigator as unknown as NavigatorWithWakeLock).wakeLock.request('screen');
             }
         } catch (err) {
             console.log('Wake Lock error:', err);
