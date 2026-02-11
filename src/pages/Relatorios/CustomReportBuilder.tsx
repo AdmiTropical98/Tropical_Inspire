@@ -161,9 +161,9 @@ export default function CustomReportBuilder() {
                 // Header for the Group
                 if (finalY > 180) { doc.addPage(); finalY = 20; } // Page break check
                 doc.setFontSize(12);
-                doc.setFont(undefined, 'bold');
+                doc.setFont('helvetica', 'bold');
                 doc.text(`Centro de Custo: ${ccName}`, 14, finalY + 10);
-                doc.setFont(undefined, 'normal');
+                doc.setFont('helvetica', 'normal');
 
                 // Table Columns (exclude CC since it's the header)
                 const headers = Object.keys(groupData[0]).filter(k =>
@@ -191,7 +191,7 @@ export default function CustomReportBuilder() {
                         return '';
                     })]],
                     footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
-                    didDrawPage: (data) => {
+                    didDrawPage: () => {
                         // Resets finalY for next loop if on same page context? No, strictly rely on return
                     }
                 });
