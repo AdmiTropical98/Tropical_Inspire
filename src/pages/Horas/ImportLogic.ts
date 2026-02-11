@@ -1,4 +1,4 @@
-import { CartrackTrip } from '../../utils/pdfParser';
+import type { CartrackTrip } from '../../utils/pdfParser';
 
 export interface DailyWorkSuggestion {
     date: string;       // YYYY-MM-DD
@@ -51,8 +51,7 @@ export const calculateWorkHoursFromTrips = (
         // Shift Start / End
         const startMin = toMin(firstTrip.startTime);
         const endLastMin = toMin(lastTrip.endTime);
-        const lastTripStartMin = toMin(lastTrip.startTime); // Use start or end? Usually End of shift is End of last trip.
-        // Wait, if last trip is 18:00->18:30, End is 18:30.
+        // lastTripStartMin removed as unused.
 
         let totalShiftMinutes = endLastMin - startMin;
 
