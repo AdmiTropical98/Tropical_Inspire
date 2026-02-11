@@ -220,6 +220,19 @@ export default function ViaVerde() {
                 throw selectError;
             }
 
+            // 3. NEW: Check Type Column Existence
+            const { error: colError } = await supabase
+                .from('via_verde_toll_records')
+                .select('type')
+                .limit(1);
+
+            if (colError) {
+                if (colError.code === 'PGRST204' || colError.message.includes('Could not find the \'type\' column')) {
+                    throw new Error('A coluna "type" (Tipo) NÃO EXISTE na tabela. O Script SQL precisa de ser corrido novamente para adicionar esta nova coluna.');
+                }
+                // Ignore other errors (e.g. empty table might return no data but no error)
+            }
+
             toast.success(`Diagnóstico OK! Tabela existe. (${count} registos)`, { id: toastId, duration: 5000 });
             alert(`SISTEMA OPERACIONAL\n\n- Autenticação: OK (${session.user.email})\n- Tabela Via Verde: EXISTE\n- Total de registos: ${count}\n\nConexão funcional.`);
 
