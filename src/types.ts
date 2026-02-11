@@ -490,6 +490,7 @@ export interface TollRecord {
     amount: number;
     distance?: number;
     cost_center_id?: string; // NEW
+    type?: 'toll' | 'parking'; // NEW
     created_at: string;
     created_by: string;
     vehicle?: Viatura;

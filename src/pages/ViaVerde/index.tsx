@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import {
     Ticket, Plus, Search,
     MapPin, DollarSign, Truck, User,
-    Trash2, TrendingUp, Building
+    Trash2, TrendingUp, Building,
+    ParkingCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -36,7 +37,8 @@ export default function ViaVerde() {
         exit_time: '',
         exit_point: '',
         amount: '',
-        distance: ''
+        distance: '',
+        type: 'toll'
     });
     const [importing, setImporting] = useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -83,6 +85,7 @@ export default function ViaVerde() {
                 exit_time: formData.exit_time || null,
                 amount: parseFloat(formData.amount) || 0,
                 distance: formData.distance ? parseFloat(formData.distance) : null,
+                type: formData.type || 'toll',
                 created_by: (await supabase.auth.getUser()).data.user?.id
             }]);
 
@@ -99,7 +102,8 @@ export default function ViaVerde() {
                 entry_time: '',
                 exit_time: '',
                 amount: '',
-                distance: ''
+                distance: '',
+                type: 'toll'
             });
             fetchTolls();
         } catch (error: any) {
@@ -183,7 +187,8 @@ export default function ViaVerde() {
             'Valor',
             'Distancia',
             'Motorista (Opcional)', // Name or NIF
-            'Centro Custo (Opcional)'
+            'Centro Custo (Opcional)',
+            'Tipo (Portagem/Estacionamento)'
         ];
 
         const ws = XLSX.utils.aoa_to_sheet([headers]);
@@ -368,6 +373,13 @@ export default function ViaVerde() {
                     const amountVal = String(row['Valor'] || '0').replace(',', '.');
                     const distVal = String(row['Distancia'] || '0').replace(',', '.');
 
+                    // Type Parsing
+                    let type = 'toll';
+                    const typeRaw = String(row['Tipo (Portagem/Estacionamento)'] || row['Tipo'] || '').toLowerCase();
+                    if (typeRaw.includes('estacionamento') || typeRaw.includes('parque') || typeRaw.includes('parking')) {
+                        type = 'parking';
+                    }
+
                     recordsToInsert.push({
                         vehicle_id: vehicleId,
                         driver_id: driverId,
@@ -378,6 +390,7 @@ export default function ViaVerde() {
                         exit_time: exitTime,
                         amount: parseFloat(amountVal) || 0,
                         distance: parseFloat(distVal) || 0,
+                        type: type,
                         created_by: userId
                     });
                     successCount++;
@@ -693,9 +706,23 @@ export default function ViaVerde() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2 text-slate-300">
-                                                <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.entry_point || 'N/A'}</span>
-                                                <span className="text-slate-600">→</span>
-                                                <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.exit_point || 'N/A'}</span>
+                                                {toll.type === 'parking' ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1 rounded bg-blue-500/10 text-blue-400">
+                                                            <ParkingCircle className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="font-medium">{toll.entry_point}</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="p-1 rounded bg-emerald-500/10 text-emerald-400">
+                                                            <Ticket className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.entry_point || 'N/A'}</span>
+                                                        <span className="text-slate-600">→</span>
+                                                        <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.exit_point || 'N/A'}</span>
+                                                    </>
+                                                )}
                                             </div>
                                             {toll.distance && (
                                                 <span className="text-xs text-slate-500 block mt-1.5 flex items-center gap-1">
@@ -758,6 +785,24 @@ export default function ViaVerde() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            {/* Type Toggle */}
+                            <div className="bg-slate-950/50 p-1 rounded-lg flex gap-1 border border-white/5">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, type: 'toll' })}
+                                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'toll' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <Ticket className="w-4 h-4" /> Portagem
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, type: 'parking' })}
+                                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'parking' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <ParkingCircle className="w-4 h-4" /> Estacionamento
+                                </button>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Vehicle */}
                                 <div className="space-y-2">
@@ -836,29 +881,39 @@ export default function ViaVerde() {
 
                                 {/* Entry Point */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">Pórtico Entrada</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.entry_point}
-                                        onChange={e => setFormData({ ...formData, entry_point: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
-                                        placeholder="Ex: Lisboa"
-                                    />
+                                    <label className="text-xs font-medium text-slate-400 uppercase">
+                                        {formData.type === 'toll' ? 'Pórtico Entrada' : 'Local / Parque'}
+                                    </label>
+                                    <div className="relative">
+                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.entry_point}
+                                            onChange={e => setFormData({ ...formData, entry_point: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                            placeholder={formData.type === 'toll' ? "Ex: Lisboa" : "Ex: Parque do Aeroporto"}
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Exit Point */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">Pórtico Saída</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.exit_point}
-                                        onChange={e => setFormData({ ...formData, exit_point: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
-                                        placeholder="Ex: Porto"
-                                    />
-                                </div>
+                                {formData.type === 'toll' && (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-slate-400 uppercase">Pórtico Saída</label>
+                                        <div className="relative">
+                                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                            <input
+                                                type="text"
+                                                required
+                                                value={formData.exit_point}
+                                                onChange={e => setFormData({ ...formData, exit_point: e.target.value })}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                placeholder="Ex: Porto"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Distance */}
                                 <div className="space-y-2">
