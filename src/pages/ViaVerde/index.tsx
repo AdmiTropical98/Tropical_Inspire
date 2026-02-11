@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 
 import * as XLSX from 'xlsx';
 import { parseNumber } from '../../utils/number';
+import ImportPreviewModal, { type ImportRow } from '../../components/ImportPreviewModal';
 
 // ... existing imports ...
 
@@ -246,6 +247,10 @@ export default function ViaVerde() {
         }
     };
 
+    // --- BULK IMPORT PREVIEW STATE ---
+    const [previewRows, setPreviewRows] = useState<ImportRow[]>([]);
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -267,32 +272,22 @@ export default function ViaVerde() {
                     return;
                 }
 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const recordsToInsert: any[] = [];
-                let successCount = 0;
-                let failCount = 0;
-                const errors: string[] = [];
-
-                // Pre-process vehicles for faster lookup (normalize plate)
+                // Pre-process maps
                 const vehicleMap = new Map();
                 viaturas.forEach(v => {
                     const normalized = v.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                    // Store ID and Cost Center ID
                     vehicleMap.set(normalized, { id: v.id, ccId: (v as any).centro_custo_id || (v as any).centroCustoId });
                 });
 
-                // Pre-process drivers
                 const driverMap = new Map();
                 motoristas.forEach(d => {
-                    driverMap.set(d.nome.toLowerCase(), d.id);
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    if ((d as any).nif) driverMap.set(String((d as any).nif), d.id);
+                    driverMap.set(d.nome.toLowerCase(), { id: d.id, nome: d.nome });
+                    if ((d as any).nif) driverMap.set(String((d as any).nif), { id: d.id, nome: d.nome });
                 });
 
-                // Pre-process cost centers
                 const ccMap = new Map();
                 centrosCustos.forEach(c => {
-                    ccMap.set(c.nome.toLowerCase(), c.id);
+                    ccMap.set(c.nome.toLowerCase(), { id: c.id, nome: c.nome });
                 });
 
                 // Helper for time extraction from string or Date
@@ -311,88 +306,90 @@ export default function ViaVerde() {
                     return String(val).trim();
                 };
 
-                // Helper for Date extraction
-                const extractDateStr = (val: any): string | null => {
-                    if (!val) return null;
-                    if (val instanceof Date) {
-                        return val.toISOString().split('T')[0];
-                    }
-                    if (typeof val === 'string') {
-                        // Try to parse YYYY-MM-DD
-                        if (val.match(/^\d{4}-\d{2}-\d{2}$/)) return val;
-                        // Try new Date
-                        const d = new Date(val);
-                        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-                    }
-                    if (typeof val === 'number') {
-                        // Excel date serial
-                        const d = new Date(Math.round((val - 25569) * 86400 * 1000));
-                        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-                    }
-                    return null;
-                };
-
-
                 // Get User ID once
                 const { data: userData } = await supabase.auth.getUser();
                 const userId = userData.user?.id;
+                if (!userId) throw new Error('Sessão expirada. Faça login novamente.');
 
-                if (!userId) {
-                    toast.error('Sessão expirada. Por favor faça login novamente.');
-                    setImporting(false);
-                    return;
-                }
-
+                // Process Rows for Preview
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                for (const [index, row] of (data as any[]).entries()) {
+                const processedRows: ImportRow[] = (data as any[]).map((row, index) => {
+                    const errors: string[] = [];
                     const rowNum = index + 2;
-                    // MAPPING
+
+                    // 1. Vehicle Check
                     const plateRaw = row['Matricula'] || '';
-                    const plateNorm = plateRaw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    const plateNorm = String(plateRaw).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
                     const vehicleData = vehicleMap.get(plateNorm);
-                    const vehicleId = vehicleData?.id;
 
-                    if (!vehicleId) {
-                        failCount++;
-                        // console.warn(`Skipping row: Vehicle not found for plate ${plateRaw}`);
-                        continue;
-                    }
+                    if (!plateRaw) errors.push('Matrícula em falta');
+                    else if (!vehicleData) errors.push(`Viatura não encontrada: ${plateRaw}`);
 
-                    // Driver matching (optional)
-                    let driverId = null;
-                    const driverRaw = row['Motorista (Opcional)'] ? String(row['Motorista (Opcional)']) : '';
-                    if (driverRaw) {
-                        driverId = driverMap.get(driverRaw.toLowerCase()) || null;
-                    }
+                    // 2. Date/Time Parsing
+                    let entryTime = null;
+                    let exitTime = null;
+                    const dateRaw = row['Data'];
+                    let dateStr = '';
 
-                    // Cost Center
-                    let costCenterId = null;
-                    const ccRaw = row['Centro Custo (Opcional)'] ? String(row['Centro Custo (Opcional)']) : '';
-                    if (ccRaw) {
-                        costCenterId = ccMap.get(ccRaw.toLowerCase()) || null;
-                    } else {
-                        // FALLBACK: Use Vehicle's Cost Center
-                        costCenterId = vehicleData.ccId || null;
-                    }
+                    const parseDate = (val: any): string | null => {
+                        if (!val) return null;
+                        if (val instanceof Date) return val.toISOString().split('T')[0];
+                        if (typeof val === 'string') {
+                            const d = new Date(val);
+                            if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+                        }
+                        if (typeof val === 'number') {
+                            const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+                            if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+                        }
+                        return null;
+                    };
 
-                    // Date & Time Parsing
-                    const dateStr = extractDateStr(row['Data']);
-                    if (!dateStr) {
-                        failCount++;
-                        errors.push(`Linha ${rowNum}: Data inválida.`);
-                        continue;
-                    }
+                    dateStr = parseDate(dateRaw) || '';
+                    if (!dateStr) errors.push(`Data inválida: ${dateRaw}`);
 
                     const timeIn = extractTimeStr(row['Hora Entrada']);
                     const timeOut = extractTimeStr(row['Hora Saida']);
+                    if (dateStr) {
+                        entryTime = `${dateStr}T${timeIn}:00`;
+                        exitTime = `${dateStr}T${timeOut}:00`;
+                    }
 
-                    // Combine to ISO Timestamp
-                    const entryTime = `${dateStr}T${timeIn}:00`;
-                    const exitTime = `${dateStr}T${timeOut}:00`;
+                    // 3. Values Parsing
+                    const amountRaw = row['Valor'];
+                    const distRaw = row['Distancia'];
+                    const amount = parseNumber(amountRaw);
+                    const distance = parseNumber(distRaw);
 
-                    // Robust Number Parsing
-                    // const amountVal = String(row['Valor'] || '0').replace(',', '.');
-                    // const distVal = String(row['Distancia'] || '0').replace(',', '.');
+                    // 4. Cost Center Logic
+                    let costCenterId = null;
+                    let ccName = 'N/A';
+                    const ccRaw = row['Centro Custo (Opcional)'];
+                    if (ccRaw) {
+                        const found = ccMap.get(String(ccRaw).toLowerCase());
+                        if (found) {
+                            costCenterId = found.id;
+                            ccName = found.nome + ' (Manual)';
+                        } else {
+                            errors.push(`Centro Custo não encontrado: ${ccRaw}`);
+                        }
+                    } else if (vehicleData?.ccId) {
+                        const cc = centrosCustos.find(c => c.id === vehicleData.ccId);
+                        costCenterId = vehicleData.ccId;
+                        ccName = (cc?.nome || 'Desconhecido') + ' (Auto)';
+                    } else {
+                        ccName = '---';
+                    }
+
+                    // 5. Driver Logic
+                    let driverId = null;
+                    const driverRaw = row['Motorista (Opcional)'];
+                    if (driverRaw) {
+                        const found = driverMap.get(String(driverRaw).toLowerCase());
+                        if (found) {
+                            driverId = found.id;
+                        }
+                    }
 
                     // Type Parsing
                     let type = 'toll';
@@ -401,41 +398,43 @@ export default function ViaVerde() {
                         type = 'parking';
                     }
 
-                    recordsToInsert.push({
-                        vehicle_id: vehicleId,
-                        driver_id: driverId,
-                        cost_center_id: costCenterId,
-                        entry_point: row['Portico Entrada'] || 'Desconhecido',
-                        exit_point: row['Portico Saida'] || 'Desconhecido',
-                        entry_time: entryTime, // Supabase handles ISO strings well
-                        exit_time: exitTime,
-                        amount: parseNumber(row['Valor']),
-                        distance: parseNumber(row['Distancia']),
-                        type: type,
-                        created_by: userId
-                    });
-                    successCount++;
-                }
+                    const isValid = errors.length === 0;
 
-                if (recordsToInsert.length > 0) {
-                    const { error } = await supabase
-                        .from('via_verde_toll_records')
-                        .insert(recordsToInsert);
+                    return {
+                        index: rowNum,
+                        status: isValid ? 'valid' : 'error',
+                        errors: isValid ? undefined : errors,
+                        data: {
+                            'Matrícula': plateRaw,
+                            'Data': dateStr,
+                            'Entrada': row['Portico Entrada'] || '-',
+                            'CC Detetado': ccName,
+                            'Valor (Raw)': amountRaw,
+                            'Valor (Final)': amount,
+                            'Distância (Final)': distance
+                        },
+                        payload: isValid ? {
+                            vehicle_id: vehicleData?.id,
+                            driver_id: driverId,
+                            cost_center_id: costCenterId,
+                            entry_point: row['Portico Entrada'] || 'Desconhecido',
+                            exit_point: row['Portico Saida'] || 'Desconhecido',
+                            entry_time: entryTime,
+                            exit_time: exitTime,
+                            amount: amount,
+                            distance: distance,
+                            type: type,
+                            created_by: userId
+                        } : undefined
+                    };
+                });
 
-                    if (error) throw error;
-                    toast.success(`${successCount} registos importados com sucesso!`);
-                    if (failCount > 0) {
-                        toast(`${failCount} registos ignorados/falhados`, { icon: '⚠️' });
-                    }
-                    fetchTolls();
-                } else {
-                    toast.error('Nenhum registo válido encontrado.');
-                }
+                setPreviewRows(processedRows);
+                setShowPreviewModal(true);
 
             } catch (error: any) {
                 console.error('Import error:', error);
-                setLastError(error);
-                toast.error('Erro crítico: ' + (error.message || 'Erro desconhecido'));
+                toast.error('Erro ao ler ficheiro: ' + error.message);
             } finally {
                 setImporting(false);
                 if (fileInputRef.current) fileInputRef.current.value = '';
@@ -443,6 +442,29 @@ export default function ViaVerde() {
         };
 
         reader.readAsBinaryString(file);
+    };
+
+    const confirmImport = async () => {
+        const validRows = previewRows.filter(r => r.status === 'valid' && r.payload);
+        if (validRows.length === 0) return;
+
+        setSubmitting(true);
+        try {
+            const records = validRows.map(r => r.payload);
+            const { error } = await supabase.from('via_verde_toll_records').insert(records);
+
+            if (error) throw error;
+
+            toast.success(`${records.length} registos importados com sucesso!`);
+            setShowPreviewModal(false);
+            setPreviewRows([]);
+            fetchTolls();
+        } catch (error: any) {
+            console.error('Bulk Insert Error:', error);
+            toast.error('Erro ao gravar: ' + error.message);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
 
@@ -533,6 +555,15 @@ export default function ViaVerde() {
                     <pre>{JSON.stringify(lastError, null, 2)}</pre>
                 </div>
             )}
+
+            <ImportPreviewModal
+                isOpen={showPreviewModal}
+                onClose={() => { setShowPreviewModal(false); setPreviewRows([]); }}
+                onConfirm={confirmImport}
+                rows={previewRows}
+                title="Pré-visualização de Via Verde/Estacionamentos"
+                isSubmitting={submitting}
+            />
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

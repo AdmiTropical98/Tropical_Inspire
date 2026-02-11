@@ -12,6 +12,7 @@ import type { ElectricChargingRecord } from '../../types';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { parseNumber } from '../../utils/number';
+import ImportPreviewModal, { type ImportRow } from '../../components/ImportPreviewModal';
 
 export default function Carregamentos() {
     const { viaturas, motoristas, centrosCustos } = useWorkshop();
@@ -183,6 +184,10 @@ export default function Carregamentos() {
         }
     };
 
+    // --- BULK IMPORT PREVIEW STATE ---
+    const [previewRows, setPreviewRows] = useState<ImportRow[]>([]);
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -204,141 +209,163 @@ export default function Carregamentos() {
                     return;
                 }
 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const recordsToInsert: any[] = [];
-                let successCount = 0;
-                let failCount = 0;
-                const errors: string[] = [];
-
-                // Pre-process vehicles
+                // Pre-process maps (Optimization)
                 const vehicleMap = new Map();
                 viaturas.forEach(v => {
                     const normalized = v.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                    vehicleMap.set(normalized, { id: v.id, ccId: (v as any).centro_custo_id || (v as any).centroCustoId });
+                    vehicleMap.set(normalized, { id: v.id, ccId: (v as any).centro_custo_id || (v as any).centroCustoId, matricula: v.matricula });
                 });
 
-                // Pre-process drivers
                 const driverMap = new Map();
                 motoristas.forEach(d => {
-                    driverMap.set(d.nome.toLowerCase(), d.id);
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    if ((d as any).nif) driverMap.set(String((d as any).nif), d.id);
+                    driverMap.set(d.nome.toLowerCase(), { id: d.id, nome: d.nome });
+                    if ((d as any).nif) driverMap.set(String((d as any).nif), { id: d.id, nome: d.nome });
                 });
 
-                // Pre-process cost centers
                 const ccMap = new Map();
                 centrosCustos.forEach(c => {
-                    ccMap.set(c.nome.toLowerCase(), c.id);
+                    ccMap.set(c.nome.toLowerCase(), { id: c.id, nome: c.nome });
                 });
 
-                // Helper to parse dates
-                const parseDate = (val: any): string | null => {
-                    if (!val) return null;
-                    if (val instanceof Date) return val.toISOString();
-                    if (typeof val === 'string') {
-                        // Try standard parsing
-                        const d = new Date(val);
-                        if (!isNaN(d.getTime())) return d.toISOString();
-                    }
-                    // Handle Excel serial number if cellDates didn't work for some reason
-                    if (typeof val === 'number') {
-                        const d = new Date(Math.round((val - 25569) * 86400 * 1000));
-                        if (!isNaN(d.getTime())) return d.toISOString();
-                    }
-                    return null;
-                };
-
-                // Get User ID once
                 const { data: userData } = await supabase.auth.getUser();
                 const userId = userData.user?.id;
+                if (!userId) throw new Error('Sessão expirada. Faça login novamente.');
 
-                if (!userId) {
-                    toast.error('Sessão expirada. Por favor faça login novamente.');
-                    setImporting(false);
-                    return;
-                }
-
+                // Process Rows for Preview
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                for (const [index, row] of (data as any[]).entries()) {
-                    const rowNum = index + 2; // +2 because header is 1
+                const processedRows: ImportRow[] = (data as any[]).map((row, index) => {
+                    const errors: string[] = [];
+                    const rowNum = index + 2;
+
+                    // 1. Vehicle Validation
                     const plateRaw = row['Matricula'] || '';
-                    const plateNorm = plateRaw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    const plateNorm = String(plateRaw).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
                     const vehicleData = vehicleMap.get(plateNorm);
-                    const vehicleId = vehicleData?.id;
 
-                    if (!vehicleId) {
-                        failCount++;
-                        // errors.push(`Linha ${rowNum}: Viatura '${plateRaw}' não encontrada.`);
-                        continue;
-                    }
+                    if (!plateRaw) errors.push('Matrícula em falta');
+                    else if (!vehicleData) errors.push(`Viatura não encontrada: ${plateRaw}`);
 
-                    let driverId = null;
-                    const driverRaw = row['Motorista (Opcional)'] ? String(row['Motorista (Opcional)']) : '';
-                    if (driverRaw) driverId = driverMap.get(driverRaw.toLowerCase()) || null;
+                    // 2. Parsed Values
+                    const kwhRaw = row['kWh'];
+                    const costRaw = row['Custo'];
+                    const durRaw = row['Duracao (min)'];
 
-                    let costCenterId = null;
-                    const ccRaw = row['Centro Custo (Opcional)'] ? String(row['Centro Custo (Opcional)']) : '';
-                    if (ccRaw) {
-                        costCenterId = ccMap.get(ccRaw.toLowerCase()) || null;
-                    } else {
-                        // FALLBACK: Use Vehicle's Cost Center
-                        costCenterId = vehicleData.ccId || null;
-                    }
+                    const kwh = parseNumber(kwhRaw);
+                    const cost = parseNumber(costRaw);
+                    const duration = parseNumber(durRaw);
 
-                    // Date Parsing
+                    // 3. Date Validation
+                    let dateIso = null;
                     const dateRaw = row['Data'];
-                    const dateIso = parseDate(dateRaw);
-
-                    if (!dateIso) {
-                        failCount++;
-                        errors.push(`Linha ${rowNum}: Data inválida.`);
-                        continue;
+                    if (dateRaw instanceof Date) dateIso = dateRaw.toISOString();
+                    else if (typeof dateRaw === 'string') {
+                        const d = new Date(dateRaw);
+                        if (!isNaN(d.getTime())) dateIso = d.toISOString();
+                    } else if (typeof dateRaw === 'number') {
+                        const d = new Date(Math.round((dateRaw - 25569) * 86400 * 1000));
+                        if (!isNaN(d.getTime())) dateIso = d.toISOString();
                     }
 
-                    // Use robust number parsing
-                    // const kwhVal = String(row['kWh'] || '0').replace(',', '.');
-                    // const costVal = String(row['Custo'] || '0').replace(',', '.');
-                    // const durVal = String(row['Duracao (min)'] || '0').replace(',', '.');
+                    if (!dateIso) errors.push(`Data inválida: ${dateRaw}`);
 
-                    recordsToInsert.push({
-                        vehicle_id: vehicleId,
-                        driver_id: driverId,
-                        cost_center_id: costCenterId,
-                        station_name: row['Estacao'] || 'Desconhecido',
-                        date: dateIso,
-                        kwh: parseNumber(row['kWh']),
-                        cost: parseNumber(row['Custo']),
-                        duration: parseNumber(row['Duracao (min)']),
-                        created_by: userId
-                    });
-                    successCount++;
-                }
+                    // 4. Cost Center Logic
+                    let costCenterId = null;
+                    let ccName = 'N/A';
+                    const ccRaw = row['Centro Custo (Opcional)'];
+                    if (ccRaw) {
+                        const found = ccMap.get(String(ccRaw).toLowerCase());
+                        if (found) {
+                            costCenterId = found.id;
+                            ccName = found.nome + ' (Manual)';
+                        } else {
+                            errors.push(`Centro Custo não encontrado: ${ccRaw}`);
+                        }
+                    } else if (vehicleData?.ccId) {
+                        // Fallback logic
+                        const cc = centrosCustos.find(c => c.id === vehicleData.ccId);
+                        costCenterId = vehicleData.ccId;
+                        ccName = (cc?.nome || 'Desconhecido') + ' (Auto)';
+                    } else {
+                        // Warning only? Or error? Letting it pass as null is technically valid DB-wise but maybe not logic-wise.
+                        // User complained about "not detecting". Let's assume it's OK to be null but flag it as "Sem CC"
+                        ccName = '---';
+                    }
 
-                if (recordsToInsert.length > 0) {
-                    const { error } = await supabase.from('electric_charging_records').insert(recordsToInsert);
-                    if (error) throw error;
-                    toast.success(`${successCount} registos importados!`);
-                    if (failCount > 0) {
-                        toast(`${failCount} falhas.`, { icon: '⚠️' });
-                        if (errors.length > 0) {
-                            console.warn('Import errors:', errors);
+                    // 5. Driver Logic
+                    let driverId = null;
+                    const driverRaw = row['Motorista (Opcional)'];
+                    if (driverRaw) {
+                        const found = driverMap.get(String(driverRaw).toLowerCase());
+                        if (found) {
+                            driverId = found.id;
                         }
                     }
-                    fetchRecords();
-                } else {
-                    toast.error('Nenhum registo válido para importar.');
-                    if (errors.length > 0) console.error(errors);
-                }
+
+                    const isValid = errors.length === 0;
+
+                    return {
+                        index: rowNum,
+                        status: isValid ? 'valid' : 'error',
+                        errors: isValid ? undefined : errors,
+                        data: {
+                            'Matrícula': plateRaw,
+                            'Data': dateRaw instanceof Date ? dateRaw.toLocaleDateString() : String(dateRaw),
+                            'Estação': row['Estacao'] || '-',
+                            'CC Detetado': ccName,
+                            'kWh (Raw)': kwhRaw,
+                            'kWh (Final)': kwh,
+                            'Custo (Raw)': costRaw,
+                            'Custo (Final)': cost
+                        },
+                        payload: isValid ? {
+                            vehicle_id: vehicleData?.id,
+                            driver_id: driverId,
+                            cost_center_id: costCenterId,
+                            station_name: row['Estacao'] || 'Desconhecido',
+                            date: dateIso,
+                            kwh: kwh,
+                            cost: cost,
+                            duration: duration,
+                            created_by: userId
+                        } : undefined
+                    };
+                });
+
+                setPreviewRows(processedRows);
+                setShowPreviewModal(true);
+
             } catch (error: any) {
                 console.error('Import error:', error);
-                setLastError(error); // Set state if available
-                toast.error('Erro crítico: ' + (error.message || 'Falha desconhecida'));
+                toast.error('Erro ao ler ficheiro: ' + error.message);
             } finally {
                 setImporting(false);
                 if (fileInputRef.current) fileInputRef.current.value = '';
             }
         };
         reader.readAsBinaryString(file);
+    };
+
+    const confirmImport = async () => {
+        const validRows = previewRows.filter(r => r.status === 'valid' && r.payload);
+        if (validRows.length === 0) return;
+
+        setSubmitting(true);
+        try {
+            const records = validRows.map(r => r.payload);
+            const { error } = await supabase.from('electric_charging_records').insert(records);
+
+            if (error) throw error;
+
+            toast.success(`${records.length} registos importados com sucesso!`);
+            setShowPreviewModal(false);
+            setPreviewRows([]);
+            fetchRecords();
+        } catch (error: any) {
+            console.error('Bulk Insert Error:', error);
+            toast.error('Erro ao gravar: ' + error.message);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     // Filter Logic
@@ -394,6 +421,15 @@ export default function Carregamentos() {
                     <pre>{JSON.stringify(lastError, null, 2)}</pre>
                 </div>
             )}
+
+            <ImportPreviewModal
+                isOpen={showPreviewModal}
+                onClose={() => { setShowPreviewModal(false); setPreviewRows([]); }}
+                onConfirm={confirmImport}
+                rows={previewRows}
+                title="Pré-visualização de Carregamentos"
+                isSubmitting={submitting}
+            />
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
