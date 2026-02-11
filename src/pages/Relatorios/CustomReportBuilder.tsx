@@ -68,15 +68,26 @@ export default function CustomReportBuilder() {
                         'Data': new Date(tx.timestamp).toLocaleString('pt-PT'),
                         'Viatura': vehicleDisplay,
                         'Condutor': driver ? driver.nome : (tx.driver_id || 'N/A'),
+                        'Fonte': tx.isExternal ? 'Cartão' : 'Tanque', // NEW Source Column
                         'Litros': tx.liters,
                         'KM': tx.km,
                         'Preço/L': tx.pricePerLiter || tx.price_per_liter ? `${Number(tx.pricePerLiter || tx.price_per_liter).toFixed(3)} €` : '-',
                         'Total': tx.totalCost || tx.total_cost ? `${Number(tx.totalCost || tx.total_cost).toFixed(2)} €` : '-',
-                        'Centro Custo': cc ? cc.nome : (tx.centroCustoId || tx.centro_custo_id || '-'),
+                        'Centro Custo': cc ? cc.nome : (tx.centroCustoId || tx.centro_custo_id || 'Sem Centro de Custo'), // Normalized fallback
                         'Registado Por': tx.staffName || tx.staff_name || 'Sistema',
                         'Estado': tx.status === 'confirmed' ? 'Confirmado' : 'Pendente',
                         'Posto': tx.isExternal ? (tx.station || 'Externo/BP') : 'Interno',
                     };
+                });
+
+                // SORT BY COST CENTER THEN DATE
+                data.sort((a, b) => {
+                    const ccA = (a['Centro Custo'] || '').toString().toLowerCase();
+                    const ccB = (b['Centro Custo'] || '').toString().toLowerCase();
+                    if (ccA < ccB) return -1;
+                    if (ccA > ccB) return 1;
+                    // Secondary sort by date (descending)
+                    return new Date(b['Data']).getTime() - new Date(a['Data']).getTime();
                 });
 
             } else {
@@ -120,7 +131,8 @@ export default function CustomReportBuilder() {
 
     const exportPDF = () => {
         if (!generatedData.length) return;
-        const doc = new jsPDF();
+        // Landscape orientation for wider tables
+        const doc = new jsPDF('l', 'mm', 'a4');
         const title = `Relatório de ${reportType.toUpperCase()}`;
 
         doc.setFontSize(16);
