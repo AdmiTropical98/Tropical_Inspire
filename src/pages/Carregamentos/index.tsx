@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import {
     Zap, Plus, Search,
-    MapPin, DollarSign, Truck, User,
-    Trash2, TrendingUp, BatteryCharging, Building
+    Truck,
+    Trash2, TrendingUp, DollarSign,
+    BatteryCharging, Building
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useWorkshop } from '../../contexts/WorkshopContext';
