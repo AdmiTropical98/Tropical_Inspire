@@ -298,6 +298,14 @@ export interface FuelTransaction {
     totalCost?: number;
     centroCustoId?: string;
     isExternal?: boolean;
+    is_external?: boolean;
+    vehicle_id?: string;
+    driver_id?: string;
+    centro_custo_id?: string;
+    price_per_liter?: number;
+    total_cost?: number;
+    staff_name?: string;
+    station?: string;
 }
 
 export interface TankRefillLog {

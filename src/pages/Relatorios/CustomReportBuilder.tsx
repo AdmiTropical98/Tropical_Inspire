@@ -16,6 +16,8 @@ type ReportType =
     | 'eva_transports'
     | 'centros_custos';
 
+import { FuelTransaction } from '../../types';
+
 export default function CustomReportBuilder() {
     const [reportType, setReportType] = useState<ReportType>('motoristas');
     const [startDate, setStartDate] = useState('');
@@ -53,7 +55,7 @@ export default function CustomReportBuilder() {
                 ]);
 
                 // 3. Map IDs to Names & Format Data
-                data = (transactions || []).map((tx: any) => {
+                data = (transactions || []).map((tx: FuelTransaction) => {
                     const vehicle = viaturas?.find(v => v.id === tx.vehicleId || v.id === tx.vehicle_id); // Support both cases
                     const driver = motoristas?.find(m => m.id === tx.driverId || m.id === tx.driver_id);
                     const cc = centros?.find(c => c.id === tx.centroCustoId || c.id === tx.centro_custo_id);
