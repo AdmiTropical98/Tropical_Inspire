@@ -213,7 +213,7 @@ export default function Carregamentos() {
                 const vehicleMap = new Map();
                 viaturas.forEach(v => {
                     const normalized = v.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                    vehicleMap.set(normalized, v.id);
+                    vehicleMap.set(normalized, { id: v.id, ccId: (v as any).centro_custo_id || (v as any).centroCustoId });
                 });
 
                 // Pre-process drivers
@@ -262,7 +262,8 @@ export default function Carregamentos() {
                     const rowNum = index + 2; // +2 because header is 1
                     const plateRaw = row['Matricula'] || '';
                     const plateNorm = plateRaw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                    const vehicleId = vehicleMap.get(plateNorm);
+                    const vehicleData = vehicleMap.get(plateNorm);
+                    const vehicleId = vehicleData?.id;
 
                     if (!vehicleId) {
                         failCount++;
@@ -276,7 +277,12 @@ export default function Carregamentos() {
 
                     let costCenterId = null;
                     const ccRaw = row['Centro Custo (Opcional)'] ? String(row['Centro Custo (Opcional)']) : '';
-                    if (ccRaw) costCenterId = ccMap.get(ccRaw.toLowerCase()) || null;
+                    if (ccRaw) {
+                        costCenterId = ccMap.get(ccRaw.toLowerCase()) || null;
+                    } else {
+                        // FALLBACK: Use Vehicle's Cost Center
+                        costCenterId = vehicleData.ccId || null;
+                    }
 
                     // Date Parsing
                     const dateRaw = row['Data'];
