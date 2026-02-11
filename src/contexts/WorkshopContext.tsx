@@ -1340,7 +1340,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             modelo: v.modelo,
             ano: v.ano,
             obs: v.obs,
-            preco_diario: v.precoDiario
+            preco_diario: v.precoDiario,
+            centro_custo_id: v.centro_custo_id // Fix: Persist Cost Center
         });
         if (!error) setViaturas(prev => [...prev, v]);
     };
@@ -1351,7 +1352,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             modelo: v.modelo,
             ano: v.ano,
             obs: v.obs,
-            preco_diario: v.precoDiario
+            preco_diario: v.precoDiario,
+            centro_custo_id: v.centro_custo_id // Fix: Persist Cost Center
         }).eq('id', v.id);
         if (!error) setViaturas(prev => prev.map(curr => curr.id === v.id ? v : curr));
     };
