@@ -80,7 +80,7 @@ export default function ViaVerde() {
                 exit_point: formData.exit_point,
                 entry_time: formData.entry_time,
                 exit_time: formData.exit_time || null,
-                amount: parseFloat(formData.amount),
+                amount: parseFloat(formData.amount) || 0,
                 distance: formData.distance ? parseFloat(formData.distance) : null,
                 created_by: (await supabase.auth.getUser()).data.user?.id
             }]);
@@ -235,6 +235,10 @@ export default function ViaVerde() {
                 };
 
 
+                // Get User ID once
+                const { data: userData } = await supabase.auth.getUser();
+                const userId = userData.user?.id;
+
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 for (const [index, row] of (data as any[]).entries()) {
                     const rowNum = index + 2;
@@ -284,9 +288,9 @@ export default function ViaVerde() {
                         exit_point: row['Portico Saida'] || 'Desconhecido',
                         entry_time: entryTime, // Supabase handles ISO strings well
                         exit_time: exitTime,
-                        amount: parseFloat(row['Valor'] || '0'),
-                        distance: parseFloat(row['Distancia'] || '0'),
-                        created_by: (await supabase.auth.getUser()).data.user?.id
+                        amount: parseFloat(row['Valor'] || '0') || 0,
+                        distance: parseFloat(row['Distancia'] || '0') || 0,
+                        created_by: userId
                     });
                     successCount++;
                 }

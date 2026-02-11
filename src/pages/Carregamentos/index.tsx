@@ -75,9 +75,9 @@ export default function Carregamentos() {
                 cost_center_id: formData.cost_center_id || null,
                 station_name: formData.station_name,
                 date: formData.date,
-                kwh: parseFloat(formData.kwh),
-                cost: parseFloat(formData.cost),
-                duration: parseFloat(formData.duration || '0'),
+                kwh: parseFloat(formData.kwh) || 0,
+                cost: parseFloat(formData.cost) || 0,
+                duration: parseFloat(formData.duration || '0') || 0,
                 created_by: (await supabase.auth.getUser()).data.user?.id
             }]);
 
@@ -206,6 +206,10 @@ export default function Carregamentos() {
                     return null;
                 };
 
+                // Get User ID once
+                const { data: userData } = await supabase.auth.getUser();
+                const userId = userData.user?.id;
+
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 for (const [index, row] of (data as any[]).entries()) {
                     const rowNum = index + 2; // +2 because header is 1
@@ -243,10 +247,10 @@ export default function Carregamentos() {
                         cost_center_id: costCenterId,
                         station_name: row['Estacao'] || 'Desconhecido',
                         date: dateIso,
-                        kwh: parseFloat(row['kWh'] || '0'),
-                        cost: parseFloat(row['Custo'] || '0'),
-                        duration: parseFloat(row['Duracao (min)'] || '0'),
-                        created_by: (await supabase.auth.getUser()).data.user?.id
+                        kwh: parseFloat(row['kWh'] || '0') || 0,
+                        cost: parseFloat(row['Custo'] || '0') || 0,
+                        duration: parseFloat(row['Duracao (min)'] || '0') || 0,
+                        created_by: userId
                     });
                     successCount++;
                 }
