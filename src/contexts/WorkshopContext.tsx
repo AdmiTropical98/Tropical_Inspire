@@ -55,7 +55,6 @@ interface WorkshopContextType {
     addLocal: (l: Local) => Promise<void>;
     updateLocal: (l: Local) => Promise<void>;
     deleteLocal: (id: string) => Promise<void>;
-    deleteLocal: (id: string) => Promise<void>;
     checkRouteValidation: (serviceId: string) => Promise<Record<string, { status: 'success' | 'failed'; time?: string; distance?: number }>>;
 
     // Scale Batch Actions
@@ -122,7 +121,6 @@ interface WorkshopContextType {
     runComplianceCheck: () => Promise<void>;
     runComplianceDemo: () => void;
     updateVehicleLocation: (registration: string, lat: number, lng: number) => Promise<void>;
-    createScaleBatch: (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; error?: string, data?: any }>;
     getVehicleOccupancyHistory: (vehicleId: string, startDate: string, endDate: string) => Promise<{ date: string, centroCustoId: string | null }[]>;
     geofenceMappings: Record<string, string>;
     updateGeofenceMapping: (geofenceName: string, centroCustoId: string) => Promise<void>;
@@ -430,7 +428,36 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             try {
                 const { data: r, error } = await supabase.from('requisicoes').select('*');
                 if (error) throw error;
-                if (r) setRequisicoes(r.map((item: any) => ({ ...item, itens: item.itens || [], numero: String(item.numero), fornecedorId: item.fornecedor_id, viaturaId: item.viatura_id, centroCustoId: item.centro_custo_id, criadoPor: item.criado_por, custo: item.custo, faturas_dados: item.faturas_dados })));
+               if (r) setRequisicoes(
+  r.map((item: any) => {
+    let parsedFaturas: any[] = [];
+
+    if (item.faturas_dados) {
+      if (typeof item.faturas_dados === 'string') {
+        try {
+          parsedFaturas = JSON.parse(item.faturas_dados);
+        } catch {
+          parsedFaturas = [];
+        }
+      } else if (Array.isArray(item.faturas_dados)) {
+        parsedFaturas = item.faturas_dados;
+      }
+    }
+
+    return {
+      ...item,
+      itens: item.itens || [],
+      numero: String(item.numero),
+      fornecedorId: item.fornecedor_id,
+      viaturaId: item.viatura_id,
+      centroCustoId: item.centro_custo_id,
+      criadoPor: item.criado_por,
+      custo: item.custo,
+      faturas_dados: parsedFaturas
+    };
+  })
+);
+
             } catch (e: any) {
                 console.error('Error fetching requisicoes:', e);
                 // Don't override previous critical error if found
@@ -902,9 +929,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addServico = async (s: Servico) => {
-        try {
-            console.log('Adding service to DB:', s);
-            const { data, error } = await supabase.from('servicos').insert({
+    try {
+        console.log('Adding service to DB:', s);
+
+        const { data, error } = await supabase
+            .from('servicos')
+            .insert({
                 id: s.id,
                 motorista_id: s.motoristaId,
                 passageiro: s.passageiro,
@@ -917,29 +947,27 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 centro_custo_id: s.centroCustoId,
                 status: s.status,
                 failure_reason: s.failureReason
-            }).select().single();
+            })
+            .select()
+            .single();
 
-            if (error) throw error;
-            console.log('Service added successfully:', data);
+        if (error) throw error;
 
-            // Update local state with the CONFIRMED data from DB to ensure sync
-            // We map back from DB columns (snake_case) to app types (camelCase) if needed, 
-            // but for simplicity here we assume 's' is correct if DB write succeeded.
-            // Better: use 'data' to reconstruct.
-            const confirmedService: Servico = {
-                ...s,
-                motoristaId: data.motorista_id,
-                centroCustoId: data.centro_custo_id
-            };
+        const confirmedService: Servico = {
+            ...s,
+            motoristaId: data.motorista_id,
+            centroCustoId: data.centro_custo_id
+        };
 
-            await logServiceHistory(s.id, 'CREATE', null, confirmedService);
+        await logServiceHistory(s.id, 'CREATE', null, confirmedService);
 
-            setServicos(prev => [...prev, confirmedService]);
-        } catch (error: any) {
-            console.error('Error adding service:', error);
-            alert(`Erro ao adicionar serviço: ${error.message || 'Erro desconhecido'}`);
-        }
-    };
+        setServicos(prev => [...prev, confirmedService]);
+
+    } catch (error: any) {
+        console.error('Error adding service:', error);
+        alert(`Erro ao adicionar serviço: ${error.message || 'Erro desconhecido'}`);
+    }
+};
 
     const updateServico = async (s: Servico) => {
         try {
@@ -2064,83 +2092,68 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     console.error('Error updating vehicle location:', err);
                 }
             },
-            createScaleBatch: async (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => {
-                try {
-                    const storedUser = localStorage.getItem('currentUser');
-                    const storedRole = localStorage.getItem('userRole'); // NEW
-                    let user = null;
-                    if (storedUser) user = JSON.parse(storedUser);
+           createScaleBatch: async (
+  batchData: { notes?: string; centroCustoId: string; referenceDate: string },
+  services: Servico[]
+): Promise<{ success: boolean; data?: any; error?: any }> => {
 
-                    // 1. Create Batch
-                    const { data: batch, error: batchError } = await supabase.from('scale_batches').insert({
-                        created_by: user?.nome || 'Sistema',
-                        created_by_role: storedRole || null, // NEW
-                        centro_custo_id: batchData.centroCustoId,
-                        reference_date: batchData.referenceDate,
-                        notes: batchData.notes,
-                        status: 'active' // NEW: Default status
-                    }).select().single();
+  try {
+    const storedUser = localStorage.getItem('currentUser');
+    const storedRole = localStorage.getItem('userRole');
 
-                    if (batchError) throw batchError;
+    let user = null;
+    if (storedUser) user = JSON.parse(storedUser);
 
-                    // 2. Prepare Services with batch_id
-                    const servicesToInsert = services.map(s => ({
-                        id: s.id,
-                        motorista_id: s.motoristaId, // Should be null usually
-                        passageiro: s.passageiro,
-                        hora: s.hora,
-                        origem: s.origem,
-                        destino: s.destino,
-                        voo: s.voo,
-                        obs: s.obs, // "Ida" or "Volta" usually
-                        tipo: s.tipo || 'outro',
-                        concluido: false,
-                        centro_custo_id: batchData.centroCustoId,
-                        batch_id: batch.id,
-                        departamento: s.departamento // New Field
-                    }));
+    const { data: batch, error: batchError } = await supabase
+      .from('scale_batches')
+      .insert({
+        created_by: user?.nome || 'Sistema',
+        created_by_role: storedRole || null,
+        centro_custo_id: batchData.centroCustoId,
+        reference_date: batchData.referenceDate,
+        notes: batchData.notes,
+        status: 'active'
+      })
+      .select()
+      .single();
 
-                    const { error: servicesError } = await supabase.from('servicos').insert(servicesToInsert);
+    if (batchError) {
+      return { success: false, error: batchError.message };
+    }
 
-                    if (servicesError) {
-                        // Rollback batch? Supabase doesn't support easy rollback from client unless RPC. 
-                        // For now we assume success or manual cleanup if needed.
-                        throw servicesError;
-                    }
+    const servicesToInsert = services.map(s => ({
+      id: s.id,
+      motorista_id: s.motoristaId,
+      passageiro: s.passageiro,
+      hora: s.hora,
+      origem: s.origem,
+      destino: s.destino,
+      voo: s.voo,
+      obs: s.obs,
+      tipo: s.tipo || 'outro',
+      concluido: false,
+      centro_custo_id: batchData.centroCustoId,
+      batch_id: batch.id,
+      departamento: s.departamento
+    }));
 
-                    // 3. Log History for each (Optional but good for consistency)
-                    // We can do this async to not block UI
-                    services.forEach(s => {
-                        const confirmed = { ...s, batchId: batch.id, centroCustoId: batchData.centroCustoId };
-                        logServiceHistory(s.id, 'CREATE', null, confirmed);
-                    });
+    const { error: servicesError } = await supabase
+      .from('servicos')
+      .insert(servicesToInsert);
 
-                    // 4. Update Local State
-                    // Convert back to app format
-                    const newServices = servicesToInsert.map(s => ({
-                        id: s.id,
-                        motoristaId: s.motorista_id,
-                        passageiro: s.passageiro,
-                        hora: s.hora,
-                        origem: s.origem,
-                        destino: s.destino,
-                        voo: s.voo,
-                        obs: s.obs,
-                        tipo: s.tipo,
-                        concluido: s.concluido,
-                        centroCustoId: s.centro_custo_id,
-                        batchId: s.batch_id
-                    }));
+    if (servicesError) {
+      return { success: false, error: servicesError.message };
+    }
 
-                    setServicos(prev => [...prev, ...newServices]);
-                    setScaleBatches(prev => [...prev, batch]);
+    setScaleBatches(prev => [...prev, batch]);
 
-                    return { success: true, data: batch };
+    return { success: true, data: batch };
 
-                } catch (error: any) {
-                    console.error('Error creating batch:', error);
-                }
-            },
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Erro desconhecido' };
+  }
+},
+
             cancelScaleBatch: async (batchId: string) => {
                 try {
                     // Update Database
