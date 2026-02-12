@@ -274,12 +274,12 @@ export default function Requisicoes() {
         setItems([]);
     };
 
-const generatePDF = async (req: Requisicao) => {
+    const generatePDF = async (req: Requisicao) => {
 
-    console.log("REQ COMPLETO PARA PDF:", req);
-    console.log("FATURAS_DADOS:", req.faturas_dados);
+        console.log("REQ COMPLETO PARA PDF:", req);
+        console.log("FATURAS_DADOS:", req.faturas_dados);
 
-    const doc = new jsPDF();
+        const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.width;
 
         const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -440,118 +440,98 @@ const generatePDF = async (req: Requisicao) => {
                 doc.text('Não Identificado', col3X, yPos + 6);
             }
 
-// ===============================
-// ======================================================
-// INVOICE SECTION (MOSTRA APENAS SE CONCLUÍDA)
-// ======================================================
+            // ======================================================
+            // INVOICE SECTION (MOSTRA APENAS SE CONCLUÍDA)
+            // ======================================================
 
-yPos += 35;
+            // 🔐 Só mostra se estiver concluída
+            if (req.status === 'concluida') {
+                yPos += 35;
 
-// 🔐 Só mostra se estiver concluída
-if (req.status === 'concluida') {
+                type InvoiceDisplay = {
+                    numero: string;
+                    valor_liquido: number;
+                    iva_taxa: number;
+                    iva_valor?: number;
+                    valor_total: number;
+                    isLegacy?: boolean;
+                };
 
-    type InvoiceDisplay = {
-        numero: string;
-        valor_liquido: number;
-        iva_taxa: number;
-        iva_valor?: number;
-        valor_total: number;
-    };
+                let displayInvoices: InvoiceDisplay[] = [];
 
-    let displayInvoices: InvoiceDisplay[] = [];
+                // 🔥 Parse Supabase (string ou array)
+                if (req.faturas_dados) {
+                    try {
+                        const parsed =
+                            typeof req.faturas_dados === 'string'
+                                ? JSON.parse(req.faturas_dados)
+                                : req.faturas_dados;
 
-    // 🔥 Parse Supabase (string ou array)
-    if (req.faturas_dados) {
-        try {
-            const parsed =
-                typeof req.faturas_dados === 'string'
-                    ? JSON.parse(req.faturas_dados)
-                    : req.faturas_dados;
-
-            if (Array.isArray(parsed)) {
-                displayInvoices = parsed as InvoiceDisplay[];
-            }
-        } catch (e) {
-            console.error('Erro a fazer parse das faturas:', e);
-        }
-    }
-
-    // 🧯 Campo legado
-    if (displayInvoices.length === 0 && req.fatura) {
-        displayInvoices = [{
-            numero: req.fatura,
-            valor_liquido: req.custo || 0,
-            iva_taxa: 0,
-            iva_valor: 0,
-            valor_total: req.custo || 0
-        }];
-    }
-
-    if (displayInvoices.length > 0) {
-
-        const grandTotal = displayInvoices.reduce(
-            (acc, curr) => acc + (curr.valor_total || 0),
-            0
-        );
-
-        autoTable(doc, {
-            startY: yPos,
-            head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
-            body: displayInvoices.map(f => {
-
-                const base = f.valor_liquido || 0;
-                const ivaValor = f.iva_valor ?? (base * (f.iva_taxa || 0));
-                const total = f.valor_total || 0;
-
-                return [
-                    f.numero,
-                    `${base.toFixed(2)} €`,
-                    `${ivaValor.toFixed(2)} €`,
-                    `${total.toFixed(2)} €`
-                ];
-            }),
-            foot: [[
-                {
-                    content: 'TOTAL GERAL:',
-                    colSpan: 3,
-                    styles: {
-                        halign: 'right',
-                        fontStyle: 'bold'
-                    }
-                },
-                {
-                    content: `${grandTotal.toFixed(2)} €`,
-                    styles: {
-                        halign: 'right',
-                        fontStyle: 'bold'
+                        if (Array.isArray(parsed)) {
+                            displayInvoices = parsed as InvoiceDisplay[];
+                        }
+                    } catch (e) {
+                        console.error('Erro a fazer parse das faturas:', e);
                     }
                 }
-            ]],
-            theme: 'grid',
-            margin: { left: 10, right: 10 },
-            headStyles: {
-                fillColor: [20, 60, 140],   // 🔵 Azul antigo
-                textColor: 255,
-                fontStyle: 'bold'
-            },
-            footStyles: {
-                fillColor: [20, 60, 140],   // 🔵 Azul antigo
-                textColor: 255,
-                fontStyle: 'bold'
-            },
-            styles: {
-                fontSize: 9
-            },
-            columnStyles: {
-                1: { halign: 'right' },
-                2: { halign: 'center' },
-                3: { halign: 'right' }
-            }
-        });
 
-        yPos = (doc as any).lastAutoTable.finalY + 15;
-    }
-}
+                // 🧯 Campo legado
+                if (displayInvoices.length === 0 && req.fatura) {
+                    displayInvoices = [{
+                        numero: req.fatura,
+                        valor_liquido: req.custo || 0,
+                        iva_taxa: 0,
+                        iva_valor: 0,
+                        valor_total: req.custo || 0,
+                        isLegacy: true
+                    }];
+                }
+
+                if (displayInvoices.length > 0) {
+                    const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
+
+                    autoTable(doc, {
+                        startY: yPos,
+                        head: [['FATURA', 'VALOR LÍQUIDO', 'VALOR IVA', 'VALOR COM IVA']],
+                        body: displayInvoices.map(f => {
+                            // Check if legacy mode (no tax rate)
+                            const isLegacy = f.isLegacy || (f.iva_taxa === 0 && (!f.valor_liquido || f.valor_liquido === f.valor_total));
+
+                            return [
+                                f.numero,
+                                `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
+                                isLegacy ? '-' : `${f.iva_valor?.toFixed(2) || '0.00'}€`,
+                                `${f.valor_total?.toFixed(2) || '0.00'}€`
+                            ];
+                        }),
+                        foot: [[
+                            { content: 'TOTAL GERAL:', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } },
+                            { content: `${grandTotal.toFixed(2)}€`, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } }
+                        ]],
+                        theme: 'grid',
+                        margin: { left: 10, right: 10 },
+                        headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
+                        styles: { fontSize: 8, textColor: 0, lineWidth: 0.1 },
+                        columnStyles: {
+                            0: { fontStyle: 'bold' },
+                            1: { halign: 'right' },
+                            2: { halign: 'right' },
+                            3: { halign: 'right', fontStyle: 'bold' }
+                        },
+                        footStyles: {
+                            fillColor: [255, 255, 255],
+                            textColor: 0,
+                            fontStyle: 'bold',
+                            halign: 'right',
+                            lineColor: [255, 255, 255],
+                            lineWidth: 0
+                        }
+                    });
+
+                    yPos = (doc as any).lastAutoTable.finalY + 15;
+                }
+            }
+
             const tableBody = req.itens.map(item => [
                 item.descricao.toUpperCase(),
                 item.quantidade.toString()
@@ -616,19 +596,6 @@ if (req.status === 'concluida') {
 
             doc.line(130, signY, pageWidth - 10, signY);
             doc.text('A Gerência', 130, signY + 5);
-
-           const pageHeight = doc.internal.pageSize.height;
-
-doc.setFontSize(8);
-doc.setTextColor(150);
-
-doc.text(
-  'Documento processado por computador',
-  10,
-  pageHeight - 10
-);
-
-
             doc.save(`Requisicao_${req.numero}.pdf`);
 
         } catch (error) {
