@@ -477,7 +477,7 @@ export default function Requisicoes() {
                     }
                 }
 
-                // 🧯 Campo legado
+                // 🧯 Campo legado (APENAS SE NÃO TIVER DADOS ESTRUTURADOS)
                 if (displayInvoices.length === 0 && req.fatura) {
                     // Tenta separar por vírgula (sem barra, pois pode fazer parte do número)
                     const parts = req.fatura.split(',').map(s => s.trim()).filter(Boolean);
@@ -511,29 +511,29 @@ export default function Requisicoes() {
                 }
 
                 if (displayInvoices.length > 0) {
-                    // Se for legado com separação (valores a 0), usa o custo total da requisição
-                    // Se não for legado ou for legado simples, soma os parciais
-                    let grandTotal = 0;
-                    const isSplitLegacy = displayInvoices.every(i => i.isLegacy && i.valor_total === 0);
-
-                    if (isSplitLegacy) {
-                        grandTotal = req.custo || 0;
-                    } else {
-                        grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
-                    }
+                    // Cálculo do Total Geral
+                    const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
 
                     autoTable(doc, {
                         startY: yPos,
                         head: [['FATURA', 'VALOR LÍQUIDO', 'VALOR IVA', 'VALOR COM IVA']],
                         body: displayInvoices.map(f => {
-                            // Check if legacy mode (no tax rate)
-                            const isLegacy = f.isLegacy || (f.iva_taxa === 0 && (!f.valor_liquido || f.valor_liquido === f.valor_total));
+                            // Se for legado puro (sem faturas_dados), mostra traços nos parciais
+                            if (f.isLegacy) {
+                                return [
+                                    f.numero,
+                                    '-',
+                                    '-',
+                                    `${f.valor_total?.toFixed(2) || '0.00'}€`
+                                ];
+                            }
 
+                            // Se tiver dados estruturados, MUSTRA TUDO
                             return [
                                 f.numero,
-                                isLegacy && (!f.valor_liquido || f.valor_liquido === 0) ? '-' : `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
-                                isLegacy ? '-' : `${f.iva_valor?.toFixed(2) || '0.00'}€`,
-                                isLegacy && (!f.valor_total || f.valor_total === 0) ? `${f.valor_total?.toFixed(2) || '0.00'}€` : `${f.valor_total?.toFixed(2) || '0.00'}€`
+                                `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
+                                `${f.iva_valor?.toFixed(2) || '0.00'}€`,
+                                `${f.valor_total?.toFixed(2) || '0.00'}€`
                             ];
                         }),
                         foot: [[
