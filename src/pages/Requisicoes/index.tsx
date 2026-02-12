@@ -281,6 +281,7 @@ export default function Requisicoes() {
 
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
 
         const loadImage = (src: string): Promise<HTMLImageElement> => {
             return new Promise((resolve, reject) => {
@@ -477,8 +478,8 @@ export default function Requisicoes() {
 
                 // 🧯 Campo legado
                 if (displayInvoices.length === 0 && req.fatura) {
-                    // Tenta separar por vírgula ou barra se houver múltiplos números
-                    const parts = req.fatura.split(/[,/]/).map(s => s.trim()).filter(Boolean);
+                    // Tenta separar por vírgula (sem barra, pois pode fazer parte do número)
+                    const parts = req.fatura.split(',').map(s => s.trim()).filter(Boolean);
 
                     if (parts.length > 1) {
                         // Se encontrou separadores, cria várias linhas
@@ -524,9 +525,9 @@ export default function Requisicoes() {
 
                             return [
                                 f.numero,
-                                `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
+                                isLegacy && (!f.valor_liquido || f.valor_liquido === 0) ? '-' : `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
                                 isLegacy ? '-' : `${f.iva_valor?.toFixed(2) || '0.00'}€`,
-                                `${f.valor_total?.toFixed(2) || '0.00'}€`
+                                isLegacy && (!f.valor_total || f.valor_total === 0) ? '-' : `${f.valor_total?.toFixed(2) || '0.00'}€`
                             ];
                         }),
                         foot: [[
@@ -594,24 +595,48 @@ export default function Requisicoes() {
             });
 
             const finalY = (doc as any).lastAutoTable.finalY + 15;
+            let currentY = finalY;
 
             if (req.obs) {
+                // Check if obs fits on page
+                if (currentY + 25 > pageHeight - 20) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+
                 doc.setDrawColor(200);
                 doc.setLineWidth(0.1);
-                doc.rect(10, finalY, pageWidth - 20, 20);
+                doc.rect(10, currentY, pageWidth - 20, 20);
 
                 doc.setFontSize(8);
                 doc.setTextColor(120);
                 doc.setFont('helvetica', 'bold');
-                doc.text('OBSERVAÇÕES', 12, finalY + 5);
+                doc.text('OBSERVAÇÕES', 12, currentY + 5);
 
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
                 doc.setTextColor(0);
-                doc.text(req.obs, 12, finalY + 12);
+                doc.text(req.obs, 12, currentY + 12);
+
+                currentY += 25;
             }
 
-            const signY = 270;
+            // Signature Section - Dynamic Positioning
+            // Ensure there is space for signatures (approx 30 units height)
+            if (currentY + 40 > pageHeight - 20) {
+                doc.addPage();
+                currentY = 40; // Start a bit lower on new page
+            } else {
+                // Push to bottom if plenty of space, otherwise just below content
+                // But don't force it to 270 if content is already past that or close to it
+                if (currentY < 250) {
+                    currentY = 270;
+                } else {
+                    currentY += 10; // Add some padding if we are flowing naturally
+                }
+            }
+
+            const signY = currentY;
             doc.setDrawColor(0);
             doc.setLineWidth(0.5);
 
