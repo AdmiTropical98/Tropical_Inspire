@@ -1457,10 +1457,12 @@ const toggleRequisicaoStatus = async (
         .update(updates)
         .eq('id', id);
 
-    if (error) {
-        console.error(error);
-        return;
-    }
+ if (error) {
+    console.error("ERRO SUPABASE:", error);
+    alert("Erro ao confirmar requisição");
+    return;
+}
+
 
     setRequisicoes(prev =>
         prev.map(req =>
