@@ -547,9 +547,16 @@ export default function Requisicoes() {
 
                             console.log("Processing invoice row for PDF:", f);
 
-                            const base = getVal(f, ['valor_liquido', 'valorLiquido', 'net', 'Net', 'value', 'Value', 'base']);
-                            const iva = getVal(f, ['iva_valor', 'ivaValor', 'tax', 'Tax', 'iva', 'Iva']);
+                            let base = getVal(f, ['valor_liquido', 'valorLiquido', 'net', 'Net', 'value', 'Value', 'base']);
+                            let iva = getVal(f, ['iva_valor', 'ivaValor', 'tax', 'Tax', 'iva', 'Iva']);
                             const total = getVal(f, ['valor_total', 'valorTotal', 'total', 'Total', 'gross', 'Gross']);
+
+                            // 🚑 EMERGENCY FIX: If Net/VAT are 0 but Total exists, calculate them (Assume 23%)
+                            // This fixes records that were saved with 0s
+                            if ((base === 0 && total > 0) || (iva === 0 && total > 0)) {
+                                base = total / 1.23;
+                                iva = total - base;
+                            }
 
                             return [
                                 f.numero,
