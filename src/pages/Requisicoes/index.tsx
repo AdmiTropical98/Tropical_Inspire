@@ -514,26 +514,22 @@ export default function Requisicoes() {
                     // Cálculo do Total Geral
                     const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
 
+                    // 🧪 DEBUG OBRIGATÓRIO
+                    console.log("DISPLAY INVOICES FINAL:", displayInvoices);
+
                     autoTable(doc, {
                         startY: yPos,
                         head: [['FATURA', 'VALOR LÍQUIDO', 'VALOR IVA', 'VALOR COM IVA']],
                         body: displayInvoices.map(f => {
-                            // Se for legado puro (sem faturas_dados), mostra traços nos parciais
-                            if (f.isLegacy) {
-                                return [
-                                    f.numero,
-                                    '-',
-                                    '-',
-                                    `${f.valor_total?.toFixed(2) || '0.00'}€`
-                                ];
-                            }
+                            const base = Number(f.valor_liquido) || 0;
+                            const iva = Number(f.iva_valor) || 0;
+                            const total = Number(f.valor_total) || 0;
 
-                            // Se tiver dados estruturados, MUSTRA TUDO
                             return [
                                 f.numero,
-                                `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
-                                `${f.iva_valor?.toFixed(2) || '0.00'}€`,
-                                `${f.valor_total?.toFixed(2) || '0.00'}€`
+                                `${base.toFixed(2)} €`,
+                                `${iva.toFixed(2)} €`,
+                                `${total.toFixed(2)} €`
                             ];
                         }),
                         foot: [[

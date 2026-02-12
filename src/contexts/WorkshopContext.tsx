@@ -90,15 +90,15 @@ interface WorkshopContextType {
     updateRequisicao: (r: Requisicao) => void;
     deleteRequisicao: (id: string) => void;
     toggleRequisicaoStatus: (
-    id: string,
-    faturas?: {
-        numero: string;
-        valor_liquido: number;
-        iva_taxa: number;
-        iva_valor: number;
-        valor_total: number;
-    }[]
-) => Promise<void>;
+        id: string,
+        faturas?: {
+            numero: string;
+            valor_liquido: number;
+            iva_taxa: number;
+            iva_valor: number;
+            valor_total: number;
+        }[]
+    ) => Promise<void>;
     addCentroCusto: (cc: CentroCusto) => void; // NEW
     deleteCentroCusto: (id: string) => void; // NEW
     addEvaTransport: (t: EvaTransport) => void;
@@ -437,33 +437,33 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             try {
                 const { data: r, error } = await supabase.from('requisicoes').select('*');
                 if (error) throw error;
-               if (r) setRequisicoes(
-  r.map((item: any) => {
-let parsedFaturas: any[] = [];
+                if (r) setRequisicoes(
+                    r.map((item: any) => {
+                        let parsedFaturas: any[] = [];
 
-try {
-  if (item.faturas_dados) {
-    parsedFaturas = typeof item.faturas_dados === 'string'
-      ? JSON.parse(item.faturas_dados)
-      : item.faturas_dados;
-  }
-} catch (e) {
-  parsedFaturas = [];
-}
+                        try {
+                            if (item.faturas_dados) {
+                                parsedFaturas = typeof item.faturas_dados === 'string'
+                                    ? JSON.parse(item.faturas_dados)
+                                    : item.faturas_dados;
+                            }
+                        } catch (e) {
+                            parsedFaturas = [];
+                        }
 
-    return {
-      ...item,
-      itens: item.itens || [],
-      numero: String(item.numero),
-      fornecedorId: item.fornecedor_id,
-      viaturaId: item.viatura_id,
-      centroCustoId: item.centro_custo_id,
-      criadoPor: item.criado_por,
-      custo: item.custo,
-      faturas_dados: parsedFaturas
-    };
-  })
-);
+                        return {
+                            ...item,
+                            itens: item.itens || [],
+                            numero: String(item.numero),
+                            fornecedorId: item.fornecedor_id,
+                            viaturaId: item.viatura_id,
+                            centroCustoId: item.centro_custo_id,
+                            criadoPor: item.criado_por,
+                            custo: item.custo,
+                            faturas_dados: parsedFaturas
+                        };
+                    })
+                );
 
             } catch (e: any) {
                 console.error('Error fetching requisicoes:', e);
@@ -936,45 +936,45 @@ try {
     };
 
     const addServico = async (s: Servico) => {
-    try {
-        console.log('Adding service to DB:', s);
+        try {
+            console.log('Adding service to DB:', s);
 
-        const { data, error } = await supabase
-            .from('servicos')
-            .insert({
-                id: s.id,
-                motorista_id: s.motoristaId,
-                passageiro: s.passageiro,
-                hora: s.hora,
-                origem: s.origem,
-                destino: s.destino,
-                voo: s.voo,
-                obs: s.obs,
-                concluido: s.concluido,
-                centro_custo_id: s.centroCustoId,
-                status: s.status,
-                failure_reason: s.failureReason
-            })
-            .select()
-            .single();
+            const { data, error } = await supabase
+                .from('servicos')
+                .insert({
+                    id: s.id,
+                    motorista_id: s.motoristaId,
+                    passageiro: s.passageiro,
+                    hora: s.hora,
+                    origem: s.origem,
+                    destino: s.destino,
+                    voo: s.voo,
+                    obs: s.obs,
+                    concluido: s.concluido,
+                    centro_custo_id: s.centroCustoId,
+                    status: s.status,
+                    failure_reason: s.failureReason
+                })
+                .select()
+                .single();
 
-        if (error) throw error;
+            if (error) throw error;
 
-        const confirmedService: Servico = {
-            ...s,
-            motoristaId: data.motorista_id,
-            centroCustoId: data.centro_custo_id
-        };
+            const confirmedService: Servico = {
+                ...s,
+                motoristaId: data.motorista_id,
+                centroCustoId: data.centro_custo_id
+            };
 
-        await logServiceHistory(s.id, 'CREATE', null, confirmedService);
+            await logServiceHistory(s.id, 'CREATE', null, confirmedService);
 
-        setServicos(prev => [...prev, confirmedService]);
+            setServicos(prev => [...prev, confirmedService]);
 
-    } catch (error: any) {
-        console.error('Error adding service:', error);
-        alert(`Erro ao adicionar serviço: ${error.message || 'Erro desconhecido'}`);
-    }
-};
+        } catch (error: any) {
+            console.error('Error adding service:', error);
+            alert(`Erro ao adicionar serviço: ${error.message || 'Erro desconhecido'}`);
+        }
+    };
 
     const updateServico = async (s: Servico) => {
         try {
@@ -1435,64 +1435,64 @@ try {
         const { error } = await supabase.from('requisicoes').delete().eq('id', id);
         if (!error) setRequisicoes(prev => prev.filter(r => r.id !== id));
     };
-const toggleRequisicaoStatus = async (
-    id: string,
-    faturas?: {
-        numero: string;
-        valor_liquido: number;
-        iva_taxa: number;
-        iva_valor: number;
-        valor_total: number;
-    }[]
-) => {
+    const toggleRequisicaoStatus = async (
+        id: string,
+        faturas?: {
+            numero: string;
+            valor_liquido: number;
+            iva_taxa: number;
+            iva_valor: number;
+            valor_total: number;
+        }[]
+    ) => {
 
-    const r = requisicoes.find(req => req.id === id);
-    if (!r) return;
+        const r = requisicoes.find(req => req.id === id);
+        if (!r) return;
 
-    const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
+        const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
 
-    const updates: any = { status: newStatus };
+        const updates: any = { status: newStatus };
 
-    if (newStatus === 'concluida' && faturas && Array.isArray(faturas)) {
+        if (newStatus === 'concluida' && faturas && Array.isArray(faturas)) {
 
-        // 🔥 Guardar JSON completo (CORRETO)
-        updates.faturas_dados = JSON.stringify(faturas);
+            // 🔥 Guardar JSON completo (CORRETO)
+            updates.faturas_dados = faturas;
 
-        // Apenas para compatibilidade (não usado no PDF principal)
-        updates.fatura = faturas.map(f => f.numero).join(', ');
+            // Apenas para compatibilidade (não usado no PDF principal)
+            updates.fatura = faturas.map(f => f.numero).join(', ');
 
-        // Soma total geral
-        updates.custo = faturas.reduce(
-            (sum, f) => sum + f.valor_total,
-            0
+            // Soma total geral
+            updates.custo = faturas.reduce(
+                (sum, f) => sum + f.valor_total,
+                0
+            );
+
+        } else {
+
+            updates.fatura = "";
+            updates.custo = null;
+            updates.faturas_dados = null;
+        }
+
+        const { error } = await supabase
+            .from('requisicoes')
+            .update(updates)
+            .eq('id', id);
+
+        if (error) {
+            console.error("ERRO SUPABASE:", error);
+            alert("Erro ao confirmar requisição");
+            return;
+        }
+
+        setRequisicoes(prev =>
+            prev.map(req =>
+                req.id === id
+                    ? { ...req, ...updates }
+                    : req
+            )
         );
-
-    } else {
-
-        updates.fatura = "";
-        updates.custo = null;
-        updates.faturas_dados = null;
-    }
-
-    const { error } = await supabase
-        .from('requisicoes')
-        .update(updates)
-        .eq('id', id);
-
-    if (error) {
-        console.error("ERRO SUPABASE:", error);
-        alert("Erro ao confirmar requisição");
-        return;
-    }
-
-    setRequisicoes(prev =>
-        prev.map(req =>
-            req.id === id
-                ? { ...req, ...updates }
-                : req
-        )
-    );
-};
+    };
 
     // Motoristas and others remain local for now as per plan focus
     const addMotorista = async (m: Motorista) => {
@@ -2097,67 +2097,67 @@ const toggleRequisicaoStatus = async (
                     console.error('Error updating vehicle location:', err);
                 }
             },
-           createScaleBatch: async (
-  batchData: { notes?: string; centroCustoId: string; referenceDate: string },
-  services: Servico[]
-): Promise<{ success: boolean; data?: any; error?: any }> => {
+            createScaleBatch: async (
+                batchData: { notes?: string; centroCustoId: string; referenceDate: string },
+                services: Servico[]
+            ): Promise<{ success: boolean; data?: any; error?: any }> => {
 
-  try {
-    const storedUser = localStorage.getItem('currentUser');
-    const storedRole = localStorage.getItem('userRole');
+                try {
+                    const storedUser = localStorage.getItem('currentUser');
+                    const storedRole = localStorage.getItem('userRole');
 
-    let user = null;
-    if (storedUser) user = JSON.parse(storedUser);
+                    let user = null;
+                    if (storedUser) user = JSON.parse(storedUser);
 
-    const { data: batch, error: batchError } = await supabase
-      .from('scale_batches')
-      .insert({
-        created_by: user?.nome || 'Sistema',
-        created_by_role: storedRole || null,
-        centro_custo_id: batchData.centroCustoId,
-        reference_date: batchData.referenceDate,
-        notes: batchData.notes,
-        status: 'active'
-      })
-      .select()
-      .single();
+                    const { data: batch, error: batchError } = await supabase
+                        .from('scale_batches')
+                        .insert({
+                            created_by: user?.nome || 'Sistema',
+                            created_by_role: storedRole || null,
+                            centro_custo_id: batchData.centroCustoId,
+                            reference_date: batchData.referenceDate,
+                            notes: batchData.notes,
+                            status: 'active'
+                        })
+                        .select()
+                        .single();
 
-    if (batchError) {
-      return { success: false, error: batchError.message };
-    }
+                    if (batchError) {
+                        return { success: false, error: batchError.message };
+                    }
 
-    const servicesToInsert = services.map(s => ({
-      id: s.id,
-      motorista_id: s.motoristaId,
-      passageiro: s.passageiro,
-      hora: s.hora,
-      origem: s.origem,
-      destino: s.destino,
-      voo: s.voo,
-      obs: s.obs,
-      tipo: s.tipo || 'outro',
-      concluido: false,
-      centro_custo_id: batchData.centroCustoId,
-      batch_id: batch.id,
-      departamento: s.departamento
-    }));
+                    const servicesToInsert = services.map(s => ({
+                        id: s.id,
+                        motorista_id: s.motoristaId,
+                        passageiro: s.passageiro,
+                        hora: s.hora,
+                        origem: s.origem,
+                        destino: s.destino,
+                        voo: s.voo,
+                        obs: s.obs,
+                        tipo: s.tipo || 'outro',
+                        concluido: false,
+                        centro_custo_id: batchData.centroCustoId,
+                        batch_id: batch.id,
+                        departamento: s.departamento
+                    }));
 
-    const { error: servicesError } = await supabase
-      .from('servicos')
-      .insert(servicesToInsert);
+                    const { error: servicesError } = await supabase
+                        .from('servicos')
+                        .insert(servicesToInsert);
 
-    if (servicesError) {
-      return { success: false, error: servicesError.message };
-    }
+                    if (servicesError) {
+                        return { success: false, error: servicesError.message };
+                    }
 
-    setScaleBatches(prev => [...prev, batch]);
+                    setScaleBatches(prev => [...prev, batch]);
 
-    return { success: true, data: batch };
+                    return { success: true, data: batch };
 
-  } catch (error: any) {
-    return { success: false, error: error?.message || 'Erro desconhecido' };
-  }
-},
+                } catch (error: any) {
+                    return { success: false, error: error?.message || 'Erro desconhecido' };
+                }
+            },
 
             cancelScaleBatch: async (batchId: string) => {
                 try {
