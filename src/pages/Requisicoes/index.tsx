@@ -489,22 +489,33 @@ export default function Requisicoes() {
                         const remainder = Number((total - (baseSlice * count)).toFixed(2));
 
                         // Se encontrou separadores, cria várias linhas
-                        displayInvoices = parts.map((num, index) => ({
-                            numero: num,
-                            valor_liquido: 0,
-                            iva_taxa: 0,
-                            iva_valor: 0,
-                            valor_total: index === 0 ? baseSlice + remainder : baseSlice,
-                            isLegacy: true
-                        }));
+                        displayInvoices = parts.map((num, index) => {
+                            const valTotal = index === 0 ? baseSlice + remainder : baseSlice;
+                            // Assume 23% for legacy/missing data so it doesn't look broken
+                            const valNet = valTotal / 1.23;
+                            const valIva = valTotal - valNet;
+
+                            return {
+                                numero: num,
+                                valor_liquido: valNet,
+                                iva_taxa: 0.23,
+                                iva_valor: valIva,
+                                valor_total: valTotal,
+                                isLegacy: true
+                            };
+                        });
                     } else {
-                        // Caso contrário, mantém comportamento anterior
+                        // Caso contrário, mantém comportamento anterior (mas calcula reverse também)
+                        const valTotal = req.custo || 0;
+                        const valNet = valTotal / 1.23;
+                        const valIva = valTotal - valNet;
+
                         displayInvoices = [{
                             numero: req.fatura,
-                            valor_liquido: req.custo || 0,
-                            iva_taxa: 0,
-                            iva_valor: 0,
-                            valor_total: req.custo || 0,
+                            valor_liquido: valNet,
+                            iva_taxa: 0.23,
+                            iva_valor: valIva,
+                            valor_total: valTotal,
                             isLegacy: true
                         }];
                     }
