@@ -440,95 +440,110 @@ const generatePDF = async (req: Requisicao) => {
                 doc.text('Não Identificado', col3X, yPos + 6);
             }
 
-            // INVOICE SECTION
-            // INVOICE SECTION
-            yPos += 35; // Move down from header details
+// ===============================
+// INVOICE SECTION
+// ===============================
 
-            // Normalize data: always use array for display
-           let displayInvoices: {
+yPos += 35;
+
+// Tipo interno para garantir tipagem correta
+type InvoiceDisplay = {
     numero: string;
     valor_liquido: number;
     iva_taxa: number;
     iva_valor?: number;
     valor_total: number;
-}[] = [];
+};
 
-// 🔥 Se vier como string JSON do Supabase
-if (req.faturas_dados) {
-    try {
-        const parsed =
-            typeof req.faturas_dados === 'string'
-                ? JSON.parse(req.faturas_dados)
-                : req.faturas_dados;
+// Declarar SEMPRE antes de usar
+let displayInvoices: InvoiceDisplay[] = [];
 
-        if (Array.isArray(parsed)) {
-            displayInvoices = parsed;
+// 🔒 Só mostra faturas se estiver concluída
+if (req.status === 'concluida') {
+
+    // 🔥 Se vier como string JSON do Supabase
+    if (req.faturas_dados) {
+        try {
+            const parsed =
+                typeof req.faturas_dados === 'string'
+                    ? JSON.parse(req.faturas_dados)
+                    : req.faturas_dados;
+
+            if (Array.isArray(parsed)) {
+                displayInvoices = parsed as InvoiceDisplay[];
+            }
+        } catch (e) {
+            console.error('Erro a fazer parse das faturas:', e);
         }
-    } catch (e) {
-        console.error('Erro a fazer parse das faturas:', e);
+    }
+
+    // 🧯 Campo legado (requisições antigas)
+    if (displayInvoices.length === 0 && req.fatura) {
+        displayInvoices = [{
+            numero: req.fatura,
+            valor_liquido: req.custo || 0,
+            iva_taxa: 0,
+            iva_valor: 0,
+            valor_total: req.custo || 0
+        }];
     }
 }
 
-// 🔥 Se for requisição antiga (campo legado)
-if (displayInvoices.length === 0 && req.fatura) {
-    displayInvoices = [{
-        numero: req.fatura,
-        valor_liquido: req.custo || 0,
-        iva_taxa: 0,
-        iva_valor: 0,
-        valor_total: req.custo || 0
-    }];
-}
+if (displayInvoices.length > 0) {
 
-            if (displayInvoices.length > 0) {
-                // Calculate Total
-                const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
+    const grandTotal = displayInvoices.reduce(
+        (acc: number, curr: InvoiceDisplay) => acc + (curr.valor_total || 0),
+        0
+    );
 
-                autoTable(doc, {
-                    startY: yPos,
-                    head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
-              body: displayInvoices.map(f => {
+    autoTable(doc, {
+        startY: yPos,
+        head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
+        body: displayInvoices.map((f: InvoiceDisplay) => {
 
-    const base = f.valor_liquido || 0;
-    const ivaValor = f.iva_valor ?? (base * (f.iva_taxa || 0));
-    const total = f.valor_total || 0;
+            const base = f.valor_liquido || 0;
+            const ivaValor = f.iva_valor ?? (base * (f.iva_taxa || 0));
+            const total = f.valor_total || 0;
 
-    return [
-        f.numero,
-        `${base.toFixed(2)} €`,
-        `${ivaValor.toFixed(2)} €`,
-        `${total.toFixed(2)} €`
-    ];
-}),
-
-                    foot: [[
-                        { content: 'TOTAL GERAL:', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } },
-                        { content: `${grandTotal.toFixed(2)}€`, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } }
-                    ]],
-                    theme: 'grid',
-                    margin: { left: 10, right: 10 },
-                    headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
-                    styles: { fontSize: 8, textColor: 0, lineWidth: 0.1 },
-                    columnStyles: {
-                        0: { fontStyle: 'bold' },
-                        1: { halign: 'right' },
-                        2: { halign: 'center' },
-                        3: { halign: 'right', fontStyle: 'bold' }
-                    },
-                    footStyles: {
-                        fillColor: [255, 255, 255],
-                        textColor: 0,
-                        fontStyle: 'bold',
-                        halign: 'right',
-                        lineColor: [255, 255, 255],
-                        lineWidth: 0
-                    }
-                });
-
-                const finalY = (doc as any).lastAutoTable.finalY + 2;
-                yPos = finalY + 15; // Set Y for next table (Items)
+            return [
+                f.numero,
+                `${base.toFixed(2)} €`,
+                `${ivaValor.toFixed(2)} €`,
+                `${total.toFixed(2)} €`
+            ];
+        }),
+        foot: [[
+            {
+                content: 'TOTAL GERAL:',
+                colSpan: 3,
+                styles: { halign: 'right', fontStyle: 'bold' }
+            },
+            {
+                content: `${grandTotal.toFixed(2)} €`,
+                styles: { halign: 'right', fontStyle: 'bold' }
             }
+        ]],
+        theme: 'grid',
+        margin: { left: 10, right: 10 },
+        headStyles: {
+            fillColor: [240, 240, 240],
+            textColor: 0,
+            fontStyle: 'bold'
+        },
+        styles: {
+            fontSize: 8
+        },
+        columnStyles: {
+            0: { fontStyle: 'bold' },
+            1: { halign: 'right' },
+            2: { halign: 'center' },
+            3: { halign: 'right', fontStyle: 'bold' }
+        }
+    });
 
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    yPos = finalY;
+}
             const tableBody = req.itens.map(item => [
                 item.descricao.toUpperCase(),
                 item.quantidade.toString()
