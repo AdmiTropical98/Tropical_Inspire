@@ -445,28 +445,40 @@ const generatePDF = async (req: Requisicao) => {
             yPos += 35; // Move down from header details
 
             // Normalize data: always use array for display
-            let displayInvoices: {
+           let displayInvoices: {
     numero: string;
     valor_liquido: number;
     iva_taxa: number;
-    valor_total: number;
     iva_valor?: number;
-    isLegacy?: boolean;
+    valor_total: number;
 }[] = [];
 
+// 🔥 Se vier como string JSON do Supabase
+if (req.faturas_dados) {
+    try {
+        const parsed =
+            typeof req.faturas_dados === 'string'
+                ? JSON.parse(req.faturas_dados)
+                : req.faturas_dados;
 
-            if (req.faturas_dados && Array.isArray(req.faturas_dados) && req.faturas_dados.length > 0) {
-                displayInvoices = req.faturas_dados;
-            } else if (req.fatura) {
-                // Convert legacy single invoice to array format
-                displayInvoices = [{
-                    numero: req.fatura,
-                    valor_liquido: req.custo || 0,
-                    iva_taxa: 0, // Unknown for legacy
-                    valor_total: req.custo || 0,
-                    isLegacy: true // Mark as legacy
-                }];
-            }
+        if (Array.isArray(parsed)) {
+            displayInvoices = parsed;
+        }
+    } catch (e) {
+        console.error('Erro a fazer parse das faturas:', e);
+    }
+}
+
+// 🔥 Se for requisição antiga (campo legado)
+if (displayInvoices.length === 0 && req.fatura) {
+    displayInvoices = [{
+        numero: req.fatura,
+        valor_liquido: req.custo || 0,
+        iva_taxa: 0,
+        iva_valor: 0,
+        valor_total: req.custo || 0
+    }];
+}
 
             if (displayInvoices.length > 0) {
                 // Calculate Total
