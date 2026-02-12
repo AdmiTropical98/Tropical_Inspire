@@ -481,14 +481,19 @@ export default function Requisicoes() {
                     // Tenta separar por vírgula (sem barra, pois pode fazer parte do número)
                     const parts = req.fatura.split(',').map(s => s.trim()).filter(Boolean);
 
-                    if (parts.length > 1) {
+                    if (parts.length > 0) {
+                        const total = req.custo || 0;
+                        const count = parts.length;
+                        const baseSlice = Math.floor((total / count) * 100) / 100;
+                        const remainder = Number((total - (baseSlice * count)).toFixed(2));
+
                         // Se encontrou separadores, cria várias linhas
-                        displayInvoices = parts.map(num => ({
+                        displayInvoices = parts.map((num, index) => ({
                             numero: num,
                             valor_liquido: 0,
                             iva_taxa: 0,
                             iva_valor: 0,
-                            valor_total: 0,
+                            valor_total: index === 0 ? baseSlice + remainder : baseSlice,
                             isLegacy: true
                         }));
                     } else {
@@ -527,7 +532,7 @@ export default function Requisicoes() {
                                 f.numero,
                                 isLegacy && (!f.valor_liquido || f.valor_liquido === 0) ? '-' : `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
                                 isLegacy ? '-' : `${f.iva_valor?.toFixed(2) || '0.00'}€`,
-                                isLegacy && (!f.valor_total || f.valor_total === 0) ? '-' : `${f.valor_total?.toFixed(2) || '0.00'}€`
+                                isLegacy && (!f.valor_total || f.valor_total === 0) ? `${f.valor_total?.toFixed(2) || '0.00'}€` : `${f.valor_total?.toFixed(2) || '0.00'}€`
                             ];
                         }),
                         foot: [[
@@ -598,15 +603,19 @@ export default function Requisicoes() {
             let currentY = finalY;
 
             if (req.obs) {
+                const textWidth = pageWidth - 24;
+                const splitObs = doc.splitTextToSize(req.obs, textWidth);
+                const obsHeight = splitObs.length * 5 + 10; // 5 pt per line approx + padding
+
                 // Check if obs fits on page
-                if (currentY + 25 > pageHeight - 20) {
+                if (currentY + obsHeight + 20 > pageHeight - 20) {
                     doc.addPage();
                     currentY = 20;
                 }
 
                 doc.setDrawColor(200);
                 doc.setLineWidth(0.1);
-                doc.rect(10, currentY, pageWidth - 20, 20);
+                doc.rect(10, currentY, pageWidth - 20, obsHeight + 10);
 
                 doc.setFontSize(8);
                 doc.setTextColor(120);
@@ -616,9 +625,9 @@ export default function Requisicoes() {
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
                 doc.setTextColor(0);
-                doc.text(req.obs, 12, currentY + 12);
+                doc.text(splitObs, 12, currentY + 12);
 
-                currentY += 25;
+                currentY += obsHeight + 15;
             }
 
             // Signature Section - Dynamic Positioning
