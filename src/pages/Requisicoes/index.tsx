@@ -441,7 +441,15 @@ export default function Requisicoes() {
             yPos += 35; // Move down from header details
 
             // Normalize data: always use array for display
-            let displayInvoices = [];
+            let displayInvoices: {
+    numero: string;
+    valor_liquido: number;
+    iva_taxa: number;
+    valor_total: number;
+    iva_valor?: number;
+    isLegacy?: boolean;
+}[] = [];
+
 
             if (req.faturas_dados && Array.isArray(req.faturas_dados) && req.faturas_dados.length > 0) {
                 displayInvoices = req.faturas_dados;
@@ -567,9 +575,17 @@ export default function Requisicoes() {
             doc.line(130, signY, pageWidth - 10, signY);
             doc.text('A Gerência', 130, signY + 5);
 
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            doc.text(`Documento processado por computador`, 10, pageWidth - 10);
+           const pageHeight = doc.internal.pageSize.height;
+
+doc.setFontSize(8);
+doc.setTextColor(150);
+
+doc.text(
+  'Documento processado por computador',
+  10,
+  pageHeight - 10
+);
+
 
             doc.save(`Requisicao_${req.numero}.pdf`);
 
