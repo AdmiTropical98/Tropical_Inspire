@@ -443,11 +443,19 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                         try {
                             if (item.faturas_dados) {
-                                parsedFaturas = typeof item.faturas_dados === 'string'
-                                    ? JSON.parse(item.faturas_dados)
-                                    : item.faturas_dados;
+                                let temp = item.faturas_dados;
+                                // First Parse
+                                if (typeof temp === 'string') {
+                                    temp = JSON.parse(temp);
+                                }
+                                // Second Parse (Double encoding fix)
+                                if (typeof temp === 'string') {
+                                    temp = JSON.parse(temp);
+                                }
+                                parsedFaturas = Array.isArray(temp) ? temp : [];
                             }
                         } catch (e) {
+                            console.warn("Error parsing faturas_dados for req", item.numero, e);
                             parsedFaturas = [];
                         }
 
