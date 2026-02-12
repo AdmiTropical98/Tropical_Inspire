@@ -5,7 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { Fornecedor } from '../../types';
 
 export default function Fornecedores() {
-    const { fornecedores, addFornecedor, deleteFornecedor } = useWorkshop();
+    const { fornecedores, addFornecedor, deleteFornecedor, requisicoes } = useWorkshop();
     const { t } = useTranslation();
     const [showForm, setShowForm] = useState(false);
     const [filter, setFilter] = useState('');
@@ -191,6 +191,12 @@ export default function Fornecedores() {
                                     <div>
                                         <h3 className="font-bold text-white text-lg leading-tight">{fornecedor.nome}</h3>
                                         <p className="text-sm text-slate-400 mt-1 font-mono">NIF: {fornecedor.nif}</p>
+                                        <div className="mt-2 inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
+                                            TOTAL: {requisicoes
+                                                .filter(r => r.fornecedorId === fornecedor.id)
+                                                .reduce((acc, curr) => acc + (curr.custo || 0), 0)
+                                                .toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                                        </div>
                                     </div>
                                 </div>
 
