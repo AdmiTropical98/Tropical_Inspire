@@ -2,10 +2,11 @@
 import React, { useState } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
-import { Plus, Trash2, Building2, MapPin, X, Download, Users, Car, Fuel, Wallet, ChevronRight, Zap } from 'lucide-react';
+import { Plus, Trash2, Building2, MapPin, X, Download, Users, Car, Fuel, Wallet, ChevronRight, Zap, Wrench } from 'lucide-react';
 import type { CentroCusto } from '../../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { supabase } from '../../lib/supabase';
 
 export default function CentrosCustos() {
     const { centrosCustos, addCentroCusto, deleteCentroCusto, fuelTransactions, requisicoes, motoristas, manualHours, viaturas } = useWorkshop();
@@ -17,6 +18,58 @@ export default function CentrosCustos() {
     // Form State
     const [nome, setNome] = useState('');
     const [localizacao, setLocalizacao] = useState('');
+    const [isRepairing, setIsRepairing] = useState(false);
+
+    const handleRepairData = async () => {
+        if (!confirm('Deseja processar e corrigir automaticamente os registos (Carregamentos e Via Verde) que não têm Centro de Custo associado, baseando-se na viatura atual?')) return;
+
+        setIsRepairing(true);
+        try {
+            // 1. Get Map of Vehicle -> Cost Center
+            const vehicleCCMap = new Map<string, string>();
+            viaturas.forEach(v => {
+                if (v.centro_custo_id) {
+                    vehicleCCMap.set(v.id, v.centro_custo_id);
+                }
+            });
+
+            // 2. Fix Charging Records
+            const { data: chargingData } = await supabase.from('electric_charging_records').select('id, vehicle_id').is('cost_center_id', null);
+            let fixedCharging = 0;
+            if (chargingData) {
+                for (const rec of chargingData) {
+                    const ccId = vehicleCCMap.get(rec.vehicle_id);
+                    if (ccId) {
+                        await supabase.from('electric_charging_records').update({ cost_center_id: ccId }).eq('id', rec.id);
+                        fixedCharging++;
+                    }
+                }
+            }
+
+            // 3. Fix Via Verde Records
+            const { data: tollData } = await supabase.from('via_verde_toll_records').select('id, vehicle_id').is('cost_center_id', null);
+            let fixedTolls = 0;
+            if (tollData) {
+                for (const rec of tollData) {
+                    const ccId = vehicleCCMap.get(rec.vehicle_id);
+                    if (ccId) {
+                        await supabase.from('via_verde_toll_records').update({ cost_center_id: ccId }).eq('id', rec.id);
+                        fixedTolls++;
+                    }
+                }
+            }
+
+            alert(`Processo concluído!\n\nCarregamentos corrigidos: ${fixedCharging}\nRegistos Via Verde corrigidos: ${fixedTolls}\n\nA página será recarregada.`);
+            window.location.reload();
+
+        } catch (error) {
+            console.error('Error repairing data:', error);
+            alert('Erro ao processar dados.');
+        } finally {
+            setIsRepairing(false);
+        }
+    };
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -200,6 +253,14 @@ export default function CentrosCustos() {
                     >
                         <Plus className="w-5 h-5" />
                         Novo Centro
+                    </button>
+                    <button
+                        onClick={handleRepairData}
+                        disabled={isRepairing}
+                        className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 shadow-lg disabled:opacity-50"
+                        title="Corrigir/Atualizar Centros de Custo nos Registos"
+                    >
+                        <Wrench className={`w-5 h-5 ${isRepairing ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
             </div>
