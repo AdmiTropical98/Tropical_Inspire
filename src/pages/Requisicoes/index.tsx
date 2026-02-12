@@ -477,18 +477,43 @@ export default function Requisicoes() {
 
                 // 🧯 Campo legado
                 if (displayInvoices.length === 0 && req.fatura) {
-                    displayInvoices = [{
-                        numero: req.fatura,
-                        valor_liquido: req.custo || 0,
-                        iva_taxa: 0,
-                        iva_valor: 0,
-                        valor_total: req.custo || 0,
-                        isLegacy: true
-                    }];
+                    // Tenta separar por vírgula ou barra se houver múltiplos números
+                    const parts = req.fatura.split(/[,/]/).map(s => s.trim()).filter(Boolean);
+
+                    if (parts.length > 1) {
+                        // Se encontrou separadores, cria várias linhas
+                        displayInvoices = parts.map(num => ({
+                            numero: num,
+                            valor_liquido: 0,
+                            iva_taxa: 0,
+                            iva_valor: 0,
+                            valor_total: 0,
+                            isLegacy: true
+                        }));
+                    } else {
+                        // Caso contrário, mantém comportamento anterior
+                        displayInvoices = [{
+                            numero: req.fatura,
+                            valor_liquido: req.custo || 0,
+                            iva_taxa: 0,
+                            iva_valor: 0,
+                            valor_total: req.custo || 0,
+                            isLegacy: true
+                        }];
+                    }
                 }
 
                 if (displayInvoices.length > 0) {
-                    const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
+                    // Se for legado com separação (valores a 0), usa o custo total da requisição
+                    // Se não for legado ou for legado simples, soma os parciais
+                    let grandTotal = 0;
+                    const isSplitLegacy = displayInvoices.every(i => i.isLegacy && i.valor_total === 0);
+
+                    if (isSplitLegacy) {
+                        grandTotal = req.custo || 0;
+                    } else {
+                        grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
+                    }
 
                     autoTable(doc, {
                         startY: yPos,
