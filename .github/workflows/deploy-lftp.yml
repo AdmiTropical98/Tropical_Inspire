@@ -1,0 +1,40 @@
+name: 🚀 Production Build & Deploy (LFTP)
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Project
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: 📂 Deploy with LFTP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+          lftp -c "
+          set ftp:ssl-allow no;
+          set net:timeout 60;
+          set net:max-retries 3;
+          open -u '${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }}' '${{ secrets.FTP_SERVER }}';
+          mirror -R --verbose --parallel=2 --exclude .git/ --exclude .github/ --exclude node_modules/ ./dist/ /;
+          bye
+          "
