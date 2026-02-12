@@ -520,927 +520,928 @@ export default function Requisicoes() {
                     autoTable(doc, {
                         startY: yPos,
                         head: [['FATURA', 'VALOR LÍQUIDO', 'VALOR IVA', 'VALOR COM IVA']],
-                        // Helper to safely get values from potentially different field names
-                        const getVal = (obj: any, keys: string[]) => {
-                            if (!obj) return 0;
-                            for (const key of keys) {
-                                const val = obj[key];
-                                if (val !== undefined && val !== null && val !== '') {
-                                    const num = Number(val);
-                                    if (!isNaN(num)) return num;
+                        body: displayInvoices.map(f => {
+                            // Helper to safely get values from potentially different field names
+                            const getVal = (obj: any, keys: string[]) => {
+                                if (!obj) return 0;
+                                for (const key of keys) {
+                                    const val = obj[key];
+                                    if (val !== undefined && val !== null && val !== '') {
+                                        const num = Number(val);
+                                        if (!isNaN(num)) return num;
+                                    }
                                 }
-                            }
-                            return 0;
-                        };
+                                return 0;
+                            };
 
-                        console.log("Processing invoice row for PDF:", f);
+                            console.log("Processing invoice row for PDF:", f);
 
-                        const base = getVal(f, ['valor_liquido', 'valorLiquido', 'net', 'Net', 'value', 'Value', 'base']);
-                        const iva = getVal(f, ['iva_valor', 'ivaValor', 'tax', 'Tax', 'iva', 'Iva']);
-                        const total = getVal(f, ['valor_total', 'valorTotal', 'total', 'Total', 'gross', 'Gross']);
+                            const base = getVal(f, ['valor_liquido', 'valorLiquido', 'net', 'Net', 'value', 'Value', 'base']);
+                            const iva = getVal(f, ['iva_valor', 'ivaValor', 'tax', 'Tax', 'iva', 'Iva']);
+                            const total = getVal(f, ['valor_total', 'valorTotal', 'total', 'Total', 'gross', 'Gross']);
 
-                        return [
-                            f.numero,
-                            `${base.toFixed(2)} €`,
-                            `${iva.toFixed(2)} €`,
-                            `${total.toFixed(2)} €`
-                        ];
-                    }),
+                            return [
+                                f.numero,
+                                `${base.toFixed(2)} €`,
+                                `${iva.toFixed(2)} €`,
+                                `${total.toFixed(2)} €`
+                            ];
+                        }),
                         foot: [[
                             { content: 'TOTAL GERAL:', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } },
                             { content: `${grandTotal.toFixed(2)}€`, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } }
                         ]],
-                            theme: 'grid',
-                                margin: { left: 10, right: 10 },
-                    headStyles: { fillColor: [20, 60, 140], textColor: 255, fontStyle: 'bold', lineWidth: 0.1 },
-                    styles: { fontSize: 8, textColor: 0, lineWidth: 0.1 },
-                    columnStyles: {
-                        0: { fontStyle: 'bold' },
-                        1: { halign: 'right' },
-                        2: { halign: 'right' },
-                        3: { halign: 'right', fontStyle: 'bold' }
-                    },
-                    footStyles: {
-                        fillColor: [255, 255, 255],
+                        theme: 'grid',
+                        margin: { left: 10, right: 10 },
+                        headStyles: { fillColor: [20, 60, 140], textColor: 255, fontStyle: 'bold', lineWidth: 0.1 },
+                        styles: { fontSize: 8, textColor: 0, lineWidth: 0.1 },
+                        columnStyles: {
+                            0: { fontStyle: 'bold' },
+                            1: { halign: 'right' },
+                            2: { halign: 'right' },
+                            3: { halign: 'right', fontStyle: 'bold' }
+                        },
+                        footStyles: {
+                            fillColor: [255, 255, 255],
                             textColor: 0,
-                                fontStyle: 'bold',
-                                    halign: 'right',
-                                        lineColor: [255, 255, 255],
-                                            lineWidth: 0
-                    }
-                });
+                            fontStyle: 'bold',
+                            halign: 'right',
+                            lineColor: [255, 255, 255],
+                            lineWidth: 0
+                        }
+                    });
 
-                yPos = (doc as any).lastAutoTable.finalY + 15;
+                    yPos = (doc as any).lastAutoTable.finalY + 15;
+                }
             }
-        }
 
             const tableBody = req.itens.map(item => [
-            item.descricao.toUpperCase(),
-            item.quantidade.toString()
-        ]);
+                item.descricao.toUpperCase(),
+                item.quantidade.toString()
+            ]);
 
-        autoTable(doc, {
-            startY: yPos,
-            head: [['DESCRIÇÃO DO MATERIAL', 'QTD.']],
-            body: tableBody,
-            theme: 'grid',
-            margin: { left: 10, right: 10 },
-            headStyles: {
-                fillColor: [20, 60, 140],
-                textColor: 255,
-                fontStyle: 'bold',
-                halign: 'left',
-                cellPadding: 4,
-                lineWidth: 0.1,
-                lineColor: [20, 60, 140]
-            },
-            styles: {
-                fontSize: 10,
-                cellPadding: 4,
-                textColor: [40, 40, 40],
-                lineColor: [200, 200, 200],
-                lineWidth: 0.1
-            },
-            columnStyles: {
-                0: { cellWidth: 'auto' },
-                1: { cellWidth: 30, halign: 'center', fontStyle: 'bold' },
-            },
-            alternateRowStyles: {
-                fillColor: [245, 245, 245]
+            autoTable(doc, {
+                startY: yPos,
+                head: [['DESCRIÇÃO DO MATERIAL', 'QTD.']],
+                body: tableBody,
+                theme: 'grid',
+                margin: { left: 10, right: 10 },
+                headStyles: {
+                    fillColor: [20, 60, 140],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    halign: 'left',
+                    cellPadding: 4,
+                    lineWidth: 0.1,
+                    lineColor: [20, 60, 140]
+                },
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 4,
+                    textColor: [40, 40, 40],
+                    lineColor: [200, 200, 200],
+                    lineWidth: 0.1
+                },
+                columnStyles: {
+                    0: { cellWidth: 'auto' },
+                    1: { cellWidth: 30, halign: 'center', fontStyle: 'bold' },
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                }
+            });
+
+            const finalY = (doc as any).lastAutoTable.finalY + 15;
+            let currentY = finalY;
+
+            if (req.obs) {
+                const textWidth = pageWidth - 24;
+                const splitObs = doc.splitTextToSize(req.obs, textWidth);
+                const obsHeight = splitObs.length * 5 + 10; // 5 pt per line approx + padding
+
+                // Check if obs fits on page
+                if (currentY + obsHeight + 20 > pageHeight - 20) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+
+                doc.setDrawColor(200);
+                doc.setLineWidth(0.1);
+                doc.rect(10, currentY, pageWidth - 20, obsHeight + 10);
+
+                doc.setFontSize(8);
+                doc.setTextColor(120);
+                doc.setFont('helvetica', 'bold');
+                doc.text('OBSERVAÇÕES', 12, currentY + 5);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(0);
+                doc.text(splitObs, 12, currentY + 12);
+
+                currentY += obsHeight + 15;
             }
-        });
 
-        const finalY = (doc as any).lastAutoTable.finalY + 15;
-        let currentY = finalY;
-
-        if (req.obs) {
-            const textWidth = pageWidth - 24;
-            const splitObs = doc.splitTextToSize(req.obs, textWidth);
-            const obsHeight = splitObs.length * 5 + 10; // 5 pt per line approx + padding
-
-            // Check if obs fits on page
-            if (currentY + obsHeight + 20 > pageHeight - 20) {
+            // Signature Section - Dynamic Positioning
+            // Ensure there is space for signatures (approx 30 units height)
+            if (currentY + 40 > pageHeight - 20) {
                 doc.addPage();
-                currentY = 20;
-            }
-
-            doc.setDrawColor(200);
-            doc.setLineWidth(0.1);
-            doc.rect(10, currentY, pageWidth - 20, obsHeight + 10);
-
-            doc.setFontSize(8);
-            doc.setTextColor(120);
-            doc.setFont('helvetica', 'bold');
-            doc.text('OBSERVAÇÕES', 12, currentY + 5);
-
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(0);
-            doc.text(splitObs, 12, currentY + 12);
-
-            currentY += obsHeight + 15;
-        }
-
-        // Signature Section - Dynamic Positioning
-        // Ensure there is space for signatures (approx 30 units height)
-        if (currentY + 40 > pageHeight - 20) {
-            doc.addPage();
-            currentY = 40; // Start a bit lower on new page
-        } else {
-            // Push to bottom if plenty of space, otherwise just below content
-            // But don't force it to 270 if content is already past that or close to it
-            if (currentY < 250) {
-                currentY = 270;
+                currentY = 40; // Start a bit lower on new page
             } else {
-                currentY += 10; // Add some padding if we are flowing naturally
+                // Push to bottom if plenty of space, otherwise just below content
+                // But don't force it to 270 if content is already past that or close to it
+                if (currentY < 250) {
+                    currentY = 270;
+                } else {
+                    currentY += 10; // Add some padding if we are flowing naturally
+                }
             }
+
+            const signY = currentY;
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.5);
+
+            doc.line(10, signY, 80, signY);
+            doc.setFontSize(9);
+            doc.text('O Responsável', 10, signY + 5);
+
+            doc.line(130, signY, pageWidth - 10, signY);
+            doc.text('A Gerência', 130, signY + 5);
+            doc.save(`Requisicao_${req.numero}.pdf`);
+
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            alert('Erro ao gerar PDF.');
         }
-
-        const signY = currentY;
-        doc.setDrawColor(0);
-        doc.setLineWidth(0.5);
-
-        doc.line(10, signY, 80, signY);
-        doc.setFontSize(9);
-        doc.text('O Responsável', 10, signY + 5);
-
-        doc.line(130, signY, pageWidth - 10, signY);
-        doc.text('A Gerência', 130, signY + 5);
-        doc.save(`Requisicao_${req.numero}.pdf`);
-
-    } catch (error) {
-        console.error('Erro ao gerar PDF:', error);
-        alert('Erro ao gerar PDF.');
-    }
-};
+    };
 
 
-const filteredItems = requisicoes.filter(r => {
-    const matchesStatus = listFilter === 'pendentes'
-        ? (!r.status || r.status === 'pendente')
-        : r.status === 'concluida';
+    const filteredItems = requisicoes.filter(r => {
+        const matchesStatus = listFilter === 'pendentes'
+            ? (!r.status || r.status === 'pendente')
+            : r.status === 'concluida';
 
-    const numStr = String(r.numero || '');
-    const fornecedor = fornecedores.find(f => f.id === r.fornecedorId);
-    const fornecedorNome = fornecedor ? fornecedor.nome.toLowerCase() : '';
+        const numStr = String(r.numero || '');
+        const fornecedor = fornecedores.find(f => f.id === r.fornecedorId);
+        const fornecedorNome = fornecedor ? fornecedor.nome.toLowerCase() : '';
 
-    const matchesSearch = numStr.toLowerCase().includes(filter.toLowerCase()) ||
-        fornecedorNome.includes(filter.toLowerCase());
+        const matchesSearch = numStr.toLowerCase().includes(filter.toLowerCase()) ||
+            fornecedorNome.includes(filter.toLowerCase());
 
-    return matchesStatus && matchesSearch;
-}).sort((a, b) => String(b.numero || '').localeCompare(String(a.numero || '')));
+        return matchesStatus && matchesSearch;
+    }).sort((a, b) => String(b.numero || '').localeCompare(String(a.numero || '')));
 
-return (
-    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 font-sans overflow-hidden">
+    return (
+        <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 font-sans overflow-hidden">
 
-        {/* Main Scrollable Area */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
-            <main className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-8">
+            {/* Main Scrollable Area */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <main className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-8">
 
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div>
-                        <h1 className="text-4xl font-black text-white tracking-tight mb-2 flex items-center gap-4">
-                            <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                                <FileText className="w-8 h-8 text-blue-400" />
-                            </div>
-                            <span className="bg-gradient-to-r from-blue-400 to-indigo-400 text-transparent bg-clip-text">
-                                {t('req.title')}
-                            </span>
-                        </h1>
-                        <p className="text-slate-400 text-lg font-medium max-w-2xl">{t('req.subtitle')}</p>
-                    </div>
-
-                    <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg">
-                        <button
-                            onClick={() => setActiveTab('overview')}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'overview' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                        >
-                            <LayoutTemplate className="w-5 h-5" />
-                            Visão Geral
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('list')}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'list' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                        >
-                            <List className="w-5 h-5" />
-                            Lista
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('create')}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'create' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                        >
-                            <PlusCircle className="w-5 h-5" />
-                            Nova
-                        </button>
-                    </div>
-                </div>
-
-                {/* Content Area */}
-                {activeTab === 'overview' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-amber-500/40 transition-all">
-                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <Clock className="w-24 h-24 text-amber-500" />
+                    {/* Header Section */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div>
+                            <h1 className="text-4xl font-black text-white tracking-tight mb-2 flex items-center gap-4">
+                                <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                                    <FileText className="w-8 h-8 text-blue-400" />
                                 </div>
-                                <div className="relative z-10">
-                                    <h3 className="text-amber-200/60 text-xs font-bold uppercase tracking-wider mb-2">Pendentes</h3>
-                                    <p className="text-4xl font-black text-white mb-4">{stats.pending}</p>
-                                    <div className="flex items-center gap-2 text-amber-300 text-xs font-bold px-3 py-1.5 bg-amber-500/10 w-fit rounded-lg border border-amber-500/20">
-                                        <AlertCircle className="w-3.5 h-3.5" />
-                                        A aguardar aprovação
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-emerald-500/40 transition-all">
-                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <CheckCircle className="w-24 h-24 text-emerald-500" />
-                                </div>
-                                <div className="relative z-10">
-                                    <h3 className="text-emerald-200/60 text-xs font-bold uppercase tracking-wider mb-2">Concluídas</h3>
-                                    <p className="text-4xl font-black text-white mb-4">{stats.completed}</p>
-                                    <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold px-3 py-1.5 bg-emerald-500/10 w-fit rounded-lg border border-emerald-500/20">
-                                        <TrendingUp className="w-3.5 h-3.5" />
-                                        Processadas com sucesso
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-gradient-to-br from-blue-500/10 to-indigo-600/5 border border-blue-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-blue-500/40 transition-all">
-                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <Package className="w-24 h-24 text-blue-500" />
-                                </div>
-                                <div className="relative z-10">
-                                    <h3 className="text-blue-200/60 text-xs font-bold uppercase tracking-wider mb-2">Total</h3>
-                                    <p className="text-4xl font-black text-white mb-4">{stats.total}</p>
-                                    <div className="flex items-center gap-2 text-blue-300 text-xs font-bold px-3 py-1.5 bg-blue-500/10 w-fit rounded-lg border border-blue-500/20">
-                                        <Calendar className="w-3.5 h-3.5" />
-                                        Requisições criadas
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex flex-col justify-center gap-4 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-blue-500/5 opacity-50"></div>
-                                <button
-                                    onClick={() => setActiveTab('create')}
-                                    className="relative w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-md font-bold shadow-xl shadow-blue-900/20 transition-all flex items-center justify-center gap-3 group active:scale-95"
-                                >
-                                    <div className="bg-white/20 p-1 rounded-lg">
-                                        <Plus className="w-5 h-5" />
-                                    </div>
-                                    Criar Nova
-                                    <ArrowRight className="w-5 h-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                </button>
-                                <button
-                                    onClick={() => { setActiveTab('list'); setListFilter('pendentes'); }}
-                                    className="relative w-full py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-2xl text-md font-bold border border-slate-700 hover:border-slate-600 transition-all active:scale-95"
-                                >
-                                    Ver Pendentes
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* List Tab */}
-                {activeTab === 'list' && (
-                    <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
-                        {/* Toolbar */}
-                        <div className="flex flex-col lg:flex-row gap-6 justify-between items-center bg-slate-900/50 p-4 rounded-[2rem] border border-slate-800 backdrop-blur-md">
-                            <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
-                                <button
-                                    onClick={() => setListFilter('pendentes')}
-                                    className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${listFilter === 'pendentes' ? 'bg-slate-800 text-white shadow-lg border border-slate-700' : 'text-slate-500 hover:text-white'}`}
-                                >
-                                    Pendentes
-                                </button>
-                                <button
-                                    onClick={() => setListFilter('historico')}
-                                    className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${listFilter === 'historico' ? 'bg-slate-800 text-white shadow-lg border border-slate-700' : 'text-slate-500 hover:text-white'}`}
-                                >
-                                    Histórico
-                                </button>
-                            </div>
-
-                            <div className="relative w-full lg:w-96 group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Search className="h-5 w-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Pesquisar por número, fornecedor..."
-                                    className="block w-full pl-12 pr-4 py-4 bg-slate-950 border border-slate-800 rounded-2xl leading-5 text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm transition-all shadow-inner"
-                                    value={filter}
-                                    onChange={e => setFilter(e.target.value)}
-                                />
-                            </div>
+                                <span className="bg-gradient-to-r from-blue-400 to-indigo-400 text-transparent bg-clip-text">
+                                    {t('req.title')}
+                                </span>
+                            </h1>
+                            <p className="text-slate-400 text-lg font-medium max-w-2xl">{t('req.subtitle')}</p>
                         </div>
 
-                        {/* Cards Grid */}
-                        <div className="grid grid-cols-1 gap-4">
-                            {filteredItems.map(req => {
-                                const fornecedor = fornecedores.find(f => f.id === req.fornecedorId);
-                                const viatura = viaturas.find(v => v.id === req.viaturaId);
-                                return (
-                                    <div key={req.id} className="bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-hidden">
-                                        {/* decorative blob */}
-                                        <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors pointer-events-none"></div>
+                        <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg">
+                            <button
+                                onClick={() => setActiveTab('overview')}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'overview' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                            >
+                                <LayoutTemplate className="w-5 h-5" />
+                                Visão Geral
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('list')}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'list' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                            >
+                                <List className="w-5 h-5" />
+                                Lista
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('create')}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'create' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                            >
+                                <PlusCircle className="w-5 h-5" />
+                                Nova
+                            </button>
+                        </div>
+                    </div>
 
-                                        <div className="flex flex-col lg:flex-row gap-6 relative z-10">
-                                            {/* Left Info */}
-                                            <div className="flex-1 flex gap-5">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <div className="h-20 w-24 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col items-center justify-center shadow-lg">
-                                                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Número</span>
-                                                        <span className="text-xl font-mono font-bold text-blue-400">R:{req.numero?.split('/')[1]}</span>
-                                                        <span className="text-[10px] text-slate-600">{req.numero?.split('/')[0]}</span>
-                                                    </div>
-                                                    <div className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border w-full text-center
+                    {/* Content Area */}
+                    {activeTab === 'overview' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-amber-500/40 transition-all">
+                                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <Clock className="w-24 h-24 text-amber-500" />
+                                    </div>
+                                    <div className="relative z-10">
+                                        <h3 className="text-amber-200/60 text-xs font-bold uppercase tracking-wider mb-2">Pendentes</h3>
+                                        <p className="text-4xl font-black text-white mb-4">{stats.pending}</p>
+                                        <div className="flex items-center gap-2 text-amber-300 text-xs font-bold px-3 py-1.5 bg-amber-500/10 w-fit rounded-lg border border-amber-500/20">
+                                            <AlertCircle className="w-3.5 h-3.5" />
+                                            A aguardar aprovação
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+                                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <CheckCircle className="w-24 h-24 text-emerald-500" />
+                                    </div>
+                                    <div className="relative z-10">
+                                        <h3 className="text-emerald-200/60 text-xs font-bold uppercase tracking-wider mb-2">Concluídas</h3>
+                                        <p className="text-4xl font-black text-white mb-4">{stats.completed}</p>
+                                        <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold px-3 py-1.5 bg-emerald-500/10 w-fit rounded-lg border border-emerald-500/20">
+                                            <TrendingUp className="w-3.5 h-3.5" />
+                                            Processadas com sucesso
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-blue-500/10 to-indigo-600/5 border border-blue-500/20 p-6 rounded-[2rem] relative overflow-hidden group hover:border-blue-500/40 transition-all">
+                                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <Package className="w-24 h-24 text-blue-500" />
+                                    </div>
+                                    <div className="relative z-10">
+                                        <h3 className="text-blue-200/60 text-xs font-bold uppercase tracking-wider mb-2">Total</h3>
+                                        <p className="text-4xl font-black text-white mb-4">{stats.total}</p>
+                                        <div className="flex items-center gap-2 text-blue-300 text-xs font-bold px-3 py-1.5 bg-blue-500/10 w-fit rounded-lg border border-blue-500/20">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                            Requisições criadas
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex flex-col justify-center gap-4 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-blue-500/5 opacity-50"></div>
+                                    <button
+                                        onClick={() => setActiveTab('create')}
+                                        className="relative w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-md font-bold shadow-xl shadow-blue-900/20 transition-all flex items-center justify-center gap-3 group active:scale-95"
+                                    >
+                                        <div className="bg-white/20 p-1 rounded-lg">
+                                            <Plus className="w-5 h-5" />
+                                        </div>
+                                        Criar Nova
+                                        <ArrowRight className="w-5 h-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                                    </button>
+                                    <button
+                                        onClick={() => { setActiveTab('list'); setListFilter('pendentes'); }}
+                                        className="relative w-full py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-2xl text-md font-bold border border-slate-700 hover:border-slate-600 transition-all active:scale-95"
+                                    >
+                                        Ver Pendentes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* List Tab */}
+                    {activeTab === 'list' && (
+                        <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
+                            {/* Toolbar */}
+                            <div className="flex flex-col lg:flex-row gap-6 justify-between items-center bg-slate-900/50 p-4 rounded-[2rem] border border-slate-800 backdrop-blur-md">
+                                <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
+                                    <button
+                                        onClick={() => setListFilter('pendentes')}
+                                        className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${listFilter === 'pendentes' ? 'bg-slate-800 text-white shadow-lg border border-slate-700' : 'text-slate-500 hover:text-white'}`}
+                                    >
+                                        Pendentes
+                                    </button>
+                                    <button
+                                        onClick={() => setListFilter('historico')}
+                                        className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${listFilter === 'historico' ? 'bg-slate-800 text-white shadow-lg border border-slate-700' : 'text-slate-500 hover:text-white'}`}
+                                    >
+                                        Histórico
+                                    </button>
+                                </div>
+
+                                <div className="relative w-full lg:w-96 group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Search className="h-5 w-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Pesquisar por número, fornecedor..."
+                                        className="block w-full pl-12 pr-4 py-4 bg-slate-950 border border-slate-800 rounded-2xl leading-5 text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm transition-all shadow-inner"
+                                        value={filter}
+                                        onChange={e => setFilter(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Cards Grid */}
+                            <div className="grid grid-cols-1 gap-4">
+                                {filteredItems.map(req => {
+                                    const fornecedor = fornecedores.find(f => f.id === req.fornecedorId);
+                                    const viatura = viaturas.find(v => v.id === req.viaturaId);
+                                    return (
+                                        <div key={req.id} className="bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-hidden">
+                                            {/* decorative blob */}
+                                            <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors pointer-events-none"></div>
+
+                                            <div className="flex flex-col lg:flex-row gap-6 relative z-10">
+                                                {/* Left Info */}
+                                                <div className="flex-1 flex gap-5">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="h-20 w-24 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col items-center justify-center shadow-lg">
+                                                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Número</span>
+                                                            <span className="text-xl font-mono font-bold text-blue-400">R:{req.numero?.split('/')[1]}</span>
+                                                            <span className="text-[10px] text-slate-600">{req.numero?.split('/')[0]}</span>
+                                                        </div>
+                                                        <div className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border w-full text-center
                                                             ${req.status === 'concluida' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}
                                                         `}>
-                                                        {req.status === 'concluida' ? 'Concluída' : 'Pendente'}
+                                                            {req.status === 'concluida' ? 'Concluída' : 'Pendente'}
+                                                        </div>
                                                     </div>
-                                                </div>
 
-                                                <div className="flex-1 space-y-3">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className={`text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide border flex items-center gap-1.5
+                                                    <div className="flex-1 space-y-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className={`text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide border flex items-center gap-1.5
                                                                 ${req.tipo === 'Oficina' ? 'bg-slate-800 border-slate-700 text-slate-300' : ''}
                                                                 ${req.tipo === 'Stock' ? 'bg-purple-900/30 border-purple-500/30 text-purple-400' : ''}
                                                                 ${req.tipo === 'Viatura' ? 'bg-indigo-900/30 border-indigo-500/30 text-indigo-400' : ''}
                                                             `}>
-                                                            {req.tipo === 'Oficina' && (
-                                                                <Building className="w-3 h-3" />
-                                                            )}
-                                                            {req.tipo === 'Stock' && <Box className="w-3 h-3" />}
-                                                            {req.tipo === 'Viatura' && <Truck className="w-3 h-3" />}
-                                                            {req.tipo}
-                                                        </span>
-                                                        <span className="text-xs text-slate-500 font-medium flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-md border border-slate-800">
-                                                            <Calendar className="w-3 h-3" />
-                                                            {req.data}
-                                                        </span>
-                                                    </div>
+                                                                {req.tipo === 'Oficina' && (
+                                                                    <Building className="w-3 h-3" />
+                                                                )}
+                                                                {req.tipo === 'Stock' && <Box className="w-3 h-3" />}
+                                                                {req.tipo === 'Viatura' && <Truck className="w-3 h-3" />}
+                                                                {req.tipo}
+                                                            </span>
+                                                            <span className="text-xs text-slate-500 font-medium flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-md border border-slate-800">
+                                                                <Calendar className="w-3 h-3" />
+                                                                {req.data}
+                                                            </span>
+                                                        </div>
 
-                                                    <div>
-                                                        <h3 className="font-bold text-white text-xl leading-snug">{fornecedor?.nome || t('req.card.unknown_supplier')}</h3>
-                                                        {viatura && (
-                                                            <div className="flex items-center gap-2 mt-1 text-sm text-indigo-300 font-medium">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                                                                {viatura.matricula} - {viatura.marca} {viatura.modelo}
-                                                            </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-white text-xl leading-snug">{fornecedor?.nome || t('req.card.unknown_supplier')}</h3>
+                                                            {viatura && (
+                                                                <div className="flex items-center gap-2 mt-1 text-sm text-indigo-300 font-medium">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+                                                                    {viatura.matricula} - {viatura.marca} {viatura.modelo}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center gap-4 text-sm text-slate-400">
+                                                            <span className="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
+                                                                <Package className="w-4 h-4 text-slate-500" />
+                                                                <span className="text-white font-bold">{(req.itens || []).length}</span> itens
+                                                            </span>
+                                                            <span className="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
+                                                                <User className="w-4 h-4 text-slate-500" />
+                                                                <span className="text-slate-300">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Right Actions */}
+                                                <div className="flex lg:flex-col lg:items-end justify-between items-center gap-3 border-t lg:border-t-0 lg:border-l border-slate-800 pt-4 lg:pt-0 lg:pl-6 min-w-[180px]">
+                                                    {req.fatura && (
+                                                        <div className="flex items-center gap-2 bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-500/20 mb-auto">
+                                                            <FileText className="w-3.5 h-3.5 text-emerald-500" />
+                                                            <span className="text-xs text-emerald-400 font-mono font-bold">{req.fatura}</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex items-center gap-2 mt-auto">
+                                                        <button
+                                                            onClick={() => generatePDF(req)}
+                                                            className="p-3 text-blue-300 bg-blue-900/20 hover:bg-blue-800/40 hover:text-white border border-blue-500/20 rounded-xl transition-colors"
+                                                            title="Imprimir PDF"
+                                                        >
+                                                            <Printer className="w-5 h-5" />
+                                                        </button>
+
+                                                        {hasAccess(userRole, 'requisicoes_delete') && (
+                                                            <button
+                                                                onClick={() => deleteRequisicao(req.id)}
+                                                                className="p-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors border border-transparent hover:border-red-500/20"
+                                                                title={t('permission.delete')}
+                                                            >
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                        )}
+
+                                                        {hasAccess(userRole, 'requisicoes_edit') && (
+                                                            <button
+                                                                onClick={() => listFilter === 'pendentes' ? handleOpenConfirm(req.id) : toggleRequisicaoStatus(req.id)}
+                                                                className={`flex items-center justify-center p-3 rounded-xl transition-all border shadow-lg
+                                                                    ${listFilter === 'pendentes'
+                                                                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-transparent shadow-emerald-900/20 hover:scale-105 active:scale-95'
+                                                                        : 'bg-slate-800 text-amber-500 border-amber-500/20 hover:bg-amber-500/10'
+                                                                    }
+                                                                `}
+                                                                title={listFilter === 'pendentes' ? 'Concluir' : 'Reabrir'}
+                                                            >
+                                                                {listFilter === 'pendentes' ? <CheckCircle className="w-5 h-5" /> : <RotateCcw className="w-5 h-5" />}
+                                                            </button>
+                                                        )}
+
+                                                        {/* Edit Button */}
+                                                        {listFilter === 'pendentes' && hasAccess(userRole, 'requisicoes_edit') && (
+                                                            <button
+                                                                onClick={() => handleEdit(req)}
+                                                                className="p-3 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-colors border border-transparent hover:border-blue-500/20"
+                                                                title="Editar"
+                                                                type="button"
+                                                            >
+                                                                <Pencil className="w-5 h-5" />
+                                                            </button>
                                                         )}
                                                     </div>
-
-                                                    <div className="flex items-center gap-4 text-sm text-slate-400">
-                                                        <span className="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
-                                                            <Package className="w-4 h-4 text-slate-500" />
-                                                            <span className="text-white font-bold">{(req.itens || []).length}</span> itens
-                                                        </span>
-                                                        <span className="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
-                                                            <User className="w-4 h-4 text-slate-500" />
-                                                            <span className="text-slate-300">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Right Actions */}
-                                            <div className="flex lg:flex-col lg:items-end justify-between items-center gap-3 border-t lg:border-t-0 lg:border-l border-slate-800 pt-4 lg:pt-0 lg:pl-6 min-w-[180px]">
-                                                {req.fatura && (
-                                                    <div className="flex items-center gap-2 bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-500/20 mb-auto">
-                                                        <FileText className="w-3.5 h-3.5 text-emerald-500" />
-                                                        <span className="text-xs text-emerald-400 font-mono font-bold">{req.fatura}</span>
-                                                    </div>
-                                                )}
-
-                                                <div className="flex items-center gap-2 mt-auto">
-                                                    <button
-                                                        onClick={() => generatePDF(req)}
-                                                        className="p-3 text-blue-300 bg-blue-900/20 hover:bg-blue-800/40 hover:text-white border border-blue-500/20 rounded-xl transition-colors"
-                                                        title="Imprimir PDF"
-                                                    >
-                                                        <Printer className="w-5 h-5" />
-                                                    </button>
-
-                                                    {hasAccess(userRole, 'requisicoes_delete') && (
-                                                        <button
-                                                            onClick={() => deleteRequisicao(req.id)}
-                                                            className="p-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors border border-transparent hover:border-red-500/20"
-                                                            title={t('permission.delete')}
-                                                        >
-                                                            <Trash2 className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-
-                                                    {hasAccess(userRole, 'requisicoes_edit') && (
-                                                        <button
-                                                            onClick={() => listFilter === 'pendentes' ? handleOpenConfirm(req.id) : toggleRequisicaoStatus(req.id)}
-                                                            className={`flex items-center justify-center p-3 rounded-xl transition-all border shadow-lg
-                                                                    ${listFilter === 'pendentes'
-                                                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-transparent shadow-emerald-900/20 hover:scale-105 active:scale-95'
-                                                                    : 'bg-slate-800 text-amber-500 border-amber-500/20 hover:bg-amber-500/10'
-                                                                }
-                                                                `}
-                                                            title={listFilter === 'pendentes' ? 'Concluir' : 'Reabrir'}
-                                                        >
-                                                            {listFilter === 'pendentes' ? <CheckCircle className="w-5 h-5" /> : <RotateCcw className="w-5 h-5" />}
-                                                        </button>
-                                                    )}
-
-                                                    {/* Edit Button */}
-                                                    {listFilter === 'pendentes' && hasAccess(userRole, 'requisicoes_edit') && (
-                                                        <button
-                                                            onClick={() => handleEdit(req)}
-                                                            className="p-3 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-colors border border-transparent hover:border-blue-500/20"
-                                                            title="Editar"
-                                                            type="button"
-                                                        >
-                                                            <Pencil className="w-5 h-5" />
-                                                        </button>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
+                                    );
+                                })}
+                                {filteredItems.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-24 bg-slate-900/20 rounded-[2rem] border border-dashed border-slate-700">
+                                        <div className="bg-slate-800 p-6 rounded-full mb-6 shadow-inner">
+                                            <Search className="w-12 h-12 text-slate-600" />
+                                        </div>
+                                        <h3 className="text-slate-400 text-lg font-medium">Nenhuma requisição encontrada.</h3>
+                                        {listFilter === 'pendentes' && (
+                                            <button onClick={() => setActiveTab('create')} className="mt-4 text-blue-400 hover:text-blue-300 font-bold text-sm tracking-wide uppercase border-b border-transparent hover:border-blue-300 transition-all">
+                                                Criar nova requisição
+                                            </button>
+                                        )}
                                     </div>
-                                );
-                            })}
-                            {filteredItems.length === 0 && (
-                                <div className="flex flex-col items-center justify-center py-24 bg-slate-900/20 rounded-[2rem] border border-dashed border-slate-700">
-                                    <div className="bg-slate-800 p-6 rounded-full mb-6 shadow-inner">
-                                        <Search className="w-12 h-12 text-slate-600" />
-                                    </div>
-                                    <h3 className="text-slate-400 text-lg font-medium">Nenhuma requisição encontrada.</h3>
-                                    {listFilter === 'pendentes' && (
-                                        <button onClick={() => setActiveTab('create')} className="mt-4 text-blue-400 hover:text-blue-300 font-bold text-sm tracking-wide uppercase border-b border-transparent hover:border-blue-300 transition-all">
-                                            Criar nova requisição
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Create Tab */}
-                {activeTab === 'create' && (
-                    <div className="max-w-5xl mx-auto animate-in slide-in-from-bottom-8 fade-in pb-10">
-                        <div className="bg-slate-900/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-700/50 shadow-2xl relative">
-                            {/* Decorative Glow */}
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
-
-                            <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800">
-                                <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
-                                    <PlusCircle className="w-7 h-7" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-black text-white tracking-tight">
-                                        {editingId ? 'Editar Requisição' : t('req.form.title')}
-                                        <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">v2.2</span>
-                                    </h2>
-                                    <p className="text-slate-400 text-md">{editingId ? 'Atualize os dados da requisição.' : 'Preencha os dados para processar o pedido de material.'}</p>
-                                </div>
+                                )}
                             </div>
+                        </div>
+                    )}
 
-                            {editingId && (
-                                <div className="absolute top-8 right-8">
-                                    <button
-                                        onClick={cancelEdit}
-                                        className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-all font-bold text-sm"
-                                    >
-                                        Cancelar Edição
-                                    </button>
+                    {/* Create Tab */}
+                    {activeTab === 'create' && (
+                        <div className="max-w-5xl mx-auto animate-in slide-in-from-bottom-8 fade-in pb-10">
+                            <div className="bg-slate-900/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-700/50 shadow-2xl relative">
+                                {/* Decorative Glow */}
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
+
+                                <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800">
+                                    <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
+                                        <PlusCircle className="w-7 h-7" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black text-white tracking-tight">
+                                            {editingId ? 'Editar Requisição' : t('req.form.title')}
+                                            <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">v2.2</span>
+                                        </h2>
+                                        <p className="text-slate-400 text-md">{editingId ? 'Atualize os dados da requisição.' : 'Preencha os dados para processar o pedido de material.'}</p>
+                                    </div>
                                 </div>
-                            )}
 
-                            <form onSubmit={handleSubmit} className="space-y-8">
-                                {/* Form Fields Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.date')}</label>
-                                        <div className="relative group">
-                                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                            <input
-                                                type="date"
-                                                required
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
-                                                value={data}
-                                                onChange={e => setData(e.target.value)}
-                                            />
-                                        </div>
+                                {editingId && (
+                                    <div className="absolute top-8 right-8">
+                                        <button
+                                            onClick={cancelEdit}
+                                            className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-all font-bold text-sm"
+                                        >
+                                            Cancelar Edição
+                                        </button>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.type')}</label>
-                                        <div className="relative group">
-                                            <LayoutTemplate className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                            <select
-                                                value={tipo}
-                                                onChange={(e) => {
-                                                    const val = e.target.value as Requisicao['tipo'];
-                                                    setTipo(val);
-                                                    setViaturaId('');
-                                                }}
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all appearance-none font-medium shadow-sm"
-                                            >
-                                                <option value="Oficina">Oficina (Geral)</option>
-                                                <option value="Stock">Stock (Armazém)</option>
-                                                <option value="Viatura">Viatura</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                )}
 
-                                    {tipo === 'Viatura' && (
-                                        <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.vehicle')}</label>
+                                <form onSubmit={handleSubmit} className="space-y-8">
+                                    {/* Form Fields Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.date')}</label>
                                             <div className="relative group">
-                                                <Truck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                                <select
+                                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                                <input
+                                                    type="date"
                                                     required
-                                                    value={viaturaId}
-                                                    onChange={(e) => setViaturaId(e.target.value)}
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
+                                                    value={data}
+                                                    onChange={e => setData(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.type')}</label>
+                                            <div className="relative group">
+                                                <LayoutTemplate className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                                <select
+                                                    value={tipo}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value as Requisicao['tipo'];
+                                                        setTipo(val);
+                                                        setViaturaId('');
+                                                    }}
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all appearance-none font-medium shadow-sm"
+                                                >
+                                                    <option value="Oficina">Oficina (Geral)</option>
+                                                    <option value="Stock">Stock (Armazém)</option>
+                                                    <option value="Viatura">Viatura</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {tipo === 'Viatura' && (
+                                            <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.vehicle')}</label>
+                                                <div className="relative group">
+                                                    <Truck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                                    <select
+                                                        required
+                                                        value={viaturaId}
+                                                        onChange={(e) => setViaturaId(e.target.value)}
+                                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
+                                                    >
+                                                        <option value="">{t('req.form.vehicle_select')}</option>
+                                                        {viaturas.map(v => (
+                                                            <option key={v.id} value={v.id}>
+                                                                {v.matricula} - {v.marca} {v.modelo}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custos</label>
+                                            <div className="relative group">
+                                                <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                                <select
+                                                    value={centroCustoId || ''}
+                                                    onChange={(e) => setCentroCustoId(e.target.value || undefined)}
                                                     className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
                                                 >
-                                                    <option value="">{t('req.form.vehicle_select')}</option>
-                                                    {viaturas.map(v => (
-                                                        <option key={v.id} value={v.id}>
-                                                            {v.matricula} - {v.marca} {v.modelo}
-                                                        </option>
+                                                    <option value="">Selecione... (Opcional)</option>
+                                                    {centrosCustos.map(cc => (
+                                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
                                                     ))}
                                                 </select>
                                             </div>
                                         </div>
-                                    )}
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custos</label>
-                                        <div className="relative group">
-                                            <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                            <select
-                                                value={centroCustoId || ''}
-                                                onChange={(e) => setCentroCustoId(e.target.value || undefined)}
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
-                                            >
-                                                <option value="">Selecione... (Opcional)</option>
-                                                {centrosCustos.map(cc => (
-                                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.supplier')}</label>
-                                        <div className="relative group">
-                                            <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                            <select
-                                                required
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
-                                                value={fornecedorId}
-                                                onChange={e => setFornecedorId(e.target.value)}
-                                            >
-                                                <option value="">{t('req.form.supplier_select')}</option>
-                                                {fornecedores.map(f => (
-                                                    <option key={f.id} value={f.id}>{f.nome}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Items Section */}
-                                <div className="bg-slate-950/30 rounded-3xl p-6 border border-slate-800/50">
-                                    <label className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wider mb-4">
-                                        <div className="bg-slate-800 p-1.5 rounded-lg border border-slate-700">
-                                            <List className="w-4 h-4 text-blue-400" />
-                                        </div>
-                                        {t('req.form.items')}
-                                    </label>
-
-                                    <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-inner mb-4">
-                                        <div className="flex flex-col md:flex-row gap-4">
-                                            <input
-                                                placeholder={t('req.form.desc_placeholder')}
-                                                className="flex-1 px-5 py-3.5 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all placeholder-slate-600 shadow-sm"
-                                                value={newItemDesc}
-                                                onChange={e => setNewItemDesc(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        addItem();
-                                                    }
-                                                }}
-                                            />
-                                            <div className="flex gap-4">
-                                                <div className="relative w-32">
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        className="w-full px-4 py-3.5 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-center shadow-sm"
-                                                        value={newItemQtd}
-                                                        onChange={e => setNewItemQtd(parseInt(e.target.value) || 1)}
-                                                    />
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs font-bold uppercase pointer-events-none">Qtd</span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={addItem}
-                                                    className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all font-bold shadow-lg shadow-blue-900/20 active:scale-95 flex items-center gap-2"
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.supplier')}</label>
+                                            <div className="relative group">
+                                                <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                                <select
+                                                    required
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
+                                                    value={fornecedorId}
+                                                    onChange={e => setFornecedorId(e.target.value)}
                                                 >
-                                                    {itemEmEdicao ? 'Guardar alterações' : 'Adicionar item'}
-                                                    <Plus className="w-5 h-5" />
-                                                    <span className="hidden md:inline">Adicionar</span>
-                                                </button>
+                                                    <option value="">{t('req.form.supplier_select')}</option>
+                                                    {fornecedores.map(f => (
+                                                        <option key={f.id} value={f.id}>{f.nome}</option>
+                                                    ))}
+                                                </select>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Added Items List */}
-                                    <div className="space-y-2">
-                                        {items.map(item => (
-                                            <div
-                                                key={item.id}
-                                                className="flex items-center justify-between p-4 bg-slate-800/40 rounded-xl border border-slate-700"
-                                            >
-                                                {/* ESQUERDA */}
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center font-mono font-bold">
-                                                        {item.quantidade}
+                                    {/* Items Section */}
+                                    <div className="bg-slate-950/30 rounded-3xl p-6 border border-slate-800/50">
+                                        <label className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wider mb-4">
+                                            <div className="bg-slate-800 p-1.5 rounded-lg border border-slate-700">
+                                                <List className="w-4 h-4 text-blue-400" />
+                                            </div>
+                                            {t('req.form.items')}
+                                        </label>
+
+                                        <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-inner mb-4">
+                                            <div className="flex flex-col md:flex-row gap-4">
+                                                <input
+                                                    placeholder={t('req.form.desc_placeholder')}
+                                                    className="flex-1 px-5 py-3.5 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all placeholder-slate-600 shadow-sm"
+                                                    value={newItemDesc}
+                                                    onChange={e => setNewItemDesc(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            addItem();
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="flex gap-4">
+                                                    <div className="relative w-32">
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            className="w-full px-4 py-3.5 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-center shadow-sm"
+                                                            value={newItemQtd}
+                                                            onChange={e => setNewItemQtd(parseInt(e.target.value) || 1)}
+                                                        />
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs font-bold uppercase pointer-events-none">Qtd</span>
                                                     </div>
-
-                                                    <span className="text-slate-200 font-medium">
-                                                        {item.descricao}
-                                                    </span>
-                                                </div>
-
-                                                {/* DIREITA — BOTÕES */}
-                                                <div className="flex items-center gap-2">
-                                                    {/* EDITAR */}
                                                     <button
                                                         type="button"
-                                                        onClick={() => editarItem(item)}
-                                                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition"
-                                                        title="Editar"
+                                                        onClick={addItem}
+                                                        className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all font-bold shadow-lg shadow-blue-900/20 active:scale-95 flex items-center gap-2"
                                                     >
-                                                        ✏️
-                                                    </button>
-
-                                                    {/* REMOVER */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeItem(item.id)}
-                                                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
-                                                        title="Remover"
-                                                    >
-                                                        <X className="w-5 h-5" />
+                                                        {itemEmEdicao ? 'Guardar alterações' : 'Adicionar item'}
+                                                        <Plus className="w-5 h-5" />
+                                                        <span className="hidden md:inline">Adicionar</span>
                                                     </button>
                                                 </div>
                                             </div>
-                                        ))}
-
-                                        {items.length === 0 && (
-                                            <div className="text-center py-6 text-slate-500 text-sm italic border-2 border-dashed border-slate-800 rounded-xl">
-                                                Nenhum item adicionado à lista.
-                                            </div>
-                                        )}
-
-
-                                        {items.length === 0 && (
-                                            <div className="text-center py-6 text-slate-500 text-sm italic border-2 border-dashed border-slate-800 rounded-xl">
-                                                Nenhum item adicionado à lista.
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Observações</label>
-                                    <textarea
-                                        className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm resize-none h-32"
-                                        placeholder="Notas ou instruções adicionais..."
-                                        value={obs}
-                                        onChange={e => setObs(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="flex justify-end pt-4 border-t border-slate-800">
-                                    <button
-                                        type="submit"
-                                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-12 rounded-xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all flex items-center gap-3 text-lg"
-                                    >
-                                        <CheckCircle className="w-6 h-6" />
-                                        Finalizar Requisição
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-                {/* Edit Item Modal */}
-                {showEditModal && itemEmEdicao && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                            <h3 className="text-2xl font-bold text-white mb-6">
-                                Editar Item
-                            </h3>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase">
-                                        Descrição
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={newItemDesc}
-                                        onChange={e => setNewItemDesc(e.target.value)}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase">
-                                        Quantidade
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        value={newItemQtd}
-                                        onChange={e => setNewItemQtd(Number(e.target.value))}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 justify-end mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowEditModal(false)}
-                                    className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl"
-                                >
-                                    Cancelar
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setItems(items.map(i =>
-                                            i.id === itemEmEdicao.id
-                                                ? {
-                                                    ...i,
-                                                    descricao: newItemDesc,
-                                                    quantidade: newItemQtd
-                                                }
-                                                : i
-                                        ));
-                                        setItemEmEdicao(null);
-                                        setShowEditModal(false);
-                                    }}
-                                    className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl"
-                                >
-                                    Guardar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-
-
-                {/* Confirmation Modal */}
-                {/* Confirmation Modal */}
-                {showConfirmModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-                        <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
-                            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-                                <FileText className="w-32 h-32 text-emerald-500" />
-                            </div>
-
-                            <div className="relative z-10 shrink-0">
-                                <h3 className="text-2xl font-bold text-white mb-2">Confirmar Requisição</h3>
-                                <p className="text-slate-400 mb-6">Adicione uma ou mais faturas para concluir.</p>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 relative z-10 min-h-0 space-y-4">
-                                {/* LIST OF ADDED INVOICES */}
-                                {invoicesList.length > 0 && (
-                                    <div className="space-y-2 mb-4">
-                                        <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase mb-2">
-                                            <span>Faturas Adicionadas</span>
-                                            <span className="text-emerald-500">Total: {(invoicesList.reduce((acc, curr) => acc + curr.valor_total, 0)).toFixed(2)} €</span>
                                         </div>
-                                        {invoicesList.map((inv, idx) => (
-                                            <div key={idx} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700">
-                                                <div>
-                                                    <div className="text-sm font-bold text-white">{inv.numero}</div>
-                                                    <div className="text-xs text-slate-400 font-mono">
-                                                        {inv.valor_liquido.toFixed(2)} € + {(inv.iva_taxa * 100).toFixed(0)}% IVA
+
+                                        {/* Added Items List */}
+                                        <div className="space-y-2">
+                                            {items.map(item => (
+                                                <div
+                                                    key={item.id}
+                                                    className="flex items-center justify-between p-4 bg-slate-800/40 rounded-xl border border-slate-700"
+                                                >
+                                                    {/* ESQUERDA */}
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center font-mono font-bold">
+                                                            {item.quantidade}
+                                                        </div>
+
+                                                        <span className="text-slate-200 font-medium">
+                                                            {item.descricao}
+                                                        </span>
                                                     </div>
-                                                    <div className="text-sm text-emerald-400 font-mono font-bold">
-                                                        = {inv.valor_total.toFixed(2)} €
+
+                                                    {/* DIREITA — BOTÕES */}
+                                                    <div className="flex items-center gap-2">
+                                                        {/* EDITAR */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => editarItem(item)}
+                                                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition"
+                                                            title="Editar"
+                                                        >
+                                                            ✏️
+                                                        </button>
+
+                                                        {/* REMOVER */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeItem(item.id)}
+                                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                                                            title="Remover"
+                                                        >
+                                                            <X className="w-5 h-5" />
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeInvoiceFromList(idx)}
-                                                    className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                            ))}
 
-                                {/* INPUT FORM FOR NEW INVOICE */}
-                                <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 space-y-4">
+                                            {items.length === 0 && (
+                                                <div className="text-center py-6 text-slate-500 text-sm italic border-2 border-dashed border-slate-800 rounded-xl">
+                                                    Nenhum item adicionado à lista.
+                                                </div>
+                                            )}
+
+
+                                            {items.length === 0 && (
+                                                <div className="text-center py-6 text-slate-500 text-sm italic border-2 border-dashed border-slate-800 rounded-xl">
+                                                    Nenhum item adicionado à lista.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Número da Fatura</label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
-                                            value={invoiceNumber}
-                                            onChange={e => setInvoiceNumber(e.target.value)}
-                                            placeholder="Ex: FT 2024/123"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    // Focus next field or add
-                                                }
-                                            }}
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Observações</label>
+                                        <textarea
+                                            className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm resize-none h-32"
+                                            placeholder="Notas ou instruções adicionais..."
+                                            value={obs}
+                                            onChange={e => setObs(e.target.value)}
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Valor Líquido (€)</label>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner font-mono"
-                                                value={invoiceNetAmount}
-                                                onChange={e => setInvoiceNetAmount(e.target.value)}
-                                                placeholder="0.00"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Taxa IVA</label>
-                                            <select
-                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
-                                                value={invoiceVatRate}
-                                                onChange={e => setInvoiceVatRate(parseFloat(e.target.value))}
-                                            >
-                                                <option value={0.23}>23%</option>
-                                                <option value={0.13}>13%</option>
-                                                <option value={0.06}>6%</option>
-                                                <option value={0}>Isento</option>
-                                            </select>
-                                        </div>
+
+                                    <div className="flex justify-end pt-4 border-t border-slate-800">
+                                        <button
+                                            type="submit"
+                                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-12 rounded-xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all flex items-center gap-3 text-lg"
+                                        >
+                                            <CheckCircle className="w-6 h-6" />
+                                            Finalizar Requisição
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    {/* Edit Item Modal */}
+                    {showEditModal && itemEmEdicao && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                                <h3 className="text-2xl font-bold text-white mb-6">
+                                    Editar Item
+                                </h3>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase">
+                                            Descrição
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newItemDesc}
+                                            onChange={e => setNewItemDesc(e.target.value)}
+                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white"
+                                        />
                                     </div>
 
-                                    {/* Auto-calculated Total Preview */}
-                                    {invoiceNetAmount && (
-                                        <div className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-800">
-                                            <span className="text-xs text-slate-500 font-bold uppercase">Total com IVA</span>
-                                            <span className="text-emerald-400 font-mono font-bold">
-                                                {(parseFloat(invoiceNetAmount.replace(',', '.')) * (1 + invoiceVatRate)).toFixed(2)} €
-                                            </span>
-                                        </div>
-                                    )}
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase">
+                                            Quantidade
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            value={newItemQtd}
+                                            onChange={e => setNewItemQtd(Number(e.target.value))}
+                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 justify-end mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowEditModal(false)}
+                                        className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl"
+                                    >
+                                        Cancelar
+                                    </button>
 
                                     <button
                                         type="button"
-                                        onClick={addInvoiceToList}
-                                        className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all font-bold flex items-center justify-center gap-2"
+                                        onClick={() => {
+                                            setItems(items.map(i =>
+                                                i.id === itemEmEdicao.id
+                                                    ? {
+                                                        ...i,
+                                                        descricao: newItemDesc,
+                                                        quantidade: newItemQtd
+                                                    }
+                                                    : i
+                                            ));
+                                            setItemEmEdicao(null);
+                                            setShowEditModal(false);
+                                        }}
+                                        className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl"
                                     >
-                                        <Plus className="w-5 h-5" /> Adicionar Fatura
+                                        Guardar
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    )}
 
-                            <div className="flex gap-3 pt-2 shrink-0 relative z-10">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirmModal(false)}
-                                    className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleConfirmRequisition}
-                                    className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20"
-                                >
-                                    Confirmar Conclusão
-                                </button>
+
+
+                    {/* Confirmation Modal */}
+                    {/* Confirmation Modal */}
+                    {showConfirmModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+                                <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                                    <FileText className="w-32 h-32 text-emerald-500" />
+                                </div>
+
+                                <div className="relative z-10 shrink-0">
+                                    <h3 className="text-2xl font-bold text-white mb-2">Confirmar Requisição</h3>
+                                    <p className="text-slate-400 mb-6">Adicione uma ou mais faturas para concluir.</p>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 relative z-10 min-h-0 space-y-4">
+                                    {/* LIST OF ADDED INVOICES */}
+                                    {invoicesList.length > 0 && (
+                                        <div className="space-y-2 mb-4">
+                                            <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase mb-2">
+                                                <span>Faturas Adicionadas</span>
+                                                <span className="text-emerald-500">Total: {(invoicesList.reduce((acc, curr) => acc + curr.valor_total, 0)).toFixed(2)} €</span>
+                                            </div>
+                                            {invoicesList.map((inv, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+                                                    <div>
+                                                        <div className="text-sm font-bold text-white">{inv.numero}</div>
+                                                        <div className="text-xs text-slate-400 font-mono">
+                                                            {inv.valor_liquido.toFixed(2)} € + {(inv.iva_taxa * 100).toFixed(0)}% IVA
+                                                        </div>
+                                                        <div className="text-sm text-emerald-400 font-mono font-bold">
+                                                            = {inv.valor_total.toFixed(2)} €
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeInvoiceFromList(idx)}
+                                                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* INPUT FORM FOR NEW INVOICE */}
+                                    <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Número da Fatura</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
+                                                value={invoiceNumber}
+                                                onChange={e => setInvoiceNumber(e.target.value)}
+                                                placeholder="Ex: FT 2024/123"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        // Focus next field or add
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Valor Líquido (€)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner font-mono"
+                                                    value={invoiceNetAmount}
+                                                    onChange={e => setInvoiceNetAmount(e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Taxa IVA</label>
+                                                <select
+                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
+                                                    value={invoiceVatRate}
+                                                    onChange={e => setInvoiceVatRate(parseFloat(e.target.value))}
+                                                >
+                                                    <option value={0.23}>23%</option>
+                                                    <option value={0.13}>13%</option>
+                                                    <option value={0.06}>6%</option>
+                                                    <option value={0}>Isento</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Auto-calculated Total Preview */}
+                                        {invoiceNetAmount && (
+                                            <div className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-800">
+                                                <span className="text-xs text-slate-500 font-bold uppercase">Total com IVA</span>
+                                                <span className="text-emerald-400 font-mono font-bold">
+                                                    {(parseFloat(invoiceNetAmount.replace(',', '.')) * (1 + invoiceVatRate)).toFixed(2)} €
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={addInvoiceToList}
+                                            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all font-bold flex items-center justify-center gap-2"
+                                        >
+                                            <Plus className="w-5 h-5" /> Adicionar Fatura
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-2 shrink-0 relative z-10">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmModal(false)}
+                                        className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmRequisition}
+                                        className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20"
+                                    >
+                                        Confirmar Conclusão
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-            </main >
+                </main >
+            </div >
         </div >
-    </div >
-);
+    );
 }
