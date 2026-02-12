@@ -36,6 +36,8 @@ jobs:
           server-dir: ./
           protocol: ftp
           port: 21
+          timeout: 300000 # 5 minutes to avoid Control Socket Timeouts
+          security: false # Explicitly disable strict security to prevent handshake hangs
           dangerous-clean-slate: false # Do NOT delete everything on server, just sync
           exclude: |
             **/.git*
