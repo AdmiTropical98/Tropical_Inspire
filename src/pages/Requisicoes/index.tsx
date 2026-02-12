@@ -445,9 +445,10 @@ export default function Requisicoes() {
             // INVOICE SECTION (MOSTRA APENAS SE CONCLUÍDA)
             // ======================================================
 
+            yPos += 35;
+
             // 🔐 Só mostra se estiver concluída
             if (req.status === 'concluida') {
-                yPos += 35;
 
                 type InvoiceDisplay = {
                     numero: string;
@@ -541,7 +542,7 @@ export default function Requisicoes() {
                         ]],
                         theme: 'grid',
                         margin: { left: 10, right: 10 },
-                        headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
+                        headStyles: { fillColor: [20, 60, 140], textColor: 255, fontStyle: 'bold', lineWidth: 0.1 },
                         styles: { fontSize: 8, textColor: 0, lineWidth: 0.1 },
                         columnStyles: {
                             0: { fontStyle: 'bold' },
