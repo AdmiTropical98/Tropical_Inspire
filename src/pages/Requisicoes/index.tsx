@@ -280,101 +280,149 @@ export default function Requisicoes() {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
 
-    let yPos = 85;
+    const loadImage = (src: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+        });
+    };
 
     try {
+        // ================= HEADER =================
+        try {
+            const logoImg = await loadImage('/logo.png');
+            const logoWidth = 50;
+            const scaleFactor = logoWidth / logoImg.naturalWidth;
+            const logoHeight = logoImg.naturalHeight * scaleFactor;
+
+            doc.setFillColor(20, 60, 140);
+            doc.rect(0, 0, pageWidth, 50, 'F');
+            doc.setFillColor(255, 255, 255);
+            doc.roundedRect(10, 2, logoWidth + 10, logoHeight + 8, 1, 1, 'F');
+            doc.addImage(logoImg, 'PNG', 15, 6, logoWidth, logoHeight);
+        } catch {
+            doc.setFillColor(20, 60, 140);
+            doc.rect(0, 0, pageWidth, 50, 'F');
+        }
+
+        doc.setFontSize(26);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ALGARTEMPO', pageWidth / 2 + 40, 20, { align: 'center' });
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'normal');
+        doc.text('GESTÃO DE FROTA', pageWidth / 2 + 40, 28, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(200, 220, 255);
+        doc.text(`DATA DA EMISSÃO: ${new Date().toLocaleDateString()}`, pageWidth - 10, 44, { align: 'right' });
+
+        // ================= TITLE =================
         doc.setFontSize(22);
         doc.setTextColor(20, 60, 140);
         doc.setFont('helvetica', 'bold');
         doc.text('REQUISIÇÃO DE MATERIAL', 10, 70);
 
+        let yPos = 85;
+
+        // ================= DETAILS =================
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text('NÚMERO', 10, yPos);
+        doc.text('ATRIBUÍDO', 10, yPos + 15);
+        doc.text('REQUISITADO POR', 42, yPos + 15);
+
         doc.setFontSize(12);
         doc.setTextColor(0);
-        doc.text(`R:${requisicaoAtualizada.numero}`, 10, yPos - 10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`R:${requisicaoAtualizada.numero}`, 10, yPos + 6);
 
-        yPos += 10;
+        doc.setFontSize(10);
+        doc.text(requisicaoAtualizada.criadoPor || 'Staff', 42, yPos + 21);
 
-        // =============================
-        // INVOICE SECTION
-        // =============================
+        doc.text(requisicaoAtualizada.tipo || '', 10, yPos + 21);
 
-        let displayInvoices: {
-            numero: string;
-            valor_liquido: number;
-            iva_taxa: number;
-            iva_valor: number;
-            valor_total: number;
-        }[] = [];
+        const fornecedor = fornecedores.find(f => f.id === requisicaoAtualizada.fornecedorId);
 
-        if (
-            requisicaoAtualizada.faturas_dados &&
-            Array.isArray(requisicaoAtualizada.faturas_dados) &&
-            requisicaoAtualizada.faturas_dados.length > 0
-        ) {
-            displayInvoices =
-    typeof requisicaoAtualizada.faturas_dados === "string"
-        ? JSON.parse(requisicaoAtualizada.faturas_dados)
-        : requisicaoAtualizada.faturas_dados;
-        } else if (requisicaoAtualizada.fatura) {
-            displayInvoices = [
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text('FORNECEDOR', 145, yPos);
+
+        if (fornecedor) {
+            doc.setFontSize(11);
+            doc.setTextColor(0);
+            doc.setFont('helvetica', 'bold');
+            doc.text(fornecedor.nome, 145, yPos + 6);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            if (fornecedor.nif)
+                doc.text(`NIF: ${fornecedor.nif}`, 145, yPos + 11);
+            if (fornecedor.contacto)
+                doc.text(`Tel: ${fornecedor.contacto}`, 145, yPos + 15);
+        }
+
+        // ================= INVOICE SECTION =================
+        yPos += 35;
+
+        const displayInvoices =
+            typeof requisicaoAtualizada.faturas_dados === "string"
+                ? JSON.parse(requisicaoAtualizada.faturas_dados)
+                : requisicaoAtualizada.faturas_dados || [];
+
+        const grandTotal = displayInvoices.reduce(
+            (acc: number, curr: any) => acc + (curr.valor_total || 0),
+            0
+        );
+
+        autoTable(doc, {
+            startY: yPos,
+            head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
+            body: displayInvoices.map((f: any) => {
+                const base = Number(f.valor_liquido) || 0;
+                const ivaValor =
+                    f.iva_valor != null
+                        ? Number(f.iva_valor)
+                        : base * (Number(f.iva_taxa) || 0);
+                const total =
+                    Number(f.valor_total) || base + ivaValor;
+
+                return [
+                    f.numero,
+                    `${base.toFixed(2)} €`,
+                    `${ivaValor.toFixed(2)} €`,
+                    `${total.toFixed(2)} €`
+                ];
+            }),
+            foot: [[
                 {
-                    numero: requisicaoAtualizada.fatura,
-                    valor_liquido: requisicaoAtualizada.custo || 0,
-                    iva_taxa: 0,
-                    iva_valor: 0,
-                    valor_total: requisicaoAtualizada.custo || 0
+                    content: 'TOTAL GERAL:',
+                    colSpan: 3,
+                    styles: { halign: 'right', fontStyle: 'bold' }
+                },
+                {
+                    content: `${grandTotal.toFixed(2)} €`,
+                    styles: { halign: 'right', fontStyle: 'bold' }
                 }
-            ];
-        }
+            ]],
+            theme: 'grid',
+            margin: { left: 10, right: 10 },
+            headStyles: {
+                fillColor: [20, 60, 140],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            styles: { fontSize: 9 }
+        });
 
-        if (displayInvoices.length > 0) {
-            const grandTotal = displayInvoices.reduce(
-                (acc, curr) => acc + (curr.valor_total || 0),
-                0
-            );
+        yPos = (doc as any).lastAutoTable.finalY + 15;
 
-            autoTable(doc, {
-                startY: yPos,
-                head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
-                body: displayInvoices.map(f => {
-                    const base = Number(f.valor_liquido) || 0;
-                    const ivaValor =
-                        f.iva_valor != null
-                            ? Number(f.iva_valor)
-                            : base * (Number(f.iva_taxa) || 0);
-                    const total =
-                        Number(f.valor_total) || base + ivaValor;
-
-                    return [
-                        f.numero,
-                        `${base.toFixed(2)} €`,
-                        `${ivaValor.toFixed(2)} €`,
-                        `${total.toFixed(2)} €`
-                    ];
-                }),
-                foot: [[
-                    {
-                        content: 'TOTAL GERAL:',
-                        colSpan: 3,
-                        styles: { halign: 'right', fontStyle: 'bold' }
-                    },
-                    {
-                        content: `${grandTotal.toFixed(2)} €`,
-                        styles: { halign: 'right', fontStyle: 'bold' }
-                    }
-                ]],
-                theme: 'grid',
-                margin: { left: 10, right: 10 }
-            });
-
-            yPos = (doc as any).lastAutoTable.finalY + 15;
-        }
-
-        // =============================
-        // ITEMS SECTION
-        // =============================
-
+        // ================= ITEMS =================
         autoTable(doc, {
             startY: yPos,
             head: [['DESCRIÇÃO DO MATERIAL', 'QTD.']],
@@ -383,14 +431,34 @@ export default function Requisicoes() {
                 item.quantidade.toString()
             ]),
             theme: 'grid',
-            margin: { left: 10, right: 10 }
+            margin: { left: 10, right: 10 },
+            headStyles: {
+                fillColor: [20, 60, 140],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            styles: { fontSize: 10 }
         });
+
+        // ================= SIGNATURES =================
+        const signY = pageHeight - 30;
+
+        doc.line(10, signY, 80, signY);
+        doc.setFontSize(9);
+        doc.text('O Responsável', 10, signY + 5);
+
+        doc.line(130, signY, pageWidth - 10, signY);
+        doc.text('A Gerência', 130, signY + 5);
+
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text('Documento processado por computador', 10, pageHeight - 10);
 
         doc.save(`Requisicao_${requisicaoAtualizada.numero}.pdf`);
 
     } catch (error) {
-        console.error('Erro ao gerar PDF:', error);
-        alert('Erro ao gerar PDF.');
+        console.error(error);
+        alert('Erro ao gerar PDF');
     }
 };
 
