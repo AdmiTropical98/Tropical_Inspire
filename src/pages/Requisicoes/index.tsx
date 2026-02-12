@@ -275,7 +275,11 @@ export default function Requisicoes() {
     };
 
     const generatePDF = async (req: Requisicao) => {
-        const doc = new jsPDF();
+
+    console.log("REQ COMPLETO PARA PDF:", req);
+    console.log("FATURAS_DADOS:", req.faturas_dados);
+
+    const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.width;
 
         const loadImage = (src: string): Promise<HTMLImageElement> => {

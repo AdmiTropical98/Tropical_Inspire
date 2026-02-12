@@ -430,19 +430,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 if (error) throw error;
                if (r) setRequisicoes(
   r.map((item: any) => {
-    let parsedFaturas: any[] = [];
+let parsedFaturas: any[] = [];
 
-    if (item.faturas_dados) {
-      if (typeof item.faturas_dados === 'string') {
-        try {
-          parsedFaturas = JSON.parse(item.faturas_dados);
-        } catch {
-          parsedFaturas = [];
-        }
-      } else if (Array.isArray(item.faturas_dados)) {
-        parsedFaturas = item.faturas_dados;
-      }
-    }
+try {
+  if (item.faturas_dados) {
+    parsedFaturas = typeof item.faturas_dados === 'string'
+      ? JSON.parse(item.faturas_dados)
+      : item.faturas_dados;
+  }
+} catch (e) {
+  parsedFaturas = [];
+}
 
     return {
       ...item,
@@ -1438,7 +1436,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (newStatus === 'concluida' && fatura) {
                 if (Array.isArray(fatura)) {
                     // Multiple invoices with VAT
-                    updates.faturas_dados = fatura;
+                    updates.faturas_dados = JSON.stringify(fatura);
                     updates.fatura = fatura.map(f => f.numero).join(', '); // Concatenated for legacy display
                     updates.custo = fatura.reduce((sum, f) => sum + f.valor_total, 0); // Total cost (with VAT)
                 } else {
