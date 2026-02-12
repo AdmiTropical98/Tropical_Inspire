@@ -1426,66 +1426,51 @@ try {
         const { error } = await supabase.from('requisicoes').delete().eq('id', id);
         if (!error) setRequisicoes(prev => prev.filter(r => r.id !== id));
     };
+const toggleRequisicaoStatus = async (
+    id: string,
+    fatura?: any,
+    custo?: number
+) => {
+    const r = requisicoes.find(req => req.id === id);
+    if (!r) return;
 
-    const toggleRequisicaoStatus = async (id: string, fatura?: string | { numero: string, valor_liquido: number, iva_taxa: number, iva_valor: number, valor_total: number }[], custo?: number) => {
-        const r = requisicoes.find(req => req.id === id);
-        if (r) {
-            const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
-            const updates: any = { status: newStatus };
+    const newStatus = r.status === 'concluida' ? 'pendente' : 'concluida';
 
-            if (newStatus === 'concluida' && fatura) {
-                if (Array.isArray(fatura)) {
-                    // Multiple invoices with VAT
-                    updates.faturas_dados = JSON.stringify(fatura);
-                    updates.fatura = fatura.map(f => f.numero).join(', '); // Concatenated for legacy display
-                    updates.custo = fatura.reduce((sum, f) => sum + f.valor_total, 0); // Total cost (with VAT)
-                } else {
-                    // Legacy Single Invoice
-                    updates.fatura = fatura;
-                    updates.custo = custo;
-                    updates.faturas_dados = [{ numero: fatura, valor: custo || 0 }]; // Store as array for consistency
-                }
-            } else {
-                // Se voltar para pendente, limpar fatura e custo
-                updates.fatura = "";
-                updates.custo = null;
-                updates.faturas_dados = null;
-            }
+    const updates: any = { status: newStatus };
 
-            let { error } = await supabase.from('requisicoes').update(updates).eq('id', id);
+    if (newStatus === 'concluida' && fatura) {
+        updates.faturas_dados = fatura;
+        updates.fatura = Array.isArray(fatura)
+            ? fatura.map((f: any) => f.numero).join(', ')
+            : fatura;
+        updates.custo = Array.isArray(fatura)
+            ? fatura.reduce((sum: number, f: any) => sum + f.valor_total, 0)
+            : custo || 0;
+    } else {
+        updates.fatura = "";
+        updates.custo = null;
+        updates.faturas_dados = null;
+    }
 
-            // FALLBACK: If "faturas_dados" column is missing (Migration not run), try again without it
-            if (error && error.message.includes('faturas_dados')) {
-                console.warn('Database column "faturas_dados" missing. Falling back to legacy update. PLEASE RUN MIGRATION.');
-                delete updates.faturas_dados;
-                const retry = await supabase.from('requisicoes').update(updates).eq('id', id);
-                error = retry.error;
-            }
+    const { error } = await supabase
+        .from('requisicoes')
+        .update(updates)
+        .eq('id', id);
 
-            if (error) {
-                console.error('Error toggling status:', error);
-                alert('Erro ao atualizar estado: ' + error.message);
-            }
+    if (error) {
+        console.error(error);
+        return;
+    }
 
-            if (!error) {
-                console.log('Status updated successfully. New Status:', newStatus, 'Updates:', updates);
-                if (newStatus === 'concluida') {
-                    // Refresh data to get everything consistent
-                    await refreshData();
-                } else {
-                    setRequisicoes(prev => prev.map(req => {
-                        if (req.id === id) {
-                            return {
-                                ...req,
-                                ...updates
-                            };
-                        }
-                        return req;
-                    }));
-                }
-            }
-        }
-    };
+    setRequisicoes(prev =>
+        prev.map(req =>
+            req.id === id
+                ? { ...req, ...updates }
+                : req
+        )
+    );
+};
+
 
     // Motoristas and others remain local for now as per plan focus
     const addMotorista = async (m: Motorista) => {

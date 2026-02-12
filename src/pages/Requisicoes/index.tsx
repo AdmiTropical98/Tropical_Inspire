@@ -275,332 +275,121 @@ export default function Requisicoes() {
     };
 
     const generatePDF = async (req: Requisicao) => {
-
-    console.log("REQ COMPLETO PARA PDF:", req);
-    console.log("FATURAS_DADOS:", req.faturas_dados);
+    const requisicaoAtualizada =
+        requisicoes.find(r => r.id === req.id) || req;
 
     const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.width;
+    const pageWidth = doc.internal.pageSize.width;
 
-        const loadImage = (src: string): Promise<HTMLImageElement> => {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.src = src;
-                img.onload = () => resolve(img);
-                img.onerror = reject;
-            });
-        };
+    let yPos = 85;
 
-        try {
-            // Header
-            try {
-                const logoImg = await loadImage('/logo.png');
-                const logoWidth = 50;
-                const scaleFactor = logoWidth / logoImg.naturalWidth;
-                const logoHeight = logoImg.naturalHeight * scaleFactor;
+    try {
+        doc.setFontSize(22);
+        doc.setTextColor(20, 60, 140);
+        doc.setFont('helvetica', 'bold');
+        doc.text('REQUISIÇÃO DE MATERIAL', 10, 70);
 
-                doc.setFillColor(20, 60, 140);
-                doc.rect(0, 0, pageWidth, 50, 'F');
-                doc.setFillColor(255, 255, 255);
-                doc.roundedRect(10, 2, logoWidth + 10, logoHeight + 8, 1, 1, 'F');
-                doc.addImage(logoImg, 'PNG', 15, 6, logoWidth, logoHeight);
-            } catch (e) {
-                doc.setFillColor(20, 60, 140);
-                doc.rect(0, 0, pageWidth, 50, 'F');
-            }
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`R:${requisicaoAtualizada.numero}`, 10, yPos - 10);
 
-            const textCenter = 145;
-            doc.setFontSize(26);
-            doc.setTextColor(255, 255, 255);
-            doc.setFont('helvetica', 'bold');
-            doc.text('ALGARTEMPO', textCenter, 20, { align: 'center' });
+        yPos += 10;
 
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.setCharSpace(2);
-            doc.text('GESTÃO DE FROTA', textCenter, 28, { align: 'center' });
-            doc.setCharSpace(0);
+        // =============================
+        // INVOICE SECTION
+        // =============================
 
-            doc.setFontSize(10);
-            doc.setTextColor(200, 220, 255);
-            doc.text(`DATA DA EMISSÃO: ${new Date().toLocaleDateString()}`, pageWidth - 10, 44, { align: 'right' });
+        let displayInvoices: {
+            numero: string;
+            valor_liquido: number;
+            iva_taxa: number;
+            iva_valor: number;
+            valor_total: number;
+        }[] = [];
 
-            // Title
-            doc.setFontSize(22);
-            doc.setTextColor(20, 60, 140);
-            doc.setFont('helvetica', 'bold');
-            doc.text('REQUISIÇÃO DE MATERIAL', 10, 70);
-
-            let yPos = 85;
-
-            // Details
-            doc.setFontSize(9);
-            doc.setTextColor(100);
-            doc.text('NÚMERO', 10, yPos);
-            doc.text('ATRIBUÍDO', 10, yPos + 15);
-            doc.text('REQUISITADO POR', 42, yPos + 15);
-
-            doc.setFontSize(12);
-            doc.setTextColor(0);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`R:${req.numero}`, 10, yPos + 6);
-
-            const createdBy = req.criadoPor || 'Staff';
-            const splitName = createdBy.split(' ')[0] + ' ' + (createdBy.split(' ')[1] || '');
-            doc.setFontSize(10);
-            doc.text(splitName, 42, yPos + 21);
-
-            doc.setFontSize(10);
-            let atribuidoText = '';
-            if (req.tipo === 'Viatura') {
-                const arr = viaturas.find(v => v.id === req.viaturaId);
-                atribuidoText = arr ? `${arr.matricula}` : 'Viatura N/D';
-            } else if (req.tipo === 'CentroCusto') {
-                atribuidoText = 'Centro de Custos';
-            } else if (req.tipo === 'Oficina') {
-                atribuidoText = 'Oficina';
-            } else if (req.tipo === 'Stock') {
-                atribuidoText = 'Stock';
-            } else {
-                atribuidoText = req.tipo;
-            }
-            doc.text(atribuidoText, 10, yPos + 21);
-
-            const col2X = 85;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.setTextColor(100);
-            const contextLabel = req.tipo === 'Viatura' ? 'VIATURA' : 'DESTINO';
-            doc.text(contextLabel, col2X, yPos);
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.setTextColor(0);
-
-            if (req.tipo === 'Viatura') {
-                const viatura = viaturas.find(v => v.id === req.viaturaId);
-                if (viatura) {
-                    doc.text(`${viatura.marca} ${viatura.modelo}`, col2X, yPos + 6);
-                    doc.setFontSize(10);
-                    doc.setTextColor(80);
-                    doc.text(viatura.matricula, col2X, yPos + 11);
-                } else {
-                    doc.text('---', col2X, yPos + 6);
+        if (
+            requisicaoAtualizada.faturas_dados &&
+            Array.isArray(requisicaoAtualizada.faturas_dados) &&
+            requisicaoAtualizada.faturas_dados.length > 0
+        ) {
+            displayInvoices = requisicaoAtualizada.faturas_dados;
+        } else if (requisicaoAtualizada.fatura) {
+            displayInvoices = [
+                {
+                    numero: requisicaoAtualizada.fatura,
+                    valor_liquido: requisicaoAtualizada.custo || 0,
+                    iva_taxa: 0,
+                    iva_valor: 0,
+                    valor_total: requisicaoAtualizada.custo || 0
                 }
-            } else {
-                if (req.tipo === 'Oficina') doc.text('Uso Interno', col2X, yPos + 6);
-                else if (req.tipo === 'Stock') doc.text('Reposição', col2X, yPos + 6);
-                else doc.text('---', col2X, yPos + 6);
-            }
+            ];
+        }
 
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.setTextColor(100);
-            doc.text('CENTRO DE CUSTOS', col2X, yPos + 15);
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.setTextColor(0);
-
-            if (req.centroCustoId) {
-                const cc = centrosCustos.find(c => c.id === req.centroCustoId);
-                doc.text(cc?.nome || 'N/D', col2X, yPos + 21);
-            } else {
-                doc.setTextColor(150);
-                doc.text('---', col2X, yPos + 21);
-            }
-
-            const col3X = 145;
-            const fornecedor = fornecedores.find(f => f.id === req.fornecedorId);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.setTextColor(100);
-            doc.text('FORNECEDOR', col3X, yPos);
-
-            if (fornecedor) {
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(11);
-                doc.setTextColor(0);
-                doc.text(fornecedor.nome, col3X, yPos + 6);
-
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(9);
-                doc.setTextColor(80);
-
-                let supplierY = yPos + 11;
-
-                if (fornecedor.nif) {
-                    doc.text(`NIF: ${fornecedor.nif}`, col3X, supplierY);
-                    supplierY += 4;
-                }
-                if (fornecedor.contacto) {
-                    doc.text(`Tel: ${fornecedor.contacto}`, col3X, supplierY);
-                }
-            } else {
-                doc.text('Não Identificado', col3X, yPos + 6);
-            }
-
-            // INVOICE SECTION
-            // INVOICE SECTION
-            yPos += 35; // Move down from header details
-
-            // Normalize data: always use array for display
-            let displayInvoices: {
-    numero: string;
-    valor_liquido: number;
-    iva_taxa: number;
-    valor_total: number;
-    iva_valor?: number;
-    isLegacy?: boolean;
-}[] = [];
-
-
-            if (req.faturas_dados && Array.isArray(req.faturas_dados) && req.faturas_dados.length > 0) {
-                displayInvoices = req.faturas_dados;
-            } else if (req.fatura) {
-                // Convert legacy single invoice to array format
-                displayInvoices = [{
-                    numero: req.fatura,
-                    valor_liquido: req.custo || 0,
-                    iva_taxa: 0, // Unknown for legacy
-                    valor_total: req.custo || 0,
-                    isLegacy: true // Mark as legacy
-                }];
-            }
-
-            if (displayInvoices.length > 0) {
-                // Calculate Total
-                const grandTotal = displayInvoices.reduce((acc, curr) => acc + (curr.valor_total || 0), 0);
-
-                autoTable(doc, {
-                    startY: yPos,
-                    head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
-              body: displayInvoices.map(f => {
-
-    const base = f.valor_liquido || 0;
-    const ivaValor = f.iva_valor ?? (base * (f.iva_taxa || 0));
-    const total = f.valor_total || 0;
-
-    return [
-        f.numero,
-        `${base.toFixed(2)} €`,
-        `${ivaValor.toFixed(2)} €`,
-        `${total.toFixed(2)} €`
-    ];
-}),
-
-                    foot: [[
-                        { content: 'TOTAL GERAL:', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } },
-                        { content: `${grandTotal.toFixed(2)}€`, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } }
-                    ]],
-                    theme: 'grid',
-                    margin: { left: 10, right: 10 },
-                    headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
-                    styles: { fontSize: 8, textColor: 0, lineWidth: 0.1 },
-                    columnStyles: {
-                        0: { fontStyle: 'bold' },
-                        1: { halign: 'right' },
-                        2: { halign: 'center' },
-                        3: { halign: 'right', fontStyle: 'bold' }
-                    },
-                    footStyles: {
-                        fillColor: [255, 255, 255],
-                        textColor: 0,
-                        fontStyle: 'bold',
-                        halign: 'right',
-                        lineColor: [255, 255, 255],
-                        lineWidth: 0
-                    }
-                });
-
-                const finalY = (doc as any).lastAutoTable.finalY + 2;
-                yPos = finalY + 15; // Set Y for next table (Items)
-            }
-
-            const tableBody = req.itens.map(item => [
-                item.descricao.toUpperCase(),
-                item.quantidade.toString()
-            ]);
+        if (displayInvoices.length > 0) {
+            const grandTotal = displayInvoices.reduce(
+                (acc, curr) => acc + (curr.valor_total || 0),
+                0
+            );
 
             autoTable(doc, {
                 startY: yPos,
-                head: [['DESCRIÇÃO DO MATERIAL', 'QTD.']],
-                body: tableBody,
+                head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
+                body: displayInvoices.map(f => {
+                    const base = Number(f.valor_liquido) || 0;
+                    const ivaValor =
+                        f.iva_valor != null
+                            ? Number(f.iva_valor)
+                            : base * (Number(f.iva_taxa) || 0);
+                    const total =
+                        Number(f.valor_total) || base + ivaValor;
+
+                    return [
+                        f.numero,
+                        `${base.toFixed(2)} €`,
+                        `${ivaValor.toFixed(2)} €`,
+                        `${total.toFixed(2)} €`
+                    ];
+                }),
+                foot: [[
+                    {
+                        content: 'TOTAL GERAL:',
+                        colSpan: 3,
+                        styles: { halign: 'right', fontStyle: 'bold' }
+                    },
+                    {
+                        content: `${grandTotal.toFixed(2)} €`,
+                        styles: { halign: 'right', fontStyle: 'bold' }
+                    }
+                ]],
                 theme: 'grid',
-                margin: { left: 10, right: 10 },
-                headStyles: {
-                    fillColor: [20, 60, 140],
-                    textColor: 255,
-                    fontStyle: 'bold',
-                    halign: 'left',
-                    cellPadding: 4,
-                    lineWidth: 0.1,
-                    lineColor: [20, 60, 140]
-                },
-                styles: {
-                    fontSize: 10,
-                    cellPadding: 4,
-                    textColor: [40, 40, 40],
-                    lineColor: [200, 200, 200],
-                    lineWidth: 0.1
-                },
-                columnStyles: {
-                    0: { cellWidth: 'auto' },
-                    1: { cellWidth: 30, halign: 'center', fontStyle: 'bold' },
-                },
-                alternateRowStyles: {
-                    fillColor: [245, 245, 245]
-                }
+                margin: { left: 10, right: 10 }
             });
 
-            const finalY = (doc as any).lastAutoTable.finalY + 15;
-
-            if (req.obs) {
-                doc.setDrawColor(200);
-                doc.setLineWidth(0.1);
-                doc.rect(10, finalY, pageWidth - 20, 20);
-
-                doc.setFontSize(8);
-                doc.setTextColor(120);
-                doc.setFont('helvetica', 'bold');
-                doc.text('OBSERVAÇÕES', 12, finalY + 5);
-
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(10);
-                doc.setTextColor(0);
-                doc.text(req.obs, 12, finalY + 12);
-            }
-
-            const signY = 270;
-            doc.setDrawColor(0);
-            doc.setLineWidth(0.5);
-
-            doc.line(10, signY, 80, signY);
-            doc.setFontSize(9);
-            doc.text('O Responsável', 10, signY + 5);
-
-            doc.line(130, signY, pageWidth - 10, signY);
-            doc.text('A Gerência', 130, signY + 5);
-
-           const pageHeight = doc.internal.pageSize.height;
-
-doc.setFontSize(8);
-doc.setTextColor(150);
-
-doc.text(
-  'Documento processado por computador',
-  10,
-  pageHeight - 10
-);
-
-
-            doc.save(`Requisicao_${req.numero}.pdf`);
-
-        } catch (error) {
-            console.error('Erro ao gerar PDF:', error);
-            alert('Erro ao gerar PDF.');
+            yPos = (doc as any).lastAutoTable.finalY + 15;
         }
-    };
+
+        // =============================
+        // ITEMS SECTION
+        // =============================
+
+        autoTable(doc, {
+            startY: yPos,
+            head: [['DESCRIÇÃO DO MATERIAL', 'QTD.']],
+            body: (requisicaoAtualizada.itens || []).map(item => [
+                item.descricao.toUpperCase(),
+                item.quantidade.toString()
+            ]),
+            theme: 'grid',
+            margin: { left: 10, right: 10 }
+        });
+
+        doc.save(`Requisicao_${requisicaoAtualizada.numero}.pdf`);
+
+    } catch (error) {
+        console.error('Erro ao gerar PDF:', error);
+        alert('Erro ao gerar PDF.');
+    }
+};
 
     const filteredItems = requisicoes.filter(r => {
         const matchesStatus = listFilter === 'pendentes'
