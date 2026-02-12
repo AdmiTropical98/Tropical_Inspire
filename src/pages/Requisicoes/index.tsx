@@ -441,27 +441,26 @@ const generatePDF = async (req: Requisicao) => {
             }
 
 // ===============================
-// INVOICE SECTION
-// ===============================
+// ======================================================
+// INVOICE SECTION (MOSTRA APENAS SE CONCLUÍDA)
+// ======================================================
 
 yPos += 35;
 
-// Tipo interno para garantir tipagem correta
-type InvoiceDisplay = {
-    numero: string;
-    valor_liquido: number;
-    iva_taxa: number;
-    iva_valor?: number;
-    valor_total: number;
-};
-
-// Declarar SEMPRE antes de usar
-let displayInvoices: InvoiceDisplay[] = [];
-
-// 🔒 Só mostra faturas se estiver concluída
+// 🔐 Só mostra se estiver concluída
 if (req.status === 'concluida') {
 
-    // 🔥 Se vier como string JSON do Supabase
+    type InvoiceDisplay = {
+        numero: string;
+        valor_liquido: number;
+        iva_taxa: number;
+        iva_valor?: number;
+        valor_total: number;
+    };
+
+    let displayInvoices: InvoiceDisplay[] = [];
+
+    // 🔥 Parse Supabase (string ou array)
     if (req.faturas_dados) {
         try {
             const parsed =
@@ -477,7 +476,7 @@ if (req.status === 'concluida') {
         }
     }
 
-    // 🧯 Campo legado (requisições antigas)
+    // 🧯 Campo legado
     if (displayInvoices.length === 0 && req.fatura) {
         displayInvoices = [{
             numero: req.fatura,
@@ -487,62 +486,71 @@ if (req.status === 'concluida') {
             valor_total: req.custo || 0
         }];
     }
-}
 
-if (displayInvoices.length > 0) {
+    if (displayInvoices.length > 0) {
 
-    const grandTotal = displayInvoices.reduce(
-        (acc: number, curr: InvoiceDisplay) => acc + (curr.valor_total || 0),
-        0
-    );
+        const grandTotal = displayInvoices.reduce(
+            (acc, curr) => acc + (curr.valor_total || 0),
+            0
+        );
 
-    autoTable(doc, {
-        startY: yPos,
-        head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
-        body: displayInvoices.map((f: InvoiceDisplay) => {
+        autoTable(doc, {
+            startY: yPos,
+            head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
+            body: displayInvoices.map(f => {
 
-            const base = f.valor_liquido || 0;
-            const ivaValor = f.iva_valor ?? (base * (f.iva_taxa || 0));
-            const total = f.valor_total || 0;
+                const base = f.valor_liquido || 0;
+                const ivaValor = f.iva_valor ?? (base * (f.iva_taxa || 0));
+                const total = f.valor_total || 0;
 
-            return [
-                f.numero,
-                `${base.toFixed(2)} €`,
-                `${ivaValor.toFixed(2)} €`,
-                `${total.toFixed(2)} €`
-            ];
-        }),
-        foot: [[
-            {
-                content: 'TOTAL GERAL:',
-                colSpan: 3,
-                styles: { halign: 'right', fontStyle: 'bold' }
+                return [
+                    f.numero,
+                    `${base.toFixed(2)} €`,
+                    `${ivaValor.toFixed(2)} €`,
+                    `${total.toFixed(2)} €`
+                ];
+            }),
+            foot: [[
+                {
+                    content: 'TOTAL GERAL:',
+                    colSpan: 3,
+                    styles: {
+                        halign: 'right',
+                        fontStyle: 'bold'
+                    }
+                },
+                {
+                    content: `${grandTotal.toFixed(2)} €`,
+                    styles: {
+                        halign: 'right',
+                        fontStyle: 'bold'
+                    }
+                }
+            ]],
+            theme: 'grid',
+            margin: { left: 10, right: 10 },
+            headStyles: {
+                fillColor: [20, 60, 140],   // 🔵 Azul antigo
+                textColor: 255,
+                fontStyle: 'bold'
             },
-            {
-                content: `${grandTotal.toFixed(2)} €`,
-                styles: { halign: 'right', fontStyle: 'bold' }
+            footStyles: {
+                fillColor: [20, 60, 140],   // 🔵 Azul antigo
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            styles: {
+                fontSize: 9
+            },
+            columnStyles: {
+                1: { halign: 'right' },
+                2: { halign: 'center' },
+                3: { halign: 'right' }
             }
-        ]],
-        theme: 'grid',
-        margin: { left: 10, right: 10 },
-        headStyles: {
-            fillColor: [240, 240, 240],
-            textColor: 0,
-            fontStyle: 'bold'
-        },
-        styles: {
-            fontSize: 8
-        },
-        columnStyles: {
-            0: { fontStyle: 'bold' },
-            1: { halign: 'right' },
-            2: { halign: 'center' },
-            3: { halign: 'right', fontStyle: 'bold' }
-        }
-    });
+        });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 15;
-    yPos = finalY;
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+    }
 }
             const tableBody = req.itens.map(item => [
                 item.descricao.toUpperCase(),
