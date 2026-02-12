@@ -471,17 +471,20 @@ export default function Requisicoes() {
                 autoTable(doc, {
                     startY: yPos,
                     head: [['FATURA', 'BASE', 'IVA', 'TOTAL']],
-                    body: displayInvoices.map(f => {
-                        // Check if legacy mode (no tax rate)
-                        const isLegacy = f.isLegacy || (f.iva_taxa === 0 && (!f.valor_liquido || f.valor_liquido === f.valor_total));
+              body: displayInvoices.map(f => {
 
-                        return [
-                            f.numero,
-                            `${f.valor_liquido?.toFixed(2) || '0.00'}€`,
-                            isLegacy ? '-' : `${((f.iva_taxa || 0) * 100).toFixed(0)}%`,
-                            `${f.valor_total?.toFixed(2) || '0.00'}€`
-                        ];
-                    }),
+    const base = f.valor_liquido || 0;
+    const ivaValor = f.iva_valor ?? (base * (f.iva_taxa || 0));
+    const total = f.valor_total || 0;
+
+    return [
+        f.numero,
+        `${base.toFixed(2)} €`,
+        `${ivaValor.toFixed(2)} €`,
+        `${total.toFixed(2)} €`
+    ];
+}),
+
                     foot: [[
                         { content: 'TOTAL GERAL:', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } },
                         { content: `${grandTotal.toFixed(2)}€`, styles: { halign: 'right', fontStyle: 'bold', lineWidth: 0, fillColor: [255, 255, 255] } }
