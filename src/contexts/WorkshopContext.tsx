@@ -89,7 +89,16 @@ interface WorkshopContextType {
     addRequisicao: (r: Requisicao) => void;
     updateRequisicao: (r: Requisicao) => void;
     deleteRequisicao: (id: string) => void;
-    toggleRequisicaoStatus: (id: string, fatura?: string | { numero: string, valor_liquido: number, iva_taxa: number, iva_valor: number, valor_total: number }[], custo?: number) => void;
+    toggleRequisicaoStatus: (
+    id: string,
+    faturas?: {
+        numero: string;
+        valor_liquido: number;
+        iva_taxa: number;
+        iva_valor: number;
+        valor_total: number;
+    }[]
+) => Promise<void>;
     addCentroCusto: (cc: CentroCusto) => void; // NEW
     deleteCentroCusto: (id: string) => void; // NEW
     addEvaTransport: (t: EvaTransport) => void;
@@ -1428,9 +1437,15 @@ try {
     };
 const toggleRequisicaoStatus = async (
     id: string,
-    fatura?: any,
-    custo?: number
+    faturas?: {
+        numero: string;
+        valor_liquido: number;
+        iva_taxa: number;
+        iva_valor: number;
+        valor_total: number;
+    }[]
 ) => {
+
     const r = requisicoes.find(req => req.id === id);
     if (!r) return;
 
@@ -1438,15 +1453,22 @@ const toggleRequisicaoStatus = async (
 
     const updates: any = { status: newStatus };
 
-    if (newStatus === 'concluida' && fatura) {
-        updates.faturas_dados = JSON.stringify(fatura);
-        updates.fatura = Array.isArray(fatura)
-            ? fatura.map((f: any) => f.numero).join(', ')
-            : fatura;
-        updates.custo = Array.isArray(fatura)
-            ? fatura.reduce((sum: number, f: any) => sum + f.valor_total, 0)
-            : custo || 0;
+    if (newStatus === 'concluida' && faturas && Array.isArray(faturas)) {
+
+        // 🔥 Guardar JSON completo (CORRETO)
+        updates.faturas_dados = JSON.stringify(faturas);
+
+        // Apenas para compatibilidade (não usado no PDF principal)
+        updates.fatura = faturas.map(f => f.numero).join(', ');
+
+        // Soma total geral
+        updates.custo = faturas.reduce(
+            (sum, f) => sum + f.valor_total,
+            0
+        );
+
     } else {
+
         updates.fatura = "";
         updates.custo = null;
         updates.faturas_dados = null;
@@ -1457,12 +1479,11 @@ const toggleRequisicaoStatus = async (
         .update(updates)
         .eq('id', id);
 
- if (error) {
-    console.error("ERRO SUPABASE:", error);
-    alert("Erro ao confirmar requisição");
-    return;
-}
-
+    if (error) {
+        console.error("ERRO SUPABASE:", error);
+        alert("Erro ao confirmar requisição");
+        return;
+    }
 
     setRequisicoes(prev =>
         prev.map(req =>
@@ -1472,7 +1493,6 @@ const toggleRequisicaoStatus = async (
         )
     );
 };
-
 
     // Motoristas and others remain local for now as per plan focus
     const addMotorista = async (m: Motorista) => {
