@@ -312,7 +312,10 @@ export default function Requisicoes() {
             Array.isArray(requisicaoAtualizada.faturas_dados) &&
             requisicaoAtualizada.faturas_dados.length > 0
         ) {
-            displayInvoices = requisicaoAtualizada.faturas_dados;
+            displayInvoices =
+    typeof requisicaoAtualizada.faturas_dados === "string"
+        ? JSON.parse(requisicaoAtualizada.faturas_dados)
+        : requisicaoAtualizada.faturas_dados;
         } else if (requisicaoAtualizada.fatura) {
             displayInvoices = [
                 {

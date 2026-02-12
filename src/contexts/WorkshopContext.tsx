@@ -1439,7 +1439,7 @@ const toggleRequisicaoStatus = async (
     const updates: any = { status: newStatus };
 
     if (newStatus === 'concluida' && fatura) {
-        updates.faturas_dados = fatura;
+        updates.faturas_dados = JSON.stringify(fatura);
         updates.fatura = Array.isArray(fatura)
             ? fatura.map((f: any) => f.numero).join(', ')
             : fatura;
