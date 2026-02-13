@@ -484,7 +484,7 @@ export default function CustomReportBuilder() {
                     </button>
                 </div>
             </div>
-
+            
             {/* RESULTS PANEL */}
             {data.length > 0 && (
                 <div className="space-y-4 animate-fade-in-up">
