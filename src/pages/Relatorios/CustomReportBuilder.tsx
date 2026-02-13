@@ -223,7 +223,11 @@ export default function CustomReportBuilder() {
             });
 
             query = query.limit(500);
-            query = query.order(currentTableDef.columns[0].select, { ascending: false }); // Sort by first col usually date or id
+            const firstColumn = currentTableDef.columns[0];
+
+if (firstColumn && !firstColumn.select.includes('(')) {
+    query = query.order(firstColumn.select, { ascending: false });
+}
 
             const { data: resData, error } = await query;
 
