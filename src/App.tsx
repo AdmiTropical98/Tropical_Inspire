@@ -19,6 +19,7 @@ import Dashboard from './pages/Dashboard';
 import { supabase } from './lib/supabase'; // Import Supabase client
 import Fornecedores from './pages/Fornecedores';
 import Viaturas from './pages/Viaturas';
+import Documentacao from './pages/Documentacao';
 import Drivers from './pages/Motoristas';
 import Requisicoes from './pages/Requisicoes';
 import Escalas from './pages/Escalas';
@@ -152,7 +153,7 @@ function AppContent() {
   const { notifications } = useWorkshop();
   const { unreadCount } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos' | 'documentacao'>('dashboard');
 
   // Sidebar State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -259,11 +260,16 @@ function AppContent() {
           <ViaVerde />
         </Suspense>
       );
-      case 'carregamentos': return (
-        <Suspense fallback={<PageLoading />}>
-          <Carregamentos />
-        </Suspense>
-      );
+   case 'carregamentos':
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <Carregamentos />
+    </Suspense>
+  );
+
+case 'documentacao':
+  return <Documentacao />;
+
       default: return <Dashboard setActiveTab={handleNavigate} />;
     }
   };
