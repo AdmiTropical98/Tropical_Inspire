@@ -206,20 +206,30 @@ export default function CustomReportBuilder() {
                 const colDef = currentTableDef.columns.find(c => c.key === filter.column);
                 // If the column is a Relation (contains '('), we skip efficient filtering for now or handle simple cases.
                 // Simple workaround: Only filter if it's a direct column (no parentheses)
-                if (colDef && !colDef.select.includes('(')) {
-                    switch (filter.operator) {
-                        case 'eq': query = query.eq(colDef.select, filter.value); break;
-                        case 'neq': query = query.neq(colDef.select, filter.value); break;
-                        case 'gt': query = query.gt(colDef.select, filter.value); break;
-                        case 'lt': query = query.lt(colDef.select, filter.value); break;
-                        case 'gte': query = query.gte(colDef.select, filter.value); break;
-                        case 'lte': query = query.lte(colDef.select, filter.value); break;
-                        case 'ilike': query = query.ilike(colDef.select, `%${filter.value}%`); break;
-                        case 'is':
-                            if (filter.value === 'null') query = query.is(colDef.select, null);
-                            break;
-                    }
-                }
+                let filterColumn = colDef!.select;
+
+// Se for relação (ex: viaturas(matricula))
+if (colDef!.select.includes('(')) {
+    const match = colDef!.select.match(/(\w+)\((\w+)\)/);
+    if (match) {
+        const [_, table, field] = match;
+        filterColumn = `${table}.${field}`;
+    }
+}
+
+switch (filter.operator) {
+    case 'eq': query = query.eq(filterColumn, filter.value); break;
+    case 'neq': query = query.neq(filterColumn, filter.value); break;
+    case 'gt': query = query.gt(filterColumn, filter.value); break;
+    case 'lt': query = query.lt(filterColumn, filter.value); break;
+    case 'gte': query = query.gte(filterColumn, filter.value); break;
+    case 'lte': query = query.lte(filterColumn, filter.value); break;
+    case 'ilike': query = query.ilike(filterColumn, `%${filter.value}%`); break;
+    case 'is':
+        if (filter.value === 'null') query = query.is(filterColumn, null);
+        break;
+}
+
             });
 
             query = query.limit(500);
