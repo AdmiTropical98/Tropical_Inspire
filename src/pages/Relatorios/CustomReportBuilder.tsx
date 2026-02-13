@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
     Download, FileSpreadsheet, Search, Filter, Plus, Trash2,
     Table as TableIcon, CheckSquare, ChevronRight, ChevronDown,
-    Calendar, RefreshCw
+    RefreshCw, X
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -11,10 +11,17 @@ import * as XLSX from 'xlsx';
 
 // --- Types ---
 
+type ColumnDefinition = {
+    key: string;       // The key to access data in the flat row
+    label: string;     // User facing label
+    type: 'string' | 'number' | 'date' | 'boolean' | 'currency';
+    select: string;    // The actual SQL select string (e.g. "matricula", "viaturas(matricula)")
+};
+
 type TableOption = {
     value: string;
     label: string;
-    columns: { key: string; label: string; type: 'string' | 'number' | 'date' | 'boolean' }[];
+    columns: ColumnDefinition[];
 };
 
 type FilterOperator = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'ilike' | 'is';
@@ -27,69 +34,86 @@ interface FilterCondition {
 }
 
 // --- Schema Metadata ---
-// mapping Supabase tables to user-friendly options
+// mapping Supabase tables to user-friendly options with RELATIONS
 const SCHEMA: TableOption[] = [
+    {
+        value: 'viaturas',
+        label: 'Viaturas (Principal)',
+        columns: [
+            { key: 'matricula', label: 'Matrícula', type: 'string', select: 'matricula' },
+            { key: 'marca', label: 'Marca', type: 'string', select: 'marca' },
+            { key: 'modelo', label: 'Modelo', type: 'string', select: 'modelo' },
+            { key: 'ano', label: 'Ano', type: 'number', select: 'ano' },
+            { key: 'kms_atuais', label: 'KMs Atuais', type: 'number', select: 'kms_atuais' },
+            { key: 'status', label: 'Estado', type: 'string', select: 'status' },
+        ]
+    },
     {
         value: 'motoristas',
         label: 'Motoristas',
         columns: [
-            { key: 'nome', label: 'Nome', type: 'string' },
-            { key: 'email', label: 'Email', type: 'string' },
-            { key: 'telemovel', label: 'Telemóvel', type: 'string' },
-            { key: 'status', label: 'Estado', type: 'string' },
-            { key: 'nif', label: 'NIF', type: 'string' },
-            { key: 'data_nascimento', label: 'Data Nascimento', type: 'date' },
-        ]
-    },
-    {
-        value: 'viaturas',
-        label: 'Viaturas',
-        columns: [
-            { key: 'matricula', label: 'Matrícula', type: 'string' },
-            { key: 'marca', label: 'Marca', type: 'string' },
-            { key: 'modelo', label: 'Modelo', type: 'string' },
-            { key: 'ano', label: 'Ano', type: 'number' },
-            { key: 'estado', label: 'Estado', type: 'string' },
-            { key: 'kms_atuais', label: 'KMs Atuais', type: 'number' },
+            { key: 'nome', label: 'Nome', type: 'string', select: 'nome' },
+            { key: 'email', label: 'Email', type: 'string', select: 'email' },
+            { key: 'telemovel', label: 'Telemóvel', type: 'string', select: 'telemovel' },
+            { key: 'status', label: 'Estado', type: 'string', select: 'status' },
+            { key: 'nif', label: 'NIF', type: 'string', select: 'nif' },
         ]
     },
     {
         value: 'fuel_transactions',
         label: 'Abastecimentos',
         columns: [
-            { key: 'timestamp', label: 'Data/Hora', type: 'date' },
-            { key: 'liters', label: 'Litros', type: 'number' },
-            { key: 'price_per_liter', label: 'Preço/L', type: 'number' },
-            { key: 'total_cost', label: 'Custo Total', type: 'number' },
-            { key: 'km', label: 'KM', type: 'number' },
-            { key: 'station', label: 'Posto', type: 'string' },
-            // Note: relations like vehicle_id would typically need a join, 
-            // for now we stick to raw fields or flattened views if available.
+            { key: 'timestamp', label: 'Data', type: 'date', select: 'timestamp' },
+            { key: 'liters', label: 'Litros', type: 'number', select: 'liters' },
+            { key: 'total_cost', label: 'Custo Total', type: 'currency', select: 'total_cost' },
+            { key: 'km', label: 'KM Registo', type: 'number', select: 'km' },
+            { key: 'station', label: 'Posto', type: 'string', select: 'station' },
+            // Joins
+            { key: 'viaturas.matricula', label: 'Viatura (Matrícula)', type: 'string', select: 'viaturas(matricula)' },
+            { key: 'motoristas.nome', label: 'Motorista (Nome)', type: 'string', select: 'motoristas(nome)' },
+        ]
+    },
+    {
+        value: 'requisicoes',
+        label: 'Requisições',
+        columns: [
+            { key: 'numero', label: 'Número Req.', type: 'string', select: 'numero' },
+            { key: 'data', label: 'Data', type: 'date', select: 'data' },
+            { key: 'urgente', label: 'Urgente', type: 'boolean', select: 'urgente' },
+            { key: 'status', label: 'Estado', type: 'string', select: 'status' },
+            { key: 'obs', label: 'Observações', type: 'string', select: 'obs' },
+            // Joins
+            { key: 'viaturas.matricula', label: 'Viatura (Matrícula)', type: 'string', select: 'viaturas(matricula)' },
+            { key: 'fornecedores.nome', label: 'Fornecedor', type: 'string', select: 'fornecedores(nome)' },
+        ]
+    },
+    {
+        value: 'manutencoes',
+        label: 'Manutenções',
+        columns: [
+            { key: 'data', label: 'Data', type: 'date', select: 'data' },
+            { key: 'tipo', label: 'Tipo', type: 'string', select: 'tipo' },
+            { key: 'descricao', label: 'Descrição', type: 'string', select: 'descricao' },
+            { key: 'oficina', label: 'Oficina', type: 'string', select: 'oficina' },
+            { key: 'custo', label: 'Custo', type: 'currency', select: 'custo' },
+            { key: 'km', label: 'KM', type: 'number', select: 'km' },
+            // Joins
+            { key: 'viaturas.matricula', label: 'Viatura (Matrícula)', type: 'string', select: 'viaturas(matricula)' },
         ]
     },
     {
         value: 'servicos',
         label: 'Serviços / Viagens',
         columns: [
-            { key: 'data', label: 'Data', type: 'date' },
-            { key: 'hora', label: 'Hora', type: 'string' },
-            { key: 'origem', label: 'Origem', type: 'string' },
-            { key: 'destino', label: 'Destino', type: 'string' },
-            { key: 'passageiro', label: 'Passageiro', type: 'string' },
-            { key: 'status', label: 'Estado', type: 'string' },
-            { key: 'concluido', label: 'Concluído', type: 'boolean' },
-        ]
-    },
-    {
-        value: 'faturas',
-        label: 'Faturas Financeiras',
-        columns: [
-            { key: 'numero', label: 'Número Fatura', type: 'string' },
-            { key: 'data', label: 'Data Emissão', type: 'date' },
-            { key: 'vencimento', label: 'Vencimento', type: 'date' },
-            { key: 'total', label: 'Valor Total', type: 'number' },
-            { key: 'status', label: 'Status', type: 'string' },
-            { key: 'tipo', label: 'Tipo', type: 'string' },
+            { key: 'data', label: 'Data', type: 'date', select: 'data' },
+            { key: 'hora', label: 'Hora', type: 'string', select: 'hora' },
+            { key: 'origem', label: 'Origem', type: 'string', select: 'origem' },
+            { key: 'destino', label: 'Destino', type: 'string', select: 'destino' },
+            { key: 'passageiro', label: 'Passageiro', type: 'string', select: 'passageiro' },
+            { key: 'concluido', label: 'Concluído', type: 'boolean', select: 'concluido' },
+            // Joins
+            { key: 'viaturas.matricula', label: 'Viatura', type: 'string', select: 'viaturas(matricula)' },
+            { key: 'motoristas.nome', label: 'Motorista', type: 'string', select: 'motoristas(nome)' },
         ]
     }
 ];
@@ -102,6 +126,7 @@ const OPERATORS: { value: FilterOperator; label: string }[] = [
     { value: 'lt', label: 'Menor que' },
     { value: 'gte', label: 'Maior ou Igual' },
     { value: 'lte', label: 'Menor ou Igual' },
+    { value: 'is', label: 'É (Nulo/Vazio)' },
 ];
 
 export default function CustomReportBuilder() {
@@ -124,7 +149,6 @@ export default function CustomReportBuilder() {
         if (def) {
             // Default select all columns on table switch
             setSelectedColumns(def.columns.map(c => c.key));
-            // Clear filters as they might not apply
             setFilters([]);
             setData([]);
         }
@@ -155,31 +179,50 @@ export default function CustomReportBuilder() {
         setFilters(filters.map(f => f.id === id ? { ...f, [field]: val } : f));
     };
 
+    // --- Data Fetching Logic with Flattening ---
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            let query = supabase.from(selectedTable).select(selectedColumns.join(','));
+            // Build the select string
+            // e.g. "timestamp,liters,viaturas(matricula),motoristas(nome)"
+            const queryColumns = selectedColumns.map(key => {
+                const col = currentTableDef.columns.find(c => c.key === key);
+                return col ? col.select : key; // Fallback to key if not found
+            });
 
-            // Apply Filters
+            // Clean duplicates just in case
+            const uniqueSelects = [...new Set(queryColumns)].join(',');
+
+            let query = supabase.from(selectedTable).select(uniqueSelects);
+
+            // Apply Filters (LIMITATION: Filters currently strictly work on top-level columns because Supabase filtering on joined columns is complex via JS sdk without flattening first)
+            // Ideally we'd map the filter column back to the 'select' value, but filtering on joined tables (e.g. viaturas.matricula) requires different syntax.
+            // For now, we allow filtering on main table columns primarily.
             filters.forEach(filter => {
-                if (!filter.value) return; // Skip empty filters
+                if (!filter.value && filter.operator !== 'is') return;
 
-                switch (filter.operator) {
-                    case 'eq': query = query.eq(filter.column, filter.value); break;
-                    case 'neq': query = query.neq(filter.column, filter.value); break;
-                    case 'gt': query = query.gt(filter.column, filter.value); break;
-                    case 'lt': query = query.lt(filter.column, filter.value); break;
-                    case 'gte': query = query.gte(filter.column, filter.value); break;
-                    case 'lte': query = query.lte(filter.column, filter.value); break;
-                    case 'ilike': query = query.ilike(filter.column, `%${filter.value}%`); break;
-                    case 'is':
-                        if (filter.value === 'null') query = query.is(filter.column, null);
-                        break;
+                const colDef = currentTableDef.columns.find(c => c.key === filter.column);
+                // If the column is a Relation (contains '('), we skip efficient filtering for now or handle simple cases.
+                // Simple workaround: Only filter if it's a direct column (no parentheses)
+                if (colDef && !colDef.select.includes('(')) {
+                    switch (filter.operator) {
+                        case 'eq': query = query.eq(colDef.select, filter.value); break;
+                        case 'neq': query = query.neq(colDef.select, filter.value); break;
+                        case 'gt': query = query.gt(colDef.select, filter.value); break;
+                        case 'lt': query = query.lt(colDef.select, filter.value); break;
+                        case 'gte': query = query.gte(colDef.select, filter.value); break;
+                        case 'lte': query = query.lte(colDef.select, filter.value); break;
+                        case 'ilike': query = query.ilike(colDef.select, `%${filter.value}%`); break;
+                        case 'is':
+                            if (filter.value === 'null') query = query.is(colDef.select, null);
+                            break;
+                    }
                 }
             });
 
-            // Default limit to prevent browser crash on massive tables
             query = query.limit(500);
+            query = query.order(currentTableDef.columns[0].select, { ascending: false }); // Sort by first col usually date or id
 
             const { data: resData, error } = await query;
 
@@ -189,7 +232,44 @@ export default function CustomReportBuilder() {
                 return;
             }
 
-            setData(resData || []);
+            // FLATTEN DATA
+            // Transform { fuel: { liters: 10 }, viaturas: { matricula: 'AA' } } -> { liters: 10, 'viaturas.matricula': 'AA' }
+            const flattened = (resData || []).map((row: any) => {
+                const flatRow: any = {};
+                selectedColumns.forEach(key => {
+                    const colDef = currentTableDef.columns.find(c => c.key === key);
+                    if (!colDef) return;
+
+                    if (colDef.select.includes('(')) {
+                        // It's a join, e.g. viaturas(matricula) -> accessible via row.viaturas.matricula
+                        // "viaturas(matricula)" -> table: "viaturas", field: "matricula"
+                        const match = colDef.select.match(/(\w+)\((\w+)\)/);
+                        if (match) {
+                            const [_, table, field] = match;
+                            // Safe access
+                            const relationData = row[table];
+                            if (relationData) {
+                                if (Array.isArray(relationData)) {
+                                    // One-to-many? Pick first?
+                                    flatRow[key] = relationData.map((item: any) => item[field]).join(', ');
+                                } else {
+                                    flatRow[key] = relationData[field];
+                                }
+                            } else {
+                                flatRow[key] = '-';
+                            }
+                        } else {
+                            flatRow[key] = '-';
+                        }
+                    } else {
+                        // Direct access
+                        flatRow[key] = row[colDef.select];
+                    }
+                });
+                return flatRow;
+            });
+
+            setData(flattened);
         } catch (err) {
             console.error(err);
             alert("Ocorreu um erro ao buscar os dados.");
@@ -203,22 +283,22 @@ export default function CustomReportBuilder() {
     const exportPDF = () => {
         if (!data.length) return;
         const doc = new jsPDF('l', 'mm', 'a4');
-
         doc.setFontSize(14);
-        doc.text(`Relatório Personalizado: ${currentTableDef.label}`, 14, 15);
+        doc.text(`Relatório: ${currentTableDef.label}`, 14, 15);
         doc.setFontSize(10);
         doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 22);
 
-        // Map column keys to labels for header
         const headers = selectedColumns.map(key => {
             const col = currentTableDef.columns.find(c => c.key === key);
             return col ? col.label : key;
         });
 
         const rows = data.map(item => selectedColumns.map(key => {
-            const val = item[key];
-            if (val === true) return 'Sim';
-            if (val === false) return 'Não';
+            let val = item[key];
+            const col = currentTableDef.columns.find(c => c.key === key);
+            if (col?.type === 'boolean') return val ? 'Sim' : 'Não';
+            if (col?.type === 'date' && val) return new Date(val).toLocaleDateString() + ' ' + new Date(val).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (col?.type === 'currency' && val) return Number(val).toFixed(2) + '€';
             return val ?? '';
         }));
 
@@ -227,7 +307,7 @@ export default function CustomReportBuilder() {
             body: rows,
             startY: 30,
             theme: 'grid',
-            headStyles: { fillColor: [30, 41, 59] },
+            headStyles: { fillColor: [15, 23, 42] },
             styles: { fontSize: 8 },
         });
 
@@ -236,8 +316,6 @@ export default function CustomReportBuilder() {
 
     const exportExcel = () => {
         if (!data.length) return;
-
-        // Map keys to labels for the excel sheet
         const exportData = data.map(item => {
             const row: any = {};
             selectedColumns.forEach(key => {
@@ -247,7 +325,6 @@ export default function CustomReportBuilder() {
             });
             return row;
         });
-
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Dados");
@@ -261,7 +338,7 @@ export default function CustomReportBuilder() {
             <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6 shadow-xl">
                 <div className="flex items-center gap-2 mb-6 text-white">
                     <Search className="w-5 h-5 text-blue-400" />
-                    <h2 className="text-xl font-bold">Construtor de Consultas</h2>
+                    <h2 className="text-xl font-bold">Construtor de Consultas Avançado</h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -296,13 +373,20 @@ export default function CustomReportBuilder() {
 
                         {/* Dropdown Columns */}
                         {showColumnSelector && (
-                            <div className="mt-2 bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-1 max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <div className="mt-2 bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar shadow-2xl z-20 absolute w-[300px]">
+                                <div className="flex justify-between items-center mb-2 px-1">
+                                    <span className="text-xs font-bold text-slate-400 uppercase">Campos Disponíveis</span>
+                                    <button onClick={() => setShowColumnSelector(false)}><X className="w-4 h-4 text-slate-400" /></button>
+                                </div>
                                 {currentTableDef.columns.map(col => (
                                     <label key={col.key} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded cursor-pointer group">
                                         <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedColumns.includes(col.key) ? 'bg-blue-500 border-blue-500' : 'border-slate-600 bg-transparent group-hover:border-slate-500'}`}>
                                             {selectedColumns.includes(col.key) && <CheckSquare className="w-3 h-3 text-white" />}
                                         </div>
-                                        <span className={`text-sm ${selectedColumns.includes(col.key) ? 'text-white' : 'text-slate-400'}`}>{col.label}</span>
+                                        <div className="flex flex-col">
+                                            <span className={`text-sm ${selectedColumns.includes(col.key) ? 'text-white' : 'text-slate-400'}`}>{col.label}</span>
+                                            {col.select.includes('(') && <span className="text-[10px] text-blue-400">Relação</span>}
+                                        </div>
                                         <input
                                             type="checkbox"
                                             className="hidden"
@@ -332,23 +416,25 @@ export default function CustomReportBuilder() {
                                 </div>
                             ) : (
                                 filters.map((filter) => (
-                                    <div key={filter.id} className="flex flex-col md:flex-row gap-2 items-start md:items-center animate-fade-in">
+                                    <div key={filter.id} className="flex flex-col md:flex-row gap-2 items-start md:items-center animate-fade-in text-sm">
                                         {/* Column */}
                                         <select
                                             value={filter.column}
                                             onChange={(e) => updateFilter(filter.id, 'column', e.target.value)}
-                                            className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                            className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-slate-300 focus:outline-none focus:border-blue-500 w-full md:w-auto"
                                         >
-                                            {currentTableDef.columns.map(c => (
-                                                <option key={c.key} value={c.key}>{c.label}</option>
-                                            ))}
+                                            {currentTableDef.columns
+                                                .filter(c => !c.select.includes('(')) // Only allow filtering on local columns for now
+                                                .map(c => (
+                                                    <option key={c.key} value={c.key}>{c.label}</option>
+                                                ))}
                                         </select>
 
                                         {/* Operator */}
                                         <select
                                             value={filter.operator}
                                             onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
-                                            className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                            className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-slate-300 focus:outline-none focus:border-blue-500 w-full md:w-auto"
                                         >
                                             {OPERATORS.map(op => (
                                                 <option key={op.value} value={op.value}>{op.label}</option>
@@ -356,13 +442,20 @@ export default function CustomReportBuilder() {
                                         </select>
 
                                         {/* Value */}
-                                        <input
-                                            type={filter.column.includes('data') || filter.column.includes('timestamp') ? 'date' : 'text'}
-                                            value={filter.value}
-                                            onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-                                            placeholder="Valor..."
-                                            className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 w-full md:w-auto"
-                                        />
+                                        {filter.operator !== 'is' && (
+                                            <input
+                                                type={filter.column.includes('data') || filter.column.includes('timestamp') ? 'date' : 'text'}
+                                                value={filter.value}
+                                                onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
+                                                placeholder="Valor..."
+                                                className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                            />
+                                        )}
+                                        {filter.operator === 'is' && (
+                                            <div className="flex-1 text-slate-500 italic px-2">
+                                                (Vazio / Nulo)
+                                            </div>
+                                        )}
 
                                         {/* Actions */}
                                         <button
@@ -435,17 +528,22 @@ export default function CustomReportBuilder() {
                                         <tr key={idx} className="hover:bg-slate-700/30 transition-colors">
                                             {selectedColumns.map(colKey => {
                                                 const val = row[colKey];
-                                                // Formatting
+                                                const col = currentTableDef.columns.find(c => c.key === colKey);
+
                                                 let displayVal = val;
-                                                if (val === true) displayVal = <span className="text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded textxs">Sim</span>;
-                                                else if (val === false) displayVal = <span className="text-slate-500">Não</span>;
-                                                else if (colKey.includes('data') || colKey.includes('timestamp')) {
-                                                    displayVal = val ? new Date(val).toLocaleDateString() : '-';
+                                                if (col?.type === 'boolean') {
+                                                    displayVal = val
+                                                        ? <span className="text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded text-[10px] font-bold">SIM</span>
+                                                        : <span className="text-slate-500 text-[10px]">NÃO</span>;
+                                                } else if (col?.type === 'date' && val) {
+                                                    displayVal = new Date(val).toLocaleDateString() + ' ' + new Date(val).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                } else if (col?.type === 'currency' && val != null) {
+                                                    displayVal = <span className="font-mono text-emerald-400">{Number(val).toFixed(2)}€</span>;
                                                 }
 
                                                 return (
                                                     <td key={colKey} className="px-6 py-3 whitespace-nowrap border-b border-slate-800/50">
-                                                        {displayVal ?? '-'}
+                                                        {displayVal ?? <span className="text-slate-600">-</span>}
                                                     </td>
                                                 );
                                             })}
