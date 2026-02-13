@@ -1,360 +1,459 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Download, FileSpreadsheet, Search, Calendar } from 'lucide-react';
+import {
+    Download, FileSpreadsheet, Search, Filter, Plus, Trash2,
+    Table as TableIcon, CheckSquare, ChevronRight, ChevronDown,
+    Calendar, RefreshCw
+} from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-type ReportType =
-    | 'motoristas'
-    | 'viaturas'
-    | 'servicos'
-    | 'manutencoes'
-    | 'fuel_transactions'
-    | 'tank_refills'
-    | 'faturas'
-    | 'eva_transports'
-    | 'centros_custos';
+// --- Types ---
 
-import type { FuelTransaction } from '../../types';
+type TableOption = {
+    value: string;
+    label: string;
+    columns: { key: string; label: string; type: 'string' | 'number' | 'date' | 'boolean' }[];
+};
+
+type FilterOperator = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'ilike' | 'is';
+
+interface FilterCondition {
+    id: string;
+    column: string;
+    operator: FilterOperator;
+    value: string;
+}
+
+// --- Schema Metadata ---
+// mapping Supabase tables to user-friendly options
+const SCHEMA: TableOption[] = [
+    {
+        value: 'motoristas',
+        label: 'Motoristas',
+        columns: [
+            { key: 'nome', label: 'Nome', type: 'string' },
+            { key: 'email', label: 'Email', type: 'string' },
+            { key: 'telemovel', label: 'Telemóvel', type: 'string' },
+            { key: 'status', label: 'Estado', type: 'string' },
+            { key: 'nif', label: 'NIF', type: 'string' },
+            { key: 'data_nascimento', label: 'Data Nascimento', type: 'date' },
+        ]
+    },
+    {
+        value: 'viaturas',
+        label: 'Viaturas',
+        columns: [
+            { key: 'matricula', label: 'Matrícula', type: 'string' },
+            { key: 'marca', label: 'Marca', type: 'string' },
+            { key: 'modelo', label: 'Modelo', type: 'string' },
+            { key: 'ano', label: 'Ano', type: 'number' },
+            { key: 'estado', label: 'Estado', type: 'string' },
+            { key: 'kms_atuais', label: 'KMs Atuais', type: 'number' },
+        ]
+    },
+    {
+        value: 'fuel_transactions',
+        label: 'Abastecimentos',
+        columns: [
+            { key: 'timestamp', label: 'Data/Hora', type: 'date' },
+            { key: 'liters', label: 'Litros', type: 'number' },
+            { key: 'price_per_liter', label: 'Preço/L', type: 'number' },
+            { key: 'total_cost', label: 'Custo Total', type: 'number' },
+            { key: 'km', label: 'KM', type: 'number' },
+            { key: 'station', label: 'Posto', type: 'string' },
+            // Note: relations like vehicle_id would typically need a join, 
+            // for now we stick to raw fields or flattened views if available.
+        ]
+    },
+    {
+        value: 'servicos',
+        label: 'Serviços / Viagens',
+        columns: [
+            { key: 'data', label: 'Data', type: 'date' },
+            { key: 'hora', label: 'Hora', type: 'string' },
+            { key: 'origem', label: 'Origem', type: 'string' },
+            { key: 'destino', label: 'Destino', type: 'string' },
+            { key: 'passageiro', label: 'Passageiro', type: 'string' },
+            { key: 'status', label: 'Estado', type: 'string' },
+            { key: 'concluido', label: 'Concluído', type: 'boolean' },
+        ]
+    },
+    {
+        value: 'faturas',
+        label: 'Faturas Financeiras',
+        columns: [
+            { key: 'numero', label: 'Número Fatura', type: 'string' },
+            { key: 'data', label: 'Data Emissão', type: 'date' },
+            { key: 'vencimento', label: 'Vencimento', type: 'date' },
+            { key: 'total', label: 'Valor Total', type: 'number' },
+            { key: 'status', label: 'Status', type: 'string' },
+            { key: 'tipo', label: 'Tipo', type: 'string' },
+        ]
+    }
+];
+
+const OPERATORS: { value: FilterOperator; label: string }[] = [
+    { value: 'eq', label: 'Igual a' },
+    { value: 'neq', label: 'Diferente de' },
+    { value: 'ilike', label: 'Contém (Texto)' },
+    { value: 'gt', label: 'Maior que' },
+    { value: 'lt', label: 'Menor que' },
+    { value: 'gte', label: 'Maior ou Igual' },
+    { value: 'lte', label: 'Menor ou Igual' },
+];
 
 export default function CustomReportBuilder() {
-    const [reportType, setReportType] = useState<ReportType>('motoristas');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [generatedData, setGeneratedData] = useState<any[]>([]);
+    // --- State ---
+    const [selectedTable, setSelectedTable] = useState<string>(SCHEMA[0].value);
+    const [selectedColumns, setSelectedColumns] = useState<string[]>(SCHEMA[0].columns.map(c => c.key));
+    const [filters, setFilters] = useState<FilterCondition[]>([]);
+    const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [showColumnSelector, setShowColumnSelector] = useState(false);
 
-    const handleGenerate = async () => {
+    // Get current table definition
+    const currentTableDef = SCHEMA.find(t => t.value === selectedTable)!;
+
+    // --- Actions ---
+
+    const handleTableChange = (table: string) => {
+        setSelectedTable(table);
+        const def = SCHEMA.find(t => t.value === table);
+        if (def) {
+            // Default select all columns on table switch
+            setSelectedColumns(def.columns.map(c => c.key));
+            // Clear filters as they might not apply
+            setFilters([]);
+            setData([]);
+        }
+    };
+
+    const toggleColumn = (key: string) => {
+        setSelectedColumns(prev =>
+            prev.includes(key)
+                ? prev.filter(c => c !== key)
+                : [...prev, key]
+        );
+    };
+
+    const addFilter = () => {
+        setFilters([...filters, {
+            id: Math.random().toString(36).substr(2, 9),
+            column: currentTableDef.columns[0].key,
+            operator: 'eq',
+            value: ''
+        }]);
+    };
+
+    const removeFilter = (id: string) => {
+        setFilters(filters.filter(f => f.id !== id));
+    };
+
+    const updateFilter = (id: string, field: keyof FilterCondition, val: string) => {
+        setFilters(filters.map(f => f.id === id ? { ...f, [field]: val } : f));
+    };
+
+    const fetchData = async () => {
         setLoading(true);
-        setGeneratedData([]);
-
         try {
-            let data: any[] = [];
+            let query = supabase.from(selectedTable).select(selectedColumns.join(','));
 
-            if (reportType === 'fuel_transactions') {
-                // 1. Fetch Transactions
-                let query = supabase.from('fuel_transactions').select('*');
+            // Apply Filters
+            filters.forEach(filter => {
+                if (!filter.value) return; // Skip empty filters
 
-                if (startDate && endDate) {
-                    query = query.gte('timestamp', startDate).lte('timestamp', endDate);
+                switch (filter.operator) {
+                    case 'eq': query = query.eq(filter.column, filter.value); break;
+                    case 'neq': query = query.neq(filter.column, filter.value); break;
+                    case 'gt': query = query.gt(filter.column, filter.value); break;
+                    case 'lt': query = query.lt(filter.column, filter.value); break;
+                    case 'gte': query = query.gte(filter.column, filter.value); break;
+                    case 'lte': query = query.lte(filter.column, filter.value); break;
+                    case 'ilike': query = query.ilike(filter.column, `%${filter.value}%`); break;
+                    case 'is':
+                        if (filter.value === 'null') query = query.is(filter.column, null);
+                        break;
                 }
+            });
 
-                const { data: transactions, error: txError } = await query;
-                if (txError) throw txError;
+            // Default limit to prevent browser crash on massive tables
+            query = query.limit(500);
 
-                // 2. Fetch Related Data in Parallel
-                const [
-                    { data: viaturas },
-                    { data: motoristas },
-                    { data: centros }
-                ] = await Promise.all([
-                    supabase.from('viaturas').select('id, matricula, marca, modelo'),
-                    supabase.from('motoristas').select('id, nome'),
-                    supabase.from('centros_custos').select('id, nome')
-                ]);
+            const { data: resData, error } = await query;
 
-                // 3. Map IDs to Names & Format Data
-                data = (transactions || []).map((tx: FuelTransaction) => {
-                    const vehicle = viaturas?.find(v => v.id === tx.vehicleId || v.id === tx.vehicle_id); // Support both cases
-                    const driver = motoristas?.find(m => m.id === tx.driverId || m.id === tx.driver_id);
-                    const cc = centros?.find(c => c.id === tx.centroCustoId || c.id === tx.centro_custo_id);
-
-                    // Normalize vehicle ID lookup effectively
-                    let vehicleDisplay = tx.vehicleId || tx.vehicle_id;
-                    if (vehicle) {
-                        vehicleDisplay = `${vehicle.matricula} (${vehicle.marca} ${vehicle.modelo})`;
-                    }
-
-                    return {
-                        'Data': new Date(tx.timestamp).toLocaleString('pt-PT'),
-                        'Viatura': vehicleDisplay,
-                        'Condutor': driver ? driver.nome : (tx.driver_id || 'N/A'),
-                        'Fonte': (tx.isExternal || tx.is_external) ? 'Importado BP' : 'Abastecido na Oficina',
-                        'Litros': tx.liters,
-                        'KM': tx.km,
-                        'Preço/L': tx.pricePerLiter || tx.price_per_liter ? `${Number(tx.pricePerLiter || tx.price_per_liter).toFixed(3)} €` : '-',
-                        'Total': tx.totalCost || tx.total_cost ? `${Number(tx.totalCost || tx.total_cost).toFixed(2)} €` : '-',
-                        'Centro Custo': cc ? cc.nome : (tx.centroCustoId || tx.centro_custo_id || 'Sem Centro de Custo'), // Normalized fallback
-                        'Registado Por': tx.staffName || tx.staff_name || 'Sistema',
-                        'Estado': tx.status === 'confirmed' ? 'Confirmado' : 'Pendente',
-                        'Posto': (tx.isExternal || tx.is_external) ? (tx.station || 'Externo/BP') : 'Interno',
-                    };
-                });
-
-                // SORT BY COST CENTER THEN DATE
-                data.sort((a, b) => {
-                    const ccA = (a['Centro Custo'] || '').toString().toLowerCase();
-                    const ccB = (b['Centro Custo'] || '').toString().toLowerCase();
-                    if (ccA < ccB) return -1;
-                    if (ccA > ccB) return 1;
-                    // Secondary sort by date (descending)
-                    return new Date(b['Data']).getTime() - new Date(a['Data']).getTime();
-                });
-
-            } else {
-                // Standard Logic for other reports
-                let query = supabase.from(reportType).select('*');
-
-                // Apply Date Filters
-                if (startDate && endDate) {
-                    switch (reportType) {
-                        case 'manutencoes':
-                            query = query.gte('data', startDate).lte('data', endDate);
-                            break;
-                        case 'tank_refills':
-                            query = query.gte('timestamp', startDate).lte('timestamp', endDate);
-                            break;
-                        case 'faturas':
-                            query = query.gte('data', startDate).lte('data', endDate);
-                            break;
-                        case 'eva_transports':
-                            query = query.gte('reference_date', startDate).lte('reference_date', endDate);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-                const { data: resData, error: resError } = await query;
-                if (resError) throw resError;
-                data = resData || [];
+            if (error) {
+                console.error("Query Error:", error);
+                alert(`Erro na query: ${error.message}`);
+                return;
             }
 
-            setGeneratedData(data);
-
+            setData(resData || []);
         } catch (err) {
-            console.error('Error generating custom report:', err);
-            alert('Erro ao gerar relatório. Verifique a consola.');
+            console.error(err);
+            alert("Ocorreu um erro ao buscar os dados.");
         } finally {
             setLoading(false);
         }
     };
 
+    // --- Exports ---
+
     const exportPDF = () => {
-        if (!generatedData.length) return;
-        // Landscape orientation for wider tables
+        if (!data.length) return;
         const doc = new jsPDF('l', 'mm', 'a4');
-        const title = `Relatório de ${reportType.toUpperCase()}`;
 
-        doc.setFontSize(16);
-        doc.text(title, 14, 15);
+        doc.setFontSize(14);
+        doc.text(`Relatório Personalizado: ${currentTableDef.label}`, 14, 15);
         doc.setFontSize(10);
-        doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 22);
+        doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 22);
 
-        let finalY = 25; // Start Y position
+        // Map column keys to labels for header
+        const headers = selectedColumns.map(key => {
+            const col = currentTableDef.columns.find(c => c.key === key);
+            return col ? col.label : key;
+        });
 
-        if (reportType === 'fuel_transactions') {
-            // 1. Sort Data by Cost Center
-            const sortedData = [...generatedData].sort((a, b) => {
-                const ccA = (a['Centro Custo'] || '').toString().toLowerCase();
-                const ccB = (b['Centro Custo'] || '').toString().toLowerCase();
-                if (ccA < ccB) return -1;
-                if (ccA > ccB) return 1;
-                return new Date(b['Data']).getTime() - new Date(a['Data']).getTime();
-            });
+        const rows = data.map(item => selectedColumns.map(key => {
+            const val = item[key];
+            if (val === true) return 'Sim';
+            if (val === false) return 'Não';
+            return val ?? '';
+        }));
 
-            // 2. Prepare Table Body with Group Headers and Subtotals
-            const body: any[] = [];
-            let currentCC = '';
-            let groupTotal = 0;
+        autoTable(doc, {
+            head: [headers],
+            body: rows,
+            startY: 30,
+            theme: 'grid',
+            headStyles: { fillColor: [30, 41, 59] },
+            styles: { fontSize: 8 },
+        });
 
-            const headers = Object.keys(sortedData[0]).filter(k =>
-                typeof sortedData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl' && k !== 'Centro Custo'
-            );
-
-            sortedData.forEach((item, index) => {
-                const itemCC = item['Centro Custo'] || 'Sem Centro de Custo';
-
-                // New Group Detected
-                if (itemCC !== currentCC) {
-                    // Close previous group if exists
-                    if (currentCC !== '') {
-                        // Add Subtotal Row
-                        body.push([
-                            { content: 'TOTAL DO CENTRO DE CUSTO', colSpan: headers.length - 1, styles: { halign: 'right', fontStyle: 'bold', fillColor: [245, 245, 245] } },
-                            { content: `${groupTotal.toFixed(2)} €`, styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } }
-                        ]);
-                    }
-
-                    // Start new group
-                    currentCC = itemCC;
-                    groupTotal = 0;
-
-                    // Add Group Header Row
-                    body.push([{
-                        content: `Centro de Custo: ${currentCC}`,
-                        colSpan: headers.length,
-                        styles: { fontStyle: 'bold', fillColor: [220, 220, 230], textColor: [20, 20, 60] }
-                    }]);
-                }
-
-                // Add Data Row
-                const row = headers.map(h => {
-                    const val = item[h];
-                    return val === undefined || val === null ? '' : String(val).substring(0, 50);
-                });
-                body.push(row);
-
-                // Accumulate Total
-                const valStr = String(item['Total'] || '0').replace(' €', '').replace(',', '.');
-                const val = parseFloat(valStr);
-                groupTotal += (isNaN(val) ? 0 : val);
-
-                // Handle Last Item
-                if (index === sortedData.length - 1) {
-                    body.push([
-                        { content: 'TOTAL DO CENTRO DE CUSTO', colSpan: headers.length - 1, styles: { halign: 'right', fontStyle: 'bold', fillColor: [245, 245, 245] } },
-                        { content: `${groupTotal.toFixed(2)} €`, styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } }
-                    ]);
-                }
-            });
-
-            autoTable(doc, {
-                head: [headers],
-                body: body,
-                startY: finalY + 10,
-                styles: { fontSize: 8, cellWidth: 'wrap' },
-                theme: 'grid',
-                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' }
-            });
-
-        } else {
-            // Standard Logic for other reports
-            const headers = Object.keys(generatedData[0]).filter(k =>
-                typeof generatedData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl'
-            );
-
-            const rows = generatedData.map(item => headers.map(h => {
-                const val = item[h];
-                return val === undefined || val === null ? '' : String(val).substring(0, 50);
-            }));
-
-            autoTable(doc, {
-                head: [headers],
-                body: rows,
-                startY: 35,
-                styles: { fontSize: 8, cellWidth: 'wrap' },
-                theme: 'grid'
-            });
-        }
-
-        doc.save(`report_${reportType}_${new Date().getTime()}.pdf`);
+        doc.save(`relatorio_${selectedTable}.pdf`);
     };
 
     const exportExcel = () => {
-        if (!generatedData.length) return;
-        const ws = XLSX.utils.json_to_sheet(generatedData);
+        if (!data.length) return;
+
+        // Map keys to labels for the excel sheet
+        const exportData = data.map(item => {
+            const row: any = {};
+            selectedColumns.forEach(key => {
+                const col = currentTableDef.columns.find(c => c.key === key);
+                const label = col ? col.label : key;
+                row[label] = item[key];
+            });
+            return row;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
-        XLSX.writeFile(wb, `report_${reportType}_${new Date().getTime()}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Dados");
+        XLSX.writeFile(wb, `relatorio_${selectedTable}.xlsx`);
     };
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
-                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                    <Search className="w-5 h-5 text-blue-400" /> Construtor de Relatórios
-                </h3>
+        <div className="space-y-6 animate-fade-in pb-12">
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                    {/* Report Type */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-400 uppercase">Tipo de Dados</label>
-                        <select
-                            value={reportType}
-                            onChange={(e) => setReportType(e.target.value as any)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {/* BUILDER PANEL */}
+            <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6 shadow-xl">
+                <div className="flex items-center gap-2 mb-6 text-white">
+                    <Search className="w-5 h-5 text-blue-400" />
+                    <h2 className="text-xl font-bold">Construtor de Consultas</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+                    {/* 1. Source Selection */}
+                    <div className="md:col-span-3 space-y-2">
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Origem dos Dados</label>
+                        <div className="relative">
+                            <select
+                                value={selectedTable}
+                                onChange={(e) => handleTableChange(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                            >
+                                {SCHEMA.map(t => (
+                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-slate-500 pointer-events-none" />
+                        </div>
+
+                        {/* Column Selector Toggle */}
+                        <button
+                            onClick={() => setShowColumnSelector(!showColumnSelector)}
+                            className="w-full mt-2 flex items-center justify-between px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition-colors border border-slate-600/50"
                         >
-                            <option value="motoristas">Motoristas</option>
-                            <option value="viaturas">Viaturas</option>
-                            <option value="servicos">Serviços / Viagens</option>
-                            <option value="manutencoes">Manutenções</option>
-                            <option disabled>--- Combustível ---</option>
-                            <option value="fuel_transactions">Abastecimentos</option>
-                            <option value="tank_refills">Reabastecimentos (Tanque)</option>
-                            <option disabled>--- Financeiro ---</option>
-                            <option value="faturas">Faturas</option>
-                            <option value="centros_custos">Centros de Custo</option>
-                            <option disabled>--- Transportes EVA ---</option>
-                            <option value="eva_transports">Serviços EVA</option>
-                        </select>
+                            <div className="flex items-center gap-2">
+                                <TableIcon className="w-4 h-4" />
+                                <span>Colunas ({selectedColumns.length})</span>
+                            </div>
+                            <ChevronRight className={`w-4 h-4 transition-transform ${showColumnSelector ? 'rotate-90' : ''}`} />
+                        </button>
+
+                        {/* Dropdown Columns */}
+                        {showColumnSelector && (
+                            <div className="mt-2 bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-1 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                {currentTableDef.columns.map(col => (
+                                    <label key={col.key} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded cursor-pointer group">
+                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedColumns.includes(col.key) ? 'bg-blue-500 border-blue-500' : 'border-slate-600 bg-transparent group-hover:border-slate-500'}`}>
+                                            {selectedColumns.includes(col.key) && <CheckSquare className="w-3 h-3 text-white" />}
+                                        </div>
+                                        <span className={`text-sm ${selectedColumns.includes(col.key) ? 'text-white' : 'text-slate-400'}`}>{col.label}</span>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={selectedColumns.includes(col.key)}
+                                            onChange={() => toggleColumn(col.key)}
+                                        />
+                                    </label>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Dates (Optional depending on type) */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-400 uppercase">De (Opcional)</label>
-                        <div className="relative">
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    {/* 2. Filters */}
+                    <div className="md:col-span-9 space-y-4">
+                        <div className="flex justify-between items-end">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Filtros Ativos</label>
+                            <button onClick={addFilter} className="text-xs flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors">
+                                <Plus className="w-3 h-3" /> Adicionar Filtro
+                            </button>
+                        </div>
+
+                        <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 min-h-[120px] space-y-3">
+                            {filters.length === 0 ? (
+                                <div className="text-center text-slate-500 py-4 flex flex-col items-center gap-2">
+                                    <Filter className="w-8 h-8 opacity-20" />
+                                    <span className="text-sm">Nenhum filtro aplicado. Todos os registos serão mostrados.</span>
+                                </div>
+                            ) : (
+                                filters.map((filter) => (
+                                    <div key={filter.id} className="flex flex-col md:flex-row gap-2 items-start md:items-center animate-fade-in">
+                                        {/* Column */}
+                                        <select
+                                            value={filter.column}
+                                            onChange={(e) => updateFilter(filter.id, 'column', e.target.value)}
+                                            className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                        >
+                                            {currentTableDef.columns.map(c => (
+                                                <option key={c.key} value={c.key}>{c.label}</option>
+                                            ))}
+                                        </select>
+
+                                        {/* Operator */}
+                                        <select
+                                            value={filter.operator}
+                                            onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
+                                            className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                        >
+                                            {OPERATORS.map(op => (
+                                                <option key={op.value} value={op.value}>{op.label}</option>
+                                            ))}
+                                        </select>
+
+                                        {/* Value */}
+                                        <input
+                                            type={filter.column.includes('data') || filter.column.includes('timestamp') ? 'date' : 'text'}
+                                            value={filter.value}
+                                            onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
+                                            placeholder="Valor..."
+                                            className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                        />
+
+                                        {/* Actions */}
+                                        <button
+                                            onClick={() => removeFilter(filter.id)}
+                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
+                </div>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-400 uppercase">Até (Opcional)</label>
-                        <div className="relative">
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                        </div>
-                    </div>
-
-                    {/* Generate Button */}
+                {/* Generate Action */}
+                <div className="mt-8 flex justify-end">
                     <button
-                        onClick={handleGenerate}
-                        disabled={loading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                        onClick={fetchData}
+                        disabled={loading || selectedColumns.length === 0}
+                        className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-blue-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                        {loading ? 'A processar...' : 'Gerar Tabela'}
+                        {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                        {loading ? 'A processar...' : 'Executar Consulta'}
                     </button>
                 </div>
             </div>
 
-            {/* Results Area */}
-            {generatedData.length > 0 && (
-                <div className="space-y-4">
+            {/* RESULTS PANEL */}
+            {data.length > 0 && (
+                <div className="space-y-4 animate-fade-in-up">
                     <div className="flex justify-between items-center">
-                        <span className="text-slate-400 text-sm">{generatedData.length} registos encontrados</span>
+                        <div className="flex items-center gap-2 text-slate-400">
+                            <span className="font-mono text-white font-bold">{data.length}</span>
+                            <span className="text-sm">resultados encontrados</span>
+                        </div>
                         <div className="flex gap-2">
-                            <button onClick={exportPDF} className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-lg text-sm transition-colors">
+                            <button
+                                onClick={exportPDF}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-colors border border-slate-700"
+                            >
                                 <Download className="w-4 h-4" /> PDF
                             </button>
-                            <button onClick={exportExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 rounded-lg text-sm transition-colors">
+                            <button
+                                onClick={exportExcel}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20 border border-emerald-500/20 rounded-lg text-sm transition-colors"
+                            >
                                 <FileSpreadsheet className="w-4 h-4" /> Excel
                             </button>
                         </div>
                     </div>
 
-                    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-x-auto max-h-[500px] custom-scrollbar">
-                        <table className="w-full text-sm text-left text-slate-300">
-                            <thead className="bg-slate-900/80 sticky top-0 backdrop-blur-sm z-10 text-xs uppercase font-medium text-slate-400">
-                                <tr>
-                                    {Object.keys(generatedData[0]).filter(k => typeof generatedData[0][k] !== 'object' && k !== 'foto' && k !== 'pdfUrl').map(key => (
-                                        <th key={key} className="px-6 py-3 whitespace-nowrap">{key}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-700/50">
-                                {generatedData.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-700/30">
-                                        {Object.keys(item).filter(k => typeof item[k] !== 'object' && k !== 'foto' && k !== 'pdfUrl').map(key => (
-                                            <td key={key} className="px-6 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                                                {String(item[key] ?? '-')}
-                                            </td>
-                                        ))}
+                    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden shadow-2xl">
+                        <div className="overflow-x-auto custom-scrollbar max-h-[600px]">
+                            <table className="w-full text-sm text-left text-slate-300">
+                                <thead className="bg-slate-900/90 text-xs uppercase font-medium text-slate-400 sticky top-0 backdrop-blur-sm z-10">
+                                    <tr>
+                                        {selectedColumns.map(colKey => {
+                                            const colDef = currentTableDef.columns.find(c => c.key === colKey);
+                                            return (
+                                                <th key={colKey} className="px-6 py-4 whitespace-nowrap font-semibold border-b border-slate-700/50">
+                                                    {colDef?.label || colKey}
+                                                </th>
+                                            );
+                                        })}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-700/50">
+                                    {data.map((row, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-700/30 transition-colors">
+                                            {selectedColumns.map(colKey => {
+                                                const val = row[colKey];
+                                                // Formatting
+                                                let displayVal = val;
+                                                if (val === true) displayVal = <span className="text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded textxs">Sim</span>;
+                                                else if (val === false) displayVal = <span className="text-slate-500">Não</span>;
+                                                else if (colKey.includes('data') || colKey.includes('timestamp')) {
+                                                    displayVal = val ? new Date(val).toLocaleDateString() : '-';
+                                                }
+
+                                                return (
+                                                    <td key={colKey} className="px-6 py-3 whitespace-nowrap border-b border-slate-800/50">
+                                                        {displayVal ?? '-'}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
