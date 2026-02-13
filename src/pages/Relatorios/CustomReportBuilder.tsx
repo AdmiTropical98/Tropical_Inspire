@@ -314,6 +314,20 @@ export default function CustomReportBuilder() {
 
         doc.save(`relatorio_${selectedTable}.pdf`);
     };
+// --- Totals Calculation ---
+const totals = selectedColumns.reduce((acc: any, colKey) => {
+    const colDef = currentTableDef.columns.find(c => c.key === colKey);
+    if (!colDef) return acc;
+
+    if (colDef.type === 'number' || colDef.type === 'currency') {
+        acc[colKey] = data.reduce((sum, row) => {
+            const value = Number(row[colKey]);
+            return sum + (isNaN(value) ? 0 : value);
+        }, 0);
+    }
+
+    return acc;
+}, {});
 
     const exportExcel = () => {
         if (!data.length) return;
@@ -550,6 +564,39 @@ export default function CustomReportBuilder() {
                                             })}
                                         </tr>
                                     ))}
+                                    {/* Totals Row */}
+<tr className="bg-slate-900/80 font-bold border-t border-slate-600">
+    {selectedColumns.map(colKey => {
+        const colDef = currentTableDef.columns.find(c => c.key === colKey);
+
+        if (colDef?.type === 'number') {
+            return (
+                <td key={colKey} className="px-6 py-3 text-blue-400">
+                    {totals[colKey] ?? ''}
+                </td>
+            );
+        }
+
+        if (colDef?.type === 'currency') {
+            return (
+                <td key={colKey} className="px-6 py-3 text-emerald-400 font-mono">
+                    {totals[colKey] != null ? totals[colKey].toFixed(2) + '€' : ''}
+                </td>
+            );
+        }
+
+        // First column shows label TOTAL
+        if (colKey === selectedColumns[0]) {
+            return (
+                <td key={colKey} className="px-6 py-3 text-white uppercase tracking-wide">
+                    TOTAL
+                </td>
+            );
+        }
+
+        return <td key={colKey}></td>;
+    })}
+</tr>
                                 </tbody>
                             </table>
                         </div>
