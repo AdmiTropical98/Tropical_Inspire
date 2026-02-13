@@ -32,9 +32,12 @@ jobs:
           sudo apt-get install -y lftp
           lftp -c "
           set ftp:ssl-allow no;
-          set net:timeout 60;
-          set net:max-retries 3;
+          set text:use-utf8 no;
+          set ftp:passive-mode true;
+          set net:timeout 120;
+          set net:reconnect-interval-base 5;
+          set net:max-retries 10;
           open -u '${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }}' '${{ secrets.FTP_SERVER }}';
-          mirror -R --verbose --parallel=2 --exclude .git/ --exclude .github/ --exclude node_modules/ ./dist/ /;
+          mirror -R --verbose --parallel=1 --exclude .git/ --exclude .github/ --exclude node_modules/ ./dist/ /;
           bye
           "
