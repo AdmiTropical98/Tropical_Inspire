@@ -29,7 +29,9 @@ export default function CentralMotoristas() {
         motoristas,
         geofences,
         updateServico,
-        refreshData
+        refreshData,
+        cartrackError,
+        updateVehicleLocation
     } = useWorkshop();
 
     // Auto-refresh data every 30 seconds
@@ -384,10 +386,10 @@ export default function CentralMotoristas() {
                                     })()}
                                     destination={nextService?.destino}
                                     geofences={geofences}
-                                    error={useWorkshop().cartrackError}
+                                    error={cartrackError}
                                     vehicleRegistration={(currentUser as any)?.currentVehicle}
-                                    onRetry={useWorkshop().refreshData}
-                                    onLocationUpdate={useWorkshop().updateVehicleLocation}
+                                    onRetry={refreshData}
+                                    onLocationUpdate={updateVehicleLocation}
                                     onBack={() => setActiveTab('overview')}
                                 />
                             </div>

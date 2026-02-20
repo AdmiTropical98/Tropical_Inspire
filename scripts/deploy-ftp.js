@@ -23,10 +23,8 @@ async function deploy() {
         await client.access(config);
         console.log("✅ API Connection Established.");
 
-        console.log("📦 Starting Upload to 'public_html'...");
-        // Ensure remote dir exists
-        await client.ensureDir("public_html");
-        await client.uploadFromDir("dist", "public_html");
+        console.log("📦 Starting Upload to root '/'...");
+        await client.uploadFromDir("dist", "./");
 
         console.log("🚀 Deployment Complete!");
     } catch (err) {

@@ -151,7 +151,7 @@ function AppContent() {
   console.log('--- APP CONTENT RENDERING ---');
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
-  const { notifications } = useWorkshop();
+  const { notifications, dbConnectionError, refreshData } = useWorkshop();
   const { unreadCount } = useChat();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos' | 'documentacao' | 'controlo-operacional'>('dashboard');
@@ -296,10 +296,10 @@ function AppContent() {
       <div className="relative z-10 flex h-full w-full bg-transparent">
 
         {/* DB Connection Error Banner */}
-        {useWorkshop().dbConnectionError && (
+        {dbConnectionError && (
           <div className="absolute top-0 left-0 w-full bg-red-600 text-white p-2 z-[9999] text-center font-bold flex items-center justify-center gap-2 shadow-xl animate-pulse">
-            {useWorkshop().dbConnectionError} -- Verifique a Consola (F12) para detalhes.
-            <button onClick={() => window.location.reload()} className="ml-4 underline text-xs">Recarregar</button>
+            {dbConnectionError} -- Verifique a Consola (F12) para detalhes.
+            <button onClick={() => refreshData()} className="ml-4 underline text-xs">Tentar novamente</button>
           </div>
         )}
 
