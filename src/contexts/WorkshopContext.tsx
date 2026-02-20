@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -65,6 +65,7 @@ interface WorkshopContextType {
     fuelTank: FuelTank;
     fuelTransactions: FuelTransaction[];
     tankRefills: TankRefillLog[];
+    vehicleMetrics: VehicleMetrics[];
     updateFuelTank: (tank: FuelTank) => void;
     registerRefuel: (transaction: FuelTransaction) => void;
     confirmRefuel: (transactionId: string) => Promise<{ error?: any } | void>;
@@ -173,6 +174,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
     const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+    const [vehicleMetrics, setVehicleMetrics] = useState<VehicleMetrics[]>([]);
 
 
 
@@ -493,6 +495,22 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 })));
             } catch (e: any) {
                 console.error('Error fetching avaliacoes:', e);
+            }
+
+            try {
+                const { data: metrics, error } = await supabase.from('metricas_viatura').select('*');
+                if (error) throw error;
+                if (metrics) setVehicleMetrics(metrics.map((m: any) => ({
+                    vehicleId: m.vehicle_id,
+                    consumoMedio: m.consumo_medio,
+                    totalLitrosMes: m.total_litros_mes,
+                    totalCustoMes: m.total_custo_mes,
+                    ultimaKm: m.ultima_km,
+                    estimativaAutonomia: m.estimativa_autonomia,
+                    updatedAt: m.updated_at
+                })));
+            } catch (e: any) {
+                console.error('Error fetching vehicle metrics:', e);
             }
 
             // 2. Eva Transports
@@ -1168,6 +1186,20 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         let finalStatus = transaction.status || 'pending';
         let pumpCounterAfter = 0;
 
+        // NEW: KM Validation & Logic
+        const lastTx = fuelTransactions
+            .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed')
+            .reduce((prev, curr) => (new Date(curr.timestamp) > new Date(prev.timestamp) ? curr : prev), { timestamp: '1970-01-01', km: 0 } as any);
+
+        if (transaction.km < lastTx.km) {
+            throw new Error(`Leitura de odómetro inválida. O valor anterior para esta viatura foi ${lastTx.km} KM.`);
+        }
+
+        // Auto-calculate consumption if possible
+        const consumption = (transaction.km > lastTx.km && lastTx.km > 0 && transaction.liters > 0)
+            ? Number(((transaction.liters / (transaction.km - lastTx.km)) * 100).toFixed(2))
+            : undefined;
+
         // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates immediately
         if (finalStatus === 'confirmed' && !transaction.isExternal) {
             const currentTotalizer = fuelTank.pumpTotalizer || 0;
@@ -1182,11 +1214,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             });
         }
 
-        const transactionToSave = {
+        const transactionToSave: FuelTransaction = {
             ...transaction,
             status: finalStatus,
             pricePerLiter: finalPrice,
             totalCost: finalTotal,
+            consumoCalculado: consumption,
+            isAnormal: consumption ? (consumption > 20) : false, // Example threshold: 20L/100km or could be based on avg
             pumpCounterAfter: (finalStatus === 'confirmed' && !transaction.isExternal) ? pumpCounterAfter : undefined
         };
 
@@ -1204,7 +1238,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             total_cost: transactionToSave.totalCost,
             centro_custo_id: transactionToSave.centroCustoId,
             pump_counter_after: transactionToSave.pumpCounterAfter,
-            is_external: transactionToSave.isExternal
+            is_external: transactionToSave.isExternal,
+            consumo_calculado: transactionToSave.consumoCalculado,
+            is_anormal: transactionToSave.isAnormal
         });
 
         if (!error) {
@@ -2028,6 +2064,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             fuelTank,
             fuelTransactions,
             tankRefills,
+            vehicleMetrics,
             updateFuelTank,
             registerRefuel,
             confirmRefuel,

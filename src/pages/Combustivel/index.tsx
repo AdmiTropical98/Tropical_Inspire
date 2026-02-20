@@ -2,8 +2,8 @@ import { useState, useRef } from 'react';
 import {
     Fuel, Droplets, History, Check, Truck,
     Gauge, Trash2, LayoutTemplate, BarChart3,
-    Settings, Upload, Download, FileSpreadsheet,
-    X, AlertCircle, Plus
+    Upload, Download, FileSpreadsheet,
+    AlertCircle, Plus, TrendingUp, Zap, Car, Filter
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -14,7 +14,7 @@ import { excelDateToJSDate } from '../../utils/format';
 
 export default function Combustivel() {
     const {
-        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, tankRefills, registerTankRefill, deleteFuelTransaction, setPumpTotalizer, centrosCustos, deleteTankRefill, updateFuelTank
+        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, registerTankRefill, deleteFuelTransaction, centrosCustos, updateFuelTank, vehicleMetrics
     } = useWorkshop();
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
@@ -25,6 +25,14 @@ export default function Combustivel() {
     const [selectedRows, setSelectedRows] = useState<number[]>([]); // For bulk actions
     const [bulkCC, setBulkCC] = useState('');
     const [bypassDriverPin, setBypassDriverPin] = useState(false); // Admin override for PIN
+    const [selectedViaturaId, setSelectedViaturaId] = useState<string>('');
+    const [filters, setFilters] = useState({
+        vehicleId: '',
+        driverId: '',
+        centroCustoId: '',
+        startDate: '',
+        endDate: ''
+    });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Fuel Form State
@@ -46,26 +54,43 @@ export default function Combustivel() {
         pricePerLiter: ''
     });
 
-    // Calibration State
-    const [isCalibrating, setIsCalibrating] = useState(false);
-    const [calibrationValue, setCalibrationValue] = useState('');
+    // --- Driver Status Check ---
+    const getDriverDayOffStatus = (driverId: string) => {
+        const driver = motoristas.find(m => m.id === driverId);
+        if (!driver) return null;
 
-    // Tank Edit State
+        const today = new Date();
+        const dayOfWeek = today.toLocaleString('pt-PT', { weekday: 'long' });
+        const normalizedDay = dayOfWeek.split('-')[0].charAt(0).toUpperCase() + dayOfWeek.split('-')[0].slice(1);
+
+        // Check for approved absences
+        const activeAbsence = driver.ausencias?.find((a: any) => {
+            const start = new Date(a.inicio);
+            const end = new Date(a.fim);
+            const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+            const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+            return todayDate >= startDate && todayDate <= endDate && a.aprovado;
+        });
+
+        if (activeAbsence) {
+            return { type: activeAbsence.tipo, label: t(`drivers.status.${activeAbsence.tipo === 'ferias' ? 'holidays' : activeAbsence.tipo === 'baixa' ? 'sick' : 'off'}`) };
+        }
+
+        // Check for scheduled weekly days off
+        if (driver.folgas?.includes(normalizedDay)) {
+            return { type: 'folga', label: t('drivers.status.off') };
+        }
+
+        return null;
+    };
+
     const [isEditingTank, setIsEditingTank] = useState(false);
     const [editTankForm, setEditTankForm] = useState({
         capacity: '',
         currentLevel: '',
         averagePrice: ''
     });
-
-    const handleEditTank = () => {
-        setEditTankForm({
-            capacity: fuelTank.capacity.toString(),
-            currentLevel: fuelTank.currentLevel.toString(),
-            averagePrice: (fuelTank.averagePrice || 0).toString()
-        });
-        setIsEditingTank(true);
-    };
 
     const saveTankChanges = (e: React.FormEvent) => {
         e.preventDefault();
@@ -203,6 +228,13 @@ export default function Combustivel() {
             return;
         }
 
+        // --- Day-off Alert Check ---
+        const dayOffStatus = getDriverDayOffStatus(refuelForm.driverId);
+        if (dayOffStatus) {
+            const proceed = confirm(`AVISO: Este motorista está marcado como [${dayOffStatus.label.toUpperCase()}]. Deseja prosseguir com o abastecimento mesmo assim?`);
+            if (!proceed) return;
+        }
+
         try {
             const isConfirmed = userRole === 'admin' && bypassDriverPin;
 
@@ -259,8 +291,6 @@ export default function Combustivel() {
     // Calculate percentage for tank visual
     const percentage = Math.min(100, Math.max(0, (fuelTank.currentLevel / fuelTank.capacity) * 100));
 
-    // Get recent transactions for overview
-    const recentTransactions = fuelTransactions.slice(0, 5);
 
     // --- BP Import Logic ---
     const parseImportNumber = (val: any): number => {
@@ -440,19 +470,6 @@ export default function Combustivel() {
         }
     };
 
-    // --- Counter Calibration ---
-    const handleCalibrateTank = () => {
-        setCalibrationValue('');
-        setIsCalibrating(true);
-    };
-
-    const confirmCalibration = () => {
-        const newVal = Number(calibrationValue);
-        if (!isNaN(newVal)) {
-            setPumpTotalizer(newVal);
-            setIsCalibrating(false);
-        }
-    };
 
 
     return (
@@ -502,177 +519,229 @@ export default function Combustivel() {
 
                 {/* OVERVIEW TAB */}
                 {activeTab === 'overview' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Main Stats Card */}
-                        <div className="lg:col-span-2 space-y-6">
-                            <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl group">
-                                <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-yellow-500/10 transition-colors duration-500"></div>
-
-                                <div className="flex justify-between items-start mb-8 relative z-10">
-                                    <div>
-                                        <h2 className="text-2xl font-black text-white mb-2">Estado do Tanque</h2>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-slate-400 font-medium">Capacidade Total</span>
-                                            <span className="bg-slate-800 px-3 py-1 rounded-full text-xs font-bold text-slate-300 border border-slate-700">{fuelTank.capacity} L</span>
-                                        </div>
-                                    </div>
-                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-lg backdrop-blur-md ${percentage < 20 ? 'bg-red-500/10 border-red-500/20 shadow-red-900/10' : 'bg-emerald-500/10 border-emerald-500/20 shadow-emerald-900/10'}`}>
-                                        <span className={`w-2.5 h-2.5 rounded-full ${percentage < 20 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></span>
-                                        <span className={`text-sm font-bold uppercase tracking-wider ${percentage < 20 ? 'text-red-400' : 'text-emerald-400'}`}>
-                                            {percentage < 20 ? 'Nível Crítico' : 'Nível Normal'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                                    {/* Tank Visual */}
-                                    <div className="bg-slate-950/50 rounded-3xl p-6 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-56 group/tank">
-                                        <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-yellow-600 to-yellow-400 opacity-20 transition-all duration-1000 ease-in-out group-hover/tank:opacity-30" style={{ height: `${percentage}%` }}></div>
-                                        <div className="absolute bottom-0 left-0 w-full h-1 bg-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.5)]" style={{ bottom: `${percentage}%`, transition: 'bottom 1s ease-in-out' }}></div>
-
-                                        <div className="relative z-10 flex justify-between items-start">
-                                            <Droplets className="w-6 h-6 text-yellow-500" />
-                                            <span className="text-2xl font-black text-white">{Math.round(percentage)}%</span>
-                                        </div>
-                                        <div className="relative z-10">
-                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Disponível</p>
-                                            <p className="text-4xl font-black text-white">{fuelTank.currentLevel} <span className="text-lg text-slate-500 font-bold">L</span></p>
-                                        </div>
-                                    </div>
-
-                                    <div className="md:col-span-2 grid grid-cols-2 gap-6">
-                                        {/* AVERAGE PRICE CARD */}
-                                        <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 hover:bg-slate-800/50 transition-all relative group/avg">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
-                                                        <BarChart3 className="w-5 h-5" />
-                                                    </div>
-                                                    <span className="text-xs font-bold text-slate-400 uppercase">Preço Médio</span>
-                                                </div>
-                                                {hasAccess(userRole, 'combustivel_edit') && (
-                                                    <button
-                                                        onClick={handleEditTank}
-                                                        className="text-slate-600 hover:text-white transition-colors opacity-0 group-hover/avg:opacity-100"
-                                                    >
-                                                        <Settings className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="text-3xl font-black text-white ml-2">{(fuelTank.averagePrice || 0).toFixed(3)}</p>
-                                                <p className="text-sm text-slate-500 font-medium mt-1 ml-2">EUR / Litro</p>
-                                            </div>
-                                        </div>
-
-                                        {/* COUNTER CARD */}
-                                        <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 hover:bg-slate-800/50 transition-all relative group/counter">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
-                                                        <Gauge className="w-5 h-5" />
-                                                    </div>
-                                                    <span className="text-xs font-bold text-slate-400 uppercase">Contador</span>
-                                                </div>
-                                                {hasAccess(userRole, 'combustivel_calibrate') && (
-                                                    <button
-                                                        onClick={handleCalibrateTank}
-                                                        className="text-slate-600 hover:text-white transition-colors opacity-0 group-hover/counter:opacity-100"
-                                                    >
-                                                        <Settings className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            {isCalibrating ? (
-                                                <div className="flex items-center gap-2 animate-in fade-in zoom-in">
-                                                    <input
-                                                        autoFocus
-                                                        type="number"
-                                                        value={calibrationValue}
-                                                        onChange={e => setCalibrationValue(e.target.value)}
-                                                        className="w-full bg-slate-950 border border-blue-500 rounded-lg px-2 py-1 text-white font-mono text-lg outline-none"
-                                                    />
-                                                    <button onClick={confirmCalibration} className="bg-blue-600 p-1.5 rounded-lg text-white"><Check className="w-4 h-4" /></button>
-                                                    <button onClick={() => setIsCalibrating(false)} className="bg-slate-700 p-1.5 rounded-lg text-slate-300"><X className="w-4 h-4" /></button>
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <p className="text-3xl font-black text-white font-mono tracking-tight ml-2">{String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}</p>
-                                                    <p className="text-sm text-slate-500 font-medium mt-1 ml-2">Litros Totais</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Header & Vehicle Selector */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 backdrop-blur-xl">
+                            <div>
+                                <h2 className="text-2xl font-black text-white tracking-tight">Dashboard de Combustível</h2>
+                                <p className="text-slate-400 font-medium">Análise de consumo e eficiência por viatura</p>
                             </div>
-
-                            {/* Action Buttons */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <button
-                                    onClick={() => setActiveTab('abastecer')}
-                                    className="group bg-slate-900 border border-slate-800 p-6 rounded-[2rem] hover:border-yellow-500/50 transition-all text-left relative overflow-hidden"
-                                >
-                                    <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity transform translate-x-4 -translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0">
-                                        <Fuel className="w-24 h-24 text-yellow-500" />
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <Car className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                    <select
+                                        value={selectedViaturaId}
+                                        onChange={(e) => setSelectedViaturaId(e.target.value)}
+                                        className="bg-slate-950 border border-slate-700 text-white rounded-2xl pl-12 pr-10 py-3 outline-none focus:border-yellow-500 transition-all appearance-none font-bold min-w-[240px]"
+                                    >
+                                        <option value="">Todas as Viaturas</option>
+                                        {viaturas.map(v => (
+                                            <option key={v.id} value={v.id}>{v.matricula} - {v.marca} {v.modelo}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <Filter className="w-4 h-4 text-slate-500" />
                                     </div>
-                                    <div className="w-14 h-14 bg-yellow-500 rounded-2xl flex items-center justify-center text-black mb-4 shadow-lg shadow-yellow-500/20 group-hover:scale-110 transition-transform">
-                                        <Fuel className="w-7 h-7" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-white mb-1">Registar Abastecimento</h3>
-                                    <p className="text-slate-400">Saída de combustível para viatura</p>
-                                </button>
-
-                                <button
-                                    onClick={() => setActiveTab('tanque')}
-                                    className="group bg-slate-900 border border-slate-800 p-6 rounded-[2rem] hover:border-emerald-500/50 transition-all text-left relative overflow-hidden"
-                                >
-                                    <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity transform translate-x-4 -translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0">
-                                        <Truck className="w-24 h-24 text-emerald-500" />
-                                    </div>
-                                    <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-emerald-900/20 group-hover:scale-110 transition-transform">
-                                        <Truck className="w-7 h-7" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-white mb-1">Reabastecer Tanque</h3>
-                                    <p className="text-slate-400">Entrada de combustível (Camião Cisterna)</p>
-                                </button>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Sidebar Stats */}
-                        <div className="space-y-6">
-                            <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-6 h-full backdrop-blur-md">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-bold text-white flex items-center gap-2">
-                                        <History className="w-5 h-5 text-slate-400" />
-                                        Recentes
-                                    </h3>
-                                    <button onClick={() => setActiveTab('historico')} className="text-xs font-bold text-blue-400 hover:text-white transition-colors">VER TUDO</button>
-                                </div>
-                                <div className="space-y-4">
-                                    {recentTransactions.length > 0 ? (
-                                        recentTransactions.map(tx => {
-                                            const driver = motoristas.find(m => m.id === tx.driverId);
-                                            const vehicle = viaturas.find(v => v.id === tx.vehicleId);
-                                            return (
-                                                <div key={tx.id} className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 hover:bg-slate-800 transition-colors">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="flex items-center gap-2 text-white font-bold">
-                                                            <span className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center text-xs font-mono">{vehicle?.matricula.slice(0, 2)}</span>
-                                                            <span>{vehicle?.matricula}</span>
-                                                        </div>
-                                                        <span className="text-yellow-400 font-bold font-mono">{tx.liters}L</span>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Main Metrics Card */}
+                            <div className="lg:col-span-2 space-y-8">
+                                {/* Tank Status & Summary */}
+                                <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-[3rem] relative overflow-hidden shadow-2xl group">
+                                    <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-yellow-500/10 transition-colors duration-500"></div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                                        {/* Tank Visual */}
+                                        <div className="space-y-6">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="text-xl font-bold text-white">Estado do Depósito</h3>
+                                                <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border ${percentage < 20 ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+                                                    {percentage < 20 ? 'Crítico' : 'Normal'}
+                                                </span>
+                                            </div>
+                                            <div className="bg-slate-950/50 rounded-3xl p-8 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-64 group/tank shadow-inner">
+                                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-yellow-600 to-yellow-400 opacity-20 transition-all duration-1000 ease-in-out group-hover/tank:opacity-30" style={{ height: `${percentage}%` }}></div>
+                                                <div className="absolute bottom-0 left-0 w-full h-1.5 bg-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.6)]" style={{ bottom: `${percentage}%`, transition: 'bottom 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+
+                                                <div className="relative z-10 flex justify-between items-start">
+                                                    <div className="p-3 bg-yellow-500/10 rounded-2xl">
+                                                        <Droplets className="w-7 h-7 text-yellow-500" />
                                                     </div>
-                                                    <div className="flex justify-between items-center text-xs text-slate-500">
-                                                        <span>{driver?.nome.split(' ')[0]}</span>
-                                                        <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
+                                                    <span className="text-4xl font-black text-white">{Math.round(percentage)}%</span>
+                                                </div>
+                                                <div className="relative z-10">
+                                                    <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Disponível no Tanque</p>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-6xl font-black text-white tracking-tighter">{fuelTank.currentLevel}</span>
+                                                        <span className="text-2xl text-slate-500 font-bold">Litros</span>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Global Stats */}
+                                        <div className="grid grid-cols-1 gap-6">
+                                            <div className="bg-slate-800/30 p-6 rounded-[2rem] border border-slate-700/50 hover:bg-slate-800/50 transition-all group/price">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2.5 bg-purple-500/10 rounded-xl text-purple-400">
+                                                            <BarChart3 className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Custo Médio PMP</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-4xl font-black text-white">{(fuelTank.averagePrice || 0).toFixed(3)}</span>
+                                                    <span className="text-slate-500 font-bold font-mono">€/L</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-800/30 p-6 rounded-[2rem] border border-slate-700/50 hover:bg-slate-800/50 transition-all group/total">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400">
+                                                            <Gauge className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Contador da Bomba</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-4xl font-black text-white font-mono tracking-tighter">
+                                                        {String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}
+                                                    </span>
+                                                    <span className="text-slate-500 font-bold">L</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {selectedViaturaId && (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-4 duration-500">
+                                        {/* Per-Vehicle Metrics */}
+                                        {(() => {
+                                            const metrics = vehicleMetrics.find(m => m.vehicleId === selectedViaturaId);
+                                            return (
+                                                <>
+                                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-blue-500/50 transition-all">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 group-hover:scale-110 transition-transform">
+                                                                <TrendingUp className="w-5 h-5" />
+                                                            </div>
+                                                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Consumo Médio</span>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <span className="text-3xl font-black text-white">{metrics?.consumoMedio || '--'}</span>
+                                                            <span className="text-slate-500 font-bold text-sm">L/100km</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-yellow-500/50 transition-all">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-400 group-hover:scale-110 transition-transform">
+                                                                <Zap className="w-5 h-5" />
+                                                            </div>
+                                                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Estimativa Autonomia</span>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <span className="text-3xl font-black text-white">{metrics?.estimativaAutonomia || '--'}</span>
+                                                            <span className="text-slate-500 font-bold text-sm">KM</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-emerald-500/50 transition-all">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform">
+                                                                <History className="w-5 h-5" />
+                                                            </div>
+                                                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Abast. Mês Atual</span>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <span className="text-3xl font-black text-white">{metrics?.totalLitrosMes || '0'}</span>
+                                                            <span className="text-slate-500 font-bold text-sm">Litros</span>
+                                                        </div>
+                                                    </div>
+                                                </>
                                             );
-                                        })
-                                    ) : (
-                                        <div className="text-center py-12 text-slate-500 italic">Sem movimentos recentes</div>
-                                    )}
+                                        })()}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Sidebar - Quick Actions & Alerts */}
+                            <div className="space-y-8">
+                                <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-xl relative overflow-hidden group">
+                                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+                                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                                        <AlertCircle className="w-5 h-5 text-slate-400" />
+                                        Alertas e Anomalias
+                                    </h3>
+
+                                    <div className="space-y-4">
+                                        {(() => {
+                                            const anomalies = fuelTransactions
+                                                .filter(tx => tx.isAnormal && tx.status === 'confirmed')
+                                                .slice(0, 3);
+
+                                            if (anomalies.length === 0) {
+                                                return (
+                                                    <div className="flex flex-col items-center justify-center py-10 text-slate-500 gap-3">
+                                                        <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500">
+                                                            <Check className="w-6 h-6" />
+                                                        </div>
+                                                        <p className="text-sm font-medium">Nenhuma anomalia detectada</p>
+                                                    </div>
+                                                );
+                                            }
+
+                                            return anomalies.map(tx => {
+                                                const v = viaturas.find(vi => vi.id === tx.vehicleId);
+                                                return (
+                                                    <div key={tx.id} className="bg-red-500/5 border border-red-500/10 p-4 rounded-2xl flex gap-4">
+                                                        <div className="p-2 bg-red-500/20 rounded-xl self-start">
+                                                            <AlertCircle className="w-5 h-5 text-red-500" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-white font-bold text-sm">Consumo Elevado: {tx.consumoCalculado}L/100km</p>
+                                                            <p className="text-slate-500 text-xs mt-1">{v?.matricula} • {new Date(tx.timestamp).toLocaleDateString()}</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            });
+                                        })()}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4">
+                                    <button
+                                        onClick={() => setActiveTab('abastecer')}
+                                        className="w-full group bg-yellow-500 hover:bg-yellow-400 p-5 rounded-3xl transition-all shadow-xl shadow-yellow-500/20 flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-black/10 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                                                <Fuel className="w-6 h-6 text-black" />
+                                            </div>
+                                            <span className="text-black font-black uppercase tracking-wider text-sm">Registar Saída</span>
+                                        </div>
+                                        <Plus className="w-5 h-5 text-black" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setActiveTab('tanque')}
+                                        className="w-full group bg-slate-800 hover:bg-slate-700 p-5 rounded-3xl transition-all border border-slate-700 flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-emerald-500/10 p-2 rounded-xl text-emerald-500 group-hover:scale-110 transition-transform">
+                                                <Truck className="w-6 h-6" />
+                                            </div>
+                                            <span className="text-white font-bold uppercase tracking-wider text-sm">Reabastecer Stock</span>
+                                        </div>
+                                        <Plus className="w-5 h-5 text-slate-500" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -923,11 +992,38 @@ export default function Combustivel() {
                 {/* HISTORY TAB */}
                 {activeTab === 'historico' && (
                     <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
-                        <div className="flex justify-between items-center mb-8">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                                 <History className="w-6 h-6 text-blue-400" />
                                 Histórico de Transações
                             </h2>
+                            <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-2xl border border-slate-700/50">
+                                <Filter className="w-4 h-4 text-slate-500 ml-2" />
+                                <select
+                                    value={filters.vehicleId}
+                                    onChange={(e) => setFilters({ ...filters, vehicleId: e.target.value })}
+                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                >
+                                    <option value="">Viatura: Todas</option>
+                                    {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
+                                </select>
+                                <div className="w-[1px] h-4 bg-slate-700 mx-1" />
+                                <select
+                                    value={filters.centroCustoId}
+                                    onChange={(e) => setFilters({ ...filters, centroCustoId: e.target.value })}
+                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                >
+                                    <option value="">C.Custo: Todos</option>
+                                    {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
+                                </select>
+                                <div className="w-[1px] h-4 bg-slate-700 mx-1" />
+                                <input
+                                    type="date"
+                                    value={filters.startDate}
+                                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                />
+                            </div>
                         </div>
 
                         <div className="overflow-hidden rounded-2xl border border-slate-800">
@@ -944,41 +1040,67 @@ export default function Combustivel() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800 bg-slate-900/30">
-                                    {fuelTransactions.map(tx => {
-                                        const driver = motoristas.find(m => m.id === tx.driverId);
-                                        const vehicle = viaturas.find(v => v.id === tx.vehicleId);
-                                        return (
-                                            <tr key={tx.id} className="hover:bg-slate-800/50 transition-colors">
-                                                <td className="px-6 py-4 text-slate-300 font-mono">
-                                                    {new Date(tx.timestamp).toLocaleDateString()}
-                                                    <span className="text-slate-600 ml-2 text-xs">{new Date(tx.timestamp).toLocaleTimeString()}</span>
-                                                </td>
-                                                <td className="px-6 py-4 font-bold text-white">{vehicle?.matricula}</td>
-                                                <td className="px-6 py-4 text-slate-300">
-                                                    {driver ? driver.nome : (tx.driverId === null ? 'Importação BP' : 'N/A')}
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-400 text-xs">
-                                                    {centrosCustos.find(c => c.id === tx.centroCustoId)?.nome || '-'}
-                                                </td>
-                                                <td className="px-6 py-4 text-right font-mono text-yellow-500 font-bold">{tx.liters} L</td>
-                                                <td className="px-6 py-4 text-right font-mono text-slate-300 font-bold">
-                                                    {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    {hasAccess(userRole, 'combustivel_delete') && (
-                                                        <button
-                                                            onClick={() => {
-                                                                if (confirm('Tem a certeza que deseja eliminar este registo?')) deleteFuelTransaction(tx.id);
-                                                            }}
-                                                            className="text-slate-600 hover:text-red-400 transition-colors"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {fuelTransactions
+                                        .filter(tx => {
+                                            const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
+                                            const matchesCC = !filters.centroCustoId || tx.centroCustoId === filters.centroCustoId;
+                                            const matchesDate = !filters.startDate || tx.timestamp.startsWith(filters.startDate);
+                                            return matchesVehicle && matchesCC && matchesDate;
+                                        })
+                                        .map(tx => {
+                                            const driver = motoristas.find(m => m.id === tx.driverId);
+                                            const vehicle = viaturas.find(v => v.id === tx.vehicleId);
+                                            return (
+                                                <tr key={tx.id} className={`hover:bg-slate-800/50 transition-colors ${tx.isAnormal ? 'bg-red-500/5' : ''}`}>
+                                                    <td className="px-6 py-4 text-slate-300 font-mono">
+                                                        {new Date(tx.timestamp).toLocaleDateString()}
+                                                        <span className="text-slate-600 ml-2 text-xs">{new Date(tx.timestamp).toLocaleTimeString()}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-white">{vehicle?.matricula}</span>
+                                                            <span className="text-[10px] text-slate-500 uppercase">{vehicle?.marca} {vehicle?.modelo}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-slate-300">
+                                                                {driver ? driver.nome : (tx.driverId === null ? 'Importação BP' : 'N/A')}
+                                                            </span>
+                                                            {tx.isAnormal && (
+                                                                <AlertCircle className="w-4 h-4 text-red-500" />
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-slate-400 text-xs">
+                                                        {centrosCustos.find(c => c.id === tx.centroCustoId)?.nome || '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-mono text-yellow-500 font-bold">{tx.liters} L</span>
+                                                            {tx.consumoCalculado && (
+                                                                <span className="text-[10px] text-slate-500">{tx.consumoCalculado} L/100km</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-mono text-slate-300 font-bold">
+                                                        {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        {hasAccess(userRole, 'combustivel_delete') && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (confirm('Tem a certeza que deseja eliminar este registo?')) deleteFuelTransaction(tx.id);
+                                                                }}
+                                                                className="text-slate-600 hover:text-red-400 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     {fuelTransactions.length === 0 && (
                                         <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">Nenhum registo encontrado.</td></tr>
                                     )}
@@ -1059,7 +1181,7 @@ export default function Combustivel() {
                                                     onClick={() => {
                                                         if (!bulkCC) return;
                                                         const newTransactions = [...bpTransactions];
-                                                        selectedRows.forEach(idx => {
+                                                        selectedRows.forEach((idx: number) => {
                                                             newTransactions[idx]._selectedCC = bulkCC;
                                                         });
                                                         setBpTransactions(newTransactions);
@@ -1096,7 +1218,7 @@ export default function Combustivel() {
                                                         checked={selectedRows.length === bpTransactions.length && bpTransactions.length > 0}
                                                         onChange={(e) => {
                                                             if (e.target.checked) {
-                                                                setSelectedRows(bpTransactions.map((_, i) => i));
+                                                                setSelectedRows(bpTransactions.map((_: any, i: number) => i));
                                                             } else {
                                                                 setSelectedRows([]);
                                                             }
@@ -1114,7 +1236,7 @@ export default function Combustivel() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
-                                            {bpTransactions.map((row, i) => {
+                                            {bpTransactions.map((row: any, i: number) => {
                                                 const diaHora = row['Dia Hora'];
                                                 const dataVal = row['Data'];
                                                 const horaVal = row['Hora'];
@@ -1151,11 +1273,11 @@ export default function Combustivel() {
                                                                 type="checkbox"
                                                                 className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
                                                                 checked={selectedRows.includes(i)}
-                                                                onChange={(e) => {
+                                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                     if (e.target.checked) {
-                                                                        setSelectedRows(prev => [...prev, i]);
+                                                                        setSelectedRows((prev: number[]) => [...prev, i]);
                                                                     } else {
-                                                                        setSelectedRows(prev => prev.filter(idx => idx !== i));
+                                                                        setSelectedRows((prev: number[]) => prev.filter((idx: number) => idx !== i));
                                                                     }
                                                                 }}
                                                             />

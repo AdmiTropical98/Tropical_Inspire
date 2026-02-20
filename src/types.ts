@@ -309,6 +309,8 @@ export interface FuelTransaction {
     total_cost?: number;
     staff_name?: string;
     station?: string;
+    consumoCalculado?: number;
+    isAnormal?: boolean;
 }
 
 export interface TankRefillLog {
@@ -517,5 +519,16 @@ export interface ElectricChargingRecord {
     driver?: Motorista;
     cost_center?: CentroCusto;
 }
+
+export interface VehicleMetrics {
+    vehicleId: string;
+    consumoMedio: number;
+    totalLitrosMes: number;
+    totalCustoMes: number;
+    ultimaKm: number;
+    estimativaAutonomia: number;
+    updatedAt: string;
+}
+
 
 
