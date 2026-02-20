@@ -3,7 +3,6 @@ import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, No
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
-import { useAuth } from './AuthContext';
 import { usePermissions } from './PermissionsContext';
 
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -151,8 +150,6 @@ interface WorkshopContextType {
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
 
 export function WorkshopProvider({ children }: { children: React.ReactNode }) {
-    const { currentUser } = useAuth();
-
 
     const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
     const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -1199,8 +1196,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (error) throw error;
             setRotasPlaneadas(prev => [data, ...prev]);
 
+            const { data: authData } = await supabase.auth.getUser();
             await registerLog({
-                utilizador: currentUser?.email || 'Sistema',
+                utilizador: authData?.user?.email || 'Sistema',
                 acao: 'Criação de rota',
                 referencia_id: data.id,
                 detalhes_json: { viatura_id: data.viatura_id, motorista_id: data.motorista_id }
@@ -1244,8 +1242,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             setRotasPlaneadas(prev => prev.map(r => r.id === id ? { ...r, ...updateData } : r));
 
+            const { data: authData } = await supabase.auth.getUser();
             await registerLog({
-                utilizador: currentUser?.email || 'Sistema',
+                utilizador: authData?.user?.email || 'Sistema',
                 acao: `Rota ${status === 'concluida' ? 'concluída' : 'cancelada'}`,
                 referencia_id: id,
                 detalhes_json: { realDistance, flag_desvio: updateData.flag_desvio }
