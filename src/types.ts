@@ -56,6 +56,8 @@ export interface ItemRequisicao {
     id: string;
     descricao: string;
     quantidade: number;
+    valor_unitario?: number;
+    valor_total?: number;
 }
 
 export interface CentroCusto {
