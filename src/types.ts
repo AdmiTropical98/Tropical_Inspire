@@ -530,5 +530,33 @@ export interface VehicleMetrics {
     updatedAt: string;
 }
 
+export interface RotaPlaneada {
+    id: string;
+    motorista_id: string;
+    viatura_id: string;
+    data: string;
+    distancia_estimada: number;
+    tempo_estimado: number;
+    consumo_estimado: number;
+    custo_estimado: number;
+    rota_json: any;
+    estado: 'planeada' | 'concluida' | 'cancelada';
+    flag_desvio?: boolean;
+    justificacao_desvio?: string;
+    distancia_real?: number;
+    created_at?: string;
+    concluida_at?: string;
+}
+
+export interface LogOperacional {
+    id: string;
+    utilizador: string;
+    acao: string;
+    data_hora: string;
+    referencia_id?: string;
+    detalhes_json?: any;
+    cost_center_id?: string;
+}
+
 
 

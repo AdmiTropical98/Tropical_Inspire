@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
+import { useAuth } from './AuthContext';
+import { usePermissions } from './PermissionsContext';
 
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371e3; // metres
@@ -49,6 +51,15 @@ interface WorkshopContextType {
 
     cartrackError: string | null;
     dbConnectionError: string | null; // NEW: Explicit DB Error
+
+    // Routing
+    rotasPlaneadas: RotaPlaneada[];
+    saveRoute: (route: Partial<RotaPlaneada>) => Promise<{ success: boolean; data?: any; error?: any }>;
+    updateRouteStatus: (id: string, status: 'concluida' | 'cancelada', realDistance?: number, justification?: string) => Promise<void>;
+
+    // Auditing
+    logsOperacionais: LogOperacional[];
+    registerLog: (log: Omit<LogOperacional, 'id' | 'data_hora'>) => Promise<void>;
 
     // POI / Locais
     locais: Local[];
@@ -140,6 +151,7 @@ interface WorkshopContextType {
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
 
 export function WorkshopProvider({ children }: { children: React.ReactNode }) {
+    const { currentUser } = useAuth();
 
 
     const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
@@ -383,6 +395,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const [fuelTransactions, setFuelTransactions] = useState<FuelTransaction[]>([]);
     const [tankRefills, setTankRefills] = useState<TankRefillLog[]>([]);
+    const [rotasPlaneadas, setRotasPlaneadas] = useState<RotaPlaneada[]>([]);
+    const [logsOperacionais, setLogsOperacionais] = useState<LogOperacional[]>([]);
 
     const refreshData = async () => {
         try {
@@ -511,6 +525,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 })));
             } catch (e: any) {
                 console.error('Error fetching vehicle metrics:', e);
+            }
+
+            try {
+                const { data: rp } = await supabase.from('rotas_planeadas').select('*').order('created_at', { ascending: false });
+                if (rp) setRotasPlaneadas(rp);
+
+                const { data: logs } = await supabase.from('logs_operacionais').select('*').order('data_hora', { ascending: false }).limit(500);
+                if (logs) setLogsOperacionais(logs);
+            } catch (e: any) {
+                console.error('Error fetching routing/logs:', e);
             }
 
             // 2. Eva Transports
@@ -1160,6 +1184,90 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             console.error('Route Validation Error:', e);
             return {};
+        }
+    };
+
+    // Routing Methods
+    const saveRoute = async (routeData: Partial<RotaPlaneada>) => {
+        try {
+            const { data, error } = await supabase
+                .from('rotas_planeadas')
+                .insert([routeData])
+                .select()
+                .single();
+
+            if (error) throw error;
+            setRotasPlaneadas(prev => [data, ...prev]);
+
+            await registerLog({
+                utilizador: currentUser?.email || 'Sistema',
+                acao: 'Criação de rota',
+                referencia_id: data.id,
+                detalhes_json: { viatura_id: data.viatura_id, motorista_id: data.motorista_id }
+            });
+
+            return { success: true, data };
+        } catch (error: any) {
+            console.error('Error saving route:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const updateRouteStatus = async (id: string, status: 'concluida' | 'cancelada', realDistance?: number, justification?: string) => {
+        try {
+            const updateData: any = {
+                estado: status,
+                concluida_at: status === 'concluida' ? new Date().toISOString() : null
+            };
+
+            if (realDistance !== undefined) {
+                updateData.distancia_real = realDistance;
+                const route = rotasPlaneadas.find(r => r.id === id);
+                if (route && route.distancia_estimada) {
+                    const diff = Math.abs(realDistance - route.distancia_estimada) / route.distancia_estimada;
+                    if (diff > 0.20) {
+                        updateData.flag_desvio = true;
+                    }
+                }
+            }
+
+            if (justification) {
+                updateData.justificacao_desvio = justification;
+            }
+
+            const { error } = await supabase
+                .from('rotas_planeadas')
+                .update(updateData)
+                .eq('id', id);
+
+            if (error) throw error;
+
+            setRotasPlaneadas(prev => prev.map(r => r.id === id ? { ...r, ...updateData } : r));
+
+            await registerLog({
+                utilizador: currentUser?.email || 'Sistema',
+                acao: `Rota ${status === 'concluida' ? 'concluída' : 'cancelada'}`,
+                referencia_id: id,
+                detalhes_json: { realDistance, flag_desvio: updateData.flag_desvio }
+            });
+
+        } catch (error) {
+            console.error('Error updating route status:', error);
+        }
+    };
+
+    const registerLog = async (log: Omit<LogOperacional, 'id' | 'data_hora'>) => {
+        try {
+            const { data, error } = await supabase
+                .from('logs_operacionais')
+                .insert([log])
+                .select()
+                .single();
+
+            if (error) throw error;
+            setLogsOperacionais(prev => [data, ...prev].slice(0, 500));
+        } catch (error) {
+            console.error('Error registering log:', error);
         }
     };
 
@@ -2206,7 +2314,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             cancelScaleBatch: async (batchId: string) => {
                 try {
-                    // Update Database
                     const { error } = await supabase
                         .from('scale_batches')
                         .update({ status: 'cancelled' })
@@ -2214,7 +2321,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                     if (error) throw error;
 
-                    // Update Local State
                     setScaleBatches(prev => prev.map(b =>
                         b.id === batchId ? { ...b, status: 'cancelled' } : b
                     ));
@@ -2225,10 +2331,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     return { success: false, error: error.message };
                 }
             },
+            rotasPlaneadas,
+            saveRoute,
+            updateRouteStatus,
+            logsOperacionais,
+            registerLog,
             scaleBatches
         }}>
             {children}
-        </WorkshopContext.Provider>
+        </WorkshopContext.Provider >
     );
 }
 

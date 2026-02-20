@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, UserCheck, History, Navigation, Zap, Ticket
+  ChevronDown, ChevronRight, UserCheck, History, Navigation, Zap, Ticket, Activity
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -48,6 +48,7 @@ import Permissoes from './pages/Permissoes';
 import MyProfile from './pages/Profile/MyProfile';
 import Gestores from './pages/Gestores';
 import Roteirizacao from './pages/Roteirizacao';
+import ControloOperacional from './pages/ControloOperacional';
 // Lazy Load LancarEscala
 const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 const ViaVerde = lazy(() => import('./pages/ViaVerde'));
@@ -153,7 +154,7 @@ function AppContent() {
   const { notifications } = useWorkshop();
   const { unreadCount } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos' | 'documentacao'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos' | 'documentacao' | 'controlo-operacional'>('dashboard');
 
   // Sidebar State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -255,20 +256,21 @@ function AppContent() {
       case 'external': return <ExternalServices />;
       case 'meu-perfil': return <MyProfile />;
       case 'roteirizacao': return <Roteirizacao />;
+      case 'controlo-operacional': return <ControloOperacional />;
       case 'via-verde': return (
         <Suspense fallback={<PageLoading />}>
           <ViaVerde />
         </Suspense>
       );
-   case 'carregamentos':
-  return (
-    <Suspense fallback={<PageLoading />}>
-      <Carregamentos />
-    </Suspense>
-  );
+      case 'carregamentos':
+        return (
+          <Suspense fallback={<PageLoading />}>
+            <Carregamentos />
+          </Suspense>
+        );
 
-case 'documentacao':
-  return <Documentacao />;
+      case 'documentacao':
+        return <Documentacao />;
 
       default: return <Dashboard setActiveTab={handleNavigate} />;
     }
@@ -334,13 +336,24 @@ case 'documentacao':
           <nav className="flex-1 overflow-y-auto py-6 space-y-2 custom-scrollbar overflow-x-hidden">
             {/* MAIN MENU */}
             {hasAccess(userRole, 'dashboard') && (
-              <SidebarItem
-                icon={LayoutDashboard}
-                label="Dashboard"
-                active={activeTab === 'dashboard'}
-                onClick={() => handleNavigate('dashboard')}
-                collapsed={isSidebarCollapsed}
-              />
+              <>
+                <SidebarItem
+                  icon={LayoutDashboard}
+                  label="Dashboard Principal"
+                  active={activeTab === 'dashboard'}
+                  onClick={() => handleNavigate('dashboard')}
+                  collapsed={isSidebarCollapsed}
+                />
+                {(userRole === 'admin' || userRole === 'gestor') && (
+                  <SidebarItem
+                    icon={Activity}
+                    label="Controlo Operacional"
+                    active={activeTab === 'controlo-operacional'}
+                    onClick={() => handleNavigate('controlo-operacional')}
+                    collapsed={isSidebarCollapsed}
+                  />
+                )}
+              </>
             )}
 
             {showFleetGroup && (
@@ -504,12 +517,22 @@ case 'documentacao':
 
                 {/* MAIN MENU */}
                 {hasAccess(userRole, 'dashboard') && (
-                  <SidebarItem
-                    icon={LayoutDashboard}
-                    label="Dashboard"
-                    active={activeTab === 'dashboard'}
-                    onClick={() => { handleNavigate('dashboard'); setIsMobileMenuOpen(false); }}
-                  />
+                  <>
+                    <SidebarItem
+                      icon={LayoutDashboard}
+                      label="Dashboard"
+                      active={activeTab === 'dashboard'}
+                      onClick={() => { handleNavigate('dashboard'); setIsMobileMenuOpen(false); }}
+                    />
+                    {(userRole === 'admin' || userRole === 'gestor') && (
+                      <SidebarItem
+                        icon={Activity}
+                        label="Controlo Operacional"
+                        active={activeTab === 'controlo-operacional'}
+                        onClick={() => { handleNavigate('controlo-operacional'); setIsMobileMenuOpen(false); }}
+                      />
+                    )}
+                  </>
                 )}
 
                 {/* 1. GESTÃO DE FROTA */}
@@ -647,8 +670,7 @@ case 'documentacao':
   );
 }
 
-import IntroVideo from './components/common/IntroVideo'; // Keeping import if user decides to revert, but commenting out usage below caused lint error. Actually I should remove it.
-
+// Final cleanup
 function App() {
   // const { isAuthenticated } = useAuth(); // Unused now
 
