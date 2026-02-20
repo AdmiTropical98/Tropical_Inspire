@@ -34,13 +34,13 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
-    <AuthProvider>
-      <PermissionsProvider>
-        <WorkshopProvider>
+    <WorkshopProvider>
+      <AuthProvider>
+        <PermissionsProvider>
           <App />
-        </WorkshopProvider>
-      </PermissionsProvider>
-    </AuthProvider>
+        </PermissionsProvider>
+      </AuthProvider>
+    </WorkshopProvider>
   </ErrorBoundary>,
 )
 // Force Deploy 2026-02-02 20:50
