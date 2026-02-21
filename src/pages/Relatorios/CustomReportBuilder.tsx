@@ -208,36 +208,36 @@ export default function CustomReportBuilder() {
                 // Simple workaround: Only filter if it's a direct column (no parentheses)
                 let filterColumn = colDef!.select;
 
-// Se for relação (ex: viaturas(matricula))
-if (colDef!.select.includes('(')) {
-    const match = colDef!.select.match(/(\w+)\((\w+)\)/);
-    if (match) {
-        const [_, table, field] = match;
-        filterColumn = `${table}.${field}`;
-    }
-}
+                // Se for relação (ex: viaturas(matricula))
+                if (colDef!.select.includes('(')) {
+                    const match = colDef!.select.match(/(\w+)\((\w+)\)/);
+                    if (match) {
+                        const [_, table, field] = match;
+                        filterColumn = `${table}.${field}`;
+                    }
+                }
 
-switch (filter.operator) {
-    case 'eq': query = query.eq(filterColumn, filter.value); break;
-    case 'neq': query = query.neq(filterColumn, filter.value); break;
-    case 'gt': query = query.gt(filterColumn, filter.value); break;
-    case 'lt': query = query.lt(filterColumn, filter.value); break;
-    case 'gte': query = query.gte(filterColumn, filter.value); break;
-    case 'lte': query = query.lte(filterColumn, filter.value); break;
-    case 'ilike': query = query.ilike(filterColumn, `%${filter.value}%`); break;
-    case 'is':
-        if (filter.value === 'null') query = query.is(filterColumn, null);
-        break;
-}
+                switch (filter.operator) {
+                    case 'eq': query = query.eq(filterColumn, filter.value); break;
+                    case 'neq': query = query.neq(filterColumn, filter.value); break;
+                    case 'gt': query = query.gt(filterColumn, filter.value); break;
+                    case 'lt': query = query.lt(filterColumn, filter.value); break;
+                    case 'gte': query = query.gte(filterColumn, filter.value); break;
+                    case 'lte': query = query.lte(filterColumn, filter.value); break;
+                    case 'ilike': query = query.ilike(filterColumn, `%${filter.value}%`); break;
+                    case 'is':
+                        if (filter.value === 'null') query = query.is(filterColumn, null);
+                        break;
+                }
 
             });
 
             query = query.limit(500);
             const firstColumn = currentTableDef.columns[0];
 
-if (firstColumn && !firstColumn.select.includes('(')) {
-    query = query.order(firstColumn.select, { ascending: false });
-}
+            if (firstColumn && !firstColumn.select.includes('(')) {
+                query = query.order(firstColumn.select, { ascending: false });
+            }
 
             const { data: resData, error } = await query;
 
@@ -328,20 +328,20 @@ if (firstColumn && !firstColumn.select.includes('(')) {
 
         doc.save(`relatorio_${selectedTable}.pdf`);
     };
-// --- Totals Calculation ---
-const totals = selectedColumns.reduce((acc: any, colKey) => {
-    const colDef = currentTableDef.columns.find(c => c.key === colKey);
-    if (!colDef) return acc;
+    // --- Totals Calculation ---
+    const totals = selectedColumns.reduce((acc: any, colKey) => {
+        const colDef = currentTableDef.columns.find(c => c.key === colKey);
+        if (!colDef) return acc;
 
-    if (colDef.type === 'number' || colDef.type === 'currency') {
-        acc[colKey] = data.reduce((sum, row) => {
-            const value = Number(row[colKey]);
-            return sum + (isNaN(value) ? 0 : value);
-        }, 0);
-    }
+        if (colDef.type === 'number' || colDef.type === 'currency') {
+            acc[colKey] = data.reduce((sum, row) => {
+                const value = Number(row[colKey]);
+                return sum + (isNaN(value) ? 0 : value);
+            }, 0);
+        }
 
-    return acc;
-}, {});
+        return acc;
+    }, {});
 
     const exportExcel = () => {
         if (!data.length) return;
@@ -512,7 +512,7 @@ const totals = selectedColumns.reduce((acc: any, colKey) => {
                     </button>
                 </div>
             </div>
-            
+
             {/* RESULTS PANEL */}
             {data.length > 0 && (
                 <div className="space-y-4 animate-fade-in-up">
@@ -537,7 +537,7 @@ const totals = selectedColumns.reduce((acc: any, colKey) => {
                         </div>
                     </div>
 
-                    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden shadow-2xl">
+                    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-x-auto shadow-2xl">
                         <div className="overflow-x-auto custom-scrollbar max-h-[600px]">
                             <table className="w-full text-sm text-left text-slate-300">
                                 <thead className="bg-slate-900/90 text-xs uppercase font-medium text-slate-400 sticky top-0 backdrop-blur-sm z-10">
@@ -579,38 +579,38 @@ const totals = selectedColumns.reduce((acc: any, colKey) => {
                                         </tr>
                                     ))}
                                     {/* Totals Row */}
-<tr className="bg-slate-900/80 font-bold border-t border-slate-600">
-    {selectedColumns.map(colKey => {
-        const colDef = currentTableDef.columns.find(c => c.key === colKey);
+                                    <tr className="bg-slate-900/80 font-bold border-t border-slate-600">
+                                        {selectedColumns.map(colKey => {
+                                            const colDef = currentTableDef.columns.find(c => c.key === colKey);
 
-        if (colDef?.type === 'number') {
-            return (
-                <td key={colKey} className="px-6 py-3 text-blue-400">
-                    {totals[colKey] ?? ''}
-                </td>
-            );
-        }
+                                            if (colDef?.type === 'number') {
+                                                return (
+                                                    <td key={colKey} className="px-6 py-3 text-blue-400">
+                                                        {totals[colKey] ?? ''}
+                                                    </td>
+                                                );
+                                            }
 
-        if (colDef?.type === 'currency') {
-            return (
-                <td key={colKey} className="px-6 py-3 text-emerald-400 font-mono">
-                    {totals[colKey] != null ? totals[colKey].toFixed(2) + '€' : ''}
-                </td>
-            );
-        }
+                                            if (colDef?.type === 'currency') {
+                                                return (
+                                                    <td key={colKey} className="px-6 py-3 text-emerald-400 font-mono">
+                                                        {totals[colKey] != null ? totals[colKey].toFixed(2) + '€' : ''}
+                                                    </td>
+                                                );
+                                            }
 
-        // First column shows label TOTAL
-        if (colKey === selectedColumns[0]) {
-            return (
-                <td key={colKey} className="px-6 py-3 text-white uppercase tracking-wide">
-                    TOTAL
-                </td>
-            );
-        }
+                                            // First column shows label TOTAL
+                                            if (colKey === selectedColumns[0]) {
+                                                return (
+                                                    <td key={colKey} className="px-6 py-3 text-white uppercase tracking-wide">
+                                                        TOTAL
+                                                    </td>
+                                                );
+                                            }
 
-        return <td key={colKey}></td>;
-    })}
-</tr>
+                                            return <td key={colKey}></td>;
+                                        })}
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>

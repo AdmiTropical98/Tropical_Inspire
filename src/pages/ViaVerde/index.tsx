@@ -652,360 +652,360 @@ export default function ViaVerde() {
             </div>
 
             {/* Table */}
-            <div className="bg-slate-900/50 rounded-2xl border border-white/5 overflow-hidden backdrop-blur-sm shadow-xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-950/50 text-slate-400 uppercase font-medium border-b border-white/5">
+            <div className="bg-slate-900/50 rounded-2xl border border-white/5 overflow-x-auto backdrop-blur-sm shadow-xl">
+                <table className="w-full text-left text-sm" style={{ minWidth: '700px' }}>
+                    <thead className="bg-slate-950/50 text-slate-400 uppercase font-medium border-b border-white/5">
+                        <tr>
+                            <th className="px-6 py-5 w-10">
+                                <input
+                                    type="checkbox"
+                                    checked={filteredTolls.length > 0 && selectedIds.size === filteredTolls.length}
+                                    onChange={toggleAll}
+                                    className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
+                                />
+                            </th>
+                            <th className="px-6 py-5 tracking-wider text-xs">Data/Hora</th>
+                            <th className="px-6 py-5 tracking-wider text-xs">Viatura</th>
+                            <th className="px-6 py-5 tracking-wider text-xs">Motorista / CC</th>
+                            <th className="px-6 py-5 tracking-wider text-xs">Trajeto</th>
+                            <th className="px-6 py-5 tracking-wider text-xs text-right">Valor</th>
+                            <th className="px-6 py-5 tracking-wider text-xs text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                        {loading ? (
                             <tr>
-                                <th className="px-6 py-5 w-10">
-                                    <input
-                                        type="checkbox"
-                                        checked={filteredTolls.length > 0 && selectedIds.size === filteredTolls.length}
-                                        onChange={toggleAll}
-                                        className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
-                                    />
-                                </th>
-                                <th className="px-6 py-5 tracking-wider text-xs">Data/Hora</th>
-                                <th className="px-6 py-5 tracking-wider text-xs">Viatura</th>
-                                <th className="px-6 py-5 tracking-wider text-xs">Motorista / CC</th>
-                                <th className="px-6 py-5 tracking-wider text-xs">Trajeto</th>
-                                <th className="px-6 py-5 tracking-wider text-xs text-right">Valor</th>
-                                <th className="px-6 py-5 tracking-wider text-xs text-center">Ações</th>
+                                <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
+                                        <span>Carregando registos...</span>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-                                            <span>Carregando registos...</span>
+                        ) : filteredTolls.length === 0 ? (
+                            <tr>
+                                <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Search className="w-8 h-8 text-slate-600 mb-2" />
+                                        <p className="text-lg font-medium text-slate-400">Nenhum registo encontrado</p>
+                                        <p className="text-sm">Tente ajustar os filtros ou adicionar um novo registo.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : (
+                            filteredTolls.map((toll) => (
+                                <tr
+                                    key={toll.id}
+                                    className={`group transition-all duration-200 ${selectedIds.has(toll.id) ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-slate-800/30'}`}
+                                    onClick={(e) => {
+                                        // Toggle selection when clicking row (unless clicking button/link)
+                                        if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
+                                        toggleSelection(toll.id);
+                                    }}
+                                >
+                                    <td className="px-6 py-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.has(toll.id)}
+                                            onChange={() => toggleSelection(toll.id)}
+                                            className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-medium">
+                                                {new Date(toll.entry_time).toLocaleDateString()}
+                                            </span>
+                                            <span className="text-slate-500 text-xs font-mono">
+                                                {new Date(toll.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
                                         </div>
                                     </td>
-                                </tr>
-                            ) : filteredTolls.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Search className="w-8 h-8 text-slate-600 mb-2" />
-                                            <p className="text-lg font-medium text-slate-400">Nenhum registo encontrado</p>
-                                            <p className="text-sm">Tente ajustar os filtros ou adicionar um novo registo.</p>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5 group-hover:border-emerald-500/20 transition-colors">
+                                                <Truck className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+                                            </div>
+                                            <div>
+                                                <span className="block text-white font-medium bg-slate-800 px-2 py-0.5 rounded text-xs w-fit mb-0.5 border border-white/5">{toll.vehicle?.matricula}</span>
+                                                <span className="text-slate-500 text-xs">{toll.vehicle?.marca} {toll.vehicle?.modelo}</span>
+                                            </div>
                                         </div>
                                     </td>
-                                </tr>
-                            ) : (
-                                filteredTolls.map((toll) => (
-                                    <tr
-                                        key={toll.id}
-                                        className={`group transition-all duration-200 ${selectedIds.has(toll.id) ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-slate-800/30'}`}
-                                        onClick={(e) => {
-                                            // Toggle selection when clicking row (unless clicking button/link)
-                                            if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
-                                            toggleSelection(toll.id);
-                                        }}
-                                    >
-                                        <td className="px-6 py-4">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedIds.has(toll.id)}
-                                                onChange={() => toggleSelection(toll.id)}
-                                                className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
-                                                onClick={(e) => e.stopPropagation()}
-                                            />
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-white font-medium">
-                                                    {new Date(toll.entry_time).toLocaleDateString()}
-                                                </span>
-                                                <span className="text-slate-500 text-xs font-mono">
-                                                    {new Date(toll.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5 group-hover:border-emerald-500/20 transition-colors">
-                                                    <Truck className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+                                    <td className="px-6 py-4">
+                                        <div className="space-y-1">
+                                            {toll.driver ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center">
+                                                        <User className="w-3 h-3 text-slate-400" />
+                                                    </div>
+                                                    <span className="text-slate-300 text-sm">{toll.driver.nome}</span>
                                                 </div>
-                                                <div>
-                                                    <span className="block text-white font-medium bg-slate-800 px-2 py-0.5 rounded text-xs w-fit mb-0.5 border border-white/5">{toll.vehicle?.matricula}</span>
-                                                    <span className="text-slate-500 text-xs">{toll.vehicle?.marca} {toll.vehicle?.modelo}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-1">
-                                                {toll.driver ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center">
-                                                            <User className="w-3 h-3 text-slate-400" />
-                                                        </div>
-                                                        <span className="text-slate-300 text-sm">{toll.driver.nome}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-slate-600 text-xs italic flex items-center gap-1">
-                                                        <User className="w-3 h-3" /> Sem Condutor
-                                                    </span>
-                                                )}
-                                                {toll.cost_center && (
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                        <Building className="w-3 h-3 text-orange-400/80" />
-                                                        <span className="text-orange-400/80 font-medium">{toll.cost_center.nome}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-slate-300">
-                                                {toll.type === 'parking' ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="p-1 rounded bg-blue-500/10 text-blue-400">
-                                                            <ParkingCircle className="w-4 h-4" />
-                                                        </div>
-                                                        <span className="font-medium">{toll.entry_point}</span>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="p-1 rounded bg-emerald-500/10 text-emerald-400">
-                                                            <Ticket className="w-4 h-4" />
-                                                        </div>
-                                                        <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.entry_point || 'N/A'}</span>
-                                                        <span className="text-slate-600">→</span>
-                                                        <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.exit_point || 'N/A'}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                            {toll.distance && (
-                                                <span className="text-xs text-slate-500 block mt-1.5 flex items-center gap-1">
-                                                    <MapPin className="w-3 h-3" /> {toll.distance} km
+                                            ) : (
+                                                <span className="text-slate-600 text-xs italic flex items-center gap-1">
+                                                    <User className="w-3 h-3" /> Sem Condutor
                                                 </span>
                                             )}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                                                {toll.amount.toFixed(2)} €
+                                            {toll.cost_center && (
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <Building className="w-3 h-3 text-orange-400/80" />
+                                                    <span className="text-orange-400/80 font-medium">{toll.cost_center.nome}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2 text-slate-300">
+                                            {toll.type === 'parking' ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1 rounded bg-blue-500/10 text-blue-400">
+                                                        <ParkingCircle className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="font-medium">{toll.entry_point}</span>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="p-1 rounded bg-emerald-500/10 text-emerald-400">
+                                                        <Ticket className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.entry_point || 'N/A'}</span>
+                                                    <span className="text-slate-600">→</span>
+                                                    <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.exit_point || 'N/A'}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                        {toll.distance && (
+                                            <span className="text-xs text-slate-500 block mt-1.5 flex items-center gap-1">
+                                                <MapPin className="w-3 h-3" /> {toll.distance} km
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDelete(toll.id);
-                                                }}
-                                                className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0"
-                                                title="Eliminar registo"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                                            {toll.amount.toFixed(2)} €
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(toll.id);
+                                            }}
+                                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0"
+                                            title="Eliminar registo"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </div>
 
             {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                    <div className="bg-slate-900 rounded-3xl border border-white/10 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
-                        <div className="p-6 border-b border-white/5 bg-slate-950/50 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                                <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                                    <Ticket className="w-5 h-5 text-emerald-500" />
+            {
+                showModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                        <div className="bg-slate-900 rounded-3xl border border-white/10 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
+                            <div className="p-6 border-b border-white/5 bg-slate-950/50 flex justify-between items-center">
+                                <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                    <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                        <Ticket className="w-5 h-5 text-emerald-500" />
+                                    </div>
+                                    Novo Registo de Portagem
+                                </h2>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={runDiagnostics}
+                                        className="flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/20 transition-colors border border-red-500/20"
+                                        title="Executar teste de conexão"
+                                    >
+                                        <Ticket size={20} />
+                                        <span className="hidden sm:inline">Diagnóstico (TESTE)</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowModal(false)}
+                                        className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
+                                    >
+                                        <Trash2 className="w-5 h-5 rotate-45" /> {/* Close icon */}
+                                    </button>
                                 </div>
-                                Novo Registo de Portagem
-                            </h2>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={runDiagnostics}
-                                    className="flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/20 transition-colors border border-red-500/20"
-                                    title="Executar teste de conexão"
-                                >
-                                    <Ticket size={20} />
-                                    <span className="hidden sm:inline">Diagnóstico (TESTE)</span>
-                                </button>
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
-                                >
-                                    <Trash2 className="w-5 h-5 rotate-45" /> {/* Close icon */}
-                                </button>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            {/* Type Toggle */}
-                            <div className="bg-slate-950/50 p-1 rounded-lg flex gap-1 border border-white/5">
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, type: 'toll' })}
-                                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'toll' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                                >
-                                    <Ticket className="w-4 h-4" /> Portagem
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, type: 'parking' })}
-                                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'parking' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                                >
-                                    <ParkingCircle className="w-4 h-4" /> Estacionamento
-                                </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Vehicle */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">Viatura</label>
-                                    <select
-                                        required
-                                        value={formData.vehicle_id}
-                                        onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                                {/* Type Toggle */}
+                                <div className="bg-slate-950/50 p-1 rounded-lg flex gap-1 border border-white/5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, type: 'toll' })}
+                                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'toll' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
                                     >
-                                        <option value="">Selecione Viatura...</option>
-                                        {viaturas.map(v => (
-                                            <option key={v.id} value={v.id}>{v.matricula} ({v.marca})</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Driver */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">Motorista (Opcional)</label>
-                                    <select
-                                        value={formData.driver_id}
-                                        onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                        <Ticket className="w-4 h-4" /> Portagem
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, type: 'parking' })}
+                                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'parking' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
                                     >
-                                        <option value="">Sem Motorista</option>
-                                        {motoristas.map(m => (
-                                            <option key={m.id} value={m.id}>{m.nome}</option>
-                                        ))}
-                                    </select>
+                                        <ParkingCircle className="w-4 h-4" /> Estacionamento
+                                    </button>
                                 </div>
 
-                                {/* Cost Center */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">Centro de Custo (Opcional)</label>
-                                    <select
-                                        value={formData.cost_center_id}
-                                        onChange={e => setFormData({ ...formData, cost_center_id: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
-                                    >
-                                        <option value="">Nenhum</option>
-                                        {centrosCustos.map(c => (
-                                            <option key={c.id} value={c.id}>{c.nome}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Entry Time */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">Data/Hora Entrada</label>
-                                    <input
-                                        type="datetime-local"
-                                        required
-                                        value={formData.entry_time}
-                                        onChange={e => setFormData({ ...formData, entry_time: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
-                                    />
-                                </div>
-
-                                {/* Cost */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">Valor (€)</label>
-                                    <div className="relative">
-                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            required
-                                            value={formData.amount}
-                                            onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Entry Point */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">
-                                        {formData.type === 'toll' ? 'Pórtico Entrada' : 'Local / Parque'}
-                                    </label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.entry_point}
-                                            onChange={e => setFormData({ ...formData, entry_point: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
-                                            placeholder={formData.type === 'toll' ? "Ex: Lisboa" : "Ex: Parque do Aeroporto"}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Exit Point */}
-                                {formData.type === 'toll' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Vehicle */}
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">Pórtico Saída</label>
+                                        <label className="text-xs font-medium text-slate-400 uppercase">Viatura</label>
+                                        <select
+                                            required
+                                            value={formData.vehicle_id}
+                                            onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            <option value="">Selecione Viatura...</option>
+                                            {viaturas.map(v => (
+                                                <option key={v.id} value={v.id}>{v.matricula} ({v.marca})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Driver */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-slate-400 uppercase">Motorista (Opcional)</label>
+                                        <select
+                                            value={formData.driver_id}
+                                            onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            <option value="">Sem Motorista</option>
+                                            {motoristas.map(m => (
+                                                <option key={m.id} value={m.id}>{m.nome}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Cost Center */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-slate-400 uppercase">Centro de Custo (Opcional)</label>
+                                        <select
+                                            value={formData.cost_center_id}
+                                            onChange={e => setFormData({ ...formData, cost_center_id: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            <option value="">Nenhum</option>
+                                            {centrosCustos.map(c => (
+                                                <option key={c.id} value={c.id}>{c.nome}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Entry Time */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-slate-400 uppercase">Data/Hora Entrada</label>
+                                        <input
+                                            type="datetime-local"
+                                            required
+                                            value={formData.entry_time}
+                                            onChange={e => setFormData({ ...formData, entry_time: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+
+                                    {/* Cost */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-slate-400 uppercase">Valor (€)</label>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                required
+                                                value={formData.amount}
+                                                onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Entry Point */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-slate-400 uppercase">
+                                            {formData.type === 'toll' ? 'Pórtico Entrada' : 'Local / Parque'}
+                                        </label>
                                         <div className="relative">
                                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                             <input
                                                 type="text"
                                                 required
-                                                value={formData.exit_point}
-                                                onChange={e => setFormData({ ...formData, exit_point: e.target.value })}
+                                                value={formData.entry_point}
+                                                onChange={e => setFormData({ ...formData, entry_point: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
-                                                placeholder="Ex: Porto"
+                                                placeholder={formData.type === 'toll' ? "Ex: Lisboa" : "Ex: Parque do Aeroporto"}
                                             />
                                         </div>
                                     </div>
-                                )}
 
-                                {/* Distance */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-slate-400 uppercase">Distância (KM)</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        value={formData.distance}
-                                        onChange={e => setFormData({ ...formData, distance: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
-                                        placeholder="Opcional"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="pt-4 flex justify-end gap-3 border-t border-slate-800 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transform active:scale-95"
-                                >
-                                    {submitting ? (
-                                        <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                                    ) : (
-                                        <Ticket className="w-4 h-4" />
+                                    {/* Exit Point */}
+                                    {formData.type === 'toll' && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-slate-400 uppercase">Pórtico Saída</label>
+                                            <div className="relative">
+                                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={formData.exit_point}
+                                                    onChange={e => setFormData({ ...formData, exit_point: e.target.value })}
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                    placeholder="Ex: Porto"
+                                                />
+                                            </div>
+                                        </div>
                                     )}
-                                    Registar Portagem
-                                </button>
-                            </div>
-                        </form>
+
+                                    {/* Distance */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-slate-400 uppercase">Distância (KM)</label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={formData.distance}
+                                            onChange={e => setFormData({ ...formData, distance: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                            placeholder="Opcional"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 flex justify-end gap-3 border-t border-slate-800 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowModal(false)}
+                                        className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transform active:scale-95"
+                                    >
+                                        {submitting ? (
+                                            <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                                        ) : (
+                                            <Ticket className="w-4 h-4" />
+                                        )}
+                                        Registar Portagem
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

@@ -291,20 +291,20 @@ input::-webkit-credentials-auto-fill-button {
 @media screen and (max-width: 768px) {
 
   /* Wrap tables: parent containers that hold tables become scrollable */
-  div:has(> table),
-  section:has(> table) {
-    overflow-x: auto;
+  .table-scroll,
+  [class*="overflow-x-auto"] {
+    overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
+    display: block;
     scrollbar-width: thin;
     scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
-    /* Negative margin trick to allow full-bleed scroll on mobile */
   }
 
   /* Every table enforces a minimum readable width on mobile */
   table {
-    min-width: 560px;
+    min-width: 650px !important;
     font-size: 0.8rem;
-    /* slightly smaller text on mobile */
   }
 
   /* Tighter cell padding on mobile */

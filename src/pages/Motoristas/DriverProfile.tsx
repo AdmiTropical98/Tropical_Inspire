@@ -499,8 +499,8 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
                                 </div>
                             </div>
 
-                            <div className="overflow-hidden rounded-xl border border-slate-700/50">
-                                <table className="w-full text-sm text-left">
+                            <div className="overflow-x-auto rounded-xl border border-slate-700/50">
+                                <table className="w-full text-sm text-left" style={{ minWidth: '500px' }}>
                                     <thead className="bg-slate-800 text-slate-400 font-medium uppercase text-xs">
                                         <tr>
                                             <th className="px-4 py-3">Data</th>

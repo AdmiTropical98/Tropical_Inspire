@@ -1343,8 +1343,8 @@ export default function Combustivel() {
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto rounded-2xl border border-slate-800 -mx-1">
-                            <table className="w-full text-left text-sm" style={{ minWidth: '640px' }}>
+                        <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
+                            <table className="w-full text-left text-sm" style={{ minWidth: '750px' }}>
                                 <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
                                     <tr>
                                         <th className="px-3 md:px-6 py-4">Data</th>
@@ -1534,8 +1534,8 @@ export default function Combustivel() {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="overflow-x-auto rounded-xl border border-slate-800">
-                                    <table className="w-full text-sm text-left">
+                                <div className="overflow-x-auto rounded-xl border border-slate-800 table-scroll">
+                                    <table className="w-full text-sm text-left" style={{ minWidth: '800px' }}>
                                         <thead className="bg-slate-950 text-slate-400 uppercase font-extrabold text-[10px] tracking-widest whitespace-nowrap">
                                             <tr>
                                                 <th className="px-3 py-4 text-center">
@@ -1780,7 +1780,7 @@ export default function Combustivel() {
                         </div>
 
                         {/* Tank Refill History */}
-                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8">
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                                     <Droplets className="w-6 h-6 text-emerald-400" />
@@ -1802,8 +1802,8 @@ export default function Combustivel() {
                                 </button>
                             </div>
 
-                            <div className="overflow-x-auto rounded-2xl border border-slate-800">
-                                <table className="w-full text-left text-sm" style={{ minWidth: '700px' }}>
+                            <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
+                                <table className="w-full text-left text-sm" style={{ minWidth: '850px' }}>
                                     <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
                                         <tr>
                                             <th className="px-3 md:px-6 py-4">Data Entrega</th>
@@ -1946,7 +1946,7 @@ export default function Combustivel() {
                         </div>
 
                         {/* Monthly Totals Section */}
-                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8">
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="p-3 bg-yellow-500/10 rounded-2xl">
                                     <BarChart3 className="w-6 h-6 text-yellow-400" />
@@ -1989,8 +1989,8 @@ export default function Combustivel() {
                                 }
 
                                 return (
-                                    <div className="overflow-hidden rounded-2xl border border-slate-800">
-                                        <table className="w-full text-left text-sm">
+                                    <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
+                                        <table className="w-full text-left text-sm" style={{ minWidth: '650px' }}>
                                             <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
                                                 <tr>
                                                     <th className="px-6 py-4">Mês</th>
