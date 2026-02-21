@@ -280,15 +280,91 @@ input::-webkit-credentials-auto-fill-button {
   }
 }
 
-/* Table horizontal scroll container — mobile friendly */
+/* =============================================
+   GLOBAL RESPONSIVE TABLE RULES
+   All <table> elements get mobile scroll wrapping
+   via their parent container.
+   ============================================= */
+
+/* Any div that directly contains a table gets 
+   horizontal scroll on mobile automatically */
+@media screen and (max-width: 768px) {
+
+  /* Wrap tables: parent containers that hold tables become scrollable */
+  div:has(> table),
+  section:has(> table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
+    /* Negative margin trick to allow full-bleed scroll on mobile */
+  }
+
+  /* Every table enforces a minimum readable width on mobile */
+  table {
+    min-width: 560px;
+    font-size: 0.8rem;
+    /* slightly smaller text on mobile */
+  }
+
+  /* Tighter cell padding on mobile */
+  th,
+  td {
+    padding: 0.5rem 0.6rem !important;
+    white-space: nowrap;
+  }
+
+  /* But allow description/name columns to wrap */
+  th:first-child,
+  td:first-child {
+    white-space: normal;
+    min-width: 100px;
+    max-width: 180px;
+  }
+}
+
+/* Table horizontal scroll container — explicit utility class */
 .table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.3) transparent;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 4px;
 }
 
 .table-scroll table {
-  min-width: 480px;
+  min-width: 540px;
+}
+
+/* Sticky first column in scrollable tables */
+.table-sticky-col th:first-child,
+.table-sticky-col td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: inherit;
+}
+
+/* Scrollbar-none utility */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* Safe area spacing utilities */

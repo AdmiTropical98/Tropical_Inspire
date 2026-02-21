@@ -1407,15 +1407,15 @@ export default function Requisicoes() {
                                         </div>
 
                                         {/* Added Items List - Mini Table */}
-                                        <div className="overflow-hidden border border-slate-800 rounded-2xl bg-slate-950/20">
-                                            <table className="w-full text-left border-collapse">
+                                        <div className="overflow-x-auto border border-slate-800 rounded-2xl bg-slate-950/20">
+                                            <table className="w-full text-left border-collapse" style={{ minWidth: '520px' }}>
                                                 <thead>
                                                     <tr className="bg-slate-950/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800">
-                                                        <th className="px-6 py-4">Item / Descrição</th>
-                                                        <th className="px-4 py-4 text-center w-24">Qtd</th>
-                                                        <th className="px-4 py-4 text-right w-32">Unitário</th>
-                                                        <th className="px-4 py-4 text-right w-32">Subtotal</th>
-                                                        <th className="px-6 py-4 text-center w-20">Ações</th>
+                                                        <th className="px-4 py-4">Item / Descrição</th>
+                                                        <th className="px-3 py-4 text-center w-20">Qtd</th>
+                                                        <th className="px-3 py-4 text-right w-28">Unitário</th>
+                                                        <th className="px-3 py-4 text-right w-28">Subtotal</th>
+                                                        <th className="px-3 py-4 text-center w-16">Ações</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-800/50">

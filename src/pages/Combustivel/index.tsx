@@ -1343,17 +1343,17 @@ export default function Combustivel() {
                             </div>
                         </div>
 
-                        <div className="overflow-hidden rounded-2xl border border-slate-800">
-                            <table className="w-full text-left text-sm">
+                        <div className="overflow-x-auto rounded-2xl border border-slate-800 -mx-1">
+                            <table className="w-full text-left text-sm" style={{ minWidth: '640px' }}>
                                 <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
                                     <tr>
-                                        <th className="px-6 py-4">Data</th>
-                                        <th className="px-6 py-4">Viatura</th>
-                                        <th className="px-6 py-4">Condutor</th>
-                                        <th className="px-6 py-4">Centro Custo</th>
-                                        <th className="px-6 py-4 text-right">Litros</th>
-                                        <th className="px-6 py-4 text-right">Valor</th>
-                                        <th className="px-6 py-4 text-right">Ações</th>
+                                        <th className="px-3 md:px-6 py-4">Data</th>
+                                        <th className="px-3 md:px-6 py-4">Viatura</th>
+                                        <th className="px-3 md:px-6 py-4">Condutor</th>
+                                        <th className="px-3 md:px-6 py-4">C. Custo</th>
+                                        <th className="px-3 md:px-6 py-4 text-right">Litros</th>
+                                        <th className="px-3 md:px-6 py-4 text-right">Valor</th>
+                                        <th className="px-3 md:px-6 py-4 text-right">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800 bg-slate-900/30">
@@ -1802,18 +1802,18 @@ export default function Combustivel() {
                                 </button>
                             </div>
 
-                            <div className="overflow-hidden rounded-2xl border border-slate-800">
-                                <table className="w-full text-left text-sm">
+                            <div className="overflow-x-auto rounded-2xl border border-slate-800">
+                                <table className="w-full text-left text-sm" style={{ minWidth: '700px' }}>
                                     <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
                                         <tr>
-                                            <th className="px-6 py-4">Data Entrega</th>
-                                            <th className="px-6 py-4">Fornecedor</th>
-                                            <th className="px-6 py-4 text-right">L. Entregues</th>
-                                            <th className="px-6 py-4 text-right bg-blue-500/5 text-blue-400">Saída (L)</th>
-                                            <th className="px-6 py-4 text-right bg-blue-500/5 text-blue-400">Custo Saída</th>
-                                            <th className="px-6 py-4 text-right">Nível Antes</th>
-                                            <th className="px-6 py-4 text-right">Nível Depois</th>
-                                            <th className="px-6 py-4 text-right">Audit</th>
+                                            <th className="px-3 md:px-6 py-4">Data Entrega</th>
+                                            <th className="px-3 md:px-6 py-4">Fornecedor</th>
+                                            <th className="px-3 md:px-6 py-4 text-right">L. Entregues</th>
+                                            <th className="px-3 md:px-6 py-4 text-right bg-blue-500/5 text-blue-400">Saída (L)</th>
+                                            <th className="px-3 md:px-6 py-4 text-right bg-blue-500/5 text-blue-400">Custo Saída</th>
+                                            <th className="px-3 md:px-6 py-4 text-right">Nível Antes</th>
+                                            <th className="px-3 md:px-6 py-4 text-right">Nível Depois</th>
+                                            <th className="px-3 md:px-6 py-4 text-right">Audit</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-800 bg-slate-900/30">

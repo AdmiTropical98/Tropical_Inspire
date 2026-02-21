@@ -38,24 +38,24 @@ export default function ControloOperacional() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-1.5 bg-[#0a0a0f]/80 rounded-2xl border border-white/5 shadow-inner">
+                    <div className="flex items-center gap-2 p-1.5 bg-[#0a0a0f]/80 rounded-2xl border border-white/5 shadow-inner overflow-x-auto">
                         <button
                             onClick={() => setActiveView('vehicles')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeView === 'vehicles' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeView === 'vehicles' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
                                 }`}
                         >
                             <Car className="w-4 h-4" /> Viaturas
                         </button>
                         <button
                             onClick={() => setActiveView('drivers')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeView === 'drivers' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeView === 'drivers' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
                                 }`}
                         >
                             <User className="w-4 h-4" /> Motoristas
                         </button>
                         <button
                             onClick={() => setActiveView('logs')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeView === 'logs' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeView === 'logs' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
                                 }`}
                         >
                             <List className="w-4 h-4" /> Auditoria
@@ -189,8 +189,8 @@ export default function ControloOperacional() {
                 )}
 
                 {activeView === 'logs' && (
-                    <div className="bg-[#161625] rounded-3xl border border-white/5 overflow-hidden">
-                        <table className="w-full text-left border-collapse">
+                    <div className="bg-[#161625] rounded-3xl border border-white/5 overflow-x-auto">
+                        <table className="w-full text-left border-collapse" style={{ minWidth: '600px' }}>
                             <thead className="bg-[#0a0a0f]/50 border-b border-white/5">
                                 <tr>
                                     <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Data/Hora</th>

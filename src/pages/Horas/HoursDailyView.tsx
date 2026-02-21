@@ -254,8 +254,8 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
             )}
 
             {/* List */}
-            <div className="bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl">
-                <table className="w-full text-left text-sm text-slate-300">
+            <div className="bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl overflow-x-auto shadow-xl">
+                <table className="w-full text-left text-sm text-slate-300" style={{ minWidth: '640px' }}>
                     <thead className="bg-[#0f172a]/80 text-slate-400 uppercase text-xs tracking-wider">
                         <tr>
                             <th className="p-4 w-4">
