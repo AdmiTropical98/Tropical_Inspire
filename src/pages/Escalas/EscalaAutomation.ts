@@ -143,26 +143,65 @@ export function groupServicesIntoTrips(services: Servico[]): GroupedTrip[] {
 export function suggestDrivers(
     trips: GroupedTrip[],
     motoristas: Motorista[],
-    existingServicos: Servico[]
+    existingServicos: Servico[],
+    activeZone: string
 ): GroupedTrip[] {
     const mutableTrips = [...trips];
 
-    // We'll track driver current "state" to avoid overlaps and favor return trips
-    const driverState: Record<string, { lastTime: string, lastDest: string }> = {};
+    // Track driver current "state" and workload for this session
+    const driverSessionServices: Record<string, number> = {};
+    const driverLastState: Record<string, { lastTime: string, lastDest: string }> = {};
 
     mutableTrips.forEach(trip => {
         const tripHour = trip.hora;
+        const tripMinutes = timeToMinutes(tripHour);
 
         // Find best candidate
         const candidates = motoristas.filter(m => {
-            // 1. Check Shift (Turno)
-            if (m.turnoInicio && m.turnoFim) {
-                if (tripHour < m.turnoInicio || tripHour > m.turnoFim) return false;
+            // 1. Check Zone Permissions
+            if (m.zones && m.zones.length > 0) {
+                if (!m.zones.includes(activeZone.toLowerCase() as any)) return false;
             }
 
-            // 2. Check Overlap / Min Interval (30 mins)
+            // 2. Check Shifts (turnos múltiplos)
+            let isInsideShift = false;
+            if (m.shifts && m.shifts.length > 0) {
+                isInsideShift = m.shifts.some(shift => {
+                    const start = timeToMinutes(shift.inicio);
+                    const end = timeToMinutes(shift.fim);
+                    return tripMinutes >= start && tripMinutes <= end;
+                });
+            } else if (m.turnoInicio && m.turnoFim) {
+                // Fallback to legacy single shift
+                const start = timeToMinutes(m.turnoInicio);
+                const end = timeToMinutes(m.turnoFim);
+                isInsideShift = tripMinutes >= start && tripMinutes <= end;
+            } else {
+                // No shifts defined? We assume available 24h for now if not explicitly restricted
+                isInsideShift = true;
+            }
+            if (!isInsideShift) return false;
+
+            // 3. Check Blocked Periods
+            if (m.blockedPeriods && m.blockedPeriods.length > 0) {
+                const isBlocked = m.blockedPeriods.some(block => {
+                    const start = timeToMinutes(block.inicio);
+                    const end = timeToMinutes(block.fim);
+                    return tripMinutes >= start && tripMinutes <= end;
+                });
+                if (isBlocked) return false;
+            }
+
+            // 4. Check Workload Limit
+            const driverExistingCount = existingServicos.filter(s => s.motoristaId === m.id && s.data === trip.servicos[0].data).length;
+            const currentSessionCount = driverSessionServices[m.id] || 0;
+            const totalWorkload = driverExistingCount + currentSessionCount;
+
+            if (m.maxDailyServices && totalWorkload >= m.maxDailyServices) return false;
+
+            // 5. Check Overlap / Min Interval
+            const minInterval = m.minIntervalMinutes || 30;
             const driverTrips = existingServicos.filter(s => s.motoristaId === m.id && s.data === trip.servicos[0].data);
-            // Also check assigned in this session
             const sessionTrips = mutableTrips.filter(t => t.motoristaId === m.id);
 
             const allDriverTimes = [
@@ -171,8 +210,8 @@ export function suggestDrivers(
             ];
 
             const hasConflict = allDriverTimes.some(time => {
-                const diff = Math.abs(timeToMinutes(time) - timeToMinutes(tripHour));
-                return diff < 30; // 30 minutes minimum interval
+                const diff = Math.abs(timeToMinutes(time) - tripMinutes);
+                return diff < minInterval;
             });
 
             if (hasConflict) return false;
@@ -182,17 +221,33 @@ export function suggestDrivers(
 
         if (candidates.length === 0) return;
 
-        // Preference 1: Drivers with "Opposite Destination" optimization
-        const bestCandidate = candidates.find(m => {
-            const state = driverState[m.id];
-            if (!state) return false;
-            return state.lastDest.trim().toLowerCase() === trip.origem.trim().toLowerCase();
-        }) || candidates[0];
+        // Selection Logic:
+        // First priority: Driver with matching "Return Trip" (Opposite Destination)
+        // Second priority: Driver with lowest workload (Balanced Load)
 
+        candidates.sort((a, b) => {
+            // Return Trip check
+            const aState = driverLastState[a.id];
+            const bState = driverLastState[b.id];
+            const aIsReturn = aState?.lastDest.trim().toLowerCase() === trip.origem.trim().toLowerCase();
+            const bIsReturn = bState?.lastDest.trim().toLowerCase() === trip.origem.trim().toLowerCase();
+
+            if (aIsReturn && !bIsReturn) return -1;
+            if (!aIsReturn && bIsReturn) return 1;
+
+            // Load Balance check
+            const aLoad = (driverSessionServices[a.id] || 0) + existingServicos.filter(s => s.motoristaId === a.id && s.data === trip.servicos[0].data).length;
+            const bLoad = (driverSessionServices[b.id] || 0) + existingServicos.filter(s => s.motoristaId === b.id && s.data === trip.servicos[0].data).length;
+
+            return aLoad - bLoad;
+        });
+
+        const bestCandidate = candidates[0];
         trip.motoristaId = bestCandidate.id;
 
         // Update driver state
-        driverState[bestCandidate.id] = {
+        driverSessionServices[bestCandidate.id] = (driverSessionServices[bestCandidate.id] || 0) + 1;
+        driverLastState[bestCandidate.id] = {
             lastTime: trip.hora,
             lastDest: trip.destino
         };

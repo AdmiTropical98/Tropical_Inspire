@@ -135,6 +135,20 @@ export interface Ausencia {
     aprovado: boolean;
 }
 
+export interface Shift {
+    id: string;
+    inicio: string; // HH:mm
+    fim: string;    // HH:mm
+    label?: string; // e.g., "Manhã", "Tarde"
+}
+
+export interface BlockedPeriod {
+    id: string;
+    inicio: string; // HH:mm
+    fim: string;    // HH:mm
+    reason: string; // e.g., "Condução Autocarro"
+}
+
 export interface Motorista {
     id: string;
     nome: string;
@@ -154,12 +168,17 @@ export interface Motorista {
     blockedPermissions?: string[]; // permissions explicitly blocked for this user
     dataRegisto?: string; // Registration date
     rating?: number; // Driver rating (0-5)
-    turnoInicio?: string; // HH:mm
-    turnoFim?: string; // HH:mm
-    status?: 'disponivel' | 'ocupado' | 'indisponivel' | 'ferias'; // Added missing field
-    cartrackKey?: string; // Cartrack identification key (tag)
-    cartrackId?: string; // Internal Cartrack Driver ID
-    currentVehicle?: string; // Registration (matricula) of the current vehicle
+    turnoInicio?: string; // HH:mm (Legacy, keeping for compatibility)
+    turnoFim?: string;    // HH:mm (Legacy, keeping for compatibility)
+    shifts?: Shift[];     // Multiple shifts support
+    zones?: ('albufeira' | 'quarteira')[]; // Operational zones
+    blockedPeriods?: BlockedPeriod[];      // Locked times outside shifts
+    maxDailyServices?: number;             // Workload limit
+    minIntervalMinutes?: number;           // Minimum break between services
+    status?: 'disponivel' | 'ocupado' | 'indisponivel' | 'ferias';
+    cartrackKey?: string;
+    cartrackId?: string;
+    currentVehicle?: string;
 }
 
 export interface Local {

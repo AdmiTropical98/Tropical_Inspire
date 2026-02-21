@@ -607,7 +607,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     cartrackId: m.cartrack_id,
                     currentVehicle: m.current_vehicle,
                     centroCustoId: m.centro_custo_id,
-                    status: m.status || 'disponivel'
+                    status: m.status || 'disponivel',
+                    shifts: m.shifts || [],
+                    zones: m.zones || ['albufeira', 'quarteira'],
+                    blockedPeriods: m.blocked_periods || [],
+                    maxDailyServices: m.max_daily_services,
+                    minIntervalMinutes: m.min_interval_minutes || 30
                 }));
 
                 // Attempt Cartrack Enrichment (Safe Mode)
@@ -1769,7 +1774,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             turno_inicio: m.turnoInicio,
             turno_fim: m.turnoFim,
             cartrack_key: m.cartrackKey,
-            centro_custo_id: m.centroCustoId
+            centro_custo_id: m.centroCustoId,
+            shifts: m.shifts,
+            zones: m.zones,
+            blocked_periods: m.blockedPeriods,
+            max_daily_services: m.maxDailyServices,
+            min_interval_minutes: m.minIntervalMinutes
         });
         if (!error) setMotoristas(prev => [...prev, m]);
     };
@@ -1789,7 +1799,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             turno_inicio: m.turnoInicio,
             turno_fim: m.turnoFim,
             cartrack_key: m.cartrackKey,
-            centro_custo_id: m.centroCustoId
+            centro_custo_id: m.centroCustoId,
+            shifts: m.shifts,
+            zones: m.zones,
+            blocked_periods: m.blockedPeriods,
+            max_daily_services: m.maxDailyServices,
+            min_interval_minutes: m.minIntervalMinutes
         }).eq('id', m.id);
 
         if (error) {
