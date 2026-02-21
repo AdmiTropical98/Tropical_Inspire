@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Upload, Trash2, Plus } from 'lucide-react';
+import { Upload, Trash2, Plus, FileSpreadsheet, FileDown, AlertCircle, CheckCircle2, Info, Moon, Star, Clock, Euro } from 'lucide-react';
 import { parseCartrackD103 } from '../../utils/pdfParser';
 import { calculateWorkHoursFromTrips } from './ImportLogic';
+import { calculateShift } from './HoursCalculator';
+import type { ManualHourRecord } from '../../types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface HoursDailyViewProps {
     selectedDate: string;
@@ -12,6 +17,37 @@ interface HoursDailyViewProps {
 export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
     const { motoristas, manualHours, addManualHourRecord, deleteManualHourRecord } = useWorkshop();
     const { currentUser } = useAuth();
+
+    // Stats Calculation
+    const dailyRecords = useMemo(() => manualHours.filter(h => h.date === selectedDate), [manualHours, selectedDate]);
+
+    const stats = useMemo(() => {
+        let totalMins = 0;
+        let nightMins = 0;
+        let extraMins = 0;
+        let totalCost = 0;
+
+        dailyRecords.forEach(rec => {
+            const driver = motoristas.find(m => m.id === rec.motoristaId);
+            const calc = calculateShift(rec.startTime, rec.endTime, rec.breakDuration);
+            totalMins += calc.totalMinutes;
+            nightMins += calc.nightMinutes;
+            extraMins += calc.extraMinutes;
+            if (driver?.valorHora) {
+                totalCost += (calc.totalMinutes / 60) * driver.valorHora;
+            }
+        });
+
+        const toH = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
+
+        return {
+            totalHours: toH(totalMins),
+            nightHours: toH(nightMins),
+            extraHours: toH(extraMins),
+            totalCost: totalCost.toFixed(2) + ' €',
+            count: dailyRecords.length
+        };
+    }, [dailyRecords, motoristas]);
 
     const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(new Set());
 
@@ -31,19 +67,32 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
         }
     };
 
-    // Bulk Action: Quick Register 09-18
+    // Conflict Detection
+    const getStatus = (record: ManualHourRecord, allDriverRecords: ManualHourRecord[]) => {
+        if (!record.startTime || !record.endTime) return 'incomplete';
+
+        // Find overlaps
+        const start = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+        const s1 = start(record.startTime);
+        const e1 = start(record.endTime) + (start(record.endTime) <= s1 ? 1440 : 0);
+
+        const hasOverlap = allDriverRecords.some(r => {
+            if (r.id === record.id) return false;
+            const s2 = start(r.startTime);
+            const e2 = start(r.endTime) + (start(r.endTime) <= s2 ? 1440 : 0);
+            return (s1 < e2 && e1 > s2);
+        });
+
+        return hasOverlap ? 'conflict' : 'complete';
+    };
+
     const handleBulkQuickRegister = async () => {
         if (selectedDrivers.size === 0) return;
-        setIsImporting(true); // Reuse loading state
-        let count = 0;
-
+        setIsImporting(true);
         try {
             for (const driverId of selectedDrivers) {
-                // Remove existing
                 const existing = manualHours.find(r => r.motoristaId === driverId && r.date === selectedDate);
                 if (existing) await deleteManualHourRecord(existing.id);
-
-                // Add New
                 await addManualHourRecord({
                     id: crypto.randomUUID(),
                     adminId: currentUser?.id,
@@ -54,28 +103,17 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                     breakDuration: 60,
                     obs: 'Registo Rápido (Bulk)'
                 });
-                count++;
             }
-            setSelectedDrivers(new Set()); // Clear selection
-            setImportStats({ processed: count, updated: count, errors: [] });
-        } catch (e: any) {
-            console.error(e);
-        } finally {
-            setIsImporting(false);
-        }
+            setSelectedDrivers(new Set());
+        } catch (e: unknown) { console.error(e); }
+        finally { setIsImporting(false); }
     };
 
     const [isImporting, setIsImporting] = useState(false);
-    const [importStats, setImportStats] = useState<{ processed: number, updated: number, errors: string[] } | null>(null);
 
-    // Filter Manual Hours for Date
-    const dailyRecords = manualHours.filter(h => h.date === selectedDate);
-
-    // Quick Add Modal (same as before but inline logic maybe?)
     const [showAddModal, setShowAddModal] = useState(false);
     const [newData, setNewData] = useState({ motoristaId: '', startTime: '09:00', endTime: '18:00', breakDuration: 60, obs: '' });
 
-    // PDF Import State
     const [showDriverSelectModal, setShowDriverSelectModal] = useState(false);
     const [pendingTrips, setPendingTrips] = useState<import('./ImportLogic').DailyWorkSuggestion[]>([]);
     const [targetDriverId, setTargetDriverId] = useState('');
@@ -83,71 +121,27 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         setIsImporting(true);
-        setImportStats(null);
-        const errors: string[] = [];
-
         try {
-            // 1. Parse PDF
             const trips = await parseCartrackD103(file);
-            if (trips.length === 0) {
-                errors.push("Nenhuma viagem encontrada no PDF. Verifique se é um relatório D103 válido.");
-                setImportStats({ processed: 0, updated: 0, errors });
-                setIsImporting(false);
-                return;
-            }
-
-            // 2. Calculate Suggestions
             const suggestions = calculateWorkHoursFromTrips(trips);
-
-            if (suggestions.length === 0) {
-                errors.push("Não foi possível calcular horários a partir das viagens.");
-                setImportStats({ processed: 0, updated: 0, errors });
-                setIsImporting(false);
-                return;
-            }
-
-            // 3. Prompt User for Driver
             setPendingTrips(suggestions);
-            setTargetDriverId(''); // Reset selection
+            setTargetDriverId('');
             setShowDriverSelectModal(true);
-
-            // We don't finish importing here. We wait for Modal confirm.
-
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setImportStats({ processed: 0, updated: 0, errors: [`Erro ao processar ficheiro: ${err.message}`] });
             setIsImporting(false);
         }
-        e.target.value = ''; // Reset input to allow same file again
+        e.target.value = '';
     };
 
     const confirmImportWithDriver = async () => {
         if (!targetDriverId) return;
-
         setIsImporting(true);
-        let updatedCount = 0;
-        const errors: string[] = [];
-
         try {
             for (const sugg of pendingTrips) {
-                // Check overlap? OR just overwrite.
-                // Let's delete existing for that day/driver first to avoid duplicates
-                // Note: dailyRecords is currently filtered by *selectedDate*. 
-                // BUT sugg.date might be different if PDF covers multiple days.
-
-                // We should probably check against global manualHours or simpler: just add. 
-                // But preventing duplicates is good. 
-                // Let's rely on the backend or context to handle? 
-                // The context `addManualHourRecord` just inserts.
-
-                // For safety: Check if we have a record in `manualHours` (the full list)
                 const conflict = manualHours.find(h => h.motoristaId === targetDriverId && h.date === sugg.date);
-                if (conflict) {
-                    await deleteManualHourRecord(conflict.id);
-                }
-
+                if (conflict) await deleteManualHourRecord(conflict.id);
                 await addManualHourRecord({
                     id: crypto.randomUUID(),
                     adminId: currentUser?.id,
@@ -156,17 +150,13 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                     startTime: sugg.startTime,
                     endTime: sugg.endTime,
                     breakDuration: sugg.breakDuration,
-                    obs: `Importado PDF (${sugg.plate}) - ${sugg.log.length > 0 ? sugg.log.length + ' pausas' : 'Sem pausas'}`
+                    obs: `Importação PDF - Cartrack`
                 });
-                updatedCount++;
             }
-        } catch (err: any) {
-            console.error(err);
-            errors.push(`Erro ao gravar: ${err.message}`);
-        } finally {
+        } catch (err: unknown) { console.error(err); }
+        finally {
             setIsImporting(false);
             setShowDriverSelectModal(false);
-            setImportStats({ processed: pendingTrips.length, updated: updatedCount, errors });
             setPendingTrips([]);
         }
     };
@@ -184,196 +174,259 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
         setNewData(prev => ({ ...prev, motoristaId: '' }));
     };
 
+    const generateDailyPDF = () => {
+        const doc = new jsPDF('p', 'mm', 'a4');
+        doc.setFontSize(18);
+        doc.text(`Relatório de Horas - ${selectedDate}`, 14, 20);
+
+        const tableColumn = ["Motorista", "Início", "Fim", "Pausa", "Total", "Noturnas", "Extra"];
+        const tableRows = dailyRecords.map(rec => {
+            const driver = motoristas.find(m => m.id === rec.motoristaId);
+            const calc = calculateShift(rec.startTime, rec.endTime, rec.breakDuration);
+            return [
+                driver?.nome || 'N/A',
+                rec.startTime,
+                rec.endTime,
+                rec.breakDuration + 'm',
+                calc.totalHours,
+                calc.nightHours,
+                calc.extraHours
+            ];
+        });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows as (string | number)[][],
+            startY: 30,
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [16, 185, 129] }
+        });
+        doc.save(`Horas_Diarias_${selectedDate}.pdf`);
+    };
+
+    const generateDailyExcel = () => {
+        const excelData = dailyRecords.map(rec => {
+            const driver = motoristas.find(m => m.id === rec.motoristaId);
+            const calc = calculateShift(rec.startTime, rec.endTime, rec.breakDuration);
+            return {
+                'Motorista': driver?.nome || 'N/A',
+                'Data': rec.date,
+                'Início': rec.startTime,
+                'Fim': rec.endTime,
+                'Pausa (min)': rec.breakDuration,
+                'Total Horas': calc.totalHours,
+                'Horas Noturnas': calc.nightHours,
+                'Horas Extra': calc.extraHours
+            };
+        });
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Daily_Hours");
+        XLSX.writeFile(workbook, `Horas_Diarias_${selectedDate}.xlsx`);
+    };
+
     return (
         <div className="space-y-6">
+            {/* Quick Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg">
+                    <div className="flex items-center gap-2 text-slate-500 mb-1">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Total Horas</span>
+                    </div>
+                    <div className="text-xl font-black text-white">{stats.totalHours}</div>
+                </div>
+                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg">
+                    <div className="flex items-center gap-2 text-purple-400 mb-1">
+                        <Moon className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Noturnas</span>
+                    </div>
+                    <div className="text-xl font-black text-purple-400">{stats.nightHours}</div>
+                </div>
+                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg">
+                    <div className="flex items-center gap-2 text-amber-400 mb-1">
+                        <Star className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Extra</span>
+                    </div>
+                    <div className="text-xl font-black text-amber-400">{stats.extraHours}</div>
+                </div>
+                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg">
+                    <div className="flex items-center gap-2 text-emerald-400 mb-1">
+                        <Euro className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Custo Est.</span>
+                    </div>
+                    <div className="text-xl font-black text-emerald-400">{stats.totalCost}</div>
+                </div>
+                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg col-span-2 md:col-span-1">
+                    <div className="flex items-center gap-2 text-blue-400 mb-1">
+                        <Info className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Registos</span>
+                    </div>
+                    <div className="text-xl font-black text-blue-400">{stats.count} / {motoristas.length}</div>
+                </div>
+            </div>
+
             {/* Toolbar */}
-            <div className="flex justify-between items-center bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-sm">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-white font-bold">Registos do Dia</h2>
-                    <span className="text-slate-400 text-sm font-mono bg-slate-900 px-2 py-1 rounded">{selectedDate}</span>
+                    <div className="p-2.5 bg-emerald-500/10 rounded-xl">
+                        <Clock className="w-5 h-5 text-emerald-500" />
+                    </div>
+                    <div>
+                        <h2 className="text-white font-black uppercase tracking-tighter text-lg">Registos Diários</h2>
+                        <p className="text-slate-500 text-xs font-mono">{selectedDate}</p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {/* Import Button */}
-                    <div className="relative">
-                        <input
-                            type="file"
-                            accept=".pdf"
-                            onChange={handleImport}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            disabled={isImporting}
-                        />
-                        <button className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isImporting ? 'bg-slate-700 text-slate-400' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
-                            {isImporting ? (
-                                <>A processar...</>
-                            ) : (
-                                <>
-                                    <Upload className="w-4 h-4" />
-                                    Importar PDF D103
-                                </>
-                            )}
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <div className="relative group flex-1 md:flex-none">
+                        <input type="file" accept=".pdf" onChange={handleImport} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" disabled={isImporting} />
+                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-all">
+                            <Upload className="w-4 h-4 text-blue-400" />
+                            Importar D103
                         </button>
                     </div>
-
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                    >
+                    <button onClick={() => setShowAddModal(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-900/20">
                         <Plus className="w-4 h-4" />
                         Novo Registo
                     </button>
+                    <div className="flex gap-2 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 md:pl-4 border-white/5">
+                        <button onClick={generateDailyExcel} className="flex-1 md:flex-none p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all" title="Exportar Excel">
+                            <FileSpreadsheet className="w-5 h-5" />
+                        </button>
+                        <button onClick={generateDailyPDF} className="flex-1 md:flex-none p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all" title="Exportar PDF">
+                            <FileDown className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Bulk Actions Bar */}
             {selectedDrivers.size > 0 && (
-                <div className="bg-blue-900/30 border border-blue-500/50 p-3 rounded-lg flex items-center justify-between">
-                    <span className="text-blue-200 text-sm font-medium">{selectedDrivers.size} motoristas selecionados</span>
+                <div className="bg-blue-600/10 border border-blue-500/30 p-4 rounded-2xl flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-black">
+                            {selectedDrivers.size}
+                        </div>
+                        <span className="text-blue-200 text-sm font-bold">Motoristas Selecionados</span>
+                    </div>
                     <button
                         onClick={handleBulkQuickRegister}
                         disabled={isImporting}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow-lg transition-all"
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95"
                     >
-                        {isImporting ? 'A processar...' : 'Definir 09:00 - 18:00 (Rápido)'}
+                        {isImporting ? 'A PROCESSAR...' : 'Registar 09:00 - 18:00'}
                     </button>
                 </div>
             )}
 
-            {/* Import Stats */}
-            {importStats && (
-                <div className={`p-4 rounded-lg border ${importStats.errors.length > 0 ? 'bg-amber-900/20 border-amber-500/30' : 'bg-emerald-900/20 border-emerald-500/30'}`}>
-                    <p className="text-white font-medium">Resultados:</p>
-                    <p className="text-slate-300 text-sm">{importStats.updated} registos criados/atualizados.</p>
-                    {importStats.errors.length > 0 && (
-                        <ul className="mt-2 text-amber-400 text-xs list-disc list-inside">
-                            {importStats.errors.slice(0, 5).map((e, i) => <li key={i}>{e}</li>)}
-                            {importStats.errors.length > 5 && <li>...e mais {importStats.errors.length - 5} erros.</li>}
-                        </ul>
-                    )}
-                </div>
-            )}
-
-            {/* List */}
-            <div className="bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl overflow-x-auto shadow-xl">
-                <table className="w-full text-left text-sm text-slate-300" style={{ minWidth: '640px' }}>
-                    <thead className="bg-[#0f172a]/80 text-slate-400 uppercase text-xs tracking-wider">
-                        <tr>
-                            <th className="p-4 w-4">
-                                <input
-                                    type="checkbox"
-                                    className="rounded bg-slate-800 border-slate-600"
-                                    checked={selectedDrivers.size === motoristas.length && motoristas.length > 0}
-                                    onChange={toggleAll}
-                                />
+            {/* Main Content (Table on Desktop, Cards on Mobile) */}
+            <div className="hidden md:block bg-slate-900/50 border border-white/5 rounded-3xl overflow-x-auto table-scroll shadow-2xl">
+                <table className="w-full text-left text-sm border-collapse" style={{ minWidth: '1000px' }}>
+                    <thead>
+                        <tr className="bg-slate-950/50 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-white/5">
+                            <th className="p-5 w-12 text-center">
+                                <input type="checkbox" className="rounded-md bg-slate-800 border-slate-700 w-4 h-4 checked:bg-blue-600" checked={selectedDrivers.size === motoristas.length && motoristas.length > 0} onChange={toggleAll} />
                             </th>
-                            <th className="p-4 font-bold border-b border-slate-700">Motorista</th>
-                            <th className="p-4 font-bold border-b border-slate-700">Entrada</th>
-                            <th className="p-4 font-bold border-b border-slate-700">Saída</th>
-                            <th className="p-4 font-bold border-b border-slate-700">Pausa (min)</th>
-                            <th className="p-4 font-bold border-b border-slate-700">Total</th>
-                            <th className="p-4 font-bold border-b border-slate-700">Obs</th>
-                            <th className="p-4 font-bold border-b border-slate-700 text-right">Ações</th>
+                            <th className="p-5">Motorista</th>
+                            <th className="p-5">Período</th>
+                            <th className="p-5 text-center">Pausa</th>
+                            <th className="p-5 text-center">Trabalho</th>
+                            <th className="p-5 text-center">Noturnas</th>
+                            <th className="p-5 text-center">Extra</th>
+                            <th className="p-5 text-right">Total €</th>
+                            <th className="p-5 text-center">Estado</th>
+                            <th className="p-5 text-right">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/50">
+                    <tbody className="divide-y divide-white/5">
                         {motoristas.length === 0 ? (
-                            <tr><td colSpan={8} className="p-8 text-center text-slate-500">Sem motoristas registados.</td></tr>
+                            <tr><td colSpan={10} className="p-20 text-center text-slate-600 font-medium">Sem motoristas registados no sistema.</td></tr>
                         ) : (
-                            // Iterate MOTORISTAS instead of records to show missing ones too?
-                            // User request: "REGISTAR RAPIDO" usually implies checking off list.
-                            // Better: Show ALL drivers. If record exists, show it. If not, show empty/button.
                             motoristas.map(driver => {
                                 const records = dailyRecords.filter(r => r.motoristaId === driver.id);
                                 const isSelected = selectedDrivers.has(driver.id);
 
-                                // If no records, render one empty row (or just the driver info)
                                 if (records.length === 0) {
                                     return (
-                                        <tr key={driver.id} className="hover:bg-slate-800/30">
-                                            <td className="p-4 text-center">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded bg-slate-800 border-slate-600"
-                                                    checked={isSelected}
-                                                    onChange={() => toggleDriver(driver.id)}
-                                                />
+                                        <tr key={driver.id} className="hover:bg-white/[0.02] bg-transparent transition-colors">
+                                            <td className="p-5 text-center">
+                                                <input type="checkbox" className="rounded-md bg-slate-800 border-slate-700 w-4 h-4" checked={isSelected} onChange={() => toggleDriver(driver.id)} />
                                             </td>
-                                            <td className="p-4 font-medium text-white">
-                                                {driver.nome}
-                                                <button
-                                                    onClick={() => {
-                                                        setNewData(d => ({ ...d, motoristaId: driver.id }));
-                                                        setShowAddModal(true);
-                                                    }}
-                                                    className="ml-2 p-1 bg-slate-800 hover:bg-slate-700 rounded text-xs text-blue-400 opacity-50 hover:opacity-100 transition-opacity"
-                                                    title="Adicionar horas"
-                                                >
-                                                    <Plus className="w-3 h-3" />
+                                            <td className="p-5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-slate-500 font-bold">{driver.nome}</span>
+                                                    <span className="text-[10px] text-slate-600 uppercase font-bold tracking-tighter">Sem registo hoje</span>
+                                                </div>
+                                            </td>
+                                            <td colSpan={6} className="p-5 text-center text-slate-700 italic text-xs">Aguardando lançamento...</td>
+                                            <td className="p-5 text-center">
+                                                <span className="px-2 py-1 bg-slate-800 text-slate-500 rounded-lg text-[10px] font-black uppercase">Vazio</span>
+                                            </td>
+                                            <td className="p-5 text-right">
+                                                <button onClick={() => { setNewData(d => ({ ...d, motoristaId: driver.id })); setShowAddModal(true); }} className="p-2 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-lg transition-all" title="Lançar Horas">
+                                                    <Plus className="w-4 h-4" />
                                                 </button>
                                             </td>
-                                            <td className="p-4 text-center text-slate-600">-</td>
-                                            <td className="p-4 text-center text-slate-600">-</td>
-                                            <td className="p-4 text-center text-slate-600">-</td>
-                                            <td className="p-4 text-center text-slate-600">-</td>
-                                            <td className="p-4">-</td>
-                                            <td className="p-4"></td>
                                         </tr>
                                     );
                                 }
 
-                                // If records, render them. 
-                                // First record gets the Checkbox and Name.
-                                // Subsequent records get empty cells for those columns (or maybe just rowSpan).
-                                // Let's use mapping to render distinct rows but visually grouped.
                                 return records.map((record, index) => {
-                                    const [h1, m1] = record.startTime.split(':').map(Number);
-                                    const [h2, m2] = record.endTime.split(':').map(Number);
-                                    const diffMin = (h2 * 60 + m2) - (h1 * 60 + m1) - record.breakDuration;
-                                    const h = Math.floor(diffMin / 60);
-                                    const m = diffMin % 60;
-                                    const durationDisplay = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-
-                                    const isFirst = index === 0;
+                                    const calc = calculateShift(record.startTime, record.endTime, record.breakDuration);
+                                    const status = getStatus(record, records);
+                                    const cost = driver.valorHora ? (calc.totalMinutes / 60) * driver.valorHora : 0;
 
                                     return (
-                                        <tr key={record.id} className="bg-emerald-900/10 hover:bg-emerald-900/20 border-b border-slate-800/50">
-                                            {/* Checkbox & Name - Only on first row (or rowspan) */}
-                                            {isFirst ? (
+                                        <tr key={record.id} className="hover:bg-emerald-500/[0.03] transition-colors group">
+                                            {index === 0 ? (
                                                 <>
-                                                    <td className="p-4 text-center align-middle" rowSpan={records.length}>
-                                                        <input
-                                                            type="checkbox"
-                                                            className="rounded bg-slate-800 border-slate-600"
-                                                            checked={isSelected}
-                                                            onChange={() => toggleDriver(driver.id)}
-                                                        />
+                                                    <td className="p-5 text-center" rowSpan={records.length}>
+                                                        <input type="checkbox" className="rounded-md bg-slate-800 border-slate-700 w-4 h-4" checked={isSelected} onChange={() => toggleDriver(driver.id)} />
                                                     </td>
-                                                    <td className="p-4 font-medium text-white align-middle" rowSpan={records.length}>
-                                                        {driver.nome}
-                                                        <button
-                                                            onClick={() => {
-                                                                setNewData(d => ({ ...d, motoristaId: driver.id }));
-                                                                setShowAddModal(true);
-                                                            }}
-                                                            className="ml-2 p-1 bg-slate-800 hover:bg-slate-700 rounded text-xs text-blue-400 opacity-50 hover:opacity-100 transition-opacity"
-                                                            title="Adicionar mais horas"
-                                                        >
-                                                            <Plus className="w-3 h-3" />
-                                                        </button>
+                                                    <td className="p-5" rowSpan={records.length}>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-white font-black uppercase tracking-tighter text-sm">{driver.nome}</span>
+                                                            <span className="text-[10px] text-slate-500 font-mono">CC: {driver.centroCustoId || 'N/A'}</span>
+                                                        </div>
                                                     </td>
                                                 </>
                                             ) : null}
-
-                                            <td className="p-4 font-mono">{record.startTime}</td>
-                                            <td className="p-4 font-mono">{record.endTime}</td>
-                                            <td className="p-4 font-mono text-center">{record.breakDuration}</td>
-                                            <td className="p-4 font-mono font-bold text-emerald-400">{durationDisplay}</td>
-                                            <td className="p-4 text-xs text-slate-500 max-w-xs truncate">{record.obs}</td>
-                                            <td className="p-4 text-right">
-                                                <button
-                                                    onClick={() => deleteManualHourRecord(record.id)}
-                                                    className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded transition-colors"
-                                                >
+                                            <td className="p-5">
+                                                <div className="flex items-center gap-2 font-mono text-sm">
+                                                    <span className="text-emerald-400 font-black">{record.startTime}</span>
+                                                    <span className="text-slate-600">→</span>
+                                                    <span className="text-emerald-400 font-black">{record.endTime}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-5 text-center font-mono text-slate-400">{record.breakDuration}m</td>
+                                            <td className="p-5 text-center">
+                                                <div className="font-mono font-black text-white bg-slate-800 px-2 py-0.5 rounded-lg inline-block">{calc.totalHours}</div>
+                                            </td>
+                                            <td className="p-5 text-center">
+                                                <span className={`font-mono font-bold ${calc.nightMinutes > 0 ? 'text-purple-400' : 'text-slate-600'}`}>{calc.nightHours}</span>
+                                            </td>
+                                            <td className="p-5 text-center">
+                                                <span className={`font-mono font-bold ${calc.extraMinutes > 0 ? 'text-amber-400' : 'text-slate-600'}`}>{calc.extraHours}</span>
+                                            </td>
+                                            <td className="p-5 text-right font-black text-emerald-400">{cost.toFixed(2)} €</td>
+                                            <td className="p-5 text-center">
+                                                {status === 'conflict' ? (
+                                                    <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-red-500/10 text-red-500 rounded-lg border border-red-500/20 text-[10px] font-black uppercase animate-pulse">
+                                                        <AlertCircle className="w-3 h-3" /> Conflito
+                                                    </div>
+                                                ) : status === 'complete' ? (
+                                                    <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg border border-emerald-500/20 text-[10px] font-black uppercase">
+                                                        <CheckCircle2 className="w-3 h-3" /> OK
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-orange-500/10 text-orange-500 rounded-lg border border-orange-500/20 text-[10px] font-black uppercase">
+                                                        <Info className="w-3 h-3" /> Incomp.
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="p-5 text-right">
+                                                <button onClick={() => deleteManualHourRecord(record.id)} className="p-2.5 text-slate-600 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </td>
@@ -384,6 +437,77 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile View (Cards) */}
+            <div className="md:hidden space-y-4">
+                {motoristas.map(driver => {
+                    const records = dailyRecords.filter(r => r.motoristaId === driver.id);
+                    return (
+                        <div key={driver.id} className={`bg-slate-900/50 rounded-2xl border ${records.length > 0 ? 'border-emerald-500/20 shadow-lg shadow-emerald-500/5' : 'border-white/5 opacity-70'} p-4`}>
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex flex-col">
+                                    <h3 className="text-white font-black uppercase tracking-tighter text-base">{driver.nome}</h3>
+                                    <span className="text-[10px] text-slate-500 font-mono">CC: {driver.centroCustoId || 'N/A'}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => { setNewData(d => ({ ...d, motoristaId: driver.id })); setShowAddModal(true); }} className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg transition-all" title="Adicionar">
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                    <input type="checkbox" className="rounded-md bg-slate-800 border-slate-700 w-6 h-6" checked={selectedDrivers.has(driver.id)} onChange={() => toggleDriver(driver.id)} />
+                                </div>
+                            </div>
+
+                            {records.length === 0 ? (
+                                <p className="text-slate-600 text-xs italic text-center py-2 bg-slate-950/50 rounded-xl">Sem lançamentos para hoje</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {records.map(record => {
+                                        const calc = calculateShift(record.startTime, record.endTime, record.breakDuration);
+                                        const status = getStatus(record, records);
+                                        const cost = driver.valorHora ? (calc.totalMinutes / 60) * driver.valorHora : 0;
+                                        return (
+                                            <div key={record.id} className="bg-slate-950/50 p-3 rounded-xl border border-white/5 space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2 font-mono text-xs">
+                                                        <span className="text-emerald-400 font-black">{record.startTime}</span>
+                                                        <span className="text-slate-600">→</span>
+                                                        <span className="text-emerald-400 font-black">{record.endTime}</span>
+                                                    </div>
+                                                    <button onClick={() => deleteManualHourRecord(record.id)} className="text-slate-600 active:text-red-500 p-2">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="bg-slate-900 p-2 rounded-lg text-center">
+                                                        <div className="text-[8px] text-slate-500 uppercase font-black">Total</div>
+                                                        <div className="text-sm font-black text-white">{calc.totalHours}</div>
+                                                    </div>
+                                                    <div className="bg-slate-900 p-2 rounded-lg text-center">
+                                                        <div className="text-[8px] text-purple-500 uppercase font-black">Notur.</div>
+                                                        <div className="text-sm font-black text-purple-400">{calc.nightHours}</div>
+                                                    </div>
+                                                    <div className="bg-slate-900 p-2 rounded-lg text-center">
+                                                        <div className="text-[8px] text-amber-500 uppercase font-black">Extra</div>
+                                                        <div className="text-sm font-black text-amber-400">{calc.extraHours}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs pt-1">
+                                                    <span className="text-emerald-400 font-black">{cost.toFixed(2)} €</span>
+                                                    {status === 'conflict' ? (
+                                                        <span className="text-red-500 font-black uppercase text-[10px]">Conflito de Horário!</span>
+                                                    ) : (
+                                                        <span className="text-slate-600 text-[10px] font-bold">Pausa: {record.breakDuration}m</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Manual Add Modal */}
