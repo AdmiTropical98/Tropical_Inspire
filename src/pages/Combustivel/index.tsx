@@ -227,7 +227,13 @@ export default function Combustivel() {
 
     const confirmRefuel = async () => {
         const liters = Number(refuelForm.liters);
-        if (liters > fuelTank.currentLevel) {
+        const refuelDate = (refuelForm.manualDate && refuelForm.manualTime)
+            ? new Date(`${refuelForm.manualDate}T${refuelForm.manualTime}`)
+            : new Date();
+
+        const isAfterBaseline = !fuelTank.baselineDate || refuelDate >= new Date(fuelTank.baselineDate);
+
+        if (isAfterBaseline && liters > fuelTank.currentLevel) {
             alert('Combustível insuficiente no tanque!');
             return;
         }

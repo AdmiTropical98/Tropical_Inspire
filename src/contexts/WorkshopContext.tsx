@@ -1502,15 +1502,19 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (!error) {
                 // If the transaction was confirmed, revert the tank changes
                 if (trans.status === 'confirmed') {
-                    const currentTotalizer = fuelTank.pumpTotalizer || 0;
-                    const reversedTotalizer = Math.max(0, currentTotalizer - trans.liters);
-                    const reversedLevel = Math.min(fuelTank.capacity, fuelTank.currentLevel + trans.liters);
+                    const isAfterBaseline = !fuelTank.baselineDate || new Date(trans.timestamp) >= new Date(fuelTank.baselineDate);
 
-                    await updateFuelTank({
-                        ...fuelTank,
-                        currentLevel: reversedLevel,
-                        pumpTotalizer: reversedTotalizer
-                    });
+                    if (isAfterBaseline) {
+                        const currentTotalizer = fuelTank.pumpTotalizer || 0;
+                        const reversedTotalizer = Math.max(0, currentTotalizer - trans.liters);
+                        const reversedLevel = Math.min(fuelTank.capacity, fuelTank.currentLevel + trans.liters);
+
+                        await updateFuelTank({
+                            ...fuelTank,
+                            currentLevel: reversedLevel,
+                            pumpTotalizer: reversedTotalizer
+                        });
+                    }
                 }
                 setFuelTransactions(prev => prev.filter(t => t.id !== id));
             } else {
@@ -1524,14 +1528,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (refill) {
             const { error } = await supabase.from('tank_refills').delete().eq('id', id);
             if (!error) {
-                // Revert tank level (Fuel In -> Revert by removing liters)
-                const reversedLevel = Math.max(0, fuelTank.currentLevel - refill.litersAdded);
+                const isAfterBaseline = !fuelTank.baselineDate || new Date(refill.timestamp) >= new Date(fuelTank.baselineDate);
 
-                await updateFuelTank({
-                    ...fuelTank,
-                    currentLevel: reversedLevel
-                    // We do not revert PMP or Totalizer here as it's complex/ambiguous for Supplies
-                });
+                if (isAfterBaseline) {
+                    // Revert tank level (Fuel In -> Revert by removing liters)
+                    const reversedLevel = Math.max(0, fuelTank.currentLevel - refill.litersAdded);
+
+                    await updateFuelTank({
+                        ...fuelTank,
+                        currentLevel: reversedLevel
+                        // We do not revert PMP or Totalizer here as it's complex/ambiguous for Supplies
+                    });
+                }
 
                 setTankRefills(prev => prev.filter(t => t.id !== id));
             } else {
