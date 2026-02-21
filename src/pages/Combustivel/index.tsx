@@ -14,13 +14,13 @@ import { excelDateToJSDate } from '../../utils/format';
 
 export default function Combustivel() {
     const {
-        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, registerTankRefill, deleteFuelTransaction, centrosCustos, updateFuelTank, vehicleMetrics, recalculateFuelTank
+        fuelTank, fuelTransactions, tankRefills, registerRefuel, motoristas, viaturas, registerTankRefill, deleteFuelTransaction, deleteTankRefill, centrosCustos, updateFuelTank, vehicleMetrics, recalculateFuelTank
     } = useWorkshop();
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'abastecer' | 'tanque' | 'historico' | 'bp'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'abastecer' | 'tanque' | 'historico' | 'bp' | 'relatorios'>('overview');
     const [bpTransactions, setBpTransactions] = useState<any[]>([]); // Temp state for BP imports
     const [selectedRows, setSelectedRows] = useState<number[]>([]); // For bulk actions
     const [bulkCC, setBulkCC] = useState('');
@@ -484,7 +484,57 @@ export default function Combustivel() {
         }
     };
 
+    const internalRefuels = fuelTransactions.filter(tx => !tx.isExternal && tx.status === 'confirmed');
+    const totalInternalLiters = internalRefuels.reduce((sum, tx) => sum + tx.liters, 0);
+    const totalTankIn = tankRefills.reduce((sum, r) => sum + r.litersAdded, 0);
 
+    const exportAuditReport = () => {
+        // 1. Prepare Tank Refills Data
+        const refillData = tankRefills.map(r => ({
+            'Data': new Date(r.timestamp).toLocaleString(),
+            'Fornecedor': r.supplier || 'N/A',
+            'Litros Adicionados': r.litersAdded,
+            'Nível Antes': r.levelBefore,
+            'Nível Depois': r.levelAfter,
+            'Preço/Litro': r.pricePerLiter,
+            'Custo Total': r.totalCost,
+            'Leitura Bomba': r.pumpMeterReading
+        }));
+
+        // 2. Prepare Consumption Data (Only Internal)
+        const consumptionData = fuelTransactions
+            .filter(tx => !tx.isExternal && tx.status === 'confirmed')
+            .map(tx => {
+                const vehicle = viaturas.find(v => v.id === tx.vehicleId);
+                const cc = centrosCustos.find(c => c.id === tx.centroCustoId);
+                return {
+                    'Data': new Date(tx.timestamp).toLocaleString(),
+                    'Viatura': vehicle?.matricula || tx.vehicleId,
+                    'Litros': tx.liters,
+                    'Custo': tx.totalCost,
+                    'Centro de Custo': cc?.nome || 'N/A'
+                };
+            });
+
+        // 3. Totals Summary
+        const totalIn = tankRefills.reduce((sum, r) => sum + r.litersAdded, 0);
+        const totalOut = fuelTransactions.filter(tx => !tx.isExternal && tx.status === 'confirmed').reduce((sum, tx) => sum + tx.liters, 0);
+
+        const summary = [
+            { 'Métrica': 'Total Entradas (Tanque)', 'Valor': totalIn },
+            { 'Métrica': 'Total Saídas (Abastecimentos)', 'Valor': totalOut },
+            { 'Métrica': 'Diferença Acumulada', 'Valor': totalIn - totalOut },
+            { 'Métrica': 'Nível Atual Sistema', 'Valor': fuelTank.currentLevel }
+        ];
+
+        // Create Workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "Resumo");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(refillData), "Entradas Tanque");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(consumptionData), "Saídas Oficina");
+
+        XLSX.writeFile(wb, `Relatorio_Auditoria_Combustivel_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
 
     return (
         <div className="flex flex-col h-screen overflow-hidden relative bg-slate-950 text-white">
@@ -513,6 +563,7 @@ export default function Combustivel() {
                             { id: 'tanque', icon: Droplets, label: 'Reabastecer Tanque' },
                             { id: 'historico', icon: History, label: 'Histórico' },
                             { id: 'bp', icon: FileSpreadsheet, label: 'BP' },
+                            { id: 'relatorios', icon: BarChart3, label: 'Relatórios' },
                         ].map(tab => (
                             <button
                                 key={tab.id}
@@ -1449,6 +1500,112 @@ export default function Combustivel() {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+                {/* REPORTS / AUDIT TAB */}
+                {activeTab === 'relatorios' && (
+                    <div className="space-y-8 animate-in slide-in-from-right-4">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 backdrop-blur-md">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-emerald-500/20 rounded-2xl">
+                                        <Plus className="w-6 h-6 text-emerald-400" />
+                                    </div>
+                                    <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Entradas Tanque</span>
+                                </div>
+                                <div className="text-3xl font-black text-white">{totalTankIn.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                            </div>
+
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-3xl p-6 backdrop-blur-md">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-blue-500/20 rounded-2xl">
+                                        <TrendingUp className="w-6 h-6 text-blue-400" />
+                                    </div>
+                                    <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Saídas Oficina</span>
+                                </div>
+                                <div className="text-3xl font-black text-white">{totalInternalLiters.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                            </div>
+
+                            <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-md">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-purple-500/20 rounded-2xl">
+                                        <AlertCircle className="w-6 h-6 text-purple-400" />
+                                    </div>
+                                    <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Diferença Acumulada</span>
+                                </div>
+                                <div className="text-3xl font-black text-white">{(totalTankIn - totalInternalLiters).toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                            </div>
+                        </div>
+
+                        {/* Tank Refill History */}
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
+                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                    <Droplets className="w-6 h-6 text-emerald-400" />
+                                    Registo de Entradas no Tanque
+                                </h2>
+                                <button
+                                    onClick={exportAuditReport}
+                                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold transition-all border border-slate-700 shadow-xl"
+                                >
+                                    <Download className="w-5 h-5" />
+                                    Exportar Auditoria
+                                </button>
+                            </div>
+
+                            <div className="overflow-hidden rounded-2xl border border-slate-800">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                        <tr>
+                                            <th className="px-6 py-4">Data</th>
+                                            <th className="px-6 py-4">Fornecedor</th>
+                                            <th className="px-6 py-4 text-right">L. Adicionados</th>
+                                            <th className="px-6 py-4 text-right">Nível Antes</th>
+                                            <th className="px-6 py-4 text-right">Nível Depois</th>
+                                            <th className="px-6 py-4 text-right">Custo Total</th>
+                                            <th className="px-6 py-4 text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800 bg-slate-900/30">
+                                        {tankRefills.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(refill => (
+                                            <tr key={refill.id} className="hover:bg-slate-800/5 transition-colors">
+                                                <td className="px-6 py-4 text-slate-300 font-mono">
+                                                    {new Date(refill.timestamp).toLocaleDateString()}
+                                                    <span className="text-slate-600 ml-2 text-xs">{new Date(refill.timestamp).toLocaleTimeString()}</span>
+                                                </td>
+                                                <td className="px-6 py-4 font-bold text-white">{refill.supplier || 'N/A'}</td>
+                                                <td className="px-6 py-4 text-right font-black text-emerald-400">{refill.litersAdded} L</td>
+                                                <td className="px-6 py-4 text-right text-slate-400">{refill.levelBefore} L</td>
+                                                <td className="px-6 py-4 text-right text-white">{refill.levelAfter} L</td>
+                                                <td className="px-6 py-4 text-right font-bold text-slate-300">{refill.totalCost ? `${refill.totalCost}€` : 'N/A'}</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    {userRole === 'admin' && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (confirm('Deseja apagar este registo de reabastecimento? O nível do tanque será revertido.')) {
+                                                                    await deleteTankRefill(refill.id);
+                                                                }
+                                                            }}
+                                                            className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-lg transition-all"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {tankRefills.length === 0 && (
+                                            <tr>
+                                                <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-bold italic">
+                                                    Nenhum registo de entrada encontrado.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 )}

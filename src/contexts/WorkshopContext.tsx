@@ -849,7 +849,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 lastRefillDate: tankData.last_refill_date,
                 averagePrice: tankData.average_price,
                 baselineDate: tankData.baseline_date,
-                baselineLevel: tankData.baseline_level
+                baselineLevel: tankData.baseline_level,
+                baselineTotalizer: tankData.baseline_totalizer
             });
 
             const { data: transData } = await supabase.from('fuel_transactions').select('*');
