@@ -7,12 +7,30 @@ import type { Notification } from '../../types';
 export default function Login() {
     const { login } = useAuth();
     const { addNotification, updateNotification, notifications, addSupervisor, addGestor } = useWorkshop();
-    const [role, setRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor'>('admin');
+    const [role, setRoleState] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor'>(() => {
+        const saved = localStorage.getItem('last_login_role');
+        return (saved as any) || 'admin';
+    });
+
+    const setRole = (newRole: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor') => {
+        setRoleState(newRole);
+        localStorage.setItem('last_login_role', newRole);
+    };
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showRegPassword, setShowRegPassword] = useState(false);
+
+    // Role display names and icons
+    const roleConfig = {
+        admin: { label: 'Administrador', icon: <ShieldCheck className="w-5 h-5" />, color: 'blue' },
+        gestor: { label: 'Gestor', icon: <UserCheck className="w-5 h-5" />, color: 'teal' },
+        supervisor: { label: 'Supervisor', icon: <UserCog className="w-5 h-5" />, color: 'purple' },
+        oficina: { label: 'Oficina', icon: <Wrench className="w-5 h-5" />, color: 'orange' },
+        motorista: { label: 'Motorista', icon: <User className="w-5 h-5" />, color: 'emerald' },
+    };
 
     // Registration Modal State
     const [showRegistration, setShowRegistration] = useState(false);
@@ -164,59 +182,32 @@ export default function Login() {
                 />
 
                 <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-32 relative z-10">
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-white mb-2">Bem-vindo</h1>
-                        <p className="text-slate-400">Selecione o seu perfil para entrar</p>
+                    <div className="text-center mb-6">
+                        <h1 className="text-2xl font-black text-white mb-1 uppercase tracking-tighter">Gestão de Frota</h1>
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                            <span className="text-slate-500 text-sm font-medium">Entrar como:</span>
+                            <span className={`text-${roleConfig[role].color}-400 text-sm font-bold bg-${roleConfig[role].color}-500/10 px-3 py-1 rounded-full border border-${roleConfig[role].color}-500/20 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                                {roleConfig[role].label}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Role Toggles */}
                     {/* Role Toggles */}
-                    <div className="grid grid-cols-5 gap-1.5 p-1 bg-slate-900/50 rounded-xl mb-8 border border-slate-700/50">
-                        <button
-                            onClick={() => { setRole('admin'); setError(''); }}
-                            className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all
-                            ${role === 'admin' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}
-                        `}
-                        >
-                            <ShieldCheck className="w-5 h-5" />
-                            Admin
-                        </button>
-                        <button
-                            onClick={() => { setRole('gestor'); setError(''); }}
-                            className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all
-                            ${role === 'gestor' ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}
-                        `}
-                        >
-                            <UserCheck className="w-5 h-5" />
-                            Gestor
-                        </button>
-                        <button
-                            onClick={() => { setRole('supervisor'); setError(''); }}
-                            className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all
-                            ${role === 'supervisor' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}
-                        `}
-                        >
-                            <UserCog className="w-5 h-5" />
-                            Superv.
-                        </button>
-                        <button
-                            onClick={() => { setRole('oficina'); setError(''); }}
-                            className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all
-                            ${role === 'oficina' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}
-                        `}
-                        >
-                            <Wrench className="w-5 h-5" />
-                            Oficina
-                        </button>
-                        <button
-                            onClick={() => { setRole('motorista'); setError(''); }}
-                            className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-lg text-xs font-medium transition-all
-                            ${role === 'motorista' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}
-                        `}
-                        >
-                            <User className="w-5 h-5" />
-                            Motorista
-                        </button>
+                    <div className="grid grid-cols-5 gap-1.5 p-1 bg-slate-900/50 rounded-2xl mb-8 border border-slate-700/50">
+                        {Object.entries(roleConfig).map(([key, config]) => (
+                            <button
+                                key={key}
+                                type="button"
+                                onClick={() => { setRole(key as any); setError(''); }}
+                                className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all duration-200
+                                ${role === key ? `bg-${config.color}-600 text-white shadow-lg shadow-${config.color}-900/20 scale-105 z-10` : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'}
+                            `}
+                            >
+                                {config.icon}
+                                {key === 'supervisor' ? 'Superv.' : key.charAt(0).toUpperCase() + key.slice(1)}
+                            </button>
+                        ))}
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -244,16 +235,17 @@ export default function Login() {
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                                 )}
                                 <input
-                                    type="text"
+                                    type={role === 'motorista' || role === 'oficina' ? 'tel' : 'email'}
+                                    inputMode={role === 'motorista' || role === 'oficina' ? 'numeric' : 'email'}
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-4 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
+                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-4 text-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all placeholder:text-slate-700"
                                     placeholder={
-                                        role === 'admin' ? "admin@algartempo.com" :
-                                            role === 'supervisor' ? "supervisor@algartempo.com" :
-                                                role === 'gestor' ? "gestor@algartempo.com" :
-                                                    "Nº de Telemóvel"
+                                        role === 'admin' ? "Ex: admin@algartempo.com" :
+                                            role === 'supervisor' ? "Ex: supervisor@algartempo.com" :
+                                                role === 'gestor' ? "Ex: gestor@algartempo.com" :
+                                                    "Introduza o seu telemóvel"
                                     }
                                 />
                             </div>
@@ -276,11 +268,16 @@ export default function Login() {
                                 `} />
                                 <input
                                     type={showPassword ? 'text' : 'password'}
+                                    inputMode={role === 'motorista' || role === 'oficina' ? 'numeric' : 'text'}
                                     required
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-12 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
-                                    placeholder={role === 'admin' || role === 'supervisor' || role === 'gestor' ? "••••••••" : "0000"}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if ((role === 'motorista' || role === 'oficina') && !/^\d*$/.test(val)) return;
+                                        setPassword(val);
+                                    }}
+                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-12 text-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all placeholder:text-slate-700"
+                                    placeholder={role === 'admin' || role === 'supervisor' || role === 'gestor' ? "Introduza a sua password" : "Introduza o seu PIN (4-6 dígitos)"}
                                     maxLength={(role === 'motorista' || role === 'oficina') ? 6 : undefined}
                                 />
                                 <button
@@ -293,24 +290,27 @@ export default function Login() {
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            className={`w-full text-white font-bold py-4 rounded-xl shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group
-                            ${role === 'admin'
-                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-900/20 hover:shadow-blue-900/40'
-                                    : role === 'supervisor'
-                                        ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 shadow-purple-900/20 hover:shadow-purple-900/40'
-                                        : role === 'gestor'
-                                            ? 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 shadow-teal-900/20 hover:shadow-teal-900/40'
-                                            : role === 'oficina'
-                                                ? 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 shadow-orange-900/20 hover:shadow-orange-900/40'
-                                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-900/20 hover:shadow-emerald-900/40'
-                                }
-                        `}
-                        >
-                            Entrar
-                            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        <div className="md:relative fixed bottom-0 left-0 w-full p-4 md:p-0 bg-slate-950/80 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t border-slate-800 md:border-none z-30">
+                            <button
+                                type="submit"
+                                className={`w-full text-white font-black uppercase tracking-widest py-4 md:py-5 rounded-2xl shadow-xl transform active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 group
+                                ${role === 'admin'
+                                        ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 shadow-blue-900/30'
+                                        : role === 'supervisor'
+                                            ? 'bg-gradient-to-br from-purple-600 via-purple-700 to-fuchsia-800 shadow-purple-900/30'
+                                            : role === 'gestor'
+                                                ? 'bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 shadow-teal-900/30'
+                                                : role === 'oficina'
+                                                    ? 'bg-gradient-to-br from-orange-600 via-orange-700 to-amber-800 shadow-orange-900/30'
+                                                    : 'bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 shadow-emerald-900/30'
+                                    }
+                            `}
+                            >
+                                {roleConfig[role].icon}
+                                Entrar como {roleConfig[role].label}
+                                <ChevronRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
+                            </button>
+                        </div>
 
                         {(role === 'supervisor' || role === 'gestor') && (
                             <button
@@ -326,11 +326,16 @@ export default function Login() {
 
 
 
-                    <p className="mt-8 text-center text-xs text-slate-600">
-                        &copy; 2025 Algartempo Frota. Todos os direitos reservados.
-                        <br />
-                        <span className="opacity-50">v1.10 (Fix Auth)</span>
-                    </p>
+                    <div className="mt-8 text-center space-y-2">
+                        <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
+                            &copy; 2025 Algartempo Frota
+                        </p>
+                        <div className="flex items-center justify-center gap-2 opacity-30 group">
+                            <span className="text-[10px] text-slate-500 font-mono">v1.11.0</span>
+                            <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
+                            <span className="text-[10px] text-slate-500 font-mono">PRODUÇÃO</span>
+                        </div>
+                    </div>
 
 
                 </div>
