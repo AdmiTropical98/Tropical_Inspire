@@ -82,6 +82,7 @@ interface WorkshopContextType {
     registerTankRefill: (log: TankRefillLog) => void;
     setPumpTotalizer: (val: number) => void;
     deleteFuelTransaction: (id: string) => void;
+    updateFuelTransaction: (id: string, updates: Partial<FuelTransaction>) => Promise<{ error?: any }>;
     deleteTankRefill: (id: string) => void;
     recalculateFuelTank: () => Promise<{ newLevel: number; newTotalizer: number }>;
 
@@ -1436,6 +1437,30 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         return { error: 'Transaction not found or not pending' };
     };
 
+    const updateFuelTransaction = async (id: string, updates: Partial<FuelTransaction>) => {
+        const { error } = await supabase
+            .from('fuel_transactions')
+            .update({
+                liters: updates.liters,
+                km: updates.km,
+                centro_custo_id: updates.centroCustoId,
+                total_cost: updates.totalCost,
+                price_per_liter: updates.pricePerLiter,
+                timestamp: updates.timestamp,
+                driver_id: updates.driverId,
+                vehicle_id: updates.vehicleId,
+                status: updates.status,
+                is_anormal: updates.isAnormal,
+                consumo_calculado: updates.consumoCalculado
+            })
+            .eq('id', id);
+
+        if (!error) {
+            setFuelTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, ...updates } : tx));
+        }
+        return { error };
+    };
+
     const registerTankRefill = async (log: TankRefillLog) => {
         // Calculate new PMP
         const currentVolume = fuelTank.currentLevel;
@@ -2254,6 +2279,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             tankRefills,
             vehicleMetrics,
             recalculateFuelTank,
+            updateFuelTransaction,
             updateFuelTank,
             registerRefuel,
             confirmRefuel,

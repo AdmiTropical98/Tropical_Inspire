@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import {
     Fuel, Droplets, History, Check, Truck,
-    Gauge, Trash2, LayoutTemplate, BarChart3,
+    Gauge, Trash2, LayoutTemplate, BarChart3, Edit, X,
     Upload, Download, FileSpreadsheet,
     AlertCircle, Plus, TrendingUp, Zap, Car, Filter
 } from 'lucide-react';
@@ -16,7 +16,7 @@ import autoTable from 'jspdf-autotable';
 
 export default function Combustivel() {
     const {
-        fuelTank, fuelTransactions, tankRefills, registerRefuel, motoristas, viaturas, registerTankRefill, deleteFuelTransaction, deleteTankRefill, centrosCustos, updateFuelTank, vehicleMetrics, recalculateFuelTank
+        fuelTank, fuelTransactions, tankRefills, registerRefuel, motoristas, viaturas, registerTankRefill, deleteFuelTransaction, deleteTankRefill, centrosCustos, updateFuelTank, vehicleMetrics, recalculateFuelTank, updateFuelTransaction
     } = useWorkshop();
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
@@ -35,6 +35,8 @@ export default function Combustivel() {
         startDate: '',
         endDate: ''
     });
+    const [isManualBPOpen, setIsManualBPOpen] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Fuel Form State
@@ -135,7 +137,6 @@ export default function Combustivel() {
     });
 
     // Manual BP Entry State
-    const [isManualBPOpen, setIsManualBPOpen] = useState(false);
     const [manualBPForm, setManualBPForm] = useState({
         date: new Date().toISOString().split('T')[0],
         time: new Date().toTimeString().split(' ')[0].slice(0, 5),
@@ -519,82 +520,112 @@ export default function Combustivel() {
         const doc = new jsPDF();
         const sortedRefills = [...tankRefills].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
+        // Helper for colors
+        const colors = {
+            primary: [15, 23, 42],
+            secondary: [51, 65, 85],
+            accent: [16, 185, 129],
+            danger: [220, 38, 38],
+            bg: [248, 250, 252]
+        };
+
+        // Header Design
+        doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+        doc.rect(0, 0, 210, 40, 'F');
+
         doc.setFontSize(22);
-        doc.setTextColor(15, 23, 42);
-        doc.text('Relatório de Auditoria de Combustível', 14, 20);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('AUDITORIA DE COMBUSTÍVEL', 14, 25);
 
         doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 28);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(200, 200, 200);
+        doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 33);
+        doc.text(`Capacidade Tanque: ${fuelTank.capacity} L | Nível Atual: ${fuelTank.currentLevel.toFixed(1)} L`, 140, 33);
 
-        let yPos = 35;
+        let yPos = 50;
 
-        // Process from newest to oldest for the PDF
+        // Process periods
         const intervals = [];
-
-        // Add Current Period
         const latestRefill = sortedRefills[sortedRefills.length - 1];
         const currentPeriodTransactions = fuelTransactions.filter(tx =>
-            !tx.isExternal &&
-            tx.status === 'confirmed' &&
+            !tx.isExternal && tx.status === 'confirmed' &&
             (!latestRefill || new Date(tx.timestamp) > new Date(latestRefill.timestamp))
         );
 
         if (latestRefill || currentPeriodTransactions.length > 0) {
             intervals.push({
-                title: 'PERÍODO ATUAL (Desde a última entrega)',
+                title: 'ESTADO ATUAL (Desde o último reabastecimento)',
                 refill: null,
                 transactions: currentPeriodTransactions,
-                timestamp: new Date().toISOString()
+                isCurrent: true
             });
         }
 
-        // Add Past Intervals
         for (let i = sortedRefills.length - 1; i >= 0; i--) {
             const refill = sortedRefills[i];
             const prevRefill = i > 0 ? sortedRefills[i - 1] : null;
-
             const start = prevRefill ? new Date(prevRefill.timestamp) : new Date(0);
             const end = new Date(refill.timestamp);
 
             const intervalTxs = fuelTransactions.filter(tx =>
-                !tx.isExternal &&
-                tx.status === 'confirmed' &&
+                !tx.isExternal && tx.status === 'confirmed' &&
                 new Date(tx.timestamp) > start &&
                 new Date(tx.timestamp) <= end
             );
 
             intervals.push({
-                title: `Entrega: ${refill.supplier || 'N/A'} - ${new Date(refill.timestamp).toLocaleDateString()}`,
+                title: `Entrega: ${refill.supplier || 'N/A'}`,
+                subtitle: `${new Date(refill.timestamp).toLocaleString()}`,
                 refill,
                 transactions: intervalTxs,
-                timestamp: refill.timestamp
+                isCurrent: false
             });
         }
 
         intervals.forEach((interval) => {
-            if (yPos > 240) {
+            if (yPos > 230) {
                 doc.addPage();
                 yPos = 20;
             }
 
+            // Interval Header
             doc.setFillColor(241, 245, 249);
-            doc.rect(14, yPos, 182, 10, 'F');
-            doc.setFontSize(12);
-            doc.setTextColor(15, 23, 42);
-            doc.text(interval.title, 18, yPos + 7);
-            yPos += 15;
+            doc.rect(14, yPos, 182, 12, 'F');
+            doc.setDrawColor(203, 213, 225);
+            doc.line(14, yPos, 14, yPos + 12);
 
-            if (interval.refill) {
-                doc.setFontSize(10);
-                doc.text(`Litros Entregues: ${interval.refill.litersAdded} L`, 14, yPos);
-                doc.text(`Nível Final: ${interval.refill.levelAfter} L`, 70, yPos);
-                const totalCalc = interval.refill.levelBefore + interval.refill.litersAdded;
-                if (totalCalc > 6000) {
-                    doc.setTextColor(220, 38, 38);
-                    doc.text(`Excesso: +${(totalCalc - 6000).toFixed(1)} L`, 130, yPos);
-                    doc.setTextColor(15, 23, 42);
+            doc.setFontSize(11);
+            doc.setTextColor(15, 23, 42);
+            doc.setFont('helvetica', 'bold');
+            doc.text(interval.title, 18, yPos + 8);
+
+            if (interval.subtitle) {
+                doc.setFontSize(8);
+                doc.setTextColor(100, 116, 139);
+                doc.setFont('helvetica', 'normal');
+                doc.text(interval.subtitle, 150, yPos + 8);
+            }
+            yPos += 18;
+
+            // Summary row for the period
+            if (interval.refill || interval.isCurrent) {
+                doc.setFontSize(9);
+                doc.setTextColor(71, 85, 105);
+                const totalOut = interval.transactions.reduce((s, t) => s + t.liters, 0);
+                const costOut = interval.transactions.reduce((s, t) => s + (t.totalCost || 0), 0);
+
+                let summaryText = `Consumo: ${totalOut.toFixed(1)} L | Custo: ${costOut.toFixed(2)} €`;
+                if (interval.refill) {
+                    summaryText += ` | Entregue: ${interval.refill.litersAdded} L | Nível Final: ${interval.refill.levelAfter} L`;
+                    const totalCalc = interval.refill.levelBefore + interval.refill.litersAdded;
+                    if (totalCalc > 6000) {
+                        doc.setTextColor(220, 38, 38);
+                        summaryText += ` | EXCESSO: +${(totalCalc - 6000).toFixed(1)} L`;
+                    }
                 }
+                doc.text(summaryText, 14, yPos);
                 yPos += 8;
             }
 
@@ -614,19 +645,57 @@ export default function Combustivel() {
                 startY: yPos,
                 head: [['Data/Hora', 'Viatura', 'Motorista', 'Litros', 'Custo']],
                 body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [15, 23, 42] },
-                margin: { left: 14, right: 14 },
-                didDrawPage: (data) => {
-                    yPos = data.cursor ? data.cursor.y + 15 : yPos + 20;
-                }
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [15, 23, 42],
+                    textColor: [255, 255, 255],
+                    fontSize: 9,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                columnStyles: {
+                    0: { cellWidth: 40 },
+                    1: { cellWidth: 30, halign: 'center' },
+                    2: { cellWidth: 'auto' },
+                    3: { cellWidth: 25, halign: 'right' },
+                    4: { cellWidth: 25, halign: 'right' }
+                },
+                styles: { fontSize: 8, cellPadding: 3 },
+                margin: { left: 14, right: 14 }
             });
 
-            // Update yPos based on where the table ended
             yPos = (doc as any).lastAutoTable.finalY + 15;
         });
 
-        doc.save(`audit_combustivel_${new Date().toISOString().split('T')[0]}.pdf`);
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Página ${i} de ${pageCount}`, 180, 285);
+            doc.text('Tropical Inspire - Gestão de Frota e Oficina', 14, 285);
+        }
+
+        doc.save(`auditoria_tanque_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
+
+    const handleUpdateTransaction = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const { error } = await updateFuelTransaction(editingTransaction.id, {
+                vehicleId: editingTransaction.vehicleId,
+                driverId: editingTransaction.driverId,
+                liters: Number(editingTransaction.liters),
+                totalCost: Number(editingTransaction.totalCost),
+                timestamp: editingTransaction.timestamp,
+                centroCustoId: editingTransaction.centroCustoId
+            });
+            if (error) throw error;
+            setEditingTransaction(null);
+            alert('Registo atualizado com sucesso!');
+        } catch (err: any) {
+            alert('Erro ao atualizar: ' + err.message);
+        }
     };
 
     const exportAuditReport = () => {
@@ -1335,16 +1404,26 @@ export default function Combustivel() {
                                                         {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        {hasAccess(userRole, 'combustivel_delete') && (
+                                                        <div className="flex justify-end gap-2">
                                                             <button
-                                                                onClick={() => {
-                                                                    if (confirm('Tem a certeza que deseja eliminar este registo?')) deleteFuelTransaction(tx.id);
-                                                                }}
-                                                                className="text-slate-600 hover:text-red-400 transition-colors"
+                                                                onClick={() => setEditingTransaction(tx)}
+                                                                className="text-slate-600 hover:text-blue-400 transition-colors"
+                                                                title="Editar registo"
                                                             >
-                                                                <Trash2 className="w-4 h-4" />
+                                                                <Edit className="w-4 h-4" />
                                                             </button>
-                                                        )}
+                                                            {hasAccess(userRole, 'combustivel_delete') && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (confirm('Tem a certeza que deseja eliminar este registo?')) deleteFuelTransaction(tx.id);
+                                                                    }}
+                                                                    className="text-slate-600 hover:text-red-400 transition-colors"
+                                                                    title="Eliminar registo"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -2046,6 +2125,102 @@ export default function Combustivel() {
                             <div className="flex gap-3 pt-4">
                                 <button type="button" onClick={() => setIsEditingTank(false)} className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold">Cancelar</button>
                                 <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">Guardar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* EDIT TRANSACTION MODAL */}
+            {editingTransaction && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-slate-900 border border-slate-700 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95">
+                        <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                            <div>
+                                <h3 className="text-xl font-bold text-white">Editar Abastecimento</h3>
+                                <p className="text-slate-500 text-sm mt-1">ID: {editingTransaction.id}</p>
+                            </div>
+                            <button onClick={() => setEditingTransaction(null)} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleUpdateTransaction} className="p-8 space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Viatura</label>
+                                    <select
+                                        value={editingTransaction.vehicleId}
+                                        onChange={e => setEditingTransaction({ ...editingTransaction, vehicleId: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                    >
+                                        {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Motorista</label>
+                                    <select
+                                        value={editingTransaction.driverId}
+                                        onChange={e => setEditingTransaction({ ...editingTransaction, driverId: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                    >
+                                        <option value="">Não Atribuído (BP)</option>
+                                        {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Litros</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editingTransaction.liters}
+                                        onChange={e => setEditingTransaction({ ...editingTransaction, liters: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Custo (€)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editingTransaction.totalCost}
+                                        onChange={e => setEditingTransaction({ ...editingTransaction, totalCost: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                    />
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data e Hora</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={new Date(new Date(editingTransaction.timestamp).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                                        onChange={e => setEditingTransaction({ ...editingTransaction, timestamp: new Date(e.target.value).toISOString() })}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                    />
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custo</label>
+                                    <select
+                                        value={editingTransaction.centroCustoId}
+                                        onChange={e => setEditingTransaction({ ...editingTransaction, centroCustoId: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                    >
+                                        <option value="">Sem Centro de Custo</option>
+                                        {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingTransaction(null)}
+                                    className="flex-1 px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20"
+                                >
+                                    Guardar Alterações
+                                </button>
                             </div>
                         </form>
                     </div>
