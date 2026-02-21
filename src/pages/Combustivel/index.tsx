@@ -1944,6 +1944,133 @@ export default function Combustivel() {
                                 </table>
                             </div>
                         </div>
+
+                        {/* Monthly Totals Section */}
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="p-3 bg-yellow-500/10 rounded-2xl">
+                                    <BarChart3 className="w-6 h-6 text-yellow-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">Totais por Mês</h2>
+                                    <p className="text-slate-400 text-sm mt-1">Soma de litros e custo de todos os abastecimentos (Oficina + BP)</p>
+                                </div>
+                            </div>
+
+                            {(() => {
+                                const allConfirmed = fuelTransactions.filter(tx => tx.status === 'confirmed');
+
+                                type MonthEntry = { liters: number; cost: number; count: number; };
+                                const byMonth: Record<string, MonthEntry> = {};
+
+                                allConfirmed.forEach(tx => {
+                                    const d = new Date(tx.timestamp);
+                                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                                    if (!byMonth[key]) byMonth[key] = { liters: 0, cost: 0, count: 0 };
+                                    byMonth[key].liters += tx.liters || 0;
+                                    byMonth[key].cost += tx.totalCost || 0;
+                                    byMonth[key].count += 1;
+                                });
+
+                                const months = Object.keys(byMonth).sort((a, b) => b.localeCompare(a));
+                                const grandLiters = months.reduce((s, k) => s + byMonth[k].liters, 0);
+                                const grandCost = months.reduce((s, k) => s + byMonth[k].cost, 0);
+                                const grandCount = months.reduce((s, k) => s + byMonth[k].count, 0);
+
+                                const ptMonths = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+                                if (months.length === 0) {
+                                    return (
+                                        <div className="text-center py-12 text-slate-500 font-bold">
+                                            Nenhum abastecimento registado ainda.
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="overflow-hidden rounded-2xl border border-slate-800">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                                <tr>
+                                                    <th className="px-6 py-4">Mês</th>
+                                                    <th className="px-6 py-4 text-center">Nº Abast.</th>
+                                                    <th className="px-6 py-4 text-right text-yellow-400">Total Litros</th>
+                                                    <th className="px-6 py-4 text-right text-emerald-400">Total Gasto</th>
+                                                    <th className="px-6 py-4 text-right text-slate-500">€/Litro Médio</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800 bg-slate-900/30">
+                                                {months.map((key, idx) => {
+                                                    const [year, month] = key.split('-');
+                                                    const label = `${ptMonths[parseInt(month) - 1]} ${year}`;
+                                                    const entry = byMonth[key];
+                                                    const avgPrice = entry.liters > 0 ? entry.cost / entry.liters : 0;
+                                                    const now = new Date();
+                                                    const isCurrentMonth = parseInt(year) === now.getFullYear() && parseInt(month) === now.getMonth() + 1;
+
+                                                    return (
+                                                        <tr key={key} className={`hover:bg-slate-800/20 transition-colors ${isCurrentMonth ? 'bg-blue-500/5 border-l-2 border-blue-500' : idx % 2 === 1 ? 'bg-slate-950/30' : ''}`}>
+                                                            <td className="px-6 py-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className={`font-bold ${isCurrentMonth ? 'text-blue-400' : 'text-white'}`}>{label}</span>
+                                                                    {isCurrentMonth && (
+                                                                        <span className="text-[10px] bg-blue-500/20 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                                                                            Atual
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <span className="bg-slate-800 px-3 py-1 rounded-full text-slate-300 font-bold text-xs">
+                                                                    {entry.count}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className="text-yellow-400 font-black text-lg font-mono">{entry.liters.toFixed(1)}</span>
+                                                                <span className="text-slate-500 text-xs ml-1">L</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className="text-emerald-400 font-black text-lg font-mono">{entry.cost.toFixed(2)}</span>
+                                                                <span className="text-slate-500 text-xs ml-1">€</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className={`font-bold font-mono text-sm ${avgPrice > 0 ? 'text-slate-300' : 'text-slate-600'}`}>
+                                                                    {avgPrice > 0 ? `${avgPrice.toFixed(3)} €/L` : '—'}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr className="bg-gradient-to-r from-slate-900 to-slate-950 border-t-2 border-yellow-500/30">
+                                                    <td className="px-6 py-5">
+                                                        <span className="text-white font-black uppercase text-xs tracking-[0.15em]">Total Geral</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-center">
+                                                        <span className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 px-3 py-1 rounded-full font-black text-xs">{grandCount}</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-right">
+                                                        <span className="text-yellow-400 font-black text-xl font-mono">{grandLiters.toFixed(1)}</span>
+                                                        <span className="text-slate-500 text-xs ml-1">L</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-right">
+                                                        <span className="text-emerald-400 font-black text-xl font-mono">{grandCost.toFixed(2)}</span>
+                                                        <span className="text-slate-500 text-xs ml-1">€</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-right">
+                                                        <span className="text-slate-400 font-bold font-mono text-sm">
+                                                            {grandLiters > 0 ? `${(grandCost / grandLiters).toFixed(3)} €/L` : '—'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                );
+                            })()}
+                        </div>
                     </div>
                 )}
             </main>
