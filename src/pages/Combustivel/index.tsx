@@ -51,7 +51,9 @@ export default function Combustivel() {
         supplier: '',
         litersAdded: '',
         pumpReading: '',
-        pricePerLiter: ''
+        pricePerLiter: '',
+        manualDate: new Date().toISOString().split('T')[0],
+        manualTime: new Date().toTimeString().split(' ')[0].slice(0, 5)
     });
 
     // --- Driver Status Check ---
@@ -278,6 +280,10 @@ export default function Combustivel() {
     const handleRegisterSupply = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const refillDate = (supplyForm.manualDate && supplyForm.manualTime)
+                ? new Date(`${supplyForm.manualDate}T${supplyForm.manualTime}`)
+                : new Date();
+
             await registerTankRefill({
                 id: crypto.randomUUID(),
                 supplier: supplyForm.supplier,
@@ -287,13 +293,20 @@ export default function Combustivel() {
                 levelBefore: fuelTank.currentLevel,
                 levelAfter: Math.min(fuelTank.capacity, fuelTank.currentLevel + Number(supplyForm.litersAdded)),
                 totalSpentSinceLast: 0, // You might want to calculate this or leave 0
-                timestamp: new Date().toISOString(),
+                timestamp: refillDate.toISOString(),
                 staffId: currentUser?.id || 'admin',
                 staffName: currentUser?.nome || 'Admin',
                 systemExpectedReading: fuelTank.pumpTotalizer,
                 totalCost: Number(supplyForm.litersAdded) * Number(supplyForm.pricePerLiter)
             });
-            setSupplyForm({ supplier: '', litersAdded: '', pumpReading: '', pricePerLiter: '' });
+            setSupplyForm({
+                supplier: '',
+                litersAdded: '',
+                pumpReading: '',
+                pricePerLiter: '',
+                manualDate: new Date().toISOString().split('T')[0],
+                manualTime: new Date().toTimeString().split(' ')[0].slice(0, 5)
+            });
             alert('Entrada de combustível registada com sucesso!');
             setActiveTab('overview');
         } catch (error: any) {
@@ -1044,6 +1057,26 @@ export default function Combustivel() {
                                         />
                                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">€</span>
                                     </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data de Entrega</label>
+                                    <input
+                                        required
+                                        type="date"
+                                        value={supplyForm.manualDate}
+                                        onChange={(e) => setSupplyForm({ ...supplyForm, manualDate: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Hora de Entrega</label>
+                                    <input
+                                        required
+                                        type="time"
+                                        value={supplyForm.manualTime}
+                                        onChange={(e) => setSupplyForm({ ...supplyForm, manualTime: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                    />
                                 </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Leitura Bomba do Camião (Opcional)</label>
