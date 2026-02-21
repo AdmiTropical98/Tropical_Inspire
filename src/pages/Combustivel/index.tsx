@@ -280,6 +280,18 @@ export default function Combustivel() {
     const handleRegisterSupply = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const added = Number(supplyForm.litersAdded);
+            const rawTotal = fuelTank.currentLevel + added;
+            const LIMIT = 6000;
+            let levelAfter = rawTotal;
+
+            if (rawTotal > LIMIT) {
+                const overage = rawTotal - LIMIT;
+                const proceed = confirm(`ALERTA DE CAPACIDADE!\nVolume total: ${rawTotal.toFixed(1)} L\nLimite Tanque: ${LIMIT} L\nExcesso: ${overage.toFixed(1)} L\n\nO nível do tanque será fixado em ${LIMIT} L. Deseja prosseguir?`);
+                if (!proceed) return;
+                levelAfter = LIMIT;
+            }
+
             const refillDate = (supplyForm.manualDate && supplyForm.manualTime)
                 ? new Date(`${supplyForm.manualDate}T${supplyForm.manualTime}`)
                 : new Date();
@@ -287,17 +299,17 @@ export default function Combustivel() {
             await registerTankRefill({
                 id: crypto.randomUUID(),
                 supplier: supplyForm.supplier,
-                litersAdded: Number(supplyForm.litersAdded),
-                pumpMeterReading: supplyForm.pumpReading ? Number(supplyForm.pumpReading) : 0, // Fixed property name
+                litersAdded: added,
+                pumpMeterReading: supplyForm.pumpReading ? Number(supplyForm.pumpReading) : 0,
                 pricePerLiter: Number(supplyForm.pricePerLiter),
                 levelBefore: fuelTank.currentLevel,
-                levelAfter: Math.min(fuelTank.capacity, fuelTank.currentLevel + Number(supplyForm.litersAdded)),
-                totalSpentSinceLast: 0, // You might want to calculate this or leave 0
+                levelAfter: levelAfter,
+                totalSpentSinceLast: 0,
                 timestamp: refillDate.toISOString(),
                 staffId: currentUser?.id || 'admin',
                 staffName: currentUser?.nome || 'Admin',
                 systemExpectedReading: fuelTank.pumpTotalizer,
-                totalCost: Number(supplyForm.litersAdded) * Number(supplyForm.pricePerLiter)
+                totalCost: added * Number(supplyForm.pricePerLiter)
             });
             setSupplyForm({
                 supplier: '',
@@ -1657,54 +1669,67 @@ export default function Combustivel() {
                                                 } as any);
                                             }
 
-                                            return rows.reverse().map(refill => (
-                                                <tr key={refill.id} className={`hover:bg-slate-800/10 transition-colors ${refill.isCurrent ? 'bg-blue-500/5' : ''}`}>
-                                                    <td className="px-6 py-4 text-slate-300 font-mono">
-                                                        {refill.isCurrent ? (
-                                                            <span className="flex items-center gap-2 text-blue-400 font-black">
-                                                                <TrendingUp className="w-3 h-3" /> AGORA
-                                                            </span>
-                                                        ) : (
-                                                            <>
-                                                                {new Date(refill.timestamp).toLocaleDateString()}
-                                                                <span className="text-slate-600 ml-2 text-xs">{new Date(refill.timestamp).toLocaleTimeString()}</span>
-                                                            </>
-                                                        )}
-                                                    </td>
-                                                    <td className={`px-6 py-4 font-bold ${refill.isCurrent ? 'text-blue-400' : 'text-white'}`}>
-                                                        {refill.supplier || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-black text-emerald-400">
-                                                        {refill.litersAdded > 0 ? `${refill.litersAdded} L` : '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-black text-amber-500 bg-blue-500/5">
-                                                        {refill.litersOut.toFixed(1)} L
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-bold text-slate-300 bg-blue-500/5">
-                                                        {refill.costOut > 0 ? `${refill.costOut.toFixed(2)}€` : '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-slate-400">
-                                                        {refill.isCurrent ? '-' : `${refill.levelBefore} L`}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-white">
-                                                        {refill.isCurrent ? `${fuelTank.currentLevel} L` : `${refill.levelAfter} L`}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        {!refill.isCurrent && userRole === 'admin' && (
-                                                            <button
-                                                                onClick={async () => {
-                                                                    if (confirm('Deseja apagar este registo de reabastecimento? O nível do tanque será revertido.')) {
-                                                                        await deleteTankRefill(refill.id);
-                                                                    }
-                                                                }}
-                                                                className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-lg transition-all"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ));
+                                            return rows.reverse().map(refill => {
+                                                const LIMIT = 6000;
+                                                const totalCalc = refill.levelBefore + refill.litersAdded;
+                                                const isOverLimit = totalCalc > LIMIT;
+
+                                                return (
+                                                    <tr key={refill.id} className={`hover:bg-slate-800/10 transition-colors ${refill.isCurrent ? 'bg-blue-500/5' : ''} ${isOverLimit ? 'bg-red-500/5' : ''}`}>
+                                                        <td className="px-6 py-4 text-slate-300 font-mono text-[12px]">
+                                                            {refill.isCurrent ? (
+                                                                <span className="flex items-center gap-2 text-blue-400 font-black">
+                                                                    <TrendingUp className="w-3 h-3" /> AGORA
+                                                                </span>
+                                                            ) : (
+                                                                <>
+                                                                    {new Date(refill.timestamp).toLocaleDateString()}
+                                                                    <span className="text-slate-600 ml-2 text-[10px]">{new Date(refill.timestamp).toLocaleTimeString()}</span>
+                                                                </>
+                                                            )}
+                                                        </td>
+                                                        <td className={`px-6 py-4 font-bold ${refill.isCurrent ? 'text-blue-400' : 'text-white'}`}>
+                                                            {refill.supplier || 'N/A'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right font-black text-emerald-400">
+                                                            {refill.litersAdded > 0 ? `${refill.litersAdded} L` : '-'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right font-black text-amber-500 bg-blue-500/5">
+                                                            {refill.litersOut.toFixed(1)} L
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right font-bold text-slate-300 bg-blue-500/5">
+                                                            {refill.costOut > 0 ? `${refill.costOut.toFixed(2)}€` : '-'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right text-slate-400">
+                                                            {refill.isCurrent ? '-' : `${refill.levelBefore} L`}
+                                                        </td>
+                                                        <td className={`px-6 py-4 text-right font-bold ${isOverLimit ? 'text-red-500' : 'text-white'}`}>
+                                                            <div className="flex flex-col items-end">
+                                                                <span>{refill.isCurrent ? `${fuelTank.currentLevel} L` : `${refill.levelAfter} L`}</span>
+                                                                {isOverLimit && (
+                                                                    <span className="text-[10px] bg-red-500/20 px-1.5 py-0.5 rounded text-red-400 mt-1 flex items-center gap-1">
+                                                                        <AlertCircle className="w-3 h-3" /> +{(totalCalc - LIMIT).toFixed(1)} L Excesso
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            {!refill.isCurrent && userRole === 'admin' && (
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (confirm('Deseja apagar este registo de reabastecimento? O nível do tanque será revertido.')) {
+                                                                            await deleteTankRefill(refill.id);
+                                                                        }
+                                                                    }}
+                                                                    className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-lg transition-all"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            });
                                         })()}
                                         {tankRefills.length === 0 && (
                                             <tr>
