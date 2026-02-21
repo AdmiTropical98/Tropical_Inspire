@@ -284,6 +284,8 @@ export interface FuelTank {
     pumpTotalizer: number; // Pump "Odometer"
     lastRefillDate: string;
     averagePrice?: number; // Weighted Average Price (PMP)
+    baselineDate?: string; // Date of confirmed balance
+    baselineLevel?: number; // Level at baseline date
 }
 
 export interface FuelTransaction {

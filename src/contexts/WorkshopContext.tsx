@@ -840,7 +840,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             // 5. Fuel
             const { data: tankData } = await supabase.from('fuel_tank').select('*').eq('id', 'main').single();
-            if (tankData) setFuelTank({ id: tankData.id, capacity: tankData.capacity, currentLevel: tankData.current_level, pumpTotalizer: tankData.pump_totalizer, lastRefillDate: tankData.last_refill_date, averagePrice: tankData.average_price });
+            if (tankData) setFuelTank({
+                id: tankData.id,
+                capacity: tankData.capacity,
+                currentLevel: tankData.current_level,
+                pumpTotalizer: tankData.pump_totalizer,
+                lastRefillDate: tankData.last_refill_date,
+                averagePrice: tankData.average_price,
+                baselineDate: tankData.baseline_date,
+                baselineLevel: tankData.baseline_level
+            });
 
             const { data: transData } = await supabase.from('fuel_transactions').select('*');
             if (transData) setFuelTransactions(transData.map((t: any) => ({ ...t, driverId: t.driver_id, vehicleId: t.vehicle_id, staffId: t.staff_id, staffName: t.staff_name, pumpCounterAfter: t.pump_counter_after, pricePerLiter: t.price_per_liter, totalCost: t.total_cost, centroCustoId: t.centro_custo_id, isExternal: t.is_external })));
@@ -1278,7 +1287,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             current_level: tank.currentLevel,
             pump_totalizer: tank.pumpTotalizer,
             last_refill_date: tank.lastRefillDate,
-            average_price: tank.averagePrice
+            average_price: tank.averagePrice,
+            baseline_date: tank.baselineDate,
+            baseline_level: tank.baselineLevel
         });
         if (!error) setFuelTank(tank);
     };
@@ -1293,32 +1304,48 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         let finalStatus = transaction.status || 'pending';
         let pumpCounterAfter = 0;
 
-        // NEW: KM Validation & Logic
-        const lastTx = fuelTransactions
-            .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed')
+        // KM Validation (Sequential for the specific vehicle)
+        // Find the record that comes immediately BEFORE this one in time for the same vehicle
+        const prevTx = fuelTransactions
+            .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed' && new Date(t.timestamp) < new Date(transaction.timestamp))
             .reduce((prev, curr) => (new Date(curr.timestamp) > new Date(prev.timestamp) ? curr : prev), { timestamp: '1970-01-01', km: 0 } as any);
 
-        if (transaction.km < lastTx.km) {
-            throw new Error(`Leitura de odómetro inválida. O valor anterior para esta viatura foi ${lastTx.km} KM.`);
+        // Find the record that comes immediately AFTER this one in time for the same vehicle
+        const nextTx = fuelTransactions
+            .filter(t => t.vehicleId === transaction.vehicleId && t.status === 'confirmed' && new Date(t.timestamp) > new Date(transaction.timestamp))
+            .reduce((prev, curr) => (new Date(curr.timestamp) < new Date(prev.timestamp) ? curr : prev), { timestamp: '9999-12-31', km: Infinity } as any);
+
+        if (transaction.km < prevTx.km) {
+            throw new Error(`Leitura de odómetro inválida. O valor anterior (${new Date(prevTx.timestamp).toLocaleDateString()}) foi ${prevTx.km} KM.`);
+        }
+        if (transaction.km > nextTx.km) {
+            throw new Error(`Leitura de odómetro inválida. Existe um registo posterior (${new Date(nextTx.timestamp).toLocaleDateString()}) com ${nextTx.km} KM.`);
         }
 
         // Auto-calculate consumption if possible
-        const consumption = (transaction.km > lastTx.km && lastTx.km > 0 && transaction.liters > 0)
-            ? Number(((transaction.liters / (transaction.km - lastTx.km)) * 100).toFixed(2))
+        const lastTxForCons = prevTx;
+
+        // Auto-calculate consumption if possible
+        const consumption = (transaction.km > lastTxForCons.km && lastTxForCons.km > 0 && transaction.liters > 0)
+            ? Number(((transaction.liters / (transaction.km - lastTxForCons.km)) * 100).toFixed(2))
             : undefined;
 
         // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates immediately
         if (finalStatus === 'confirmed' && !transaction.isExternal) {
-            const currentTotalizer = fuelTank.pumpTotalizer || 0;
-            pumpCounterAfter = currentTotalizer + transaction.liters;
-            const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
+            const isAfterBaseline = !fuelTank.baselineDate || new Date(transaction.timestamp) >= new Date(fuelTank.baselineDate);
 
-            // Update Tank immediately
-            await updateFuelTank({
-                ...fuelTank,
-                currentLevel: newLevel,
-                pumpTotalizer: pumpCounterAfter
-            });
+            if (isAfterBaseline) {
+                const currentTotalizer = fuelTank.pumpTotalizer || 0;
+                pumpCounterAfter = currentTotalizer + transaction.liters;
+                const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
+
+                // Update Tank immediately
+                await updateFuelTank({
+                    ...fuelTank,
+                    currentLevel: newLevel,
+                    pumpTotalizer: pumpCounterAfter
+                });
+            }
         }
 
         const transactionToSave: FuelTransaction = {
@@ -1391,11 +1418,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             // Update Tank
             if (!transError) {
-                await updateFuelTank({
-                    ...fuelTank,
-                    currentLevel: newLevel,
-                    pumpTotalizer: newTotalizer
-                });
+                const isAfterBaseline = !fuelTank.baselineDate || new Date(transaction.timestamp) >= new Date(fuelTank.baselineDate);
+
+                if (isAfterBaseline) {
+                    await updateFuelTank({
+                        ...fuelTank,
+                        currentLevel: newLevel,
+                        pumpTotalizer: newTotalizer
+                    });
+                }
 
                 setFuelTransactions(prev => prev.map(t => t.id === transactionId ? { ...t, status: 'confirmed', pumpCounterAfter: newTotalizer } : t));
             }
@@ -1435,13 +1466,21 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (!error) {
-            await updateFuelTank({
-                ...fuelTank,
-                currentLevel: newLevel,
-                pumpTotalizer: newTotalizer,
-                lastRefillDate: log.timestamp,
-                averagePrice: newAveragePrice
-            });
+            const isAfterBaseline = !fuelTank.baselineDate || new Date(log.timestamp) >= new Date(fuelTank.baselineDate);
+
+            if (isAfterBaseline) {
+                await updateFuelTank({
+                    ...fuelTank,
+                    currentLevel: newLevel,
+                    pumpTotalizer: newTotalizer,
+                    lastRefillDate: log.timestamp,
+                    averagePrice: newAveragePrice
+                });
+            } else {
+                // If before baseline, we might still want to update PMP? 
+                // User said: "Não recalcular automaticamente movimentos anteriores ao baseline."
+                // So we'll keep the current level and price as is.
+            }
             setTankRefills(prev => [log, ...prev]);
         }
     };

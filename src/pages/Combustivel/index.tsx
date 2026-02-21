@@ -89,7 +89,9 @@ export default function Combustivel() {
     const [editTankForm, setEditTankForm] = useState({
         capacity: '',
         currentLevel: '',
-        averagePrice: ''
+        averagePrice: '',
+        baselineDate: '',
+        baselineLevel: ''
     });
 
     const saveTankChanges = (e: React.FormEvent) => {
@@ -107,7 +109,9 @@ export default function Combustivel() {
             ...fuelTank,
             capacity: newCapacity,
             currentLevel: newLevel,
-            averagePrice: newPrice
+            averagePrice: newPrice,
+            baselineDate: editTankForm.baselineDate || fuelTank.baselineDate,
+            baselineLevel: editTankForm.baselineLevel ? Number(editTankForm.baselineLevel) : fuelTank.baselineLevel
         });
 
         setIsEditingTank(false);
@@ -558,9 +562,29 @@ export default function Combustivel() {
                                         <div className="space-y-6">
                                             <div className="flex justify-between items-center">
                                                 <h3 className="text-xl font-bold text-white">Estado do Depósito</h3>
-                                                <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border ${percentage < 20 ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
-                                                    {percentage < 20 ? 'Crítico' : 'Normal'}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    {userRole === 'admin' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditTankForm({
+                                                                    capacity: String(fuelTank.capacity),
+                                                                    currentLevel: String(fuelTank.currentLevel),
+                                                                    averagePrice: String(fuelTank.averagePrice),
+                                                                    baselineDate: fuelTank.baselineDate || '',
+                                                                    baselineLevel: String(fuelTank.baselineLevel || '')
+                                                                });
+                                                                setIsEditingTank(true);
+                                                            }}
+                                                            className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white"
+                                                            title="Configurar Tanque"
+                                                        >
+                                                            <Droplets className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border ${percentage < 20 ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+                                                        {percentage < 20 ? 'Crítico' : 'Normal'}
+                                                    </span>
+                                                </div>
                                             </div>
                                             <div className="bg-slate-950/50 rounded-3xl p-8 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-64 group/tank shadow-inner">
                                                 <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-yellow-600 to-yellow-400 opacity-20 transition-all duration-1000 ease-in-out group-hover/tank:opacity-30" style={{ height: `${percentage}%` }}></div>
@@ -1514,6 +1538,43 @@ export default function Combustivel() {
                                     value={editTankForm.averagePrice}
                                     onChange={e => setEditTankForm({ ...editTankForm, averagePrice: e.target.value })}
                                 />
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-800">
+                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Baseline (Saldo Confirmado)</h4>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Data do Baseline</label>
+                                        <input
+                                            type="date"
+                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                            value={editTankForm.baselineDate ? editTankForm.baselineDate.split('T')[0] : ''}
+                                            onChange={e => setEditTankForm({ ...editTankForm, baselineDate: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Saldo no Baseline (L)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                            value={editTankForm.baselineLevel}
+                                            onChange={e => setEditTankForm({ ...editTankForm, baselineLevel: e.target.value })}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditTankForm({
+                                                ...editTankForm,
+                                                baselineDate: new Date().toISOString().split('T')[0],
+                                                baselineLevel: editTankForm.currentLevel
+                                            });
+                                        }}
+                                        className="w-full py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 hover:bg-yellow-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                                    >
+                                        Fixar Estado Atual como Baseline
+                                    </button>
+                                </div>
                             </div>
                             <div className="flex gap-3 pt-4">
                                 <button type="button" onClick={() => setIsEditingTank(false)} className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold">Cancelar</button>
