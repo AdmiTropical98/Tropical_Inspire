@@ -90,6 +90,7 @@ export default function Combustivel() {
         capacity: '',
         currentLevel: '',
         averagePrice: '',
+        pumpTotalizer: '',
         baselineDate: '',
         baselineLevel: ''
     });
@@ -110,6 +111,7 @@ export default function Combustivel() {
             capacity: newCapacity,
             currentLevel: newLevel,
             averagePrice: newPrice,
+            pumpTotalizer: editTankForm.pumpTotalizer ? Number(editTankForm.pumpTotalizer) : fuelTank.pumpTotalizer,
             baselineDate: editTankForm.baselineDate || fuelTank.baselineDate,
             baselineLevel: editTankForm.baselineLevel ? Number(editTankForm.baselineLevel) : fuelTank.baselineLevel
         });
@@ -577,6 +579,7 @@ export default function Combustivel() {
                                                                     capacity: String(fuelTank.capacity),
                                                                     currentLevel: String(fuelTank.currentLevel),
                                                                     averagePrice: String(fuelTank.averagePrice),
+                                                                    pumpTotalizer: String(fuelTank.pumpTotalizer || ''),
                                                                     baselineDate: fuelTank.baselineDate || '',
                                                                     baselineLevel: String(fuelTank.baselineLevel || '')
                                                                 });
@@ -1544,6 +1547,15 @@ export default function Combustivel() {
                                     className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={editTankForm.averagePrice}
                                     onChange={e => setEditTankForm({ ...editTankForm, averagePrice: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase font-mono">Contador da Bomba (L)</label>
+                                <input
+                                    type="number"
+                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 outline-none font-mono"
+                                    value={editTankForm.pumpTotalizer}
+                                    onChange={e => setEditTankForm({ ...editTankForm, pumpTotalizer: e.target.value })}
                                 />
                             </div>
 
