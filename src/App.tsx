@@ -164,9 +164,40 @@ function AppContent() {
   // Helper to handle navigation and auto-collapse
   const handleNavigate = (tab: typeof activeTab) => {
     setActiveTab(tab);
-    // Auto-collapse on mobile or if desired behavior is to always collapse on click for desktop
-    // User requested: "recolher automaticamente quando clico para entrar em alguma tela"
     setIsSidebarCollapsed(true);
+    setIsMobileMenuOpen(false); // always close mobile drawer on navigate
+  };
+
+  // Tab label map for mobile header
+  const TAB_LABELS: Partial<Record<typeof activeTab, string>> = {
+    dashboard: 'Dashboard',
+    'controlo-operacional': 'Controlo Operacional',
+    'central-motorista': 'Central Motorista',
+    viaturas: 'Viaturas',
+    motoristas: 'Motoristas',
+    geofences: 'Geofences',
+    locais: 'Locais (POIs)',
+    avaliacao: 'Avaliação Drivers',
+    escalas: 'Escalas',
+    'escalas-history': 'Histórico Escalas',
+    'lancar-escala': 'Lançar Escala',
+    horas: 'Registo de Horas',
+    'transportes-eva': 'Transportes EVA',
+    roteirizacao: 'Roteirização',
+    'via-verde': 'Via Verde',
+    carregamentos: 'Carregamentos Elétricos',
+    combustivel: 'Combustível',
+    'eficiencia-frota': 'Eficiência da Frota',
+    requisicoes: 'Requisições',
+    contabilidade: 'Contabilidade',
+    'centros-custos': 'Centros de Custos',
+    fornecedores: 'Fornecedores',
+    clientes: 'Clientes',
+    relatorios: 'Relatórios',
+    mensagens: 'Mensagens',
+    'meu-perfil': 'O Meu Perfil',
+    admin_users: 'Utilizadores',
+    permissions: 'Permissões',
   };
 
   // Sidebar Visibility Flags
@@ -500,156 +531,175 @@ function AppContent() {
         {/* MAIN CONTENT */}
         <main className="flex-1 flex flex-col w-full h-full overflow-hidden bg-transparent relative z-10 p-0 m-0 transition-all duration-300">
           {/* Mobile Header - Only visible on mobile */}
-          <header className="md:hidden bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shrink-0">
-            <div className="flex items-center">
-              <button onClick={() => isAuthenticated && handleNavigate(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}>
-                <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="h-24 w-auto object-contain" />
-              </button>
-            </div>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
-              <Menu className="w-6 h-6" />
+          <header className="md:hidden bg-[#0b1121]/95 backdrop-blur-md border-b border-slate-800/60 sticky top-0 z-30 shrink-0 flex items-center px-4 h-14 gap-3" style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}>
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 -ml-1 text-slate-400 active:text-white active:bg-slate-800 rounded-xl transition-colors"
+              aria-label="Abrir menu"
+            >
+              <Menu className="w-5 h-5" />
             </button>
+            <button
+              onClick={() => isAuthenticated && handleNavigate(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}
+              className="flex items-center flex-1 min-w-0"
+            >
+              <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="h-8 w-auto object-contain" />
+            </button>
+            <span className="text-slate-400 text-xs font-bold truncate max-w-[120px] text-right">{TAB_LABELS[activeTab] || 'Menu'}</span>
           </header>
 
 
-          {/* Mobile Menu Overlay */}
+          {/* Mobile Drawer — slide in from LEFT with backdrop */}
           {isMobileMenuOpen && (
-            <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 animate-in slide-in-from-right duration-300">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-white">Menu <span className="text-sm font-normal text-slate-500">v2.2</span></h2>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              {/* Mobile Nav - simplified for now, usually same structure */}
-              <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar px-3 py-4">
-                {/* Reuse Sidebar Groups logic or flat list? Mobile usually prefers flat or accordion too. Let's try to mimic the structure but maybe simpler. */}
-                {/* For constraints, I will keep the mobile menu somewhat similar to desktop but maybe flat is easier for touch, but user requested order. I will use the same structure for consistency. */}
-
-                {/* MAIN MENU */}
-                {hasAccess(userRole, 'dashboard') && (
-                  <>
-                    <SidebarItem
-                      icon={LayoutDashboard}
-                      label="Dashboard"
-                      active={activeTab === 'dashboard'}
-                      onClick={() => { handleNavigate('dashboard'); setIsMobileMenuOpen(false); }}
-                    />
-                    {(userRole === 'admin' || userRole === 'gestor') && (
-                      <SidebarItem
-                        icon={Activity}
-                        label="Controlo Operacional"
-                        active={activeTab === 'controlo-operacional'}
-                        onClick={() => { handleNavigate('controlo-operacional'); setIsMobileMenuOpen(false); }}
-                      />
-                    )}
-                  </>
-                )}
-
-                {/* 1. GESTÃO DE FROTA */}
-                {showFleetGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Gestão de Frota</div>}
-                {hasAccess(userRole, 'central_motorista') && (
-                  <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { handleNavigate('central-motorista'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'viaturas') && (
-                  <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => { handleNavigate('viaturas'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'geofences') && (
-                  <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => { handleNavigate('geofences'); setIsMobileMenuOpen(false); }} />
-                )}
-                {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
-                  <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => { handleNavigate('locais'); setIsMobileMenuOpen(false); }} />
-                )}
-                {userRole === 'admin' && (
-                  <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => { handleNavigate('avaliacao'); setIsMobileMenuOpen(false); }} />
-                )}
-
-                {/* 2. OPERAÇÕES */}
-                {showOpsGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Operações</div>}
-                {hasAccess(userRole, 'escalas') && (
-                  <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { handleNavigate('escalas'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'escalas_create') && (
-                  <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => { handleNavigate('lancar-escala'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'horas') && (
-                  <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => { handleNavigate('horas'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'plataformas_externas') && (
-                  <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { handleNavigate('transportes-eva'); setIsMobileMenuOpen(false); }} />
-                )}
-                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
-                  <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => { handleNavigate('via-verde'); setIsMobileMenuOpen(false); }} />
-                )}
-
-                {/* 3. OFICINA */}
-                {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Oficina</div>}
-                {hasAccess(userRole, 'combustivel') && (
-                  <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { handleNavigate('combustivel'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'combustivel') && (
-                  <SidebarItem icon={Gauge} label="Eficiência da Frota" active={activeTab === 'eficiencia-frota'} onClick={() => { handleNavigate('eficiencia-frota'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'requisicoes') && (
-                  <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => { handleNavigate('requisicoes'); setIsMobileMenuOpen(false); }} />
-                )}
-
-                {/* 4. EQUIPA */}
-                {showSysGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Equipa</div>}
-                {hasAccess(userRole, 'gestores') && (
-                  <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => { handleNavigate('gestores'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'equipa-oficina') && (
-                  <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => { handleNavigate('equipa-oficina'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'supervisores') && (
-                  <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => { handleNavigate('supervisores'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'motoristas') && (
-                  <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => { handleNavigate('motoristas'); setIsMobileMenuOpen(false); }} />
-                )}
-
-                {/* 5. FINANCEIRO */}
-                {showFinGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Financeiro</div>}
-                {hasAccess(userRole, 'contabilidade') && (
-                  <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => { handleNavigate('contabilidade'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'centros_custos') && (
-                  <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => { handleNavigate('centros-custos'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'fornecedores') && (
-                  <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => { handleNavigate('fornecedores'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'clientes') && (
-                  <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => { handleNavigate('clientes'); setIsMobileMenuOpen(false); }} />
-                )}
-                {hasAccess(userRole, 'relatorios') && (
-                  <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => { handleNavigate('relatorios'); setIsMobileMenuOpen(false); }} />
-                )}
-
-                {/* 6. SISTEMA */}
-                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Sistema</div>
-                {userRole === 'admin' && (
-                  <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => { handleNavigate('admin_users'); setIsMobileMenuOpen(false); }} />
-                )}
-                {userRole === 'admin' && (
-                  <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => { handleNavigate('permissions'); setIsMobileMenuOpen(false); }} />
-                )}
-
-                {/* 7. COMUNICAÇÃO */}
-                <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Comunicação</div>
-                {hasAccess(userRole, 'mensagens') && (
-                  <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => { handleNavigate('mensagens'); setIsMobileMenuOpen(false); }} badge={unreadCount > 0 ? unreadCount : undefined} />
-                )}
-
-
-                <div className="pt-8 mt-auto pb-4">
-                  <UserProfileMenu onNavigate={() => { handleNavigate('meu-perfil'); setIsMobileMenuOpen(false); }} />
+            <div className="fixed inset-0 z-[60] md:hidden">
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              {/* Drawer panel */}
+              <div
+                className="absolute left-0 top-0 h-full w-[85vw] max-w-sm bg-[#0b1121] border-r border-slate-800/60 flex flex-col shadow-2xl"
+                style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', animation: 'slideInLeft 0.25s cubic-bezier(0.32,0.72,0,1)' }}
+              >
+                {/* Drawer Header */}
+                <div className="h-14 border-b border-slate-800/60 flex items-center justify-between px-4 flex-shrink-0 bg-gradient-to-r from-slate-900/80 to-transparent">
+                  <button onClick={() => isAuthenticated && handleNavigate(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}>
+                    <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="h-8 object-contain" />
+                  </button>
+                  <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-500 active:text-white active:bg-slate-800 rounded-xl transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              </nav>
+                {/* Mobile Nav */}
+                <nav className="flex-1 overflow-y-auto custom-scrollbar px-2 py-3 space-y-0.5">
+                  {/* Reuse Sidebar Groups logic or flat list? Mobile usually prefers flat or accordion too. Let's try to mimic the structure but maybe simpler. */}
+                  {/* For constraints, I will keep the mobile menu somewhat similar to desktop but maybe flat is easier for touch, but user requested order. I will use the same structure for consistency. */}
+
+                  {/* MAIN MENU */}
+                  {hasAccess(userRole, 'dashboard') && (
+                    <>
+                      <SidebarItem
+                        icon={LayoutDashboard}
+                        label="Dashboard"
+                        active={activeTab === 'dashboard'}
+                        onClick={() => { handleNavigate('dashboard'); setIsMobileMenuOpen(false); }}
+                      />
+                      {(userRole === 'admin' || userRole === 'gestor') && (
+                        <SidebarItem
+                          icon={Activity}
+                          label="Controlo Operacional"
+                          active={activeTab === 'controlo-operacional'}
+                          onClick={() => { handleNavigate('controlo-operacional'); setIsMobileMenuOpen(false); }}
+                        />
+                      )}
+                    </>
+                  )}
+
+                  {/* 1. GESTÃO DE FROTA */}
+                  {showFleetGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Gestão de Frota</div>}
+                  {hasAccess(userRole, 'central_motorista') && (
+                    <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { handleNavigate('central-motorista'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'viaturas') && (
+                    <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => { handleNavigate('viaturas'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'geofences') && (
+                    <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => { handleNavigate('geofences'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
+                    <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => { handleNavigate('locais'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {userRole === 'admin' && (
+                    <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => { handleNavigate('avaliacao'); setIsMobileMenuOpen(false); }} />
+                  )}
+
+                  {/* 2. OPERAÇÕES */}
+                  {showOpsGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Operações</div>}
+                  {hasAccess(userRole, 'escalas') && (
+                    <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { handleNavigate('escalas'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'escalas_create') && (
+                    <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => { handleNavigate('lancar-escala'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'horas') && (
+                    <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => { handleNavigate('horas'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'plataformas_externas') && (
+                    <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { handleNavigate('transportes-eva'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
+                    <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => { handleNavigate('via-verde'); setIsMobileMenuOpen(false); }} />
+                  )}
+
+                  {/* 3. OFICINA */}
+                  {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Oficina</div>}
+                  {hasAccess(userRole, 'combustivel') && (
+                    <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { handleNavigate('combustivel'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'combustivel') && (
+                    <SidebarItem icon={Gauge} label="Eficiência da Frota" active={activeTab === 'eficiencia-frota'} onClick={() => { handleNavigate('eficiencia-frota'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'requisicoes') && (
+                    <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => { handleNavigate('requisicoes'); setIsMobileMenuOpen(false); }} />
+                  )}
+
+                  {/* 4. EQUIPA */}
+                  {showSysGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Equipa</div>}
+                  {hasAccess(userRole, 'gestores') && (
+                    <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => { handleNavigate('gestores'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'equipa-oficina') && (
+                    <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => { handleNavigate('equipa-oficina'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'supervisores') && (
+                    <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => { handleNavigate('supervisores'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'motoristas') && (
+                    <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => { handleNavigate('motoristas'); setIsMobileMenuOpen(false); }} />
+                  )}
+
+                  {/* 5. FINANCEIRO */}
+                  {showFinGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Financeiro</div>}
+                  {hasAccess(userRole, 'contabilidade') && (
+                    <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => { handleNavigate('contabilidade'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'centros_custos') && (
+                    <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => { handleNavigate('centros-custos'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'fornecedores') && (
+                    <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => { handleNavigate('fornecedores'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'clientes') && (
+                    <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => { handleNavigate('clientes'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {hasAccess(userRole, 'relatorios') && (
+                    <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => { handleNavigate('relatorios'); setIsMobileMenuOpen(false); }} />
+                  )}
+
+                  {/* 6. SISTEMA */}
+                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Sistema</div>
+                  {userRole === 'admin' && (
+                    <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => { handleNavigate('admin_users'); setIsMobileMenuOpen(false); }} />
+                  )}
+                  {userRole === 'admin' && (
+                    <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => { handleNavigate('permissions'); setIsMobileMenuOpen(false); }} />
+                  )}
+
+                  {/* 7. COMUNICAÇÃO */}
+                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Comunicação</div>
+                  {hasAccess(userRole, 'mensagens') && (
+                    <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => { handleNavigate('mensagens'); setIsMobileMenuOpen(false); }} badge={unreadCount > 0 ? unreadCount : undefined} />
+                  )}
+
+
+                  <div className="pt-6 pb-2">
+                    <UserProfileMenu onNavigate={() => { handleNavigate('meu-perfil'); setIsMobileMenuOpen(false); }} />
+                  </div>
+                </nav>
+              </div>
             </div>
-          )
-          }
+          )}
 
           <div className="flex-1 overflow-y-auto w-full relative flex flex-col custom-scrollbar">
             {renderContent()}

@@ -12,12 +12,15 @@
     padding: 0;
     overflow: hidden;
     /* Prevent body scroll, let App handle it */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   body {
     @apply bg-slate-50 text-slate-900 antialiased selection:bg-blue-500/30;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     height: 100dvh;
+    overscroll-behavior: none;
     /* Mobile viewport fix */
   }
 
@@ -28,6 +31,12 @@
     select,
     textarea {
       font-size: 16px !important;
+    }
+
+    /* Slim scrollbars on mobile */
+    ::-webkit-scrollbar {
+      width: 3px;
+      height: 3px;
     }
   }
 }
@@ -228,4 +237,76 @@ input::-webkit-credentials-auto-fill-button {
 .animate-slow-zoom {
   animation: slowZoom 30s infinite alternate ease-in-out;
 }
-@keyframes driveAcross { 0% { transform: translateX(-150%) scale(0.8); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateX(850%) scale(1.1); opacity: 0; } } .animate-drive-across { animation: driveAcross 6s linear infinite; } .animate-drive-across-delayed { animation: driveAcross 8s linear infinite; animation-delay: 2.5s; }
+
+@keyframes driveAcross {
+  0% {
+    transform: translateX(-150%) scale(0.8);
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(850%) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.animate-drive-across {
+  animation: driveAcross 6s linear infinite;
+}
+
+.animate-drive-across-delayed {
+  animation: driveAcross 8s linear infinite;
+  animation-delay: 2.5s;
+}
+
+/* Mobile Drawer Slide In */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.8;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Table horizontal scroll container — mobile friendly */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.table-scroll table {
+  min-width: 480px;
+}
+
+/* Safe area spacing utilities */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+/* Touch-friendly active states */
+@media (hover: none) {
+  .hover\:bg-white\/5:active {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .hover\:text-white:active {
+    color: #fff;
+  }
+}

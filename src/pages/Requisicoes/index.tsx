@@ -769,30 +769,30 @@ export default function Requisicoes() {
                     {/* Header Section */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
-                            <h1 className="text-4xl font-black text-white tracking-tight mb-2 flex items-center gap-4">
-                                <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                                    <FileText className="w-8 h-8 text-blue-400" />
+                            <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-1 md:mb-2 flex items-center gap-3">
+                                <div className="p-2 md:p-3 bg-blue-500/10 rounded-xl md:rounded-2xl border border-blue-500/20">
+                                    <FileText className="w-6 h-6 md:w-8 md:h-8 text-blue-400" />
                                 </div>
                                 <span className="bg-gradient-to-r from-blue-400 to-indigo-400 text-transparent bg-clip-text">
                                     {t('req.title')}
                                 </span>
                             </h1>
-                            <p className="text-slate-400 text-lg font-medium max-w-2xl">{t('req.subtitle')}</p>
+                            <p className="text-slate-400 text-sm md:text-lg font-medium max-w-2xl">{t('req.subtitle')}</p>
                         </div>
 
-                        <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg">
+                        <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg overflow-x-auto">
                             <button
                                 onClick={() => setActiveTab('overview')}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'overview' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                className={`flex items-center gap-1.5 px-3 md:px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm ${activeTab === 'overview' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                             >
-                                <LayoutTemplate className="w-5 h-5" />
-                                Visão Geral
+                                <LayoutTemplate className="w-4 h-4" />
+                                Geral
                             </button>
                             <button
                                 onClick={() => setActiveTab('list')}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'list' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                className={`flex items-center gap-1.5 px-3 md:px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm ${activeTab === 'list' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                             >
-                                <List className="w-5 h-5" />
+                                <List className="w-4 h-4" />
                                 Lista
                             </button>
                             <button

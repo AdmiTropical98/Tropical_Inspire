@@ -755,22 +755,22 @@ export default function Combustivel() {
                 {/* Header */}
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                     <div>
-                        <h1 className="text-4xl font-black text-white tracking-tight mb-2 flex items-center gap-4">
-                            <div className="p-3 bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
-                                <Fuel className="w-8 h-8 text-yellow-500" />
+                        <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-1 md:mb-2 flex items-center gap-3">
+                            <div className="p-2 md:p-3 bg-yellow-500/10 rounded-xl md:rounded-2xl border border-yellow-500/20">
+                                <Fuel className="w-6 h-6 md:w-8 md:h-8 text-yellow-500" />
                             </div>
                             <span className="bg-gradient-to-r from-yellow-400 to-amber-500 text-transparent bg-clip-text">
                                 {t('fuel.title')}
                             </span>
                         </h1>
-                        <p className="text-slate-400 text-lg font-medium max-w-2xl">{t('fuel.subtitle')}</p>
+                        <p className="text-slate-400 text-sm md:text-lg font-medium max-w-2xl">{t('fuel.subtitle')}</p>
                     </div>
 
-                    <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg overflow-x-auto max-w-full">
+                    <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
                         {[
-                            { id: 'overview', icon: LayoutTemplate, label: 'Visão Geral' },
-                            { id: 'abastecer', icon: Fuel, label: 'Abastecer Viatura' },
-                            { id: 'tanque', icon: Droplets, label: 'Reabastecer Tanque' },
+                            { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
+                            { id: 'abastecer', icon: Fuel, label: 'Abastecer' },
+                            { id: 'tanque', icon: Droplets, label: 'Tanque' },
                             { id: 'historico', icon: History, label: 'Histórico' },
                             { id: 'bp', icon: FileSpreadsheet, label: 'BP' },
                             { id: 'relatorios', icon: BarChart3, label: 'Relatórios' },
@@ -778,8 +778,8 @@ export default function Combustivel() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap
-                                ${activeTab === tab.id
+                                className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
+                            ${activeTab === tab.id
                                         ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20'
                                         : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                             >
