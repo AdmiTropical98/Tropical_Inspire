@@ -4,7 +4,7 @@ import {
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, Car,
     Search, LayoutList, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid
+    Table as TableIcon, LayoutGrid, Wand2, Settings, Loader2
 } from 'lucide-react';
 
 import {
@@ -33,6 +33,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers } from './EscalaAutomation';
+import type { GroupedTrip } from './EscalaAutomation';
 
 interface NewServiceState {
     hora: string;
@@ -91,7 +93,7 @@ export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
         updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
-        complianceStats, runComplianceDemo, locais, checkRouteValidation, scaleBatches, createScaleBatch
+        complianceStats, locais, checkRouteValidation, scaleBatches, createScaleBatch
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -168,8 +170,18 @@ export default function Escalas() {
         obs: ''
     });
 
+    // Automation States
+    const [showAutoModal, setShowAutoModal] = useState(false);
+    const [isAutoLoading, setIsAutoLoading] = useState(false);
+    const [automationStep, setAutomationStep] = useState<'settings' | 'preview'>('settings');
+    const [autoSettings, setAutoSettings] = useState({
+        albufeiraUrl: localStorage.getItem('auto_sheet_albufeira') || '',
+        quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || '',
+        activeCenter: 'albufeira' as 'albufeira' | 'quarteira'
+    });
+    const [previewTrips, setPreviewTrips] = useState<GroupedTrip[]>([]);
+
     // Layout & Filter State
-    const [selectedCentroCustoFilter, setSelectedCentroCustoFilter] = useState<string>('all');
     const [layoutCols, setLayoutCols] = useState<number>(() => {
         const saved = localStorage.getItem('escalas_layout_cols');
         return saved ? parseInt(saved) : 3;
@@ -405,10 +417,13 @@ export default function Escalas() {
                     if (result.success) {
                         addNotification({
                             id: crypto.randomUUID(),
-                            type: 'success',
-                            message: `Lote "${batchData.notes}" criado com ${mappedServicos.length} serviços!`,
-                            timestamp: new Date().toISOString(),
-                            read: false
+                            type: 'system_alert',
+                            data: {
+                                message: `Lote "${batchData.notes}" criado com ${mappedServicos.length} serviços!`,
+                                title: 'Lote Criado'
+                            },
+                            status: 'pending',
+                            timestamp: new Date().toISOString()
                         });
                     } else {
                         alert(`Erro ao criar lote: ${result.error}`);
@@ -470,16 +485,18 @@ export default function Escalas() {
         if (result.success) {
             addNotification({
                 id: crypto.randomUUID(),
-                type: 'success',
-                message: 'Serviço(s) criado(s) com sucesso!',
-                timestamp: new Date().toISOString(),
-                read: false
+                type: 'system_alert',
+                data: {
+                    message: 'Serviço(s) criado(s) com sucesso!',
+                    title: 'Sucesso'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
             });
         } else {
             alert('Erro ao criar serviço: ' + result.error);
         }
         setShowNewServiceModal(false);
-
         setNewService({
             hora: '09:00',
             passageiro: '',
@@ -503,6 +520,85 @@ export default function Escalas() {
 
         setSelectedPendentes([]);
         setSelectedMotoristaForAssign('');
+    };
+
+    const handleRunAutomation = async () => {
+        setIsAutoLoading(true);
+        try {
+            const url = autoSettings.activeCenter === 'albufeira' ? autoSettings.albufeiraUrl : autoSettings.quarteiraUrl;
+            if (!url) {
+                alert('Por favor, defina a URL da Google Sheet nas configurações.');
+                setIsAutoLoading(false);
+                return;
+            }
+
+            // Save URLs
+            localStorage.setItem('auto_sheet_albufeira', autoSettings.albufeiraUrl);
+            localStorage.setItem('auto_sheet_quarteira', autoSettings.quarteiraUrl);
+
+            const rows = await fetchSheetCSV(url);
+            const cc = centrosCustos.find(c => c.nome.toLowerCase().includes(autoSettings.activeCenter)) || centrosCustos[0];
+            const rawServices = parseSheetToServices(rows, selectedDate, cc?.id || '');
+            const groups = groupServicesIntoTrips(rawServices);
+            const suggested = suggestDrivers(groups, motoristas, servicos.filter(s => s.data === selectedDate));
+
+            setPreviewTrips(suggested);
+            setAutomationStep('preview');
+        } catch (error) {
+            console.error(error);
+            alert('Falha na automação: ' + error);
+        } finally {
+            setIsAutoLoading(false);
+        }
+    };
+
+    const confirmAutomation = async () => {
+        setIsAutoLoading(true);
+        try {
+            const cc = centrosCustos.find(c => c.nome.toLowerCase().includes(autoSettings.activeCenter)) || centrosCustos[0];
+            const batchNotes = `Escala Automática: ${autoSettings.activeCenter.toUpperCase()} (${selectedDate})`;
+
+            // Flatten all services from grouped trips
+            const allServices: Servico[] = [];
+            previewTrips.forEach(trip => {
+                trip.servicos.forEach(s => {
+                    allServices.push({ ...s, motoristaId: trip.motoristaId });
+                });
+            });
+
+            if (allServices.length === 0) {
+                alert('Nenhum serviço para importar.');
+                setIsAutoLoading(false);
+                return;
+            }
+
+            const result = await createScaleBatch({
+                notes: batchNotes,
+                centroCustoId: cc?.id || '',
+                referenceDate: selectedDate
+            }, allServices);
+
+            if (result.success) {
+                setShowAutoModal(false);
+                addNotification({
+                    id: crypto.randomUUID(),
+                    type: 'system_alert',
+                    data: {
+                        message: `Escala gerada com sucesso! ${allServices.length} serviços importados.`,
+                        title: 'Sucesso'
+                    },
+                    status: 'pending',
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                alert('Erro ao guardar escala: ' + result.error);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao guardar escala.');
+        } finally {
+            setIsAutoLoading(false);
+        }
     };
 
     const handleBatchDelete = async () => {
@@ -636,6 +732,16 @@ export default function Escalas() {
                             </div>
 
                             {/* Action Buttons */}
+                            <button
+                                onClick={() => {
+                                    setAutomationStep('settings');
+                                    setShowAutoModal(true);
+                                }}
+                                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-blue-900/40 transition-all hover:scale-[1.02] active:scale-95 text-sm"
+                            >
+                                <Wand2 className="w-4 h-4" />
+                                <span>Gerar Escala</span>
+                            </button>
 
 
 
@@ -1987,6 +2093,212 @@ export default function Escalas() {
                     </div>
                 )
             }
+            {/* Automation Modal */}
+            {showAutoModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+                    <div className="bg-[#1e293b] border border-white/10 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-transparent">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform">
+                                    <Wand2 className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-white tracking-tight">Automação de Escala</h2>
+                                    <p className="text-slate-400 text-sm font-medium">Transforme Google Sheets em escala operacional num clique.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowAutoModal(false)} className="p-2 text-slate-500 hover:text-white transition-colors">
+                                <Plus className="w-6 h-6 rotate-45" />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                            {automationStep === 'settings' ? (
+                                <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button
+                                            onClick={() => setAutoSettings({ ...autoSettings, activeCenter: 'albufeira' })}
+                                            className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${autoSettings.activeCenter === 'albufeira' ? 'border-blue-500 bg-blue-600/10' : 'border-white/5 bg-slate-800/50 grayscale opacity-60'}`}
+                                        >
+                                            <span className="text-xl font-black text-white">ALBUFEIRA</span>
+                                            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Unidade Operacional</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setAutoSettings({ ...autoSettings, activeCenter: 'quarteira' })}
+                                            className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${autoSettings.activeCenter === 'quarteira' ? 'border-blue-500 bg-blue-600/10' : 'border-white/5 bg-slate-800/50 grayscale opacity-60'}`}
+                                        >
+                                            <span className="text-xl font-black text-white">QUARTEIRA</span>
+                                            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Unidade Operacional</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4 pt-4">
+                                        <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <Settings className="w-4 h-4 text-blue-400" />
+                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Configuração de Fonte (Google Sheets)</span>
+                                            </div>
+                                            {autoSettings.activeCenter === 'albufeira' ? (
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-black text-slate-500 uppercase">URL da Folha Albufeira</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors"
+                                                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                                                        value={autoSettings.albufeiraUrl}
+                                                        onChange={e => setAutoSettings({ ...autoSettings, albufeiraUrl: e.target.value })}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-black text-slate-500 uppercase">URL da Folha Quarteira</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors"
+                                                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                                                        value={autoSettings.quarteiraUrl}
+                                                        onChange={e => setAutoSettings({ ...autoSettings, quarteiraUrl: e.target.value })}
+                                                    />
+                                                </div>
+                                            )}
+                                            <p className="text-[10px] text-slate-500 mt-4 leading-relaxed italic">
+                                                💡 Certifique-se que a folha de cálculo está partilhada com "Qualquer pessoa com o link" como "Leitor" para permitir a importação automática.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-bold text-white">Pré-visualização da Escala Automática</h3>
+                                        <div className="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                            {previewTrips.length} Rotas Agrupadas
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {previewTrips.map((trip, idx) => (
+                                            <div key={trip.id} className="bg-slate-800/40 border border-white/5 rounded-2xl p-4 hover:border-blue-500/30 transition-all group">
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Hora</span>
+                                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950 rounded-xl border border-white/10">
+                                                                <Clock className="w-3.5 h-3.5 text-blue-400" />
+                                                                <span className="text-sm font-black text-white">{trip.hora}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="h-8 w-px bg-white/5 hidden sm:block"></div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase mb-1">Percurso Operacional</span>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm font-bold text-white truncate max-w-[120px]">{trip.origem}</span>
+                                                                </div>
+                                                                <ArrowRight className="w-3.5 h-3.5 text-slate-600" />
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm font-bold text-blue-400 truncate max-w-[120px]">{trip.destino}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="hidden lg:flex flex-col items-end">
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase mb-1">Passageiros</span>
+                                                            <div className="flex -space-x-2">
+                                                                {trip.servicos.slice(0, 3).map((s, i) => (
+                                                                    <div key={i} className="w-6 h-6 rounded-full bg-blue-600 border-2 border-slate-800 flex items-center justify-center text-[8px] font-black text-white" title={s.passageiro}>
+                                                                        {s.passageiro.charAt(0)}
+                                                                    </div>
+                                                                ))}
+                                                                {trip.servicos.length > 3 && (
+                                                                    <div className="w-6 h-6 rounded-full bg-slate-700 border-2 border-slate-800 flex items-center justify-center text-[8px] font-black text-white">
+                                                                        +{trip.servicos.length - 3}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="h-10 w-px bg-white/5"></div>
+
+                                                        <div className="flex flex-col min-w-[160px]">
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase mb-1 text-right">Motorista Sugerido</span>
+                                                            <select
+                                                                className="bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500 appearance-none cursor-pointer"
+                                                                value={trip.motoristaId || ''}
+                                                                onChange={(e) => {
+                                                                    const newPreview = [...previewTrips];
+                                                                    newPreview[idx].motoristaId = e.target.value;
+                                                                    setPreviewTrips(newPreview);
+                                                                }}
+                                                            >
+                                                                <option value="">Por Atribuir</option>
+                                                                {motoristas.map(m => (
+                                                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-6 bg-slate-800/50 border-t border-white/5 flex gap-4">
+                            {automationStep === 'settings' ? (
+                                <>
+                                    <button
+                                        onClick={() => setShowAutoModal(false)}
+                                        className="flex-1 py-4 px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black transition-all"
+                                    >
+                                        Sair
+                                    </button>
+                                    <button
+                                        onClick={handleRunAutomation}
+                                        disabled={isAutoLoading}
+                                        className="flex-[2] py-4 px-6 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-2xl font-black shadow-lg shadow-blue-900/40 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.01]"
+                                    >
+                                        {isAutoLoading ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <ArrowRight className="w-5 h-5" />
+                                        )}
+                                        Analisar e Agrupar
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setAutomationStep('settings')}
+                                        className="flex-1 py-4 px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black transition-all"
+                                    >
+                                        Voltar
+                                    </button>
+                                    <button
+                                        onClick={confirmAutomation}
+                                        disabled={isAutoLoading}
+                                        className="flex-[2] py-4 px-6 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.01]"
+                                    >
+                                        {isAutoLoading ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <CheckSquare className="w-5 h-5" />
+                                        )}
+                                        Gerar {previewTrips.length} Rotas
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Datalist for geofences suggestions */}
             <datalist id="geofences-list">
                 {geofences.map(geo => (
