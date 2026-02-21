@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -124,6 +124,10 @@ export default function Roteirizacao() {
     const [selectedViatura, setSelectedViatura] = useState('');
     const [routeStops, setRouteStops] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [geocodeResults, setGeocodeResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const searchDebounceRef = useRef<any>(null);
     const [activeTab, setActiveTab] = useState<'locais' | 'geofences' | 'ativas'>('locais');
     const [isSaving, setIsSaving] = useState(false);
 
@@ -392,6 +396,43 @@ export default function Roteirizacao() {
     const filteredLocais = locais.filter(l => l.nome.toLowerCase().includes(searchTerm.toLowerCase()));
     const activeRoutes = rotasPlaneadas.filter(r => r.estado === 'planeada');
 
+    // Geocoding search handler
+    const handleSearchChange = (value: string) => {
+        setSearchTerm(value);
+        setShowDropdown(value.length > 1);
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        if (value.length < 3) { setGeocodeResults([]); return; }
+        setIsSearching(true);
+        searchDebounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&countrycodes=pt&accept-language=pt`,
+                    { headers: { 'Accept-Language': 'pt' } }
+                );
+                const data = await res.json();
+                setGeocodeResults(data);
+            } catch (e) {
+                setGeocodeResults([]);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 500);
+    };
+
+    const handleAddGeocodedStop = (result: any) => {
+        const stop = {
+            id: `geo-${Date.now()}`,
+            name: result.display_name.split(',').slice(0, 2).join(',').trim(),
+            lat: parseFloat(result.lat),
+            lng: parseFloat(result.lon),
+            type: result.type || 'local'
+        };
+        setRouteStops(prev => [...prev, stop]);
+        setSearchTerm('');
+        setGeocodeResults([]);
+        setShowDropdown(false);
+    };
+
     return (
         <div className="flex h-full bg-[#0a0a0f] text-slate-200 overflow-hidden">
             {/* LEFT SIDEBAR: Controls */}
@@ -569,11 +610,49 @@ export default function Roteirizacao() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
                                 type="text"
-                                placeholder="Procurar local..."
+                                placeholder="Procurar local, hotel, aeroporto..."
                                 className="w-full bg-[#161625] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
                                 value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
+                                onChange={e => handleSearchChange(e.target.value)}
+                                onFocus={() => searchTerm.length > 1 && setShowDropdown(true)}
+                                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                             />
+                            {isSearching && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="w-3 h-3 border border-purple-400 border-t-transparent rounded-full animate-spin" />
+                                </div>
+                            )}
+                            {/* Dropdown com resultados geocoding */}
+                            {showDropdown && (filteredLocais.length > 0 || geocodeResults.length > 0) && (
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl">
+                                    {filteredLocais.slice(0, 3).map(local => (
+                                        <button
+                                            key={local.id}
+                                            onMouseDown={() => { handleAddStop(local, 'local'); setShowDropdown(false); setSearchTerm(''); }}
+                                            className="w-full text-left px-3 py-2 hover:bg-purple-500/20 flex items-center gap-2 transition-colors border-b border-white/5"
+                                        >
+                                            <span className="text-purple-400 text-[10px]">📍</span>
+                                            <div>
+                                                <div className="text-xs text-white font-bold">{local.nome}</div>
+                                                <div className="text-[9px] text-slate-500">POI Guardado • {local.tipo}</div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                    {geocodeResults.map((result, i) => (
+                                        <button
+                                            key={i}
+                                            onMouseDown={() => handleAddGeocodedStop(result)}
+                                            className="w-full text-left px-3 py-2 hover:bg-blue-500/20 flex items-center gap-2 transition-colors border-b border-white/5 last:border-0"
+                                        >
+                                            <span className="text-blue-400 text-[10px]">🌍</span>
+                                            <div className="min-w-0">
+                                                <div className="text-xs text-white font-bold truncate">{result.display_name.split(',').slice(0, 2).join(',')}</div>
+                                                <div className="text-[9px] text-slate-500 truncate">{result.display_name.split(',').slice(2, 4).join(',')}</div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-3 pt-0 space-y-2">
