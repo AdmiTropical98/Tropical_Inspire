@@ -83,6 +83,7 @@ interface WorkshopContextType {
     setPumpTotalizer: (val: number) => void;
     deleteFuelTransaction: (id: string) => void;
     deleteTankRefill: (id: string) => void;
+    recalculateFuelTank: () => Promise<{ newLevel: number; newTotalizer: number }>;
 
     // Manual Hours
     manualHours: import('../types').ManualHourRecord[];
@@ -1289,7 +1290,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             last_refill_date: tank.lastRefillDate,
             average_price: tank.averagePrice,
             baseline_date: tank.baselineDate,
-            baseline_level: tank.baselineLevel
+            baseline_level: tank.baselineLevel,
+            baseline_totalizer: tank.baselineTotalizer
         });
         if (error) {
             console.error("Erro ao atualizar tanque:", error);
@@ -1336,20 +1338,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         // If explicitly confirmed AND NOT EXTERNAL, calculate tank updates immediately
         if (finalStatus === 'confirmed' && !transaction.isExternal) {
-            const isAfterBaseline = !fuelTank.baselineDate || new Date(transaction.timestamp) >= new Date(fuelTank.baselineDate);
+            const currentTotalizer = fuelTank.pumpTotalizer || 0;
+            pumpCounterAfter = currentTotalizer + transaction.liters;
+            const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
 
-            if (isAfterBaseline) {
-                const currentTotalizer = fuelTank.pumpTotalizer || 0;
-                pumpCounterAfter = currentTotalizer + transaction.liters;
-                const newLevel = Math.max(0, fuelTank.currentLevel - transaction.liters);
-
-                // Update Tank immediately
-                await updateFuelTank({
-                    ...fuelTank,
-                    currentLevel: newLevel,
-                    pumpTotalizer: pumpCounterAfter
-                });
-            }
+            // Update Tank immediately
+            await updateFuelTank({
+                ...fuelTank,
+                currentLevel: newLevel,
+                pumpTotalizer: pumpCounterAfter
+            });
         }
 
         const transactionToSave: FuelTransaction = {
@@ -1424,15 +1422,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             // Update Tank
             if (!transError) {
-                const isAfterBaseline = !fuelTank.baselineDate || new Date(transaction.timestamp) >= new Date(fuelTank.baselineDate);
-
-                if (isAfterBaseline) {
-                    await updateFuelTank({
-                        ...fuelTank,
-                        currentLevel: newLevel,
-                        pumpTotalizer: newTotalizer
-                    });
-                }
+                await updateFuelTank({
+                    ...fuelTank,
+                    currentLevel: newLevel,
+                    pumpTotalizer: newTotalizer
+                });
 
                 setFuelTransactions(prev => prev.map(t => t.id === transactionId ? { ...t, status: 'confirmed', pumpCounterAfter: newTotalizer } : t));
             }
@@ -1493,6 +1487,39 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const setPumpTotalizer = async (val: number) => {
         await updateFuelTank({ ...fuelTank, pumpTotalizer: val });
+    };
+
+    const recalculateFuelTank = async () => {
+        if (!fuelTank.baselineDate) {
+            throw new Error("Defina primeiro uma data de Baseline nas configurações do tanque.");
+        }
+
+        const baselineDateStr = fuelTank.baselineDate.split('T')[0];
+
+        // Use fuelTransactions and tankRefills from state (which are already filtered/processed)
+        const relevantTransactions = fuelTransactions.filter(t =>
+            t.status === 'confirmed' &&
+            !t.isExternal &&
+            new Date(t.timestamp) >= new Date(fuelTank.baselineDate as string)
+        );
+
+        const relevantRefills = tankRefills.filter(r =>
+            new Date(r.timestamp) >= new Date(fuelTank.baselineDate as string)
+        );
+
+        const totalLitersUsed = relevantTransactions.reduce((sum, t) => sum + t.liters, 0);
+        const totalLitersAdded = relevantRefills.reduce((sum, r) => sum + r.litersAdded, 0);
+
+        const newLevel = (fuelTank.baselineLevel || 0) + totalLitersAdded - totalLitersUsed;
+        const newTotalizer = (fuelTank.baselineTotalizer || 0) + totalLitersUsed;
+
+        await updateFuelTank({
+            ...fuelTank,
+            currentLevel: Math.max(0, newLevel),
+            pumpTotalizer: newTotalizer
+        });
+
+        return { newLevel, newTotalizer };
     };
 
     const deleteFuelTransaction = async (id: string) => {
@@ -2225,6 +2252,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             fuelTransactions,
             tankRefills,
             vehicleMetrics,
+            recalculateFuelTank,
             updateFuelTank,
             registerRefuel,
             confirmRefuel,

@@ -14,7 +14,7 @@ import { excelDateToJSDate } from '../../utils/format';
 
 export default function Combustivel() {
     const {
-        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, registerTankRefill, deleteFuelTransaction, centrosCustos, updateFuelTank, vehicleMetrics
+        fuelTank, fuelTransactions, registerRefuel, motoristas, viaturas, registerTankRefill, deleteFuelTransaction, centrosCustos, updateFuelTank, vehicleMetrics, recalculateFuelTank
     } = useWorkshop();
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
@@ -92,7 +92,8 @@ export default function Combustivel() {
         averagePrice: '',
         pumpTotalizer: '',
         baselineDate: '',
-        baselineLevel: ''
+        baselineLevel: '',
+        baselineTotalizer: ''
     });
 
     const saveTankChanges = (e: React.FormEvent) => {
@@ -581,7 +582,8 @@ export default function Combustivel() {
                                                                     averagePrice: String(fuelTank.averagePrice),
                                                                     pumpTotalizer: String(fuelTank.pumpTotalizer || ''),
                                                                     baselineDate: fuelTank.baselineDate || '',
-                                                                    baselineLevel: String(fuelTank.baselineLevel || '')
+                                                                    baselineLevel: String(fuelTank.baselineLevel || ''),
+                                                                    baselineTotalizer: String(fuelTank.baselineTotalizer || '')
                                                                 });
                                                                 setIsEditingTank(true);
                                                             }}
@@ -1580,19 +1582,50 @@ export default function Combustivel() {
                                             onChange={e => setEditTankForm({ ...editTankForm, baselineLevel: e.target.value })}
                                         />
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setEditTankForm({
-                                                ...editTankForm,
-                                                baselineDate: new Date().toISOString().split('T')[0],
-                                                baselineLevel: editTankForm.currentLevel
-                                            });
-                                        }}
-                                        className="w-full py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 hover:bg-yellow-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
-                                    >
-                                        Fixar Estado Atual como Baseline
-                                    </button>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Contador no Baseline (L)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                            value={editTankForm.baselineTotalizer}
+                                            onChange={e => setEditTankForm({ ...editTankForm, baselineTotalizer: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditTankForm({
+                                                    ...editTankForm,
+                                                    baselineDate: new Date().toISOString().split('T')[0],
+                                                    baselineLevel: editTankForm.currentLevel,
+                                                    baselineTotalizer: editTankForm.pumpTotalizer
+                                                });
+                                            }}
+                                            className="w-full py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 hover:bg-yellow-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                                        >
+                                            Fixar Estado Atual como Baseline
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                try {
+                                                    const result = await recalculateFuelTank();
+                                                    setEditTankForm({
+                                                        ...editTankForm,
+                                                        currentLevel: String(result.newLevel),
+                                                        pumpTotalizer: String(result.newTotalizer)
+                                                    });
+                                                    alert("Recalculado com sucesso com base no histórico!");
+                                                } catch (err: any) {
+                                                    alert(err.message);
+                                                }
+                                            }}
+                                            className="w-full py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                                        >
+                                            Recalcular a partir do Baseline
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex gap-3 pt-4">

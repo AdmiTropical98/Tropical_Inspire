@@ -286,6 +286,7 @@ export interface FuelTank {
     averagePrice?: number; // Weighted Average Price (PMP)
     baselineDate?: string; // Date of confirmed balance
     baselineLevel?: number; // Level at baseline date
+    baselineTotalizer?: number; // Totalizer at baseline date
 }
 
 export interface FuelTransaction {
