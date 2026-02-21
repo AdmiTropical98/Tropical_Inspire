@@ -1291,7 +1291,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             baseline_date: tank.baselineDate,
             baseline_level: tank.baselineLevel
         });
-        if (!error) setFuelTank(tank);
+        if (error) {
+            console.error("Erro ao atualizar tanque:", error);
+            throw new Error(`Erro ao atualizar tanque: ${error.message}`);
+        }
+        setFuelTank(tank);
     };
 
     const registerRefuel = async (transaction: FuelTransaction) => {
@@ -1358,7 +1362,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             pumpCounterAfter: (finalStatus === 'confirmed' && !transaction.isExternal) ? pumpCounterAfter : undefined
         };
 
-        const { error } = await supabase.from('fuel_transactions').insert({
+        const { error: insertError } = await supabase.from('fuel_transactions').insert({
             id: transactionToSave.id,
             driver_id: transactionToSave.driverId,
             vehicle_id: transactionToSave.vehicleId,
@@ -1377,29 +1381,31 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             is_anormal: transactionToSave.isAnormal
         });
 
-        if (!error) {
-            setFuelTransactions(prev => [transactionToSave, ...prev]);
+        if (insertError) {
+            throw new Error(`Erro na base de dados: ${insertError.message}`);
+        }
 
-            // Only send notification if PENDING
-            if (finalStatus === 'pending') {
-                addNotification({
-                    id: crypto.randomUUID(),
-                    type: 'fuel_confirmation_request',
-                    data: {
-                        liters: transaction.liters,
-                        km: transaction.km,
-                        vehicleId: transaction.vehicleId, // or Plate
-                        licensePlate: transaction.vehicleId,
-                        staffId: transaction.staffId
-                    },
-                    status: 'pending',
-                    response: {
-                        driverId: transaction.driverId,
-                        serviceId: transaction.id
-                    },
-                    timestamp: new Date().toISOString()
-                });
-            }
+        setFuelTransactions(prev => [transactionToSave, ...prev]);
+
+        // Only send notification if PENDING
+        if (finalStatus === 'pending') {
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'fuel_confirmation_request',
+                data: {
+                    liters: transaction.liters,
+                    km: transaction.km,
+                    vehicleId: transaction.vehicleId, // or Plate
+                    licensePlate: transaction.vehicleId,
+                    staffId: transaction.staffId
+                },
+                status: 'pending',
+                response: {
+                    driverId: transaction.driverId,
+                    serviceId: transaction.id
+                },
+                timestamp: new Date().toISOString()
+            });
         }
     };
 

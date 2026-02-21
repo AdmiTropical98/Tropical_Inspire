@@ -260,9 +260,9 @@ export default function Combustivel() {
             setRefuelForm({ driverId: '', vehicleId: '', liters: '', km: '', centroCustoId: '', manualDate: '', manualTime: '' });
             alert(isConfirmed ? 'Abastecimento registado e confirmado com sucesso!' : 'Abastecimento registado! A aguardar confirmação do motorista.');
             setActiveTab('overview');
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('Erro ao registar abastecimento.');
+            alert(`Erro ao registar abastecimento: ${error.message || 'Erro desconhecido'}`);
         }
     };
 
@@ -287,8 +287,9 @@ export default function Combustivel() {
             setSupplyForm({ supplier: '', litersAdded: '', pumpReading: '', pricePerLiter: '' });
             alert('Entrada de combustível registada com sucesso!');
             setActiveTab('overview');
-        } catch (error) {
-            alert('Erro ao registar entrada.');
+        } catch (error: any) {
+            console.error(error);
+            alert(`Erro ao registar entrada: ${error.message || 'Erro desconhecido'}`);
         }
     };
 
