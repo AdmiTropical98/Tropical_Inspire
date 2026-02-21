@@ -205,12 +205,11 @@ export default function CentrosCustos() {
         doc.save(`Relatorio_${cc.nome.replace(/\s+/g, '_')}.pdf`);
     };
 
-    // --- Global Totals Calculations ---
-    const globalFuelTotal = fuelTransactions.reduce((sum, t) => sum + (t.totalCost || 0), 0) +
-        (charging || []).reduce((sum, c) => sum + (c.cost || 0), 0);
-
-    const globalReqTotal = requisicoes.reduce((sum, r) => sum + (r.custo || 0), 0) +
-        (tolls || []).reduce((sum, t) => sum + (t.amount || 0), 0);
+    // --- Global Totals Calculations (each category separated) ---
+    const globalFuelOnly = fuelTransactions.reduce((sum, t) => sum + (t.totalCost || 0), 0);
+    const globalChargingTotal = (charging || []).reduce((sum, c) => sum + (c.cost || 0), 0);
+    const globalReqOnly = requisicoes.reduce((sum, r) => sum + (r.custo || 0), 0);
+    const globalTollsTotal = (tolls || []).reduce((sum, t) => sum + (t.amount || 0), 0);
 
     // Global Labor
     let globalLaborTotal = 0;
@@ -234,7 +233,7 @@ export default function CentrosCustos() {
         }
     });
 
-    const grandTotal = globalFuelTotal + globalReqTotal + globalLaborTotal;
+    const grandTotal = globalFuelOnly + globalChargingTotal + globalReqOnly + globalTollsTotal + globalLaborTotal;
 
     return (
         <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-10 bg-[#020617]">
@@ -266,28 +265,66 @@ export default function CentrosCustos() {
             </div>
 
             {/* Global Insight Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl backdrop-blur-md">
-                    <p className="text-slate-500 text-xs font-black uppercase tracking-widest mb-2">Despesa Global</p>
-                    <p className="text-3xl font-black text-white">{grandTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
-                    <div className="mt-3 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 w-full" />
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                {/* Grand Total */}
+                <div className="col-span-2 md:col-span-3 xl:col-span-1 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-3xl backdrop-blur-md relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl -mr-5 -mt-5" />
+                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Despesa Global</p>
+                    <p className="text-2xl font-black text-white">{grandTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
+                    {/* Mini stacked bar */}
+                    <div className="mt-3 h-1.5 w-full bg-slate-950 rounded-full overflow-hidden flex">
+                        <div className="h-full bg-blue-500" style={{ width: `${(globalFuelOnly / (grandTotal || 1)) * 100}%` }} />
+                        <div className="h-full bg-cyan-400" style={{ width: `${(globalChargingTotal / (grandTotal || 1)) * 100}%` }} />
+                        <div className="h-full bg-emerald-500" style={{ width: `${(globalTollsTotal / (grandTotal || 1)) * 100}%` }} />
+                        <div className="h-full bg-amber-500" style={{ width: `${(globalReqOnly / (grandTotal || 1)) * 100}%` }} />
+                        <div className="h-full bg-indigo-500" style={{ width: `${(globalLaborTotal / (grandTotal || 1)) * 100}%` }} />
                     </div>
+                    <p className="text-[10px] text-slate-500 mt-1">{centrosCustos.length} unidades ativas</p>
                 </div>
-                <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl backdrop-blur-md">
-                    <p className="text-slate-500 text-xs font-black uppercase tracking-widest mb-2">Combustível (Total)</p>
-                    <p className="text-2xl font-bold text-blue-400">{globalFuelTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">{((globalFuelTotal / (grandTotal || 1)) * 100).toFixed(1)}% do orçamento</p>
+                {/* Fuel */}
+                <div className="bg-blue-500/5 border border-blue-500/20 p-5 rounded-3xl backdrop-blur-md">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest">Combustível</p>
+                    </div>
+                    <p className="text-xl font-bold text-white">{globalFuelOnly.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{((globalFuelOnly / (grandTotal || 1)) * 100).toFixed(1)}% do total</p>
                 </div>
-                <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl backdrop-blur-md">
-                    <p className="text-slate-500 text-xs font-black uppercase tracking-widest mb-2">Mão de Obra (Total)</p>
-                    <p className="text-2xl font-bold text-indigo-400">{globalLaborTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">{((globalLaborTotal / (grandTotal || 1)) * 100).toFixed(1)}% do orçamento</p>
+                {/* EV Charging */}
+                <div className="bg-cyan-500/5 border border-cyan-500/20 p-5 rounded-3xl backdrop-blur-md">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                        <p className="text-cyan-400 text-[10px] font-black uppercase tracking-widest">Carregamentos EV</p>
+                    </div>
+                    <p className="text-xl font-bold text-white">{globalChargingTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{((globalChargingTotal / (grandTotal || 1)) * 100).toFixed(1)}% do total</p>
                 </div>
-                <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl backdrop-blur-md">
-                    <p className="text-slate-500 text-xs font-black uppercase tracking-widest mb-2">Unidades Ativas</p>
-                    <p className="text-2xl font-bold text-white">{centrosCustos.length}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">Locais de operação</p>
+                {/* Via Verde */}
+                <div className="bg-emerald-500/5 border border-emerald-500/20 p-5 rounded-3xl backdrop-blur-md">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Via Verde</p>
+                    </div>
+                    <p className="text-xl font-bold text-white">{globalTollsTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{((globalTollsTotal / (grandTotal || 1)) * 100).toFixed(1)}% do total</p>
+                </div>
+                {/* Requisitions */}
+                <div className="bg-amber-500/5 border border-amber-500/20 p-5 rounded-3xl backdrop-blur-md">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <p className="text-amber-400 text-[10px] font-black uppercase tracking-widest">Requisições</p>
+                    </div>
+                    <p className="text-xl font-bold text-white">{globalReqOnly.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{((globalReqOnly / (grandTotal || 1)) * 100).toFixed(1)}% do total</p>
+                </div>
+                {/* Labor */}
+                <div className="bg-indigo-500/5 border border-indigo-500/20 p-5 rounded-3xl backdrop-blur-md">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                        <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest">Mão de Obra</p>
+                    </div>
+                    <p className="text-xl font-bold text-white">{globalLaborTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{((globalLaborTotal / (grandTotal || 1)) * 100).toFixed(1)}% do total</p>
                 </div>
             </div>
 

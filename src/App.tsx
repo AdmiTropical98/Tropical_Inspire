@@ -3,7 +3,8 @@ import {
   LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, UserCheck, History, Navigation, Zap, Ticket, Activity
+  ChevronDown, ChevronRight, UserCheck, History, Navigation, Zap, Ticket, Activity,
+  Gauge
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -53,6 +54,7 @@ import ControloOperacional from './pages/ControloOperacional';
 const LancarEscala = lazy(() => import('./pages/LancarEscala'));
 const ViaVerde = lazy(() => import('./pages/ViaVerde'));
 const Carregamentos = lazy(() => import('./pages/Carregamentos'));
+const EficienciaFrota = lazy(() => import('./pages/EficienciaFrota'));
 
 import SplashScreen from './components/common/SplashScreen';
 
@@ -154,7 +156,7 @@ function AppContent() {
   const { notifications, dbConnectionError, refreshData } = useWorkshop();
   const { unreadCount } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos' | 'documentacao' | 'controlo-operacional'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos' | 'documentacao' | 'controlo-operacional' | 'eficiencia-frota'>('dashboard');
 
   // Sidebar State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -269,6 +271,12 @@ function AppContent() {
           </Suspense>
         );
 
+      case 'eficiencia-frota':
+        return (
+          <Suspense fallback={<PageLoading />}>
+            <EficienciaFrota />
+          </Suspense>
+        );
       case 'documentacao':
         return <Documentacao />;
 
@@ -417,6 +425,9 @@ function AppContent() {
               <SidebarGroup title="Oficina" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
                 {hasAccess(userRole, 'combustivel') && (
                   <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => handleNavigate('combustivel')} collapsed={isSidebarCollapsed} />
+                )}
+                {hasAccess(userRole, 'combustivel') && (
+                  <SidebarItem icon={Gauge} label="Eficiência da Frota" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} collapsed={isSidebarCollapsed} />
                 )}
                 {hasAccess(userRole, 'requisicoes') && (
                   <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => handleNavigate('requisicoes')} collapsed={isSidebarCollapsed} />
@@ -575,6 +586,9 @@ function AppContent() {
                 {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Oficina</div>}
                 {hasAccess(userRole, 'combustivel') && (
                   <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { handleNavigate('combustivel'); setIsMobileMenuOpen(false); }} />
+                )}
+                {hasAccess(userRole, 'combustivel') && (
+                  <SidebarItem icon={Gauge} label="Eficiência da Frota" active={activeTab === 'eficiencia-frota'} onClick={() => { handleNavigate('eficiencia-frota'); setIsMobileMenuOpen(false); }} />
                 )}
                 {hasAccess(userRole, 'requisicoes') && (
                   <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => { handleNavigate('requisicoes'); setIsMobileMenuOpen(false); }} />
