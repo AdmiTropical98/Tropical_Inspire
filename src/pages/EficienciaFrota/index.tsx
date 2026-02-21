@@ -153,10 +153,12 @@ function calcVehicleStats(
     });
 
     return Object.entries(byVehicle).map(([vehicleId, segs]) => {
-        const v = viaturas.find(v =>
-            (v.matricula || '').toLowerCase().replace(/[^a-z0-9]/g, '') ===
-            vehicleId.toLowerCase().replace(/[^a-z0-9]/g, '')
-        );
+        // vehicleId from fuel_transactions is a UUID → match by viatura.id first
+        const v = viaturas.find(v => v.id === vehicleId) ||
+            viaturas.find(v =>
+                (v.matricula || '').toLowerCase().replace(/[^a-z0-9]/g, '') ===
+                vehicleId.toLowerCase().replace(/[^a-z0-9]/g, '')
+            );
 
         const kmTotal = segs.reduce((a, s) => a + s.kmPercorridos, 0);
         const litrosTotal = segs.reduce((a, s) => a + s.liters, 0);
@@ -207,7 +209,8 @@ function calcVehicleStats(
 
 function calcDriverStats(
     segments: FuelSegment[],
-    motoristas: any[]
+    motoristas: any[],
+    viaturas: any[]
 ): DriverStats[] {
     const byDriver: Record<string, FuelSegment[]> = {};
     segments.forEach(s => {
@@ -225,7 +228,11 @@ function calcDriverStats(
         const custoTotal = segs.reduce((a, s) => a + s.custo, 0);
         const consumoMedio = kmConduzidos > 0 ? (litrosTotal / kmConduzidos) * 100 : 0;
         const custoKmMedio = kmConduzidos > 0 ? custoTotal / kmConduzidos : 0;
-        const veiculosUsados = [...new Set(segs.map(s => s.vehicleId))] as string[];
+        // Resolve vehicle UUIDs to license plates
+        const veiculosUsados = [...new Set(segs.map(s => s.vehicleId))].map(vid => {
+            const v = viaturas.find((vt: any) => vt.id === vid);
+            return v?.matricula || vid;
+        });
 
         let alerta: 'normal' | 'alto' | 'critico' = 'normal';
         if (consumoMedio > 18) alerta = 'critico';
@@ -373,7 +380,7 @@ export default function EficienciaFrota() {
     // Build all analytics
     const segments = useMemo(() => buildSegments(fuelTransactions, viaturas, motoristas), [fuelTransactions]);
     const vehicleStats = useMemo(() => calcVehicleStats(segments, viaturas), [segments, viaturas]);
-    const driverStats = useMemo(() => calcDriverStats(segments, motoristas), [segments, motoristas]);
+    const driverStats = useMemo(() => calcDriverStats(segments, motoristas, viaturas), [segments, motoristas, viaturas]);
     const monthStats = useMemo(() => calcMonthStats(segments), [segments]);
 
     // Fleet summary
