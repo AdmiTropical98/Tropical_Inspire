@@ -1577,7 +1577,7 @@ export default function Combustivel() {
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                                     <Droplets className="w-6 h-6 text-emerald-400" />
-                                    Registo de Entradas no Tanque
+                                    Registo de Entradas e Consumo por Intervalo
                                 </h2>
                                 <button
                                     onClick={exportAuditReport}
@@ -1592,46 +1592,123 @@ export default function Combustivel() {
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
                                         <tr>
-                                            <th className="px-6 py-4">Data</th>
+                                            <th className="px-6 py-4">Data Entrega</th>
                                             <th className="px-6 py-4">Fornecedor</th>
-                                            <th className="px-6 py-4 text-right">L. Adicionados</th>
+                                            <th className="px-6 py-4 text-right">L. Entregues</th>
+                                            <th className="px-6 py-4 text-right bg-blue-500/5 text-blue-400">Saída (L)</th>
+                                            <th className="px-6 py-4 text-right bg-blue-500/5 text-blue-400">Custo Saída</th>
                                             <th className="px-6 py-4 text-right">Nível Antes</th>
                                             <th className="px-6 py-4 text-right">Nível Depois</th>
-                                            <th className="px-6 py-4 text-right">Custo Total</th>
-                                            <th className="px-6 py-4 text-right">Ações</th>
+                                            <th className="px-6 py-4 text-right">Audit</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-800 bg-slate-900/30">
-                                        {tankRefills.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(refill => (
-                                            <tr key={refill.id} className="hover:bg-slate-800/5 transition-colors">
-                                                <td className="px-6 py-4 text-slate-300 font-mono">
-                                                    {new Date(refill.timestamp).toLocaleDateString()}
-                                                    <span className="text-slate-600 ml-2 text-xs">{new Date(refill.timestamp).toLocaleTimeString()}</span>
-                                                </td>
-                                                <td className="px-6 py-4 font-bold text-white">{refill.supplier || 'N/A'}</td>
-                                                <td className="px-6 py-4 text-right font-black text-emerald-400">{refill.litersAdded} L</td>
-                                                <td className="px-6 py-4 text-right text-slate-400">{refill.levelBefore} L</td>
-                                                <td className="px-6 py-4 text-right text-white">{refill.levelAfter} L</td>
-                                                <td className="px-6 py-4 text-right font-bold text-slate-300">{refill.totalCost ? `${refill.totalCost}€` : 'N/A'}</td>
-                                                <td className="px-6 py-4 text-right">
-                                                    {userRole === 'admin' && (
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (confirm('Deseja apagar este registo de reabastecimento? O nível do tanque será revertido.')) {
-                                                                    await deleteTankRefill(refill.id);
-                                                                }
-                                                            }}
-                                                            className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-lg transition-all"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {(() => {
+                                            const sortedRefills = [...tankRefills].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+                                            // Prepend Current Period (pseudo-refill for "since last until now")
+                                            const latestRefill = sortedRefills[sortedRefills.length - 1];
+                                            const currentPeriodTransactions = fuelTransactions.filter(tx =>
+                                                !tx.isExternal &&
+                                                tx.status === 'confirmed' &&
+                                                (!latestRefill || new Date(tx.timestamp) > new Date(latestRefill.timestamp))
+                                            );
+
+                                            const rows = sortedRefills.map((refill, idx) => {
+                                                const prevRefill = idx > 0 ? sortedRefills[idx - 1] : null;
+                                                const start = prevRefill ? new Date(prevRefill.timestamp) : new Date(0);
+                                                const end = new Date(refill.timestamp);
+
+                                                const intervalTxs = fuelTransactions.filter(tx =>
+                                                    !tx.isExternal &&
+                                                    tx.status === 'confirmed' &&
+                                                    new Date(tx.timestamp) > start &&
+                                                    new Date(tx.timestamp) <= end
+                                                );
+
+                                                const litersOut = intervalTxs.reduce((sum, tx) => sum + tx.liters, 0);
+                                                const costOut = intervalTxs.reduce((sum, tx) => sum + (tx.totalCost || 0), 0);
+
+                                                return {
+                                                    ...refill,
+                                                    litersOut,
+                                                    costOut,
+                                                    isCurrent: false
+                                                };
+                                            });
+
+                                            // Add current status at the top
+                                            if (latestRefill) {
+                                                const currentLitersOut = currentPeriodTransactions.reduce((sum, tx) => sum + tx.liters, 0);
+                                                const currentCostOut = currentPeriodTransactions.reduce((sum, tx) => sum + (tx.totalCost || 0), 0);
+                                                rows.push({
+                                                    id: 'current',
+                                                    timestamp: new Date().toISOString(),
+                                                    supplier: 'PERÍODO ATUAL',
+                                                    litersAdded: 0,
+                                                    litersOut: currentLitersOut,
+                                                    costOut: currentCostOut,
+                                                    levelBefore: fuelTank.currentLevel,
+                                                    levelAfter: fuelTank.currentLevel,
+                                                    isCurrent: true,
+                                                    staffId: '',
+                                                    totalSpentSinceLast: 0,
+                                                    pumpMeterReading: fuelTank.pumpTotalizer
+                                                } as any);
+                                            }
+
+                                            return rows.reverse().map(refill => (
+                                                <tr key={refill.id} className={`hover:bg-slate-800/10 transition-colors ${refill.isCurrent ? 'bg-blue-500/5' : ''}`}>
+                                                    <td className="px-6 py-4 text-slate-300 font-mono">
+                                                        {refill.isCurrent ? (
+                                                            <span className="flex items-center gap-2 text-blue-400 font-black">
+                                                                <TrendingUp className="w-3 h-3" /> AGORA
+                                                            </span>
+                                                        ) : (
+                                                            <>
+                                                                {new Date(refill.timestamp).toLocaleDateString()}
+                                                                <span className="text-slate-600 ml-2 text-xs">{new Date(refill.timestamp).toLocaleTimeString()}</span>
+                                                            </>
+                                                        )}
+                                                    </td>
+                                                    <td className={`px-6 py-4 font-bold ${refill.isCurrent ? 'text-blue-400' : 'text-white'}`}>
+                                                        {refill.supplier || 'N/A'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-black text-emerald-400">
+                                                        {refill.litersAdded > 0 ? `${refill.litersAdded} L` : '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-black text-amber-500 bg-blue-500/5">
+                                                        {refill.litersOut.toFixed(1)} L
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-bold text-slate-300 bg-blue-500/5">
+                                                        {refill.costOut > 0 ? `${refill.costOut.toFixed(2)}€` : '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-slate-400">
+                                                        {refill.isCurrent ? '-' : `${refill.levelBefore} L`}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-white">
+                                                        {refill.isCurrent ? `${fuelTank.currentLevel} L` : `${refill.levelAfter} L`}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        {!refill.isCurrent && userRole === 'admin' && (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (confirm('Deseja apagar este registo de reabastecimento? O nível do tanque será revertido.')) {
+                                                                        await deleteTankRefill(refill.id);
+                                                                    }
+                                                                }}
+                                                                className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-lg transition-all"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ));
+                                        })()}
                                         {tankRefills.length === 0 && (
                                             <tr>
-                                                <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-bold italic">
+                                                <td colSpan={8} className="px-6 py-12 text-center text-slate-500 font-bold italic">
                                                     Nenhum registo de entrada encontrado.
                                                 </td>
                                             </tr>
