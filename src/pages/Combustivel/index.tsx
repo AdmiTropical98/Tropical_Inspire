@@ -11,6 +11,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { excelDateToJSDate } from '../../utils/format';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function Combustivel() {
     const {
@@ -512,6 +514,120 @@ export default function Combustivel() {
     const internalRefuels = fuelTransactions.filter(tx => !tx.isExternal && tx.status === 'confirmed');
     const totalInternalLiters = internalRefuels.reduce((sum, tx) => sum + tx.liters, 0);
     const totalTankIn = tankRefills.reduce((sum, r) => sum + r.litersAdded, 0);
+
+    const exportIntervalsPDF = () => {
+        const doc = new jsPDF();
+        const sortedRefills = [...tankRefills].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+        doc.setFontSize(22);
+        doc.setTextColor(15, 23, 42);
+        doc.text('Relatório de Auditoria de Combustível', 14, 20);
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 28);
+
+        let yPos = 35;
+
+        // Process from newest to oldest for the PDF
+        const intervals = [];
+
+        // Add Current Period
+        const latestRefill = sortedRefills[sortedRefills.length - 1];
+        const currentPeriodTransactions = fuelTransactions.filter(tx =>
+            !tx.isExternal &&
+            tx.status === 'confirmed' &&
+            (!latestRefill || new Date(tx.timestamp) > new Date(latestRefill.timestamp))
+        );
+
+        if (latestRefill || currentPeriodTransactions.length > 0) {
+            intervals.push({
+                title: 'PERÍODO ATUAL (Desde a última entrega)',
+                refill: null,
+                transactions: currentPeriodTransactions,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Add Past Intervals
+        for (let i = sortedRefills.length - 1; i >= 0; i--) {
+            const refill = sortedRefills[i];
+            const prevRefill = i > 0 ? sortedRefills[i - 1] : null;
+
+            const start = prevRefill ? new Date(prevRefill.timestamp) : new Date(0);
+            const end = new Date(refill.timestamp);
+
+            const intervalTxs = fuelTransactions.filter(tx =>
+                !tx.isExternal &&
+                tx.status === 'confirmed' &&
+                new Date(tx.timestamp) > start &&
+                new Date(tx.timestamp) <= end
+            );
+
+            intervals.push({
+                title: `Entrega: ${refill.supplier || 'N/A'} - ${new Date(refill.timestamp).toLocaleDateString()}`,
+                refill,
+                transactions: intervalTxs,
+                timestamp: refill.timestamp
+            });
+        }
+
+        intervals.forEach((interval) => {
+            if (yPos > 240) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            doc.setFillColor(241, 245, 249);
+            doc.rect(14, yPos, 182, 10, 'F');
+            doc.setFontSize(12);
+            doc.setTextColor(15, 23, 42);
+            doc.text(interval.title, 18, yPos + 7);
+            yPos += 15;
+
+            if (interval.refill) {
+                doc.setFontSize(10);
+                doc.text(`Litros Entregues: ${interval.refill.litersAdded} L`, 14, yPos);
+                doc.text(`Nível Final: ${interval.refill.levelAfter} L`, 70, yPos);
+                const totalCalc = interval.refill.levelBefore + interval.refill.litersAdded;
+                if (totalCalc > 6000) {
+                    doc.setTextColor(220, 38, 38);
+                    doc.text(`Excesso: +${(totalCalc - 6000).toFixed(1)} L`, 130, yPos);
+                    doc.setTextColor(15, 23, 42);
+                }
+                yPos += 8;
+            }
+
+            const tableData = interval.transactions.map(tx => {
+                const viatura = viaturas.find(v => v.id === tx.vehicleId || v.matricula === tx.vehicleId);
+                const motorista = motoristas.find(m => m.id === tx.driverId);
+                return [
+                    new Date(tx.timestamp).toLocaleString(),
+                    viatura?.matricula || tx.vehicleId || 'N/A',
+                    motorista?.nome || tx.staffName || 'N/A',
+                    `${tx.liters.toFixed(1)} L`,
+                    `${tx.totalCost?.toFixed(2) || '0.00'} €`
+                ];
+            });
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Data/Hora', 'Viatura', 'Motorista', 'Litros', 'Custo']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [15, 23, 42] },
+                margin: { left: 14, right: 14 },
+                didDrawPage: (data) => {
+                    yPos = data.cursor ? data.cursor.y + 15 : yPos + 20;
+                }
+            });
+
+            // Update yPos based on where the table ended
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+        });
+
+        doc.save(`audit_combustivel_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
 
     const exportAuditReport = () => {
         // 1. Prepare Tank Refills Data
@@ -1596,7 +1712,14 @@ export default function Combustivel() {
                                     className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold transition-all border border-slate-700 shadow-xl"
                                 >
                                     <Download className="w-5 h-5" />
-                                    Exportar Auditoria
+                                    Exportar Auditoria (Excel)
+                                </button>
+                                <button
+                                    onClick={exportIntervalsPDF}
+                                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20"
+                                >
+                                    <FileSpreadsheet className="w-5 h-5" />
+                                    Exportar PDF Detalhado
                                 </button>
                             </div>
 
