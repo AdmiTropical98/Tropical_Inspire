@@ -20,19 +20,22 @@ export async function fetchSheetCSV(url: string): Promise<any[]> {
     try {
         let csvUrl = url;
         if (url.includes('docs.google.com/spreadsheets')) {
-            // Convert to CSV export URL
-            if (url.includes('/edit')) {
-                csvUrl = url.split('/edit')[0] + '/export?format=csv';
-                // Keep the gid if present
-                const gidMatch = url.match(/gid=(\d+)/);
-                if (gidMatch) {
-                    csvUrl += `&gid=${gidMatch[1]}`;
-                }
+            const ssIdMatch = url.match(/\/d\/(.+?)\//) || url.match(/\/d\/(.+)/);
+            const gidMatch = url.match(/gid=(\d+)/);
+
+            if (ssIdMatch) {
+                const ssId = ssIdMatch[1];
+                const gid = gidMatch ? gidMatch[1] : '0';
+                // Use gviz/tq endpoint for better CORS behavior
+                csvUrl = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:csv&gid=${gid}`;
             }
         }
 
         const response = await fetch(csvUrl);
-        if (!response.ok) throw new Error('Falha ao aceder à Google Sheet. Verifique se está partilhada.');
+        if (!response.ok) {
+            if (response.status === 404) throw new Error('Folha não encontrada. Verifique o link.');
+            throw new Error('Falha ao aceder à Google Sheet. Verifique se está partilhada corretamente.');
+        }
 
         const data = await response.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
@@ -41,6 +44,9 @@ export async function fetchSheetCSV(url: string): Promise<any[]> {
         return XLSX.utils.sheet_to_json(workbookSheet);
     } catch (error) {
         console.error('Error fetching sheet:', error);
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            throw new Error('Erro de Conexão/CORS. Verifique se a folha está PUBLICADA NA WEB (Ficheiro > Partilhar > Publicar na Web) e o link está correto.');
+        }
         throw error;
     }
 }

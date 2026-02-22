@@ -2188,7 +2188,7 @@ export default function Escalas() {
                                                     </div>
                                                 )}
                                                 <p className="text-[10px] text-slate-500 mt-4 leading-relaxed italic">
-                                                    💡 Certifique-se que a folha de cálculo está partilhada com "Qualquer pessoa com o link" como "Leitor" para permitir a importação automática.
+                                                    💡 Certifique-se que a folha de cálculo está <b>PUBLICADA NA WEB</b> (Ficheiro &gt; Partilhar &gt; Publicar na Web) ou partilhada com "Qualquer pessoa com o link" como "Leitor" para permitir a importação automática.
                                                 </p>
                                             </div>
                                         </div>
