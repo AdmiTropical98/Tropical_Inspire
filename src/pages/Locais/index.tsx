@@ -533,18 +533,23 @@ export default function Locais() {
                                         />
                                         {/* Suggestions */}
                                         {zoneFormData.nome_local.length > 1 && (
-                                            <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl z-20 max-h-40 overflow-y-auto">
-                                                {locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).map(l => (
-                                                    <button
-                                                        key={l.id}
-                                                        type="button"
-                                                        onClick={() => setZoneFormData({ ...zoneFormData, nome_local: l.nome })}
-                                                        className="w-full text-left p-2 hover:bg-emerald-500/10 text-xs text-slate-400 hover:text-emerald-400 border-b border-white/5 last:border-0"
-                                                    >
-                                                        {l.nome}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <>
+                                                {locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).length > 0 && (
+                                                    <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl z-20 max-h-40 overflow-y-auto">
+                                                        <div className="p-2 text-[10px] font-bold text-slate-500 uppercase bg-slate-800/50">Sugestões (POIs Guardados)</div>
+                                                        {locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).map(l => (
+                                                            <button
+                                                                key={l.id}
+                                                                type="button"
+                                                                onClick={() => setZoneFormData({ ...zoneFormData, nome_local: l.nome })}
+                                                                className="w-full text-left p-2 hover:bg-emerald-500/10 text-xs text-slate-400 hover:text-emerald-400 border-b border-white/5 last:border-0"
+                                                            >
+                                                                {l.nome}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -557,7 +562,7 @@ export default function Locais() {
                                             onClick={() => setIsManagingAreas(!isManagingAreas)}
                                             className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md transition-all ${isManagingAreas ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-slate-800 text-slate-400 hover:text-white border border-white/5'}`}
                                         >
-                                            {isManagingAreas ? 'Fechar Gestão' : 'Gerir Áreas'}
+                                            {isManagingAreas ? 'Voltar' : 'Gerir Áreas'}
                                         </button>
                                     </div>
 
@@ -574,7 +579,8 @@ export default function Locais() {
                                                 <button
                                                     type="button"
                                                     onClick={handleAddArea}
-                                                    className="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-lg transition-all"
+                                                    disabled={!newAreaName.trim()}
+                                                    className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white p-2 rounded-lg transition-all"
                                                 >
                                                     <Plus className="w-4 h-4" />
                                                 </button>
@@ -598,31 +604,42 @@ export default function Locais() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <select
-                                            required
-                                            className="w-full bg-[#0f172a] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500 appearance-none cursor-pointer"
-                                            value={zoneFormData.area_operacional}
-                                            onChange={e => setZoneFormData({ ...zoneFormData, area_operacional: e.target.value })}
-                                        >
-                                            <option value="">Selecionar zona...</option>
-                                            {areasOperacionais.length > 0 ? areasOperacionais.map(area => (
-                                                <option key={area.id} value={area.nome}>{area.nome}</option>
-                                            )) : (
-                                                <option disabled>Adicione áreas primeiro...</option>
+                                        <div className="space-y-2">
+                                            <select
+                                                required
+                                                className={`w-full bg-[#0f172a] border rounded-xl px-4 py-3 text-white text-sm outline-none appearance-none cursor-pointer transition-colors ${areasOperacionais.length === 0 ? 'border-amber-500/50 text-amber-500' : 'border-white/10 focus:border-emerald-500'}`}
+                                                value={zoneFormData.area_operacional}
+                                                onChange={e => setZoneFormData({ ...zoneFormData, area_operacional: e.target.value })}
+                                            >
+                                                <option value="">Selecionar zona...</option>
+                                                {areasOperacionais.length > 0 ? areasOperacionais.map(area => (
+                                                    <option key={area.id} value={area.nome}>{area.nome}</option>
+                                                )) : (
+                                                    <option disabled>⚠️ Crie áreas em "Gerir Áreas"</option>
+                                                )}
+                                            </select>
+                                            {areasOperacionais.length === 0 && (
+                                                <p className="text-[10px] text-amber-500 font-medium animate-pulse">
+                                                    Precisa de criar pelo menos uma Área Operacional antes de gravar.
+                                                </p>
                                             )}
-                                        </select>
+                                        </div>
                                     )}
                                 </div>
 
                                 <button
                                     type="submit"
-                                    disabled={isManagingAreas}
-                                    className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${isManagingAreas ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20'}`}
+                                    disabled={isManagingAreas || areasOperacionais.length === 0 || !zoneFormData.nome_local}
+                                    className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${(isManagingAreas || areasOperacionais.length === 0 || !zoneFormData.nome_local)
+                                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                                            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20 active:scale-[0.98]'
+                                        }`}
                                 >
                                     <Save className="w-4 h-4" />
-                                    Guardar Mapeamento
+                                    {isManagingAreas ? 'Modo Gestão Ativo' : 'Guardar Mapeamento'}
                                 </button>
                             </form>
+
                         </div>
 
 
