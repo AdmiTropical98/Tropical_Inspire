@@ -32,17 +32,20 @@ import { PermissionsProvider } from './contexts/PermissionsContext'
 import { WorkshopProvider } from './contexts/WorkshopContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ChatProvider } from './contexts/ChatContext'
+import { FinancialProvider } from './contexts/FinancialContext'
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
     <WorkshopProvider>
-      <AuthProvider>
-        <PermissionsProvider>
-          <ChatProvider>
-            <App />
-          </ChatProvider>
-        </PermissionsProvider>
-      </AuthProvider>
+      <FinancialProvider>
+        <AuthProvider>
+          <PermissionsProvider>
+            <ChatProvider>
+              <App />
+            </ChatProvider>
+          </PermissionsProvider>
+        </AuthProvider>
+      </FinancialProvider>
     </WorkshopProvider>
   </ErrorBoundary>,
 )
