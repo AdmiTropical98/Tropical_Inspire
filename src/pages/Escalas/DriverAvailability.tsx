@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Clock, MapPin, User, Plus, Trash2,
-    ShieldAlert, Save, AlertCircle, Info,
+    ShieldAlert, AlertCircle, Info,
     CheckCircle2, XCircle
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -10,18 +10,26 @@ import type { Motorista, Shift, BlockedPeriod } from '../../types';
 export default function DriverAvailability() {
     const { motoristas, updateMotorista } = useWorkshop();
     const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
-
     const selectedDriver = motoristas.find(m => m.id === selectedDriverId);
+    const [localDriver, setLocalDriver] = useState<Motorista | null>(null);
+
+    // Sync local state when driver changes
+    useEffect(() => {
+        if (selectedDriver) {
+            setLocalDriver(selectedDriver);
+        } else {
+            setLocalDriver(null);
+        }
+    }, [selectedDriverId, motoristas]);
 
     const handleSave = async (updated: Motorista) => {
-        setIsSaving(true);
+        // Update local state immediately for UI responsiveness
+        setLocalDriver(updated);
+
         try {
             await updateMotorista(updated);
         } catch (error) {
             console.error('Error saving driver availability:', error);
-        } finally {
-            setIsSaving(false);
         }
     };
 
@@ -129,7 +137,7 @@ export default function DriverAvailability() {
 
             {/* Main Section: Availability Config */}
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                {selectedDriver ? (
+                {localDriver ? (
                     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Driver Header */}
                         <div className="flex items-center justify-between">
@@ -138,18 +146,12 @@ export default function DriverAvailability() {
                                     <User className="w-8 h-8 text-white" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-bold text-white">{selectedDriver.nome}</h1>
+                                    <h1 className="text-2xl font-bold text-white">{localDriver.nome}</h1>
                                     <div className="flex items-center gap-4 mt-1">
                                         <span className="text-sm text-slate-400 flex items-center gap-1.5">
                                             <ShieldAlert className="w-4 h-4 text-amber-500" />
                                             Regras Ativas
                                         </span>
-                                        {isSaving && (
-                                            <span className="text-xs text-blue-400 animate-pulse flex items-center gap-1">
-                                                <Save className="w-3 h-3" />
-                                                A guardar...
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -164,19 +166,19 @@ export default function DriverAvailability() {
                                         Turnos de Trabalho
                                     </h3>
                                     <button
-                                        onClick={() => addShift(selectedDriver)}
+                                        onClick={() => addShift(localDriver)}
                                         className="p-1.5 hover:bg-blue-600/20 text-blue-400 rounded-lg transition-colors"
                                     >
                                         <Plus className="w-4 h-4" />
                                     </button>
                                 </div>
                                 <div className="p-4 space-y-3">
-                                    {(!selectedDriver.shifts || selectedDriver.shifts.length === 0) ? (
+                                    {(!localDriver.shifts || localDriver.shifts.length === 0) ? (
                                         <div className="text-center py-6 text-slate-500 text-xs italic">
                                             Nenhum turno definido. Adicione um para ativar restrições.
                                         </div>
                                     ) : (
-                                        selectedDriver.shifts.map(shift => (
+                                        localDriver.shifts.map(shift => (
                                             <div key={shift.id} className="group flex items-center gap-3 p-3 bg-[#0f172a] rounded-xl border border-white/5 hover:border-blue-500/30 transition-all">
                                                 <div className="flex-1 grid grid-cols-2 gap-2">
                                                     <div>
@@ -184,7 +186,7 @@ export default function DriverAvailability() {
                                                         <input
                                                             type="time"
                                                             value={shift.inicio}
-                                                            onChange={e => updateShift(selectedDriver, shift.id, { inicio: e.target.value })}
+                                                            onChange={e => updateShift(localDriver, shift.id, { inicio: e.target.value })}
                                                             className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white"
                                                         />
                                                     </div>
@@ -193,13 +195,13 @@ export default function DriverAvailability() {
                                                         <input
                                                             type="time"
                                                             value={shift.fim}
-                                                            onChange={e => updateShift(selectedDriver, shift.id, { fim: e.target.value })}
+                                                            onChange={e => updateShift(localDriver, shift.id, { fim: e.target.value })}
                                                             className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white"
                                                         />
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => removeShift(selectedDriver, shift.id)}
+                                                    onClick={() => removeShift(localDriver, shift.id)}
                                                     className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -221,9 +223,9 @@ export default function DriverAvailability() {
                                 <div className="p-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <button
-                                            onClick={() => toggleZone(selectedDriver, 'albufeira')}
-                                            className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-3 ${(selectedDriver.zones || ['albufeira', 'quarteira']).includes('albufeira')
-                                                ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.05)]'
+                                            onClick={() => toggleZone(localDriver, 'albufeira')}
+                                            className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-3 ${(localDriver.zones || ['albufeira', 'quarteira']).includes('albufeira')
+                                                ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_20_rgba(16,185,129,0.05)]'
                                                 : 'bg-[#0f172a] border-white/5 text-slate-500 grayscale'
                                                 }`}
                                         >
@@ -231,7 +233,7 @@ export default function DriverAvailability() {
                                                 <MapPin className="w-6 h-6" />
                                             </div>
                                             <span className="text-sm font-bold">ALBUFEIRA</span>
-                                            {(selectedDriver.zones || ['albufeira', 'quarteira']).includes('albufeira') ? (
+                                            {(localDriver.zones || ['albufeira', 'quarteira']).includes('albufeira') ? (
                                                 <CheckCircle2 className="w-4 h-4" />
                                             ) : (
                                                 <XCircle className="w-4 h-4 opacity-30" />
@@ -239,8 +241,8 @@ export default function DriverAvailability() {
                                         </button>
 
                                         <button
-                                            onClick={() => toggleZone(selectedDriver, 'quarteira')}
-                                            className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-3 ${(selectedDriver.zones || ['albufeira', 'quarteira']).includes('quarteira')
+                                            onClick={() => toggleZone(localDriver, 'quarteira')}
+                                            className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-3 ${(localDriver.zones || ['albufeira', 'quarteira']).includes('quarteira')
                                                 ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.05)]'
                                                 : 'bg-[#0f172a] border-white/5 text-slate-500 grayscale'
                                                 }`}
@@ -249,7 +251,7 @@ export default function DriverAvailability() {
                                                 <MapPin className="w-6 h-6" />
                                             </div>
                                             <span className="text-sm font-bold">QUARTEIRA</span>
-                                            {(selectedDriver.zones || ['albufeira', 'quarteira']).includes('quarteira') ? (
+                                            {(localDriver.zones || ['albufeira', 'quarteira']).includes('quarteira') ? (
                                                 <CheckCircle2 className="w-4 h-4" />
                                             ) : (
                                                 <XCircle className="w-4 h-4 opacity-30" />
@@ -270,37 +272,37 @@ export default function DriverAvailability() {
                                         Períodos Bloqueados
                                     </h3>
                                     <button
-                                        onClick={() => addBlockedPeriod(selectedDriver)}
+                                        onClick={() => addBlockedPeriod(localDriver)}
                                         className="p-1.5 hover:bg-red-600/20 text-red-400 rounded-lg transition-colors"
                                     >
                                         <Plus className="w-4 h-4" />
                                     </button>
                                 </div>
                                 <div className="p-4 space-y-3">
-                                    {(!selectedDriver.blockedPeriods || selectedDriver.blockedPeriods.length === 0) ? (
+                                    {(!localDriver.blockedPeriods || localDriver.blockedPeriods.length === 0) ? (
                                         <div className="text-center py-6 text-slate-500 text-xs italic">
                                             Nenhum bloqueio temporal (ex: condução de autocarro).
                                         </div>
                                     ) : (
-                                        selectedDriver.blockedPeriods.map(block => (
+                                        localDriver.blockedPeriods.map(block => (
                                             <div key={block.id} className="group flex flex-col gap-2 p-3 bg-[#0f172a] rounded-xl border border-red-500/10 hover:border-red-500/30 transition-all">
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex-1 grid grid-cols-2 gap-2">
                                                         <input
                                                             type="time"
                                                             value={block.inicio}
-                                                            onChange={e => updateBlockedPeriod(selectedDriver, block.id, { inicio: e.target.value })}
+                                                            onChange={e => updateBlockedPeriod(localDriver, block.id, { inicio: e.target.value })}
                                                             className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
                                                         />
                                                         <input
                                                             type="time"
                                                             value={block.fim}
-                                                            onChange={e => updateBlockedPeriod(selectedDriver, block.id, { fim: e.target.value })}
+                                                            onChange={e => updateBlockedPeriod(localDriver, block.id, { fim: e.target.value })}
                                                             className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
                                                         />
                                                     </div>
                                                     <button
-                                                        onClick={() => removeBlockedPeriod(selectedDriver, block.id)}
+                                                        onClick={() => removeBlockedPeriod(localDriver, block.id)}
                                                         className="text-red-500 hover:bg-red-500/10 p-1 rounded transition-colors"
                                                     >
                                                         <Trash2 className="w-3 h-3" />
@@ -310,7 +312,7 @@ export default function DriverAvailability() {
                                                     type="text"
                                                     placeholder="Motivo (ex: Condução Autocarro)"
                                                     value={block.reason}
-                                                    onChange={e => updateBlockedPeriod(selectedDriver, block.id, { reason: e.target.value })}
+                                                    onChange={e => updateBlockedPeriod(localDriver, block.id, { reason: e.target.value })}
                                                     className="w-full bg-transparent border-none text-[10px] text-red-400 focus:ring-0 placeholder:text-red-900"
                                                 />
                                             </div>
@@ -331,15 +333,20 @@ export default function DriverAvailability() {
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <label className="text-xs font-bold text-slate-400 uppercase">Apoio Máximo Diário</label>
-                                            <span className="text-xs font-mono text-blue-400 font-bold">{selectedDriver.maxDailyServices || '∞'} serviços</span>
+                                            <span className="text-xs font-mono text-blue-400 font-bold">
+                                                {localDriver.maxDailyServices ? `${localDriver.maxDailyServices} serviços` : '∞ serviços'}
+                                            </span>
                                         </div>
                                         <input
                                             type="range"
                                             min="0"
                                             max="30"
                                             step="1"
-                                            value={selectedDriver.maxDailyServices || 0}
-                                            onChange={e => handleSave({ ...selectedDriver, maxDailyServices: parseInt(e.target.value) || undefined })}
+                                            value={localDriver.maxDailyServices || 0}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value);
+                                                handleSave({ ...localDriver, maxDailyServices: val === 0 ? undefined : val });
+                                            }}
                                             className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                         />
                                     </div>
@@ -347,14 +354,14 @@ export default function DriverAvailability() {
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <label className="text-xs font-bold text-slate-400 uppercase">Intervalo Mínimo</label>
-                                            <span className="text-xs font-mono text-blue-400 font-bold">{selectedDriver.minIntervalMinutes || 30} min</span>
+                                            <span className="text-xs font-mono text-blue-400 font-bold">{localDriver.minIntervalMinutes || 30} min</span>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             {[15, 30, 45, 60].map(val => (
                                                 <button
                                                     key={val}
-                                                    onClick={() => handleSave({ ...selectedDriver, minIntervalMinutes: val })}
-                                                    className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${(selectedDriver.minIntervalMinutes || 30) === val
+                                                    onClick={() => handleSave({ ...localDriver, minIntervalMinutes: val })}
+                                                    className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${(localDriver.minIntervalMinutes || 30) === val
                                                         ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
                                                         : 'bg-slate-900 border-white/5 text-slate-500 hover:text-slate-300'
                                                         }`}
