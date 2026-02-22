@@ -49,12 +49,8 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
         }
 
         // 3. Fallback: If just HH:mm, assume it belongs to "Today" (Legacy behavior)
-        // If we represent "today" and the service has no date, show it?
-        // Risk: Showing old services on "today".
-        // Better: Compare with "today" date object.
         const todayStr = new Date().toISOString().split('T')[0];
         if (formattedDateStr === todayStr) {
-            // If viewing today, show legacy services (assumed today)
             return true;
         }
 
@@ -67,10 +63,8 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
         let rawDate = 0;
 
         try {
-            // Handle cases where 'hora' is full ISO, or we need to combine data+hora
             let dateObj = new Date(service.hora);
 
-            // If invalid date (e.g. just HH:mm), try to use the selected date + time
             if (isNaN(dateObj.getTime())) {
                 const [hours, minutes] = service.hora.split(':').map(Number);
                 if (!isNaN(hours) && !isNaN(minutes)) {
@@ -78,15 +72,8 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 }
             }
 
-            // Override date part with selectedDate if s.data matches (double check)
-            // Actually, we trust the filter above.
-
-            // Sort Key (Time)
             rawDate = dateObj.getTime();
-
-            // Display Key (Day)
             dateKey = dateObj.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
-            // Uppercase first letter
             dateKey = dateKey.charAt(0).toUpperCase() + dateKey.slice(1);
 
         } catch (e) {
@@ -114,7 +101,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
 
     const handleSuccess = (service: Servico) => {
         if (window.confirm('Confirma que recolheu o passageiro?')) {
-            onUpdateStatus?.({ ...service, status: 'completed', concluido: true }); // Using 'completed' for 'Pegou' based on analysis
+            onUpdateStatus?.({ ...service, status: 'completed', concluido: true });
         }
     };
 
@@ -128,7 +115,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
         if (!selectedServiceId || !onUpdateStatus) return;
         const service = services.find(s => s.id === selectedServiceId);
         if (service) {
-            onUpdateStatus({ ...service, status: 'failed', failureReason: failureReason || 'Não especificado', concluido: true }); // Failed is also "Finalized" in terms of schedule
+            onUpdateStatus({ ...service, status: 'failed', failureReason: failureReason || 'Não especificado', concluido: true });
         }
         setFailureModalOpen(false);
         setSelectedServiceId(null);
@@ -136,7 +123,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
 
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 relative">
-            {/* Modal for Failure Reason */}
             {failureModalOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
@@ -182,7 +168,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 </div>
             )}
 
-            {/* Mobile Header with Back Button */}
             <div className="md:hidden flex items-center gap-3 bg-slate-800/80 backdrop-blur-md p-4 sticky top-0 z-50 border-b border-slate-700/50 -mx-4 px-4 shadow-lg">
                 <button
                     onClick={onBack}
@@ -196,7 +181,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 </div>
             </div>
 
-            {/* Desktop Header */}
             <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                 <div>
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -206,7 +190,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                     <p className="text-slate-400 text-sm">Consulta os teus serviços agendados</p>
                 </div>
 
-                {/* DATE NAVIGATOR */}
                 <div className="flex items-center gap-4 bg-slate-900/50 p-1 rounded-xl border border-white/10">
                     <button
                         onClick={handlePrevDay}
@@ -243,7 +226,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 </div>
             </div>
 
-            {/* Mobile Date Navigator */}
             <div className="md:hidden flex items-center justify-between bg-slate-800/50 p-2 rounded-xl mb-4 border border-slate-700/50">
                 <button
                     onClick={handlePrevDay}
@@ -281,7 +263,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 <div className="space-y-6 md:space-y-8">
                     {sortedGroupKeys.map(date => (
                         <div key={date} className="space-y-3 md:space-y-4">
-                            {/* Date Header - Sticky on Desktop, Inline on Mobile */}
                             <div className="flex items-center gap-3 py-2 px-2 md:sticky md:top-0 md:bg-[#0f172a]/95 md:backdrop-blur md:z-10">
                                 <span className="h-px flex-1 bg-gradient-to-r from-blue-500/50 to-transparent"></span>
                                 <h3 className="text-xs md:text-sm font-bold text-white uppercase tracking-wider px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full whitespace-nowrap">
@@ -290,7 +271,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                 <span className="h-px flex-1 bg-gradient-to-l from-blue-500/50 to-transparent"></span>
                             </div>
 
-                            {/* Desktop Table View (Hidden on Mobile) */}
                             <div className="hidden md:block">
                                 <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
                                     <table className="w-full text-left">
@@ -321,7 +301,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                 </div>
                                                                 <span className="text-white font-medium">{service.passageiro || 'Não definido'}</span>
                                                             </div>
-                                                            {/* COMPLIANCE DESKTOP */}
                                                             {complianceStats?.[service.id] && (
                                                                 <div className={`flex items-center gap-1 text-[10px] font-bold ${complianceStats[service.id].status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
                                                                     {complianceStats[service.id].status === 'success' ? <CheckSquare className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
@@ -367,23 +346,23 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                 )}
                                                             </span>
                                                         ) : (
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button
-                                                                        onClick={() => handleFailure(service.id)}
-                                                                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
-                                                                        title="Não Pegou"
-                                                                    >
-                                                                        <User className="w-5 h-5 text-red-500/50 hover:text-red-500" />
-                                                                        <span className="sr-only">Não Pegou</span>
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleSuccess(service)}
-                                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-1"
-                                                                    >
-                                                                        <CheckCircle className="w-4 h-4" />
-                                                                        Pegou
-                                                                    </button>
-                                                                </div>
+                                                            <div className="flex justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => handleFailure(service.id)}
+                                                                    className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                                                                    title="Não Pegou"
+                                                                >
+                                                                    <User className="w-5 h-5 text-red-500/50 hover:text-red-500" />
+                                                                    <span className="sr-only">Não Pegou</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleSuccess(service)}
+                                                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-1"
+                                                                >
+                                                                    <CheckCircle className="w-4 h-4" />
+                                                                    Pegou
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -393,10 +372,8 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                 </div>
                             </div>
 
-                            {/* Mobile Card View (Enhanced & Explanatory) */}
                             <div className="md:hidden grid gap-4">
                                 {Object.values(groupedServices[date].reduce((acc, service) => {
-                                    // Secondary Grouping: Time + Origin + Destination
                                     const key = `${service.hora}-${service.origem}-${service.destino}`;
                                     if (!acc[key]) {
                                         acc[key] = {
@@ -409,14 +386,10 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                         acc[key].passengers.push(service.passageiro || 'Sem Nome');
                                         acc[key].ids.push(service.id);
                                         acc[key].isGroup = true;
-                                        // If any in group is NOT concluded, group is NOT concluded (pessimistic)
-                                        // or if ALL are concluded, group is concluded. Let's say if ANY is pending, group is pending.
                                         if (!service.concluido) acc[key].concluido = false;
                                     }
                                     return acc;
                                 }, {} as Record<string, any>)).map((service: any) => {
-                                    // Determine Compliance Status for the Group/Card
-                                    // If it's a group, we check if ANY failed -> Failed. Else if ALL success -> Success.
                                     let groupComplianceStatus: 'success' | 'failed' | 'pending' | null = null;
                                     let groupComplianceMsg = '';
 
@@ -444,11 +417,9 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                             key={service.isGroup ? service.ids.join('-') : service.id}
                                             className={`bg-slate-800 rounded-2xl border ${groupComplianceStatus === 'failed' ? 'border-red-500/50' : 'border-slate-700'} shadow-xl overflow-hidden transition-all`}
                                         >
-                                            {/* Status Header Strip */}
                                             <div className={`h-1.5 w-full ${stripColor}`}></div>
 
                                             <div className="p-4 space-y-4">
-                                                {/* Time & Status Row */}
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex items-center gap-3 w-full">
                                                         <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700 shadow-inner flex flex-col items-center min-w-[70px]">
@@ -472,7 +443,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                     </div>
                                                                 )}
 
-                                                                {/* COMPLIANCE BADGE MOBILE */}
                                                                 {groupComplianceStatus && (
                                                                     <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
                                                                     ${groupComplianceStatus === 'success' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}
@@ -486,7 +456,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                     </div>
                                                 </div>
 
-                                                {/* Passenger Row (Single or Multiple) */}
                                                 <div className="bg-slate-700/30 rounded-xl p-3 flex flex-col gap-2 border border-slate-700/50">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
@@ -513,13 +482,10 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                     )}
                                                 </div>
 
-                                                {/* Route Timeline */}
                                                 <div className="relative pl-2 py-1">
-                                                    {/* Connecting Line */}
                                                     <div className="absolute left-[9px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-purple-600 opacity-30"></div>
 
                                                     <div className="space-y-6">
-                                                        {/* Origin */}
                                                         <div className="relative flex gap-3">
                                                             <div className="w-5 h-5 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
@@ -530,7 +496,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                             </div>
                                                         </div>
 
-                                                        {/* Destination */}
                                                         <div className="relative flex gap-3">
                                                             <div className="w-5 h-5 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
@@ -543,7 +508,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                     </div>
                                                 </div>
 
-                                                {/* ACTION BUTTONS (Mobile) - NEW */}
                                                 {!service.concluido && !service.isGroup && (
                                                     <div className="grid grid-cols-2 gap-3 mt-2 border-t border-slate-700/50 pt-3">
                                                         <button
@@ -563,7 +527,6 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                     </div>
                                                 )}
 
-                                                {/* Footer / Obs */}
                                                 {service.obs && (
                                                     <div className="mt-3 pt-3 border-t border-slate-700/50">
                                                         {(() => {
