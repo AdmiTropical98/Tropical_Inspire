@@ -690,3 +690,25 @@ export interface UserProfile {
     createdAt: string;
     updatedAt: string;
 }
+
+export type OperationType = 'alert' | 'schedule' | 'fleet' | 'team' | 'general';
+
+export interface OperationThread {
+    id: string;
+    type: OperationType;
+    title: string;
+    related_user?: string;
+    related_vehicle?: string;
+    related_schedule?: string;
+    status: 'active' | 'resolved' | 'archived';
+    created_at: string;
+}
+
+export interface OperationMessage {
+    id: string;
+    thread_id: string;
+    sender_id: string;
+    message: string;
+    system_generated: boolean;
+    created_at: string;
+}
