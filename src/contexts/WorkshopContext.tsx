@@ -148,6 +148,11 @@ interface WorkshopContextType {
     geofenceMappings: Record<string, string>;
     updateGeofenceMapping: (geofenceName: string, centroCustoId: string) => Promise<void>;
     syncRealTimeRentals: () => Promise<void>;
+
+    // NEW: Zonas Operacionais CRUD
+    addZonaOperacional: (z: Omit<ZonaOperacional, 'id' | 'created_at'>) => Promise<void>;
+    updateZonaOperacional: (z: ZonaOperacional) => Promise<void>;
+    deleteZonaOperacional: (id: string) => Promise<void>;
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -2259,6 +2264,34 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         return () => clearInterval(interval);
     }, [cartrackVehicles, viaturas]);
 
+    // NEW: Zonas Operacionais Methods
+    const addZonaOperacional = async (z: Omit<ZonaOperacional, 'id' | 'created_at'>) => {
+        const { data, error } = await supabase.from('zonas_operacionais').insert(z).select().single();
+        if (!error && data) {
+            setZonasOperacionais(prev => [...prev, data as ZonaOperacional]);
+        } else if (error) {
+            console.error('Error adding zona operacional:', error);
+        }
+    };
+
+    const updateZonaOperacional = async (z: ZonaOperacional) => {
+        const { error } = await supabase.from('zonas_operacionais').update(z).eq('id', z.id);
+        if (!error) {
+            setZonasOperacionais(prev => prev.map(item => item.id === z.id ? z : item));
+        } else {
+            console.error('Error updating zona operacional:', error);
+        }
+    };
+
+    const deleteZonaOperacional = async (id: string) => {
+        const { error } = await supabase.from('zonas_operacionais').delete().eq('id', id);
+        if (!error) {
+            setZonasOperacionais(prev => prev.filter(z => z.id !== id));
+        } else {
+            console.error('Error deleting zona operacional:', error);
+        }
+    };
+
     return (
         <WorkshopContext.Provider value={{
             fornecedores,
@@ -2350,6 +2383,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             adminUsers,
             avaliacoes,
             syncRealTimeRentals,
+            addZonaOperacional,
+            updateZonaOperacional,
+            deleteZonaOperacional,
             geofenceMappings,
             updateGeofenceMapping,
             getVehicleOccupancyHistory,
