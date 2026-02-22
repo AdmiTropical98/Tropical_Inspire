@@ -361,13 +361,45 @@ export interface EscalaDia {
     servicos: Servico[];
 }
 
+export type MessageType = 'normal' | 'operacional' | 'alerta' | 'sistema';
+
 export interface Message {
     id: string;
     senderId: string;
+    senderName?: string;
+    senderRole?: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor';
     receiverId: string; // 'admin' or UUID
     content: string;
     timestamp: string;
     read: boolean;
+    type?: MessageType;
+    metadata?: {
+        serviceId?: string;
+        vehicleId?: string;
+        location?: { lat: number; lng: number };
+        attachmentUrl?: string;
+    };
+}
+
+export interface Conversation {
+    id: string;
+    participantId: string;
+    participantName: string;
+    participantRole: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor';
+    lastMessage?: string;
+    lastMessageTime?: string;
+    unreadCount: number;
+    isOnline: boolean;
+    lastSeen?: string;
+    avatar?: string;
+}
+
+export interface ConversationState {
+    conversations: Conversation[];
+    currentConversationId: string | null;
+    messages: Message[];
+    isLoading: boolean;
+    notificationSound: boolean;
 }
 
 export interface EvaDailyUsage {
