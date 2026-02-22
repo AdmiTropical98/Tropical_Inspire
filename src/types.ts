@@ -179,6 +179,7 @@ export interface Motorista {
     cartrackKey?: string;
     cartrackId?: string;
     currentVehicle?: string;
+    role: 'MOTORISTA';
 }
 
 export interface Local {
@@ -238,6 +239,7 @@ export interface Supervisor {
     dataRegisto?: string;
     centroCustoId?: string; // NEW
     cartrackKey?: string; // NEW
+    role: 'SUPERVISOR';
 }
 
 export interface OficinaUser {
@@ -251,6 +253,7 @@ export interface OficinaUser {
     blockedPermissions?: string[];
     dataRegisto?: string;
     centroCustoId?: string; // NEW
+    role: 'OFICINA';
 }
 
 export interface Notification {
@@ -617,6 +620,8 @@ export interface EscalaTemplateItem {
 
 export type PermissionAction = 'ver' | 'criar' | 'editar' | 'eliminar' | 'exportar' | 'aprovar';
 
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
+
 export type SystemModule =
     | 'dashboard'
     | 'frota'
@@ -630,7 +635,8 @@ export type SystemModule =
     | 'utilizadores'
     | 'permissoes'
     | 'mensagens'
-    | 'configuracoes';
+    | 'configuracoes'
+    | 'backoffice';
 
 export type ModulePermissions = PermissionAction[];
 
@@ -645,6 +651,7 @@ export interface UserProfile {
     role: UserRole;
     email_confirmed: boolean;
     permissions?: DetailedPermissions; // Multi-level granular permissions
+    status?: UserStatus;
     activation_token?: string;
     token_expires_at?: string;
     last_login?: string;

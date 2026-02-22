@@ -140,11 +140,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             email: data.user.email || '',
                             nome: profile?.nome || 'Utilizador',
                             role: (profile?.role || storedRole) as UserRole,
+                            status: profile?.status,
                             email_confirmed: data.user.email_confirmed_at !== null,
                             permissions: profile?.permissions, // Load granular permissions
                             createdAt: data.user.created_at,
                             updatedAt: new Date().toISOString()
                         };
+
+                        if (appUser.status === 'BLOCKED') {
+                            logout();
+                            return;
+                        }
+
                         setCurrentUser(appUser);
                         setIsEmailConfirmed(appUser.email_confirmed);
                         localStorage.setItem('currentUser', JSON.stringify(appUser));
@@ -187,6 +194,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     .eq('id', data.user.id)
                     .single();
 
+                if (profile?.status === 'BLOCKED') {
+                    await supabase.auth.signOut();
+                    alert('A sua conta encontra-se BLOQUEADA. Contacte o administrador.');
+                    return false;
+                }
+
                 const roleToSave = profile?.role || (type === 'admin' ? 'ADMIN' : type);
 
                 const appUser: UserProfile = {
@@ -194,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     email: identifier,
                     nome: profile?.nome || 'Utilizador',
                     role: roleToSave as UserRole,
+                    status: profile?.status,
                     email_confirmed: data.user.email_confirmed_at !== null,
                     permissions: profile?.permissions, // Load granular permissions
                     createdAt: data.user.created_at,

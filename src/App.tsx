@@ -1,757 +1,423 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
-  LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu, X,
+  LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
-  BarChart3, MapPin, Hammer, Eye, ClipboardCheck, Bus, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, UserCheck, History, Navigation, Zap, Ticket, Activity,
-  Gauge
+  BarChart3, MapPin, Hammer, Award, LayoutTemplate,
+  ChevronDown, ChevronRight, UserCheck, Activity,
+  Gauge, Settings2, UserCog as UserCogIcon, User as UserIcon, LogOut,
+  ClipboardCheck
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
 import { usePermissions } from './contexts/PermissionsContext';
-import { useWorkshop } from './contexts/WorkshopContext';
 import { ChatProvider, useChat } from './contexts/ChatContext';
-import { FinancialProvider } from './contexts/FinancialContext';
 
 // Components
 import Login from './pages/Auth/Login';
 import ResetPassword from './pages/Auth/ResetPassword';
-import VerifyEmail from './pages/Auth/VerifyEmail';
 import Dashboard from './pages/Dashboard';
-import { supabase } from './lib/supabase'; // Import Supabase client
-import Fornecedores from './pages/Fornecedores';
 import Viaturas from './pages/Viaturas';
-import Documentacao from './pages/Documentacao';
 import Drivers from './pages/Motoristas';
 import Requisicoes from './pages/Requisicoes';
 import Escalas from './pages/Escalas';
 import EscalasHistory from './pages/Escalas/EscalasHistory';
 import Horas from './pages/Horas';
 import FuelManager from './pages/Combustivel';
-import EquipaOficina from './pages/EquipaOficina';
-import Supervisores from './pages/Supervisores';
-import ExternalServices from './pages/ExternalServices';
-import ChatWidget from './pages/Chat/ChatWidget';
-import ChatPage from './pages/Chat/ChatPage'; // New Chat Page
-import CentrosCustos from './pages/CentrosCustos';
-// Lazy Load CentralMotorista
-const CentralMotorista = lazy(() => import('./pages/Motoristas/CentralMotoristas'));
+import UserManagementTab from './pages/Users';
+import GestoresTab from './pages/Gestores';
+import EquipaOficinaTab from './pages/EquipaOficina';
+import PermissoesTab from './pages/Permissoes';
+import RoteirizacaoTab from './pages/Roteirizacao';
+import GeofencesTab from './pages/Geofences';
+import LocaisTab from './pages/Locais';
+import AvaliacaoDriversTab from './pages/Avaliacao';
+import ContabilidadeTab from './pages/Contabilidade';
+import LancarEscalaTab from './pages/LancarEscala';
+import ControloOperacionalTab from './pages/ControloOperacional';
 
-import TransportesEva from './pages/TransportesEva';
-import UserProfileMenu from './components/common/UserProfileMenu';
-import Contabilidade from './pages/Contabilidade';
-import Clientes from './pages/Clientes';
-import Relatorios from './pages/Relatorios'; // Import Relatorios
-import AvaliacaoMotorista from './pages/Avaliacao'; // Import AvaliacaoMotorista
-import Geofences from './pages/Geofences'; // Import Geofences component
-import UsersPage from './pages/Users'; // Import UsersPage
-import Locais from './pages/Locais'; // Import Locais (POIs)
-import Permissoes from './pages/Permissoes';
-import MyProfile from './pages/Profile/MyProfile';
-import Gestores from './pages/Gestores';
-import Roteirizacao from './pages/Roteirizacao';
-import ControloOperacional from './pages/ControloOperacional';
-// Lazy Load LancarEscala
-const LancarEscala = lazy(() => import('./pages/LancarEscala'));
-const ViaVerde = lazy(() => import('./pages/ViaVerde'));
-const Carregamentos = lazy(() => import('./pages/Carregamentos'));
-const EficienciaFrota = lazy(() => import('./pages/EficienciaFrota'));
+// Lazy loading backoffice
+const Backoffice = lazy(() => import('./pages/Backoffice'));
+const CentralMotorista = lazy(() => import('./pages/CentralMotorista/index'));
+const Supervisores = lazy(() => import('./pages/Supervisores/index'));
+const CentrosCustos = lazy(() => import('./pages/CentrosCustos/index'));
+const Clientes = lazy(() => import('./pages/Clientes/index'));
+const Relatorios = lazy(() => import('./pages/Relatorios/index'));
+const Mensagens = lazy(() => import('./pages/Chat/index'));
+const Profile = lazy(() => import('./pages/Profile/MyProfile'));
 
-import SplashScreen from './components/common/SplashScreen';
+// TAB_LABELS removed (unused)
 
+const TAB_ICONS: Record<string, any> = {
+  'dashboard': LayoutDashboard,
+  'backoffice': Settings2,
+  'admin_users': Users,
+  'permissions': Shield,
+  'viaturas': Car,
+  'motoristas': UserCog,
+  'requisicoes': ClipboardCheck,
+  'escalas': Calendar,
+  'horas': Clock,
+  'combustivel': Fuel,
+  'email-confirmation': MessageSquare
+};
 
+interface SidebarItemProps {
+  icon: any;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  badge?: number;
+  collapsed?: boolean;
+}
 
-// Helper for loading state
-const PageLoading = () => (
-  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-400 gap-4">
-    <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
-    <p className="text-sm font-medium animate-pulse">A carregar módulo...</p>
-  </div>
-);
-
-// Sidebar Item Component for consistent styling
-const SidebarItem = ({ icon: Icon, label, active, onClick, badge, collapsed }: { icon: React.ElementType, label: string, active: boolean, onClick: () => void, badge?: number, collapsed?: boolean }) => (
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, onClick, badge, collapsed }) => (
   <button
     onClick={onClick}
-    title={collapsed ? label : undefined}
-    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-300 relative group overflow-hidden
-      ${active
-        ? 'text-white bg-gradient-to-r from-blue-600/20 to-transparent border-l-[3px] border-blue-500'
-        : 'text-slate-400 hover:text-white hover:bg-white/5 border-l-[3px] border-transparent'
-      }
-      ${collapsed ? 'justify-center px-0' : ''}
-    `}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative ${active
+      ? 'bg-blue-600/10 text-blue-400 font-bold'
+      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+      }`}
   >
-    <div className={`${collapsed ? 'w-full flex justify-center' : ''}`}>
-      <Icon className={`w-5 h-5 transition-transform duration-300 flex-shrink-0 ${active ? 'text-blue-400 scale-110' : 'group-hover:text-blue-400 group-hover:scale-110'}`} />
-    </div>
-
-    <div className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${collapsed ? 'w-0 opacity-0 absolute' : 'w-auto opacity-100 relative'}`}>
-      <span className="relative z-10">{label}</span>
-    </div>
-
-    {active && <div className="absolute inset-0 bg-blue-500/5 blur-xl pointer-events-none" />}
-
-    {badge ? (
-      <span className={`
-        bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/30 transition-all duration-300
-        ${collapsed ? 'absolute top-2 right-2 px-1.5 py-0.5 text-[9px] w-auto h-auto min-w-[1.2rem]' : 'ml-auto'}
-      `}>
+    <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+    {!collapsed && <span className="text-sm whitespace-nowrap">{label}</span>}
+    {!collapsed && badge && badge > 0 && (
+      <span className="ml-auto bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ring-2 ring-slate-900">
         {badge}
       </span>
-    ) : null}
+    )}
+    {collapsed && active && (
+      <div className="absolute left-0 w-1 h-8 bg-blue-600 rounded-r-full" />
+    )}
   </button>
 );
 
-const SidebarGroup = ({ title, children, defaultOpen = true, collapsed }: { title: string, children: React.ReactNode, defaultOpen?: boolean, collapsed?: boolean }) => {
+const SidebarGroup: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean; collapsed?: boolean }> = ({ title, children, defaultOpen = true, collapsed = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
-  // Sync internal state if needed, or just let users toggle? 
-  // If collapsed, we force open or handle differently? 
-  // Actually if collapsed, we usually just show icons. Group toggling becomes weird if hidden.
-  // We will force open if collapsed OR just hide the header and show items? 
-  // Better UX: If collapsed, show a separator or nothing for title, and show children.
-
-  // Filter out null/false children to check if group is empty
-  const validChildren = Array.isArray(children) ? children.filter(Boolean) : (children ? [children] : []);
-
-  if (validChildren.length === 0) return null;
-
   if (collapsed) {
-    return (
-      <div className="mb-2 pt-2 border-t border-slate-800/30 first:border-0">
-        <div className="space-y-0.5">
-          {children}
-        </div>
-      </div>
-    );
+    return <div className="py-4 space-y-4 flex flex-col items-center border-t border-slate-800/50">{children}</div>;
   }
 
   return (
-    <div className="mb-2">
+    <div className="mb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-black text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors group"
+        className="w-full flex items-center justify-between px-4 mb-2 group"
       >
-        <div className="flex items-center gap-2">
-          {/* <Icon className="w-3 h-3" /> Optional: Show icon in header */}
-          <span>{title}</span>
-        </div>
-        {isOpen ? <ChevronDown className="w-3 h-3 opacity-50" /> : <ChevronRight className="w-3 h-3 opacity-50" />}
+        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{title}</span>
+        {isOpen ? <ChevronDown className="w-3 h-3 text-slate-600 group-hover:text-slate-400" /> : <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-slate-400" />}
       </button>
-
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="mt-1 space-y-0.5">
-          {children}
-        </div>
-      </div>
+      {isOpen && <div className="space-y-1">{children}</div>}
     </div>
   );
 };
 
+const UserProfileMenu: React.FC<{ onNavigate: (tab: string) => void; showName?: boolean }> = ({ onNavigate, showName = true }) => {
+  const { currentUser, logout } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
 
-function AppContent() {
-  console.log('--- APP CONTENT RENDERING ---');
-  const { isAuthenticated, userRole, isEmailConfirmed } = useAuth();
+  return (
+    <div className="relative mt-auto border-t border-slate-800/60 p-4">
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/50 transition-colors group"
+      >
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition-all overflow-hidden bg-slate-800">
+          {currentUser?.nome ? currentUser.nome.charAt(0).toUpperCase() : <UserIcon className="w-5 h-5" />}
+        </div>
+        {showName && (
+          <div className="flex-1 text-left overflow-hidden">
+            <p className="text-sm font-bold text-slate-200 truncate">{currentUser?.nome || 'Utilizador'}</p>
+            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">{(currentUser as any)?.role || 'Guest'}</p>
+          </div>
+        )}
+      </button>
+
+      {showMenu && (
+        <div className="absolute bottom-full left-4 right-4 mb-2 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-200">
+          <button
+            onClick={() => { onNavigate('meu-perfil'); setShowMenu(false); }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm"
+          >
+            <UserCogIcon className="w-4 h-4" /> Perfil
+          </button>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-all text-sm mt-1"
+          >
+            <LogOut className="w-4 h-4" /> Sair
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+function App() {
+  const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
-  const { notifications, dbConnectionError, refreshData } = useWorkshop();
   const { unreadCount } = useChat();
-
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'admin_users' | 'permissions' | 'requisicoes' | 'fornecedores' | 'viaturas' | 'motoristas' | 'escalas' | 'escalas-history' | 'lancar-escala' | 'horas' | 'combustivel' | 'external' | 'equipa-oficina' | 'supervisores' | 'centros-custos' | 'central-motorista' | 'transportes-eva' | 'mensagens' | 'contabilidade' | 'clientes' | 'relatorios' | 'avaliacao' | 'geofences' | 'locais' | 'meu-perfil' | 'gestores' | 'roteirizacao' | 'via-verde' | 'carregamentos' | 'documentacao' | 'controlo-operacional' | 'eficiencia-frota'>('dashboard');
-
-  // Sidebar State
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
-  // Helper to handle navigation and auto-collapse
-  const handleNavigate = (tab: typeof activeTab) => {
-    setActiveTab(tab);
-    setIsSidebarCollapsed(true);
-    setIsMobileMenuOpen(false); // always close mobile drawer on navigate
-  };
-
-  // Tab label map for mobile header
-  const TAB_LABELS: Partial<Record<typeof activeTab, string>> = {
-    dashboard: 'Dashboard',
-    'controlo-operacional': 'Controlo Operacional',
-    'central-motorista': 'Central Motorista',
-    viaturas: 'Viaturas',
-    motoristas: 'Motoristas',
-    geofences: 'Geofences',
-    locais: 'Locais (POIs)',
-    avaliacao: 'Avaliação Drivers',
-    escalas: 'Escalas',
-    'escalas-history': 'Histórico Escalas',
-    'lancar-escala': 'Lançar Escala',
-    horas: 'Registo de Horas',
-    'transportes-eva': 'Transportes EVA',
-    roteirizacao: 'Roteirização',
-    'via-verde': 'Via Verde',
-    carregamentos: 'Carregamentos Elétricos',
-    combustivel: 'Combustível',
-    'eficiencia-frota': 'Eficiência da Frota',
-    requisicoes: 'Requisições',
-    contabilidade: 'Contabilidade',
-    'centros-custos': 'Centros de Custos',
-    fornecedores: 'Fornecedores',
-    clientes: 'Clientes',
-    relatorios: 'Relatórios',
-    mensagens: 'Mensagens',
-    'meu-perfil': 'O Meu Perfil',
-    admin_users: 'Utilizadores',
-    permissions: 'Permissões',
-  };
-
-  // Sidebar Visibility Flags
-  const showFleetGroup = hasAccess(userRole, 'central_motorista') || hasAccess(userRole, 'viaturas') || hasAccess(userRole, 'motoristas') || hasAccess(userRole, 'geofences') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor';
-  const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'requisicoes') || hasAccess(userRole, 'horas') || hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'plataformas_externas') || hasAccess(userRole, 'roteirizacao') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN';
-  const showFinGroup = hasAccess(userRole, 'contabilidade') || hasAccess(userRole, 'centros_custos') || hasAccess(userRole, 'fornecedores') || hasAccess(userRole, 'clientes') || hasAccess(userRole, 'relatorios');
-  const showSysGroup = hasAccess(userRole, 'equipa-oficina') || hasAccess(userRole, 'supervisores') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor';
-
-
-  // Notification & Modal State
-  const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
 
-  // Listen for Password Recovery Event
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsResettingPassword(true);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    const savedTab = localStorage.getItem('activeTab');
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
   }, []);
 
-  // Initial Tab based on Role
-  useEffect(() => {
-    if (isAuthenticated) {
-      let target: typeof activeTab = 'dashboard';
+  const handleNavigate = (tab: string) => {
+    setActiveTab(tab);
+    localStorage.setItem('activeTab', tab);
+    setIsMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-      if (userRole === 'motorista') target = 'central-motorista';
-      else if (userRole === 'oficina') target = 'dashboard';
-      else if (userRole === 'supervisor') target = 'dashboard';
-      else if (userRole === 'gestor') target = 'dashboard';
+  const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'roteirizacao') || hasAccess(userRole, 'locais');
+  const showTechGroup = hasAccess(userRole, 'viaturas') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'GESTOR' || (userRole as any) === 'gestor';
+  const showFinGroup = hasAccess(userRole, 'contabilidade') || hasAccess(userRole, 'centros_custos') || hasAccess(userRole, 'fornecedores') || hasAccess(userRole, 'clientes') || hasAccess(userRole, 'relatorios');
 
-      if (activeTab !== target) {
-        setActiveTab(target);
-      }
-    }
-  }, [isAuthenticated, userRole]);
+  if (!isAuthenticated) {
+    if (activeTab === 'reset-password') return <ResetPassword onBack={() => handleNavigate('login')} />;
+    return <Login onLoginSuccess={() => handleNavigate('dashboard')} onForgotPassword={() => handleNavigate('reset-password')} />;
+  }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
-      case 'overview':
-        if (!hasAccess(userRole, 'dashboard')) return <div className="p-8 text-center text-slate-500">Acesso negado ao Dashboard. Selecione outra opção no menu.</div>;
-        return <Dashboard setActiveTab={handleNavigate} />;
-      case 'admin_users':
-        return <UsersPage />;
-      case 'permissions':
-        return (
-          <div className="p-6 max-w-7xl mx-auto">
-            <Permissoes />
-          </div>
-        );
-      case 'escalas': return <Escalas />;
-      case 'escalas-history': return <EscalasHistory />;
-      case 'lancar-escala': return (
-        <Suspense fallback={<PageLoading />}>
-          <LancarEscala onNavigate={(tab) => handleNavigate(tab as any)} />
-        </Suspense>
-      );
-      case 'horas': return <Horas />;
-      case 'equipa-oficina': return <EquipaOficina />;
-      case 'supervisores': return <Supervisores />;
-      case 'gestores': return <Gestores />;
-      case 'centros-custos': return <CentrosCustos />;
-      case 'central-motorista': return (
-        <Suspense fallback={<PageLoading />}>
-          <CentralMotorista />
-        </Suspense>
-      );
-      case 'transportes-eva': return <TransportesEva />;
-      case 'mensagens': return <ChatPage />;
-      case 'combustivel': return <FuelManager />;
+      case 'dashboard': return <Dashboard />;
+      case 'backoffice': return <Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>;
       case 'viaturas': return <Viaturas />;
       case 'motoristas': return <Drivers />;
       case 'requisicoes': return <Requisicoes />;
-      case 'fornecedores': return <Fornecedores />;
-      case 'contabilidade': return <Contabilidade />;
-      case 'clientes': return <Clientes />;
-      case 'relatorios': return <Relatorios />;
-      case 'avaliacao': return <AvaliacaoMotorista />;
-      case 'geofences': return <Geofences />;
-      case 'locais': return <Locais />;
-      case 'external': return <ExternalServices />;
-      case 'meu-perfil': return <MyProfile />;
-      case 'roteirizacao': return <Roteirizacao />;
-      case 'controlo-operacional': return <ControloOperacional />;
-      case 'via-verde': return (
-        <Suspense fallback={<PageLoading />}>
-          <ViaVerde />
-        </Suspense>
-      );
-      case 'carregamentos':
-        return (
-          <Suspense fallback={<PageLoading />}>
-            <Carregamentos />
-          </Suspense>
-        );
-
-      case 'eficiencia-frota':
-        return (
-          <Suspense fallback={<PageLoading />}>
-            <EficienciaFrota />
-          </Suspense>
-        );
-      case 'documentacao':
-        return <Documentacao />;
-
-      default: return <Dashboard setActiveTab={handleNavigate} />;
+      case 'escalas': return <Escalas />;
+      case 'escalas-history': return <EscalasHistory />;
+      case 'horas': return <Horas />;
+      case 'combustivel': return <FuelManager />;
+      case 'utilizadores': return <UserManagementTab />;
+      case 'gestores': return <GestoresTab />;
+      case 'equipa-oficina': return <EquipaOficinaTab />;
+      case 'meu-perfil': return <Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>;
+      case 'permissoes': return <PermissoesTab />;
+      case 'roteirizacao': return <RoteirizacaoTab />;
+      case 'geofences': return <GeofencesTab />;
+      case 'locais': return <LocaisTab />;
+      case 'avaliacao-drivers': return <AvaliacaoDriversTab />;
+      case 'contabilidade': return <ContabilidadeTab />;
+      case 'lancar-escalas': return <LancarEscalaTab />;
+      case 'controlo-operacional': return <ControloOperacionalTab />;
+      case 'mensagens': return <Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>;
+      case 'central-motorista': return <Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>;
+      case 'supervisores': return <Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>;
+      case 'centros-custos': return <Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>;
+      case 'clientes': return <Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>;
+      case 'relatorios': return <Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>;
+      default: return <Dashboard />;
     }
   };
 
-  if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
-
-  if (isResettingPassword) return <ResetPassword />;
-
-  if (!isAuthenticated) return <Login />;
-
-  if (!isEmailConfirmed) return <VerifyEmail />;
-
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden text-slate-200 font-sans selection:bg-blue-500/30 bg-black">
-
-      {/* GLOBAL CINEMATIC BACKGROUND */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1800px] h-[1800px] bg-gradient-to-br from-blue-950/60 via-slate-900/60 to-indigo-950/60 opacity-60 blur-[150px] animate-pulse-slow" />
-        <div className="absolute inset-0 bg-black/85" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:120px_120px] opacity-20" />
+    <div className="flex min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-800/60 flex items-center justify-between px-6 z-40">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <Truck className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-black text-white tracking-widest text-sm uppercase">SmartFleet</span>
+        </div>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2.5 rounded-xl bg-slate-800/50 text-slate-300 hover:bg-slate-800 transition-all border border-slate-700/50"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
       </div>
 
-      {/* APP LAYOUT (ON TOP) */}
-      <div className="relative z-10 flex h-full w-full bg-transparent">
-
-        {/* DB Connection Error Banner */}
-        {dbConnectionError && (
-          <div className="absolute top-0 left-0 w-full bg-red-600 text-white p-2 z-[9999] text-center font-bold flex items-center justify-center gap-2 shadow-xl animate-pulse">
-            {dbConnectionError} -- Verifique a Consola (F12) para detalhes.
-            <button onClick={() => refreshData()} className="ml-4 underline text-xs">Tentar novamente</button>
-          </div>
-        )}
-
-        {/* SIDEBAR */}
-        <aside
-          className={`
-            bg-[#0b1121] border-r border-slate-800/60 flex flex-col hidden md:flex z-50 shadow-2xl shrink-0 transition-all duration-300 ease-in-out
-            ${isSidebarCollapsed ? 'w-20' : 'w-72 min-w-[18rem]'}
-          `}
-        >
-          {/* Header & Logo Area */}
-          <div className="h-20 border-b border-slate-800/60 flex items-center justify-center relative bg-gradient-to-r from-slate-900/50 to-transparent">
-            <button
-              onClick={() => isAuthenticated && handleNavigate(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}
-              className={`flex items-center justify-center overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 px-0 absolute pointer-events-none' : 'w-full px-4'}`}
-              title="Ir para Início"
-            >
-              <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="h-12 object-contain" />
-            </button>
-
-            {/* Toggle Button */}
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={`
-                p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all z-20
-                ${isSidebarCollapsed ? 'mx-auto' : 'absolute right-2'}
-              `}
-              title={isSidebarCollapsed ? "Expandir Menu" : "Recolher Menu"}
-            >
-              {isSidebarCollapsed ? <Menu className="w-6 h-6" /> : <ChevronRight className="w-5 h-5 rotate-180" />}
-            </button>
-          </div>
-
-          <nav className="flex-1 overflow-y-auto py-6 space-y-2 custom-scrollbar overflow-x-hidden">
-            {/* MAIN MENU */}
-            {hasAccess(userRole, 'dashboard') && (
-              <>
-                <SidebarItem
-                  icon={LayoutDashboard}
-                  label="Dashboard Principal"
-                  active={activeTab === 'dashboard'}
-                  onClick={() => handleNavigate('dashboard')}
-                  collapsed={isSidebarCollapsed}
-                />
-                {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor') && (
-                  <SidebarItem
-                    icon={Activity}
-                    label="Controlo Operacional"
-                    active={activeTab === 'controlo-operacional'}
-                    onClick={() => handleNavigate('controlo-operacional')}
-                    collapsed={isSidebarCollapsed}
-                  />
-                )}
-              </>
-            )}
-
-            {showFleetGroup && (
-              <SidebarGroup title="Gestão de Frota" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-                {hasAccess(userRole, 'central_motorista') && (
-                  <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => handleNavigate('central-motorista')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'viaturas') && (
-                  <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => handleNavigate('viaturas')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'geofences') && (
-                  <SidebarItem icon={MapPin} label="Geofences" active={activeTab === 'geofences'} onClick={() => handleNavigate('geofences')} collapsed={isSidebarCollapsed} />
-                )}
-                {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || hasAccess(userRole, 'escalas')) && (
-                  <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => handleNavigate('locais')} collapsed={isSidebarCollapsed} />
-                )}
-                {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
-                  <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => handleNavigate('avaliacao')} collapsed={isSidebarCollapsed} />
-                )}
-              </SidebarGroup>
-            )}
-
-            {/* NEW ESCALAS GROUP */}
-            {(hasAccess(userRole, 'escalas') || hasAccess(userRole, 'escalas_create')) && (
-              <SidebarGroup title="Escalas" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-                {hasAccess(userRole, 'escalas_create') && (
-                  <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => handleNavigate('lancar-escala')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'escalas') && (
-                  <SidebarItem icon={Calendar} label="Atribuir Escalas" active={activeTab === 'escalas'} onClick={() => handleNavigate('escalas')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'escalas') && (
-                  <SidebarItem icon={History} label="Histórico de Escalas" active={activeTab === 'escalas-history'} onClick={() => handleNavigate('escalas-history')} collapsed={isSidebarCollapsed} />
-                )}
-              </SidebarGroup>
-            )}
-
-            {showOpsGroup && (
-              <SidebarGroup title="Operações" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-                {hasAccess(userRole, 'horas') && (
-                  <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => handleNavigate('horas')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'plataformas_externas') && (
-                  <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => handleNavigate('transportes-eva')} collapsed={isSidebarCollapsed} />
-                )}
-                {(hasAccess(userRole, 'roteirizacao') || userRole === 'admin' || userRole === 'gestor') && (
-                  <SidebarItem icon={Navigation} label="Roteirização" active={activeTab === 'roteirizacao'} onClick={() => handleNavigate('roteirizacao')} collapsed={isSidebarCollapsed} />
-                )}
-                {/* Via Verde - Available to Ops/Admin */}
-                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor') && (
-                  <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />
-                )}
-                {/* Carregamentos - Available to Ops/Admin */}
-                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor') && (
-                  <SidebarItem icon={Zap} label="Carregamentos Elétricos" active={activeTab === 'carregamentos'} onClick={() => handleNavigate('carregamentos')} collapsed={isSidebarCollapsed} />
-                )}
-              </SidebarGroup>
-            )}
-
-            {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && (
-              <SidebarGroup title="Oficina" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-                {hasAccess(userRole, 'combustivel') && (
-                  <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => handleNavigate('combustivel')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'combustivel') && (
-                  <SidebarItem icon={Gauge} label="Eficiência da Frota" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'requisicoes') && (
-                  <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => handleNavigate('requisicoes')} collapsed={isSidebarCollapsed} />
-                )}
-              </SidebarGroup>
-            )}
-
-            {showSysGroup && (
-              <SidebarGroup title="Equipa" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-                {hasAccess(userRole, 'gestores') && (
-                  <SidebarItem icon={UserCheck} label="Gestores" active={activeTab === 'gestores'} onClick={() => handleNavigate('gestores')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'equipa-oficina') && (
-                  <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => handleNavigate('equipa-oficina')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'supervisores') && (
-                  <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => handleNavigate('supervisores')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'motoristas') && (
-                  <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => handleNavigate('motoristas')} collapsed={isSidebarCollapsed} />
-                )}
-              </SidebarGroup>
-            )}
-
-            {showFinGroup && (
-              <SidebarGroup title="Financeiro" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-                {hasAccess(userRole, 'contabilidade') && (
-                  <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'centros_custos') && (
-                  <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'fornecedores') && (
-                  <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'clientes') && (
-                  <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />
-                )}
-                {hasAccess(userRole, 'relatorios') && (
-                  <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => handleNavigate('relatorios')} collapsed={isSidebarCollapsed} />
-                )}
-              </SidebarGroup>
-            )}
-
-            {/* 6. SISTEMA */}
-            <SidebarGroup title="Sistema" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-              {hasAccess(userRole, 'utilizadores') && (
-                <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => handleNavigate('admin_users')} collapsed={isSidebarCollapsed} />
-              )}
-              {hasAccess(userRole, 'permissoes') && (
-                <SidebarItem icon={Shield} label="Gestão de Permissões" active={activeTab === 'permissions'} onClick={() => handleNavigate('permissions')} collapsed={isSidebarCollapsed} />
-              )}
-            </SidebarGroup>
-
-            {/* 7. COMUNICAÇÃO */}
-            <SidebarGroup title="Comunicação" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-              {hasAccess(userRole, 'mensagens') && (
-                <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => handleNavigate('mensagens')} badge={unreadCount > 0 ? unreadCount : undefined} collapsed={isSidebarCollapsed} />
-              )}
-            </SidebarGroup>
-
-          </nav>
-
-          {/* USER PROFILE */}
-          <div className={`${isSidebarCollapsed ? 'px-2' : ''} transition-all duration-300`}>
-            <UserProfileMenu onNavigate={() => handleNavigate('meu-perfil')} showName={!isSidebarCollapsed} />
-          </div>
-        </aside>
-
-        {/* MAIN CONTENT */}
-        <main className="flex-1 flex flex-col w-full h-full overflow-hidden bg-transparent relative z-10 p-0 m-0 transition-all duration-300">
-          {/* Mobile Header - Only visible on mobile */}
-          <header className="md:hidden bg-[#0b1121]/95 backdrop-blur-md border-b border-slate-800/60 sticky top-0 z-30 shrink-0 flex items-center px-4 h-14 gap-3" style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}>
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 -ml-1 text-slate-400 active:text-white active:bg-slate-800 rounded-xl transition-colors"
-              aria-label="Abrir menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => isAuthenticated && handleNavigate(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}
-              className="flex items-center flex-1 min-w-0"
-            >
-              <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="h-8 w-auto object-contain" />
-            </button>
-            <span className="text-slate-400 text-xs font-bold truncate max-w-[120px] text-right">{TAB_LABELS[activeTab] || 'Menu'}</span>
-          </header>
-
-
-          {/* Mobile Drawer — slide in from LEFT with backdrop */}
-          {isMobileMenuOpen && (
-            <div className="fixed inset-0 z-[60] md:hidden">
-              {/* Backdrop */}
-              <div
-                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              {/* Drawer panel */}
-              <div
-                className="absolute left-0 top-0 h-full w-[85vw] max-w-sm bg-[#0b1121] border-r border-slate-800/60 flex flex-col shadow-2xl"
-                style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', animation: 'slideInLeft 0.25s cubic-bezier(0.32,0.72,0,1)' }}
-              >
-                {/* Drawer Header */}
-                <div className="h-14 border-b border-slate-800/60 flex items-center justify-between px-4 flex-shrink-0 bg-gradient-to-r from-slate-900/80 to-transparent">
-                  <button onClick={() => isAuthenticated && handleNavigate(userRole === 'motorista' ? 'central-motorista' : 'dashboard')}>
-                    <img src="/logo-algar-frota.png?v=4" alt="Gestão Frota" className="h-8 object-contain" />
-                  </button>
-                  <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-500 active:text-white active:bg-slate-800 rounded-xl transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                {/* Mobile Nav */}
-                <nav className="flex-1 overflow-y-auto custom-scrollbar px-2 py-3 space-y-0.5">
-                  {/* Reuse Sidebar Groups logic or flat list? Mobile usually prefers flat or accordion too. Let's try to mimic the structure but maybe simpler. */}
-                  {/* For constraints, I will keep the mobile menu somewhat similar to desktop but maybe flat is easier for touch, but user requested order. I will use the same structure for consistency. */}
-
-                  {/* MAIN MENU */}
-                  {hasAccess(userRole, 'dashboard') && (
-                    <>
-                      <SidebarItem
-                        icon={LayoutDashboard}
-                        label="Dashboard"
-                        active={activeTab === 'dashboard'}
-                        onClick={() => { handleNavigate('dashboard'); setIsMobileMenuOpen(false); }}
-                      />
-                      {(userRole === 'admin' || userRole === 'gestor') && (
-                        <SidebarItem
-                          icon={Activity}
-                          label="Controlo Operacional"
-                          active={activeTab === 'controlo-operacional'}
-                          onClick={() => { handleNavigate('controlo-operacional'); setIsMobileMenuOpen(false); }}
-                        />
-                      )}
-                    </>
-                  )}
-
-                  {/* 1. GESTÃO DE FROTA */}
-                  {showFleetGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Gestão de Frota</div>}
-                  {hasAccess(userRole, 'central_motorista') && (
-                    <SidebarItem icon={UserCog} label="Central Motorista" active={activeTab === 'central-motorista'} onClick={() => { handleNavigate('central-motorista'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'viaturas') && (
-                    <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => { handleNavigate('viaturas'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'geofences') && (
-                    <SidebarItem icon={MapPin} label="Geofences (Cartrack)" active={activeTab === 'geofences'} onClick={() => { handleNavigate('geofences'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
-                    <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => { handleNavigate('locais'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {userRole === 'admin' && (
-                    <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => { handleNavigate('avaliacao'); setIsMobileMenuOpen(false); }} />
-                  )}
-
-                  {/* 2. OPERAÇÕES */}
-                  {showOpsGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Operações</div>}
-                  {hasAccess(userRole, 'escalas') && (
-                    <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => { handleNavigate('escalas'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'escalas_create') && (
-                    <SidebarItem icon={LayoutTemplate} label="Lançar Escalas" active={activeTab === 'lancar-escala'} onClick={() => { handleNavigate('lancar-escala'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'horas') && (
-                    <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => { handleNavigate('horas'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'plataformas_externas') && (
-                    <SidebarItem icon={Bus} label="Transportes EVA" active={activeTab === 'transportes-eva'} onClick={() => { handleNavigate('transportes-eva'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
-                    <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => { handleNavigate('via-verde'); setIsMobileMenuOpen(false); }} />
-                  )}
-
-                  {/* 3. OFICINA */}
-                  {(hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'requisicoes')) && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Oficina</div>}
-                  {hasAccess(userRole, 'combustivel') && (
-                    <SidebarItem icon={Fuel} label="Combustível" active={activeTab === 'combustivel'} onClick={() => { handleNavigate('combustivel'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'combustivel') && (
-                    <SidebarItem icon={Gauge} label="Eficiência da Frota" active={activeTab === 'eficiencia-frota'} onClick={() => { handleNavigate('eficiencia-frota'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'requisicoes') && (
-                    <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => { handleNavigate('requisicoes'); setIsMobileMenuOpen(false); }} />
-                  )}
-
-                  {/* 4. EQUIPA */}
-                  {showSysGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Equipa</div>}
-                  {hasAccess(userRole, 'gestores') && (
-                    <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => { handleNavigate('gestores'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'equipa-oficina') && (
-                    <SidebarItem icon={Hammer} label="Equipa Oficina" active={activeTab === 'equipa-oficina'} onClick={() => { handleNavigate('equipa-oficina'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'supervisores') && (
-                    <SidebarItem icon={Eye} label="Supervisores" active={activeTab === 'supervisores'} onClick={() => { handleNavigate('supervisores'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'motoristas') && (
-                    <SidebarItem icon={Users} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => { handleNavigate('motoristas'); setIsMobileMenuOpen(false); }} />
-                  )}
-
-                  {/* 5. FINANCEIRO */}
-                  {showFinGroup && <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Financeiro</div>}
-                  {hasAccess(userRole, 'contabilidade') && (
-                    <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => { handleNavigate('contabilidade'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'centros_custos') && (
-                    <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => { handleNavigate('centros-custos'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'fornecedores') && (
-                    <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => { handleNavigate('fornecedores'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'clientes') && (
-                    <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => { handleNavigate('clientes'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {hasAccess(userRole, 'relatorios') && (
-                    <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'relatorios'} onClick={() => { handleNavigate('relatorios'); setIsMobileMenuOpen(false); }} />
-                  )}
-
-                  {/* 6. SISTEMA */}
-                  <SidebarGroup title="Sistema" defaultOpen={true}>
-                    {hasAccess(userRole, 'utilizadores') && (
-                      <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => { handleNavigate('admin_users'); setIsMobileMenuOpen(false); }} />
-                    )}
-                    {hasAccess(userRole, 'permissoes') && (
-                      <SidebarItem icon={Shield} label="Gestão de Permissões" active={activeTab === 'permissions'} onClick={() => { handleNavigate('permissions'); setIsMobileMenuOpen(false); }} />
-                    )}
-                  </SidebarGroup>
-
-                  {/* 7. COMUNICAÇÃO */}
-                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Comunicação</div>
-                  {hasAccess(userRole, 'mensagens') && (
-                    <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'mensagens'} onClick={() => { handleNavigate('mensagens'); setIsMobileMenuOpen(false); }} badge={unreadCount > 0 ? unreadCount : undefined} />
-                  )}
-
-
-                  <div className="pt-6 pb-2">
-                    <UserProfileMenu onNavigate={() => { handleNavigate('meu-perfil'); setIsMobileMenuOpen(false); }} />
-                  </div>
-                </nav>
+      {/* Sidebar - Desktop */}
+      <aside className={`fixed top-0 left-0 bottom-0 z-50 bg-[#0f172a] border-r border-slate-800/60 transition-all duration-300 flex flex-col ${isSidebarCollapsed ? 'w-20' : 'w-72'
+        } hidden lg:flex`}>
+        <div className="p-6 flex items-center justify-between">
+          {!isSidebarCollapsed && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/20">
+                <Truck className="w-6 h-6 text-white" />
+              </div>
+              <div className="leading-tight">
+                <span className="font-black text-white tracking-tighter text-lg uppercase block">SmartFleet</span>
+                <span className="text-[9px] font-black text-blue-500 tracking-[0.2em] uppercase opacity-70">Core Engine</span>
               </div>
             </div>
           )}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="p-2 rounded-lg hover:bg-slate-800/50 text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
 
-          <div className="flex-1 overflow-y-auto w-full relative flex flex-col custom-scrollbar">
-            {renderContent()}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+          {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
+            <SidebarItem
+              icon={Settings2}
+              label="Backoffice Master"
+              active={activeTab === 'backoffice'}
+              onClick={() => handleNavigate('backoffice')}
+              collapsed={isSidebarCollapsed}
+            />
+          )}
+
+          <div className="mt-8">
+            <SidebarItem
+              icon={LayoutDashboard}
+              label="Dashboard"
+              active={activeTab === 'dashboard'}
+              onClick={() => handleNavigate('dashboard')}
+              collapsed={isSidebarCollapsed}
+            />
+            <SidebarItem
+              icon={Activity}
+              label="Controlo Operacional"
+              active={activeTab === 'controlo-operacional'}
+              onClick={() => handleNavigate('controlo-operacional')}
+              collapsed={isSidebarCollapsed}
+            />
           </div>
 
-          {/* Chat Widget (Overlay) - Show only if NOT on messages page */}
-          {activeTab !== 'mensagens' && <ChatWidget />}
-        </main >
+          {!isSidebarCollapsed && <div className="h-px bg-slate-800/50 my-6 mx-2" />}
 
-        {/* NOTIFICATIONS DRAWER (Simplified) */}
-        {
-          showNotifications && (
-            <div className="absolute right-0 top-0 h-full w-80 bg-[#1e293b] border-l border-slate-700 shadow-2xl z-50 p-4 animate-in slide-in-from-right">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-white">Notificações</h3>
-                <button onClick={() => setShowNotifications(false)}><X className="w-5 h-5 text-slate-400" /></button>
+          {showOpsGroup && (
+            <SidebarGroup title="Operações" collapsed={isSidebarCollapsed}>
+              {hasAccess(userRole, 'escalas') && (
+                <>
+                  <SidebarItem icon={Calendar} label="Escalas Recentes" active={activeTab === 'escalas'} onClick={() => handleNavigate('escalas')} collapsed={isSidebarCollapsed} />
+                  <SidebarItem icon={LayoutTemplate} label="Planear Escala" active={activeTab === 'lancar-escalas'} onClick={() => handleNavigate('lancar-escalas')} collapsed={isSidebarCollapsed} />
+                </>
+              )}
+              {hasAccess(userRole, 'roteirizacao') && (
+                <SidebarItem icon={Navigation} label="Roteirização" active={activeTab === 'roteirizacao'} onClick={() => handleNavigate('roteirizacao')} collapsed={isSidebarCollapsed} />
+              )}
+              {hasAccess(userRole, 'geofences') && (
+                <SidebarItem icon={MapPin} label="Cercas Geográficas" active={activeTab === 'geofences'} onClick={() => handleNavigate('geofences')} collapsed={isSidebarCollapsed} />
+              )}
+              {hasAccess(userRole, 'locais') && (
+                <SidebarItem icon={MapPin} label="Pontos de Interesse" active={activeTab === 'locais'} onClick={() => handleNavigate('locais')} collapsed={isSidebarCollapsed} />
+              )}
+              {hasAccess(userRole, 'avaliacao_drivers') && (
+                <SidebarItem icon={Award} label="Performance Motoristas" active={activeTab === 'avaliacao-drivers'} onClick={() => handleNavigate('avaliacao-drivers')} collapsed={isSidebarCollapsed} />
+              )}
+            </SidebarGroup>
+          )}
+
+          {showTechGroup && (
+            <SidebarGroup title="Frota e Equipa" collapsed={isSidebarCollapsed}>
+              {hasAccess(userRole, 'viaturas') && (
+                <SidebarItem icon={Car} label="Viaturas" active={activeTab === 'viaturas'} onClick={() => handleNavigate('viaturas')} collapsed={isSidebarCollapsed} />
+              )}
+              {hasAccess(userRole, 'escalas') && (
+                <SidebarItem icon={Calendar} label="Controlo de Escalas" active={activeTab === 'escalas-history'} onClick={() => handleNavigate('escalas-history')} collapsed={isSidebarCollapsed} />
+              )}
+              {hasAccess(userRole, 'motoristas') && (
+                <SidebarItem icon={UserCogIcon} label="Equipa Motoristas" active={activeTab === 'motoristas'} onClick={() => handleNavigate('motoristas')} collapsed={isSidebarCollapsed} />
+              )}
+              {hasAccess(userRole, 'horas') && (
+                <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => handleNavigate('horas')} collapsed={isSidebarCollapsed} />
+              )}
+              {hasAccess(userRole, 'combustivel') && (
+                <>
+                  <SidebarItem icon={Fuel} label="Atestos" active={activeTab === 'combustivel'} onClick={() => handleNavigate('combustivel')} collapsed={isSidebarCollapsed} />
+                  <SidebarItem icon={Gauge} label="Eficiência de Frota" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} collapsed={isSidebarCollapsed} />
+                </>
+              )}
+              {hasAccess(userRole, 'requisicoes') && (
+                <SidebarItem icon={ClipboardCheck} label="Requisições de Peças" active={activeTab === 'requisicoes'} onClick={() => handleNavigate('requisicoes')} collapsed={isSidebarCollapsed} />
+              )}
+            </SidebarGroup>
+          )}
+
+          {showFinGroup && (
+            <SidebarGroup title="Administração" collapsed={isSidebarCollapsed}>
+              {hasAccess(userRole, 'utilizadores') && <SidebarItem icon={UserCheck} label="Fichas de Perfil" active={activeTab === 'utilizadores'} onClick={() => handleNavigate('utilizadores')} collapsed={isSidebarCollapsed} />}
+              {hasAccess(userRole, 'equipa-oficina') && <SidebarItem icon={Hammer} label="Técnicos Oficina" active={activeTab === 'equipa-oficina'} onClick={() => handleNavigate('equipa-oficina')} collapsed={isSidebarCollapsed} />}
+              {hasAccess(userRole, 'gestores') && <SidebarItem icon={Shield} label="Quadro de Gestores" active={activeTab === 'gestores'} onClick={() => handleNavigate('gestores')} collapsed={isSidebarCollapsed} />}
+              <SidebarItem
+                icon={MessageSquare}
+                label="Central de Mensagens"
+                active={activeTab === 'mensagens'}
+                onClick={() => handleNavigate('mensagens')}
+                badge={unreadCount}
+                collapsed={isSidebarCollapsed}
+              />
+            </SidebarGroup>
+          )}
+
+          <SidebarGroup title="Área Financeira" collapsed={isSidebarCollapsed}>
+            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'centros_custos') && (
+              <>
+                <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={Truck} label="Base Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={Briefcase} label="Portefólio Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />
+              </>
+            )}
+            {hasAccess(userRole, 'relatorios') && <SidebarItem icon={BarChart3} label="Centro Analytics" active={activeTab === 'relatorios'} onClick={() => handleNavigate('relatorios')} collapsed={isSidebarCollapsed} />}
+          </SidebarGroup>
+        </div>
+
+        <UserProfileMenu onNavigate={handleNavigate} showName={!isSidebarCollapsed} />
+      </aside>
+
+      {/* Main Content */}
+      <main className={`flex-1 transition-all duration-300 min-h-screen pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
+        <div className="p-4 md:p-8 lg:p-12 animate-in fade-in duration-500">
+          <ChatProvider>
+            <Suspense fallback={
+              <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
+                <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
               </div>
-              <div className="space-y-2">
-                {notifications.slice(0, 10).map(n => (
-                  <div key={n.id} className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 text-sm">
-                    <p className="font-bold text-white capitalize">{n.type.replace('_', ' ')}</p>
-                    <p className="text-xs text-slate-400">{n.timestamp}</p>
-                    {/* Actions could go here */}
-                  </div>
-                ))}
+            }>
+              {renderContent()}
+            </Suspense>
+          </ChatProvider>
+        </div>
+      </main>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <aside className="relative w-80 max-w-[85vw] h-full bg-[#0f172a] shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+            <div className="p-6 flex items-center justify-between border-b border-slate-800/60">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-black text-white uppercase tracking-tighter">SmartFleet</span>
               </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 rounded-lg bg-slate-800/50 text-slate-500 transition-all border border-slate-700/50"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
-          )
-        }
-      </div>
-    </div >
-  );
-}
-
-// Final cleanup
-function App() {
-  // const { isAuthenticated } = useAuth(); // Unused now
-
-  return (
-
-    <ChatProvider>
-      <FinancialProvider>
-        <AppContent />
-      </FinancialProvider>
-    </ChatProvider>
-
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleNavigate('dashboard')} />
+              <SidebarItem icon={Activity} label="Operacional" active={activeTab === 'controlo-operacional'} onClick={() => handleNavigate('controlo-operacional')} />
+              {/* Simplified mobile list */}
+              <div className="h-px bg-slate-800/50 my-4" />
+              <SidebarItem icon={Truck} label="Frota" active={activeTab === 'viaturas'} onClick={() => handleNavigate('viaturas')} />
+              <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => handleNavigate('escalas')} />
+            </div>
+            <UserProfileMenu onNavigate={handleNavigate} />
+          </aside>
+        </div>
+      )}
+    </div>
   );
 }
 
 export default App;
-

@@ -24,7 +24,7 @@ export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes
     'geofences' |
     'locais' |
     'gestores' |
-    'avaliacao' |
+    'avaliacao_drivers' |
     'roteirizacao' |
     'via_verde';
 
@@ -64,7 +64,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'dashboard',
         'mensagens',
         'geofences',
-        'locais', 'avaliacao',
+        'locais', 'avaliacao_drivers',
         'central_navegacao', 'central_recibos'
     ],
     motorista: [
@@ -94,8 +94,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'motoristas', 'fornecedores', 'equipa-oficina', 'plataformas_externas',
         'supervisores', 'clientes', 'relatorios',
         'dashboard', 'mensagens', 'geofences',
-        'central_navegacao', 'central_recibos',
-        'locais', 'avaliacao'
+        'locais', 'avaliacao_drivers'
     ],
     gestor: [
         'requisicoes', 'requisicoes_edit', 'requisicoes_delete',
@@ -115,8 +114,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
         'geofences',
         'supervisores',
         'clientes',
-        'central_navegacao', 'central_recibos',
-        'locais', 'avaliacao'
+        'locais', 'avaliacao_drivers'
     ]
 };
 
@@ -139,6 +137,7 @@ const LEGACY_MAP: Record<string, { module: SystemModule, action: PermissionActio
     'contabilidade': { module: 'financeiro', action: 'ver' },
     'geofences': { module: 'frota', action: 'ver' },
     'locais': { module: 'frota', action: 'ver' },
+    'avaliacao_drivers': { module: 'frota', action: 'ver' },
     'supervisores': { module: 'utilizadores', action: 'ver' },
     'gestores': { module: 'utilizadores', action: 'ver' },
     'configuracoes': { module: 'configuracoes', action: 'ver' },
