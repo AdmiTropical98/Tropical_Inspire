@@ -31,13 +31,16 @@ import { PermissionsProvider } from './contexts/PermissionsContext'
 
 import { WorkshopProvider } from './contexts/WorkshopContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ChatProvider } from './contexts/ChatContext'
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
     <WorkshopProvider>
       <AuthProvider>
         <PermissionsProvider>
-          <App />
+          <ChatProvider>
+            <App />
+          </ChatProvider>
         </PermissionsProvider>
       </AuthProvider>
     </WorkshopProvider>

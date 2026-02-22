@@ -1,36 +1,34 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { Servico } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import {
-    LayoutTemplate, Clock, FileText, Share2, AlertTriangle,
+    LayoutTemplate, Clock, FileText, AlertTriangle,
     Send, Car, Sun, Navigation, Calendar,
     Fuel, Settings2, ArrowRight,
-    CloudSun, CloudFog, CloudLightning, CloudRain, Snowflake, Star
+    CloudSun, CloudLightning, CloudRain, Snowflake, Star, Info
 } from 'lucide-react';
 import MyScheduleView from './MyScheduleView';
 import NavigationApp from './NavigationApp';
 import TagRegistrationModal from '../../components/common/TagRegistrationModal';
 import { supabase } from '../../lib/supabase';
-import { usePermissions } from '../../contexts/PermissionsContext';
 import { cleanTagId } from '../../services/cartrack';
 
 export default function CentralMotorista() {
     const { t } = useTranslation();
     const { currentUser } = useAuth();
-    const { motoristas, services, vehicles, updateService, updateMotorista } = useWorkshop();
-    const { can } = usePermissions();
+    const { motoristas, servicos, viaturas, updateServico, updateMotorista } = useWorkshop();
 
     const [activeTab, setActiveTab] = useState<'status' | 'servicos' | 'info' | 'viatura' | 'report' | 'recibos'>('status');
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [selectedService, setSelectedService] = useState<any>(null);
     const [navigationOpen, setNavigationOpen] = useState(false);
     const [tagModalOpen, setTagModalOpen] = useState(false);
 
     // Get current driver data
     const driver = motoristas.find(m => m.id === currentUser?.id);
-    const driverServices = services.filter(s => s.motoristaId === currentUser?.id);
-    const assignedVehicle = vehicles.find(v => v.id === driver?.vehicleId);
+    const driverServices = servicos.filter(s => s.motoristaId === currentUser?.id);
+    const assignedVehicle = viaturas.find(v => v.id === (driver as any)?.vehicleId || v.matricula === driver?.currentVehicle);
 
     // Weather Simulation
     const getWeatherIcon = () => {
@@ -47,7 +45,8 @@ export default function CentralMotorista() {
 
     const handleServiceUpdate = async (service: any) => {
         try {
-            await updateService(service.id, {
+            await updateServico({
+                ...service,
                 status: service.status,
                 concluido: service.concluido,
                 failureReason: service.failureReason
@@ -77,7 +76,7 @@ export default function CentralMotorista() {
                 .eq('id', currentUser.id);
 
             if (error) throw error;
-            await updateMotorista(currentUser.id, { tagId: cleaned });
+            if (driver) updateMotorista({ ...driver, cartrackKey: cleaned });
             alert('Tag registada com sucesso!');
         } catch (err) {
             console.error('Error saving tag:', err);
@@ -194,7 +193,7 @@ export default function CentralMotorista() {
                                                 </div>
                                                 <span className="text-[10px] font-black bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full uppercase tracking-tighter">Hoje</span>
                                             </div>
-                                            <h3 className="text-4xl font-black text-white mb-1">{driverServices.filter(s => s.status === 'scheduled').length}</h3>
+                                            <h3 className="text-4xl font-black text-white mb-1">{driverServices.filter((s: Servico) => s.status === 'pending').length}</h3>
                                             <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Serviços Pendentes</p>
                                         </div>
 
@@ -205,7 +204,7 @@ export default function CentralMotorista() {
                                                 </div>
                                                 <span className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full uppercase tracking-tighter">Total</span>
                                             </div>
-                                            <h3 className="text-4xl font-black text-white mb-1">{driverServices.filter(s => s.status === 'completed').length}</h3>
+                                            <h3 className="text-4xl font-black text-white mb-1">{driverServices.filter((s: Servico) => s.status === 'completed').length}</h3>
                                             <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Serviços Concluídos</p>
                                         </div>
 
@@ -222,7 +221,7 @@ export default function CentralMotorista() {
                                     </div>
 
                                     {/* Next Service Teaser */}
-                                    {driverServices.filter(s => s.status === 'scheduled').length > 0 && (
+                                    {driverServices.filter((s: Servico) => s.status === 'pending').length > 0 && (
                                         <div className="bg-gradient-to-br from-indigo-900/40 to-slate-900 p-8 rounded-[40px] border border-white/5 shadow-2xl relative overflow-hidden group">
                                             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[100px] -mr-32 -mt-32"></div>
                                             <div className="relative z-10">
@@ -234,13 +233,13 @@ export default function CentralMotorista() {
                                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
                                                     <div className="flex-1">
                                                         <h2 className="text-4xl font-black text-white tracking-tight mb-4">
-                                                            {driverServices.filter(s => s.status === 'scheduled')[0].destino}
+                                                            {driverServices.filter((s: Servico) => s.status === 'pending')[0].destino}
                                                         </h2>
                                                         <div className="flex flex-wrap gap-4">
                                                             <div className="flex items-center gap-2 bg-slate-950/50 px-4 py-2 rounded-2xl border border-white/5">
                                                                 <Clock className="w-4 h-4 text-slate-400" />
                                                                 <span className="text-sm font-bold text-white">
-                                                                    {driverServices.filter(s => s.status === 'scheduled')[0].hora}
+                                                                    {driverServices.filter((s: Servico) => s.status === 'pending')[0].hora}
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center gap-2 bg-slate-950/50 px-4 py-2 rounded-2xl border border-white/5">
@@ -265,16 +264,17 @@ export default function CentralMotorista() {
                                     {navigationOpen && (
                                         <NavigationApp
                                             onBack={() => setNavigationOpen(false)}
-                                            destination={driverServices.filter(s => s.status === 'scheduled')[0]?.destino}
+                                            destination={driverServices.filter((s: Servico) => s.status === 'pending')[0]?.destino}
                                             vehicleRegistration={assignedVehicle?.matricula}
                                         />
                                     )}
 
-                                    <TagRegistrationModal
-                                        isOpen={tagModalOpen}
-                                        onClose={() => setTagModalOpen(false)}
-                                        onDetected={handleTagRegistered}
-                                    />
+                                    {tagModalOpen && (
+                                        <TagRegistrationModal
+                                            onClose={() => setTagModalOpen(false)}
+                                            onDetected={handleTagRegistered}
+                                        />
+                                    )}
                                 </div>
                             )}
 
@@ -305,7 +305,7 @@ export default function CentralMotorista() {
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Quilometragem</p>
-                                                <p className="text-white font-bold">{assignedVehicle?.km?.toLocaleString()} km</p>
+                                                <p className="text-white font-bold">{(assignedVehicle as any)?.km?.toLocaleString() || '---'} km</p>
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Próxima Inspeção</p>

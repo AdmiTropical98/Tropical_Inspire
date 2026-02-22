@@ -38,10 +38,11 @@ const ABSOLUTE_SAFETY_LIST = [
 ];
 
 interface TagRegistrationModalProps {
-    onSave: (tagId: string) => Promise<void>;
+    onDetected: (tagId: string) => Promise<void>;
+    onClose: () => void;
 }
 
-export default function TagRegistrationModal({ onSave }: TagRegistrationModalProps) {
+export default function TagRegistrationModal({ onDetected, onClose }: TagRegistrationModalProps) {
     const { cartrackDrivers, motoristas, refreshData } = useWorkshop();
     const [tagInput, setTagInput] = useState('');
     const [status, setStatus] = useState<{ type: 'idle' | 'valid' | 'invalid' | 'taken', message?: string }>({ type: 'idle' });
@@ -161,7 +162,7 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
                 if (safeId) match = { tagId: safeId };
             }
 
-            await onSave(match?.tagId || tagInput.trim());
+            await onDetected(match?.tagId || tagInput.trim());
         } catch (err: any) {
             setError(err.message || 'Erro ao gravar Tag.');
             setIsSaving(false);
@@ -171,7 +172,13 @@ export default function TagRegistrationModal({ onSave }: TagRegistrationModalPro
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                <div className="p-8">
+                <div className="p-8 relative">
+                    <button
+                        onClick={onClose}
+                        className="absolute right-4 top-4 text-slate-500 hover:text-white transition-colors"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                     <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 mb-6 mx-auto">
                         <CreditCard className="w-8 h-8 text-blue-500" />
                     </div>

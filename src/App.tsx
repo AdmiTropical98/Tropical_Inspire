@@ -1,16 +1,16 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
-  LayoutDashboard, Users, UserCog, Car, MessageSquare, Menu,
+  LayoutDashboard, Car, MessageSquare, Menu,
   Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Award, LayoutTemplate,
   ChevronDown, ChevronRight, UserCheck, Activity,
   Gauge, Settings2, UserCog as UserCogIcon, User as UserIcon, LogOut,
-  ClipboardCheck
+  ClipboardCheck, Navigation
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
 import { usePermissions } from './contexts/PermissionsContext';
-import { ChatProvider, useChat } from './contexts/ChatContext';
+import { useChat } from './contexts/ChatContext';
 
 // Components
 import Login from './pages/Auth/Login';
@@ -36,30 +36,16 @@ import LancarEscalaTab from './pages/LancarEscala';
 import ControloOperacionalTab from './pages/ControloOperacional';
 
 // Lazy loading backoffice
-const Backoffice = lazy(() => import('./pages/Backoffice'));
-const CentralMotorista = lazy(() => import('./pages/CentralMotorista/index'));
-const Supervisores = lazy(() => import('./pages/Supervisores/index'));
-const CentrosCustos = lazy(() => import('./pages/CentrosCustos/index'));
-const Clientes = lazy(() => import('./pages/Clientes/index'));
-const Relatorios = lazy(() => import('./pages/Relatorios/index'));
-const Mensagens = lazy(() => import('./pages/Chat/index'));
+const Backoffice = lazy(() => import('./pages/Backoffice/index'));
+const CentralMotorista = lazy(() => import('./pages/CentralMotorista'));
+const Supervisores = lazy(() => import('./pages/Supervisores'));
+const CentrosCustos = lazy(() => import('./pages/CentrosCustos'));
+const Clientes = lazy(() => import('./pages/Clientes'));
+const Relatorios = lazy(() => import('./pages/Relatorios'));
+const Mensagens = lazy(() => import('./pages/Chat'));
 const Profile = lazy(() => import('./pages/Profile/MyProfile'));
 
 // TAB_LABELS removed (unused)
-
-const TAB_ICONS: Record<string, any> = {
-  'dashboard': LayoutDashboard,
-  'backoffice': Settings2,
-  'admin_users': Users,
-  'permissions': Shield,
-  'viaturas': Car,
-  'motoristas': UserCog,
-  'requisicoes': ClipboardCheck,
-  'escalas': Calendar,
-  'horas': Clock,
-  'combustivel': Fuel,
-  'email-confirmation': MessageSquare
-};
 
 interface SidebarItemProps {
   icon: any;
@@ -180,13 +166,13 @@ function App() {
   const showFinGroup = hasAccess(userRole, 'contabilidade') || hasAccess(userRole, 'centros_custos') || hasAccess(userRole, 'fornecedores') || hasAccess(userRole, 'clientes') || hasAccess(userRole, 'relatorios');
 
   if (!isAuthenticated) {
-    if (activeTab === 'reset-password') return <ResetPassword onBack={() => handleNavigate('login')} />;
-    return <Login onLoginSuccess={() => handleNavigate('dashboard')} onForgotPassword={() => handleNavigate('reset-password')} />;
+    if (activeTab === 'reset-password') return <ResetPassword />;
+    return <Login />;
   }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard setActiveTab={handleNavigate} />;
       case 'backoffice': return <Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>;
       case 'viaturas': return <Viaturas />;
       case 'motoristas': return <Drivers />;
@@ -213,7 +199,7 @@ function App() {
       case 'centros-custos': return <Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>;
       case 'clientes': return <Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>;
       case 'relatorios': return <Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>;
-      default: return <Dashboard />;
+      default: return <Dashboard setActiveTab={handleNavigate} />;
     }
   };
 
@@ -372,16 +358,14 @@ function App() {
       {/* Main Content */}
       <main className={`flex-1 transition-all duration-300 min-h-screen pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
         <div className="p-4 md:p-8 lg:p-12 animate-in fade-in duration-500">
-          <ChatProvider>
-            <Suspense fallback={
-              <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
-                <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
-                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
-              </div>
-            }>
-              {renderContent()}
-            </Suspense>
-          </ChatProvider>
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
+              <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
+            </div>
+          }>
+            {renderContent()}
+          </Suspense>
         </div>
       </main>
 
