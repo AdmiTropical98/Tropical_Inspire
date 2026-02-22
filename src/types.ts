@@ -719,7 +719,7 @@ export interface OperationEvent {
     category: OperationCategory;
     title: string;
     description?: string;
-    related_entity?: string;
+    entity_id?: string;
     status: 'open' | 'in_progress' | 'resolved' | 'closed';
     priority: 'low' | 'normal' | 'high' | 'critical';
     created_at: string;

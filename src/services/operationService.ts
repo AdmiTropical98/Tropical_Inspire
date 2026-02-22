@@ -78,7 +78,7 @@ export async function createOperationEvent(
     title: string,
     description?: string,
     priority: OperationEvent['priority'] = 'normal',
-    relatedEntity?: string
+    entityId?: string
 ) {
     try {
         const { data, error } = await supabase
@@ -88,7 +88,7 @@ export async function createOperationEvent(
                 title,
                 description,
                 priority,
-                related_entity: relatedEntity,
+                entity_id: entityId,
                 status: 'open'
             })
             .select()

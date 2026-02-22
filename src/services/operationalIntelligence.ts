@@ -14,7 +14,7 @@ export async function auditDriversWithoutVehicles(drivers: Motorista[]) {
             .from('operation_events')
             .select('id')
             .eq('category', 'equipa')
-            .eq('related_entity', driver.id)
+            .eq('entity_id', driver.id)
             .eq('status', 'open')
             .single();
 
@@ -49,7 +49,7 @@ export async function auditFleetFuelStatus(vehicles: Viatura[], transactions: Fu
                 .from('operation_events')
                 .select('id')
                 .eq('category', 'frota')
-                .eq('related_entity', vehicle.id)
+                .eq('entity_id', vehicle.id)
                 .eq('status', 'open')
                 .single();
 

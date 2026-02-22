@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.operation_events (
     category TEXT NOT NULL CHECK (category IN ('alert', 'schedule', 'fleet', 'team', 'general', 'escalas', 'equipa', 'frota', 'geral')),
     title TEXT NOT NULL,
     description TEXT,
-    related_entity UUID,
+    entity_id UUID,
     status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
     priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'critical')),
     created_at TIMESTAMPTZ DEFAULT now()
