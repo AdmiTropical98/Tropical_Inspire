@@ -5,8 +5,9 @@ import L from 'leaflet';
 import {
     MapPin, Plus, Trash2, Search, Navigation,
     Hotel, Plane, Wrench, Map as MapIcon, Save, X, Loader2, Globe, LayoutGrid,
-    ArrowRight
+    ArrowRight, Settings
 } from 'lucide-react';
+
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
@@ -65,7 +66,13 @@ function FlyToLocation({ location }: { location: { lat: number, lng: number } | 
 // --- Main Component ---
 
 export default function Locais() {
-    const { locais, addLocal, deleteLocal, updateLocal, centrosCustos, zonasOperacionais, addZonaOperacional, deleteZonaOperacional } = useWorkshop();
+    const {
+        locais, addLocal, deleteLocal, updateLocal,
+        centrosCustos,
+        zonasOperacionais, addZonaOperacional, deleteZonaOperacional,
+        areasOperacionais, addAreaOperacional, deleteAreaOperacional
+    } = useWorkshop();
+
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
 
@@ -166,6 +173,10 @@ export default function Locais() {
         area_operacional: ''
     });
 
+    const [newAreaName, setNewAreaName] = useState('');
+    const [isManagingAreas, setIsManagingAreas] = useState(false);
+
+
     const handleSaveZone = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!zoneFormData.nome_local || !zoneFormData.area_operacional) return;
@@ -177,6 +188,14 @@ export default function Locais() {
 
         setZoneFormData({ nome_local: '', area_operacional: '' });
     };
+
+    const handleAddArea = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newAreaName.trim()) return;
+        await addAreaOperacional({ nome: newAreaName.trim() });
+        setNewAreaName('');
+    };
+
 
     const handleMapClick = (lat: number, lng: number) => {
         if (userRole !== 'admin') return;
@@ -531,35 +550,81 @@ export default function Locais() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase block mb-2">Área Operacional</label>
-                                    <select
-                                        required
-                                        className="w-full bg-[#0f172a] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500"
-                                        value={zoneFormData.area_operacional}
-                                        onChange={e => setZoneFormData({ ...zoneFormData, area_operacional: e.target.value })}
-                                    >
-                                        <option value="">Selecionar zona...</option>
-                                        <option value="Albufeira">Albufeira</option>
-                                        <option value="Vilamoura">Vilamoura</option>
-                                        <option value="Quinta do Lago">Quinta do Lago</option>
-                                        <option value="Vale do Lobo">Vale do Lobo</option>
-                                        <option value="Quarteira">Quarteira</option>
-                                        <option value="Olhos de Água">Olhos de Água</option>
-                                        <option value="Faro">Faro</option>
-                                        <option value="Portimão">Portimão</option>
-                                        <option value="Lagos">Lagos</option>
-                                    </select>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase">Área Operacional</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsManagingAreas(!isManagingAreas)}
+                                            className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md transition-all ${isManagingAreas ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-slate-800 text-slate-400 hover:text-white border border-white/5'}`}
+                                        >
+                                            {isManagingAreas ? 'Fechar Gestão' : 'Gerir Áreas'}
+                                        </button>
+                                    </div>
+
+                                    {isManagingAreas ? (
+                                        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Nova área..."
+                                                    className="flex-1 bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-emerald-500"
+                                                    value={newAreaName}
+                                                    onChange={e => setNewAreaName(e.target.value)}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddArea}
+                                                    className="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-lg transition-all"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                                {areasOperacionais.length > 0 ? areasOperacionais.map(area => (
+                                                    <div key={area.id} className="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg border border-white/5 group">
+                                                        <span className="text-xs text-white truncate">{area.nome}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => deleteAreaOperacional(area.id)}
+                                                            className="text-slate-600 hover:text-red-400 p-1 transition-colors"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                )) : (
+                                                    <div className="text-[10px] text-slate-500 text-center py-2 italic">Nenhuma área definida</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            required
+                                            className="w-full bg-[#0f172a] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500 appearance-none cursor-pointer"
+                                            value={zoneFormData.area_operacional}
+                                            onChange={e => setZoneFormData({ ...zoneFormData, area_operacional: e.target.value })}
+                                        >
+                                            <option value="">Selecionar zona...</option>
+                                            {areasOperacionais.length > 0 ? areasOperacionais.map(area => (
+                                                <option key={area.id} value={area.nome}>{area.nome}</option>
+                                            )) : (
+                                                <option disabled>Adicione áreas primeiro...</option>
+                                            )}
+                                        </select>
+                                    )}
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2"
+                                    disabled={isManagingAreas}
+                                    className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${isManagingAreas ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20'}`}
                                 >
                                     <Save className="w-4 h-4" />
                                     Guardar Mapeamento
                                 </button>
                             </form>
                         </div>
+
 
                         {/* Zones List */}
                         <div className="flex-1 bg-[#1e293b]/30 border border-white/5 rounded-3xl overflow-hidden flex flex-col min-h-[400px]">

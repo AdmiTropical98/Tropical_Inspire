@@ -587,5 +587,13 @@ export interface ZonaOperacional {
     created_at?: string;
 }
 
+export interface AreaOperacional {
+    id: string;
+    nome: string;
+    color?: string;
+    created_at?: string;
+}
+
+
 
 

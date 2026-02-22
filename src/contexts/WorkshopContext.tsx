@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -44,6 +44,7 @@ interface WorkshopContextType {
     setServicos: React.Dispatch<React.SetStateAction<any[]>>;
     scaleBatches: ScaleBatch[];
     zonasOperacionais: ZonaOperacional[];
+    areasOperacionais: AreaOperacional[];
     geofences: CartrackGeofence[];
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
@@ -153,6 +154,12 @@ interface WorkshopContextType {
     addZonaOperacional: (z: Omit<ZonaOperacional, 'id' | 'created_at'>) => Promise<void>;
     updateZonaOperacional: (z: ZonaOperacional) => Promise<void>;
     deleteZonaOperacional: (id: string) => Promise<void>;
+
+    // NEW: Areas Operacionais CRUD
+    addAreaOperacional: (a: Omit<AreaOperacional, 'id' | 'created_at'>) => Promise<void>;
+    updateAreaOperacional: (a: AreaOperacional) => Promise<void>;
+    deleteAreaOperacional: (id: string) => Promise<void>;
+
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -202,6 +209,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [servicos, setServicos] = useState<any[]>([]);
     const [scaleBatches, setScaleBatches] = useState<ScaleBatch[]>([]);
     const [zonasOperacionais, setZonasOperacionais] = useState<ZonaOperacional[]>([]);
+    const [areasOperacionais, setAreasOperacionais] = useState<AreaOperacional[]>([]);
+
 
 
 
@@ -416,6 +425,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             } catch (e) {
                 console.error('Error fetching zonas_operacionais:', e);
             }
+
+            try {
+                const { data: ao } = await supabase.from('areas_operacionais').select('*');
+                if (ao) setAreasOperacionais(ao);
+            } catch (e) {
+                console.error('Error fetching areas_operacionais:', e);
+            }
+
 
             try {
                 const { data: f, error } = await supabase.from('fornecedores').select('*');
@@ -2292,6 +2309,33 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const addAreaOperacional = async (a: Omit<AreaOperacional, 'id' | 'created_at'>) => {
+        const { data, error } = await supabase.from('areas_operacionais').insert(a).select().single();
+        if (!error && data) {
+            setAreasOperacionais(prev => [...prev, data as AreaOperacional]);
+        } else if (error) {
+            console.error('Error adding area operacional:', error);
+        }
+    };
+
+    const updateAreaOperacional = async (a: AreaOperacional) => {
+        const { error } = await supabase.from('areas_operacionais').update(a).eq('id', a.id);
+        if (!error) {
+            setAreasOperacionais(prev => prev.map(item => item.id === a.id ? a : item));
+        } else {
+            console.error('Error updating area operacional:', error);
+        }
+    };
+
+    const deleteAreaOperacional = async (id: string) => {
+        const { error } = await supabase.from('areas_operacionais').delete().eq('id', id);
+        if (!error) {
+            setAreasOperacionais(prev => prev.filter(a => a.id !== id));
+        } else {
+            console.error('Error deleting area operacional:', error);
+        }
+    };
+
     return (
         <WorkshopContext.Provider value={{
             fornecedores,
@@ -2319,6 +2363,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             setServicos,
             scaleBatches,
             zonasOperacionais,
+            areasOperacionais,
             locais,
             addServico,
             updateServico,
@@ -2386,6 +2431,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addZonaOperacional,
             updateZonaOperacional,
             deleteZonaOperacional,
+            addAreaOperacional,
+            updateAreaOperacional,
+            deleteAreaOperacional,
+
             geofenceMappings,
             updateGeofenceMapping,
             getVehicleOccupancyHistory,
