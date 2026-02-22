@@ -179,7 +179,6 @@ export interface Motorista {
     cartrackKey?: string;
     cartrackId?: string;
     currentVehicle?: string;
-    role: 'MOTORISTA';
 }
 
 export interface Local {
@@ -710,5 +709,18 @@ export interface OperationMessage {
     sender_id: string;
     message: string;
     system_generated: boolean;
+    created_at: string;
+}
+
+export type OperationCategory = OperationType | 'escalas' | 'equipa' | 'frota' | 'geral';
+
+export interface OperationEvent {
+    id: string;
+    category: OperationCategory;
+    title: string;
+    description?: string;
+    related_entity?: string;
+    status: 'open' | 'in_progress' | 'resolved' | 'closed';
+    priority: 'low' | 'normal' | 'high' | 'critical';
     created_at: string;
 }

@@ -1,9 +1,8 @@
 import { supabase } from '../lib/supabase';
-import type { OperationType, OperationThread } from '../types';
+import type { OperationType, OperationThread, OperationEvent, OperationCategory } from '../types';
 
 /**
  * Creates a new operational thread in the database.
- * This is intended for use by system events like schedule conflicts, driver absence, or fleet alerts.
  */
 export async function createOperationalThread(
     type: OperationType,
@@ -68,5 +67,64 @@ export async function sendOperationMessage(
     } catch (err) {
         console.error('Unexpected error sending operation message:', err);
         return false;
+    }
+}
+
+/**
+ * Creates an operational event.
+ */
+export async function createOperationEvent(
+    category: OperationCategory,
+    title: string,
+    description?: string,
+    priority: OperationEvent['priority'] = 'normal',
+    relatedEntity?: string
+) {
+    try {
+        const { data, error } = await supabase
+            .from('operation_events')
+            .insert({
+                category,
+                title,
+                description,
+                priority,
+                related_entity: relatedEntity,
+                status: 'open'
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating operation event:', error);
+            return null;
+        }
+
+        return data as OperationEvent;
+    } catch (err) {
+        console.error('Unexpected error creating operation event:', err);
+        return null;
+    }
+}
+
+/**
+ * Fetches events for a specific category.
+ */
+export async function fetchOperationEvents(category: OperationCategory): Promise<OperationEvent[]> {
+    try {
+        const { data, error } = await supabase
+            .from('operation_events')
+            .select('*')
+            .eq('category', category)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching operation events:', error);
+            return [];
+        }
+
+        return data as OperationEvent[];
+    } catch (err) {
+        console.error('Unexpected error fetching operation events:', err);
+        return [];
     }
 }

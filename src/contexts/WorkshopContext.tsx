@@ -1100,6 +1100,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             await logServiceHistory(s.id, 'CREATE', null, confirmedService);
 
+            // Trigger Operational Event
+            import('../services/operationService').then(m => {
+                m.createOperationEvent(
+                    'escalas',
+                    `Nova escala criada: ${s.passageiro}`,
+                    `Nova escala registada para as ${s.hora} de ${s.origem} para ${s.destino}.`,
+                    'normal',
+                    s.id
+                );
+            });
+
             setServicos(prev => [...prev, confirmedService]);
 
         } catch (error: any) {
