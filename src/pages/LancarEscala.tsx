@@ -57,7 +57,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     }, []);
 
     // Access Control
-    if (userRole && !hasAccess(userRole, 'escalas_create')) {
+    if (userRole && !hasAccess(userRole as any, 'escalas_create')) {
         return (
             <div className="h-full flex flex-col items-center justify-center bg-[#0B1120] text-slate-400">
                 <AlertCircle className="w-12 h-12 mb-4 text-red-500 opacity-50" />

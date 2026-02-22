@@ -119,7 +119,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
 };
 
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
-    const { currentUser, userRole } = useAuth();
+    const { currentUser } = useAuth();
     const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_PERMISSIONS);
 
     // Initial Fetch from DB and Realtime Subscription
