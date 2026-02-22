@@ -95,10 +95,26 @@ export default function ChatPage() {
         return () => { supabase.removeChannel(channel); };
     }, [selectedThread]);
 
-    const filteredEvents = operationalEvents.filter(e =>
-        (e.category === selectedCategory || (selectedCategory === 'schedule' && e.category === 'escalas') || (selectedCategory === 'team' && e.category === 'equipa') || (selectedCategory === 'fleet' && e.category === 'frota')) &&
-        (e.title.toLowerCase().includes(searchTerm.toLowerCase()) || e.description?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredEvents = operationalEvents.filter(e => {
+        // Search filter matches title or description
+        const matchesSearch = e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            e.description?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        // If 'alert' is selected, show every event (Global Feed), otherwise filter by specific category
+        if (selectedCategory === 'alert') return true;
+
+        const categoryMap: Record<string, string[]> = {
+            'schedule': ['schedule', 'escalas'],
+            'fleet': ['fleet', 'frota'],
+            'team': ['team', 'equipa', 'motoristas'],
+            'general': ['general', 'geral']
+        };
+
+        const allowedSubCategories = categoryMap[selectedCategory as string] || [selectedCategory];
+        return allowedSubCategories.includes(e.category);
+    });
 
     const filteredThreads = operationalThreads.filter(t =>
         t.type === selectedCategory &&
@@ -195,8 +211,8 @@ export default function ChatPage() {
                                         <span className="font-bold text-xs text-white truncate">{event.title}</span>
                                     </div>
                                     <span className={`text-[8px] px-1.5 rounded-full border ${event.priority === 'critical' ? 'bg-red-500/20 border-red-500/50 text-red-500' :
-                                            event.priority === 'high' ? 'bg-orange-500/20 border-orange-500/50 text-orange-500' :
-                                                'bg-slate-700 border-slate-600 text-slate-400'
+                                        event.priority === 'high' ? 'bg-orange-500/20 border-orange-500/50 text-orange-500' :
+                                            'bg-slate-700 border-slate-600 text-slate-400'
                                         }`}>
                                         {event.priority}
                                     </span>
@@ -229,7 +245,7 @@ export default function ChatPage() {
                         {selectedEvent ? (
                             <div className="flex-1 p-6 flex flex-col items-center justify-center text-center space-y-4">
                                 <div className={`w-16 h-16 rounded-3xl flex items-center justify-center border shadow-2xl ${selectedEvent.priority === 'critical' ? 'bg-red-500/10 border-red-500/50 text-red-500' :
-                                        'bg-blue-500/10 border-blue-500/50 text-blue-500'
+                                    'bg-blue-500/10 border-blue-500/50 text-blue-500'
                                     }`}>
                                     <Bell className="w-8 h-8" />
                                 </div>
