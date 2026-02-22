@@ -3,8 +3,9 @@ import { useState, useMemo } from 'react';
 import { Shield, Plus, Trash2, AlertCircle, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Grid3x3, List, UserCheck, CheckCircle } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Gestor, Notification, UserRole } from '../../types';
+import type { Gestor, Notification, UserRole, UserProfile } from '../../types';
 import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
+import DoubleActionConfirmModal from '../../components/common/DoubleActionConfirmModal';
 import { supabase } from '../../lib/supabase';
 
 export default function Gestores() {
@@ -33,7 +34,9 @@ export default function Gestores() {
         allCostCenters: false,
         role: 'GESTOR'
     });
-    const [permissionUser, setPermissionUser] = useState<Gestor | null>(null);
+    const [permissionUser, setPermissionUser] = useState<Gestor | UserProfile | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, name: string } | null>(null);
+    const [adminCreateConfirm, setAdminCreateConfirm] = useState<boolean>(false);
 
     const pendingRequests = useMemo(() => {
         return notifications.filter(n =>
@@ -103,7 +106,19 @@ export default function Gestores() {
 
     const handleCreateGestor = async (e: React.FormEvent) => {
         e.preventDefault();
+        try {
+            if (newGestor.role === 'ADMIN' || newGestor.role === 'ADMIN_MASTER') {
+                setAdminCreateConfirm(true);
+                return;
+            }
+            await executeCreateGestor();
+        } catch (error: any) {
+            console.error("Erro ao criar gestor:", error);
+            alert(`Erro: ${error.message}`);
+        }
+    };
 
+    const executeCreateGestor = async () => {
         try {
             const { data: session } = await supabase.auth.getSession();
             const token = session.session?.access_token;
@@ -154,17 +169,15 @@ export default function Gestores() {
                 role: 'GESTOR'
             });
 
-            alert(`Convite enviado com sucesso para ${result.user.email}!\nO utilizador receberá um email para definir a password.`);
+            alert(`Convite enviado com sucesso para ${result.user.email}!`);
+            setAdminCreateConfirm(false);
         } catch (error: any) {
-            console.error("Erro ao criar gestor:", error);
             alert(`Erro: ${error.message}`);
         }
     };
 
     const handleDeleteGestor = (id: string, name: string) => {
-        if (confirm(`Tem a certeza que deseja eliminar o Gestor ${name}?`)) {
-            deleteGestor(id);
-        }
+        setDeleteConfirm({ id, name });
     };
 
     const handleSharePin = (user: Gestor, type: 'whatsapp' | 'sms') => {
@@ -223,11 +236,38 @@ export default function Gestores() {
                 <UserPermissionsModal
                     isOpen={true}
                     onClose={() => setPermissionUser(null)}
-                    user={permissionUser as any} // Cast safely as interfaces align on permissions
-                    role={"gestor" as any}
-                    onSave={(updated) => updateGestor(updated as any)}
+                    user={permissionUser}
+                    onSave={() => {
+                        // Refresh data if needed
+                    }}
                 />
             )}
+
+            {/* Deletion Confirmation */}
+            <DoubleActionConfirmModal
+                isOpen={!!deleteConfirm}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={() => {
+                    if (deleteConfirm) deleteGestor(deleteConfirm.id);
+                    setDeleteConfirm(null);
+                }}
+                title="Eliminar Utilizador"
+                message={`Deseja eliminar permanentemente o utilizador ${deleteConfirm?.name}? Esta ação não pode ser revertida.`}
+                requireTypeConfirm={true}
+                critical={true}
+            />
+
+            {/* Admin Creation Confirmation */}
+            <DoubleActionConfirmModal
+                isOpen={adminCreateConfirm}
+                onClose={() => setAdminCreateConfirm(false)}
+                onConfirm={executeCreateGestor}
+                title="Criar Administrador"
+                message={`Está prestes a convidar ${newGestor.email} como ${newGestor.role}. Administradores têm acesso a definições críticas do sistema.`}
+                requireTypeConfirm={true}
+                critical={false}
+                confirmText="Sim, Convidar Administrador"
+            />
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20">

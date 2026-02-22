@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
+import type { UserRole, SystemModule, PermissionAction, DetailedPermissions, UserProfile } from '../types';
+
 export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes_delete' |
     'viaturas' |
     'motoristas' |
@@ -33,13 +35,13 @@ export interface RolePermissions {
     gestor: PermissionModule[];
 }
 
-import type { UserRole } from '../types';
-
 interface PermissionsContextType {
-    permissions: RolePermissions;
+    permissions: RolePermissions; // Legacy permissions
+    roleDefaults: Record<UserRole, DetailedPermissions>; // Granular defaults
     updatePermission: (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', module: PermissionModule, hasAccess: boolean) => void;
     saveAllPermissions: (newPermissions: RolePermissions) => Promise<void>;
-    hasAccess: (role: UserRole | 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule) => boolean;
+    hasAccess: (role: UserRole | string | null, module: SystemModule | PermissionModule, action?: PermissionAction) => boolean;
+    updateGranularPermission: (userId: string, module: SystemModule, action: PermissionAction, hasAccess: boolean) => Promise<void>;
 }
 
 const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
@@ -118,22 +120,49 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
     ]
 };
 
+// Helper to map legacy modules to new granular system
+const LEGACY_MAP: Record<string, { module: SystemModule, action: PermissionAction }> = {
+    'requisicoes': { module: 'requisicoes', action: 'ver' },
+    'requisicoes_edit': { module: 'requisicoes', action: 'editar' },
+    'requisicoes_delete': { module: 'requisicoes', action: 'eliminar' },
+    'viaturas': { module: 'frota', action: 'ver' },
+    'motoristas': { module: 'frota', action: 'ver' },
+    'escalas': { module: 'escalas', action: 'ver' },
+    'escalas_create': { module: 'escalas', action: 'criar' },
+    'combustivel': { module: 'combustivel', action: 'ver' },
+    'combustivel_edit': { module: 'combustivel', action: 'editar' },
+    'horas': { module: 'horas', action: 'ver' },
+    'dashboard': { module: 'dashboard', action: 'ver' },
+    'mensagens': { module: 'mensagens', action: 'ver' },
+    'relatorios': { module: 'relatorios', action: 'ver' },
+    'centros_custos': { module: 'financeiro', action: 'ver' },
+    'contabilidade': { module: 'financeiro', action: 'ver' },
+    'geofences': { module: 'frota', action: 'ver' },
+    'locais': { module: 'frota', action: 'ver' },
+    'supervisores': { module: 'utilizadores', action: 'ver' },
+    'gestores': { module: 'utilizadores', action: 'ver' },
+    'configuracoes': { module: 'configuracoes', action: 'ver' },
+    'permissoes': { module: 'permissoes', action: 'ver' },
+};
+
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
-    const { currentUser } = useAuth();
+    const { currentUser, refreshCurrentUser } = useAuth();
     const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_PERMISSIONS);
+    const [roleDefaults, setRoleDefaults] = useState<Record<UserRole, DetailedPermissions>>({} as any);
 
     // Initial Fetch from DB and Realtime Subscription
     useEffect(() => {
         const fetchPermissions = async () => {
             try {
+                // 1. Fetch Legacy Permissions (individual role settings)
                 const { data, error } = await supabase
                     .from('app_settings')
                     .select('key, value')
                     .in('key', ['permissions_supervisor', 'permissions_motorista', 'permissions_oficina', 'permissions_gestor']);
 
                 if (error) {
-                    console.error('Error fetching permissions:', error);
-                    return;
+                    console.error('Error fetching legacy permissions:', error);
+                    // Continue to fetch granular defaults even if legacy fails
                 }
 
                 if (data && data.length > 0) {
@@ -155,6 +184,16 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
                         });
                         return nextPerms;
                     });
+                }
+
+                // 2. Fetch Granular Defaults
+                const { data: defaultsData } = await supabase.from('role_permissions_defaults').select('*');
+                if (defaultsData) {
+                    const defaultsMap: any = {};
+                    defaultsData.forEach(d => {
+                        defaultsMap[d.role] = d.permissions;
+                    });
+                    setRoleDefaults(defaultsMap);
                 }
             } catch (err) {
                 console.error('Unexpected error fetching permissions:', err);
@@ -266,40 +305,106 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         }
     };
 
-    const hasAccess = (role: UserRole | 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule): boolean => {
+    const updateGranularPermission = async (userId: string, module: SystemModule, action: PermissionAction, hasAccess: boolean) => {
+        try {
+            // Get current permissions from UserProfile
+            const { data: profile } = await supabase.from('user_profiles').select('permissions').eq('id', userId).single();
+            let currentPerms: DetailedPermissions = profile?.permissions || {};
+
+            const modulePerms = currentPerms[module] || [];
+            let newModulePerms: PermissionAction[] = [];
+
+            if (hasAccess) {
+                newModulePerms = Array.from(new Set([...modulePerms, action]));
+            } else {
+                newModulePerms = modulePerms.filter(a => a !== action);
+            }
+
+            const updatedPerms = { ...currentPerms, [module]: newModulePerms };
+
+            const { error } = await supabase
+                .from('user_profiles')
+                .update({ permissions: updatedPerms })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            // Log the change
+            await supabase.from('audit_logs').insert({
+                action: 'UPDATE_PERMISSIONS',
+                performed_by: (currentUser as UserProfile)?.id,
+                target_id: userId,
+                details: { module, action, granted: hasAccess }
+            });
+
+            await refreshCurrentUser();
+        } catch (error) {
+            console.error('Error updating granular permission:', error);
+            throw error;
+        }
+    };
+
+    const hasAccess = (
+        role: UserRole | string | null,
+        module: SystemModule | any,
+        action: PermissionAction = 'ver'
+    ): boolean => {
         if (!role) return false;
 
-        // Normalize role for comparison
-        const normalizedRole = role.toLowerCase();
+        const normalizedRole = role.toUpperCase();
+        if (normalizedRole === 'ADMIN_MASTER') return true;
 
-        if (normalizedRole === 'admin' || normalizedRole === 'admin_master') return true; // Admin always has access
+        // 1. Resolve Module and Action
+        let targetModule = module as SystemModule;
+        let targetAction = action;
 
-        // Map UserRole to RolePermissions keys if necessary
-        let roleKey: keyof RolePermissions | null = null;
-        if (normalizedRole === 'gestor') roleKey = 'gestor';
-        else if (normalizedRole === 'supervisor') roleKey = 'supervisor';
-        else if (normalizedRole === 'motorista') roleKey = 'motorista';
-        else if (normalizedRole === 'oficina') roleKey = 'oficina';
+        // If it's a legacy module string (e.g., 'requisicoes_edit'), map it
+        if (LEGACY_MAP[module]) {
+            targetModule = LEGACY_MAP[module].module;
+            targetAction = LEGACY_MAP[module].action;
+        }
 
-        if (!roleKey) return false;
-
-        // Check local permissions for other roles
-        const rolePerms = permissions[roleKey];
-        const allowedByRole = rolePerms ? rolePerms.includes(module) : false;
-
-        // Check for user-specific blocks
-        if (allowedByRole && currentUser) {
-            const blocked = (currentUser as any).blockedPermissions;
-            if (blocked && Array.isArray(blocked) && blocked.includes(module)) {
-                return false;
+        // 2. Check Individual Overrides First
+        const user = currentUser as UserProfile;
+        if (user && user.permissions) {
+            const userModulePerms = user.permissions[targetModule];
+            if (userModulePerms) {
+                return userModulePerms.includes(targetAction);
             }
         }
 
-        return allowedByRole;
+        // 3. Check for legacy blockedPermissions (backward compat)
+        if (user && (user as any).blockedPermissions) {
+            const blocked = (user as any).blockedPermissions;
+            if (blocked.includes(module)) return false;
+        }
+
+        // 4. Fallback to Role Defaults
+        const defaults = roleDefaults[normalizedRole as UserRole];
+        if (defaults) {
+            const modulePerms = defaults[targetModule];
+            return modulePerms ? modulePerms.includes(targetAction) : false;
+        }
+
+        // 5. Legacy list fallback
+        if (['GESTOR', 'SUPERVISOR', 'MOTORISTA', 'OFICINA'].includes(normalizedRole)) {
+            const legacyRoleKey = normalizedRole.toLowerCase() as keyof RolePermissions;
+            const legacyPerms = permissions[legacyRoleKey];
+            if (legacyPerms && (legacyPerms as any[]).includes(module)) return true;
+        }
+
+        return false;
     };
 
     return (
-        <PermissionsContext.Provider value={{ permissions, updatePermission, saveAllPermissions, hasAccess }}>
+        <PermissionsContext.Provider value={{
+            permissions,
+            roleDefaults,
+            updatePermission,
+            saveAllPermissions,
+            hasAccess,
+            updateGranularPermission
+        }}>
             {children}
         </PermissionsContext.Provider>
     );

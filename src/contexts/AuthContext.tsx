@@ -141,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             nome: profile?.nome || 'Utilizador',
                             role: (profile?.role || storedRole) as UserRole,
                             email_confirmed: data.user.email_confirmed_at !== null,
+                            permissions: profile?.permissions, // Load granular permissions
                             createdAt: data.user.created_at,
                             updatedAt: new Date().toISOString()
                         };
@@ -194,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     nome: profile?.nome || 'Utilizador',
                     role: roleToSave as UserRole,
                     email_confirmed: data.user.email_confirmed_at !== null,
+                    permissions: profile?.permissions, // Load granular permissions
                     createdAt: data.user.created_at,
                     updatedAt: new Date().toISOString()
                 };

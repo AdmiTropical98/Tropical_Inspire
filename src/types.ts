@@ -613,7 +613,30 @@ export interface EscalaTemplateItem {
     referencia?: string;
     obs?: string;
     created_at: string;
-}export type UserRole = 'ADMIN_MASTER' | 'ADMIN' | 'GESTOR' | 'SUPERVISOR' | 'OFICINA' | 'MOTORISTA';
+}
+
+export type PermissionAction = 'ver' | 'criar' | 'editar' | 'eliminar' | 'exportar' | 'aprovar';
+
+export type SystemModule =
+    | 'dashboard'
+    | 'frota'
+    | 'escalas'
+    | 'horas'
+    | 'combustivel'
+    | 'requisicoes'
+    | 'equipa'
+    | 'financeiro'
+    | 'relatorios'
+    | 'utilizadores'
+    | 'permissoes'
+    | 'mensagens'
+    | 'configuracoes';
+
+export type ModulePermissions = PermissionAction[];
+
+export type DetailedPermissions = Partial<Record<SystemModule, ModulePermissions>>;
+
+export type UserRole = 'ADMIN_MASTER' | 'ADMIN' | 'GESTOR' | 'SUPERVISOR' | 'OFICINA' | 'MOTORISTA';
 
 export interface UserProfile {
     id: string;
@@ -621,6 +644,7 @@ export interface UserProfile {
     nome?: string;
     role: UserRole;
     email_confirmed: boolean;
+    permissions?: DetailedPermissions; // Multi-level granular permissions
     activation_token?: string;
     token_expires_at?: string;
     last_login?: string;

@@ -508,10 +508,10 @@ function AppContent() {
 
             {/* 6. SISTEMA */}
             <SidebarGroup title="Sistema" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-              {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
+              {hasAccess(userRole, 'utilizadores') && (
                 <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => handleNavigate('admin_users')} collapsed={isSidebarCollapsed} />
               )}
-              {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
+              {hasAccess(userRole, 'permissoes') && (
                 <SidebarItem icon={Shield} label="Gestão de Permissões" active={activeTab === 'permissions'} onClick={() => handleNavigate('permissions')} collapsed={isSidebarCollapsed} />
               )}
             </SidebarGroup>
@@ -681,13 +681,14 @@ function AppContent() {
                   )}
 
                   {/* 6. SISTEMA */}
-                  <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Sistema</div>
-                  {userRole === 'admin' && (
-                    <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => { handleNavigate('admin_users'); setIsMobileMenuOpen(false); }} />
-                  )}
-                  {userRole === 'admin' && (
-                    <SidebarItem icon={Shield} label="Permissões" active={activeTab === 'permissions'} onClick={() => { handleNavigate('permissions'); setIsMobileMenuOpen(false); }} />
-                  )}
+                  <SidebarGroup title="Sistema" defaultOpen={true}>
+                    {hasAccess(userRole, 'utilizadores') && (
+                      <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => { handleNavigate('admin_users'); setIsMobileMenuOpen(false); }} />
+                    )}
+                    {hasAccess(userRole, 'permissoes') && (
+                      <SidebarItem icon={Shield} label="Gestão de Permissões" active={activeTab === 'permissions'} onClick={() => { handleNavigate('permissions'); setIsMobileMenuOpen(false); }} />
+                    )}
+                  </SidebarGroup>
 
                   {/* 7. COMUNICAÇÃO */}
                   <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 mt-6">Comunicação</div>
