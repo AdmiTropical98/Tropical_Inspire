@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -43,6 +43,7 @@ interface WorkshopContextType {
     servicos: any[];
     setServicos: React.Dispatch<React.SetStateAction<any[]>>;
     scaleBatches: ScaleBatch[];
+    zonasOperacionais: ZonaOperacional[];
     geofences: CartrackGeofence[];
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
@@ -195,6 +196,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     // NEW: Services State (Lifted)
     const [servicos, setServicos] = useState<any[]>([]);
     const [scaleBatches, setScaleBatches] = useState<ScaleBatch[]>([]);
+    const [zonasOperacionais, setZonasOperacionais] = useState<ZonaOperacional[]>([]);
 
 
 
@@ -403,6 +405,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             setDbConnectionError(null);
 
             // 1. Core Data
+            try {
+                const { data: zo } = await supabase.from('zonas_operacionais').select('*');
+                if (zo) setZonasOperacionais(zo);
+            } catch (e) {
+                console.error('Error fetching zonas_operacionais:', e);
+            }
+
             try {
                 const { data: f, error } = await supabase.from('fornecedores').select('*');
                 if (error) throw error;
@@ -2275,10 +2284,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             notifications,
             servicos,
             setServicos,
+            scaleBatches,
+            zonasOperacionais,
+            locais,
             addServico,
             updateServico,
             deleteServico,
-            locais,
             addLocal,
             updateLocal,
             deleteLocal,
@@ -2457,8 +2468,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             saveRoute,
             updateRouteStatus,
             logsOperacionais,
-            registerLog,
-            scaleBatches
+            registerLog
         }}>
             {children}
         </WorkshopContext.Provider >

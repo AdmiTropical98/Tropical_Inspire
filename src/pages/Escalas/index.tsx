@@ -4,7 +4,7 @@ import {
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, Car,
     Search, LayoutList, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid
+    Table as TableIcon, LayoutGrid, CloudLightning
 } from 'lucide-react';
 
 import {
@@ -33,6 +33,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, type GroupedTrip } from './EscalaAutomation';
 
 interface NewServiceState {
     hora: string;
@@ -91,7 +92,8 @@ export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
         updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
-        complianceStats, runComplianceDemo, locais, checkRouteValidation, scaleBatches, createScaleBatch
+        complianceStats, runComplianceDemo, locais, checkRouteValidation, scaleBatches, createScaleBatch,
+        zonasOperacionais, refreshData
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -160,16 +162,89 @@ export default function Escalas() {
 
     // Urgent Request State
     const [showUrgentModal, setShowUrgentModal] = useState(false);
-    const [urgentData, setUrgentData] = useState({
-        hora: '',
-        passageiro: '',
-        origem: '',
-        destino: '',
-        obs: ''
+    const [urgentData, setUrgentData] = useState({ hora: '12:00', passageiro: '', origem: '', destino: '', obs: '' });
+
+    // Automation States
+    const [showAutoModal, setShowAutoModal] = useState(false);
+    const [isAutoLoading, setIsAutoLoading] = useState(false);
+    const [automationTrips, setAutomationTrips] = useState<GroupedTrip[]>([]);
+    const [autoSettings, setAutoSettings] = useState({
+        albufeiraUrl: localStorage.getItem('auto_sheet_albufeira') || '',
+        quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || ''
     });
 
+    const handleRunAutomation = async () => {
+        setIsAutoLoading(true);
+        try {
+            const url = selectedCentroCusto === 'albufeira' ? autoSettings.albufeiraUrl : autoSettings.quarteiraUrl;
+            if (!url) {
+                alert('Por favor, configure o URL da folha nas Definições de Automação.');
+                return;
+            }
+
+            localStorage.setItem('auto_sheet_albufeira', autoSettings.albufeiraUrl);
+            localStorage.setItem('auto_sheet_quarteira', autoSettings.quarteiraUrl);
+
+            const rows = await fetchSheetCSV(url, selectedDate);
+            const rawServices = parseSheetToServices(rows, selectedDate, selectedCentroCusto);
+
+            // Initial grouping using exact locations + zones enrichment
+            const trips = groupServicesIntoTrips(rawServices, zonasOperacionais);
+
+            // Initial Suggestion of drivers
+            const suggested = suggestDrivers(trips, motoristas, servicos, selectedCentroCusto);
+
+            setAutomationTrips(suggested);
+            setShowAutoModal(true);
+        } catch (error: any) {
+            alert('Erro na Automação: ' + error.message);
+        } finally {
+            setIsAutoLoading(false);
+        }
+    };
+
+    const applyAutoGroupingByZone = () => {
+        setAutomationTrips(prev => autoGroupTripsByZone(prev));
+    };
+
+    const confirmAutomation = async () => {
+        const allServicesToCreate: any[] = [];
+        automationTrips.forEach(trip => {
+            trip.servicos.forEach(s => {
+                allServicesToCreate.push({
+                    ...s,
+                    motoristaId: trip.motoristaId
+                });
+            });
+        });
+
+        const batchData = {
+            notes: `Automação: ${selectedDate}`,
+            centroCustoId: selectedCentroCusto,
+            referenceDate: selectedDate
+        };
+
+        const result = await createScaleBatch(batchData, allServicesToCreate);
+        if (result.success) {
+            await refreshData();
+            setShowAutoModal(false);
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'system_alert',
+                data: {
+                    message: `Escala gerada com sucesso! ${allServicesToCreate.length} serviços importados.`,
+                    title: 'Sucesso'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            alert('Erro ao guardar escala: ' + result.error);
+        }
+    };
     // Layout & Filter State
     const [selectedCentroCustoFilter, setSelectedCentroCustoFilter] = useState<string>('all');
+    const [showAutoSettings, setShowAutoSettings] = useState(false);
     const [layoutCols, setLayoutCols] = useState<number>(() => {
         const saved = localStorage.getItem('escalas_layout_cols');
         return saved ? parseInt(saved) : 3;
@@ -258,7 +333,6 @@ export default function Escalas() {
         // Filter by Batch
         if (selectedBatchId && s.batchId !== selectedBatchId) return false;
         // If s.data is missing, we might want to still show it? Or assume it's legacy 'today'?
-        // Let's force filter: if no data, assume it belongs to the date it was created (which we might not have).
         // For now: Check if s.data matches. If s.data is undefined, check if we are on "Today".
         if (!s.data) {
             // Basic legacy support: match today
@@ -470,10 +544,13 @@ export default function Escalas() {
         if (result.success) {
             addNotification({
                 id: crypto.randomUUID(),
-                type: 'success',
-                message: 'Serviço(s) criado(s) com sucesso!',
-                timestamp: new Date().toISOString(),
-                read: false
+                type: 'system_alert',
+                data: {
+                    message: 'Serviço(s) criado(s) com sucesso!',
+                    title: 'Sucesso'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
             });
         } else {
             alert('Erro ao criar serviço: ' + result.error);
@@ -539,6 +616,16 @@ export default function Escalas() {
         if (confirm(t('schedule.alerts.delete_confirm'))) {
             await deleteServico(id);
             setSelectedPendentes(prev => prev.filter(x => x !== id));
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'system_alert',
+                data: {
+                    message: 'Serviço eliminado com sucesso.',
+                    title: 'Eliminado'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            });
         }
     };
 
@@ -636,9 +723,34 @@ export default function Escalas() {
                             </div>
 
                             {/* Action Buttons */}
+                            {hasAccess(userRole, 'escalas_create') && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setShowNewServiceModal(true)}
+                                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transition-all"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        <span className="hidden md:inline">Novo Serviço</span>
+                                    </button>
 
+                                    <button
+                                        onClick={handleRunAutomation}
+                                        disabled={isAutoLoading || selectedCentroCusto === 'all'}
+                                        className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
+                                    >
+                                        {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                        <span className="hidden md:inline">Automação</span>
+                                    </button>
 
-
+                                    <button
+                                        onClick={() => setShowAutoSettings(true)}
+                                        className="bg-[#1e293b] hover:bg-slate-700 text-white p-2 rounded-lg border border-white/5 transition-colors"
+                                        title="Definições de Automação"
+                                    >
+                                        <MoreVertical className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                     </>
@@ -1887,6 +1999,165 @@ export default function Escalas() {
 
 
 
+
+            {/* MODAL: AUTO SETTINGS */}
+            {showAutoSettings && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                    <div className="bg-[#1e293b] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <MoreVertical className="w-5 h-5 text-blue-400" />
+                            Configuração de Automação
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Google Sheet Albufeira (CSV/Export URL)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm"
+                                    placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
+                                    value={autoSettings.albufeiraUrl}
+                                    onChange={e => setAutoSettings({ ...autoSettings, albufeiraUrl: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Google Sheet Quarteira (CSV/Export URL)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm"
+                                    placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
+                                    value={autoSettings.quarteiraUrl}
+                                    onChange={e => setAutoSettings({ ...autoSettings, quarteiraUrl: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                onClick={() => setShowAutoSettings(false)}
+                                className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700 transition-colors"
+                            >
+                                Fechar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    localStorage.setItem('auto_sheet_albufeira', autoSettings.albufeiraUrl);
+                                    localStorage.setItem('auto_sheet_quarteira', autoSettings.quarteiraUrl);
+                                    setShowAutoSettings(false);
+                                }}
+                                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20"
+                            >
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL: AUTOMATION PREVIEW */}
+            {showAutoModal && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+                    <div className="bg-[#1e293b] border border-emerald-500/20 p-6 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                                    <CloudLightning className="w-8 h-8 text-emerald-500" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">Pré-visualização da Escala</h2>
+                                    <p className="text-slate-400 text-sm">Verifique e organize os serviços antes de confirmar.</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={applyAutoGroupingByZone}
+                                    className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-600/30 transition-all"
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                    AUTO AGRUPAR POR ZONA
+                                </button>
+                                <button
+                                    onClick={() => setShowAutoModal(false)}
+                                    className="text-slate-400 hover:text-white p-2"
+                                >
+                                    <Trash2 className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                            {automationTrips.map((trip, idx) => (
+                                <div key={trip.id} className="bg-slate-900/50 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center group">
+                                    <div className="flex items-center gap-3 min-w-[100px]">
+                                        <span className="bg-emerald-500/20 text-emerald-400 font-mono font-bold px-2 py-1 rounded border border-emerald-500/20">{trip.hora}</span>
+                                    </div>
+
+                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
+                                                <MapPin className="w-3 h-3" /> Origem
+                                                {trip.areaOrigem && <span className="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded ml-1">{trip.areaOrigem}</span>}
+                                            </div>
+                                            <div className="text-white font-medium">{trip.origem}</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
+                                                <ArrowRight className="w-3 h-3" /> Destino
+                                                {trip.areaDestino && <span className="bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded ml-1">{trip.areaDestino}</span>}
+                                            </div>
+                                            <div className="text-white font-medium">{trip.destino}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[40px]">
+                                            <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Pass.</div>
+                                            <div className="text-white font-bold leading-none">{trip.servicos.length}</div>
+                                        </div>
+
+                                        <select
+                                            className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
+                                            value={trip.motoristaId || ''}
+                                            onChange={(e) => {
+                                                const newTrips = [...automationTrips];
+                                                newTrips[idx].motoristaId = e.target.value;
+                                                setAutomationTrips(newTrips);
+                                            }}
+                                        >
+                                            <option value="">🚫 Sem motorista</option>
+                                            {motoristas.map(m => (
+                                                <option key={m.id} value={m.id}>{m.nome}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-white/10 flex justify-between items-center">
+                            <div className="text-slate-400 text-sm">
+                                <span className="text-white font-bold">{automationTrips.length}</span> viagens detetadas. PRONTO PARA IMPORTAR.
+                            </div>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setShowAutoModal(false)}
+                                    className="px-6 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmAutomation}
+                                    className="px-10 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20 transform hover:scale-[1.02] active:scale-95 flex items-center gap-2"
+                                >
+                                    <CloudLightning className="w-5 h-5" />
+                                    Confirmar Escala
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL: URGENT REQUEST */}
             {

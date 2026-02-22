@@ -6,6 +6,8 @@ export interface GroupedTrip {
     hora: string;
     origem: string;
     destino: string;
+    areaOrigem?: string;
+    areaDestino?: string;
     servicos: Servico[];
     motoristaId?: string;
     conflict?: string;
@@ -156,14 +158,30 @@ export function parseSheetToServices(rows: any[], selectedDate: string, centroCu
     return services;
 }
 
-export function groupServicesIntoTrips(services: Servico[]): GroupedTrip[] {
+// Helper to map a location name to an operational area
+function mapToArea(nome: string, zonas: any[]): string {
+    const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const normalizedNome = normalize(nome);
+
+    // Find a zone where the location name is contained within the zone's nome_local
+    const match = zonas.find(z => {
+        const zoneLoc = normalize(z.nome_local);
+        return normalizedNome.includes(zoneLoc) || zoneLoc.includes(normalizedNome);
+    });
+
+    return match ? match.area_operacional : 'Geral';
+}
+
+export function groupServicesIntoTrips(services: Servico[], zonas: any[] = []): GroupedTrip[] {
     const trips: GroupedTrip[] = [];
 
     services.forEach(s => {
-        // Grouping key: Hour + Origin + Destination
         const time = s.hora.trim();
         const from = s.origem.trim().toLowerCase();
         const to = s.destino.trim().toLowerCase();
+
+        const areaO = mapToArea(s.origem, zonas);
+        const areaD = mapToArea(s.destino, zonas);
 
         const existingTrip = trips.find(t =>
             t.hora.trim() === time &&
@@ -179,6 +197,8 @@ export function groupServicesIntoTrips(services: Servico[]): GroupedTrip[] {
                 hora: time,
                 origem: s.origem,
                 destino: s.destino,
+                areaOrigem: areaO,
+                areaDestino: areaD,
                 servicos: [s]
             });
         }
@@ -186,6 +206,32 @@ export function groupServicesIntoTrips(services: Servico[]): GroupedTrip[] {
 
     // Sort by time
     return trips.sort((a, b) => a.hora.localeCompare(b.hora));
+}
+
+// New function to group by Area instead of exact location
+export function autoGroupTripsByZone(trips: GroupedTrip[]): GroupedTrip[] {
+    const result: GroupedTrip[] = [];
+
+    trips.forEach(trip => {
+        // Try to find a trip at the same time and same areas (instead of exact same hotel)
+        const canMerge = result.find(r =>
+            r.hora === trip.hora &&
+            r.areaOrigem === trip.areaOrigem &&
+            r.areaDestino === trip.areaDestino
+        );
+
+        if (canMerge) {
+            // Update labels to show both if different
+            if (!canMerge.origem.includes(trip.origem)) canMerge.origem += ` / ${trip.origem}`;
+            if (!canMerge.destino.includes(trip.destino)) canMerge.destino += ` / ${trip.destino}`;
+
+            canMerge.servicos = [...canMerge.servicos, ...trip.servicos];
+        } else {
+            result.push({ ...trip });
+        }
+    });
+
+    return result.sort((a, b) => a.hora.localeCompare(b.hora));
 }
 
 export function suggestDrivers(

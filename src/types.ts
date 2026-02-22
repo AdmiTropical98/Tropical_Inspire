@@ -580,5 +580,12 @@ export interface LogOperacional {
     cost_center_id?: string;
 }
 
+export interface ZonaOperacional {
+    id: string;
+    nome_local: string;
+    area_operacional: string;
+    created_at?: string;
+}
+
 
 
