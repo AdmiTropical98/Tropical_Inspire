@@ -538,7 +538,7 @@ export default function Escalas() {
             localStorage.setItem('auto_sheet_albufeira', autoSettings.albufeiraUrl);
             localStorage.setItem('auto_sheet_quarteira', autoSettings.quarteiraUrl);
 
-            const rows = await fetchSheetCSV(url);
+            const rows = await fetchSheetCSV(url, selectedDate);
             const cc = centrosCustos.find(c => c.nome.toLowerCase().includes(autoSettings.activeCenter)) || centrosCustos[0];
             const rawServices = parseSheetToServices(rows, selectedDate, cc?.id || '');
             const groups = groupServicesIntoTrips(rawServices);

@@ -16,36 +16,61 @@ export const AUTO_CONFIG = {
     QUARTEIRA_SHEET_URL: localStorage.getItem('auto_sheet_quarteira') || '',
 };
 
-export async function fetchSheetCSV(url: string): Promise<any[]> {
+export async function fetchSheetCSV(url: string, targetDate?: string): Promise<any[]> {
     try {
-        let csvUrl = url;
-        if (url.includes('docs.google.com/spreadsheets')) {
-            const ssIdMatch = url.match(/\/d\/(.+?)\//) || url.match(/\/d\/(.+)/);
-            const gidMatch = url.match(/gid=(\d+)/);
+        let fetchUrl = url;
+        const ssIdMatch = url.match(/\/d\/(.+?)\//) || url.match(/\/d\/(.+)/);
 
-            if (ssIdMatch) {
-                const ssId = ssIdMatch[1];
-                const gid = gidMatch ? gidMatch[1] : '0';
-                // Use gviz/tq endpoint for better CORS behavior
-                csvUrl = `https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-            }
+        if (ssIdMatch) {
+            const ssId = ssIdMatch[1];
+            // Fetch as XLSX to get all sheets
+            fetchUrl = `https://docs.google.com/spreadsheets/d/${ssId}/export?format=xlsx`;
         }
 
-        const response = await fetch(csvUrl);
+        const response = await fetch(fetchUrl);
         if (!response.ok) {
-            if (response.status === 404) throw new Error('Folha não encontrada. Verifique o link.');
-            throw new Error('Falha ao aceder à Google Sheet. Verifique se está partilhada corretamente.');
+            throw new Error('Falha ao aceder à Google Sheet. Verifique se está PUBLICADA NA WEB.');
         }
 
         const data = await response.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const workbookSheet = workbook.Sheets[firstSheetName];
-        return XLSX.utils.sheet_to_json(workbookSheet);
+
+        let targetSheetName = workbook.SheetNames[0];
+
+        // If a date is provided, try to find a matching sheet (e.g., "22/02" or "22")
+        if (targetDate) {
+            const dateObj = new Date(targetDate);
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const possibleNames = [
+                `${day}/${month}`,
+                `${day}-${month}`,
+                day,
+                `${day} / ${month}`,
+                `${dateObj.getDate()}/${dateObj.getMonth() + 1}`
+            ];
+
+            const found = workbook.SheetNames.find(name =>
+                possibleNames.some(p => name.toLowerCase().includes(p.toLowerCase()))
+            );
+            if (found) targetSheetName = found;
+        } else {
+            // Fallback to GID if provided in URL and no date match
+            const gidMatch = url.match(/gid=(\d+)/);
+            if (gidMatch) {
+                // Note: gid mapping is complex in XLSX, but often the order matches
+                // For now, if we can't match by date, we'll try the URL logic or first sheet
+            }
+        }
+
+        const workbookSheet = workbook.Sheets[targetSheetName];
+        const rows = XLSX.utils.sheet_to_json(workbookSheet);
+        console.log(`Loaded ${rows.length} rows from sheet: ${targetSheetName}`);
+        return rows;
     } catch (error) {
         console.error('Error fetching sheet:', error);
         if (error instanceof TypeError && error.message === 'Failed to fetch') {
-            throw new Error('Erro de Conexão/CORS. Verifique se a folha está PUBLICADA NA WEB (Ficheiro > Partilhar > Publicar na Web) e o link está correto.');
+            throw new Error('Erro de Conexão. Verifique se a folha está PUBLICADA NA WEB (Ficheiro > Partilhar > Publicar na Web).');
         }
         throw error;
     }
@@ -71,37 +96,40 @@ export function parseSheetToServices(rows: any[], selectedDate: string, centroCu
     const parseTime = (val: any) => {
         if (!val) return null;
         if (typeof val === 'number') {
+            // Handle Excel time format
             const totalSeconds = Math.round(val * 86400);
             const hours = Math.floor(totalSeconds / 3600);
             const minutes = Math.floor((totalSeconds % 3600) / 60);
             return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
         }
         const str = String(val).trim();
-        const match = str.match(/(\d{1,2}):(\d{2})/);
+        const match = str.match(/(\d{1,2})[h:](\d{2})/i) || str.match(/(\d{1,2})/);
         if (match) {
-            return `${match[1].padStart(2, '0')}:${match[2].padStart(2, '0')}`;
+            const h = match[1].padStart(2, '0');
+            const m = match[2] ? match[2].padStart(2, '0') : '00';
+            return `${h}:${m}`;
         }
         return null;
     };
 
     rows.forEach((row: any) => {
         const nome = getVal(row, ['funcionario', 'nome', 'passageiro']) || '';
-        if (!nome) return;
+        if (!nome || String(nome).length < 2) return;
 
         const origem = getVal(row, ['origem']) || '';
         const destino = getVal(row, ['destino']) || '';
 
-        const horaEntrada = parseTime(getVal(row, ['apanhar', 'entrada']));
-        const horaSaida = parseTime(getVal(row, ['saida', 'termino']));
+        const horaEntrada = parseTime(getVal(row, ['apanhar', 'entrada', 'chegada']));
+        const horaSaida = parseTime(getVal(row, ['saida', 'termino', 'partida']));
 
         if (horaEntrada) {
             services.push({
                 id: crypto.randomUUID(),
                 data: selectedDate,
                 hora: horaEntrada,
-                passageiro: String(nome),
-                origem: String(origem),
-                destino: String(destino),
+                passageiro: String(nome).trim(),
+                origem: String(origem || 'Origem não definida').trim(),
+                destino: String(destino || 'Destino não definida').trim(),
                 concluido: false,
                 centroCustoId,
                 tipo: 'entrada',
@@ -114,9 +142,9 @@ export function parseSheetToServices(rows: any[], selectedDate: string, centroCu
                 id: crypto.randomUUID(),
                 data: selectedDate,
                 hora: horaSaida,
-                passageiro: String(nome),
-                origem: String(destino), // Returning
-                destino: String(origem),
+                passageiro: String(nome).trim(),
+                origem: String(destino || 'Destino não definida').trim(), // Returning
+                destino: String(origem || 'Origem não definida').trim(),
                 concluido: false,
                 centroCustoId,
                 tipo: 'saida',
