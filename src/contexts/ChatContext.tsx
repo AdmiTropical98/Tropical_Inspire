@@ -1,11 +1,24 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import type { Message, Conversation, MessageType } from '../types';
+import { supabase } from '../lib/supabase';
+
+interface UserProfile {
+    id: string;
+    nome: string;
+    email: string;
+    role: string;
+    status?: string;
+}
 
 interface ChatContextType {
+    // Users/Contacts
+    contacts: UserProfile[];
+    loadingContacts: boolean;
+
     // Messages
     messages: Message[];
-    sendMessage: (content: string, receiverId: string, type?: MessageType, metadata?: any) => void;
+    sendMessage: (content: string, receiverId: string, type?: MessageType, metadata?: any) => Promise<void>;
     markAsRead: (senderId: string) => void;
     markConversationAsRead: (conversationId: string) => void;
 
@@ -15,6 +28,7 @@ interface ChatContextType {
     setCurrentConversationId: (id: string | null) => void;
     getConversationList: () => Conversation[];
     getConversationMessages: (participantId: string) => Message[];
+    selectContact: (userId: string) => Promise<void>;
 
     // Unread tracking
     unreadCount: number;
@@ -46,94 +60,186 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const [messages, setMessages] = useState<Message[]>(() => safeInit('chat_messages', []));
+    const [contacts, setContacts] = useState<UserProfile[]>([]);
+    const [loadingContacts, setLoadingContacts] = useState(true);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [notificationSound, setNotificationSound] = useState(() => safeInit('notification_sound', true));
 
-    const myId = userRole === 'admin' ? 'admin' : currentUser?.id || 'unknown';
+    const myId = currentUser?.id || 'unknown';
 
-    // Persist messages
+    // Load contacts from user_profiles table
     useEffect(() => {
-        localStorage.setItem('chat_messages', JSON.stringify(messages));
-    }, [messages]);
+        const loadContacts = async () => {
+            try {
+                setLoadingContacts(true);
+                const { data, error } = await supabase
+                    .from('user_profiles')
+                    .select('id, nome, email, role, status')
+                    .eq('status', 'ACTIVE')
+                    .order('nome', { ascending: true });
+
+                if (error) {
+                    console.error('Error loading contacts:', error);
+                } else if (data) {
+                    // Filter out current user
+                    const filtered = data.filter(u => u.id !== myId);
+                    setContacts(filtered);
+                }
+            } catch (err) {
+                console.error('Error loading contacts:', err);
+            } finally {
+                setLoadingContacts(false);
+            }
+        };
+
+        if (myId && myId !== 'unknown') {
+            loadContacts();
+        }
+    }, [myId]);
 
     // Persist notification settings
     useEffect(() => {
         localStorage.setItem('notification_sound', JSON.stringify(notificationSound));
     }, [notificationSound]);
 
-    // Cross-tab sync
-    useEffect(() => {
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'chat_messages' && e.newValue) {
-                try {
-                    setMessages(JSON.parse(e.newValue));
-                } catch (err) {
-                    console.error('Error syncing messages', err);
+    const sendMessage = useCallback(async (content: string, receiverId: string, type: MessageType = 'normal', metadata?: any) => {
+        try {
+            // Find or create conversation
+            let conversationId: string | null = null;
+            const existingConv = conversations.find(
+                c => (c.participantId === receiverId)
+            );
+
+            if (existingConv) {
+                conversationId = existingConv.id;
+            } else {
+                // Create new conversation
+                const { data, error } = await supabase
+                    .from('conversations')
+                    .insert([
+                        {
+                            user_id: myId,
+                            participant_id: receiverId,
+                        }
+                    ])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Error creating conversation:', error);
+                    return;
+                }
+                conversationId = data.id;
+            }
+
+            if (!conversationId) return;
+
+            // Insert message
+            const { error: msgError } = await supabase
+                .from('messages')
+                .insert([
+                    {
+                        conversation_id: conversationId,
+                        sender_id: myId,
+                        content,
+                        type,
+                        metadata,
+                    }
+                ]);
+
+            if (msgError) {
+                console.error('Error sending message:', msgError);
+            }
+
+            // Create local message for immediate display
+            const newMessage: Message = {
+                id: crypto.randomUUID(),
+                senderId: myId,
+                senderName: currentUser?.nome || 'You',
+                senderRole: userRole as any,
+                receiverId,
+                content,
+                timestamp: new Date().toISOString(),
+                read: false,
+                type,
+                metadata,
+            };
+            setMessages(prev => [...prev, newMessage]);
+
+            // Play notification sound if enabled
+            if (notificationSound) {
+                playNotificationSound();
+            }
+        } catch (err) {
+            console.error('Error in sendMessage:', err);
+        }
+    }, [myId, currentUser, userRole, notificationSound, conversations]);
+
+    const selectContact = useCallback(async (userId: string) => {
+        try {
+            // Check if conversation exists
+            let conversationId: string | null = null;
+            
+            const { data: existingConv } = await supabase
+                .from('conversations')
+                .select('id')
+                .or(`and(user_id.eq.${myId},participant_id.eq.${userId}),and(user_id.eq.${userId},participant_id.eq.${myId})`)
+                .single();
+
+            if (existingConv) {
+                conversationId = existingConv.id;
+            } else {
+                // Create new conversation
+                const { data, error } = await supabase
+                    .from('conversations')
+                    .insert([
+                        {
+                            user_id: myId,
+                            participant_id: userId,
+                        }
+                    ])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Error creating conversation:', error);
+                    return;
+                }
+                conversationId = data.id;
+            }
+
+            if (conversationId) {
+                setCurrentConversationId(userId);
+                // Load messages for this conversation
+                const { data: messages } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .eq('conversation_id', conversationId)
+                    .order('created_at', { ascending: true });
+
+                if (messages) {
+                    // Convert to local message format
+                    const localMessages = messages.map(msg => ({
+                        id: msg.id,
+                        senderId: msg.sender_id,
+                        senderName: undefined,
+                        senderRole: undefined,
+                        receiverId: userId,
+                        content: msg.content,
+                        timestamp: msg.created_at,
+                        read: msg.read,
+                        type: msg.type as MessageType,
+                        metadata: msg.metadata,
+                    }));
+                    setMessages(localMessages);
                 }
             }
-        };
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
-
-    // Build conversations from messages
-    useEffect(() => {
-        const conversationMap = new Map<string, Conversation>();
-
-        messages.forEach(msg => {
-            const participantId = msg.senderId === myId ? msg.receiverId : msg.senderId;
-            const isSent = msg.senderId === myId;
-
-            if (!conversationMap.has(participantId)) {
-                conversationMap.set(participantId, {
-                    id: participantId,
-                    participantId,
-                    participantName: msg.senderName || msg.senderId,
-                    participantRole: (msg.senderRole || 'motorista') as any,
-                    unreadCount: 0,
-                    isOnline: true,
-                    lastSeen: new Date().toISOString(),
-                });
-            }
-
-            const conversation = conversationMap.get(participantId)!;
-            conversation.lastMessage = msg.content;
-            conversation.lastMessageTime = msg.timestamp;
-
-            if (!isSent && !msg.read) {
-                conversation.unreadCount++;
-            }
-        });
-
-        setConversations(Array.from(conversationMap.values()).sort((a, b) => {
-            const aTime = new Date(a.lastMessageTime || 0).getTime();
-            const bTime = new Date(b.lastMessageTime || 0).getTime();
-            return bTime - aTime;
-        }));
-    }, [messages, myId]);
-
-    const sendMessage = useCallback((content: string, receiverId: string, type: MessageType = 'normal', metadata?: any) => {
-        const newMessage: Message = {
-            id: crypto.randomUUID(),
-            senderId: myId,
-            senderName: currentUser?.nome || 'You',
-            senderRole: userRole as any,
-            receiverId,
-            content,
-            timestamp: new Date().toISOString(),
-            read: false,
-            type,
-            metadata,
-        };
-        setMessages(prev => [...prev, newMessage]);
-
-        // Play notification sound if enabled
-        if (notificationSound) {
-            playNotificationSound();
+        } catch (err) {
+            console.error('Error selecting contact:', err);
         }
-    }, [myId, currentUser, userRole, notificationSound]);
+    }, [myId]);
 
     const markAsRead = useCallback((senderId: string) => {
         setMessages(prev => prev.map(msg =>
@@ -189,6 +295,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <ChatContext.Provider value={{
+            contacts,
+            loadingContacts,
             messages,
             sendMessage,
             markAsRead,
@@ -198,6 +306,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             setCurrentConversationId,
             getConversationList: () => conversations,
             getConversationMessages,
+            selectContact,
             unreadCount,
             hasUnreadMessages,
             getUnreadCountForUser,

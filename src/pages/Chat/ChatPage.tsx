@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
 import { MessageSquare, Bell } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useChat } from '../../contexts/ChatContext';
 import ConversationList from './ConversationList';
 import ChatWindow from './ChatWindow';
 import QuickActionsPanel from './QuickActionsPanel';
 import QuickShortcuts from './QuickShortcuts';
+import type { Conversation } from '../../types';
 
 export default function ChatPage() {
     const { userRole } = useAuth();
-    const { motoristas, supervisors, oficinaUsers } = useWorkshop();
     const {
         sendMessage,
-        conversations,
+        contacts,
         currentConversationId,
         setCurrentConversationId,
         getConversationMessages,
@@ -27,13 +26,24 @@ export default function ChatPage() {
     const [shortcutsExpanded, setShortcutsExpanded] = useState(true);
     const [actionsCollapsed, setActionsCollapsed] = useState(false);
 
-    // Get current conversation
-    const currentConversation = conversations.find(c => c.participantId === currentConversationId) || null;
+    // Get currently selected contact info
+    const currentContact = contacts.find(c => c.id === currentConversationId);
+
+    // Build conversation object from contact
+    const currentConversation: Conversation | null = currentContact ? {
+        id: currentContact.id,
+        participantId: currentContact.id,
+        participantName: currentContact.nome,
+        participantRole: (currentContact.role.toLowerCase()) as any,
+        unreadCount: 0,
+        isOnline: true,
+        lastSeen: new Date().toISOString(),
+    } : null;
 
     // Handle sending message
-    const handleSendMessage = (content: string) => {
+    const handleSendMessage = async (content: string) => {
         if (currentConversationId) {
-            sendMessage(content, currentConversationId);
+            await sendMessage(content, currentConversationId);
         }
     };
 
