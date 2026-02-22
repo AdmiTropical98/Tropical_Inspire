@@ -176,6 +176,11 @@ export default function Locais() {
     const [newAreaName, setNewAreaName] = useState('');
     const [isManagingAreas, setIsManagingAreas] = useState(false);
 
+    // Global suggestions for Zone Mapping
+    const [zoneGeoResults, setZoneGeoResults] = useState<SearchResult[]>([]);
+    const [isSearchingZone, setIsSearchingZone] = useState(false);
+
+
 
     const handleSaveZone = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -195,6 +200,41 @@ export default function Locais() {
         await addAreaOperacional({ nome: newAreaName.trim() });
         setNewAreaName('');
     };
+
+    // Global Suggestions Effect for Zone Mapping
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (zoneFormData.nome_local.length < 3) {
+                setZoneGeoResults([]);
+                return;
+            }
+
+            setIsSearchingZone(true);
+            try {
+                const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(zoneFormData.nome_local)}&limit=5`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.features) {
+                        const mappedResults: SearchResult[] = data.features.map((f: any) => ({
+                            place_id: f.properties.osm_id || Math.random(),
+                            lat: f.geometry.coordinates[1].toString(),
+                            lon: f.geometry.coordinates[0].toString(),
+                            display_name: `${f.properties.name || ''} ${f.properties.street || ''} ${f.properties.city || ''} ${f.properties.country || ''}`.trim().replace(/\s+/g, ' '),
+                            type: f.properties.osm_value || 'place'
+                        }));
+                        setZoneGeoResults(mappedResults);
+                    }
+                }
+            } catch (err) {
+                console.error("Zone geocoding error:", err);
+            } finally {
+                setIsSearchingZone(false);
+            }
+        }, 800);
+
+        return () => clearTimeout(timer);
+    }, [zoneFormData.nome_local]);
+
 
 
     const handleMapClick = (lat: number, lng: number) => {
@@ -532,25 +572,76 @@ export default function Locais() {
                                             onChange={e => setZoneFormData({ ...zoneFormData, nome_local: e.target.value })}
                                         />
                                         {/* Suggestions */}
-                                        {zoneFormData.nome_local.length > 1 && (
-                                            <>
+                                        {(zoneFormData.nome_local.length > 1) && (
+                                            <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl z-20 max-h-60 overflow-y-auto">
+                                                {/* Local POIs */}
                                                 {locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).length > 0 && (
-                                                    <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl z-20 max-h-40 overflow-y-auto">
-                                                        <div className="p-2 text-[10px] font-bold text-slate-500 uppercase bg-slate-800/50">Sugestões (POIs Guardados)</div>
+                                                    <div className="border-b border-white/5 last:border-0">
+                                                        <div className="p-2 text-[10px] font-bold text-slate-500 uppercase bg-slate-800/50 flex items-center gap-1">
+                                                            <MapIcon className="w-3 h-3" />
+                                                            POIs Guardados
+                                                        </div>
                                                         {locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).map(l => (
                                                             <button
                                                                 key={l.id}
                                                                 type="button"
-                                                                onClick={() => setZoneFormData({ ...zoneFormData, nome_local: l.nome })}
-                                                                className="w-full text-left p-2 hover:bg-emerald-500/10 text-xs text-slate-400 hover:text-emerald-400 border-b border-white/5 last:border-0"
+                                                                onClick={() => {
+                                                                    setZoneFormData({ ...zoneFormData, nome_local: l.nome });
+                                                                    setZoneGeoResults([]);
+                                                                }}
+                                                                className="w-full text-left p-2 hover:bg-emerald-500/10 text-xs text-slate-400 hover:text-emerald-400 border-b border-white/5 last:border-0 flex items-center justify-between"
                                                             >
-                                                                {l.nome}
+                                                                <span>{l.nome}</span>
+                                                                <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase font-bold">POI</span>
                                                             </button>
                                                         ))}
                                                     </div>
                                                 )}
-                                            </>
+
+                                                {/* Global Results */}
+                                                {isSearchingZone && (
+                                                    <div className="p-4 flex items-center justify-center gap-2 text-xs text-slate-500 bg-slate-900/10">
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                        <span>A pesquisar localizações globais...</span>
+                                                    </div>
+                                                )}
+
+                                                {zoneGeoResults.length > 0 && (
+                                                    <div>
+                                                        <div className="p-2 text-[10px] font-bold text-slate-500 uppercase bg-slate-800/50 flex items-center gap-1">
+                                                            <Globe className="w-3 h-3" />
+                                                            Localizações Globais
+                                                        </div>
+                                                        {zoneGeoResults.map((result, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const mainName = result.display_name.split(',')[0];
+                                                                    setZoneFormData({ ...zoneFormData, nome_local: mainName });
+                                                                    setZoneGeoResults([]);
+                                                                }}
+                                                                className="w-full text-left p-3 hover:bg-blue-500/10 text-xs text-slate-400 hover:text-blue-400 border-b border-white/5 last:border-0 group"
+                                                            >
+                                                                <div className="font-medium text-slate-200 group-hover:text-blue-300 transition-colors">
+                                                                    {result.display_name.split(',')[0]}
+                                                                </div>
+                                                                <div className="text-[10px] opacity-60 truncate">
+                                                                    {result.display_name.split(',').slice(1).join(',').trim()}
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {zoneFormData.nome_local.length >= 3 && !isSearchingZone && zoneGeoResults.length === 0 && locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).length === 0 && (
+                                                    <div className="p-4 text-center text-xs text-slate-500 italic">
+                                                        Nenhuma sugestão encontrada. Pode escrever o nome manualmente.
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
+
                                     </div>
                                 </div>
 
@@ -631,8 +722,8 @@ export default function Locais() {
                                     type="submit"
                                     disabled={isManagingAreas || areasOperacionais.length === 0 || !zoneFormData.nome_local}
                                     className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${(isManagingAreas || areasOperacionais.length === 0 || !zoneFormData.nome_local)
-                                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-                                            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20 active:scale-[0.98]'
+                                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20 active:scale-[0.98]'
                                         }`}
                                 >
                                     <Save className="w-4 h-4" />
