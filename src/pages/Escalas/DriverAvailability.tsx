@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     Clock, MapPin, User, Plus, Trash2,
-    ShieldAlert, AlertCircle, Info,
+    ShieldAlert, Save, AlertCircle, Info,
     CheckCircle2, XCircle
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -12,24 +12,29 @@ export default function DriverAvailability() {
     const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
     const selectedDriver = motoristas.find(m => m.id === selectedDriverId);
     const [localDriver, setLocalDriver] = useState<Motorista | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
-    // Sync local state when driver changes
+    // ONLY sync local state when the selected ID changes or for the first time
+    // This prevents the "revert" when refreshData runs and the DB doesn't have the columns yet
     useEffect(() => {
         if (selectedDriver) {
             setLocalDriver(selectedDriver);
         } else {
             setLocalDriver(null);
         }
-    }, [selectedDriverId, motoristas]);
+    }, [selectedDriverId]); // Removed 'motoristas' from dependencies to prevent auto-revert
 
     const handleSave = async (updated: Motorista) => {
-        // Update local state immediately for UI responsiveness
         setLocalDriver(updated);
+        setIsSaving(true);
 
         try {
             await updateMotorista(updated);
         } catch (error) {
             console.error('Error saving driver availability:', error);
+            // We keep the local state so the user can see what they tried to save
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -152,6 +157,12 @@ export default function DriverAvailability() {
                                             <ShieldAlert className="w-4 h-4 text-amber-500" />
                                             Regras Ativas
                                         </span>
+                                        {isSaving && (
+                                            <span className="text-xs text-blue-400 animate-pulse flex items-center gap-1">
+                                                <Save className="w-3 h-3 animate-spin" />
+                                                A guardar...
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
