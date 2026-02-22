@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS public.escala_templates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome TEXT NOT NULL,
-    centro_custo_id UUID REFERENCES public.centros_custo(id) ON DELETE SET NULL,
+    centro_custo_id UUID REFERENCES public.centros_custos(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     created_by UUID REFERENCES auth.users(id)
 );
