@@ -2,13 +2,14 @@
 import { useState, useMemo } from 'react';
 import { Shield, Plus, Trash2, AlertCircle, Share2, MessageSquare, Search, TrendingUp, Users, UserX, Grid3x3, List, UserCheck, CheckCircle } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { useTranslation } from '../../hooks/useTranslation';
-import type { Gestor, Notification } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import type { Gestor, Notification, UserRole } from '../../types';
 import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
+import { supabase } from '../../lib/supabase';
 
 export default function Gestores() {
     const { gestores, addGestor, updateGestor, deleteGestor, notifications, updateNotification, centrosCustos } = useWorkshop();
-    const { t } = useTranslation();
+    const { userRole } = useAuth();
 
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'blocked'>('all');
@@ -22,13 +23,15 @@ export default function Gestores() {
         foto: string;
         centroCustoIds: string[];
         allCostCenters: boolean;
+        role: UserRole;
     }>({
         nome: '',
         email: '',
         telemovel: '',
         foto: '',
         centroCustoIds: [],
-        allCostCenters: false
+        allCostCenters: false,
+        role: 'GESTOR'
     });
     const [permissionUser, setPermissionUser] = useState<Gestor | null>(null);
 
@@ -45,18 +48,45 @@ export default function Gestores() {
         const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
 
         try {
-            await addGestor({
-                id: crypto.randomUUID(),
-                nome: userData.nome || 'Novo Gestor',
-                email: userData.email || '',
-                telemovel: userData.telemovel || '',
-                foto: userData.foto || '',
-                status: 'active',
-                pin: randomPin,
-                dataRegisto: new Date().toISOString().split('T')[0],
-                centroCustoIds: [],
-                allCostCenters: false
-            });
+            if (userData.email) {
+                // Use invitation flow for email users
+                const { data: session } = await supabase.auth.getSession();
+                const token = session.session?.access_token;
+
+                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        email: userData.email,
+                        role: userData.role || 'GESTOR',
+                        nome: userData.nome || 'Novo Gestor'
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao processar convite.');
+                }
+            }
+
+            // Still add to legacy table if role is GESTOR
+            if (userData.role === 'GESTOR' || !userData.role) {
+                await addGestor({
+                    id: crypto.randomUUID(),
+                    nome: userData.nome || 'Novo Gestor',
+                    email: userData.email || '',
+                    telemovel: userData.telemovel || '',
+                    foto: userData.foto || '',
+                    status: 'active',
+                    pin: randomPin,
+                    dataRegisto: new Date().toISOString().split('T')[0],
+                    centroCustoIds: [],
+                    allCostCenters: false
+                });
+            }
 
             await updateNotification({
                 ...notification,
@@ -64,7 +94,7 @@ export default function Gestores() {
                 response: { pin: randomPin }
             });
 
-            alert(`Gestor aprovado com sucesso! PIN: ${randomPin}`);
+            alert(`Solicitação aprovada! ${userData.email ? 'Convite enviado via email.' : `PIN gerado: ${randomPin}`}`);
         } catch (error: any) {
             console.error("Erro ao aprovar:", error);
             alert(`Erro ao aprovar: ${error.message || 'Desconhecido'}`);
@@ -73,29 +103,62 @@ export default function Gestores() {
 
     const handleCreateGestor = async (e: React.FormEvent) => {
         e.preventDefault();
-        const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
 
-        const result = await addGestor({
-            id: crypto.randomUUID(),
-            nome: newGestor.nome,
-            email: newGestor.email,
-            telemovel: newGestor.telemovel,
-            foto: newGestor.foto,
-            status: 'active',
-            pin: randomPin,
-            dataRegisto: new Date().toISOString().split('T')[0],
-            centroCustoIds: newGestor.centroCustoIds,
-            allCostCenters: newGestor.allCostCenters
-        });
+        try {
+            const { data: session } = await supabase.auth.getSession();
+            const token = session.session?.access_token;
 
-        if (result && result.error) {
-            alert(`Erro ao criar gestor: ${result.error.message || 'Erro desconhecido'}`);
-            return;
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    email: newGestor.email,
+                    role: newGestor.role,
+                    nome: newGestor.nome
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Erro ao convidar utilizador.');
+            }
+
+            // Also create in legacy gestores table for compatibility if role is GESTOR
+            if (newGestor.role === 'GESTOR') {
+                const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+                await addGestor({
+                    id: result.user.id,
+                    nome: newGestor.nome,
+                    email: newGestor.email,
+                    telemovel: newGestor.telemovel,
+                    foto: newGestor.foto,
+                    status: 'active',
+                    pin: randomPin,
+                    dataRegisto: new Date().toISOString().split('T')[0],
+                    centroCustoIds: newGestor.centroCustoIds,
+                    allCostCenters: newGestor.allCostCenters
+                });
+            }
+
+            setNewGestor({
+                nome: '',
+                email: '',
+                telemovel: '',
+                foto: '',
+                centroCustoIds: [],
+                allCostCenters: false,
+                role: 'GESTOR'
+            });
+
+            alert(`Convite enviado com sucesso para ${result.user.email}!\nO utilizador receberá um email para definir a password.`);
+        } catch (error: any) {
+            console.error("Erro ao criar gestor:", error);
+            alert(`Erro: ${error.message}`);
         }
-
-        setNewGestor({ nome: '', email: '', telemovel: '', foto: '', centroCustoIds: [], allCostCenters: false });
-
-        alert(`Gestor criado com sucesso!\n\nPIN: ${randomPin}\n\nO gestor pode entrar usando:\n- E-mail ou Telemóvel\n- PIN: ${randomPin}`);
     };
 
     const handleDeleteGestor = (id: string, name: string) => {
@@ -318,6 +381,24 @@ export default function Gestores() {
                                     placeholder="910000000"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase ml-1">Nível de Acesso (Role)</label>
+                            <select
+                                value={newGestor.role}
+                                onChange={e => setNewGestor({ ...newGestor, role: e.target.value as UserRole })}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                            >
+                                <option value="GESTOR">GESTOR (Operacional)</option>
+                                <option value="ADMIN">ADMIN (Gestão operacional + users)</option>
+                                {userRole === 'ADMIN_MASTER' && (
+                                    <option value="ADMIN_MASTER">ADMIN_MASTER (Controlo Total)</option>
+                                )}
+                                <option value="SUPERVISOR">SUPERVISOR</option>
+                                <option value="OFICINA">OFICINA</option>
+                                <option value="MOTORISTA">MOTORISTA</option>
+                            </select>
                         </div>
 
                         {/* Cost Centers */}

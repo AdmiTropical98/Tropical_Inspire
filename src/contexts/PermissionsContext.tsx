@@ -33,11 +33,13 @@ export interface RolePermissions {
     gestor: PermissionModule[];
 }
 
+import type { UserRole } from '../types';
+
 interface PermissionsContextType {
     permissions: RolePermissions;
     updatePermission: (role: 'supervisor' | 'motorista' | 'oficina' | 'gestor', module: PermissionModule, hasAccess: boolean) => void;
     saveAllPermissions: (newPermissions: RolePermissions) => Promise<void>;
-    hasAccess: (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule) => boolean;
+    hasAccess: (role: UserRole | 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule) => boolean;
 }
 
 const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
@@ -264,16 +266,29 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         }
     };
 
-    const hasAccess = (role: 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule): boolean => {
+    const hasAccess = (role: UserRole | 'admin' | 'supervisor' | 'motorista' | 'oficina' | 'gestor' | null, module: PermissionModule): boolean => {
         if (!role) return false;
-        if (role === 'admin') return true; // Admin always has access
+
+        // Normalize role for comparison
+        const normalizedRole = role.toLowerCase();
+
+        if (normalizedRole === 'admin' || normalizedRole === 'admin_master') return true; // Admin always has access
+
+        // Map UserRole to RolePermissions keys if necessary
+        let roleKey: keyof RolePermissions | null = null;
+        if (normalizedRole === 'gestor') roleKey = 'gestor';
+        else if (normalizedRole === 'supervisor') roleKey = 'supervisor';
+        else if (normalizedRole === 'motorista') roleKey = 'motorista';
+        else if (normalizedRole === 'oficina') roleKey = 'oficina';
+
+        if (!roleKey) return false;
 
         // Check local permissions for other roles
-        const rolePerms = permissions[role];
+        const rolePerms = permissions[roleKey];
         const allowedByRole = rolePerms ? rolePerms.includes(module) : false;
 
         // Check for user-specific blocks
-        if (allowedByRole && role === userRole && currentUser) {
+        if (allowedByRole && currentUser) {
             const blocked = (currentUser as any).blockedPermissions;
             if (blocked && Array.isArray(blocked) && blocked.includes(module)) {
                 return false;

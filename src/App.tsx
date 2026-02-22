@@ -16,6 +16,7 @@ import { FinancialProvider } from './contexts/FinancialContext';
 // Components
 import Login from './pages/Auth/Login';
 import ResetPassword from './pages/Auth/ResetPassword';
+import VerifyEmail from './pages/Auth/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import { supabase } from './lib/supabase'; // Import Supabase client
 import Fornecedores from './pages/Fornecedores';
@@ -151,7 +152,7 @@ const SidebarGroup = ({ title, children, defaultOpen = true, collapsed }: { titl
 
 function AppContent() {
   console.log('--- APP CONTENT RENDERING ---');
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, isEmailConfirmed } = useAuth();
   const { hasAccess } = usePermissions();
   const { notifications, dbConnectionError, refreshData } = useWorkshop();
   const { unreadCount } = useChat();
@@ -201,10 +202,10 @@ function AppContent() {
   };
 
   // Sidebar Visibility Flags
-  const showFleetGroup = hasAccess(userRole, 'central_motorista') || hasAccess(userRole, 'viaturas') || hasAccess(userRole, 'motoristas') || hasAccess(userRole, 'geofences') || userRole === 'admin' || userRole === 'gestor';
-  const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'requisicoes') || hasAccess(userRole, 'horas') || hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'plataformas_externas') || hasAccess(userRole, 'roteirizacao') || userRole === 'admin';
+  const showFleetGroup = hasAccess(userRole, 'central_motorista') || hasAccess(userRole, 'viaturas') || hasAccess(userRole, 'motoristas') || hasAccess(userRole, 'geofences') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor';
+  const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'requisicoes') || hasAccess(userRole, 'horas') || hasAccess(userRole, 'combustivel') || hasAccess(userRole, 'plataformas_externas') || hasAccess(userRole, 'roteirizacao') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN';
   const showFinGroup = hasAccess(userRole, 'contabilidade') || hasAccess(userRole, 'centros_custos') || hasAccess(userRole, 'fornecedores') || hasAccess(userRole, 'clientes') || hasAccess(userRole, 'relatorios');
-  const showSysGroup = hasAccess(userRole, 'equipa-oficina') || hasAccess(userRole, 'supervisores') || userRole === 'admin' || userRole === 'gestor';
+  const showSysGroup = hasAccess(userRole, 'equipa-oficina') || hasAccess(userRole, 'supervisores') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor';
 
 
   // Notification & Modal State
@@ -321,6 +322,8 @@ function AppContent() {
 
   if (!isAuthenticated) return <Login />;
 
+  if (!isEmailConfirmed) return <VerifyEmail />;
+
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden text-slate-200 font-sans selection:bg-blue-500/30 bg-black">
 
@@ -383,7 +386,7 @@ function AppContent() {
                   onClick={() => handleNavigate('dashboard')}
                   collapsed={isSidebarCollapsed}
                 />
-                {(userRole === 'admin' || userRole === 'gestor') && (
+                {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor') && (
                   <SidebarItem
                     icon={Activity}
                     label="Controlo Operacional"
@@ -406,10 +409,10 @@ function AppContent() {
                 {hasAccess(userRole, 'geofences') && (
                   <SidebarItem icon={MapPin} label="Geofences" active={activeTab === 'geofences'} onClick={() => handleNavigate('geofences')} collapsed={isSidebarCollapsed} />
                 )}
-                {(userRole === 'admin' || hasAccess(userRole, 'escalas')) && (
+                {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || hasAccess(userRole, 'escalas')) && (
                   <SidebarItem icon={MapPin} label="Locais (POIs)" active={activeTab === 'locais'} onClick={() => handleNavigate('locais')} collapsed={isSidebarCollapsed} />
                 )}
-                {userRole === 'admin' && (
+                {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
                   <SidebarItem icon={Award} label="Avaliação Drivers" active={activeTab === 'avaliacao'} onClick={() => handleNavigate('avaliacao')} collapsed={isSidebarCollapsed} />
                 )}
               </SidebarGroup>
@@ -442,11 +445,11 @@ function AppContent() {
                   <SidebarItem icon={Navigation} label="Roteirização" active={activeTab === 'roteirizacao'} onClick={() => handleNavigate('roteirizacao')} collapsed={isSidebarCollapsed} />
                 )}
                 {/* Via Verde - Available to Ops/Admin */}
-                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
+                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor') && (
                   <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />
                 )}
                 {/* Carregamentos - Available to Ops/Admin */}
-                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'gestor') && (
+                {(hasAccess(userRole, 'via_verde') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'gestor') && (
                   <SidebarItem icon={Zap} label="Carregamentos Elétricos" active={activeTab === 'carregamentos'} onClick={() => handleNavigate('carregamentos')} collapsed={isSidebarCollapsed} />
                 )}
               </SidebarGroup>
@@ -505,10 +508,10 @@ function AppContent() {
 
             {/* 6. SISTEMA */}
             <SidebarGroup title="Sistema" defaultOpen={!isSidebarCollapsed} collapsed={isSidebarCollapsed}>
-              {userRole === 'admin' && (
+              {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
                 <SidebarItem icon={Users} label="Gestão de Usuários" active={activeTab === 'admin_users'} onClick={() => handleNavigate('admin_users')} collapsed={isSidebarCollapsed} />
               )}
-              {userRole === 'admin' && (
+              {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
                 <SidebarItem icon={Shield} label="Gestão de Permissões" active={activeTab === 'permissions'} onClick={() => handleNavigate('permissions')} collapsed={isSidebarCollapsed} />
               )}
             </SidebarGroup>

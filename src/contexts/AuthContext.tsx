@@ -1,16 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useWorkshop } from './WorkshopContext';
-import type { Motorista, Supervisor, OficinaUser, AdminUser, Gestor } from '../types';
 import { supabase } from '../lib/supabase';
 import SplashScreen from '../components/common/SplashScreen';
+import type { Motorista, Supervisor, OficinaUser, AdminUser, Gestor, UserRole, UserProfile } from '../types';
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    userRole: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | null;
-    currentUser: Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null;
+    userRole: UserRole | 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | null;
+    currentUser: UserProfile | Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null;
+    isEmailConfirmed: boolean;
     userStatus: 'online' | 'absent' | 'offline';
     language: 'pt' | 'en';
-    login: (type: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor', identifier: string, credential: string) => Promise<boolean>;
+    login: (type: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | UserRole, identifier: string, credential: string) => Promise<boolean>;
     logout: () => void;
     updateStatus: (status: 'online' | 'absent' | 'offline') => void;
     refreshCurrentUser: () => Promise<void>;
@@ -24,8 +25,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { motoristas, supervisors, oficinaUsers, gestores } = useWorkshop();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [userRole, setUserRole] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | null>(null);
-    const [currentUser, setCurrentUser] = useState<Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null>(null);
+    const [userRole, setUserRole] = useState<UserRole | 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | null>(null);
+    const [currentUser, setCurrentUser] = useState<UserProfile | Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null>(null);
+    const [isEmailConfirmed, setIsEmailConfirmed] = useState(true); // Default true for PIN users
     const [isLoading, setIsLoading] = useState(true);
 
     const [userStatus, setUserStatus] = useState<'online' | 'absent' | 'offline'>('online');
@@ -124,21 +126,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
 
-                if (storedRole === 'admin') {
+                if (storedRole === 'admin' || (storedRole && ['ADMIN_MASTER', 'ADMIN', 'GESTOR', 'SUPERVISOR', 'OFICINA', 'MOTORISTA'].includes(storedRole))) {
                     const adminPhoto = localStorage.getItem('adminPhoto');
                     if (adminPhoto) setUserPhoto(adminPhoto);
 
                     const { data } = await supabase.auth.getUser();
                     if (data.user) {
-                        const adminUser: AdminUser = {
+                        // Check profile
+                        const { data: profile } = await supabase.from('user_profiles').select('*').eq('id', data.user.id).single();
+
+                        const appUser: UserProfile = {
                             id: data.user.id,
                             email: data.user.email || '',
-                            role: 'admin',
-                            nome: 'Administrador',
-                            createdAt: new Date().toISOString()
+                            nome: profile?.nome || 'Utilizador',
+                            role: (profile?.role || storedRole) as UserRole,
+                            email_confirmed: data.user.email_confirmed_at !== null,
+                            createdAt: data.user.created_at,
+                            updatedAt: new Date().toISOString()
                         };
-                        setCurrentUser(adminUser);
-                        localStorage.setItem('currentUser', JSON.stringify(adminUser));
+                        setCurrentUser(appUser);
+                        setIsEmailConfirmed(appUser.email_confirmed);
+                        localStorage.setItem('currentUser', JSON.stringify(appUser));
                     }
                 }
             } else if (storedAuth) {
@@ -163,29 +171,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('appLanguage', lang);
     }
 
-    async function login(type: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor', identifier: string, credential: string) {
-        if (type === 'admin') {
+    async function login(type: UserRole | 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor', identifier: string, credential: string) {
+        if (type === 'admin' || type === 'ADMIN_MASTER' || type === 'ADMIN') {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: identifier,
                 password: credential
             });
 
             if (!error && data.user) {
-                const adminUser: AdminUser = {
+                // Fetch Profile from user_profiles
+                const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('id', data.user.id)
+                    .single();
+
+                const roleToSave = profile?.role || (type === 'admin' ? 'ADMIN' : type);
+
+                const appUser: UserProfile = {
                     id: data.user.id,
                     email: identifier,
-                    role: 'admin',
-                    nome: 'Administrador',
-                    createdAt: new Date().toISOString()
+                    nome: profile?.nome || 'Utilizador',
+                    role: roleToSave as UserRole,
+                    email_confirmed: data.user.email_confirmed_at !== null,
+                    createdAt: data.user.created_at,
+                    updatedAt: new Date().toISOString()
                 };
 
                 localStorage.setItem('isAuthenticated', 'true');
-                localStorage.setItem('userRole', 'admin');
-                localStorage.setItem('currentUser', JSON.stringify(adminUser));
+                localStorage.setItem('userRole', roleToSave);
+                localStorage.setItem('currentUser', JSON.stringify(appUser));
 
                 setIsAuthenticated(true);
-                setUserRole('admin');
-                setCurrentUser(adminUser);
+                setUserRole(roleToSave as UserRole);
+                setCurrentUser(appUser);
+                setIsEmailConfirmed(appUser.email_confirmed);
+
+                // Update last login
+                await supabase.from('user_profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
 
                 const adminPhoto = localStorage.getItem('adminPhoto');
                 if (adminPhoto) setUserPhoto(adminPhoto);
@@ -305,6 +328,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isAuthenticated,
             userRole,
             currentUser,
+            isEmailConfirmed,
             userStatus,
             language,
             login,

@@ -261,6 +261,7 @@ export interface Notification {
         nome?: string;
         email?: string;
         telemovel?: string;
+        foto?: string;
         password?: string;
         role?: string;
 
@@ -612,8 +613,17 @@ export interface EscalaTemplateItem {
     referencia?: string;
     obs?: string;
     created_at: string;
+}export type UserRole = 'ADMIN_MASTER' | 'ADMIN' | 'GESTOR' | 'SUPERVISOR' | 'OFICINA' | 'MOTORISTA';
+
+export interface UserProfile {
+    id: string;
+    email: string;
+    nome?: string;
+    role: UserRole;
+    email_confirmed: boolean;
+    activation_token?: string;
+    token_expires_at?: string;
+    last_login?: string;
+    createdAt: string;
+    updatedAt: string;
 }
-
-
-
-
