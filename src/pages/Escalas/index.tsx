@@ -474,6 +474,58 @@ export default function Escalas() {
     const totalServices = filteredServicos.length;
     const progressPercentage = totalServices > 0 ? Math.round((assigned.length / totalServices) * 100) : 0;
 
+    const handleDownloadTemplate = () => {
+        const headers = [
+            'Nome do funcionário',
+            'Origem',
+            'Destino',
+            'Horário de apanhar transporte',
+            'Horário de saída do serviço',
+            'Voo',
+            'Observações'
+        ];
+
+        // Create an example row with the first local if available
+        const exampleRow = [
+            'Exemplo João Silva',
+            locais.length > 0 ? locais[0].nome : 'Hotel ABC',
+            locais.length > 1 ? locais[1].nome : 'Aeroporto FARO',
+            '09:00',
+            '18:00',
+            'TP123',
+            'Exemplo de nota'
+        ];
+
+        const wsData = [headers, exampleRow];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Add a second sheet with all locations for reference
+        const localesData = locais.map(l => ({
+            'Nome do Local': l.nome,
+            'Tipo': l.tipo,
+            'Área': l.centroCustoId || 'N/A'
+        }));
+
+        const wsLocales = XLSX.utils.json_to_sheet(localesData);
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Importar Escala");
+        XLSX.utils.book_append_sheet(wb, wsLocales, "Locais Disponíveis");
+
+        XLSX.writeFile(wb, "Template_Escala_Import.xlsx");
+
+        addNotification({
+            id: crypto.randomUUID(),
+            type: 'system_alert',
+            data: {
+                message: 'Modelo Excel descarregado com os locais e configurações atuais.',
+                title: 'Modelo Atualizado'
+            },
+            status: 'pending',
+            timestamp: new Date().toISOString()
+        });
+    };
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -514,6 +566,8 @@ export default function Escalas() {
 
                     const horaEntrada = parseTime(row['Horário de apanhar transporte']);
                     const horaSaida = parseTime(row['Horário de saída do serviço']);
+                    const voo = row['Voo'] || '';
+                    const obsRow = row['Observações'] || '';
 
                     if (horaEntrada) {
                         mappedServicos.push({
@@ -522,8 +576,8 @@ export default function Escalas() {
                             passageiro: nome,
                             origem: origem,
                             destino: destino,
-                            voo: '',
-                            obs: 'Entrada (Importado)',
+                            voo: voo,
+                            obs: obsRow ? `Entrada - ${obsRow}` : 'Entrada (Importado)',
                             concluido: false,
                             centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined
                         });
@@ -536,9 +590,10 @@ export default function Escalas() {
                             passageiro: nome,
                             origem: destino,
                             destino: origem,
-                            voo: '',
-                            obs: 'Saída (Importado)',
-                            concluido: false
+                            voo: voo,
+                            obs: obsRow ? `Saída - ${obsRow}` : 'Saída (Importado)',
+                            concluido: false,
+                            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined
                         });
                     }
                 });
@@ -830,6 +885,15 @@ export default function Escalas() {
                                     >
                                         <CloudLightning className="w-4 h-4 text-amber-300" />
                                         <span className="hidden md:inline">Modelos</span>
+                                    </button>
+
+                                    <button
+                                        onClick={handleDownloadTemplate}
+                                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border border-white/10 shadow-lg active:scale-95 transition-all"
+                                        title="Descarregar ou Atualizar Modelo Excel com locais atuais"
+                                    >
+                                        <FileText className="w-4 h-4 text-emerald-400" />
+                                        <span className="hidden md:inline">Modelo Excel</span>
                                     </button>
 
                                     <button

@@ -35,7 +35,7 @@ interface LancarEscalaProps {
 export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     // const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout(); // Removed
 
-    const { centrosCustos, createScaleBatch } = useWorkshop();
+    const { centrosCustos, createScaleBatch, locais } = useWorkshop();
     const { hasAccess } = usePermissions();
     const { userRole } = useAuth();
 
@@ -98,82 +98,72 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             // 1. Fetch Geofences from Cartrack
             const fences = await CartrackService.getGeofences();
 
-            // 2. Group Geofences
-            const groupedFences: Record<string, string[]> = {};
-            fences.forEach(f => {
-                const group = (f.group_name || 'OUTROS').toUpperCase();
-                if (!groupedFences[group]) groupedFences[group] = [];
-                groupedFences[group].push(f.name);
-            });
+            // 2. Prepare Data for "BANCO DE DADOS"
+            const appLocalsList = locais.map(l => l.nome).sort();
+            const cartrackFencesList = fences.map(f => f.name).sort();
 
-            // 3. Prepare Data for "BANCO DE DADOS" (Matrix/AoA)
-            const groups = Object.keys(groupedFences).sort();
-            const maxRows = Math.max(...Object.values(groupedFences).map(arr => arr.length));
+            const dbSheetData: any[][] = [['LOCAIS NO PROGRAMA (APP)', 'GEOFENCES (CARTRACK)']];
+            const maxLen = Math.max(appLocalsList.length, cartrackFencesList.length);
 
-            // Header Row
-            const dbSheetData: any[][] = [groups];
-
-            // Data Rows
-            for (let i = 0; i < maxRows; i++) {
-                const row: any[] = [];
-                groups.forEach(group => {
-                    row.push(groupedFences[group][i] || '');
-                });
-                dbSheetData.push(row);
+            for (let i = 0; i < maxLen; i++) {
+                dbSheetData.push([
+                    appLocalsList[i] || '',
+                    cartrackFencesList[i] || ''
+                ]);
             }
 
-            // 4. Create New Workbook (Fresh)
+            // 3. Create Workbook
             const wb = utils.book_new();
 
-            // 5. Create "Escala" Sheet (Template)
+            // 4. Create "Escala" Sheet (Template)
             const templateHeaders = [
                 'Nome do funcionário',
                 'Origem',
                 'Destino',
                 'Horário de apanhar transporte',
                 'Horário de saída do serviço',
-                'Referência Voo'
+                'Referência Voo',
+                'Observações'
             ];
 
-            // Example Row
             const exampleRow = [
                 'Exemplo Funcionário',
-                'Hotel A',
-                'Aeroporto',
+                appLocalsList.length > 0 ? appLocalsList[0] : 'Hotel A',
+                appLocalsList.length > 1 ? appLocalsList[1] : 'Aeroporto',
                 '09:00',
                 '18:00',
-                'TP123'
+                'TP123',
+                'Nota de exemplo'
             ];
 
             const wsEscala = utils.aoa_to_sheet([templateHeaders, exampleRow]);
 
-            // Set Column Widths for readability
+            // Set Column Widths
             wsEscala['!cols'] = [
                 { wch: 30 }, // Nome
-                { wch: 20 }, // Origem
-                { wch: 20 }, // Destino
+                { wch: 25 }, // Origem
+                { wch: 25 }, // Destino
                 { wch: 25 }, // Hora Entrada
                 { wch: 25 }, // Hora Saida
-                { wch: 15 }  // Voo
+                { wch: 15 }, // Voo
+                { wch: 30 }  // Obs
             ];
 
-            // 6. Create "BANCO DE DADOS" Sheet
+            // 5. Create "BANCO DE DADOS" Sheet
             const wsDb = utils.aoa_to_sheet(dbSheetData);
+            wsDb['!cols'] = [{ wch: 30 }, { wch: 30 }];
 
-            // Auto-width for DB columns based on content
-            wsDb['!cols'] = groups.map(() => ({ wch: 25 }));
-
-            // 7. Append Sheets
+            // 6. Append Sheets
             utils.book_append_sheet(wb, wsEscala, 'Escala');
-            utils.book_append_sheet(wb, wsDb, 'BANCO DE DADOS');
+            utils.book_append_sheet(wb, wsDb, 'LOCAIS_REFERENCIA');
 
-            // 8. Download
+            // 7. Download
             const wbout = write(wb, { bookType: 'xlsx', type: 'array' });
             const blob = new Blob([wbout], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'Modelo_Escala_Tropical_Atualizado.xlsx';
+            link.download = `Modelo_Escala_Atualizado_${new Date().toISOString().split('T')[0]}.xlsx`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -256,23 +246,62 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                 return ''; // Failed to parse
             };
 
-            const newRows: GridRow[] = jsonData.map((row: any) => {
-                let tipoRaw = (row['TIPO'] || 'ENTRADA').toString().toLowerCase().trim();
-                let tipo: 'entrada' | 'saida' = 'entrada';
-                if (tipoRaw.includes('saida') || tipoRaw.includes('saída')) tipo = 'saida';
+            const newRows: GridRow[] = jsonData.flatMap((row: any) => {
+                const results: GridRow[] = [];
+                const nome = row['Nome do funcionário'] || row['Nome'] || row['PASSAGEIRO'] || row['Passageiro'] || '';
+                if (!nome && !row['Origem'] && !row['ORIGEM']) return []; // Skip empty rows
 
-                const rawHora = row['HORA'] !== undefined ? row['HORA'] : (row['Hora'] || row['hora']);
+                const origem = row['Origem'] || row['ORIGEM'] || '';
+                const destino = row['Destino'] || row['DESTINO'] || '';
+                const obs = (row['Observações'] || row['OBS'] || row['Obs'] || '').toString();
+                const voo = row['Referência Voo'] || row['Voo'] || row['VOO'] || '';
+                const dept = row['DEPARTAMENTO'] || row['Departamento'] || '';
 
-                return {
-                    tempId: generateTempId(),
-                    passageiro: row['PASSAGEIRO'] || row['Passageiro'] || '',
-                    origem: row['ORIGEM'] || row['Origem'] || '',
-                    destino: row['DESTINO'] || row['Destino'] || '',
-                    hora: parseExcelTime(rawHora),
-                    obs: row['OBS'] || row['Obs'] || '',
-                    tipo: tipo,
-                    departamento: row['DEPARTAMENTO'] || row['Departamento'] || ''
-                };
+                const hEntradaRaw = row['Horário de apanhar transporte'] !== undefined ? row['Horário de apanhar transporte'] : (row['HORA'] || row['Hora'] || row['hora']);
+                const horaEntrada = parseExcelTime(hEntradaRaw);
+                const horaSaida = parseExcelTime(row['Horário de saída do serviço']);
+
+                if (horaEntrada) {
+                    results.push({
+                        tempId: generateTempId(),
+                        passageiro: nome,
+                        origem: origem,
+                        destino: destino,
+                        hora: horaEntrada,
+                        obs: voo ? `Voo: ${voo} | ${obs}`.trim() : obs,
+                        tipo: 'entrada',
+                        departamento: dept
+                    });
+                }
+
+                if (horaSaida) {
+                    results.push({
+                        tempId: generateTempId(),
+                        passageiro: nome,
+                        origem: destino,
+                        destino: origem,
+                        hora: horaSaida,
+                        obs: voo ? `Voo: ${voo} | ${obs}`.trim() : obs,
+                        tipo: 'saida',
+                        departamento: dept
+                    });
+                }
+
+                // Fallback for single time format if legacy headers used
+                if (results.length === 0 && !row['Horário de apanhar transporte'] && (row['HORA'] || row['Hora'])) {
+                    results.push({
+                        tempId: generateTempId(),
+                        passageiro: nome,
+                        origem: origem,
+                        destino: destino,
+                        hora: parseExcelTime(row['HORA'] || row['Hora']),
+                        obs: obs,
+                        tipo: (row['TIPO'] || 'ENTRADA').toString().toLowerCase().includes('saida') ? 'saida' : 'entrada',
+                        departamento: dept
+                    });
+                }
+
+                return results;
             });
 
             if (newRows.length > 0) {
