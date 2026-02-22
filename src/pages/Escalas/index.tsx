@@ -93,7 +93,7 @@ export default function Escalas() {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
         updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
         complianceStats, locais, checkRouteValidation, scaleBatches, createScaleBatch,
-        zonasOperacionais, refreshData, areasOperacionais,
+        zonasOperacionais, refreshData,
         escalaTemplates, escalaTemplateItems, addEscalaTemplate, deleteEscalaTemplate, addTemplateItem, deleteTemplateItem
     } = useWorkshop();
     const { userRole } = useAuth();
@@ -262,8 +262,8 @@ export default function Escalas() {
         });
 
         const batchData = {
-            notes: `Escala Modelo: ${template.nome}`,
-            centroCustoId: template.centro_custo_id || (selectedCentroCusto !== 'all' ? selectedCentroCusto : ''),
+            notes: `Escala Permanente: ${template.nome}`,
+            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : (template.centro_custo_id || ''),
             referenceDate: selectedDate
         };
 
@@ -826,9 +826,9 @@ export default function Escalas() {
 
                                     <button
                                         onClick={() => setShowTemplateModal(true)}
-                                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/20 active:scale-95 transition-all"
+                                        className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/40 active:scale-95 transition-all"
                                     >
-                                        <FileText className="w-4 h-4" />
+                                        <CloudLightning className="w-4 h-4 text-amber-300" />
                                         <span className="hidden md:inline">Modelos</span>
                                     </button>
 
@@ -2369,19 +2369,33 @@ export default function Escalas() {
 
                         <div className="p-6 overflow-y-auto space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {escalaTemplates.filter(t => selectedCentroCusto === 'all' || t.centro_custo_id === selectedCentroCusto).map(template => (
+                                {escalaTemplates.map(template => (
                                     <button
                                         key={template.id}
                                         onClick={() => setSelectedTemplateId(template.id)}
-                                        className={`p-4 rounded-xl border transition-all text-left ${selectedTemplateId === template.id
-                                            ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500'
-                                            : 'bg-slate-800/50 border-white/5 hover:border-white/10'
+                                        className={`group p-5 rounded-2xl border transition-all text-left relative overflow-hidden ${selectedTemplateId === template.id
+                                            ? 'bg-indigo-500/10 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xl shadow-indigo-900/20'
+                                            : 'bg-slate-800/40 border-white/5 hover:border-white/10 hover:bg-slate-800/60'
                                             }`}
                                     >
-                                        <div className="font-bold text-white mb-1">{template.nome}</div>
-                                        <div className="text-xs text-slate-400">
-                                            {escalaTemplateItems.filter(i => i.template_id === template.id).length} itens registrados
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className={`p-2 rounded-lg ${selectedTemplateId === template.id ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400 group-hover:bg-slate-600 transition-colors'}`}>
+                                                <FileText className="w-4 h-4" />
+                                            </div>
+                                            {selectedTemplateId === template.id && (
+                                                <div className="bg-indigo-500 text-[10px] font-black text-white px-2 py-0.5 rounded-full uppercase tracking-tighter animate-pulse">
+                                                    Selecionado
+                                                </div>
+                                            )}
                                         </div>
+                                        <div className="font-black text-lg text-white mb-1 group-hover:translate-x-1 transition-transform">{template.nome}</div>
+                                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                                            <Users className="w-3 h-3" />
+                                            {escalaTemplateItems.filter(i => i.template_id === template.id).length} Serviços Registrados
+                                        </div>
+
+                                        {/* Decorative background element */}
+                                        <div className={`absolute -right-4 -bottom-4 w-24 h-24 blur-3xl rounded-full transition-opacity duration-500 ${selectedTemplateId === template.id ? 'bg-indigo-500/20 opacity-100' : 'bg-transparent opacity-0'}`} />
                                     </button>
                                 ))}
 
@@ -2390,10 +2404,12 @@ export default function Escalas() {
                                         setShowTemplateModal(false);
                                         setShowManageTemplates(true);
                                     }}
-                                    className="p-4 rounded-xl border border-dashed border-white/10 bg-slate-800/20 hover:bg-slate-800/40 transition-all text-center flex flex-col items-center justify-center gap-2 group"
+                                    className="p-5 rounded-2xl border border-dashed border-white/10 bg-slate-800/20 hover:bg-slate-800/40 transition-all text-center flex flex-col items-center justify-center gap-3 group min-h-[140px]"
                                 >
-                                    <Settings className="w-6 h-6 text-slate-500 group-hover:text-white transition-colors" />
-                                    <span className="text-sm font-bold text-slate-400 group-hover:text-white">Gerir Modelos</span>
+                                    <div className="p-3 bg-slate-700/50 rounded-xl group-hover:scale-110 group-hover:bg-slate-700 transition-all">
+                                        <Settings className="w-6 h-6 text-slate-400 group-hover:text-white" />
+                                    </div>
+                                    <span className="text-sm font-black text-slate-400 group-hover:text-white uppercase tracking-widest">Painel de Gestão</span>
                                 </button>
                             </div>
 
@@ -2493,7 +2509,7 @@ export default function Escalas() {
                                             onChange={e => setNewTemplateName(e.target.value)}
                                             onKeyDown={e => {
                                                 if (e.key === 'Enter') {
-                                                    addEscalaTemplate({ nome: newTemplateName, centro_custo_id: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined }, []);
+                                                    addEscalaTemplate({ nome: newTemplateName }, []);
                                                     setIsCreatingTemplate(false);
                                                     setNewTemplateName('');
                                                 }
@@ -2508,7 +2524,7 @@ export default function Escalas() {
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    addEscalaTemplate({ nome: newTemplateName, centro_custo_id: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined }, []);
+                                                    addEscalaTemplate({ nome: newTemplateName }, []);
                                                     setIsCreatingTemplate(false);
                                                     setNewTemplateName('');
                                                 }}
@@ -2520,7 +2536,7 @@ export default function Escalas() {
                                     </div>
                                 )}
 
-                                {escalaTemplates.filter(t => selectedCentroCusto === 'all' || t.centro_custo_id === selectedCentroCusto).map(template => (
+                                {escalaTemplates.map(template => (
                                     <div key={template.id} className="relative group">
                                         <button
                                             onClick={() => setSelectedTemplateId(template.id)}
@@ -2628,45 +2644,61 @@ export default function Escalas() {
                                         </div>
 
                                         {/* Items List */}
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                             {escalaTemplateItems.filter(ti => ti.template_id === selectedTemplateId).length === 0 ? (
-                                                <div className="text-center py-12 bg-slate-900/20 rounded-2xl border border-dashed border-white/5">
-                                                    <FileText className="w-8 h-8 text-slate-600 mx-auto mb-3 opacity-20" />
-                                                    <p className="text-slate-500 text-sm">Nenhum item adicionado a este modelo.</p>
+                                                <div className="text-center py-20 bg-slate-900/40 rounded-3xl border border-dashed border-white/5 flex flex-col items-center justify-center">
+                                                    <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-4">
+                                                        <FileText className="w-8 h-8 text-indigo-500/30" />
+                                                    </div>
+                                                    <h4 className="text-white font-bold mb-1">Modelo Vazio</h4>
+                                                    <p className="text-slate-500 text-xs max-w-[200px]">Adicione funcionários e locais acima para começar a construir este modelo.</p>
                                                 </div>
                                             ) : (
-                                                <div className="grid grid-cols-1 gap-3">
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <div className="grid grid-cols-12 px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
+                                                        <div className="col-span-3">Horários</div>
+                                                        <div className="col-span-4">Funcionário / Passageiro</div>
+                                                        <div className="col-span-4">Destino / Local</div>
+                                                        <div className="col-span-1 text-right">Ações</div>
+                                                    </div>
                                                     {escalaTemplateItems.filter(ti => ti.template_id === selectedTemplateId).map(item => (
-                                                        <div key={item.id} className="bg-slate-800/40 border border-white/5 hover:border-indigo-500/30 rounded-xl p-4 flex items-center justify-between group transition-all">
-                                                            <div className="flex items-center gap-6">
+                                                        <div key={item.id} className="grid grid-cols-12 items-center bg-slate-800/30 border border-white/5 hover:border-indigo-500/40 hover:bg-slate-800/50 rounded-2xl px-6 py-4 group transition-all">
+                                                            <div className="col-span-3 flex items-center gap-3">
                                                                 <div className="flex flex-col">
-                                                                    <span className="text-[10px] text-slate-500 uppercase font-bold mb-1">Horários</span>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-sm font-bold text-emerald-400">{item.hora_entrada || '--:--'}</span>
-                                                                        <ArrowRight className="w-3 h-3 text-slate-600" />
-                                                                        <span className="text-sm font-bold text-amber-400">{item.hora_saida || '--:--'}</span>
+                                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
+                                                                        <span className="text-sm font-black text-white">{item.hora_entrada || '--:--'}</span>
                                                                     </div>
-                                                                </div>
-                                                                <div className="h-8 w-px bg-white/5" />
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-[10px] text-slate-500 uppercase font-bold mb-1">Funcionário</span>
-                                                                    <span className="text-sm text-white font-medium">{item.passageiro || 'Staff Generico'}</span>
-                                                                </div>
-                                                                <div className="h-8 w-px bg-white/5" />
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-[10px] text-slate-500 uppercase font-bold mb-1">Local / Ponto de Apanha</span>
                                                                     <div className="flex items-center gap-1.5">
-                                                                        <MapPin className="w-3 h-3 text-indigo-400" />
-                                                                        <span className="text-sm text-slate-300">{item.local}</span>
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50" />
+                                                                        <span className="text-sm font-black text-white">{item.hora_saida || '--:--'}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <button
-                                                                onClick={() => deleteTemplateItem(item.id)}
-                                                                className="opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-red-500 transition-all hover:bg-red-500/10 rounded-lg"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
+                                                            <div className="col-span-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                                                        {item.passageiro?.charAt(0) || 'S'}
+                                                                    </div>
+                                                                    <span className="text-sm font-bold text-white group-hover:text-indigo-200 transition-colors truncate">
+                                                                        {item.passageiro || 'Staff Geral'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="col-span-4 flex items-center gap-2">
+                                                                <div className="p-1.5 bg-slate-800 rounded-lg border border-white/5">
+                                                                    <MapPin className="w-3 h-3 text-indigo-400" />
+                                                                </div>
+                                                                <span className="text-sm text-slate-300 font-medium truncate">{item.local}</span>
+                                                            </div>
+                                                            <div className="col-span-1 text-right">
+                                                                <button
+                                                                    onClick={() => deleteTemplateItem(item.id)}
+                                                                    className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
