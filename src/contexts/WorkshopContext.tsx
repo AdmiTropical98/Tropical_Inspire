@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional, EscalaTemplate, EscalaTemplateItem } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -45,6 +45,8 @@ interface WorkshopContextType {
     scaleBatches: ScaleBatch[];
     zonasOperacionais: ZonaOperacional[];
     areasOperacionais: AreaOperacional[];
+    escalaTemplates: EscalaTemplate[];
+    escalaTemplateItems: EscalaTemplateItem[];
     geofences: CartrackGeofence[];
     geofenceVisits: CartrackGeofenceVisit[]; // NEW
     cartrackVehicles: import('../services/cartrack').CartrackVehicle[];
@@ -160,6 +162,13 @@ interface WorkshopContextType {
     updateAreaOperacional: (a: AreaOperacional) => Promise<void>;
     deleteAreaOperacional: (id: string) => Promise<void>;
 
+    // NEW: Escala Templates CRUD
+    addEscalaTemplate: (template: Omit<EscalaTemplate, 'id' | 'created_at'>, items: Omit<EscalaTemplateItem, 'id' | 'created_at' | 'template_id'>[]) => Promise<{ success: boolean; error?: any }>;
+    deleteEscalaTemplate: (id: string) => Promise<void>;
+    updateEscalaTemplate: (id: string, name: string) => Promise<void>;
+    addTemplateItem: (item: Omit<EscalaTemplateItem, 'id' | 'created_at'>) => Promise<void>;
+    deleteTemplateItem: (id: string) => Promise<void>;
+
 }
 
 const WorkshopContext = createContext<WorkshopContextType | undefined>(undefined);
@@ -210,6 +219,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [scaleBatches, setScaleBatches] = useState<ScaleBatch[]>([]);
     const [zonasOperacionais, setZonasOperacionais] = useState<ZonaOperacional[]>([]);
     const [areasOperacionais, setAreasOperacionais] = useState<AreaOperacional[]>([]);
+    const [escalaTemplates, setEscalaTemplates] = useState<EscalaTemplate[]>([]);
+    const [escalaTemplateItems, setEscalaTemplateItems] = useState<EscalaTemplateItem[]>([]);
 
 
 
@@ -565,6 +576,32 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 if (logs) setLogsOperacionais(logs);
             } catch (e: any) {
                 console.error('Error fetching routing/logs:', e);
+            }
+
+            try {
+                const { data: templates } = await supabase.from('escala_templates').select('*');
+                if (templates) setEscalaTemplates(templates.map((t: any) => ({
+                    id: t.id,
+                    nome: t.nome,
+                    centro_custo_id: t.centro_custo_id,
+                    created_at: t.created_at,
+                    created_by: t.created_by
+                })));
+
+                const { data: tItems } = await supabase.from('escala_template_items').select('*');
+                if (tItems) setEscalaTemplateItems(tItems.map((ti: any) => ({
+                    id: ti.id,
+                    template_id: ti.template_id,
+                    hora_entrada: ti.hora_entrada,
+                    hora_saida: ti.hora_saida,
+                    passageiro: ti.passageiro,
+                    local: ti.local,
+                    referencia: ti.referencia,
+                    obs: ti.obs,
+                    created_at: ti.created_at
+                })));
+            } catch (e) {
+                console.error('Error fetching scale templates:', e);
             }
 
             // 2. Eva Transports
@@ -2336,6 +2373,61 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const addEscalaTemplate = async (template: Omit<EscalaTemplate, 'id' | 'created_at'>, items: Omit<EscalaTemplateItem, 'id' | 'created_at' | 'template_id'>[]) => {
+        try {
+            const { data: tData, error: tError } = await supabase.from('escala_templates').insert(template).select().single();
+            if (tError) throw tError;
+
+            if (items.length > 0) {
+                const itemsToInsert = items.map(item => ({ ...item, template_id: tData.id }));
+                const { error: iError } = await supabase.from('escala_template_items').insert(itemsToInsert);
+                if (iError) throw iError;
+            }
+
+            await refreshData();
+            return { success: true };
+        } catch (error) {
+            console.error('Error adding escala template:', error);
+            return { success: false, error };
+        }
+    };
+
+    const deleteEscalaTemplate = async (id: string) => {
+        const { error } = await supabase.from('escala_templates').delete().eq('id', id);
+        if (!error) {
+            setEscalaTemplates(prev => prev.filter(t => t.id !== id));
+        } else {
+            console.error('Error deleting template:', error);
+        }
+    };
+
+    const updateEscalaTemplate = async (id: string, name: string) => {
+        const { error } = await supabase.from('escala_templates').update({ nome: name }).eq('id', id);
+        if (!error) {
+            setEscalaTemplates(prev => prev.map(t => t.id === id ? { ...t, nome: name } : t));
+        } else {
+            console.error('Error updating template:', error);
+        }
+    };
+
+    const addTemplateItem = async (item: Omit<EscalaTemplateItem, 'id' | 'created_at'>) => {
+        const { error } = await supabase.from('escala_template_items').insert(item);
+        if (!error) {
+            await refreshData();
+        } else {
+            console.error('Error adding template item:', error);
+        }
+    };
+
+    const deleteTemplateItem = async (id: string) => {
+        const { error } = await supabase.from('escala_template_items').delete().eq('id', id);
+        if (!error) {
+            setEscalaTemplateItems(prev => prev.filter(ti => ti.id !== id));
+        } else {
+            console.error('Error deleting template item:', error);
+        }
+    };
+
     return (
         <WorkshopContext.Provider value={{
             fornecedores,
@@ -2364,6 +2456,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             scaleBatches,
             zonasOperacionais,
             areasOperacionais,
+            escalaTemplates,
+            escalaTemplateItems,
             locais,
             addServico,
             updateServico,
@@ -2434,6 +2528,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addAreaOperacional,
             updateAreaOperacional,
             deleteAreaOperacional,
+            addEscalaTemplate,
+            deleteEscalaTemplate,
+            updateEscalaTemplate,
+            addTemplateItem,
+            deleteTemplateItem,
 
             geofenceMappings,
             updateGeofenceMapping,

@@ -594,6 +594,26 @@ export interface AreaOperacional {
     created_at?: string;
 }
 
+export interface EscalaTemplate {
+    id: string;
+    nome: string;
+    centro_custo_id?: string;
+    created_at: string;
+    created_by?: string;
+}
+
+export interface EscalaTemplateItem {
+    id: string;
+    template_id: string;
+    hora_entrada?: string;
+    hora_saida?: string;
+    passageiro?: string;
+    local: string;
+    referencia?: string;
+    obs?: string;
+    created_at: string;
+}
+
 
 
 

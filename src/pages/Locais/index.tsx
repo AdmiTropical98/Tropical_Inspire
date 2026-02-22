@@ -179,6 +179,8 @@ export default function Locais() {
     // Global suggestions for Zone Mapping
     const [zoneGeoResults, setZoneGeoResults] = useState<SearchResult[]>([]);
     const [isSearchingZone, setIsSearchingZone] = useState(false);
+    const [showZoneSuggestions, setShowZoneSuggestions] = useState(false);
+
 
 
 
@@ -206,10 +208,13 @@ export default function Locais() {
         const timer = setTimeout(async () => {
             if (zoneFormData.nome_local.length < 3) {
                 setZoneGeoResults([]);
+                setShowZoneSuggestions(false);
                 return;
             }
 
             setIsSearchingZone(true);
+            setShowZoneSuggestions(true);
+
             try {
                 const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(zoneFormData.nome_local)}&limit=5`);
                 if (response.ok) {
@@ -569,10 +574,16 @@ export default function Locais() {
                                             className="w-full bg-[#0f172a] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-emerald-500 outline-none"
                                             placeholder="Ex: Hilton Vilamoura"
                                             value={zoneFormData.nome_local}
-                                            onChange={e => setZoneFormData({ ...zoneFormData, nome_local: e.target.value })}
+                                            onChange={e => {
+                                                setZoneFormData({ ...zoneFormData, nome_local: e.target.value });
+                                                if (e.target.value.length >= 3) setShowZoneSuggestions(true);
+                                            }}
+                                            onFocus={() => {
+                                                if (zoneFormData.nome_local.length >= 3) setShowZoneSuggestions(true);
+                                            }}
                                         />
                                         {/* Suggestions */}
-                                        {(zoneFormData.nome_local.length > 1) && (
+                                        {showZoneSuggestions && (zoneFormData.nome_local.length > 1) && (
                                             <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl z-20 max-h-60 overflow-y-auto">
                                                 {/* Local POIs */}
                                                 {locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).length > 0 && (
@@ -588,6 +599,7 @@ export default function Locais() {
                                                                 onClick={() => {
                                                                     setZoneFormData({ ...zoneFormData, nome_local: l.nome });
                                                                     setZoneGeoResults([]);
+                                                                    setShowZoneSuggestions(false);
                                                                 }}
                                                                 className="w-full text-left p-2 hover:bg-emerald-500/10 text-xs text-slate-400 hover:text-emerald-400 border-b border-white/5 last:border-0 flex items-center justify-between"
                                                             >
@@ -620,6 +632,7 @@ export default function Locais() {
                                                                     const mainName = result.display_name.split(',')[0];
                                                                     setZoneFormData({ ...zoneFormData, nome_local: mainName });
                                                                     setZoneGeoResults([]);
+                                                                    setShowZoneSuggestions(false);
                                                                 }}
                                                                 className="w-full text-left p-3 hover:bg-blue-500/10 text-xs text-slate-400 hover:text-blue-400 border-b border-white/5 last:border-0 group"
                                                             >
@@ -635,12 +648,28 @@ export default function Locais() {
                                                 )}
 
                                                 {zoneFormData.nome_local.length >= 3 && !isSearchingZone && zoneGeoResults.length === 0 && locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).length === 0 && (
-                                                    <div className="p-4 text-center text-xs text-slate-500 italic">
-                                                        Nenhuma sugestão encontrada. Pode escrever o nome manualmente.
+                                                    <div className="p-4 bg-slate-900/40 rounded-b-xl border-t border-white/5">
+                                                        <div className="flex flex-col items-center gap-2 animate-in fade-in zoom-in duration-300">
+                                                            <div className="p-2 bg-slate-800 rounded-lg text-slate-500">
+                                                                <Search className="w-4 h-4" />
+                                                            </div>
+                                                            <p className="text-[10px] text-slate-400 text-center px-4 leading-relaxed">
+                                                                Não encontrámos sugestões automáticas para este nome. <br />
+                                                                <span className="text-emerald-400/80">Pode continuar a escrever o nome manualmente.</span>
+                                                            </p>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowZoneSuggestions(false)}
+                                                                className="mt-1 text-[9px] text-slate-500 hover:text-white underline underline-offset-2 transition-colors uppercase font-bold tracking-wider"
+                                                            >
+                                                                Fechar Sugestões
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
                                         )}
+
 
                                     </div>
                                 </div>

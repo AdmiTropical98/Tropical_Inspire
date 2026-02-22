@@ -4,7 +4,7 @@ import {
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, Car,
     Search, LayoutList, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid, CloudLightning
+    Table as TableIcon, LayoutGrid, CloudLightning, FileText, Settings
 } from 'lucide-react';
 
 import {
@@ -92,8 +92,9 @@ export default function Escalas() {
     const {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
         updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
-        complianceStats, runComplianceDemo, locais, checkRouteValidation, scaleBatches, createScaleBatch,
-        zonasOperacionais, refreshData
+        complianceStats, locais, checkRouteValidation, scaleBatches, createScaleBatch,
+        zonasOperacionais, refreshData, areasOperacionais,
+        escalaTemplates, escalaTemplateItems, addEscalaTemplate, deleteEscalaTemplate, addTemplateItem, deleteTemplateItem
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -173,6 +174,20 @@ export default function Escalas() {
         quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || ''
     });
 
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [showManageTemplates, setShowManageTemplates] = useState(false);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+    const [newTemplateName, setNewTemplateName] = useState('');
+    const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+    const [templateItemForm, setTemplateItemForm] = useState({
+        hora_entrada: '09:00',
+        hora_saida: '18:00',
+        passageiro: '',
+        local: '',
+        obs: ''
+    });
+
     const handleRunAutomation = async () => {
         setIsAutoLoading(true);
         try {
@@ -200,6 +215,71 @@ export default function Escalas() {
             alert('Erro na Automação: ' + error.message);
         } finally {
             setIsAutoLoading(false);
+        }
+    };
+
+    const handleLaunchTemplate = async (templateId: string) => {
+        const template = escalaTemplates.find(t => t.id === templateId);
+        if (!template) return;
+
+        const items = escalaTemplateItems.filter(ti => ti.template_id === templateId);
+        if (items.length === 0) {
+            alert('Este modelo não tem itens.');
+            return;
+        }
+
+        const servicesToAdd: Servico[] = [];
+
+        items.forEach(item => {
+            // Entry Service
+            if (item.hora_entrada) {
+                servicesToAdd.push({
+                    id: crypto.randomUUID(),
+                    data: selectedDate,
+                    hora: item.hora_entrada,
+                    passageiro: item.passageiro || 'Staff',
+                    origem: item.local,
+                    destino: 'Hotel/Base', // Generic or from local mapping
+                    obs: item.obs || 'Entrada (Modelo)',
+                    concluido: false,
+                    centroCustoId: template.centro_custo_id || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined)
+                });
+            }
+            // Return Service
+            if (item.hora_saida) {
+                servicesToAdd.push({
+                    id: crypto.randomUUID(),
+                    data: selectedDate,
+                    hora: item.hora_saida,
+                    passageiro: item.passageiro || 'Staff',
+                    origem: 'Hotel/Base',
+                    destino: item.local,
+                    obs: item.obs || 'Saída (Modelo)',
+                    concluido: false,
+                    centroCustoId: template.centro_custo_id || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined)
+                });
+            }
+        });
+
+        const batchData = {
+            notes: `Escala Modelo: ${template.nome}`,
+            centroCustoId: template.centro_custo_id || (selectedCentroCusto !== 'all' ? selectedCentroCusto : ''),
+            referenceDate: selectedDate
+        };
+
+        const result = await createScaleBatch(batchData, servicesToAdd);
+        if (result.success) {
+            setShowTemplateModal(false);
+            addNotification({
+                id: crypto.randomUUID(),
+                type: 'system_alert',
+                data: {
+                    message: `Escala gerada a partir do modelo "${template.nome}"`,
+                    title: 'Sucesso'
+                },
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            });
         }
     };
 
@@ -243,7 +323,6 @@ export default function Escalas() {
         }
     };
     // Layout & Filter State
-    const [selectedCentroCustoFilter, setSelectedCentroCustoFilter] = useState<string>('all');
     const [showAutoSettings, setShowAutoSettings] = useState(false);
     const [layoutCols, setLayoutCols] = useState<number>(() => {
         const saved = localStorage.getItem('escalas_layout_cols');
@@ -479,10 +558,13 @@ export default function Escalas() {
                     if (result.success) {
                         addNotification({
                             id: crypto.randomUUID(),
-                            type: 'success',
-                            message: `Lote "${batchData.notes}" criado com ${mappedServicos.length} serviços!`,
-                            timestamp: new Date().toISOString(),
-                            read: false
+                            type: 'system_alert',
+                            data: {
+                                message: `Lote "${batchData.notes}" criado com ${mappedServicos.length} serviços!`,
+                                title: 'Sucesso'
+                            },
+                            status: 'pending',
+                            timestamp: new Date().toISOString()
                         });
                     } else {
                         alert(`Erro ao criar lote: ${result.error}`);
@@ -743,11 +825,19 @@ export default function Escalas() {
                                     </button>
 
                                     <button
+                                        onClick={() => setShowTemplateModal(true)}
+                                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/20 active:scale-95 transition-all"
+                                    >
+                                        <FileText className="w-4 h-4" />
+                                        <span className="hidden md:inline">Modelos</span>
+                                    </button>
+
+                                    <button
                                         onClick={() => setShowAutoSettings(true)}
                                         className="bg-[#1e293b] hover:bg-slate-700 text-white p-2 rounded-lg border border-white/5 transition-colors"
                                         title="Definições de Automação"
                                     >
-                                        <MoreVertical className="w-5 h-5" />
+                                        <Settings className="w-5 h-5" />
                                     </button>
                                 </div>
                             )}
@@ -2258,6 +2348,348 @@ export default function Escalas() {
                     </div>
                 )
             }
+            {/* Template Selection Modal */}
+            {showTemplateModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                    <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+                        <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-bold text-white">Lançar Escala Permanente (Modelo)</h2>
+                            </div>
+                            <button
+                                onClick={() => setShowTemplateModal(false)}
+                                className="text-slate-400 hover:text-white transition-colors"
+                            >
+                                <Plus className="w-6 h-6 rotate-45" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {escalaTemplates.filter(t => selectedCentroCusto === 'all' || t.centro_custo_id === selectedCentroCusto).map(template => (
+                                    <button
+                                        key={template.id}
+                                        onClick={() => setSelectedTemplateId(template.id)}
+                                        className={`p-4 rounded-xl border transition-all text-left ${selectedTemplateId === template.id
+                                            ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500'
+                                            : 'bg-slate-800/50 border-white/5 hover:border-white/10'
+                                            }`}
+                                    >
+                                        <div className="font-bold text-white mb-1">{template.nome}</div>
+                                        <div className="text-xs text-slate-400">
+                                            {escalaTemplateItems.filter(i => i.template_id === template.id).length} itens registrados
+                                        </div>
+                                    </button>
+                                ))}
+
+                                <button
+                                    onClick={() => {
+                                        setShowTemplateModal(false);
+                                        setShowManageTemplates(true);
+                                    }}
+                                    className="p-4 rounded-xl border border-dashed border-white/10 bg-slate-800/20 hover:bg-slate-800/40 transition-all text-center flex flex-col items-center justify-center gap-2 group"
+                                >
+                                    <Settings className="w-6 h-6 text-slate-500 group-hover:text-white transition-colors" />
+                                    <span className="text-sm font-bold text-slate-400 group-hover:text-white">Gerir Modelos</span>
+                                </button>
+                            </div>
+
+                            {selectedTemplateId && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Pré-visualização de Itens</h3>
+                                    </div>
+                                    <div className="bg-slate-950/50 rounded-xl border border-white/5 overflow-hidden">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="border-b border-white/5 bg-white/5">
+                                                    <th className="px-4 py-3 font-bold text-slate-300">Entrada</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-300">Saída</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-300">Passageiro</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-300">Local</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {escalaTemplateItems.filter(i => i.template_id === selectedTemplateId).map(item => (
+                                                    <tr key={item.id} className="hover:bg-white/5">
+                                                        <td className="px-4 py-3 text-emerald-400 font-medium">{item.hora_entrada || '-'}</td>
+                                                        <td className="px-4 py-3 text-amber-400 font-medium">{item.hora_saida || '-'}</td>
+                                                        <td className="px-4 py-3 text-white">{item.passageiro}</td>
+                                                        <td className="px-4 py-3 text-slate-300">{item.local}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-6 bg-slate-900/50 border-t border-white/5 flex gap-4">
+                            <button
+                                onClick={() => setShowTemplateModal(false)}
+                                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                disabled={!selectedTemplateId}
+                                onClick={() => selectedTemplateId && handleLaunchTemplate(selectedTemplateId)}
+                                className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl font-bold shadow-lg shadow-indigo-900/40 flex items-center justify-center gap-2 transform active:scale-95 transition-all"
+                            >
+                                <Send className="w-5 h-5" />
+                                Lançar para {selectedDate}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Template Management Modal */}
+            {showManageTemplates && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[80] flex items-center justify-center p-4">
+                    <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden h-[85vh]">
+                        <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
+                                    <Settings className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-bold text-white">Gestão de Modelos de Escala</h2>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowManageTemplates(false);
+                                    setShowTemplateModal(true);
+                                }}
+                                className="text-slate-400 hover:text-white transition-colors"
+                            >
+                                <Plus className="w-6 h-6 rotate-45" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 flex overflow-hidden">
+                            {/* Templates Lateral List */}
+                            <div className="w-64 border-r border-white/5 bg-slate-900/30 p-4 space-y-4 overflow-y-auto">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Modelos</span>
+                                    <button
+                                        onClick={() => setIsCreatingTemplate(true)}
+                                        className="p-1 text-indigo-400 hover:text-white"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {isCreatingTemplate && (
+                                    <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/50 space-y-2">
+                                        <input
+                                            autoFocus
+                                            className="w-full bg-slate-950 border border-indigo-500/30 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                                            placeholder="Nome do Modelo..."
+                                            value={newTemplateName}
+                                            onChange={e => setNewTemplateName(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') {
+                                                    addEscalaTemplate({ nome: newTemplateName, centro_custo_id: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined }, []);
+                                                    setIsCreatingTemplate(false);
+                                                    setNewTemplateName('');
+                                                }
+                                            }}
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setIsCreatingTemplate(false)}
+                                                className="flex-1 text-[10px] text-slate-400 hover:text-white font-bold"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    addEscalaTemplate({ nome: newTemplateName, centro_custo_id: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined }, []);
+                                                    setIsCreatingTemplate(false);
+                                                    setNewTemplateName('');
+                                                }}
+                                                className="flex-1 text-[10px] text-indigo-400 hover:text-white font-bold"
+                                            >
+                                                Criar
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {escalaTemplates.filter(t => selectedCentroCusto === 'all' || t.centro_custo_id === selectedCentroCusto).map(template => (
+                                    <div key={template.id} className="relative group">
+                                        <button
+                                            onClick={() => setSelectedTemplateId(template.id)}
+                                            className={`w-full p-3 rounded-xl text-left text-sm transition-all flex items-center justify-between ${selectedTemplateId === template.id
+                                                ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-900/40'
+                                                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                                                }`}
+                                        >
+                                            <span className="truncate">{template.nome}</span>
+                                            <FileText className="w-4 h-4 opacity-50" />
+                                        </button>
+                                        {selectedTemplateId === template.id && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm('Eliminar este modelo?')) deleteEscalaTemplate(template.id);
+                                                }}
+                                                className="absolute -right-2 -top-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Template Items Content */}
+                            <div className="flex-1 p-6 overflow-y-auto">
+                                {selectedTemplateId ? (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-xl font-bold text-white mb-1">
+                                                    {escalaTemplates.find(t => t.id === selectedTemplateId)?.nome}
+                                                </h3>
+                                                <p className="text-xs text-slate-400">Gerir funcionários e locais deste modelo permanente</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {/* Add Item form toggle or similar could go here */}
+                                            </div>
+                                        </div>
+
+                                        {/* New Item Form */}
+                                        <div className="bg-slate-800/20 rounded-2xl border border-white/5 p-4 space-y-4">
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Funcionário</label>
+                                                    <input
+                                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                        placeholder="Ex: João Silva"
+                                                        value={templateItemForm.passageiro}
+                                                        onChange={e => setTemplateItemForm({ ...templateItemForm, passageiro: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Local/Hotel</label>
+                                                    <input
+                                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                        placeholder="Ex: Hilton Vilamoura"
+                                                        value={templateItemForm.local}
+                                                        onChange={e => setTemplateItemForm({ ...templateItemForm, local: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Hora Entrada</label>
+                                                    <input
+                                                        type="time"
+                                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                        value={templateItemForm.hora_entrada}
+                                                        onChange={e => setTemplateItemForm({ ...templateItemForm, hora_entrada: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Hora Saída</label>
+                                                    <input
+                                                        type="time"
+                                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                        value={templateItemForm.hora_saida}
+                                                        onChange={e => setTemplateItemForm({ ...templateItemForm, hora_saida: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                <button
+                                                    onClick={() => {
+                                                        if (!templateItemForm.local) return alert('Local é obrigatório');
+                                                        addTemplateItem({
+                                                            template_id: selectedTemplateId!,
+                                                            ...templateItemForm
+                                                        });
+                                                        setTemplateItemForm({
+                                                            hora_entrada: '09:00',
+                                                            hora_saida: '18:00',
+                                                            passageiro: '',
+                                                            local: '',
+                                                            obs: ''
+                                                        });
+                                                    }}
+                                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                    Adicionar ao Modelo
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Items List */}
+                                        <div className="space-y-2">
+                                            {escalaTemplateItems.filter(ti => ti.template_id === selectedTemplateId).length === 0 ? (
+                                                <div className="text-center py-12 bg-slate-900/20 rounded-2xl border border-dashed border-white/5">
+                                                    <FileText className="w-8 h-8 text-slate-600 mx-auto mb-3 opacity-20" />
+                                                    <p className="text-slate-500 text-sm">Nenhum item adicionado a este modelo.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {escalaTemplateItems.filter(ti => ti.template_id === selectedTemplateId).map(item => (
+                                                        <div key={item.id} className="bg-slate-800/40 border border-white/5 hover:border-indigo-500/30 rounded-xl p-4 flex items-center justify-between group transition-all">
+                                                            <div className="flex items-center gap-6">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] text-slate-500 uppercase font-bold mb-1">Horários</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-sm font-bold text-emerald-400">{item.hora_entrada || '--:--'}</span>
+                                                                        <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                                        <span className="text-sm font-bold text-amber-400">{item.hora_saida || '--:--'}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="h-8 w-px bg-white/5" />
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] text-slate-500 uppercase font-bold mb-1">Funcionário</span>
+                                                                    <span className="text-sm text-white font-medium">{item.passageiro || 'Staff Generico'}</span>
+                                                                </div>
+                                                                <div className="h-8 w-px bg-white/5" />
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] text-slate-500 uppercase font-bold mb-1">Local / Ponto de Apanha</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <MapPin className="w-3 h-3 text-indigo-400" />
+                                                                        <span className="text-sm text-slate-300">{item.local}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => deleteTemplateItem(item.id)}
+                                                                className="opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-red-500 transition-all hover:bg-red-500/10 rounded-lg"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
+                                        <div className="p-4 bg-indigo-500/5 rounded-full mb-4">
+                                            <FileText className="w-12 h-12 text-indigo-500/30" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-white mb-2">Selecione um Modelo</h3>
+                                        <p className="text-sm text-slate-400 max-w-xs">
+                                            Escolha um modelo à esquerda ou crie um novo para gerir as escalas recorrentes.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Datalist for geofences suggestions */}
             <datalist id="geofences-list">
                 {geofences.map(geo => (
