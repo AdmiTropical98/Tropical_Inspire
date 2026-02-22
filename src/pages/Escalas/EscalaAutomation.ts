@@ -54,40 +54,54 @@ export async function fetchSheetCSV(url: string): Promise<any[]> {
 export function parseSheetToServices(rows: any[], selectedDate: string, centroCustoId: string): Servico[] {
     const services: Servico[] = [];
 
+    // Helper to find a value in a row regardless of exact key match
+    const getVal = (row: any, keywords: string[]) => {
+        const keys = Object.keys(row);
+        const normalizedKeywords = keywords.map(kw => kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+
+        for (const key of keys) {
+            const normalizedKey = key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (normalizedKeywords.some(kw => normalizedKey.includes(kw))) {
+                return row[key];
+            }
+        }
+        return null;
+    };
+
+    const parseTime = (val: any) => {
+        if (!val) return null;
+        if (typeof val === 'number') {
+            const totalSeconds = Math.round(val * 86400);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+        const str = String(val).trim();
+        const match = str.match(/(\d{1,2}):(\d{2})/);
+        if (match) {
+            return `${match[1].padStart(2, '0')}:${match[2].padStart(2, '0')}`;
+        }
+        return null;
+    };
+
     rows.forEach((row: any) => {
-        const nome = row['Nome do funcionário'] || row['Nome'] || row['NOME'] || '';
+        const nome = getVal(row, ['funcionario', 'nome', 'passageiro']) || '';
         if (!nome) return;
 
-        const origem = row['Origem'] || row['ORIGEM'] || '';
-        const destino = row['Destino'] || row['DESTINO'] || '';
+        const origem = getVal(row, ['origem']) || '';
+        const destino = getVal(row, ['destino']) || '';
 
-        const parseTime = (val: any) => {
-            if (!val) return null;
-            if (typeof val === 'number') {
-                const totalSeconds = Math.round(val * 86400);
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            }
-            const str = String(val).trim();
-            const match = str.match(/(\d{1,2}):(\d{2})/);
-            if (match) {
-                return `${match[1].padStart(2, '0')}:${match[2].padStart(2, '0')}`;
-            }
-            return null;
-        };
-
-        const horaEntrada = parseTime(row['Horário de apanhar transporte'] || row['ENTRADA'] || row['Entrada']);
-        const horaSaida = parseTime(row['Horário de saída do serviço'] || row['SAÍDA'] || row['Saída']);
+        const horaEntrada = parseTime(getVal(row, ['apanhar', 'entrada']));
+        const horaSaida = parseTime(getVal(row, ['saida', 'termino']));
 
         if (horaEntrada) {
             services.push({
                 id: crypto.randomUUID(),
                 data: selectedDate,
                 hora: horaEntrada,
-                passageiro: nome,
-                origem,
-                destino,
+                passageiro: String(nome),
+                origem: String(origem),
+                destino: String(destino),
                 concluido: false,
                 centroCustoId,
                 tipo: 'entrada',
@@ -100,9 +114,9 @@ export function parseSheetToServices(rows: any[], selectedDate: string, centroCu
                 id: crypto.randomUUID(),
                 data: selectedDate,
                 hora: horaSaida,
-                passageiro: nome,
-                origem: destino, // Returning
-                destino: origem,
+                passageiro: String(nome),
+                origem: String(destino), // Returning
+                destino: String(origem),
                 concluido: false,
                 centroCustoId,
                 tipo: 'saida',
@@ -119,12 +133,12 @@ export function groupServicesIntoTrips(services: Servico[]): GroupedTrip[] {
 
     services.forEach(s => {
         // Grouping key: Hour + Origin + Destination
-        const time = s.hora;
+        const time = s.hora.trim();
         const from = s.origem.trim().toLowerCase();
         const to = s.destino.trim().toLowerCase();
 
         const existingTrip = trips.find(t =>
-            t.hora === time &&
+            t.hora.trim() === time &&
             t.origem.trim().toLowerCase() === from &&
             t.destino.trim().toLowerCase() === to
         );
