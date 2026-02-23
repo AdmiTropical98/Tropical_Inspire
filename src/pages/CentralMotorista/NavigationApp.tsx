@@ -259,7 +259,7 @@ export default function NavigationApp({
             </div>
 
             <div className="bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 p-4 pb-8 z-[10000] shrink-0">
-                <div className="max-w-md mx-auto grid grid-cols-3 gap-2 mb-4">
+                <div className="max-w-md grid grid-cols-3 gap-2 mb-4">
                     <div className="text-center p-2 rounded-xl bg-slate-800/50">
                         <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-1"><Clock className="w-3 h-3" /><span className="text-[9px] font-bold uppercase tracking-widest">Tempo</span></div>
                         <p className="text-white text-lg font-bold">{Math.round(stats.duration)} <span className="text-[10px] text-slate-500">min</span></p>
@@ -273,7 +273,7 @@ export default function NavigationApp({
                         <p className="text-white text-lg font-bold">{stats.distance.toFixed(1)} <span className="text-[10px] text-slate-500">km</span></p>
                     </div>
                 </div>
-                <div className="max-w-md mx-auto w-full">
+                <div className="max-w-md w-full">
                     {isNavigating ? (
                         <button onClick={stopNavigation} className="w-full py-4 bg-red-600 text-white font-bold rounded-xl flex items-center justify-center gap-2"><X className="w-5 h-5" />Terminar Viagem</button>
                     ) : (

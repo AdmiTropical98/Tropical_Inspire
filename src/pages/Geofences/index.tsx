@@ -75,7 +75,7 @@ export default function Geofences() {
     });
 
     return (
-        <div className="p-4 md:p-8 w-full mx-auto space-y-6 min-h-screen bg-[#0a0a0f]">
+        <div className="p-4 md:p-8 w-full space-y-6 min-h-0 bg-transparent">
             {/* Header - Stretches with screen */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-4">
                 <div className="flex items-center gap-4">
@@ -154,7 +154,7 @@ export default function Geofences() {
             </details>
 
             {activeTab === 'map' ? (
-                <div className="flex flex-col xl:flex-row gap-6 px-4 xl:h-[calc(100vh-220px)] xl:min-h-[750px] h-auto w-full items-stretch">
+                <div className="flex flex-col xl:flex-row gap-6 px-4 xl:h-auto xl:min-h-0 h-auto w-full items-stretch">
                     {/* SIDEBAR - DEFINITIVE WIDTH & SCROLL */}
                     <div className="w-full xl:w-[320px] h-[400px] xl:h-auto bg-[#161625] rounded-[32px] border border-white/5 shadow-2xl flex flex-col overflow-hidden shrink-0">
                         <div className="p-6 border-b border-white/5 flex items-center justify-between">

@@ -35,6 +35,11 @@ import AvaliacaoDriversTab from './pages/Avaliacao';
 import ContabilidadeTab from './pages/Contabilidade';
 import LancarEscalaTab from './pages/LancarEscala';
 import ControloOperacionalTab from './pages/ControloOperacional';
+import EficienciaFrota from './pages/EficienciaFrota';
+import Fornecedores from './pages/Fornecedores';
+import Carregamentos from './pages/Carregamentos';
+import ViaVerde from './pages/ViaVerde';
+import PageContainer from './components/common/PageContainer';
 
 // Lazy loading backoffice
 const Backoffice = lazy(() => import('./pages/Backoffice/index'));
@@ -196,6 +201,9 @@ function App() {
       case 'escalas-history': return <EscalasHistory />;
       case 'horas': return <Horas />;
       case 'combustivel': return <FuelManager />;
+      case 'eficiencia': return <EficienciaFrota />;
+      case 'viaverde': return <ViaVerde />;
+      case 'carregamentos': return <Carregamentos />;
       case 'utilizadores': return <UserManagementTab />;
       case 'gestores': return <GestoresTab />;
       case 'equipa-oficina': return <EquipaOficinaTab />;
@@ -214,12 +222,13 @@ function App() {
       case 'centros-custos': return <Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>;
       case 'clientes': return <Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>;
       case 'relatorios': return <Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>;
-      default: return <Dashboard setActiveTab={handleNavigate} />;
+      case 'fornecedores': return <Fornecedores />;
+      default: return <div className="p-6">Módulo não encontrado</div>;
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
+    <div className="app-layout bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
       {/* Mobile Top Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-800/60 flex items-center justify-between px-6 z-40">
         <div className="flex items-center gap-3">
@@ -307,6 +316,18 @@ function App() {
                 <SidebarItem icon={LayoutTemplate} label="Planear Escala" active={activeTab === 'lancar-escalas'} onClick={() => handleNavigate('lancar-escalas')} collapsed={isSidebarCollapsed} />
               </>
             )}
+            {hasAccess(userRole, 'requisicoes') && (
+              <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => handleNavigate('requisicoes')} collapsed={isSidebarCollapsed} />
+            )}
+            {hasAccess(userRole, 'combustivel') && (
+              <SidebarItem icon={Fuel} label="Combustíveis" active={activeTab === 'combustivel'} onClick={() => handleNavigate('combustivel')} collapsed={isSidebarCollapsed} />
+            )}
+            {hasAccess(userRole, 'viaverde') && (
+              <SidebarItem icon={MapPin} label="Via Verde" active={activeTab === 'viaverde'} onClick={() => handleNavigate('viaverde')} collapsed={isSidebarCollapsed} />
+            )}
+            {hasAccess(userRole, 'carregamentos') && (
+              <SidebarItem icon={Truck} label="Carregamentos" active={activeTab === 'carregamentos'} onClick={() => handleNavigate('carregamentos')} collapsed={isSidebarCollapsed} />
+            )}
             {hasAccess(userRole, 'viaturas') && (
               <SidebarItem icon={Car} label="Frota" active={activeTab === 'viaturas'} onClick={() => handleNavigate('viaturas')} collapsed={isSidebarCollapsed} />
             )}
@@ -333,7 +354,7 @@ function App() {
               <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => handleNavigate('horas')} collapsed={isSidebarCollapsed} />
             )}
             {hasAccess(userRole, 'combustivel') && (
-              <SidebarItem icon={Gauge} label="Eficiência" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} collapsed={isSidebarCollapsed} />
+              <SidebarItem icon={Gauge} label="Eficiência" active={activeTab === 'eficiencia'} onClick={() => handleNavigate('eficiencia')} collapsed={isSidebarCollapsed} />
             )}
             {hasAccess(userRole, 'relatorios') && (
               <SidebarItem icon={BarChart3} label="Analytics" active={activeTab === 'relatorios'} onClick={() => handleNavigate('relatorios')} collapsed={isSidebarCollapsed} />
@@ -368,8 +389,8 @@ function App() {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 min-h-screen pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        <div className="p-4 md:p-8 lg:p-12 animate-in fade-in duration-500">
+      <main className={`flex-1 main-content transition-all duration-300 min-h-0 pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
+        <PageContainer>
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
@@ -378,7 +399,7 @@ function App() {
           }>
             {renderContent()}
           </Suspense>
-        </div>
+        </PageContainer>
       </main>
 
       {/* Mobile Menu Overlay */}

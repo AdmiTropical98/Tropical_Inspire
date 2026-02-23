@@ -48,7 +48,7 @@ export const calculateShift = (
         };
     }
 
-    let start = toMinutes(startTime);
+    const start = toMinutes(startTime);
     let end = toMinutes(endTime);
 
     // Support for midnight crossing

@@ -60,7 +60,7 @@ export default function Fornecedores() {
             {/* Content */}
             <div className="p-6 overflow-y-auto custom-scrollbar">
                 {showForm ? (
-                    <div className="max-w-2xl mx-auto bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
+                    <div className="w-full bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
                         <h2 className="text-lg font-bold mb-6 text-white flex items-center gap-2">
                             <div className="w-1 h-6 bg-blue-500 rounded-full"></div>
                             {t('suppliers.new')}

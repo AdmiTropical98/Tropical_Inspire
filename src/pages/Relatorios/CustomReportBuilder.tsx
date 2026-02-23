@@ -309,7 +309,7 @@ export default function CustomReportBuilder() {
         });
 
         const rows = data.map(item => selectedColumns.map(key => {
-            let val = item[key];
+            const val = item[key];
             const col = currentTableDef.columns.find(c => c.key === key);
             if (col?.type === 'boolean') return val ? 'Sim' : 'Não';
             if (col?.type === 'date' && val) return new Date(val).toLocaleDateString() + ' ' + new Date(val).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

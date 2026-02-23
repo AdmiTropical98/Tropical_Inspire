@@ -435,11 +435,11 @@ const ActiveSchedulesPanel: React.FC = () => {
 // Main Command Center Component
 export default function CommandCenter() {
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="w-full min-h-0 bg-transparent">
       <GlobalStatusBar />
 
       <div className="p-6">
-        <div className="max-w-7xl mx-auto">
+        <div>
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-black text-white uppercase tracking-tight mb-2">
@@ -451,7 +451,7 @@ export default function CommandCenter() {
           </div>
 
           {/* Main 2x2 Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-280px)]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             {/* Left Top: Priority Alerts */}
             <div className="min-h-[300px]">
               <PriorityAlertsPanel />

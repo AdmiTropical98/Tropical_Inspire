@@ -128,7 +128,7 @@ export default function UsersPage() {
     };
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-6 max-w-7xl mx-auto space-y-6 pb-24">
+        <div className="w-full h-full overflow-y-auto custom-scrollbar p-6 space-y-6 pb-24">
             {/* Dashboard Stats */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">

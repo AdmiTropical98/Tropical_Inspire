@@ -39,7 +39,7 @@ export default function HoursMonthlyReport({ selectedMonth }: HoursMonthlyReport
             // let normalMinutes = 0; // Not directly used in final report or totalValue calculation
             let nightMinutes = 0;
             let extraMinutes = 0;
-            let daysWorked = new Set(monthRecords.map(r => r.date)).size;
+            const daysWorked = new Set(monthRecords.map(r => r.date)).size;
 
             monthRecords.forEach(rec => {
                 const calc = calculateShift(rec.startTime, rec.endTime, rec.breakDuration);

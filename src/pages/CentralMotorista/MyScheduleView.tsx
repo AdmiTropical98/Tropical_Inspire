@@ -255,7 +255,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                         <Calendar className="w-8 h-8 text-slate-500" />
                     </div>
                     <h3 className="text-lg font-medium text-white mb-1">Sem serviços agendados</h3>
-                    <p className="text-slate-400 max-w-sm mx-auto">
+                    <p className="text-slate-400 max-w-sm">
                         Não tens serviços atribuídos para os próximos dias.
                     </p>
                 </div>

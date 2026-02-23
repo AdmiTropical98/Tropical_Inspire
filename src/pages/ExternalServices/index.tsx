@@ -35,7 +35,7 @@ export default function ExternalServices() {
     ];
 
     return (
-        <div className="max-w-7xl mx-auto p-8">
+        <div className="w-full p-8">
             <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
                     <ExternalLink className="w-6 h-6 text-indigo-500" />

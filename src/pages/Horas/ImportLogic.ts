@@ -53,7 +53,7 @@ export const calculateWorkHoursFromTrips = (
         const endLastMin = toMin(lastTrip.endTime);
         // lastTripStartMin removed as unused.
 
-        let totalShiftMinutes = endLastMin - startMin;
+        const totalShiftMinutes = endLastMin - startMin;
 
         // Calculate Gaps (Option C)
         let totalBreakMinutes = 0;

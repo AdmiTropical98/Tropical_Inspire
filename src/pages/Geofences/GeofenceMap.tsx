@@ -9,7 +9,7 @@ import type { Local } from '../../types';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.icon({
+const DefaultIcon = L.icon({
     iconUrl: markerIcon,
     shadowUrl: markerShadow,
     iconSize: [25, 41],
@@ -184,6 +184,12 @@ function MapFocus({ vehicle }: { vehicle: CartrackVehicle | null }) {
 
 export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle = null, locais = [], onSelectVehicle }: GeofenceMapProps) {
     const [center] = useState<[number, number]>([38.7223, -9.1393]); // Lisbon default
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(id);
+    }, []);
 
     return (
         <div className="h-full w-full rounded-[32px] overflow-hidden border border-white/5 shadow-2xl relative z-0 bg-[#0a0a0f]">
@@ -356,7 +362,7 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                                             </span>
                                         </div>
                                         <div className="text-[9px] text-slate-400 mt-3 pt-2 border-t border-slate-50 text-right italic font-medium">
-                                            Atualizado: {new Date(vehicle.last_position_update || vehicle.last_activity || Date.now()).toLocaleTimeString()}
+                                            Atualizado: {new Date(vehicle.last_position_update || vehicle.last_activity || now).toLocaleTimeString()}
                                         </div>
                                     </div>
                                 </div>

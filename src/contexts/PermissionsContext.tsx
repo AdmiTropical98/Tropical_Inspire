@@ -308,7 +308,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
         try {
             // Get current permissions from UserProfile
             const { data: profile } = await supabase.from('user_profiles').select('permissions').eq('id', userId).single();
-            let currentPerms: DetailedPermissions = profile?.permissions || {};
+            const currentPerms: DetailedPermissions = profile?.permissions || {};
 
             const modulePerms = currentPerms[module] || [];
             let newModulePerms: PermissionAction[] = [];

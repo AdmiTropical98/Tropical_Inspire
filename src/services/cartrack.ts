@@ -69,7 +69,7 @@ export interface CartrackGeofenceVisit {
  */
 export const getTagVariants = (rawTagId?: string | null): string[] => {
     if (!rawTagId) return [];
-    let tag = String(rawTagId).trim().toUpperCase();
+    const tag = String(rawTagId).trim().toUpperCase();
     const variants = new Set<string>();
 
     // 1. Add raw

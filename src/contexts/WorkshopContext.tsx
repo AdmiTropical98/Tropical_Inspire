@@ -1393,7 +1393,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         const finalPrice = transaction.pricePerLiter ?? currentPMP;
         const finalTotal = transaction.totalCost ?? (transaction.liters * currentPMP);
 
-        let finalStatus = transaction.status || 'pending';
+        const finalStatus = transaction.status || 'pending';
         let pumpCounterAfter = 0;
 
         // KM Validation (Sequential for the specific vehicle)

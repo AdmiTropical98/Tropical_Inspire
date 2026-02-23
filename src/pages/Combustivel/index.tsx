@@ -747,9 +747,7 @@ export default function Combustivel() {
     };
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden relative bg-slate-950 text-white">
-            {/* Dark Background Forced for Fuel Page */}
-
+        <div className="w-full flex flex-col min-h-0 relative bg-transparent text-white">
             <main className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-8">
 
                 {/* Header */}
@@ -1047,7 +1045,7 @@ export default function Combustivel() {
 
                 {/* REFUEL TAB */}
                 {activeTab === 'abastecer' && (
-                    <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                    <div className="w-full bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
                         <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
                             <div className="w-16 h-16 bg-yellow-500 rounded-3xl flex items-center justify-center text-black shadow-xl shadow-yellow-500/20 rotate-3">
                                 <Fuel className="w-8 h-8" />
@@ -1199,7 +1197,7 @@ export default function Combustivel() {
 
                 {/* SUPPLY TAB */}
                 {activeTab === 'tanque' && (
-                    <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                    <div className="w-full bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
                         <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
                             <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
                                 <Truck className="w-8 h-8" />

@@ -8,7 +8,7 @@ export default function Relatorios() {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'presets' | 'custom'>('dashboard');
 
     return (
-        <div className="flex flex-col h-full bg-[#0f172a] overflow-hidden">
+        <div className="w-full min-h-0 bg-transparent">
             {/* Header Section */}
             <div className="p-8 border-b border-slate-800/50 bg-[#0f172a]/50 backdrop-blur-xl z-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -62,7 +62,7 @@ export default function Relatorios() {
 
             {/* Content Area */}
             <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
-                <div className="max-w-7xl mx-auto">
+                <div className="w-full">
                     {activeTab === 'dashboard' && <DashboardView />}
                     {activeTab === 'presets' && <PresetReportsView />}
                     {activeTab === 'custom' && <CustomReportBuilder />}
