@@ -10,6 +10,7 @@ import NovaFatura from './NovaFatura';
 import Alugueres from './Alugueres';
 import ExpensesList from './ExpensesList';
 import FixedCostsManager from './FixedCostsManager';
+import SupplierInvoices from './SupplierInvoices';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { formatCurrency } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
@@ -20,7 +21,7 @@ import type { Fatura } from '../../types';
 function ContabilidadeContent() {
     // Only get what actually exists in the context
     const { summary, isLoading, refreshData } = useFinancial();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'receitas' | 'despesas' | 'fixos' | 'alugueres'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'receitas' | 'despesas' | 'fixos' | 'alugueres' | 'supplier_invoices'>('dashboard');
     const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
     const [selectedInvoice, setSelectedInvoice] = useState<Fatura | null>(null);
     const [invoices, setInvoices] = useState<Fatura[]>([]);
@@ -159,6 +160,7 @@ function ContabilidadeContent() {
             case 'despesas': return <ExpensesList />;
             case 'fixos': return <FixedCostsManager />;
             case 'alugueres': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} onRefresh={fetchInvoices} />;
+            case 'supplier_invoices': return <SupplierInvoices />;
             default: return null;
         }
     };
@@ -184,7 +186,8 @@ function ContabilidadeContent() {
                         {[
                             { id: 'dashboard', label: 'Visão Geral', icon: PieChart },
                             { id: 'receitas', label: 'Alugueres', icon: ArrowUpRight },
-                            { id: 'despesas', label: 'Despesas', icon: Receipt },
+                            { id: 'supplier_invoices', label: 'Faturas Fornecedor', icon: Receipt },
+                            { id: 'despesas', label: 'Despesas', icon: TrendingDown },
                             { id: 'fixos', label: 'Fixos', icon: RefreshCcw },
                         ].map(tab => (
                             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>

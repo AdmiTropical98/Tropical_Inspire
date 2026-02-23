@@ -474,6 +474,29 @@ export interface Fatura {
     isExpense?: boolean;
 }
 
+export interface SupplierInvoice {
+    id: string;
+    supplier_id: string;
+    invoice_number: string;
+    issue_date: string;
+    due_date: string;
+    net_value: number;
+    vat_value: number;
+    total_value: number;
+    expense_type: string;
+    cost_center_id?: string;
+    vehicle_id?: string;
+    payment_status: 'pending' | 'scheduled' | 'paid' | 'overdue';
+    payment_method?: string;
+    notes?: string;
+    pdf_url?: string;
+    created_at: string;
+    updated_at: string;
+    supplier?: Fornecedor;
+    cost_center?: CentroCusto;
+    vehicle?: Viatura;
+}
+
 export interface AdminUser {
     id: string; // auth.uid
     email: string;

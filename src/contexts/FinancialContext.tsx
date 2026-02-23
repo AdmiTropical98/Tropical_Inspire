@@ -1,11 +1,12 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Expense, Fatura, FinancialSummary, TollRecord, ElectricChargingRecord } from '../types';
+import type { Expense, Fatura, FinancialSummary, TollRecord, ElectricChargingRecord, SupplierInvoice } from '../types';
 
 interface FinancialContextType {
     expenses: Expense[];
     invoices: Fatura[];
+    supplierInvoices: SupplierInvoice[];
     summary: FinancialSummary;
     tolls: TollRecord[];
     charging: ElectricChargingRecord[];
@@ -14,6 +15,9 @@ interface FinancialContextType {
     addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
     updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
     deleteExpense: (id: string) => Promise<void>;
+    addSupplierInvoice: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+    updateSupplierInvoice: (id: string, updates: Partial<SupplierInvoice>) => Promise<void>;
+    deleteSupplierInvoice: (id: string) => Promise<void>;
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -21,6 +25,7 @@ const FinancialContext = createContext<FinancialContextType | undefined>(undefin
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [invoices, setInvoices] = useState<Fatura[]>([]);
+    const [supplierInvoices, setSupplierInvoices] = useState<SupplierInvoice[]>([]);
     const [tolls, setTolls] = useState<TollRecord[]>([]);
     const [charging, setCharging] = useState<ElectricChargingRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +44,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             await Promise.all([
                 fetchExpenses(),
                 fetchInvoices(),
+                fetchSupplierInvoices(),
                 calculateSummary()
             ]);
         } catch (error) {
@@ -195,6 +201,19 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (data) setInvoices(data);
     };
 
+    const fetchSupplierInvoices = async () => {
+        const { data } = await supabase
+            .from('supplier_invoices')
+            .select(`
+                *,
+                supplier:fornecedores(*),
+                cost_center:centros_custos(*),
+                vehicle:viaturas(matricula, marca, modelo)
+            `)
+            .order('issue_date', { ascending: false });
+        if (data) setSupplierInvoices(data as SupplierInvoice[]);
+    };
+
     const calculateSummary = async () => {
         // Calculation logic triggers after state updates or we do it inline with data we just fetched.
         // Since fetchExpenses logic is complex, let's reuse the calculated arrays if possible or simpler: rely on `expenses` state in useEffect?
@@ -215,26 +234,35 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Helper to calc stats from current lists (which might be empty initially)
     useEffect(() => {
-        if (!invoices.length && !expenses.length) return;
+        if (!invoices.length && !expenses.length && !supplierInvoices.length) return;
 
         const totalRevenue = invoices.reduce((acc, curr) => acc + (curr.total || 0), 0);
-        const totalExpensesVal = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-        const pending = invoices.filter(i => i.status !== 'paga' && i.status !== 'anulada').reduce((acc, curr) => acc + (curr.total || 0), 0);
+        const totalExpensesVal = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0) + 
+            supplierInvoices.reduce((acc, curr) => acc + curr.total_value, 0);
+        const pending = invoices.filter(i => i.status !== 'paga' && i.status !== 'anulada').reduce((acc, curr) => acc + (curr.total || 0), 0) +
+            supplierInvoices.filter(i => i.payment_status === 'pending' || i.payment_status === 'overdue').reduce((acc, curr) => acc + curr.total_value, 0);
 
-        // Breakdown
+        // Breakdown - include supplier invoices
+        const supplierInvoiceExpenses = supplierInvoices.reduce((sum, inv) => sum + inv.total_value, 0);
         const breakdown = [
             { category: 'Combustível & Energia', value: expenses.filter(e => e.id.startsWith('fuel-') || e.id.startsWith('charge-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-blue-500' },
             { category: 'Manutenção', value: expenses.filter(e => e.id.startsWith('maint-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-red-500' },
             { category: 'Via Verde', value: expenses.filter(e => e.id.startsWith('toll-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-emerald-500' },
             { category: 'Requisições', value: expenses.filter(e => e.id.startsWith('req-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-amber-500' },
+            { category: 'Faturas Fornecedor', value: supplierInvoiceExpenses, color: 'bg-purple-500' },
             { category: 'Fixos/Outros', value: expenses.filter(e => !e.id.match(/^(fuel|maint|req|toll|charge)-/)).reduce((sum, e) => sum + e.amount, 0), color: 'bg-indigo-500' },
         ];
 
-        // Top CC
+        // Top CC - include supplier invoices
         const ccStats: Record<string, number> = {};
         expenses.forEach(e => {
             if (e.cost_center_id) {
                 ccStats[e.cost_center_id] = (ccStats[e.cost_center_id] || 0) + e.amount;
+            }
+        });
+        supplierInvoices.forEach(inv => {
+            if (inv.cost_center_id) {
+                ccStats[inv.cost_center_id] = (ccStats[inv.cost_center_id] || 0) + inv.total_value;
             }
         });
 
@@ -251,7 +279,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             topCostCenters
         });
 
-    }, [invoices, expenses]);
+    }, [invoices, expenses, supplierInvoices]);
 
 
     const addExpense = async (expense: Omit<Expense, 'id'>) => {
@@ -272,10 +300,29 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         await refreshData();
     };
 
+    const addSupplierInvoice = async (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
+        const { error } = await supabase.from('supplier_invoices').insert(invoice);
+        if (error) throw error;
+        await refreshData();
+    };
+
+    const updateSupplierInvoice = async (id: string, updates: Partial<SupplierInvoice>) => {
+        const { error } = await supabase.from('supplier_invoices').update(updates).eq('id', id);
+        if (error) throw error;
+        await refreshData();
+    };
+
+    const deleteSupplierInvoice = async (id: string) => {
+        const { error } = await supabase.from('supplier_invoices').delete().eq('id', id);
+        if (error) throw error;
+        await refreshData();
+    };
+
     return (
         <FinancialContext.Provider value={{
-            expenses, invoices, summary, tolls, charging, isLoading,
-            refreshData, addExpense, updateExpense, deleteExpense
+            expenses, invoices, supplierInvoices, summary, tolls, charging, isLoading,
+            refreshData, addExpense, updateExpense, deleteExpense,
+            addSupplierInvoice, updateSupplierInvoice, deleteSupplierInvoice
         }}>
             {children}
         </FinancialContext.Provider>
