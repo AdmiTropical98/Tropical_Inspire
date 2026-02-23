@@ -6,7 +6,7 @@ import {
   BarChart3, MapPin, Hammer, Award, LayoutTemplate,
   ChevronDown, ChevronRight, UserCheck, Activity,
   Gauge, Settings2, UserCog as UserCogIcon, User as UserIcon, LogOut,
-  Navigation, AlertTriangle
+  Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging, Ticket
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -36,6 +36,10 @@ import AvaliacaoDriversTab from './pages/Avaliacao';
 import ContabilidadeTab from './pages/Contabilidade';
 import LancarEscalaTab from './pages/LancarEscala';
 import ControloOperacionalTab from './pages/ControloOperacional';
+import Fornecedores from './pages/Fornecedores';
+import ViaVerde from './pages/ViaVerde';
+import Carregamentos from './pages/Carregamentos';
+import EficienciaFrota from './pages/EficienciaFrota';
 
 // Lazy loading backoffice
 const Backoffice = lazy(() => import('./pages/Backoffice/index'));
@@ -284,6 +288,9 @@ function App() {
             {hasAccess(userRole, 'avaliacao_drivers') && (
               <SidebarItem icon={Award} label="Performance Motoristas" active={activeTab === 'avaliacao-drivers'} onClick={() => handleNavigate('avaliacao-drivers')} collapsed={isSidebarCollapsed} />
             )}
+            {hasAccess(userRole, 'requisicoes') && (
+              <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => handleNavigate('requisicoes')} collapsed={isSidebarCollapsed} />
+            )}
           </SidebarGroup>
 
           {/* MONITORING GROUP */}
@@ -292,7 +299,11 @@ function App() {
               <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => handleNavigate('horas')} collapsed={isSidebarCollapsed} />
             )}
             {hasAccess(userRole, 'combustivel') && (
-              <SidebarItem icon={Gauge} label="Eficiência" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} collapsed={isSidebarCollapsed} />
+              <>
+                <SidebarItem icon={Fuel} label="Abastecimentos" active={activeTab === 'combustivel'} onClick={() => handleNavigate('combustivel')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={Gauge} label="Eficiência" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={BatteryCharging} label="Carregamentos" active={activeTab === 'carregamentos'} onClick={() => handleNavigate('carregamentos')} collapsed={isSidebarCollapsed} />
+              </>
             )}
             {hasAccess(userRole, 'relatorios') && (
               <SidebarItem icon={BarChart3} label="Analytics" active={activeTab === 'relatorios'} onClick={() => handleNavigate('relatorios')} collapsed={isSidebarCollapsed} />
@@ -318,8 +329,9 @@ function App() {
           <SidebarGroup title="Finance" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'fornecedores') && <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'clientes') && <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'via_verde') && <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />}
           </SidebarGroup>
         </div>
 
@@ -359,6 +371,10 @@ function App() {
               <Route path="/contabilidade" element={<ContabilidadeTab />} />
               <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
               <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
+              <Route path="/fornecedores" element={<Fornecedores />} />
+              <Route path="/via-verde" element={<ViaVerde />} />
+              <Route path="/carregamentos" element={<Carregamentos />} />
+              <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
               <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
               <Route path="/central-motorista" element={<Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>} />
               <Route path="/supervisores" element={<Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>} />
