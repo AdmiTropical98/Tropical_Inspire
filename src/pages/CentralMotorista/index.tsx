@@ -85,10 +85,10 @@ export default function CentralMotorista() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+        <div className="text-slate-200 font-sans selection:bg-blue-500/30">
             {/* Header / Dashboard HUD */}
-            <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/50 pb-8 pt-6 px-4 md:px-8">
-                <div className="max-w-7xl mx-auto">
+            <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/50 pb-8 pt-6">
+                <div className="w-full">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="flex items-center gap-5">
                             <div className="relative">
@@ -135,7 +135,7 @@ export default function CentralMotorista() {
             </div>
 
             {/* Main Content Areas */}
-            <div className="max-w-7xl mx-auto px-4 py-8 md:px-8">
+            <div className="w-full py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
                     {/* Left Sidebar - Navigation Tabs (Grid columns 3) */}

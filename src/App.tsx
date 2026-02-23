@@ -368,8 +368,8 @@ function App() {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 min-h-screen pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        <div className="p-4 md:p-8 lg:p-12 animate-in fade-in duration-500">
+      <main className={`flex-1 flex flex-col transition-all duration-300 min-h-screen pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
+        <div className="flex-1 w-full px-8 py-6 overflow-y-auto animate-in fade-in duration-500">
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />

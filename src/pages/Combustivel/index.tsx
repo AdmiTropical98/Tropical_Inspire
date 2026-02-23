@@ -747,10 +747,10 @@ export default function Combustivel() {
     };
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden relative bg-slate-950 text-white">
+        <div className="flex flex-col relative text-white">
             {/* Dark Background Forced for Fuel Page */}
 
-            <main className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-8">
+            <main className="space-y-8">
 
                 {/* Header */}
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
@@ -821,11 +821,11 @@ export default function Combustivel() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                             {/* Main Metrics Card */}
-                            <div className="lg:col-span-2 space-y-8">
+                            <div className="md:col-span-2 xl:col-span-2 2xl:col-span-3 space-y-8">
                                 {/* Tank Status & Summary */}
-                                <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-[3rem] relative overflow-hidden shadow-2xl group">
+                                <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-[3rem] relative overflow-visible shadow-2xl group">
                                     <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-yellow-500/10 transition-colors duration-500"></div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
@@ -1047,7 +1047,7 @@ export default function Combustivel() {
 
                 {/* REFUEL TAB */}
                 {activeTab === 'abastecer' && (
-                    <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                    <div className="w-full bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
                         <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
                             <div className="w-16 h-16 bg-yellow-500 rounded-3xl flex items-center justify-center text-black shadow-xl shadow-yellow-500/20 rotate-3">
                                 <Fuel className="w-8 h-8" />

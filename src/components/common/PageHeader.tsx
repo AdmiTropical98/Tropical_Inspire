@@ -23,7 +23,7 @@ export default function PageHeader({
 }: PageHeaderProps) {
     return (
         <div className={`flex flex-col bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-30 transition-all duration-300 ${className}`}>
-            <div className="px-4 md:px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
 
                 {/* Left: Title & Info */}
                 <div className="flex-1 min-w-0">
@@ -70,7 +70,7 @@ export default function PageHeader({
 
             {/* Bottom: Children (Filters/Toolbars) */}
             {children && (
-                <div className="px-4 md:px-8 pb-4 pt-0 border-t border-white/5 mt-0 animate-in slide-in-from-top-2 duration-200">
+                <div className="pb-4 pt-0 border-t border-white/5 mt-0 animate-in slide-in-from-top-2 duration-200">
                     <div className="pt-4">
                         {children}
                     </div>

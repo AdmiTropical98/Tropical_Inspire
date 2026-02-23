@@ -12,9 +12,9 @@ export default function Horas() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7)); // YYYY-MM
 
     return (
-        <div className="h-full flex flex-col bg-slate-950">
+        <div className="flex flex-col">
             {/* Header Toolbar */}
-            <div className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-[#0f172a]/95 backdrop-blur z-10 shrink-0">
+            <div className="h-16 border-b border-slate-800 flex items-center justify-between bg-[#0f172a]/95 backdrop-blur z-10 shrink-0">
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">
                     <Clock className="w-5 h-5 text-emerald-500" />
                     Gestão de Horas
@@ -76,8 +76,8 @@ export default function Horas() {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
-                <div className="max-w-7xl mx-auto">
+            <div className="flex-1 mt-8">
+                <div className="w-full">
                     {activeTab === 'daily' && <HoursDailyView selectedDate={selectedDate} />}
                     {activeTab === 'batch' && <HoursBatchView />}
                     {activeTab === 'monthly' && <HoursMonthlyReport selectedMonth={selectedMonth} />}

@@ -8,7 +8,7 @@ import DriverProfile from './DriverProfile';
 import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
 
 export default function Motoristas() {
-    const { motoristas, addMotorista, updateMotorista, deleteMotorista, centrosCustos } = useWorkshop();
+    const { motoristas, addMotorista, deleteMotorista, centrosCustos, refreshData } = useWorkshop();
     const { t } = useTranslation();
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'on_leave' | 'holidays' | 'sick'>('all');
@@ -170,7 +170,7 @@ export default function Motoristas() {
     }, [motoristas, filter, statusFilter, sortBy]);
 
     return (
-        <div className="w-full max-w-[1600px] mx-auto p-6 space-y-8 fade-in">
+        <div className="space-y-8 fade-in">
             {selectedDriver && (
                 <DriverProfile
                     motorista={selectedDriver}
@@ -183,8 +183,12 @@ export default function Motoristas() {
                     isOpen={true}
                     onClose={() => setPermissionUser(null)}
                     user={permissionUser}
-                    role="motorista"
-                    onSave={(updated) => updateMotorista(updated)}
+                    onSave={() => {
+                        // The modal already updates the database, 
+                        // so we just need to refresh the data to see the changes.
+                        refreshData();
+                        setPermissionUser(null);
+                    }}
                 />
             )}
 
@@ -199,7 +203,7 @@ export default function Motoristas() {
             </div>
 
             {/* Statistics Dashboard */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 mb-8">
                 <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 hover:shadow-lg hover:shadow-blue-500/10 transition-all">
                     <div className="flex items-center justify-between mb-3">
                         <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
@@ -242,7 +246,7 @@ export default function Motoristas() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                 {/* Add Form */}
                 <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
                     <h3 className="font-bold text-white mb-6 text-lg">{t('drivers.new')}</h3>

@@ -109,11 +109,11 @@ export default function Viaturas() {
     );
 
     return (
-        <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
+        <div className="flex flex-col text-slate-100">
             {/* Full Page Container */}
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col">
                 {/* Scrollable Content Area */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 space-y-10">
+                <div className="space-y-10">
 
                     {selectedViatura && (
                         <VehicleProfile
@@ -189,8 +189,8 @@ export default function Viaturas() {
                         {activeTab === 'overview' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 {/* KPI Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-500/30 transition-all">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-visible group hover:border-blue-500/30 transition-all">
                                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                             <Car className="w-32 h-32 text-blue-500" />
                                         </div>
@@ -209,7 +209,7 @@ export default function Viaturas() {
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-amber-500/30 transition-all">
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-visible group hover:border-amber-500/30 transition-all">
                                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                             <Wrench className="w-32 h-32 text-amber-500" />
                                         </div>
@@ -229,7 +229,7 @@ export default function Viaturas() {
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-purple-500/30 transition-all">
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-visible group hover:border-purple-500/30 transition-all">
                                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                             <Fuel className="w-32 h-32 text-purple-500" />
                                         </div>
@@ -331,14 +331,14 @@ export default function Viaturas() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                                     {filteredItems.map(viatura => {
                                         const status = getVehicleStatus(viatura);
                                         return (
                                             <div
                                                 key={viatura.id}
                                                 onClick={() => setSelectedViatura(viatura)}
-                                                className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                                                className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/10 transition-all cursor-pointer group relative overflow-visible"
                                             >
                                                 <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                                     <button
@@ -388,8 +388,8 @@ export default function Viaturas() {
 
                         {/* VIEW: CREATE */}
                         {activeTab === 'create' && (
-                            <div className="max-w-4xl mx-auto w-full animate-in slide-in-from-bottom-8 duration-500">
-                                <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
+                            <div className="w-full animate-in slide-in-from-bottom-8 duration-500">
+                                <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-visible">
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                                     <div className="flex items-center gap-6 mb-8 relative z-10">

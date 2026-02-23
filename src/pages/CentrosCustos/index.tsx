@@ -267,7 +267,7 @@ export default function CentrosCustos() {
 
     /* ════════════════════════════════ RENDER ════════════════════════ */
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8 bg-[#020617]">
+        <div className="space-y-8 bg-[#020617]">
 
             {/* ── HEADER ── */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -360,7 +360,7 @@ export default function CentrosCustos() {
             )}
 
             {/* ── CC CARDS GRID ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                 {enriched.length === 0 ? (
                     <div className="col-span-full flex flex-col items-center justify-center p-20 bg-slate-900/20 rounded-3xl border-2 border-dashed border-slate-800">
                         <Building2 className="w-16 h-16 text-slate-700 mb-4" />
@@ -371,7 +371,7 @@ export default function CentrosCustos() {
                     <div
                         key={cc.id}
                         onClick={() => setSelectedCC(cc)}
-                        className={`group relative bg-[#0f172a] border rounded-3xl overflow-hidden cursor-pointer hover:border-blue-500/60 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300
+                        className={`group relative bg-[#0f172a] border rounded-3xl overflow-visible cursor-pointer hover:border-blue-500/60 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300
                             ${variation !== null && variation > 20 ? 'border-red-500/40' : variation !== null && variation > 5 ? 'border-amber-500/30' : 'border-slate-800'}`}
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[80px] -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-all" />

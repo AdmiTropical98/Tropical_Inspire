@@ -1027,7 +1027,7 @@ export default function Escalas() {
                 `}>
                                     <div className="h-auto md:h-full flex flex-col">
                                         {/* TOOLBAR: Status - CC Filters - View Options */}
-                                        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2 px-2 md:px-8 mt-2 md:mt-6 overflow-x-auto pb-1 shrink-0 scrollbar-hide">
+                                        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2 mt-2 md:mt-6 overflow-x-auto pb-1 shrink-0 scrollbar-hide">
 
                                             {/* Status Filters */}
                                             <div className="flex items-center gap-2">
@@ -1093,7 +1093,7 @@ export default function Escalas() {
                                                 strategy={rectSortingStrategy}
                                             >
                                                 <div
-                                                    className="flex-1 min-h-0 grid gap-4 overflow-y-auto pb-24 md:pb-6 px-2 md:px-4 custom-scrollbar"
+                                                    className="flex-1 min-h-0 grid gap-4 overflow-y-auto pb-24 md:pb-6 custom-scrollbar"
                                                     style={{
                                                         gridTemplateColumns: `repeat(${layoutCols}, minmax(0, 1fr))`
                                                     }}

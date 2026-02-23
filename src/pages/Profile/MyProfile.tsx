@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { 
-    User, Mail, Phone, Key, 
+import {
+    User, Mail, Phone, Key,
     Save, Shield, AlertCircle, CheckCircle2,
     Car, Wrench, ClipboardCheck, UserCog
 } from 'lucide-react';
@@ -11,11 +11,11 @@ import { supabase } from '../../lib/supabase';
 export default function MyProfile() {
     const { currentUser, userRole, refreshCurrentUser } = useAuth();
     const { updateMotorista, updateSupervisor, updateOficinaUser } = useWorkshop();
-    
+
     // Local state for form
     const [formData, setFormData] = useState<any>({});
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     // Initialize data
     useEffect(() => {
@@ -117,7 +117,7 @@ export default function MyProfile() {
     if (!currentUser) return null;
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
@@ -131,7 +131,7 @@ export default function MyProfile() {
                 <div className="space-y-6">
                     <div className="bg-[#0f172a] rounded-2xl border border-slate-800 p-8 flex flex-col items-center text-center relative overflow-hidden group">
                         <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        
+
                         <div className="relative mb-6">
                             <div className={`w-32 h-32 rounded-full border-4 border-slate-800 shadow-2xl overflow-hidden bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center`}>
                                 {getRoleIcon()}
@@ -152,7 +152,7 @@ export default function MyProfile() {
                 {/* Right Column: Edit Form */}
                 <div className="lg:col-span-2">
                     <form onSubmit={handleSave} className="bg-[#0f172a] rounded-2xl border border-slate-800 p-8 space-y-8 relative overflow-hidden">
-                        
+
                         {/* Feedback Message */}
                         {message && (
                             <div className={`absolute top-0 left-0 right-0 p-4 flex items-center justify-center gap-2 text-sm font-bold animate-in slide-in-from-top-4 
@@ -192,7 +192,7 @@ export default function MyProfile() {
                                     />
                                 </div>
                             </div>
-                            
+
                             {(userRole === 'motorista' || userRole === 'supervisor' || userRole === 'oficina') && (
                                 <div className="space-y-2">
                                     <label className="text-xs font-medium text-slate-400">Telemóvel</label>
@@ -208,7 +208,7 @@ export default function MyProfile() {
                                 </div>
                             )}
 
-                             {userRole === 'motorista' && (
+                            {userRole === 'motorista' && (
                                 <div className="space-y-2">
                                     <label className="text-xs font-medium text-slate-400">Carta de Condução</label>
                                     <input
