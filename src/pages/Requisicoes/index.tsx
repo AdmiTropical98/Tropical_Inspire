@@ -762,7 +762,7 @@ export default function Requisicoes() {
     });
 
     return (
-        <div className="animate-in fade-in duration-500">
+        <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-500">
             <PageHeader
                 title={t('req.title')}
                 subtitle={t('req.subtitle')}
@@ -1201,7 +1201,7 @@ export default function Requisicoes() {
 
                 {/* Create Tab */}
                 {activeTab === 'create' && (
-                    <div className="max-w-5xl mx-auto animate-in slide-in-from-bottom-8 fade-in pb-10">
+                    <div className="w-full min-w-0 animate-in slide-in-from-bottom-8 fade-in pb-10">
                         <div className="bg-slate-900/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-700/50 shadow-2xl relative">
                             {/* Decorative Glow */}
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>

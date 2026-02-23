@@ -65,7 +65,7 @@ export default function Dashboard({
     const [showApprovalsModal, setShowApprovalsModal] = useState(false);
 
     return (
-        <div className="animate-in fade-in duration-700">
+        <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-700">
             {/* ... Modal ... */}
             {hasAccess(userRole, 'equipa-oficina') && (
                 <ApprovalsModal isOpen={showApprovalsModal} onClose={() => setShowApprovalsModal(false)} />
@@ -93,11 +93,11 @@ export default function Dashboard({
             <div className="p-4 md:p-8 space-y-8">
 
                 {/* DASHBOARD GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-min">
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 auto-rows-min">
 
                     {/* 1. KPIs Row */}
                     {hasAccess(userRole, 'requisicoes') && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-0">
+                        <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-0">
                             <KPICard
                                 title="Serviços Ativos"
                                 value={activeServices}
@@ -111,7 +111,7 @@ export default function Dashboard({
                     )}
 
                     {hasAccess(userRole, 'viaturas') && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-75">
+                        <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-75">
                             <KPICard
                                 title="Frota Disponível"
                                 value={`${availableVehicles}`}
@@ -124,7 +124,7 @@ export default function Dashboard({
                     )}
 
                     {hasAccess(userRole, 'motoristas') && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                        <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
                             <KPICard
                                 title="Motoristas Livres"
                                 value={activeDrivers}
@@ -137,7 +137,7 @@ export default function Dashboard({
                     )}
 
                     {/* Approvals / Alerts */}
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                    <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
                         {userRole === 'admin' && pendingRegistrations > 0 ? (
                             <div className="bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-2xl p-6 h-full flex flex-col justify-between animate-pulse-slow">
                                 <div>
@@ -171,7 +171,7 @@ export default function Dashboard({
                     {/* 2. Charts & Widgets Row */}
 
                     {/* Quick Actions - 1 Col */}
-                    <div className="md:col-span-1 xl:col-span-1 2xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+                    <div className="w-full min-w-0 xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
                         <QuickActions
                             onNewService={() => setActiveTab('requisicoes')}
                             onNewClient={() => setActiveTab('clientes')}
@@ -181,7 +181,7 @@ export default function Dashboard({
 
                     {/* Fleet Status Chart - 1 Col */}
                     {hasAccess(userRole, 'viaturas') && (
-                        <div className="md:col-span-1 xl:col-span-1 2xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+                        <div className="w-full min-w-0 xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
                             <FleetStatusChart
                                 total={totalVehicles}
                                 available={availableVehicles}
@@ -192,12 +192,12 @@ export default function Dashboard({
                     )}
 
                     {/* Revenue Chart - 2 Cols */}
-                    <div className="md:col-span-2 xl:col-span-2 2xl:col-span-2 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
+                    <div className="w-full min-w-0 xl:col-span-2 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
                         <RevenueChart services={servicos} />
                     </div>
 
                     {/* 3. Activity Table - Full Width */}
-                    <div className="col-span-1 md:col-span-2 xl:col-span-3 2xl:col-span-4 h-full min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
+                    <div className="w-full min-w-0 col-span-1 xl:col-span-3 h-full min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
                         <ActivityTable items={activityItems} />
                     </div>
 

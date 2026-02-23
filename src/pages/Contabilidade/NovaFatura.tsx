@@ -129,7 +129,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
     };
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto">
+        <div className="w-full min-w-0 space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <button

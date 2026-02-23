@@ -107,7 +107,7 @@ export default function EquipaOficina() {
     }, [oficinaUsers, filter, statusFilter, sortBy]);
 
     return (
-        <div className="w-full max-w-[1600px] mx-auto p-6 space-y-8 fade-in relative">
+        <div className="w-full min-w-0 space-y-6 p-6 fade-in relative">
             {permissionUser && (
                 <UserPermissionsModal
                     isOpen={true}

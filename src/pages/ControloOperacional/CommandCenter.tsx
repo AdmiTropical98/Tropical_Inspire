@@ -144,7 +144,7 @@ const GlobalStatusBar: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-16 bg-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 flex items-center justify-between px-6 sticky top-0 z-40">
+    <div className="w-full h-16 bg-transparent flex items-center justify-between">
       {/* Left: Key Metrics */}
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-2">
@@ -225,7 +225,7 @@ const PriorityAlertsPanel: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-full">
+    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-full min-h-[26rem] flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-black text-white uppercase tracking-tight">Priority Alerts</h2>
         <div className="flex gap-2">
@@ -238,7 +238,7 @@ const PriorityAlertsPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className="space-y-3 flex-1 min-h-0 overflow-y-auto">
         {alerts.map((alert) => (
           <div
             key={alert.id}
@@ -275,7 +275,7 @@ const PriorityAlertsPanel: React.FC = () => {
 // Live Operations Panel
 const LiveOperationsPanel: React.FC = () => {
   return (
-    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-full">
+    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-full min-h-[26rem] flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-black text-white uppercase tracking-tight">Live Operations</h2>
         <div className="flex items-center gap-2">
@@ -285,7 +285,7 @@ const LiveOperationsPanel: React.FC = () => {
       </div>
 
       {/* Placeholder for map or live monitoring */}
-      <div className="h-64 bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center justify-center mb-4">
+      <div className="flex-1 min-h-[14rem] bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center justify-center mb-4">
         <div className="text-center">
           <MapPin className="w-12 h-12 text-slate-600 mx-auto mb-2" />
           <p className="text-slate-500 font-bold">Live Operations Map</p>
@@ -330,7 +330,7 @@ const ActivityFeedPanel: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-full">
+    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-full min-h-[26rem] flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-black text-white uppercase tracking-tight">Activity Feed</h2>
         <button className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors">
@@ -338,7 +338,7 @@ const ActivityFeedPanel: React.FC = () => {
         </button>
       </div>
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className="space-y-3 flex-1 min-h-0 overflow-y-auto">
         {activities.map((activity) => (
           <div
             key={activity.id}
@@ -383,7 +383,7 @@ const ActiveSchedulesPanel: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-full">
+    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-full min-h-[26rem] flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-black text-white uppercase tracking-tight">Active Schedules</h2>
         <button className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors">
@@ -391,7 +391,7 @@ const ActiveSchedulesPanel: React.FC = () => {
         </button>
       </div>
 
-      <div className="space-y-4 max-h-96 overflow-y-auto">
+      <div className="space-y-4 flex-1 min-h-0 overflow-y-auto">
         {schedules.map((schedule) => (
           <div
             key={schedule.id}
@@ -435,43 +435,41 @@ const ActiveSchedulesPanel: React.FC = () => {
 // Main Command Center Component
 export default function CommandCenter() {
   return (
-    <div className="min-h-screen bg-slate-950">
-      <GlobalStatusBar />
+    <div className="w-full min-w-0 bg-slate-950">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-800/60 p-6">
+        <GlobalStatusBar />
 
-      <div className="p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-black text-white uppercase tracking-tight mb-2">
-              Centro Operacional
-            </h1>
-            <p className="text-slate-400 font-medium">
-              Enterprise Operations Command Center - Real-time fleet management and monitoring
-            </p>
-          </div>
+        {/* Header */}
+        <div className="mb-8 mt-6">
+          <h1 className="text-4xl font-black text-white uppercase tracking-tight mb-2">
+            Centro Operacional
+          </h1>
+          <p className="text-slate-400 font-medium">
+            Enterprise Operations Command Center - Real-time fleet management and monitoring
+          </p>
+        </div>
 
           {/* Main 2x2 Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-280px)]">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Left Top: Priority Alerts */}
-            <div className="min-h-[300px]">
+            <div className="w-full min-w-0 min-h-[300px]">
               <PriorityAlertsPanel />
             </div>
 
             {/* Right Top: Live Operations */}
-            <div className="min-h-[300px]">
+            <div className="w-full min-w-0 min-h-[300px]">
               <LiveOperationsPanel />
             </div>
 
             {/* Left Bottom: Activity Feed */}
-            <div className="min-h-[300px]">
+            <div className="w-full min-w-0 min-h-[300px]">
               <ActivityFeedPanel />
             </div>
 
             {/* Right Bottom: Active Schedules */}
-            <div className="min-h-[300px]">
+            <div className="w-full min-w-0 min-h-[300px]">
               <ActiveSchedulesPanel />
             </div>
-          </div>
         </div>
       </div>
     </div>

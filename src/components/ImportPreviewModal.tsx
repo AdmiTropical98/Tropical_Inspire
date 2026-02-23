@@ -46,7 +46,7 @@ export default function ImportPreviewModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in zoom-in duration-200">
-            <div className="bg-slate-900 border border-slate-700 w-full max-w-6xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="bg-slate-900 border border-slate-700 w-full max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-800/50">
                     <div className="flex items-center gap-3">

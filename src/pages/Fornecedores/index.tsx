@@ -37,7 +37,7 @@ export default function Fornecedores() {
     );
 
     return (
-        <div className="space-y-8">
+        <div className="w-full min-w-0 space-y-6">
             <PageHeader
                 title={t('suppliers.title') || 'Fornecedores'}
                 subtitle={t('suppliers.subtitle') || 'Gestão de parceiros e fornecedores de serviços.'}
@@ -67,7 +67,7 @@ export default function Fornecedores() {
             {/* Content Container */}
             <div className="animate-in fade-in duration-500">
                 {showForm ? (
-                    <div className="max-w-2xl mx-auto bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
+                    <div className="w-full min-w-0 bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
                         <h2 className="text-lg font-bold mb-6 text-white flex items-center gap-2">
                             <div className="w-1 h-6 bg-blue-500 rounded-full"></div>
                             {t('suppliers.new')}

@@ -204,7 +204,7 @@ export default function ChatWindow({
 
             {/* Input Area */}
             <div className="shrink-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50 relative z-10">
-                <form onSubmit={handleSend} className="flex gap-2 max-w-5xl mx-auto">
+                <form onSubmit={handleSend} className="w-full min-w-0 flex gap-2">
                     <div className="flex-1 bg-slate-950/50 border border-slate-800 rounded-xl flex items-center p-1 focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
                         <input
                             type="text"

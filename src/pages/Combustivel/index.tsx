@@ -748,7 +748,7 @@ export default function Combustivel() {
     };
 
     return (
-        <div className="animate-in fade-in duration-500">
+        <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-500">
             <PageHeader
                 title={t('fuel.title')}
                 subtitle={t('fuel.subtitle')}
@@ -811,9 +811,9 @@ export default function Combustivel() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                             {/* Main Metrics Card */}
-                            <div className="md:col-span-2 xl:col-span-2 2xl:col-span-3 space-y-8">
+                            <div className="w-full min-w-0 xl:col-span-2 space-y-8">
                                 {/* Tank Status & Summary */}
                                 <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-[3rem] relative overflow-visible shadow-2xl group">
                                     <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-yellow-500/10 transition-colors duration-500"></div>
@@ -849,7 +849,7 @@ export default function Combustivel() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="bg-slate-950/50 rounded-3xl p-8 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-64 group/tank shadow-inner">
+                                            <div className="w-full min-w-0 bg-slate-950/50 rounded-3xl p-8 border border-slate-800 relative overflow-hidden flex flex-col justify-start gap-8 min-h-[20rem] group/tank shadow-inner">
                                                 <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-yellow-600 to-yellow-400 opacity-20 transition-all duration-1000 ease-in-out group-hover/tank:opacity-30" style={{ height: `${percentage}%` }}></div>
                                                 <div className="absolute bottom-0 left-0 w-full h-1.5 bg-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.6)]" style={{ bottom: `${percentage}%`, transition: 'bottom 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
 
@@ -870,7 +870,7 @@ export default function Combustivel() {
                                         </div>
 
                                         {/* Global Stats */}
-                                        <div className="grid grid-cols-1 gap-6">
+                                        <div className="grid grid-cols-1 gap-6 md:pt-14">
                                             <div className="bg-slate-800/30 p-6 rounded-[2rem] border border-slate-700/50 hover:bg-slate-800/50 transition-all group/price">
                                                 <div className="flex justify-between items-start mb-4">
                                                     <div className="flex items-center gap-3">
@@ -959,8 +959,8 @@ export default function Combustivel() {
                             </div>
 
                             {/* Sidebar - Quick Actions & Alerts */}
-                            <div className="space-y-8">
-                                <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-xl relative overflow-hidden group">
+                            <div className="w-full min-w-0 space-y-8">
+                                <div className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-xl relative group">
                                     <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
                                     <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
@@ -1189,7 +1189,7 @@ export default function Combustivel() {
 
                 {/* SUPPLY TAB */}
                 {activeTab === 'tanque' && (
-                    <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                    <div className="w-full min-w-0 bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
                         <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
                             <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
                                 <Truck className="w-8 h-8" />

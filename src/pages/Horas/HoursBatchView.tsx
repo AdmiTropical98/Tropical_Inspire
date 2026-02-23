@@ -113,7 +113,7 @@ export default function HoursBatchView() {
     ];
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="w-full min-w-0 space-y-6">
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
                 <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-blue-400" />

@@ -169,7 +169,6 @@ function App() {
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
-
   const handleNavigate = (tab: string) => {
     navigate(`/${tab}`);
     setIsMobileMenuOpen(false);
@@ -182,7 +181,7 @@ function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
+    <div className="app-root flex h-screen overflow-hidden bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
       {/* Mobile Top Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-800/60 flex items-center justify-between px-6 z-40">
         <div className="flex items-center gap-3">
@@ -339,50 +338,53 @@ function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col transition-all duration-300 min-h-screen pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        <div className="flex-1 w-full overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-950/20">
+      <main className={`flex-1 min-w-0 h-full overflow-hidden flex flex-col transition-all duration-300 pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
+        <div className="shrink-0 h-16 border-b border-slate-800/60 bg-slate-950/40 px-8" />
+        <div className="flex-1 min-h-0 w-full max-w-full min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-950/20">
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
               <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
             </div>
           }>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
-              <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
-              <Route path="/viaturas" element={<Viaturas />} />
-              <Route path="/motoristas" element={<Drivers />} />
-              <Route path="/requisicoes" element={<Requisicoes />} />
-              <Route path="/escalas" element={<Escalas />} />
-              <Route path="/escalas-history" element={<EscalasHistory />} />
-              <Route path="/horas" element={<Horas />} />
-              <Route path="/combustivel" element={<FuelManager />} />
-              <Route path="/utilizadores" element={<UserManagementTab />} />
-              <Route path="/gestores" element={<GestoresTab />} />
-              <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
-              <Route path="/meu-perfil" element={<Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>} />
-              <Route path="/permissoes" element={<PermissoesTab />} />
-              <Route path="/roteirizacao" element={<RoteirizacaoTab />} />
-              <Route path="/geofences" element={<GeofencesTab />} />
-              <Route path="/locais" element={<LocaisTab />} />
-              <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
-              <Route path="/contabilidade" element={<ContabilidadeTab />} />
-              <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
-              <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
-              <Route path="/fornecedores" element={<Fornecedores />} />
-              <Route path="/via-verde" element={<ViaVerde />} />
-              <Route path="/carregamentos" element={<Carregamentos />} />
-              <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
-              <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
-              <Route path="/central-motorista" element={<Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>} />
-              <Route path="/supervisores" element={<Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>} />
-              <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
-              <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
-              <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+            <div className="flex-1 w-full max-w-none px-8 py-6 min-w-0">
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
+                <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
+                <Route path="/viaturas" element={<Viaturas />} />
+                <Route path="/motoristas" element={<Drivers />} />
+                <Route path="/requisicoes" element={<Requisicoes />} />
+                <Route path="/escalas" element={<Escalas />} />
+                <Route path="/escalas-history" element={<EscalasHistory />} />
+                <Route path="/horas" element={<Horas />} />
+                <Route path="/combustivel" element={<FuelManager />} />
+                <Route path="/utilizadores" element={<UserManagementTab />} />
+                <Route path="/gestores" element={<GestoresTab />} />
+                <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
+                <Route path="/meu-perfil" element={<Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>} />
+                <Route path="/permissoes" element={<PermissoesTab />} />
+                <Route path="/roteirizacao" element={<RoteirizacaoTab />} />
+                <Route path="/geofences" element={<GeofencesTab />} />
+                <Route path="/locais" element={<LocaisTab />} />
+                <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
+                <Route path="/contabilidade" element={<ContabilidadeTab />} />
+                <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
+                <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
+                <Route path="/fornecedores" element={<Fornecedores />} />
+                <Route path="/via-verde" element={<ViaVerde />} />
+                <Route path="/carregamentos" element={<Carregamentos />} />
+                <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
+                <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
+                <Route path="/central-motorista" element={<Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>} />
+                <Route path="/supervisores" element={<Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>} />
+                <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
+                <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
+                <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </div>
           </Suspense>
         </div>
       </main>
