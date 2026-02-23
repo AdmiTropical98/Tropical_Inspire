@@ -21,14 +21,35 @@ export default function InvoiceForm({
     onSave,
     onCancel
 }: InvoiceFormProps) {
+    const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+    const resolveIvaRate = (sourceInvoice: SupplierInvoice): 6 | 13 | 23 => {
+        if (sourceInvoice.iva_rate === 6 || sourceInvoice.iva_rate === 13 || sourceInvoice.iva_rate === 23) {
+            return sourceInvoice.iva_rate;
+        }
+
+        const referenceBase = sourceInvoice.base_amount || sourceInvoice.net_value || 0;
+        const referenceIva = sourceInvoice.iva_value || sourceInvoice.vat_value || 0;
+        if (referenceBase > 0) {
+            const guessedRate = Math.round((referenceIva / referenceBase) * 100);
+            if (guessedRate === 6 || guessedRate === 13 || guessedRate === 23) {
+                return guessedRate;
+            }
+        }
+
+        return 23;
+    };
+
     const [formData, setFormData] = useState({
         supplier_id: '',
         invoice_number: '',
         issue_date: new Date().toISOString().split('T')[0],
         due_date: '',
-        net_value: 0,
-        vat_value: 0,
-        total_value: 0,
+        base_amount: 0,
+        iva_rate: 23 as 6 | 13 | 23,
+        discount_type: 'amount' as 'amount' | 'percentage',
+        discount_value: 0,
+        extra_expenses: [{ description: '', value: 0 }],
         expense_type: '',
         cost_center_id: '',
         vehicle_id: '',
@@ -42,14 +63,24 @@ export default function InvoiceForm({
 
     useEffect(() => {
         if (invoice) {
+            const discount = invoice.discount || { type: 'amount' as const, value: 0 };
+            const extraExpenses = (invoice.extra_expenses && invoice.extra_expenses.length > 0)
+                ? invoice.extra_expenses
+                : [{ description: '', value: 0 }];
+
             setFormData({
                 supplier_id: invoice.supplier_id || '',
                 invoice_number: invoice.invoice_number,
                 issue_date: invoice.issue_date,
                 due_date: invoice.due_date,
-                net_value: invoice.net_value,
-                vat_value: invoice.vat_value,
-                total_value: invoice.total_value,
+                base_amount: invoice.base_amount || invoice.net_value || 0,
+                iva_rate: resolveIvaRate(invoice),
+                discount_type: discount.type === 'percentage' ? 'percentage' : 'amount',
+                discount_value: discount.value || 0,
+                extra_expenses: extraExpenses.map(expense => ({
+                    description: expense.description || '',
+                    value: expense.value || 0
+                })),
                 expense_type: invoice.expense_type,
                 cost_center_id: invoice.cost_center_id || '',
                 vehicle_id: invoice.vehicle_id || '',
@@ -78,15 +109,82 @@ export default function InvoiceForm({
         }
     }, [formData.expense_type, costCenters, formData.cost_center_id]);
 
-    // Calculate total when net or VAT changes
-    useEffect(() => {
-        const total = formData.net_value + formData.vat_value;
-        setFormData(prev => ({ ...prev, total_value: total }));
-    }, [formData.net_value, formData.vat_value]);
+    const discountAppliedValue = round2(
+        formData.discount_type === 'percentage'
+            ? (formData.base_amount * formData.discount_value) / 100
+            : formData.discount_value
+    );
+    const normalizedDiscountValue = Math.min(Math.max(discountAppliedValue, 0), Math.max(formData.base_amount, 0));
+    const discountedBase = round2(Math.max(formData.base_amount - normalizedDiscountValue, 0));
+    const ivaValue = round2(discountedBase * (formData.iva_rate / 100));
+    const extraExpensesTotal = round2(
+        formData.extra_expenses.reduce((sum, expense) => sum + (expense.value || 0), 0)
+    );
+    const totalValue = round2(discountedBase + extraExpensesTotal + ivaValue);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onSave(formData);
+        await onSave({
+            supplier_id: formData.supplier_id,
+            invoice_number: formData.invoice_number,
+            issue_date: formData.issue_date,
+            due_date: formData.due_date,
+            base_amount: round2(formData.base_amount),
+            iva_rate: formData.iva_rate,
+            iva_value: ivaValue,
+            discount: {
+                type: formData.discount_type,
+                value: round2(formData.discount_value),
+                applied_value: normalizedDiscountValue
+            },
+            extra_expenses: formData.extra_expenses
+                .filter(expense => expense.description.trim() || expense.value > 0)
+                .map(expense => ({
+                    description: expense.description.trim(),
+                    value: round2(expense.value || 0)
+                })),
+            total: totalValue,
+            net_value: discountedBase,
+            vat_value: ivaValue,
+            total_value: totalValue,
+            expense_type: formData.expense_type,
+            cost_center_id: formData.cost_center_id || undefined,
+            vehicle_id: formData.vehicle_id || undefined,
+            payment_status: formData.payment_status,
+            payment_method: formData.payment_method || undefined,
+            notes: formData.notes || undefined,
+            pdf_url: formData.pdf_url || undefined
+        });
+    };
+
+    const updateExtraExpense = (index: number, field: 'description' | 'value', rawValue: string) => {
+        setFormData(prev => {
+            const nextExpenses = prev.extra_expenses.map((expense, expenseIndex) => {
+                if (expenseIndex !== index) return expense;
+                return {
+                    ...expense,
+                    [field]: field === 'value' ? (parseFloat(rawValue) || 0) : rawValue
+                };
+            });
+
+            return { ...prev, extra_expenses: nextExpenses };
+        });
+    };
+
+    const addExtraExpenseRow = () => {
+        setFormData(prev => ({
+            ...prev,
+            extra_expenses: [...prev.extra_expenses, { description: '', value: 0 }]
+        }));
+    };
+
+    const removeExtraExpenseRow = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            extra_expenses: prev.extra_expenses.length > 1
+                ? prev.extra_expenses.filter((_, expenseIndex) => expenseIndex !== index)
+                : [{ description: '', value: 0 }]
+        }));
     };
 
     const handleFileUpload = async (file: File) => {
@@ -195,33 +293,79 @@ export default function InvoiceForm({
                         </div>
                     </div>
 
-                    {/* Values */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Financial Values */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Valor Líquido (€) *
+                                Valor Base (€) *
                             </label>
                             <input
                                 type="number"
                                 step="0.01"
-                                value={formData.net_value}
-                                onChange={(e) => setFormData(prev => ({ ...prev, net_value: parseFloat(e.target.value) || 0 }))}
+                                min="0"
+                                value={formData.base_amount}
+                                onChange={(e) => setFormData(prev => ({ ...prev, base_amount: parseFloat(e.target.value) || 0 }))}
                                 className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
-                                IVA (€) *
+                                Desconto
                             </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.vat_value}
-                                onChange={(e) => setFormData(prev => ({ ...prev, vat_value: parseFloat(e.target.value) || 0 }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                required
-                            />
+                            <div className="grid grid-cols-2 gap-2">
+                                <select
+                                    value={formData.discount_type}
+                                    onChange={(e) => setFormData(prev => ({
+                                        ...prev,
+                                        discount_type: e.target.value as 'amount' | 'percentage'
+                                    }))}
+                                    className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="amount">€</option>
+                                    <option value="percentage">%</option>
+                                </select>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={formData.discount_value}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
+                                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Aplicado: €{normalizedDiscountValue.toFixed(2)}
+                            </p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                IVA
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <select
+                                    value={formData.iva_rate}
+                                    onChange={(e) => setFormData(prev => ({
+                                        ...prev,
+                                        iva_rate: Number(e.target.value) as 6 | 13 | 23
+                                    }))}
+                                    className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value={6}>6%</option>
+                                    <option value={13}>13%</option>
+                                    <option value={23}>23%</option>
+                                </select>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={ivaValue}
+                                    readOnly
+                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                />
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Base após desconto: €{discountedBase.toFixed(2)}
+                            </p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -230,11 +374,60 @@ export default function InvoiceForm({
                             <input
                                 type="number"
                                 step="0.01"
-                                value={formData.total_value}
+                                value={totalValue}
                                 readOnly
                                 className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
                             />
                         </div>
+                    </div>
+
+                    {/* Extra Expenses */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-slate-300">
+                                Despesas Extra
+                            </label>
+                            <button
+                                type="button"
+                                onClick={addExtraExpenseRow}
+                                className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors"
+                            >
+                                Adicionar linha
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {formData.extra_expenses.map((expense, index) => (
+                                <div key={index} className="grid grid-cols-12 gap-2">
+                                    <input
+                                        type="text"
+                                        value={expense.description}
+                                        onChange={(e) => updateExtraExpense(index, 'description', e.target.value)}
+                                        placeholder="Descrição"
+                                        className="col-span-7 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={expense.value}
+                                        onChange={(e) => updateExtraExpense(index, 'value', e.target.value)}
+                                        placeholder="0.00"
+                                        className="col-span-4 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeExtraExpenseRow(index)}
+                                        className="col-span-1 px-2 py-2 text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                        title="Remover despesa"
+                                    >
+                                        <X className="w-4 h-4 mx-auto" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-2">
+                            Total despesas extra: €{extraExpensesTotal.toFixed(2)}
+                        </p>
                     </div>
 
                     {/* Expense Type and Cost Center */}
@@ -297,7 +490,10 @@ export default function InvoiceForm({
                             <div className="flex items-center gap-2">
                                 <select
                                     value={formData.payment_status}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, payment_status: e.target.value as any }))}
+                                    onChange={(e) => setFormData(prev => ({
+                                        ...prev,
+                                        payment_status: e.target.value as SupplierInvoice['payment_status']
+                                    }))}
                                     className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
                                     <option value="pending">Pendente</option>

@@ -480,6 +480,19 @@ export interface SupplierInvoice {
     invoice_number: string;
     issue_date: string;
     due_date: string;
+    base_amount: number;
+    iva_rate: 6 | 13 | 23;
+    iva_value: number;
+    discount: {
+        type: 'amount' | 'percentage';
+        value: number;
+        applied_value: number;
+    };
+    extra_expenses: {
+        description: string;
+        value: number;
+    }[];
+    total: number;
     net_value: number;
     vat_value: number;
     total_value: number;

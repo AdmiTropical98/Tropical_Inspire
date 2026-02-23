@@ -33,6 +33,9 @@ export default function SupplierInvoices() {
         dateTo: ''
     });
 
+    const getInvoiceTotal = (invoice: SupplierInvoice) => invoice.total ?? invoice.total_value ?? 0;
+    const getInvoiceBase = (invoice: SupplierInvoice) => invoice.base_amount ?? invoice.net_value ?? 0;
+
     // Filter invoices
     const filteredInvoices = supplierInvoices.filter(invoice => {
         const matchesSearch = !searchTerm ||
@@ -136,7 +139,7 @@ export default function SupplierInvoices() {
             let yPosition = 50;
 
             Object.entries(groupedData).forEach(([group, invoices]) => {
-                const total = invoices.reduce((sum, inv) => sum + inv.total_value, 0);
+                const total = invoices.reduce((sum, inv) => sum + getInvoiceTotal(inv), 0);
 
                 // Group header
                 doc.setFontSize(14);
@@ -151,7 +154,7 @@ export default function SupplierInvoices() {
                     body: invoices.map(inv => [
                         inv.invoice_number,
                         inv.supplier?.nome || '',
-                        formatCurrency(inv.total_value),
+                        formatCurrency(getInvoiceTotal(inv)),
                         inv.payment_status,
                         new Date(inv.due_date).toLocaleDateString('pt-PT')
                     ]),
@@ -381,10 +384,10 @@ export default function SupplierInvoices() {
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-white">
-                                            {formatCurrency(invoice.total_value)}
+                                            {formatCurrency(getInvoiceTotal(invoice))}
                                         </div>
                                         <div className="text-sm text-slate-400">
-                                            Líq: {formatCurrency(invoice.net_value)}
+                                            Base: {formatCurrency(getInvoiceBase(invoice))}
                                         </div>
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap">

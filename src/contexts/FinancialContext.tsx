@@ -236,14 +236,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     useEffect(() => {
         if (!invoices.length && !expenses.length && !supplierInvoices.length) return;
 
+        const getSupplierInvoiceTotal = (invoice: SupplierInvoice) => invoice.total ?? invoice.total_value ?? 0;
+
         const totalRevenue = invoices.reduce((acc, curr) => acc + (curr.total || 0), 0);
         const totalExpensesVal = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0) + 
-            supplierInvoices.reduce((acc, curr) => acc + curr.total_value, 0);
+            supplierInvoices.reduce((acc, curr) => acc + getSupplierInvoiceTotal(curr), 0);
         const pending = invoices.filter(i => i.status !== 'paga' && i.status !== 'anulada').reduce((acc, curr) => acc + (curr.total || 0), 0) +
-            supplierInvoices.filter(i => i.payment_status === 'pending' || i.payment_status === 'overdue').reduce((acc, curr) => acc + curr.total_value, 0);
+            supplierInvoices.filter(i => i.payment_status === 'pending' || i.payment_status === 'overdue').reduce((acc, curr) => acc + getSupplierInvoiceTotal(curr), 0);
 
         // Breakdown - include supplier invoices
-        const supplierInvoiceExpenses = supplierInvoices.reduce((sum, inv) => sum + inv.total_value, 0);
+        const supplierInvoiceExpenses = supplierInvoices.reduce((sum, inv) => sum + getSupplierInvoiceTotal(inv), 0);
         const breakdown = [
             { category: 'Combustível & Energia', value: expenses.filter(e => e.id.startsWith('fuel-') || e.id.startsWith('charge-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-blue-500' },
             { category: 'Manutenção', value: expenses.filter(e => e.id.startsWith('maint-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-red-500' },
@@ -262,7 +264,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
         supplierInvoices.forEach(inv => {
             if (inv.cost_center_id) {
-                ccStats[inv.cost_center_id] = (ccStats[inv.cost_center_id] || 0) + inv.total_value;
+                ccStats[inv.cost_center_id] = (ccStats[inv.cost_center_id] || 0) + getSupplierInvoiceTotal(inv);
             }
         });
 
