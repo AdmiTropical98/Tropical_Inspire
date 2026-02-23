@@ -338,9 +338,9 @@ function App() {
         <UserProfileMenu onNavigate={handleNavigate} showName={!isSidebarCollapsed} />
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <main className={`flex-1 flex flex-col transition-all duration-300 min-h-screen pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        <div className="flex-1 w-full px-8 py-6 overflow-y-auto animate-in fade-in duration-500">
+        <div className="flex-1 w-full overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-950/20">
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />

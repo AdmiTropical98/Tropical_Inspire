@@ -268,7 +268,7 @@ export default function CentrosCustos() {
 
     /* ════════════════════════════════ RENDER ════════════════════════ */
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="animate-in fade-in duration-500">
 
             <PageHeader
                 title="Centros de Custos"
@@ -297,414 +297,417 @@ export default function CentrosCustos() {
                 </div>
             </PageHeader>
 
-            {/* ── GLOBAL KPIs ── */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-                <div className="col-span-2 md:col-span-3 xl:col-span-1 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-3xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl" />
-                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Despesa Global</p>
-                    <p className="text-2xl font-black text-white">{eur(grandTotal)}</p>
-                    <div className="mt-3 h-1.5 w-full bg-slate-950 rounded-full overflow-hidden flex">
-                        <div className="h-full bg-blue-500" style={{ width: `${(globalFuel / (grandTotal || 1)) * 100}%` }} />
-                        <div className="h-full bg-cyan-400" style={{ width: `${(globalEV / (grandTotal || 1)) * 100}%` }} />
-                        <div className="h-full bg-emerald-500" style={{ width: `${(globalVV / (grandTotal || 1)) * 100}%` }} />
-                        <div className="h-full bg-amber-500" style={{ width: `${(globalReq / (grandTotal || 1)) * 100}%` }} />
-                        <div className="h-full bg-indigo-500" style={{ width: `${(globalLabor / (grandTotal || 1)) * 100}%` }} />
-                    </div>
-                    <p className="text-[10px] text-slate-500 mt-1">{centrosCustos.length} centros · {PERIODS.find(p => p.id === period)?.label}</p>
-                </div>
-                {[
-                    { label: 'Combustível', val: globalFuel, color: 'bg-blue-500/5 border-blue-500/20', text: 'text-blue-400' },
-                    { label: 'Carregamentos EV', val: globalEV, color: 'bg-cyan-500/5 border-cyan-500/20', text: 'text-cyan-400' },
-                    { label: 'Via Verde', val: globalVV, color: 'bg-emerald-500/5 border-emerald-500/20', text: 'text-emerald-400' },
-                    { label: 'Requisições', val: globalReq, color: 'bg-amber-500/5 border-amber-500/20', text: 'text-amber-400' },
-                    { label: 'Mão de Obra', val: globalLabor, color: 'bg-indigo-500/5 border-indigo-500/20', text: 'text-indigo-400' },
-                ].map(k => (
-                    <div key={k.label} className={`${k.color} border p-4 rounded-3xl backdrop-blur-md`}>
-                        <p className={`${k.text} text-[10px] font-black uppercase tracking-widest mb-1`}>{k.label}</p>
-                        <p className="text-lg font-bold text-white">{eur(k.val)}</p>
-                        <p className="text-[10px] text-slate-500">{((k.val / (grandTotal || 1)) * 100).toFixed(1)}% do total</p>
-                    </div>
-                ))}
-            </div>
+            <div className="p-4 md:p-8 space-y-8">
 
-            {/* ── RANKINGS ── */}
-            {enriched.length >= 2 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* ── GLOBAL KPIs ── */}
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+                    <div className="col-span-2 md:col-span-3 xl:col-span-1 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-3xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl" />
+                        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Despesa Global</p>
+                        <p className="text-2xl font-black text-white">{eur(grandTotal)}</p>
+                        <div className="mt-3 h-1.5 w-full bg-slate-950 rounded-full overflow-hidden flex">
+                            <div className="h-full bg-blue-500" style={{ width: `${(globalFuel / (grandTotal || 1)) * 100}%` }} />
+                            <div className="h-full bg-cyan-400" style={{ width: `${(globalEV / (grandTotal || 1)) * 100}%` }} />
+                            <div className="h-full bg-emerald-500" style={{ width: `${(globalVV / (grandTotal || 1)) * 100}%` }} />
+                            <div className="h-full bg-amber-500" style={{ width: `${(globalReq / (grandTotal || 1)) * 100}%` }} />
+                            <div className="h-full bg-indigo-500" style={{ width: `${(globalLabor / (grandTotal || 1)) * 100}%` }} />
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">{centrosCustos.length} centros · {PERIODS.find(p => p.id === period)?.label}</p>
+                    </div>
                     {[
-                        {
-                            title: '🔴 Maior Custo', icon: Trophy, color: 'border-red-500/20 bg-red-500/5',
-                            items: byTotal.slice(0, 3).map((e, i) => ({ label: e.cc.nome, sub: eur(e.cur.total), rank: i }))
-                        },
-                        {
-                            title: '📈 Maior Crescimento', icon: TrendingUp, color: 'border-amber-500/20 bg-amber-500/5',
-                            items: byGrowth.slice(0, 3).map((e, i) => ({ label: e.cc.nome, sub: e.variation !== null ? pct(e.variation!) : '-', rank: i }))
-                        },
-                        {
-                            title: '🟢 Mais Eficiente', icon: TrendingDown, color: 'border-emerald-500/20 bg-emerald-500/5',
-                            items: byEfficiency.slice(0, 3).map((e, i) => ({ label: e.cc.nome, sub: eur(e.cur.total), rank: i }))
-                        },
-                    ].map(r => (
-                        <div key={r.title} className={`${r.color} border rounded-2xl p-4`}>
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">{r.title}</p>
-                            {r.items.map((item, i) => (
-                                <div key={item.label} className="flex items-center gap-3 py-1.5 border-b border-white/5 last:border-0">
-                                    <span className="text-slate-600 font-black text-sm w-4">{i + 1}</span>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-white text-xs font-bold truncate">{item.label}</p>
-                                    </div>
-                                    <span className="text-slate-300 text-xs font-bold">{item.sub}</span>
-                                </div>
-                            ))}
+                        { label: 'Combustível', val: globalFuel, color: 'bg-blue-500/5 border-blue-500/20', text: 'text-blue-400' },
+                        { label: 'Carregamentos EV', val: globalEV, color: 'bg-cyan-500/5 border-cyan-500/20', text: 'text-cyan-400' },
+                        { label: 'Via Verde', val: globalVV, color: 'bg-emerald-500/5 border-emerald-500/20', text: 'text-emerald-400' },
+                        { label: 'Requisições', val: globalReq, color: 'bg-amber-500/5 border-amber-500/20', text: 'text-amber-400' },
+                        { label: 'Mão de Obra', val: globalLabor, color: 'bg-indigo-500/5 border-indigo-500/20', text: 'text-indigo-400' },
+                    ].map(k => (
+                        <div key={k.label} className={`${k.color} border p-4 rounded-3xl backdrop-blur-md`}>
+                            <p className={`${k.text} text-[10px] font-black uppercase tracking-widest mb-1`}>{k.label}</p>
+                            <p className="text-lg font-bold text-white">{eur(k.val)}</p>
+                            <p className="text-[10px] text-slate-500">{((k.val / (grandTotal || 1)) * 100).toFixed(1)}% do total</p>
                         </div>
                     ))}
                 </div>
-            )}
 
-            {/* ── CC CARDS GRID ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                {enriched.length === 0 ? (
-                    <div className="col-span-full flex flex-col items-center justify-center p-20 bg-slate-900/20 rounded-3xl border-2 border-dashed border-slate-800">
-                        <Building2 className="w-16 h-16 text-slate-700 mb-4" />
-                        <h3 className="text-xl font-bold text-slate-400">Sem Centros Registados</h3>
-                        <p className="text-slate-500 text-sm mt-1">Adicione o primeiro centro de custo.</p>
-                    </div>
-                ) : enriched.map(({ cc, cur, variation }) => (
-                    <div
-                        key={cc.id}
-                        onClick={() => setSelectedCC(cc)}
-                        className={`group relative bg-[#0f172a] border rounded-3xl overflow-visible cursor-pointer hover:border-blue-500/60 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300
-                            ${variation !== null && variation > 20 ? 'border-red-500/40' : variation !== null && variation > 5 ? 'border-amber-500/30' : 'border-slate-800'}`}
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[80px] -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-all" />
-
-                        <div className="p-6">
-                            {/* Card header */}
-                            <div className="flex items-start justify-between mb-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 group-hover:bg-blue-600 group-hover:border-blue-500 transition-all">
-                                        <Building2 className="w-6 h-6 text-blue-400 group-hover:text-white transition-colors" />
+                {/* ── RANKINGS ── */}
+                {enriched.length >= 2 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[
+                            {
+                                title: '🔴 Maior Custo', icon: Trophy, color: 'border-red-500/20 bg-red-500/5',
+                                items: byTotal.slice(0, 3).map((e, i) => ({ label: e.cc.nome, sub: eur(e.cur.total), rank: i }))
+                            },
+                            {
+                                title: '📈 Maior Crescimento', icon: TrendingUp, color: 'border-amber-500/20 bg-amber-500/5',
+                                items: byGrowth.slice(0, 3).map((e, i) => ({ label: e.cc.nome, sub: e.variation !== null ? pct(e.variation!) : '-', rank: i }))
+                            },
+                            {
+                                title: '🟢 Mais Eficiente', icon: TrendingDown, color: 'border-emerald-500/20 bg-emerald-500/5',
+                                items: byEfficiency.slice(0, 3).map((e, i) => ({ label: e.cc.nome, sub: eur(e.cur.total), rank: i }))
+                            },
+                        ].map(r => (
+                            <div key={r.title} className={`${r.color} border rounded-2xl p-4`}>
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">{r.title}</p>
+                                {r.items.map((item, i) => (
+                                    <div key={item.label} className="flex items-center gap-3 py-1.5 border-b border-white/5 last:border-0">
+                                        <span className="text-slate-600 font-black text-sm w-4">{i + 1}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-white text-xs font-bold truncate">{item.label}</p>
+                                        </div>
+                                        <span className="text-slate-300 text-xs font-bold">{item.sub}</span>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{cc.nome}</h3>
-                                        {cc.localizacao && (
-                                            <div className="flex items-center gap-1 text-slate-500 text-xs mt-0.5">
-                                                <MapPin className="w-2.5 h-2.5" />{cc.localizacao}
-                                            </div>
-                                        )}
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* ── CC CARDS GRID ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                    {enriched.length === 0 ? (
+                        <div className="col-span-full flex flex-col items-center justify-center p-20 bg-slate-900/20 rounded-3xl border-2 border-dashed border-slate-800">
+                            <Building2 className="w-16 h-16 text-slate-700 mb-4" />
+                            <h3 className="text-xl font-bold text-slate-400">Sem Centros Registados</h3>
+                            <p className="text-slate-500 text-sm mt-1">Adicione o primeiro centro de custo.</p>
+                        </div>
+                    ) : enriched.map(({ cc, cur, variation }) => (
+                        <div
+                            key={cc.id}
+                            onClick={() => setSelectedCC(cc)}
+                            className={`group relative bg-[#0f172a] border rounded-3xl overflow-visible cursor-pointer hover:border-blue-500/60 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300
+                            ${variation !== null && variation > 20 ? 'border-red-500/40' : variation !== null && variation > 5 ? 'border-amber-500/30' : 'border-slate-800'}`}
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[80px] -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-all" />
+
+                            <div className="p-6">
+                                {/* Card header */}
+                                <div className="flex items-start justify-between mb-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 group-hover:bg-blue-600 group-hover:border-blue-500 transition-all">
+                                            <Building2 className="w-6 h-6 text-blue-400 group-hover:text-white transition-colors" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{cc.nome}</h3>
+                                            {cc.localizacao && (
+                                                <div className="flex items-center gap-1 text-slate-500 text-xs mt-0.5">
+                                                    <MapPin className="w-2.5 h-2.5" />{cc.localizacao}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1.5">
+                                        <HealthBadge variation={variation} />
+                                        <button onClick={e => { e.stopPropagation(); deleteCentroCusto(cc.id); }}
+                                            className="p-1.5 text-slate-700 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-end gap-1.5">
-                                    <HealthBadge variation={variation} />
-                                    <button onClick={e => { e.stopPropagation(); deleteCentroCusto(cc.id); }}
-                                        className="p-1.5 text-slate-700 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                                        <Trash2 className="w-3.5 h-3.5" />
+
+                                {/* Cost */}
+                                <div className="mb-4">
+                                    <div className="flex justify-between items-end mb-1">
+                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Custo Acumulado</p>
+                                        <VarBadge pct={variation ?? null} />
+                                    </div>
+                                    <p className="text-3xl font-black text-white tracking-tighter">{eur(cur.total)}</p>
+                                </div>
+
+                                {/* Cost bar with tooltip */}
+                                <div className="mb-5">
+                                    <CostBar fuel={cur.fuelCost} charging={cur.evCost} tolls={cur.vvCost} reqs={cur.reqCost} labor={cur.labor} />
+                                </div>
+
+                                {/* Key metrics */}
+                                <div className="grid grid-cols-3 gap-2 mb-5">
+                                    <div className="bg-slate-950/50 border border-slate-800/50 p-2.5 rounded-xl text-center">
+                                        <p className="text-[9px] text-slate-500 font-black uppercase mb-1">Motoristas</p>
+                                        <p className="text-sm font-bold text-white">{cur.drivers.length}</p>
+                                    </div>
+                                    <div className="bg-slate-950/50 border border-slate-800/50 p-2.5 rounded-xl text-center">
+                                        <p className="text-[9px] text-slate-500 font-black uppercase mb-1">Litros</p>
+                                        <p className="text-sm font-bold text-white">{cur.fuelLiters.toFixed(0)}L</p>
+                                    </div>
+                                    <div className="bg-slate-950/50 border border-slate-800/50 p-2.5 rounded-xl text-center">
+                                        <p className="text-[9px] text-slate-500 font-black uppercase mb-1">€/Litro</p>
+                                        <p className="text-sm font-bold text-white">{cur.eurPerLitre > 0 ? cur.eurPerLitre.toFixed(3) : '—'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Footer */}
+                                <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 group-hover:text-blue-300 flex items-center gap-1">
+                                        Ver Dashboard <ChevronRight className="w-3 h-3" />
+                                    </span>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                        <Calendar className="w-3 h-3" />
+                                        {PERIODS.find(p => p.id === period)?.label}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* ══════════════ DETAIL PANEL ══════════════ */}
+                {selectedCC && selectedEnriched && (
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[100] p-4">
+                        <div className="bg-[#0f172a] w-full max-w-5xl h-[90vh] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col">
+
+                            {/* Modal header */}
+                            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/50 flex-shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setSelectedCC(null)} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-slate-400 hover:text-white">
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <div>
+                                        <h2 className="text-2xl font-black text-white tracking-tighter">{selectedCC.nome}</h2>
+                                        <div className="flex items-center gap-3 mt-0.5">
+                                            {selectedCC.localizacao && <span className="text-slate-500 text-xs flex items-center gap-1"><MapPin className="w-3 h-3" />{selectedCC.localizacao}</span>}
+                                            <HealthBadge variation={selectedEnriched.variation ?? null} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={() => exportCCReport(selectedCC)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all text-sm">
+                                        <Download className="w-4 h-4" />PDF
+                                    </button>
+                                    <button onClick={() => setSelectedCC(null)} className="p-2 bg-slate-800 text-slate-400 hover:text-white rounded-xl">
+                                        <X className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Cost */}
-                            <div className="mb-4">
-                                <div className="flex justify-between items-end mb-1">
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Custo Acumulado</p>
-                                    <VarBadge pct={variation ?? null} />
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+
+                                {/* Cost overview */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {[
+                                        { label: 'Custo Total', val: selectedEnriched.cur.total, icon: BarChart3, color: 'text-white' },
+                                        { label: 'vs Período Anterior', val: null, var: selectedEnriched.variation, icon: TrendingUp, color: '' },
+                                        { label: '€/Litro Médio', val: selectedEnriched.cur.eurPerLitre, icon: Fuel, color: 'text-blue-400', suffix: ' €/L' },
+                                        { label: 'Abastecimentos', val: selectedEnriched.cur.fuel.length, icon: Fuel, color: 'text-amber-400', noEur: true },
+                                    ].map((k, i) => (
+                                        <div key={i} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
+                                            <k.icon className={`w-5 h-5 ${k.color || 'text-slate-400'} mb-2`} />
+                                            <p className="text-[10px] text-slate-500 font-black uppercase mb-1">{k.label}</p>
+                                            {k.var !== undefined ? (
+                                                <div className="mt-1"><VarBadge pct={k.var ?? null} /></div>
+                                            ) : k.noEur ? (
+                                                <p className="text-xl font-black text-white">{k.val}</p>
+                                            ) : (
+                                                <p className={`text-xl font-black ${k.color || 'text-white'}`}>
+                                                    {k.val !== null && k.val !== undefined ? (k.suffix ? `${(k.val as number).toFixed(3)}${k.suffix}` : eur(k.val as number)) : '—'}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
-                                <p className="text-3xl font-black text-white tracking-tighter">{eur(cur.total)}</p>
-                            </div>
 
-                            {/* Cost bar with tooltip */}
-                            <div className="mb-5">
-                                <CostBar fuel={cur.fuelCost} charging={cur.evCost} tolls={cur.vvCost} reqs={cur.reqCost} labor={cur.labor} />
-                            </div>
-
-                            {/* Key metrics */}
-                            <div className="grid grid-cols-3 gap-2 mb-5">
-                                <div className="bg-slate-950/50 border border-slate-800/50 p-2.5 rounded-xl text-center">
-                                    <p className="text-[9px] text-slate-500 font-black uppercase mb-1">Motoristas</p>
-                                    <p className="text-sm font-bold text-white">{cur.drivers.length}</p>
-                                </div>
-                                <div className="bg-slate-950/50 border border-slate-800/50 p-2.5 rounded-xl text-center">
-                                    <p className="text-[9px] text-slate-500 font-black uppercase mb-1">Litros</p>
-                                    <p className="text-sm font-bold text-white">{cur.fuelLiters.toFixed(0)}L</p>
-                                </div>
-                                <div className="bg-slate-950/50 border border-slate-800/50 p-2.5 rounded-xl text-center">
-                                    <p className="text-[9px] text-slate-500 font-black uppercase mb-1">€/Litro</p>
-                                    <p className="text-sm font-bold text-white">{cur.eurPerLitre > 0 ? cur.eurPerLitre.toFixed(3) : '—'}</p>
-                                </div>
-                            </div>
-
-                            {/* Footer */}
-                            <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 group-hover:text-blue-300 flex items-center gap-1">
-                                    Ver Dashboard <ChevronRight className="w-3 h-3" />
-                                </span>
-                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                                    <Calendar className="w-3 h-3" />
-                                    {PERIODS.find(p => p.id === period)?.label}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* ══════════════ DETAIL PANEL ══════════════ */}
-            {selectedCC && selectedEnriched && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[100] p-4">
-                    <div className="bg-[#0f172a] w-full max-w-5xl h-[90vh] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col">
-
-                        {/* Modal header */}
-                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/50 flex-shrink-0">
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => setSelectedCC(null)} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-slate-400 hover:text-white">
-                                    <ChevronLeft className="w-5 h-5" />
-                                </button>
-                                <div>
-                                    <h2 className="text-2xl font-black text-white tracking-tighter">{selectedCC.nome}</h2>
-                                    <div className="flex items-center gap-3 mt-0.5">
-                                        {selectedCC.localizacao && <span className="text-slate-500 text-xs flex items-center gap-1"><MapPin className="w-3 h-3" />{selectedCC.localizacao}</span>}
-                                        <HealthBadge variation={selectedEnriched.variation ?? null} />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex gap-3">
-                                <button onClick={() => exportCCReport(selectedCC)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all text-sm">
-                                    <Download className="w-4 h-4" />PDF
-                                </button>
-                                <button onClick={() => setSelectedCC(null)} className="p-2 bg-slate-800 text-slate-400 hover:text-white rounded-xl">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
-
-                            {/* Cost overview */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {[
-                                    { label: 'Custo Total', val: selectedEnriched.cur.total, icon: BarChart3, color: 'text-white' },
-                                    { label: 'vs Período Anterior', val: null, var: selectedEnriched.variation, icon: TrendingUp, color: '' },
-                                    { label: '€/Litro Médio', val: selectedEnriched.cur.eurPerLitre, icon: Fuel, color: 'text-blue-400', suffix: ' €/L' },
-                                    { label: 'Abastecimentos', val: selectedEnriched.cur.fuel.length, icon: Fuel, color: 'text-amber-400', noEur: true },
-                                ].map((k, i) => (
-                                    <div key={i} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
-                                        <k.icon className={`w-5 h-5 ${k.color || 'text-slate-400'} mb-2`} />
-                                        <p className="text-[10px] text-slate-500 font-black uppercase mb-1">{k.label}</p>
-                                        {k.var !== undefined ? (
-                                            <div className="mt-1"><VarBadge pct={k.var ?? null} /></div>
-                                        ) : k.noEur ? (
-                                            <p className="text-xl font-black text-white">{k.val}</p>
-                                        ) : (
-                                            <p className={`text-xl font-black ${k.color || 'text-white'}`}>
-                                                {k.val !== null && k.val !== undefined ? (k.suffix ? `${(k.val as number).toFixed(3)}${k.suffix}` : eur(k.val as number)) : '—'}
+                                {/* Category breakdown */}
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                    {[
+                                        { label: 'Combustível', val: selectedEnriched.cur.fuelCost, icon: Fuel, color: 'text-blue-400' },
+                                        { label: 'Carregamentos EV', val: selectedEnriched.cur.evCost, icon: Zap, color: 'text-cyan-400' },
+                                        { label: 'Via Verde', val: selectedEnriched.cur.vvCost, icon: Wallet, color: 'text-emerald-400' },
+                                        { label: 'Requisições', val: selectedEnriched.cur.reqCost, icon: Building2, color: 'text-amber-400' },
+                                        { label: 'Mão de Obra', val: selectedEnriched.cur.labor, icon: Users, color: 'text-indigo-400' },
+                                    ].map(k => (
+                                        <div key={k.label} className="bg-slate-900/40 border border-white/5 rounded-2xl p-4">
+                                            <k.icon className={`w-5 h-5 ${k.color} mb-2`} />
+                                            <p className="text-[10px] text-slate-500 font-black uppercase mb-1">{k.label}</p>
+                                            <p className="text-lg font-black text-white">{eur(k.val)}</p>
+                                            <p className="text-[10px] text-slate-600">
+                                                {selectedEnriched.cur.total > 0 ? ((k.val / selectedEnriched.cur.total) * 100).toFixed(0) : 0}% do total
                                             </p>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                                        </div>
+                                    ))}
+                                </div>
 
-                            {/* Category breakdown */}
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                                {[
-                                    { label: 'Combustível', val: selectedEnriched.cur.fuelCost, icon: Fuel, color: 'text-blue-400' },
-                                    { label: 'Carregamentos EV', val: selectedEnriched.cur.evCost, icon: Zap, color: 'text-cyan-400' },
-                                    { label: 'Via Verde', val: selectedEnriched.cur.vvCost, icon: Wallet, color: 'text-emerald-400' },
-                                    { label: 'Requisições', val: selectedEnriched.cur.reqCost, icon: Building2, color: 'text-amber-400' },
-                                    { label: 'Mão de Obra', val: selectedEnriched.cur.labor, icon: Users, color: 'text-indigo-400' },
-                                ].map(k => (
-                                    <div key={k.label} className="bg-slate-900/40 border border-white/5 rounded-2xl p-4">
-                                        <k.icon className={`w-5 h-5 ${k.color} mb-2`} />
-                                        <p className="text-[10px] text-slate-500 font-black uppercase mb-1">{k.label}</p>
-                                        <p className="text-lg font-black text-white">{eur(k.val)}</p>
-                                        <p className="text-[10px] text-slate-600">
-                                            {selectedEnriched.cur.total > 0 ? ((k.val / selectedEnriched.cur.total) * 100).toFixed(0) : 0}% do total
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
+                                {/* Transaction tables */}
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-                            {/* Transaction tables */}
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-
-                                {/* Fuel */}
-                                <div>
-                                    <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
-                                        <Fuel className="w-4 h-4 text-blue-400" />Abastecimentos ({selectedEnriched.cur.fuel.length})
-                                    </h3>
-                                    <div className="bg-slate-950/40 rounded-2xl border border-white/5 overflow-hidden">
-                                        <table className="w-full text-xs text-left">
-                                            <thead className="bg-[#020617] text-slate-500 font-bold">
-                                                <tr>
-                                                    <th className="px-4 py-3">Data</th>
-                                                    <th className="px-4 py-3">Viatura</th>
-                                                    <th className="px-4 py-3">Litros</th>
-                                                    <th className="px-4 py-3 text-right">Custo</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {selectedEnriched.cur.fuel.slice(0, 8).map((t, i) => (
-                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                        <td className="px-4 py-2.5 text-slate-400">{new Date(t.timestamp).toLocaleDateString('pt-PT')}</td>
-                                                        <td className="px-4 py-2.5 text-white font-bold">{viaturas.find(v => v.id === t.vehicleId)?.matricula || '---'}</td>
-                                                        <td className="px-4 py-2.5 text-slate-300">{(t.liters || 0).toFixed(1)}L</td>
-                                                        <td className="px-4 py-2.5 text-right text-blue-400 font-mono font-bold">{(t.totalCost || 0).toFixed(2)}€</td>
+                                    {/* Fuel */}
+                                    <div>
+                                        <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
+                                            <Fuel className="w-4 h-4 text-blue-400" />Abastecimentos ({selectedEnriched.cur.fuel.length})
+                                        </h3>
+                                        <div className="bg-slate-950/40 rounded-2xl border border-white/5 overflow-hidden">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-[#020617] text-slate-500 font-bold">
+                                                    <tr>
+                                                        <th className="px-4 py-3">Data</th>
+                                                        <th className="px-4 py-3">Viatura</th>
+                                                        <th className="px-4 py-3">Litros</th>
+                                                        <th className="px-4 py-3 text-right">Custo</th>
                                                     </tr>
-                                                ))}
-                                                {selectedEnriched.cur.fuel.length === 0 && (
-                                                    <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {selectedEnriched.cur.fuel.slice(0, 8).map((t, i) => (
+                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                            <td className="px-4 py-2.5 text-slate-400">{new Date(t.timestamp).toLocaleDateString('pt-PT')}</td>
+                                                            <td className="px-4 py-2.5 text-white font-bold">{viaturas.find(v => v.id === t.vehicleId)?.matricula || '---'}</td>
+                                                            <td className="px-4 py-2.5 text-slate-300">{(t.liters || 0).toFixed(1)}L</td>
+                                                            <td className="px-4 py-2.5 text-right text-blue-400 font-mono font-bold">{(t.totalCost || 0).toFixed(2)}€</td>
+                                                        </tr>
+                                                    ))}
+                                                    {selectedEnriched.cur.fuel.length === 0 && (
+                                                        <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Via Verde */}
+                                    <div>
+                                        <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
+                                            <Wallet className="w-4 h-4 text-emerald-400" />Via Verde ({selectedEnriched.cur.vv.length})
+                                        </h3>
+                                        <div className="bg-slate-950/40 rounded-2xl border border-white/5 overflow-hidden">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-[#020617] text-slate-500 font-bold">
+                                                    <tr>
+                                                        <th className="px-4 py-3">Data</th>
+                                                        <th className="px-4 py-3">Detalhe</th>
+                                                        <th className="px-4 py-3 text-right">Valor</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {selectedEnriched.cur.vv.slice(0, 8).map((t, i) => (
+                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                            <td className="px-4 py-2.5 text-slate-400">{new Date(t.entry_time).toLocaleDateString('pt-PT')}</td>
+                                                            <td className="px-4 py-2.5 text-white text-xs truncate max-w-[140px]">{t.type === 'parking' ? t.entry_point : `${t.entry_point} → ${t.exit_point}`}</td>
+                                                            <td className="px-4 py-2.5 text-right text-emerald-400 font-mono font-bold">{(t.amount || 0).toFixed(2)}€</td>
+                                                        </tr>
+                                                    ))}
+                                                    {selectedEnriched.cur.vv.length === 0 && (
+                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* EV */}
+                                    <div>
+                                        <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
+                                            <Zap className="w-4 h-4 text-cyan-400" />Carregamentos EV ({selectedEnriched.cur.ev.length})
+                                        </h3>
+                                        <div className="bg-slate-950/40 rounded-2xl border border-white/5 overflow-hidden">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-[#020617] text-slate-500 font-bold">
+                                                    <tr>
+                                                        <th className="px-4 py-3">Data</th>
+                                                        <th className="px-4 py-3">Viatura</th>
+                                                        <th className="px-4 py-3 text-right">kWh / Custo</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {selectedEnriched.cur.ev.slice(0, 8).map((c, i) => (
+                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                            <td className="px-4 py-2.5 text-slate-400">{new Date(c.date).toLocaleDateString('pt-PT')}</td>
+                                                            <td className="px-4 py-2.5 text-white font-bold">{viaturas.find(v => v.id === c.vehicle_id)?.matricula || '---'}</td>
+                                                            <td className="px-4 py-2.5 text-right text-cyan-400 font-mono font-bold">{(c.kwh || 0).toFixed(1)} kWh · {(c.cost || 0).toFixed(2)}€</td>
+                                                        </tr>
+                                                    ))}
+                                                    {selectedEnriched.cur.ev.length === 0 && (
+                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Requisições */}
+                                    <div>
+                                        <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
+                                            <Car className="w-4 h-4 text-amber-400" />Requisições ({selectedEnriched.cur.req.length})
+                                        </h3>
+                                        <div className="bg-slate-950/40 rounded-2xl border border-white/5 overflow-hidden">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-[#020617] text-slate-500 font-bold">
+                                                    <tr>
+                                                        <th className="px-4 py-3">Data</th>
+                                                        <th className="px-4 py-3">Descrição</th>
+                                                        <th className="px-4 py-3 text-right">Custo</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {selectedEnriched.cur.req.slice(0, 8).map((r, i) => (
+                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                            <td className="px-4 py-2.5 text-slate-400">{new Date(r.data).toLocaleDateString('pt-PT')}</td>
+                                                            <td className="px-4 py-2.5 text-white truncate max-w-[160px]">{r.itens?.map((it: any) => it.descricao).join(', ') || '---'}</td>
+                                                            <td className="px-4 py-2.5 text-right text-amber-400 font-mono font-bold">{(r.custo || 0).toFixed(2)}€</td>
+                                                        </tr>
+                                                    ))}
+                                                    {selectedEnriched.cur.req.length === 0 && (
+                                                        <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Via Verde */}
-                                <div>
-                                    <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
-                                        <Wallet className="w-4 h-4 text-emerald-400" />Via Verde ({selectedEnriched.cur.vv.length})
-                                    </h3>
-                                    <div className="bg-slate-950/40 rounded-2xl border border-white/5 overflow-hidden">
-                                        <table className="w-full text-xs text-left">
-                                            <thead className="bg-[#020617] text-slate-500 font-bold">
-                                                <tr>
-                                                    <th className="px-4 py-3">Data</th>
-                                                    <th className="px-4 py-3">Detalhe</th>
-                                                    <th className="px-4 py-3 text-right">Valor</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {selectedEnriched.cur.vv.slice(0, 8).map((t, i) => (
-                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                        <td className="px-4 py-2.5 text-slate-400">{new Date(t.entry_time).toLocaleDateString('pt-PT')}</td>
-                                                        <td className="px-4 py-2.5 text-white text-xs truncate max-w-[140px]">{t.type === 'parking' ? t.entry_point : `${t.entry_point} → ${t.exit_point}`}</td>
-                                                        <td className="px-4 py-2.5 text-right text-emerald-400 font-mono font-bold">{(t.amount || 0).toFixed(2)}€</td>
-                                                    </tr>
-                                                ))}
-                                                {selectedEnriched.cur.vv.length === 0 && (
-                                                    <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                {/* EV */}
-                                <div>
-                                    <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
-                                        <Zap className="w-4 h-4 text-cyan-400" />Carregamentos EV ({selectedEnriched.cur.ev.length})
-                                    </h3>
-                                    <div className="bg-slate-950/40 rounded-2xl border border-white/5 overflow-hidden">
-                                        <table className="w-full text-xs text-left">
-                                            <thead className="bg-[#020617] text-slate-500 font-bold">
-                                                <tr>
-                                                    <th className="px-4 py-3">Data</th>
-                                                    <th className="px-4 py-3">Viatura</th>
-                                                    <th className="px-4 py-3 text-right">kWh / Custo</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {selectedEnriched.cur.ev.slice(0, 8).map((c, i) => (
-                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                        <td className="px-4 py-2.5 text-slate-400">{new Date(c.date).toLocaleDateString('pt-PT')}</td>
-                                                        <td className="px-4 py-2.5 text-white font-bold">{viaturas.find(v => v.id === c.vehicle_id)?.matricula || '---'}</td>
-                                                        <td className="px-4 py-2.5 text-right text-cyan-400 font-mono font-bold">{(c.kwh || 0).toFixed(1)} kWh · {(c.cost || 0).toFixed(2)}€</td>
-                                                    </tr>
-                                                ))}
-                                                {selectedEnriched.cur.ev.length === 0 && (
-                                                    <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                {/* Requisições */}
-                                <div>
-                                    <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
-                                        <Car className="w-4 h-4 text-amber-400" />Requisições ({selectedEnriched.cur.req.length})
-                                    </h3>
-                                    <div className="bg-slate-950/40 rounded-2xl border border-white/5 overflow-hidden">
-                                        <table className="w-full text-xs text-left">
-                                            <thead className="bg-[#020617] text-slate-500 font-bold">
-                                                <tr>
-                                                    <th className="px-4 py-3">Data</th>
-                                                    <th className="px-4 py-3">Descrição</th>
-                                                    <th className="px-4 py-3 text-right">Custo</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {selectedEnriched.cur.req.slice(0, 8).map((r, i) => (
-                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                        <td className="px-4 py-2.5 text-slate-400">{new Date(r.data).toLocaleDateString('pt-PT')}</td>
-                                                        <td className="px-4 py-2.5 text-white truncate max-w-[160px]">{r.itens?.map((it: any) => it.descricao).join(', ') || '---'}</td>
-                                                        <td className="px-4 py-2.5 text-right text-amber-400 font-mono font-bold">{(r.custo || 0).toFixed(2)}€</td>
-                                                    </tr>
-                                                ))}
-                                                {selectedEnriched.cur.req.length === 0 && (
-                                                    <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Team */}
-                            {selectedEnriched.cur.drivers.length > 0 && (
-                                <div>
-                                    <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
-                                        <Users className="w-4 h-4 text-indigo-400" />Equipa ({selectedEnriched.cur.drivers.length})
-                                    </h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedEnriched.cur.drivers.map(d => (
-                                            <div key={d.id} className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
-                                                <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-black text-white">{d.nome.charAt(0)}</div>
-                                                <div>
-                                                    <p className="text-white text-xs font-bold">{d.nome}</p>
-                                                    <p className="text-slate-500 text-[10px]">{eur(d.vencimentoBase || 0)}/mês</p>
+                                {/* Team */}
+                                {selectedEnriched.cur.drivers.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-black text-white flex items-center gap-2 mb-3">
+                                            <Users className="w-4 h-4 text-indigo-400" />Equipa ({selectedEnriched.cur.drivers.length})
+                                        </h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedEnriched.cur.drivers.map(d => (
+                                                <div key={d.id} className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+                                                    <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-black text-white">{d.nome.charAt(0)}</div>
+                                                    <div>
+                                                        <p className="text-white text-xs font-bold">{d.nome}</p>
+                                                        <p className="text-slate-500 text-[10px]">{eur(d.vencimentoBase || 0)}/mês</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── NEW CC FORM ── */}
+                {showForm && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
+                        <div className="bg-[#0f172a] w-full max-w-md rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
+                            <div className="p-8 border-b border-slate-800">
+                                <h2 className="text-2xl font-black text-white">Nova Unidade</h2>
+                                <p className="text-slate-500 text-sm mt-1">Registe um novo centro de custo.</p>
+                            </div>
+                            <form onSubmit={handleSubmit} className="p-8 space-y-5">
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Nome / Escritório</label>
+                                    <input type="text" required value={nome} onChange={e => setNome(e.target.value)}
+                                        className="w-full bg-[#020617] border border-slate-800 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-700"
+                                        placeholder="Ex: Escritório Lisboa" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Localização (Opcional)</label>
+                                    <div className="relative">
+                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                                        <input type="text" value={localizacao} onChange={e => setLocalizacao(e.target.value)}
+                                            className="w-full bg-[#020617] border border-slate-800 rounded-2xl pl-12 pr-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-700"
+                                            placeholder="Ex: Av. da Liberdade" />
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ── NEW CC FORM ── */}
-            {showForm && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
-                    <div className="bg-[#0f172a] w-full max-w-md rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
-                        <div className="p-8 border-b border-slate-800">
-                            <h2 className="text-2xl font-black text-white">Nova Unidade</h2>
-                            <p className="text-slate-500 text-sm mt-1">Registe um novo centro de custo.</p>
-                        </div>
-                        <form onSubmit={handleSubmit} className="p-8 space-y-5">
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Nome / Escritório</label>
-                                <input type="text" required value={nome} onChange={e => setNome(e.target.value)}
-                                    className="w-full bg-[#020617] border border-slate-800 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-700"
-                                    placeholder="Ex: Escritório Lisboa" />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Localização (Opcional)</label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                                    <input type="text" value={localizacao} onChange={e => setLocalizacao(e.target.value)}
-                                        className="w-full bg-[#020617] border border-slate-800 rounded-2xl pl-12 pr-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-700"
-                                        placeholder="Ex: Av. da Liberdade" />
+                                <div className="flex gap-4">
+                                    <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-6 py-4 text-slate-400 hover:text-white hover:bg-slate-900 rounded-2xl font-bold transition-all">Cancelar</button>
+                                    <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-lg shadow-blue-500/20">Confirmar</button>
                                 </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-6 py-4 text-slate-400 hover:text-white hover:bg-slate-900 rounded-2xl font-bold transition-all">Cancelar</button>
-                                <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-lg shadow-blue-500/20">Confirmar</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

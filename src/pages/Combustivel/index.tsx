@@ -748,7 +748,7 @@ export default function Combustivel() {
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="animate-in fade-in duration-500">
             <PageHeader
                 title={t('fuel.title')}
                 subtitle={t('fuel.subtitle')}
@@ -778,1575 +778,1578 @@ export default function Combustivel() {
                 </div>
             </PageHeader>
 
-            {/* Content Area */}
+            <div className="p-4 md:p-8 space-y-8">
 
-            {/* OVERVIEW TAB */}
-            {activeTab === 'overview' && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {/* Header & Vehicle Selector */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 backdrop-blur-xl">
-                        <div>
-                            <h2 className="text-2xl font-black text-white tracking-tight">Dashboard de Combustível</h2>
-                            <p className="text-slate-400 font-medium">Análise de consumo e eficiência por viatura</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="relative">
-                                <Car className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                                <select
-                                    value={selectedViaturaId}
-                                    onChange={(e) => setSelectedViaturaId(e.target.value)}
-                                    className="bg-slate-950 border border-slate-700 text-white rounded-2xl pl-12 pr-10 py-3 outline-none focus:border-yellow-500 transition-all appearance-none font-bold min-w-[240px]"
-                                >
-                                    <option value="">Todas as Viaturas</option>
-                                    {viaturas.map(v => (
-                                        <option key={v.id} value={v.id}>{v.matricula} - {v.marca} {v.modelo}</option>
-                                    ))}
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                    <Filter className="w-4 h-4 text-slate-500" />
-                                </div>
+                {/* Content Area */}
+
+                {/* OVERVIEW TAB */}
+                {activeTab === 'overview' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Header & Vehicle Selector */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 backdrop-blur-xl">
+                            <div>
+                                <h2 className="text-2xl font-black text-white tracking-tight">Dashboard de Combustível</h2>
+                                <p className="text-slate-400 font-medium">Análise de consumo e eficiência por viatura</p>
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                        {/* Main Metrics Card */}
-                        <div className="md:col-span-2 xl:col-span-2 2xl:col-span-3 space-y-8">
-                            {/* Tank Status & Summary */}
-                            <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-[3rem] relative overflow-visible shadow-2xl group">
-                                <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-yellow-500/10 transition-colors duration-500"></div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-                                    {/* Tank Visual */}
-                                    <div className="space-y-6">
-                                        <div className="flex justify-between items-center">
-                                            <h3 className="text-xl font-bold text-white">Estado do Depósito</h3>
-                                            <div className="flex items-center gap-2">
-                                                {userRole === 'admin' && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditTankForm({
-                                                                capacity: String(fuelTank.capacity),
-                                                                currentLevel: String(fuelTank.currentLevel),
-                                                                averagePrice: String(fuelTank.averagePrice),
-                                                                pumpTotalizer: String(fuelTank.pumpTotalizer || ''),
-                                                                baselineDate: fuelTank.baselineDate || '',
-                                                                baselineLevel: String(fuelTank.baselineLevel || ''),
-                                                                baselineTotalizer: String(fuelTank.baselineTotalizer || '')
-                                                            });
-                                                            setIsEditingTank(true);
-                                                        }}
-                                                        className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white"
-                                                        title="Configurar Tanque"
-                                                    >
-                                                        <Droplets className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border ${percentage < 20 ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
-                                                    {percentage < 20 ? 'Crítico' : 'Normal'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="bg-slate-950/50 rounded-3xl p-8 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-64 group/tank shadow-inner">
-                                            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-yellow-600 to-yellow-400 opacity-20 transition-all duration-1000 ease-in-out group-hover/tank:opacity-30" style={{ height: `${percentage}%` }}></div>
-                                            <div className="absolute bottom-0 left-0 w-full h-1.5 bg-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.6)]" style={{ bottom: `${percentage}%`, transition: 'bottom 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
-
-                                            <div className="relative z-10 flex justify-between items-start">
-                                                <div className="p-3 bg-yellow-500/10 rounded-2xl">
-                                                    <Droplets className="w-7 h-7 text-yellow-500" />
-                                                </div>
-                                                <span className="text-4xl font-black text-white">{Math.round(percentage)}%</span>
-                                            </div>
-                                            <div className="relative z-10">
-                                                <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Disponível no Tanque</p>
-                                                <div className="flex items-baseline gap-2">
-                                                    <span className="text-6xl font-black text-white tracking-tighter">{fuelTank.currentLevel}</span>
-                                                    <span className="text-2xl text-slate-500 font-bold">Litros</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Global Stats */}
-                                    <div className="grid grid-cols-1 gap-6">
-                                        <div className="bg-slate-800/30 p-6 rounded-[2rem] border border-slate-700/50 hover:bg-slate-800/50 transition-all group/price">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2.5 bg-purple-500/10 rounded-xl text-purple-400">
-                                                        <BarChart3 className="w-5 h-5" />
-                                                    </div>
-                                                    <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Custo Médio PMP</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-4xl font-black text-white">{(fuelTank.averagePrice || 0).toFixed(3)}</span>
-                                                <span className="text-slate-500 font-bold font-mono">€/L</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-slate-800/30 p-6 rounded-[2rem] border border-slate-700/50 hover:bg-slate-800/50 transition-all group/total">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400">
-                                                        <Gauge className="w-5 h-5" />
-                                                    </div>
-                                                    <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Contador da Bomba</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-4xl font-black text-white font-mono tracking-tighter">
-                                                    {String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}
-                                                </span>
-                                                <span className="text-slate-500 font-bold">L</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {selectedViaturaId && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-4 duration-500">
-                                    {/* Per-Vehicle Metrics */}
-                                    {(() => {
-                                        const metrics = vehicleMetrics.find(m => m.vehicleId === selectedViaturaId);
-                                        return (
-                                            <>
-                                                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-blue-500/50 transition-all">
-                                                    <div className="flex items-center gap-3 mb-4">
-                                                        <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 group-hover:scale-110 transition-transform">
-                                                            <TrendingUp className="w-5 h-5" />
-                                                        </div>
-                                                        <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Consumo Médio</span>
-                                                    </div>
-                                                    <div className="flex items-baseline gap-2">
-                                                        <span className="text-3xl font-black text-white">{metrics?.consumoMedio || '--'}</span>
-                                                        <span className="text-slate-500 font-bold text-sm">L/100km</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-yellow-500/50 transition-all">
-                                                    <div className="flex items-center gap-3 mb-4">
-                                                        <div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-400 group-hover:scale-110 transition-transform">
-                                                            <Zap className="w-5 h-5" />
-                                                        </div>
-                                                        <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Estimativa Autonomia</span>
-                                                    </div>
-                                                    <div className="flex items-baseline gap-2">
-                                                        <span className="text-3xl font-black text-white">{metrics?.estimativaAutonomia || '--'}</span>
-                                                        <span className="text-slate-500 font-bold text-sm">KM</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-emerald-500/50 transition-all">
-                                                    <div className="flex items-center gap-3 mb-4">
-                                                        <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform">
-                                                            <History className="w-5 h-5" />
-                                                        </div>
-                                                        <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Abast. Mês Atual</span>
-                                                    </div>
-                                                    <div className="flex items-baseline gap-2">
-                                                        <span className="text-3xl font-black text-white">{metrics?.totalLitrosMes || '0'}</span>
-                                                        <span className="text-slate-500 font-bold text-sm">Litros</span>
-                                                    </div>
-                                                </div>
-                                            </>
-                                        );
-                                    })()}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Sidebar - Quick Actions & Alerts */}
-                        <div className="space-y-8">
-                            <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-xl relative overflow-hidden group">
-                                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-                                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                                    <AlertCircle className="w-5 h-5 text-slate-400" />
-                                    Alertas e Anomalias
-                                </h3>
-
-                                <div className="space-y-4">
-                                    {(() => {
-                                        const anomalies = fuelTransactions
-                                            .filter(tx => tx.isAnormal && tx.status === 'confirmed')
-                                            .slice(0, 3);
-
-                                        if (anomalies.length === 0) {
-                                            return (
-                                                <div className="flex flex-col items-center justify-center py-10 text-slate-500 gap-3">
-                                                    <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500">
-                                                        <Check className="w-6 h-6" />
-                                                    </div>
-                                                    <p className="text-sm font-medium">Nenhuma anomalia detectada</p>
-                                                </div>
-                                            );
-                                        }
-
-                                        return anomalies.map(tx => {
-                                            const v = viaturas.find(vi => vi.id === tx.vehicleId);
-                                            return (
-                                                <div key={tx.id} className="bg-red-500/5 border border-red-500/10 p-4 rounded-2xl flex gap-4">
-                                                    <div className="p-2 bg-red-500/20 rounded-xl self-start">
-                                                        <AlertCircle className="w-5 h-5 text-red-500" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-white font-bold text-sm">Consumo Elevado: {tx.consumoCalculado}L/100km</p>
-                                                        <p className="text-slate-500 text-xs mt-1">{v?.matricula} • {new Date(tx.timestamp).toLocaleDateString()}</p>
-                                                    </div>
-                                                </div>
-                                            );
-                                        });
-                                    })()}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4">
-                                <button
-                                    onClick={() => setActiveTab('abastecer')}
-                                    className="w-full group bg-yellow-500 hover:bg-yellow-400 p-5 rounded-3xl transition-all shadow-xl shadow-yellow-500/20 flex items-center justify-between"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-black/10 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                                            <Fuel className="w-6 h-6 text-black" />
-                                        </div>
-                                        <span className="text-black font-black uppercase tracking-wider text-sm">Registar Saída</span>
-                                    </div>
-                                    <Plus className="w-5 h-5 text-black" />
-                                </button>
-
-                                <button
-                                    onClick={() => setActiveTab('tanque')}
-                                    className="w-full group bg-slate-800 hover:bg-slate-700 p-5 rounded-3xl transition-all border border-slate-700 flex items-center justify-between"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-emerald-500/10 p-2 rounded-xl text-emerald-500 group-hover:scale-110 transition-transform">
-                                            <Truck className="w-6 h-6" />
-                                        </div>
-                                        <span className="text-white font-bold uppercase tracking-wider text-sm">Reabastecer Stock</span>
-                                    </div>
-                                    <Plus className="w-5 h-5 text-slate-500" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* REFUEL TAB */}
-            {activeTab === 'abastecer' && (
-                <div className="w-full bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
-                    <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
-                        <div className="w-16 h-16 bg-yellow-500 rounded-3xl flex items-center justify-center text-black shadow-xl shadow-yellow-500/20 rotate-3">
-                            <Fuel className="w-8 h-8" />
-                        </div>
-                        <div>
-                            <h2 className="text-3xl font-black text-white tracking-tight">{t('fuel.form.title')}</h2>
-                            <p className="text-slate-400 text-lg mt-1">Registo de saída de combustível</p>
-                        </div>
-                    </div>
-
-                    <form onSubmit={handleInitiateRefuel} className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.driver')}</label>
-                                <select
-                                    required
-                                    value={refuelForm.driverId}
-                                    onChange={(e) => setRefuelForm({ ...refuelForm, driverId: e.target.value })}
-                                    className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium text-lg"
-                                >
-                                    <option value="">Selecione Condutor</option>
-                                    {motoristas.map(m => (
-                                        <option key={m.id} value={m.id}>{m.nome} ({m.cartaConducao})</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.vehicle')}</label>
-                                <select
-                                    required
-                                    value={refuelForm.vehicleId}
-                                    onChange={(e) => setRefuelForm({ ...refuelForm, vehicleId: e.target.value })}
-                                    className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium text-lg"
-                                >
-                                    <option value="">Selecione Viatura</option>
-                                    {viaturas.map(v => (
-                                        <option key={v.id} value={v.id}>{v.matricula} - {v.marca} {v.modelo}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.liters')}</label>
-                                <div className="relative group">
-                                    <input
-                                        required
-                                        type="number"
-                                        min="0"
-                                        step="0.1"
-                                        value={refuelForm.liters}
-                                        onChange={(e) => setRefuelForm({ ...refuelForm, liters: e.target.value })}
-                                        className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-mono text-xl"
-                                        placeholder="0.0"
-                                    />
-                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">L</span>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.km')}</label>
-                                <div className="relative group">
-                                    <input
-                                        required
-                                        type="number"
-                                        min="0"
-                                        value={refuelForm.km}
-                                        onChange={(e) => setRefuelForm({ ...refuelForm, km: e.target.value })}
-                                        className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-mono text-xl"
-                                        placeholder="000000"
-                                    />
-                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">KM</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custos (Opcional)</label>
-                            <select
-                                value={refuelForm.centroCustoId}
-                                onChange={(e) => setRefuelForm({ ...refuelForm, centroCustoId: e.target.value })}
-                                className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium"
-                            >
-                                <option value="">Nenhum (Geral)</option>
-                                {centrosCustos.map(cc => (
-                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {userRole === 'admin' && (
-                            <div className="space-y-4 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="checkbox"
-                                        id="bypassPin"
-                                        checked={bypassDriverPin}
-                                        onChange={(e) => setBypassDriverPin(e.target.checked)}
-                                        className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-yellow-500 focus:ring-yellow-500/50 cursor-pointer"
-                                    />
-                                    <label htmlFor="bypassPin" className="text-sm font-bold text-slate-300 cursor-pointer select-none">
-                                        Registo Manual (Sem PIN Condutor)
-                                    </label>
-                                </div>
-
-                                {bypassDriverPin && (
-                                    <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data</label>
-                                            <input
-                                                type="date"
-                                                required
-                                                value={refuelForm.manualDate}
-                                                onChange={(e) => setRefuelForm({ ...refuelForm, manualDate: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Hora</label>
-                                            <input
-                                                type="time"
-                                                required
-                                                value={refuelForm.manualTime}
-                                                onChange={(e) => setRefuelForm({ ...refuelForm, manualTime: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <div className="flex gap-4 pt-4 border-t border-slate-800">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('overview')}
-                                className="px-8 py-4 text-slate-400 hover:text-white font-bold hover:bg-slate-800 rounded-xl transition-all"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-black text-lg py-4 px-6 rounded-xl shadow-lg shadow-yellow-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Check className="w-6 h-6" />
-                                Confirmar Abastecimento
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {/* SUPPLY TAB */}
-            {activeTab === 'tanque' && (
-                <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
-                    <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
-                        <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
-                            <Truck className="w-8 h-8" />
-                        </div>
-                        <div>
-                            <h2 className="text-3xl font-black text-white tracking-tight">Reabastecer Tanque</h2>
-                            <p className="text-slate-400 text-lg mt-1">Registo de entrada de combustível (Cisterna)</p>
-                        </div>
-                    </div>
-
-                    <form onSubmit={handleRegisterSupply} className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="col-span-1 md:col-span-2 space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Fornecedor</label>
-                                <input
-                                    required
-                                    type="text"
-                                    value={supplyForm.supplier}
-                                    onChange={(e) => setSupplyForm({ ...supplyForm, supplier: e.target.value })}
-                                    className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
-                                    placeholder="Ex: Galp, Repsol..."
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Litros Entregues</label>
-                                <div className="relative group">
-                                    <input
-                                        required
-                                        type="number"
-                                        min="0"
-                                        step="0.1"
-                                        value={supplyForm.litersAdded}
-                                        onChange={(e) => setSupplyForm({ ...supplyForm, litersAdded: e.target.value })}
-                                        className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-xl"
-                                        placeholder="0.0"
-                                    />
-                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">L</span>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Preço por Litro (€)</label>
-                                <div className="relative group">
-                                    <input
-                                        required
-                                        type="number"
-                                        min="0"
-                                        step="0.001"
-                                        value={supplyForm.pricePerLiter}
-                                        onChange={(e) => setSupplyForm({ ...supplyForm, pricePerLiter: e.target.value })}
-                                        className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-xl"
-                                        placeholder="0.000"
-                                    />
-                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">€</span>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data de Entrega</label>
-                                <input
-                                    required
-                                    type="date"
-                                    value={supplyForm.manualDate}
-                                    onChange={(e) => setSupplyForm({ ...supplyForm, manualDate: e.target.value })}
-                                    className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Hora de Entrega</label>
-                                <input
-                                    required
-                                    type="time"
-                                    value={supplyForm.manualTime}
-                                    onChange={(e) => setSupplyForm({ ...supplyForm, manualTime: e.target.value })}
-                                    className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
-                                />
-                            </div>
-                            <div className="col-span-1 md:col-span-2 space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Leitura Bomba do Camião (Opcional)</label>
-                                <input
-                                    type="number"
-                                    value={supplyForm.pumpReading}
-                                    onChange={(e) => setSupplyForm({ ...supplyForm, pumpReading: e.target.value })}
-                                    className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-lg"
-                                    placeholder="000000"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex gap-4 pt-4 border-t border-slate-800">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('overview')}
-                                className="px-8 py-4 text-slate-400 hover:text-white font-bold hover:bg-slate-800 rounded-xl transition-all"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg py-4 px-6 rounded-xl shadow-lg shadow-emerald-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Check className="w-6 h-6" />
-                                Confirmar Entrada
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {/* HISTORY TAB */}
-            {activeTab === 'historico' && (
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                            <History className="w-6 h-6 text-blue-400" />
-                            Histórico de Transações
-                        </h2>
-                        <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-2xl border border-slate-700/50">
-                            <Filter className="w-4 h-4 text-slate-500 ml-2" />
-                            <select
-                                value={filters.vehicleId}
-                                onChange={(e) => setFilters({ ...filters, vehicleId: e.target.value })}
-                                className="bg-transparent text-sm text-white outline-none font-bold"
-                            >
-                                <option value="">Viatura: Todas</option>
-                                {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
-                            </select>
-                            <div className="w-[1px] h-4 bg-slate-700 mx-1" />
-                            <select
-                                value={filters.centroCustoId}
-                                onChange={(e) => setFilters({ ...filters, centroCustoId: e.target.value })}
-                                className="bg-transparent text-sm text-white outline-none font-bold"
-                            >
-                                <option value="">C.Custo: Todos</option>
-                                {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
-                            </select>
-                            <div className="w-[1px] h-4 bg-slate-700 mx-1" />
-                            <input
-                                type="date"
-                                value={filters.startDate}
-                                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                className="bg-transparent text-sm text-white outline-none font-bold"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
-                        <table className="w-full text-left text-sm" style={{ minWidth: '750px' }}>
-                            <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
-                                <tr>
-                                    <th className="px-3 md:px-6 py-4">Data</th>
-                                    <th className="px-3 md:px-6 py-4">Viatura</th>
-                                    <th className="px-3 md:px-6 py-4">Condutor</th>
-                                    <th className="px-3 md:px-6 py-4">C. Custo</th>
-                                    <th className="px-3 md:px-6 py-4 text-right">Litros</th>
-                                    <th className="px-3 md:px-6 py-4 text-right">Valor</th>
-                                    <th className="px-3 md:px-6 py-4 text-right">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800 bg-slate-900/30">
-                                {fuelTransactions
-                                    .filter(tx => {
-                                        const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
-                                        const matchesCC = !filters.centroCustoId || tx.centroCustoId === filters.centroCustoId;
-                                        const matchesDate = !filters.startDate || tx.timestamp.startsWith(filters.startDate);
-                                        return matchesVehicle && matchesCC && matchesDate;
-                                    })
-                                    .map(tx => {
-                                        const driver = motoristas.find(m => m.id === tx.driverId);
-                                        const vehicle = viaturas.find(v => v.id === tx.vehicleId);
-                                        return (
-                                            <tr key={tx.id} className={`hover:bg-slate-800/50 transition-colors ${tx.isAnormal ? 'bg-red-500/5' : ''}`}>
-                                                <td className="px-6 py-4 text-slate-300 font-mono">
-                                                    {new Date(tx.timestamp).toLocaleDateString()}
-                                                    <span className="text-slate-600 ml-2 text-xs">{new Date(tx.timestamp).toLocaleTimeString()}</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-white">{vehicle?.matricula}</span>
-                                                        <span className="text-[10px] text-slate-500 uppercase">{vehicle?.marca} {vehicle?.modelo}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-slate-300">
-                                                            {driver ? driver.nome : (tx.driverId === null ? 'Importação BP' : 'N/A')}
-                                                        </span>
-                                                        {tx.isAnormal && (
-                                                            <AlertCircle className="w-4 h-4 text-red-500" />
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-400 text-xs">
-                                                    {centrosCustos.find(c => c.id === tx.centroCustoId)?.nome || '-'}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="font-mono text-yellow-500 font-bold">{tx.liters} L</span>
-                                                        {tx.consumoCalculado && (
-                                                            <span className="text-[10px] text-slate-500">{tx.consumoCalculado} L/100km</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right font-mono text-slate-300 font-bold">
-                                                    {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            onClick={() => setEditingTransaction(tx)}
-                                                            className="text-slate-600 hover:text-blue-400 transition-colors"
-                                                            title="Editar registo"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        {hasAccess(userRole, 'combustivel_delete') && (
-                                                            <button
-                                                                onClick={() => {
-                                                                    if (confirm('Tem a certeza que deseja eliminar este registo?')) deleteFuelTransaction(tx.id);
-                                                                }}
-                                                                className="text-slate-600 hover:text-red-400 transition-colors"
-                                                                title="Eliminar registo"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                {fuelTransactions.length === 0 && (
-                                    <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">Nenhum registo encontrado.</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-
-            {/* BP TAB */}
-            {activeTab === 'bp' && (
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                            <FileSpreadsheet className="w-6 h-6 text-green-400" />
-                            Importar BP
-                        </h2>
-                        <div className="flex gap-2">
-                            {bpTransactions.length > 0 && (
-                                <button
-                                    onClick={handleConfirmBPImport}
-                                    className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in"
-                                >
-                                    <Check className="w-4 h-4" />
-                                    Confirmar ({bpTransactions.length})
-                                </button>
-                            )}
-                            <button
-                                onClick={() => setIsManualBPOpen(true)}
-                                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all flex items-center gap-2"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Inserir Manual
-                            </button>
-                            <button
-                                onClick={handleDownloadBPTemplate}
-                                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all flex items-center gap-2"
-                            >
-                                <Download className="w-4 h-4" />
-                                Template
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-950/30 hover:bg-slate-900/30 transition-all cursor-pointer group mb-8 relative">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            accept=".xlsx, .xls"
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            onChange={handleImportBP}
-                        />
-                        <Upload className="w-16 h-16 text-slate-600 group-hover:text-blue-500 transition-colors mb-4" />
-                        <p className="text-xl font-bold text-slate-300 group-hover:text-white transition-colors">Arraste um ficheiro ou clique para upload</p>
-                        <p className="text-slate-500 text-sm mt-2">Suporta ficheiros Excel (.xlsx)</p>
-                    </div>
-
-                    {bpTransactions.length > 0 && (
-                        <div className="space-y-4">
-                            <div className="flex flex-wrap justify-between items-center gap-4">
-                                <div className="flex items-center gap-4">
-                                    <h3 className="font-bold text-white text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
-                                    {selectedRows.length > 0 && (
-                                        <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30 animate-in fade-in slide-in-from-left-2">
-                                            <span className="text-blue-400 text-sm font-bold">{selectedRows.length} selecionados</span>
-                                            <div className="h-4 w-[1px] bg-blue-500/30 mx-1" />
-                                            <select
-                                                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
-                                                value={bulkCC}
-                                                onChange={(e) => setBulkCC(e.target.value)}
-                                            >
-                                                <option value="">Aplicar C.Custo...</option>
-                                                {centrosCustos.map(cc => (
-                                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                                ))}
-                                            </select>
-                                            <button
-                                                onClick={() => {
-                                                    if (!bulkCC) return;
-                                                    const newTransactions = [...bpTransactions];
-                                                    selectedRows.forEach((idx: number) => {
-                                                        newTransactions[idx]._selectedCC = bulkCC;
-                                                    });
-                                                    setBpTransactions(newTransactions);
-                                                    setSelectedRows([]);
-                                                    setBulkCC('');
-                                                }}
-                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold transition-colors"
-                                            >
-                                                Atribuir
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => {
-                                            setBpTransactions([]);
-                                            setSelectedRows([]);
-                                        }}
-                                        className="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-sm font-bold"
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <Car className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                    <select
+                                        value={selectedViaturaId}
+                                        onChange={(e) => setSelectedViaturaId(e.target.value)}
+                                        className="bg-slate-950 border border-slate-700 text-white rounded-2xl pl-12 pr-10 py-3 outline-none focus:border-yellow-500 transition-all appearance-none font-bold min-w-[240px]"
                                     >
-                                        Limpar Lista
+                                        <option value="">Todas as Viaturas</option>
+                                        {viaturas.map(v => (
+                                            <option key={v.id} value={v.id}>{v.matricula} - {v.marca} {v.modelo}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <Filter className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                            {/* Main Metrics Card */}
+                            <div className="md:col-span-2 xl:col-span-2 2xl:col-span-3 space-y-8">
+                                {/* Tank Status & Summary */}
+                                <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-[3rem] relative overflow-visible shadow-2xl group">
+                                    <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-yellow-500/10 transition-colors duration-500"></div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                                        {/* Tank Visual */}
+                                        <div className="space-y-6">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="text-xl font-bold text-white">Estado do Depósito</h3>
+                                                <div className="flex items-center gap-2">
+                                                    {userRole === 'admin' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditTankForm({
+                                                                    capacity: String(fuelTank.capacity),
+                                                                    currentLevel: String(fuelTank.currentLevel),
+                                                                    averagePrice: String(fuelTank.averagePrice),
+                                                                    pumpTotalizer: String(fuelTank.pumpTotalizer || ''),
+                                                                    baselineDate: fuelTank.baselineDate || '',
+                                                                    baselineLevel: String(fuelTank.baselineLevel || ''),
+                                                                    baselineTotalizer: String(fuelTank.baselineTotalizer || '')
+                                                                });
+                                                                setIsEditingTank(true);
+                                                            }}
+                                                            className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white"
+                                                            title="Configurar Tanque"
+                                                        >
+                                                            <Droplets className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border ${percentage < 20 ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+                                                        {percentage < 20 ? 'Crítico' : 'Normal'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="bg-slate-950/50 rounded-3xl p-8 border border-slate-800 relative overflow-hidden flex flex-col justify-between h-64 group/tank shadow-inner">
+                                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-yellow-600 to-yellow-400 opacity-20 transition-all duration-1000 ease-in-out group-hover/tank:opacity-30" style={{ height: `${percentage}%` }}></div>
+                                                <div className="absolute bottom-0 left-0 w-full h-1.5 bg-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.6)]" style={{ bottom: `${percentage}%`, transition: 'bottom 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+
+                                                <div className="relative z-10 flex justify-between items-start">
+                                                    <div className="p-3 bg-yellow-500/10 rounded-2xl">
+                                                        <Droplets className="w-7 h-7 text-yellow-500" />
+                                                    </div>
+                                                    <span className="text-4xl font-black text-white">{Math.round(percentage)}%</span>
+                                                </div>
+                                                <div className="relative z-10">
+                                                    <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Disponível no Tanque</p>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-6xl font-black text-white tracking-tighter">{fuelTank.currentLevel}</span>
+                                                        <span className="text-2xl text-slate-500 font-bold">Litros</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Global Stats */}
+                                        <div className="grid grid-cols-1 gap-6">
+                                            <div className="bg-slate-800/30 p-6 rounded-[2rem] border border-slate-700/50 hover:bg-slate-800/50 transition-all group/price">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2.5 bg-purple-500/10 rounded-xl text-purple-400">
+                                                            <BarChart3 className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Custo Médio PMP</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-4xl font-black text-white">{(fuelTank.averagePrice || 0).toFixed(3)}</span>
+                                                    <span className="text-slate-500 font-bold font-mono">€/L</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-800/30 p-6 rounded-[2rem] border border-slate-700/50 hover:bg-slate-800/50 transition-all group/total">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400">
+                                                            <Gauge className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Contador da Bomba</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-4xl font-black text-white font-mono tracking-tighter">
+                                                        {String(fuelTank.pumpTotalizer || 0).padStart(6, '0')}
+                                                    </span>
+                                                    <span className="text-slate-500 font-bold">L</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {selectedViaturaId && (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-4 duration-500">
+                                        {/* Per-Vehicle Metrics */}
+                                        {(() => {
+                                            const metrics = vehicleMetrics.find(m => m.vehicleId === selectedViaturaId);
+                                            return (
+                                                <>
+                                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-blue-500/50 transition-all">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 group-hover:scale-110 transition-transform">
+                                                                <TrendingUp className="w-5 h-5" />
+                                                            </div>
+                                                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Consumo Médio</span>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <span className="text-3xl font-black text-white">{metrics?.consumoMedio || '--'}</span>
+                                                            <span className="text-slate-500 font-bold text-sm">L/100km</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-yellow-500/50 transition-all">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-400 group-hover:scale-110 transition-transform">
+                                                                <Zap className="w-5 h-5" />
+                                                            </div>
+                                                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Estimativa Autonomia</span>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <span className="text-3xl font-black text-white">{metrics?.estimativaAutonomia || '--'}</span>
+                                                            <span className="text-slate-500 font-bold text-sm">KM</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl group hover:border-emerald-500/50 transition-all">
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform">
+                                                                <History className="w-5 h-5" />
+                                                            </div>
+                                                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Abast. Mês Atual</span>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <span className="text-3xl font-black text-white">{metrics?.totalLitrosMes || '0'}</span>
+                                                            <span className="text-slate-500 font-bold text-sm">Litros</span>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Sidebar - Quick Actions & Alerts */}
+                            <div className="space-y-8">
+                                <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-xl relative overflow-hidden group">
+                                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+                                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                                        <AlertCircle className="w-5 h-5 text-slate-400" />
+                                        Alertas e Anomalias
+                                    </h3>
+
+                                    <div className="space-y-4">
+                                        {(() => {
+                                            const anomalies = fuelTransactions
+                                                .filter(tx => tx.isAnormal && tx.status === 'confirmed')
+                                                .slice(0, 3);
+
+                                            if (anomalies.length === 0) {
+                                                return (
+                                                    <div className="flex flex-col items-center justify-center py-10 text-slate-500 gap-3">
+                                                        <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500">
+                                                            <Check className="w-6 h-6" />
+                                                        </div>
+                                                        <p className="text-sm font-medium">Nenhuma anomalia detectada</p>
+                                                    </div>
+                                                );
+                                            }
+
+                                            return anomalies.map(tx => {
+                                                const v = viaturas.find(vi => vi.id === tx.vehicleId);
+                                                return (
+                                                    <div key={tx.id} className="bg-red-500/5 border border-red-500/10 p-4 rounded-2xl flex gap-4">
+                                                        <div className="p-2 bg-red-500/20 rounded-xl self-start">
+                                                            <AlertCircle className="w-5 h-5 text-red-500" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-white font-bold text-sm">Consumo Elevado: {tx.consumoCalculado}L/100km</p>
+                                                            <p className="text-slate-500 text-xs mt-1">{v?.matricula} • {new Date(tx.timestamp).toLocaleDateString()}</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            });
+                                        })()}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4">
+                                    <button
+                                        onClick={() => setActiveTab('abastecer')}
+                                        className="w-full group bg-yellow-500 hover:bg-yellow-400 p-5 rounded-3xl transition-all shadow-xl shadow-yellow-500/20 flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-black/10 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                                                <Fuel className="w-6 h-6 text-black" />
+                                            </div>
+                                            <span className="text-black font-black uppercase tracking-wider text-sm">Registar Saída</span>
+                                        </div>
+                                        <Plus className="w-5 h-5 text-black" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setActiveTab('tanque')}
+                                        className="w-full group bg-slate-800 hover:bg-slate-700 p-5 rounded-3xl transition-all border border-slate-700 flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-emerald-500/10 p-2 rounded-xl text-emerald-500 group-hover:scale-110 transition-transform">
+                                                <Truck className="w-6 h-6" />
+                                            </div>
+                                            <span className="text-white font-bold uppercase tracking-wider text-sm">Reabastecer Stock</span>
+                                        </div>
+                                        <Plus className="w-5 h-5 text-slate-500" />
                                     </button>
                                 </div>
                             </div>
-                            <div className="overflow-x-auto rounded-xl border border-slate-800 table-scroll">
-                                <table className="w-full text-sm text-left" style={{ minWidth: '800px' }}>
-                                    <thead className="bg-slate-950 text-slate-400 uppercase font-extrabold text-[10px] tracking-widest whitespace-nowrap">
-                                        <tr>
-                                            <th className="px-3 py-4 text-center">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
-                                                    checked={selectedRows.length === bpTransactions.length && bpTransactions.length > 0}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setSelectedRows(bpTransactions.map((_: any, i: number) => i));
-                                                        } else {
-                                                            setSelectedRows([]);
-                                                        }
-                                                    }}
-                                                />
-                                            </th>
-                                            <th className="px-3 py-4">Data/Hora</th>
-                                            <th className="px-3 py-4 font-black text-white">Viatura</th>
-                                            <th className="px-3 py-4 text-center">KM</th>
-                                            <th className="px-3 py-4">Posto</th>
-                                            <th className="px-3 py-4">Produto</th>
-                                            <th className="px-3 py-4 text-right">Qtd. (L)</th>
-                                            <th className="px-3 py-4 text-right text-emerald-400">Total (€)</th>
-                                            <th className="px-3 py-4 min-w-[150px]">Centro de Custo</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-800 bg-slate-900/50">
-                                        {bpTransactions.map((row: any, i: number) => {
-                                            const diaHora = row['Dia Hora'];
-                                            const dataVal = row['Data'];
-                                            const horaVal = row['Hora'];
-                                            let dateObj: Date | null = null;
+                        </div>
+                    </div>
+                )}
 
-                                            if (row._manualDate) {
-                                                dateObj = new Date(row._manualDate);
-                                                const h = excelDateToJSDate(horaVal);
-                                                if (h && dateObj) dateObj.setHours(h.getHours(), h.getMinutes());
-                                            } else {
-                                                const primaryDate = diaHora || dataVal;
-                                                if (primaryDate) {
-                                                    dateObj = excelDateToJSDate(primaryDate);
-                                                    if (dateObj && horaVal) {
-                                                        const h = excelDateToJSDate(horaVal);
-                                                        if (h) dateObj.setHours(h.getHours(), h.getMinutes());
-                                                    }
-                                                }
-                                            }
-
-                                            let displayDate = '-';
-                                            if (dateObj && !isNaN(dateObj.getTime())) {
-                                                displayDate = `${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-                                            }
-
-                                            const liters = parseImportNumber(row['Litros']);
-                                            const price = parseImportNumber(row['Preço Unitário']);
-                                            const total = parseImportNumber(row['Total']) || (liters * price);
-
-                                            return (
-                                                <tr key={i} className={`hover:bg-slate-800/30 transition-colors border-b border-slate-800/50 ${selectedRows.includes(i) ? 'bg-blue-600/5' : ''}`}>
-                                                    <td className="px-3 py-3 text-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
-                                                            checked={selectedRows.includes(i)}
-                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                                if (e.target.checked) {
-                                                                    setSelectedRows((prev: number[]) => [...prev, i]);
-                                                                } else {
-                                                                    setSelectedRows((prev: number[]) => prev.filter((idx: number) => idx !== i));
-                                                                }
-                                                            }}
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
-                                                    <td className="px-3 py-3 text-white font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
-                                                    <td className="px-3 py-3 text-slate-400 font-mono text-[12px] text-center">{row['Km'] || '0'}</td>
-                                                    <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[150px]">{row['Posto'] || '-'}</td>
-                                                    <td className="px-3 py-3 text-slate-500 text-[11px] uppercase font-bold">{row['Produto'] || '-'}</td>
-                                                    <td className="px-3 py-3 text-yellow-500 font-bold font-mono text-[13px] text-right">{liters.toFixed(2)}L</td>
-                                                    <td className="px-3 py-3 text-emerald-400 font-black font-mono text-[13px] text-right">{total.toFixed(2)}€</td>
-                                                    <td className="px-3 py-3">
-                                                        <select
-                                                            className="bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-[12px] text-white outline-none focus:border-blue-500 w-full"
-                                                            value={row._selectedCC || ''}
-                                                            onChange={(e) => {
-                                                                const newTransactions = [...bpTransactions];
-                                                                newTransactions[i]._selectedCC = e.target.value;
-                                                                setBpTransactions(newTransactions);
-                                                            }}
-                                                        >
-                                                            <option value="">-- C.Custo --</option>
-                                                            {centrosCustos.map(cc => (
-                                                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                                            ))}
-                                                        </select>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                {/* REFUEL TAB */}
+                {activeTab === 'abastecer' && (
+                    <div className="w-full bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                        <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
+                            <div className="w-16 h-16 bg-yellow-500 rounded-3xl flex items-center justify-center text-black shadow-xl shadow-yellow-500/20 rotate-3">
+                                <Fuel className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black text-white tracking-tight">{t('fuel.form.title')}</h2>
+                                <p className="text-slate-400 text-lg mt-1">Registo de saída de combustível</p>
                             </div>
                         </div>
-                    )}
-                </div>
-            )}
 
-            {/* MANUAL BP MODAL */}
-            {isManualBPOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
-                        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                            <Plus className="w-6 h-6 text-blue-500" />
-                            Inserir Talão BP Manual
-                        </h3>
-                        <form onSubmit={handleManualBPAdd} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400">Data</label>
-                                    <input
-                                        required type="date"
-                                        value={manualBPForm.date}
-                                        onChange={e => setManualBPForm({ ...manualBPForm, date: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
-                                    />
+                        <form onSubmit={handleInitiateRefuel} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.driver')}</label>
+                                    <select
+                                        required
+                                        value={refuelForm.driverId}
+                                        onChange={(e) => setRefuelForm({ ...refuelForm, driverId: e.target.value })}
+                                        className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium text-lg"
+                                    >
+                                        <option value="">Selecione Condutor</option>
+                                        {motoristas.map(m => (
+                                            <option key={m.id} value={m.id}>{m.nome} ({m.cartaConducao})</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400">Hora</label>
-                                    <input
-                                        required type="time"
-                                        value={manualBPForm.time}
-                                        onChange={e => setManualBPForm({ ...manualBPForm, time: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
-                                    />
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.vehicle')}</label>
+                                    <select
+                                        required
+                                        value={refuelForm.vehicleId}
+                                        onChange={(e) => setRefuelForm({ ...refuelForm, vehicleId: e.target.value })}
+                                        className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium text-lg"
+                                    >
+                                        <option value="">Selecione Viatura</option>
+                                        {viaturas.map(v => (
+                                            <option key={v.id} value={v.id}>{v.matricula} - {v.marca} {v.modelo}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.liters')}</label>
+                                    <div className="relative group">
+                                        <input
+                                            required
+                                            type="number"
+                                            min="0"
+                                            step="0.1"
+                                            value={refuelForm.liters}
+                                            onChange={(e) => setRefuelForm({ ...refuelForm, liters: e.target.value })}
+                                            className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-mono text-xl"
+                                            placeholder="0.0"
+                                        />
+                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">L</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.km')}</label>
+                                    <div className="relative group">
+                                        <input
+                                            required
+                                            type="number"
+                                            min="0"
+                                            value={refuelForm.km}
+                                            onChange={(e) => setRefuelForm({ ...refuelForm, km: e.target.value })}
+                                            className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-mono text-xl"
+                                            placeholder="000000"
+                                        />
+                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">KM</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-400">Matrícula</label>
-                                <input
-                                    required type="text" placeholder="Sem traços (ex: AA00BB)"
-                                    value={manualBPForm.licensePlate}
-                                    onChange={e => setManualBPForm({ ...manualBPForm, licensePlate: e.target.value.toUpperCase() })}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500 uppercase"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400">Litros</label>
-                                    <input
-                                        required type="number" step="0.01"
-                                        value={manualBPForm.liters}
-                                        onChange={e => setManualBPForm({ ...manualBPForm, liters: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-400">Total (€)</label>
-                                    <input
-                                        required type="number" step="0.01"
-                                        value={manualBPForm.totalCost}
-                                        onChange={e => setManualBPForm({ ...manualBPForm, totalCost: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-emerald-500 font-bold text-emerald-400"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-400">Posto (Opcional)</label>
-                                <input
-                                    type="text"
-                                    value={manualBPForm.station}
-                                    onChange={e => setManualBPForm({ ...manualBPForm, station: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-400">Centro de Custo</label>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custos (Opcional)</label>
                                 <select
-                                    value={manualBPForm.centroCustoId}
-                                    onChange={e => setManualBPForm({ ...manualBPForm, centroCustoId: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                    value={refuelForm.centroCustoId}
+                                    onChange={(e) => setRefuelForm({ ...refuelForm, centroCustoId: e.target.value })}
+                                    className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium"
                                 >
-                                    <option value="">-- Selecionar --</option>
+                                    <option value="">Nenhum (Geral)</option>
                                     {centrosCustos.map(cc => (
                                         <option key={cc.id} value={cc.id}>{cc.nome}</option>
                                     ))}
                                 </select>
                             </div>
 
-                            <div className="flex justify-end gap-3 mt-6">
+                            {userRole === 'admin' && (
+                                <div className="space-y-4 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="bypassPin"
+                                            checked={bypassDriverPin}
+                                            onChange={(e) => setBypassDriverPin(e.target.checked)}
+                                            className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-yellow-500 focus:ring-yellow-500/50 cursor-pointer"
+                                        />
+                                        <label htmlFor="bypassPin" className="text-sm font-bold text-slate-300 cursor-pointer select-none">
+                                            Registo Manual (Sem PIN Condutor)
+                                        </label>
+                                    </div>
+
+                                    {bypassDriverPin && (
+                                        <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data</label>
+                                                <input
+                                                    type="date"
+                                                    required
+                                                    value={refuelForm.manualDate}
+                                                    onChange={(e) => setRefuelForm({ ...refuelForm, manualDate: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Hora</label>
+                                                <input
+                                                    type="time"
+                                                    required
+                                                    value={refuelForm.manualTime}
+                                                    onChange={(e) => setRefuelForm({ ...refuelForm, manualTime: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="flex gap-4 pt-4 border-t border-slate-800">
                                 <button
                                     type="button"
-                                    onClick={() => setIsManualBPOpen(false)}
-                                    className="px-4 py-2 text-slate-400 hover:text-white font-bold"
+                                    onClick={() => setActiveTab('overview')}
+                                    className="px-8 py-4 text-slate-400 hover:text-white font-bold hover:bg-slate-800 rounded-xl transition-all"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold"
+                                    className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-black text-lg py-4 px-6 rounded-xl shadow-lg shadow-yellow-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                                 >
-                                    Adicionar
+                                    <Check className="w-6 h-6" />
+                                    Confirmar Abastecimento
                                 </button>
                             </div>
                         </form>
                     </div>
-                </div>
-            )}
-            {/* REPORTS / AUDIT TAB */}
-            {activeTab === 'relatorios' && (
-                <div className="space-y-8 animate-in slide-in-from-right-4">
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 backdrop-blur-md">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="p-3 bg-emerald-500/20 rounded-2xl">
-                                    <Plus className="w-6 h-6 text-emerald-400" />
-                                </div>
-                                <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Entradas Tanque</span>
+                )}
+
+                {/* SUPPLY TAB */}
+                {activeTab === 'tanque' && (
+                    <div className="max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                        <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
+                            <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
+                                <Truck className="w-8 h-8" />
                             </div>
-                            <div className="text-3xl font-black text-white">{totalTankIn.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                            <div>
+                                <h2 className="text-3xl font-black text-white tracking-tight">Reabastecer Tanque</h2>
+                                <p className="text-slate-400 text-lg mt-1">Registo de entrada de combustível (Cisterna)</p>
+                            </div>
                         </div>
 
-                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-3xl p-6 backdrop-blur-md">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="p-3 bg-blue-500/20 rounded-2xl">
-                                    <TrendingUp className="w-6 h-6 text-blue-400" />
+                        <form onSubmit={handleRegisterSupply} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="col-span-1 md:col-span-2 space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Fornecedor</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={supplyForm.supplier}
+                                        onChange={(e) => setSupplyForm({ ...supplyForm, supplier: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                        placeholder="Ex: Galp, Repsol..."
+                                    />
                                 </div>
-                                <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Saídas Oficina</span>
-                            </div>
-                            <div className="text-3xl font-black text-white">{totalInternalLiters.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
-                        </div>
-
-                        <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-md">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="p-3 bg-purple-500/20 rounded-2xl">
-                                    <AlertCircle className="w-6 h-6 text-purple-400" />
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Litros Entregues</label>
+                                    <div className="relative group">
+                                        <input
+                                            required
+                                            type="number"
+                                            min="0"
+                                            step="0.1"
+                                            value={supplyForm.litersAdded}
+                                            onChange={(e) => setSupplyForm({ ...supplyForm, litersAdded: e.target.value })}
+                                            className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-xl"
+                                            placeholder="0.0"
+                                        />
+                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">L</span>
+                                    </div>
                                 </div>
-                                <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Diferença Acumulada</span>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Preço por Litro (€)</label>
+                                    <div className="relative group">
+                                        <input
+                                            required
+                                            type="number"
+                                            min="0"
+                                            step="0.001"
+                                            value={supplyForm.pricePerLiter}
+                                            onChange={(e) => setSupplyForm({ ...supplyForm, pricePerLiter: e.target.value })}
+                                            className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-xl"
+                                            placeholder="0.000"
+                                        />
+                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">€</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data de Entrega</label>
+                                    <input
+                                        required
+                                        type="date"
+                                        value={supplyForm.manualDate}
+                                        onChange={(e) => setSupplyForm({ ...supplyForm, manualDate: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Hora de Entrega</label>
+                                    <input
+                                        required
+                                        type="time"
+                                        value={supplyForm.manualTime}
+                                        onChange={(e) => setSupplyForm({ ...supplyForm, manualTime: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                    />
+                                </div>
+                                <div className="col-span-1 md:col-span-2 space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Leitura Bomba do Camião (Opcional)</label>
+                                    <input
+                                        type="number"
+                                        value={supplyForm.pumpReading}
+                                        onChange={(e) => setSupplyForm({ ...supplyForm, pumpReading: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-lg"
+                                        placeholder="000000"
+                                    />
+                                </div>
                             </div>
-                            <div className="text-3xl font-black text-white">{(totalTankIn - totalInternalLiters).toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
-                        </div>
+                            <div className="flex gap-4 pt-4 border-t border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('overview')}
+                                    className="px-8 py-4 text-slate-400 hover:text-white font-bold hover:bg-slate-800 rounded-xl transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg py-4 px-6 rounded-xl shadow-lg shadow-emerald-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Check className="w-6 h-6" />
+                                    Confirmar Entrada
+                                </button>
+                            </div>
+                        </form>
                     </div>
+                )}
 
-                    {/* Tank Refill History */}
-                    <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
+                {/* HISTORY TAB */}
+                {activeTab === 'historico' && (
+                    <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                                <Droplets className="w-6 h-6 text-emerald-400" />
-                                Registo de Entradas e Consumo por Intervalo
+                                <History className="w-6 h-6 text-blue-400" />
+                                Histórico de Transações
                             </h2>
-                            <button
-                                onClick={exportAuditReport}
-                                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold transition-all border border-slate-700 shadow-xl"
-                            >
-                                <Download className="w-5 h-5" />
-                                Exportar Auditoria (Excel)
-                            </button>
-                            <button
-                                onClick={exportIntervalsPDF}
-                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20"
-                            >
-                                <FileSpreadsheet className="w-5 h-5" />
-                                Exportar PDF Detalhado
-                            </button>
+                            <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-2xl border border-slate-700/50">
+                                <Filter className="w-4 h-4 text-slate-500 ml-2" />
+                                <select
+                                    value={filters.vehicleId}
+                                    onChange={(e) => setFilters({ ...filters, vehicleId: e.target.value })}
+                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                >
+                                    <option value="">Viatura: Todas</option>
+                                    {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
+                                </select>
+                                <div className="w-[1px] h-4 bg-slate-700 mx-1" />
+                                <select
+                                    value={filters.centroCustoId}
+                                    onChange={(e) => setFilters({ ...filters, centroCustoId: e.target.value })}
+                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                >
+                                    <option value="">C.Custo: Todos</option>
+                                    {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
+                                </select>
+                                <div className="w-[1px] h-4 bg-slate-700 mx-1" />
+                                <input
+                                    type="date"
+                                    value={filters.startDate}
+                                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                />
+                            </div>
                         </div>
 
                         <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
-                            <table className="w-full text-left text-sm" style={{ minWidth: '850px' }}>
+                            <table className="w-full text-left text-sm" style={{ minWidth: '750px' }}>
                                 <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
                                     <tr>
-                                        <th className="px-3 md:px-6 py-4">Data Entrega</th>
-                                        <th className="px-3 md:px-6 py-4">Fornecedor</th>
-                                        <th className="px-3 md:px-6 py-4 text-right">L. Entregues</th>
-                                        <th className="px-3 md:px-6 py-4 text-right bg-blue-500/5 text-blue-400">Saída (L)</th>
-                                        <th className="px-3 md:px-6 py-4 text-right bg-blue-500/5 text-blue-400">Custo Saída</th>
-                                        <th className="px-3 md:px-6 py-4 text-right">Nível Antes</th>
-                                        <th className="px-3 md:px-6 py-4 text-right">Nível Depois</th>
-                                        <th className="px-3 md:px-6 py-4 text-right">Audit</th>
+                                        <th className="px-3 md:px-6 py-4">Data</th>
+                                        <th className="px-3 md:px-6 py-4">Viatura</th>
+                                        <th className="px-3 md:px-6 py-4">Condutor</th>
+                                        <th className="px-3 md:px-6 py-4">C. Custo</th>
+                                        <th className="px-3 md:px-6 py-4 text-right">Litros</th>
+                                        <th className="px-3 md:px-6 py-4 text-right">Valor</th>
+                                        <th className="px-3 md:px-6 py-4 text-right">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800 bg-slate-900/30">
-                                    {(() => {
-                                        const sortedRefills = [...tankRefills].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-                                        // Prepend Current Period (pseudo-refill for "since last until now")
-                                        const latestRefill = sortedRefills[sortedRefills.length - 1];
-                                        const currentPeriodTransactions = fuelTransactions.filter(tx =>
-                                            !tx.isExternal &&
-                                            tx.status === 'confirmed' &&
-                                            (!latestRefill || new Date(tx.timestamp) > new Date(latestRefill.timestamp))
-                                        );
-
-                                        const rows = sortedRefills.map((refill, idx) => {
-                                            const prevRefill = idx > 0 ? sortedRefills[idx - 1] : null;
-                                            const start = prevRefill ? new Date(prevRefill.timestamp) : new Date(0);
-                                            const end = new Date(refill.timestamp);
-
-                                            const intervalTxs = fuelTransactions.filter(tx =>
-                                                !tx.isExternal &&
-                                                tx.status === 'confirmed' &&
-                                                new Date(tx.timestamp) > start &&
-                                                new Date(tx.timestamp) <= end
-                                            );
-
-                                            const litersOut = intervalTxs.reduce((sum, tx) => sum + tx.liters, 0);
-                                            const costOut = intervalTxs.reduce((sum, tx) => sum + (tx.totalCost || 0), 0);
-
-                                            return {
-                                                ...refill,
-                                                litersOut,
-                                                costOut,
-                                                isCurrent: false
-                                            };
-                                        });
-
-                                        // Add current status at the top
-                                        if (latestRefill) {
-                                            const currentLitersOut = currentPeriodTransactions.reduce((sum, tx) => sum + tx.liters, 0);
-                                            const currentCostOut = currentPeriodTransactions.reduce((sum, tx) => sum + (tx.totalCost || 0), 0);
-                                            rows.push({
-                                                id: 'current',
-                                                timestamp: new Date().toISOString(),
-                                                supplier: 'PERÍODO ATUAL',
-                                                litersAdded: 0,
-                                                litersOut: currentLitersOut,
-                                                costOut: currentCostOut,
-                                                levelBefore: fuelTank.currentLevel,
-                                                levelAfter: fuelTank.currentLevel,
-                                                isCurrent: true,
-                                                staffId: '',
-                                                totalSpentSinceLast: 0,
-                                                pumpMeterReading: fuelTank.pumpTotalizer
-                                            } as any);
-                                        }
-
-                                        return rows.reverse().map(refill => {
-                                            const LIMIT = 6000;
-                                            const totalCalc = refill.levelBefore + refill.litersAdded;
-                                            const isOverLimit = totalCalc > LIMIT;
-
+                                    {fuelTransactions
+                                        .filter(tx => {
+                                            const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
+                                            const matchesCC = !filters.centroCustoId || tx.centroCustoId === filters.centroCustoId;
+                                            const matchesDate = !filters.startDate || tx.timestamp.startsWith(filters.startDate);
+                                            return matchesVehicle && matchesCC && matchesDate;
+                                        })
+                                        .map(tx => {
+                                            const driver = motoristas.find(m => m.id === tx.driverId);
+                                            const vehicle = viaturas.find(v => v.id === tx.vehicleId);
                                             return (
-                                                <tr key={refill.id} className={`hover:bg-slate-800/10 transition-colors ${refill.isCurrent ? 'bg-blue-500/5' : ''} ${isOverLimit ? 'bg-red-500/5' : ''}`}>
-                                                    <td className="px-6 py-4 text-slate-300 font-mono text-[12px]">
-                                                        {refill.isCurrent ? (
-                                                            <span className="flex items-center gap-2 text-blue-400 font-black">
-                                                                <TrendingUp className="w-3 h-3" /> AGORA
+                                                <tr key={tx.id} className={`hover:bg-slate-800/50 transition-colors ${tx.isAnormal ? 'bg-red-500/5' : ''}`}>
+                                                    <td className="px-6 py-4 text-slate-300 font-mono">
+                                                        {new Date(tx.timestamp).toLocaleDateString()}
+                                                        <span className="text-slate-600 ml-2 text-xs">{new Date(tx.timestamp).toLocaleTimeString()}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-white">{vehicle?.matricula}</span>
+                                                            <span className="text-[10px] text-slate-500 uppercase">{vehicle?.marca} {vehicle?.modelo}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-slate-300">
+                                                                {driver ? driver.nome : (tx.driverId === null ? 'Importação BP' : 'N/A')}
                                                             </span>
-                                                        ) : (
-                                                            <>
-                                                                {new Date(refill.timestamp).toLocaleDateString()}
-                                                                <span className="text-slate-600 ml-2 text-[10px]">{new Date(refill.timestamp).toLocaleTimeString()}</span>
-                                                            </>
-                                                        )}
-                                                    </td>
-                                                    <td className={`px-6 py-4 font-bold ${refill.isCurrent ? 'text-blue-400' : 'text-white'}`}>
-                                                        {refill.supplier || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-black text-emerald-400">
-                                                        {refill.litersAdded > 0 ? `${refill.litersAdded} L` : '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-black text-amber-500 bg-blue-500/5">
-                                                        {refill.litersOut.toFixed(1)} L
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-bold text-slate-300 bg-blue-500/5">
-                                                        {refill.costOut > 0 ? `${refill.costOut.toFixed(2)}€` : '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-slate-400">
-                                                        {refill.isCurrent ? '-' : `${refill.levelBefore} L`}
-                                                    </td>
-                                                    <td className={`px-6 py-4 text-right font-bold ${isOverLimit ? 'text-red-500' : 'text-white'}`}>
-                                                        <div className="flex flex-col items-end">
-                                                            <span>{refill.isCurrent ? `${fuelTank.currentLevel} L` : `${refill.levelAfter} L`}</span>
-                                                            {isOverLimit && (
-                                                                <span className="text-[10px] bg-red-500/20 px-1.5 py-0.5 rounded text-red-400 mt-1 flex items-center gap-1">
-                                                                    <AlertCircle className="w-3 h-3" /> +{(totalCalc - LIMIT).toFixed(1)} L Excesso
-                                                                </span>
+                                                            {tx.isAnormal && (
+                                                                <AlertCircle className="w-4 h-4 text-red-500" />
                                                             )}
                                                         </div>
                                                     </td>
+                                                    <td className="px-6 py-4 text-slate-400 text-xs">
+                                                        {centrosCustos.find(c => c.id === tx.centroCustoId)?.nome || '-'}
+                                                    </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        {!refill.isCurrent && userRole === 'admin' && (
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-mono text-yellow-500 font-bold">{tx.liters} L</span>
+                                                            {tx.consumoCalculado && (
+                                                                <span className="text-[10px] text-slate-500">{tx.consumoCalculado} L/100km</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-mono text-slate-300 font-bold">
+                                                        {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <button
-                                                                onClick={async () => {
-                                                                    if (confirm('Deseja apagar este registo de reabastecimento? O nível do tanque será revertido.')) {
-                                                                        await deleteTankRefill(refill.id);
-                                                                    }
-                                                                }}
-                                                                className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-lg transition-all"
+                                                                onClick={() => setEditingTransaction(tx)}
+                                                                className="text-slate-600 hover:text-blue-400 transition-colors"
+                                                                title="Editar registo"
                                                             >
-                                                                <Trash2 className="w-4 h-4" />
+                                                                <Edit className="w-4 h-4" />
                                                             </button>
-                                                        )}
+                                                            {hasAccess(userRole, 'combustivel_delete') && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (confirm('Tem a certeza que deseja eliminar este registo?')) deleteFuelTransaction(tx.id);
+                                                                    }}
+                                                                    className="text-slate-600 hover:text-red-400 transition-colors"
+                                                                    title="Eliminar registo"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
-                                        });
-                                    })()}
-                                    {tankRefills.length === 0 && (
-                                        <tr>
-                                            <td colSpan={8} className="px-6 py-12 text-center text-slate-500 font-bold italic">
-                                                Nenhum registo de entrada encontrado.
-                                            </td>
-                                        </tr>
+                                        })}
+                                    {fuelTransactions.length === 0 && (
+                                        <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">Nenhum registo encontrado.</td></tr>
                                     )}
                                 </tbody>
                             </table>
                         </div>
                     </div>
+                )}
 
-                    {/* Monthly Totals Section */}
-                    <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="p-3 bg-yellow-500/10 rounded-2xl">
-                                <BarChart3 className="w-6 h-6 text-yellow-400" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-white">Totais por Mês</h2>
-                                <p className="text-slate-400 text-sm mt-1">Soma de litros e custo de todos os abastecimentos (Oficina + BP)</p>
+                {/* BP TAB */}
+                {activeTab === 'bp' && (
+                    <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
+                        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                <FileSpreadsheet className="w-6 h-6 text-green-400" />
+                                Importar BP
+                            </h2>
+                            <div className="flex gap-2">
+                                {bpTransactions.length > 0 && (
+                                    <button
+                                        onClick={handleConfirmBPImport}
+                                        className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in"
+                                    >
+                                        <Check className="w-4 h-4" />
+                                        Confirmar ({bpTransactions.length})
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsManualBPOpen(true)}
+                                    className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Inserir Manual
+                                </button>
+                                <button
+                                    onClick={handleDownloadBPTemplate}
+                                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all flex items-center gap-2"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Template
+                                </button>
                             </div>
                         </div>
 
-                        {(() => {
-                            const allConfirmed = fuelTransactions.filter(tx => tx.status === 'confirmed');
+                        <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-950/30 hover:bg-slate-900/30 transition-all cursor-pointer group mb-8 relative">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                accept=".xlsx, .xls"
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                onChange={handleImportBP}
+                            />
+                            <Upload className="w-16 h-16 text-slate-600 group-hover:text-blue-500 transition-colors mb-4" />
+                            <p className="text-xl font-bold text-slate-300 group-hover:text-white transition-colors">Arraste um ficheiro ou clique para upload</p>
+                            <p className="text-slate-500 text-sm mt-2">Suporta ficheiros Excel (.xlsx)</p>
+                        </div>
 
-                            type MonthEntry = { liters: number; cost: number; count: number; };
-                            const byMonth: Record<string, MonthEntry> = {};
-
-                            allConfirmed.forEach(tx => {
-                                const d = new Date(tx.timestamp);
-                                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                                if (!byMonth[key]) byMonth[key] = { liters: 0, cost: 0, count: 0 };
-                                byMonth[key].liters += tx.liters || 0;
-                                byMonth[key].cost += tx.totalCost || 0;
-                                byMonth[key].count += 1;
-                            });
-
-                            const months = Object.keys(byMonth).sort((a, b) => b.localeCompare(a));
-                            const grandLiters = months.reduce((s, k) => s + byMonth[k].liters, 0);
-                            const grandCost = months.reduce((s, k) => s + byMonth[k].cost, 0);
-                            const grandCount = months.reduce((s, k) => s + byMonth[k].count, 0);
-
-                            const ptMonths = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-                                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
-                            if (months.length === 0) {
-                                return (
-                                    <div className="text-center py-12 text-slate-500 font-bold">
-                                        Nenhum abastecimento registado ainda.
+                        {bpTransactions.length > 0 && (
+                            <div className="space-y-4">
+                                <div className="flex flex-wrap justify-between items-center gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <h3 className="font-bold text-white text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                        {selectedRows.length > 0 && (
+                                            <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30 animate-in fade-in slide-in-from-left-2">
+                                                <span className="text-blue-400 text-sm font-bold">{selectedRows.length} selecionados</span>
+                                                <div className="h-4 w-[1px] bg-blue-500/30 mx-1" />
+                                                <select
+                                                    className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+                                                    value={bulkCC}
+                                                    onChange={(e) => setBulkCC(e.target.value)}
+                                                >
+                                                    <option value="">Aplicar C.Custo...</option>
+                                                    {centrosCustos.map(cc => (
+                                                        <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={() => {
+                                                        if (!bulkCC) return;
+                                                        const newTransactions = [...bpTransactions];
+                                                        selectedRows.forEach((idx: number) => {
+                                                            newTransactions[idx]._selectedCC = bulkCC;
+                                                        });
+                                                        setBpTransactions(newTransactions);
+                                                        setSelectedRows([]);
+                                                        setBulkCC('');
+                                                    }}
+                                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold transition-colors"
+                                                >
+                                                    Atribuir
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                );
-                            }
-
-                            return (
-                                <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
-                                    <table className="w-full text-left text-sm" style={{ minWidth: '650px' }}>
-                                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setBpTransactions([]);
+                                                setSelectedRows([]);
+                                            }}
+                                            className="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-sm font-bold"
+                                        >
+                                            Limpar Lista
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto rounded-xl border border-slate-800 table-scroll">
+                                    <table className="w-full text-sm text-left" style={{ minWidth: '800px' }}>
+                                        <thead className="bg-slate-950 text-slate-400 uppercase font-extrabold text-[10px] tracking-widest whitespace-nowrap">
                                             <tr>
-                                                <th className="px-6 py-4">Mês</th>
-                                                <th className="px-6 py-4 text-center">Nº Abast.</th>
-                                                <th className="px-6 py-4 text-right text-yellow-400">Total Litros</th>
-                                                <th className="px-6 py-4 text-right text-emerald-400">Total Gasto</th>
-                                                <th className="px-6 py-4 text-right text-slate-500">€/Litro Médio</th>
+                                                <th className="px-3 py-4 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                                        checked={selectedRows.length === bpTransactions.length && bpTransactions.length > 0}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedRows(bpTransactions.map((_: any, i: number) => i));
+                                                            } else {
+                                                                setSelectedRows([]);
+                                                            }
+                                                        }}
+                                                    />
+                                                </th>
+                                                <th className="px-3 py-4">Data/Hora</th>
+                                                <th className="px-3 py-4 font-black text-white">Viatura</th>
+                                                <th className="px-3 py-4 text-center">KM</th>
+                                                <th className="px-3 py-4">Posto</th>
+                                                <th className="px-3 py-4">Produto</th>
+                                                <th className="px-3 py-4 text-right">Qtd. (L)</th>
+                                                <th className="px-3 py-4 text-right text-emerald-400">Total (€)</th>
+                                                <th className="px-3 py-4 min-w-[150px]">Centro de Custo</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-800 bg-slate-900/30">
-                                            {months.map((key, idx) => {
-                                                const [year, month] = key.split('-');
-                                                const label = `${ptMonths[parseInt(month) - 1]} ${year}`;
-                                                const entry = byMonth[key];
-                                                const avgPrice = entry.liters > 0 ? entry.cost / entry.liters : 0;
-                                                const now = new Date();
-                                                const isCurrentMonth = parseInt(year) === now.getFullYear() && parseInt(month) === now.getMonth() + 1;
+                                        <tbody className="divide-y divide-slate-800 bg-slate-900/50">
+                                            {bpTransactions.map((row: any, i: number) => {
+                                                const diaHora = row['Dia Hora'];
+                                                const dataVal = row['Data'];
+                                                const horaVal = row['Hora'];
+                                                let dateObj: Date | null = null;
+
+                                                if (row._manualDate) {
+                                                    dateObj = new Date(row._manualDate);
+                                                    const h = excelDateToJSDate(horaVal);
+                                                    if (h && dateObj) dateObj.setHours(h.getHours(), h.getMinutes());
+                                                } else {
+                                                    const primaryDate = diaHora || dataVal;
+                                                    if (primaryDate) {
+                                                        dateObj = excelDateToJSDate(primaryDate);
+                                                        if (dateObj && horaVal) {
+                                                            const h = excelDateToJSDate(horaVal);
+                                                            if (h) dateObj.setHours(h.getHours(), h.getMinutes());
+                                                        }
+                                                    }
+                                                }
+
+                                                let displayDate = '-';
+                                                if (dateObj && !isNaN(dateObj.getTime())) {
+                                                    displayDate = `${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                }
+
+                                                const liters = parseImportNumber(row['Litros']);
+                                                const price = parseImportNumber(row['Preço Unitário']);
+                                                const total = parseImportNumber(row['Total']) || (liters * price);
 
                                                 return (
-                                                    <tr key={key} className={`hover:bg-slate-800/20 transition-colors ${isCurrentMonth ? 'bg-blue-500/5 border-l-2 border-blue-500' : idx % 2 === 1 ? 'bg-slate-950/30' : ''}`}>
-                                                        <td className="px-6 py-4">
-                                                            <div className="flex items-center gap-3">
-                                                                <span className={`font-bold ${isCurrentMonth ? 'text-blue-400' : 'text-white'}`}>{label}</span>
-                                                                {isCurrentMonth && (
-                                                                    <span className="text-[10px] bg-blue-500/20 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
-                                                                        Atual
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                    <tr key={i} className={`hover:bg-slate-800/30 transition-colors border-b border-slate-800/50 ${selectedRows.includes(i) ? 'bg-blue-600/5' : ''}`}>
+                                                        <td className="px-3 py-3 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                                                checked={selectedRows.includes(i)}
+                                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedRows((prev: number[]) => [...prev, i]);
+                                                                    } else {
+                                                                        setSelectedRows((prev: number[]) => prev.filter((idx: number) => idx !== i));
+                                                                    }
+                                                                }}
+                                                            />
                                                         </td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <span className="bg-slate-800 px-3 py-1 rounded-full text-slate-300 font-bold text-xs">
-                                                                {entry.count}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <span className="text-yellow-400 font-black text-lg font-mono">{entry.liters.toFixed(1)}</span>
-                                                            <span className="text-slate-500 text-xs ml-1">L</span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <span className="text-emerald-400 font-black text-lg font-mono">{entry.cost.toFixed(2)}</span>
-                                                            <span className="text-slate-500 text-xs ml-1">€</span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <span className={`font-bold font-mono text-sm ${avgPrice > 0 ? 'text-slate-300' : 'text-slate-600'}`}>
-                                                                {avgPrice > 0 ? `${avgPrice.toFixed(3)} €/L` : '—'}
-                                                            </span>
+                                                        <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
+                                                        <td className="px-3 py-3 text-white font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[12px] text-center">{row['Km'] || '0'}</td>
+                                                        <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[150px]">{row['Posto'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-500 text-[11px] uppercase font-bold">{row['Produto'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-yellow-500 font-bold font-mono text-[13px] text-right">{liters.toFixed(2)}L</td>
+                                                        <td className="px-3 py-3 text-emerald-400 font-black font-mono text-[13px] text-right">{total.toFixed(2)}€</td>
+                                                        <td className="px-3 py-3">
+                                                            <select
+                                                                className="bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-[12px] text-white outline-none focus:border-blue-500 w-full"
+                                                                value={row._selectedCC || ''}
+                                                                onChange={(e) => {
+                                                                    const newTransactions = [...bpTransactions];
+                                                                    newTransactions[i]._selectedCC = e.target.value;
+                                                                    setBpTransactions(newTransactions);
+                                                                }}
+                                                            >
+                                                                <option value="">-- C.Custo --</option>
+                                                                {centrosCustos.map(cc => (
+                                                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                                ))}
+                                                            </select>
                                                         </td>
                                                     </tr>
                                                 );
                                             })}
                                         </tbody>
-                                        <tfoot>
-                                            <tr className="bg-gradient-to-r from-slate-900 to-slate-950 border-t-2 border-yellow-500/30">
-                                                <td className="px-6 py-5">
-                                                    <span className="text-white font-black uppercase text-xs tracking-[0.15em]">Total Geral</span>
-                                                </td>
-                                                <td className="px-6 py-5 text-center">
-                                                    <span className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 px-3 py-1 rounded-full font-black text-xs">{grandCount}</span>
-                                                </td>
-                                                <td className="px-6 py-5 text-right">
-                                                    <span className="text-yellow-400 font-black text-xl font-mono">{grandLiters.toFixed(1)}</span>
-                                                    <span className="text-slate-500 text-xs ml-1">L</span>
-                                                </td>
-                                                <td className="px-6 py-5 text-right">
-                                                    <span className="text-emerald-400 font-black text-xl font-mono">{grandCost.toFixed(2)}</span>
-                                                    <span className="text-slate-500 text-xs ml-1">€</span>
-                                                </td>
-                                                <td className="px-6 py-5 text-right">
-                                                    <span className="text-slate-400 font-bold font-mono text-sm">
-                                                        {grandLiters > 0 ? `${(grandCost / grandLiters).toFixed(3)} €/L` : '—'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </tfoot>
                                     </table>
                                 </div>
-                            );
-                        })()}
+                            </div>
+                        )}
                     </div>
-                </div>
-            )}
+                )}
 
-
-            {/* DUAL AUTH MODAL */}
-            {
-                authModal.isOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
-                        <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
-                            <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                                {authModal.step === 1 ? 'Autenticação Responsável' : 'Autenticação Condutor'}
+                {/* MANUAL BP MODAL */}
+                {isManualBPOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+                        <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
+                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <Plus className="w-6 h-6 text-blue-500" />
+                                Inserir Talão BP Manual
                             </h3>
-                            {authModal.error && (
-                                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm font-bold">
-                                    <AlertCircle className="w-5 h-5" />
-                                    {authModal.error}
+                            <form onSubmit={handleManualBPAdd} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-400">Data</label>
+                                        <input
+                                            required type="date"
+                                            value={manualBPForm.date}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, date: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-400">Hora</label>
+                                        <input
+                                            required type="time"
+                                            value={manualBPForm.time}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, time: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                        />
+                                    </div>
                                 </div>
-                            )}
-
-                            <div className="space-y-6">
-                                {authModal.step === 1 ? (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase block text-center">
-                                            {userRole === 'oficina' ? 'PIN Oficina' : 'Password Admin'}
-                                        </label>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-400">Matrícula</label>
+                                    <input
+                                        required type="text" placeholder="Sem traços (ex: AA00BB)"
+                                        value={manualBPForm.licensePlate}
+                                        onChange={e => setManualBPForm({ ...manualBPForm, licensePlate: e.target.value.toUpperCase() })}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500 uppercase"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-400">Litros</label>
                                         <input
-                                            type="password"
-                                            autoFocus
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                            value={authModal.adminPassword}
-                                            onChange={e => setAuthModal({ ...authModal, adminPassword: e.target.value })}
-                                            onKeyDown={e => e.key === 'Enter' && handleDualAuth()}
+                                            required type="number" step="0.01"
+                                            value={manualBPForm.liters}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, liters: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
                                         />
                                     </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase block text-center">PIN Condutor</label>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-400">Total (€)</label>
                                         <input
-                                            type="password"
-                                            autoFocus
-                                            maxLength={6}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-white focus:ring-2 focus:ring-yellow-500 outline-none"
-                                            value={authModal.driverPin}
-                                            onChange={e => setAuthModal({ ...authModal, driverPin: e.target.value })}
-                                            onKeyDown={e => e.key === 'Enter' && handleDualAuth()}
+                                            required type="number" step="0.01"
+                                            value={manualBPForm.totalCost}
+                                            onChange={e => setManualBPForm({ ...manualBPForm, totalCost: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-emerald-500 font-bold text-emerald-400"
                                         />
                                     </div>
-                                )}
-
-                                <div className="flex gap-4">
-                                    <button
-                                        onClick={() => setAuthModal({ ...authModal, isOpen: false, step: 1, adminPassword: '', driverPin: '' })}
-                                        className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all"
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-400">Posto (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        value={manualBPForm.station}
+                                        onChange={e => setManualBPForm({ ...manualBPForm, station: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-400">Centro de Custo</label>
+                                    <select
+                                        value={manualBPForm.centroCustoId}
+                                        onChange={e => setManualBPForm({ ...manualBPForm, centroCustoId: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
                                     >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        onClick={handleDualAuth}
-                                        className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all"
-                                    >
-                                        {authModal.step === 1 ? 'Seguinte' : 'Confirmar'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* EDIT TANK MODAL */}
-            {
-                isEditingTank && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
-                        <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl">
-                            <h3 className="text-xl font-bold text-white mb-6">Configurar Tanque</h3>
-                            <form onSubmit={saveTankChanges} className="space-y-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Capacidade Total (L)</label>
-                                    <input
-                                        type="number"
-                                        className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editTankForm.capacity}
-                                        onChange={e => setEditTankForm({ ...editTankForm, capacity: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Nível Atual (L)</label>
-                                    <input
-                                        type="number"
-                                        className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editTankForm.currentLevel}
-                                        onChange={e => setEditTankForm({ ...editTankForm, currentLevel: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Preço Médio (€)</label>
-                                    <input
-                                        type="number"
-                                        step="0.001"
-                                        className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editTankForm.averagePrice}
-                                        onChange={e => setEditTankForm({ ...editTankForm, averagePrice: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase font-mono">Contador da Bomba (L)</label>
-                                    <input
-                                        type="number"
-                                        className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 outline-none font-mono"
-                                        value={editTankForm.pumpTotalizer}
-                                        onChange={e => setEditTankForm({ ...editTankForm, pumpTotalizer: e.target.value })}
-                                    />
+                                        <option value="">-- Selecionar --</option>
+                                        {centrosCustos.map(cc => (
+                                            <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
-                                <div className="pt-4 border-t border-slate-800">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Baseline (Saldo Confirmado)</h4>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Data do Baseline</label>
-                                            <input
-                                                type="date"
-                                                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
-                                                value={editTankForm.baselineDate ? editTankForm.baselineDate.split('T')[0] : ''}
-                                                onChange={e => setEditTankForm({ ...editTankForm, baselineDate: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Saldo no Baseline (L)</label>
-                                            <input
-                                                type="number"
-                                                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
-                                                value={editTankForm.baselineLevel}
-                                                onChange={e => setEditTankForm({ ...editTankForm, baselineLevel: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Contador no Baseline (L)</label>
-                                            <input
-                                                type="number"
-                                                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
-                                                value={editTankForm.baselineTotalizer}
-                                                onChange={e => setEditTankForm({ ...editTankForm, baselineTotalizer: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setEditTankForm({
-                                                        ...editTankForm,
-                                                        baselineDate: new Date().toISOString().split('T')[0],
-                                                        baselineLevel: editTankForm.currentLevel,
-                                                        baselineTotalizer: editTankForm.pumpTotalizer
-                                                    });
-                                                }}
-                                                className="w-full py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 hover:bg-yellow-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
-                                            >
-                                                Fixar Estado Atual como Baseline
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    try {
-                                                        const result = await recalculateFuelTank();
-                                                        setEditTankForm({
-                                                            ...editTankForm,
-                                                            currentLevel: String(result.newLevel),
-                                                            pumpTotalizer: String(result.newTotalizer)
-                                                        });
-                                                        alert("Recalculado com sucesso com base no histórico!");
-                                                    } catch (err: any) {
-                                                        alert(err.message);
-                                                    }
-                                                }}
-                                                className="w-full py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
-                                            >
-                                                Recalcular a partir do Baseline
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex gap-3 pt-4">
-                                    <button type="button" onClick={() => setIsEditingTank(false)} className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold">Cancelar</button>
-                                    <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">Guardar</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )
-            }
-            {/* EDIT TRANSACTION MODAL */}
-            {
-                editingTransaction && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-                        <div className="bg-slate-900 border border-slate-700 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95">
-                            <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                                <div>
-                                    <h3 className="text-xl font-bold text-white">Editar Abastecimento</h3>
-                                    <p className="text-slate-500 text-sm mt-1">ID: {editingTransaction.id}</p>
-                                </div>
-                                <button onClick={() => setEditingTransaction(null)} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-                            <form onSubmit={handleUpdateTransaction} className="p-8 space-y-6">
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Viatura</label>
-                                        <select
-                                            value={editingTransaction.vehicleId}
-                                            onChange={e => setEditingTransaction({ ...editingTransaction, vehicleId: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
-                                        >
-                                            {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Motorista</label>
-                                        <select
-                                            value={editingTransaction.driverId}
-                                            onChange={e => setEditingTransaction({ ...editingTransaction, driverId: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
-                                        >
-                                            <option value="">Não Atribuído (BP)</option>
-                                            {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Litros</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={editingTransaction.liters}
-                                            onChange={e => setEditingTransaction({ ...editingTransaction, liters: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Custo (€)</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={editingTransaction.totalCost}
-                                            onChange={e => setEditingTransaction({ ...editingTransaction, totalCost: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
-                                        />
-                                    </div>
-                                    <div className="col-span-2 space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data e Hora</label>
-                                        <input
-                                            type="datetime-local"
-                                            value={new Date(new Date(editingTransaction.timestamp).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                                            onChange={e => setEditingTransaction({ ...editingTransaction, timestamp: new Date(e.target.value).toISOString() })}
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
-                                        />
-                                    </div>
-                                    <div className="col-span-2 space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custo</label>
-                                        <select
-                                            value={editingTransaction.centroCustoId}
-                                            onChange={e => setEditingTransaction({ ...editingTransaction, centroCustoId: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
-                                        >
-                                            <option value="">Sem Centro de Custo</option>
-                                            {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4 pt-4">
+                                <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"
-                                        onClick={() => setEditingTransaction(null)}
-                                        className="flex-1 px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all"
+                                        onClick={() => setIsManualBPOpen(false)}
+                                        className="px-4 py-2 text-slate-400 hover:text-white font-bold"
                                     >
                                         Cancelar
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20"
+                                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold"
                                     >
-                                        Guardar Alterações
+                                        Adicionar
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
-                )
-            }
+                )}
+                {/* REPORTS / AUDIT TAB */}
+                {activeTab === 'relatorios' && (
+                    <div className="space-y-8 animate-in slide-in-from-right-4">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 backdrop-blur-md">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-emerald-500/20 rounded-2xl">
+                                        <Plus className="w-6 h-6 text-emerald-400" />
+                                    </div>
+                                    <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Entradas Tanque</span>
+                                </div>
+                                <div className="text-3xl font-black text-white">{totalTankIn.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                            </div>
+
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-3xl p-6 backdrop-blur-md">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-blue-500/20 rounded-2xl">
+                                        <TrendingUp className="w-6 h-6 text-blue-400" />
+                                    </div>
+                                    <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Saídas Oficina</span>
+                                </div>
+                                <div className="text-3xl font-black text-white">{totalInternalLiters.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                            </div>
+
+                            <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-md">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-purple-500/20 rounded-2xl">
+                                        <AlertCircle className="w-6 h-6 text-purple-400" />
+                                    </div>
+                                    <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Diferença Acumulada</span>
+                                </div>
+                                <div className="text-3xl font-black text-white">{(totalTankIn - totalInternalLiters).toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                            </div>
+                        </div>
+
+                        {/* Tank Refill History */}
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
+                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                    <Droplets className="w-6 h-6 text-emerald-400" />
+                                    Registo de Entradas e Consumo por Intervalo
+                                </h2>
+                                <button
+                                    onClick={exportAuditReport}
+                                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold transition-all border border-slate-700 shadow-xl"
+                                >
+                                    <Download className="w-5 h-5" />
+                                    Exportar Auditoria (Excel)
+                                </button>
+                                <button
+                                    onClick={exportIntervalsPDF}
+                                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-xl shadow-emerald-500/20"
+                                >
+                                    <FileSpreadsheet className="w-5 h-5" />
+                                    Exportar PDF Detalhado
+                                </button>
+                            </div>
+
+                            <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
+                                <table className="w-full text-left text-sm" style={{ minWidth: '850px' }}>
+                                    <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                        <tr>
+                                            <th className="px-3 md:px-6 py-4">Data Entrega</th>
+                                            <th className="px-3 md:px-6 py-4">Fornecedor</th>
+                                            <th className="px-3 md:px-6 py-4 text-right">L. Entregues</th>
+                                            <th className="px-3 md:px-6 py-4 text-right bg-blue-500/5 text-blue-400">Saída (L)</th>
+                                            <th className="px-3 md:px-6 py-4 text-right bg-blue-500/5 text-blue-400">Custo Saída</th>
+                                            <th className="px-3 md:px-6 py-4 text-right">Nível Antes</th>
+                                            <th className="px-3 md:px-6 py-4 text-right">Nível Depois</th>
+                                            <th className="px-3 md:px-6 py-4 text-right">Audit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800 bg-slate-900/30">
+                                        {(() => {
+                                            const sortedRefills = [...tankRefills].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+                                            // Prepend Current Period (pseudo-refill for "since last until now")
+                                            const latestRefill = sortedRefills[sortedRefills.length - 1];
+                                            const currentPeriodTransactions = fuelTransactions.filter(tx =>
+                                                !tx.isExternal &&
+                                                tx.status === 'confirmed' &&
+                                                (!latestRefill || new Date(tx.timestamp) > new Date(latestRefill.timestamp))
+                                            );
+
+                                            const rows = sortedRefills.map((refill, idx) => {
+                                                const prevRefill = idx > 0 ? sortedRefills[idx - 1] : null;
+                                                const start = prevRefill ? new Date(prevRefill.timestamp) : new Date(0);
+                                                const end = new Date(refill.timestamp);
+
+                                                const intervalTxs = fuelTransactions.filter(tx =>
+                                                    !tx.isExternal &&
+                                                    tx.status === 'confirmed' &&
+                                                    new Date(tx.timestamp) > start &&
+                                                    new Date(tx.timestamp) <= end
+                                                );
+
+                                                const litersOut = intervalTxs.reduce((sum, tx) => sum + tx.liters, 0);
+                                                const costOut = intervalTxs.reduce((sum, tx) => sum + (tx.totalCost || 0), 0);
+
+                                                return {
+                                                    ...refill,
+                                                    litersOut,
+                                                    costOut,
+                                                    isCurrent: false
+                                                };
+                                            });
+
+                                            // Add current status at the top
+                                            if (latestRefill) {
+                                                const currentLitersOut = currentPeriodTransactions.reduce((sum, tx) => sum + tx.liters, 0);
+                                                const currentCostOut = currentPeriodTransactions.reduce((sum, tx) => sum + (tx.totalCost || 0), 0);
+                                                rows.push({
+                                                    id: 'current',
+                                                    timestamp: new Date().toISOString(),
+                                                    supplier: 'PERÍODO ATUAL',
+                                                    litersAdded: 0,
+                                                    litersOut: currentLitersOut,
+                                                    costOut: currentCostOut,
+                                                    levelBefore: fuelTank.currentLevel,
+                                                    levelAfter: fuelTank.currentLevel,
+                                                    isCurrent: true,
+                                                    staffId: '',
+                                                    totalSpentSinceLast: 0,
+                                                    pumpMeterReading: fuelTank.pumpTotalizer
+                                                } as any);
+                                            }
+
+                                            return rows.reverse().map(refill => {
+                                                const LIMIT = 6000;
+                                                const totalCalc = refill.levelBefore + refill.litersAdded;
+                                                const isOverLimit = totalCalc > LIMIT;
+
+                                                return (
+                                                    <tr key={refill.id} className={`hover:bg-slate-800/10 transition-colors ${refill.isCurrent ? 'bg-blue-500/5' : ''} ${isOverLimit ? 'bg-red-500/5' : ''}`}>
+                                                        <td className="px-6 py-4 text-slate-300 font-mono text-[12px]">
+                                                            {refill.isCurrent ? (
+                                                                <span className="flex items-center gap-2 text-blue-400 font-black">
+                                                                    <TrendingUp className="w-3 h-3" /> AGORA
+                                                                </span>
+                                                            ) : (
+                                                                <>
+                                                                    {new Date(refill.timestamp).toLocaleDateString()}
+                                                                    <span className="text-slate-600 ml-2 text-[10px]">{new Date(refill.timestamp).toLocaleTimeString()}</span>
+                                                                </>
+                                                            )}
+                                                        </td>
+                                                        <td className={`px-6 py-4 font-bold ${refill.isCurrent ? 'text-blue-400' : 'text-white'}`}>
+                                                            {refill.supplier || 'N/A'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right font-black text-emerald-400">
+                                                            {refill.litersAdded > 0 ? `${refill.litersAdded} L` : '-'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right font-black text-amber-500 bg-blue-500/5">
+                                                            {refill.litersOut.toFixed(1)} L
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right font-bold text-slate-300 bg-blue-500/5">
+                                                            {refill.costOut > 0 ? `${refill.costOut.toFixed(2)}€` : '-'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right text-slate-400">
+                                                            {refill.isCurrent ? '-' : `${refill.levelBefore} L`}
+                                                        </td>
+                                                        <td className={`px-6 py-4 text-right font-bold ${isOverLimit ? 'text-red-500' : 'text-white'}`}>
+                                                            <div className="flex flex-col items-end">
+                                                                <span>{refill.isCurrent ? `${fuelTank.currentLevel} L` : `${refill.levelAfter} L`}</span>
+                                                                {isOverLimit && (
+                                                                    <span className="text-[10px] bg-red-500/20 px-1.5 py-0.5 rounded text-red-400 mt-1 flex items-center gap-1">
+                                                                        <AlertCircle className="w-3 h-3" /> +{(totalCalc - LIMIT).toFixed(1)} L Excesso
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            {!refill.isCurrent && userRole === 'admin' && (
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (confirm('Deseja apagar este registo de reabastecimento? O nível do tanque será revertido.')) {
+                                                                            await deleteTankRefill(refill.id);
+                                                                        }
+                                                                    }}
+                                                                    className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-lg transition-all"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            });
+                                        })()}
+                                        {tankRefills.length === 0 && (
+                                            <tr>
+                                                <td colSpan={8} className="px-6 py-12 text-center text-slate-500 font-bold italic">
+                                                    Nenhum registo de entrada encontrado.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Monthly Totals Section */}
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="p-3 bg-yellow-500/10 rounded-2xl">
+                                    <BarChart3 className="w-6 h-6 text-yellow-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">Totais por Mês</h2>
+                                    <p className="text-slate-400 text-sm mt-1">Soma de litros e custo de todos os abastecimentos (Oficina + BP)</p>
+                                </div>
+                            </div>
+
+                            {(() => {
+                                const allConfirmed = fuelTransactions.filter(tx => tx.status === 'confirmed');
+
+                                type MonthEntry = { liters: number; cost: number; count: number; };
+                                const byMonth: Record<string, MonthEntry> = {};
+
+                                allConfirmed.forEach(tx => {
+                                    const d = new Date(tx.timestamp);
+                                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                                    if (!byMonth[key]) byMonth[key] = { liters: 0, cost: 0, count: 0 };
+                                    byMonth[key].liters += tx.liters || 0;
+                                    byMonth[key].cost += tx.totalCost || 0;
+                                    byMonth[key].count += 1;
+                                });
+
+                                const months = Object.keys(byMonth).sort((a, b) => b.localeCompare(a));
+                                const grandLiters = months.reduce((s, k) => s + byMonth[k].liters, 0);
+                                const grandCost = months.reduce((s, k) => s + byMonth[k].cost, 0);
+                                const grandCount = months.reduce((s, k) => s + byMonth[k].count, 0);
+
+                                const ptMonths = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+                                if (months.length === 0) {
+                                    return (
+                                        <div className="text-center py-12 text-slate-500 font-bold">
+                                            Nenhum abastecimento registado ainda.
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
+                                        <table className="w-full text-left text-sm" style={{ minWidth: '650px' }}>
+                                            <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                                <tr>
+                                                    <th className="px-6 py-4">Mês</th>
+                                                    <th className="px-6 py-4 text-center">Nº Abast.</th>
+                                                    <th className="px-6 py-4 text-right text-yellow-400">Total Litros</th>
+                                                    <th className="px-6 py-4 text-right text-emerald-400">Total Gasto</th>
+                                                    <th className="px-6 py-4 text-right text-slate-500">€/Litro Médio</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800 bg-slate-900/30">
+                                                {months.map((key, idx) => {
+                                                    const [year, month] = key.split('-');
+                                                    const label = `${ptMonths[parseInt(month) - 1]} ${year}`;
+                                                    const entry = byMonth[key];
+                                                    const avgPrice = entry.liters > 0 ? entry.cost / entry.liters : 0;
+                                                    const now = new Date();
+                                                    const isCurrentMonth = parseInt(year) === now.getFullYear() && parseInt(month) === now.getMonth() + 1;
+
+                                                    return (
+                                                        <tr key={key} className={`hover:bg-slate-800/20 transition-colors ${isCurrentMonth ? 'bg-blue-500/5 border-l-2 border-blue-500' : idx % 2 === 1 ? 'bg-slate-950/30' : ''}`}>
+                                                            <td className="px-6 py-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className={`font-bold ${isCurrentMonth ? 'text-blue-400' : 'text-white'}`}>{label}</span>
+                                                                    {isCurrentMonth && (
+                                                                        <span className="text-[10px] bg-blue-500/20 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                                                                            Atual
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <span className="bg-slate-800 px-3 py-1 rounded-full text-slate-300 font-bold text-xs">
+                                                                    {entry.count}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className="text-yellow-400 font-black text-lg font-mono">{entry.liters.toFixed(1)}</span>
+                                                                <span className="text-slate-500 text-xs ml-1">L</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className="text-emerald-400 font-black text-lg font-mono">{entry.cost.toFixed(2)}</span>
+                                                                <span className="text-slate-500 text-xs ml-1">€</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className={`font-bold font-mono text-sm ${avgPrice > 0 ? 'text-slate-300' : 'text-slate-600'}`}>
+                                                                    {avgPrice > 0 ? `${avgPrice.toFixed(3)} €/L` : '—'}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr className="bg-gradient-to-r from-slate-900 to-slate-950 border-t-2 border-yellow-500/30">
+                                                    <td className="px-6 py-5">
+                                                        <span className="text-white font-black uppercase text-xs tracking-[0.15em]">Total Geral</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-center">
+                                                        <span className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 px-3 py-1 rounded-full font-black text-xs">{grandCount}</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-right">
+                                                        <span className="text-yellow-400 font-black text-xl font-mono">{grandLiters.toFixed(1)}</span>
+                                                        <span className="text-slate-500 text-xs ml-1">L</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-right">
+                                                        <span className="text-emerald-400 font-black text-xl font-mono">{grandCost.toFixed(2)}</span>
+                                                        <span className="text-slate-500 text-xs ml-1">€</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-right">
+                                                        <span className="text-slate-400 font-bold font-mono text-sm">
+                                                            {grandLiters > 0 ? `${(grandCost / grandLiters).toFixed(3)} €/L` : '—'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                )}
+
+
+                {/* DUAL AUTH MODAL */}
+                {
+                    authModal.isOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+                                <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                                    {authModal.step === 1 ? 'Autenticação Responsável' : 'Autenticação Condutor'}
+                                </h3>
+                                {authModal.error && (
+                                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm font-bold">
+                                        <AlertCircle className="w-5 h-5" />
+                                        {authModal.error}
+                                    </div>
+                                )}
+
+                                <div className="space-y-6">
+                                    {authModal.step === 1 ? (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase block text-center">
+                                                {userRole === 'oficina' ? 'PIN Oficina' : 'Password Admin'}
+                                            </label>
+                                            <input
+                                                type="password"
+                                                autoFocus
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={authModal.adminPassword}
+                                                onChange={e => setAuthModal({ ...authModal, adminPassword: e.target.value })}
+                                                onKeyDown={e => e.key === 'Enter' && handleDualAuth()}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase block text-center">PIN Condutor</label>
+                                            <input
+                                                type="password"
+                                                autoFocus
+                                                maxLength={6}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                                value={authModal.driverPin}
+                                                onChange={e => setAuthModal({ ...authModal, driverPin: e.target.value })}
+                                                onKeyDown={e => e.key === 'Enter' && handleDualAuth()}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-4">
+                                        <button
+                                            onClick={() => setAuthModal({ ...authModal, isOpen: false, step: 1, adminPassword: '', driverPin: '' })}
+                                            className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleDualAuth}
+                                            className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all"
+                                        >
+                                            {authModal.step === 1 ? 'Seguinte' : 'Confirmar'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
+                {/* EDIT TANK MODAL */}
+                {
+                    isEditingTank && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+                                <h3 className="text-xl font-bold text-white mb-6">Configurar Tanque</h3>
+                                <form onSubmit={saveTankChanges} className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Capacidade Total (L)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={editTankForm.capacity}
+                                            onChange={e => setEditTankForm({ ...editTankForm, capacity: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Nível Atual (L)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={editTankForm.currentLevel}
+                                            onChange={e => setEditTankForm({ ...editTankForm, currentLevel: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Preço Médio (€)</label>
+                                        <input
+                                            type="number"
+                                            step="0.001"
+                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={editTankForm.averagePrice}
+                                            onChange={e => setEditTankForm({ ...editTankForm, averagePrice: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase font-mono">Contador da Bomba (L)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 outline-none font-mono"
+                                            value={editTankForm.pumpTotalizer}
+                                            onChange={e => setEditTankForm({ ...editTankForm, pumpTotalizer: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-800">
+                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Baseline (Saldo Confirmado)</h4>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Data do Baseline</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                                    value={editTankForm.baselineDate ? editTankForm.baselineDate.split('T')[0] : ''}
+                                                    onChange={e => setEditTankForm({ ...editTankForm, baselineDate: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Saldo no Baseline (L)</label>
+                                                <input
+                                                    type="number"
+                                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                                    value={editTankForm.baselineLevel}
+                                                    onChange={e => setEditTankForm({ ...editTankForm, baselineLevel: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Contador no Baseline (L)</label>
+                                                <input
+                                                    type="number"
+                                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                                    value={editTankForm.baselineTotalizer}
+                                                    onChange={e => setEditTankForm({ ...editTankForm, baselineTotalizer: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditTankForm({
+                                                            ...editTankForm,
+                                                            baselineDate: new Date().toISOString().split('T')[0],
+                                                            baselineLevel: editTankForm.currentLevel,
+                                                            baselineTotalizer: editTankForm.pumpTotalizer
+                                                        });
+                                                    }}
+                                                    className="w-full py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 hover:bg-yellow-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                                                >
+                                                    Fixar Estado Atual como Baseline
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        try {
+                                                            const result = await recalculateFuelTank();
+                                                            setEditTankForm({
+                                                                ...editTankForm,
+                                                                currentLevel: String(result.newLevel),
+                                                                pumpTotalizer: String(result.newTotalizer)
+                                                            });
+                                                            alert("Recalculado com sucesso com base no histórico!");
+                                                        } catch (err: any) {
+                                                            alert(err.message);
+                                                        }
+                                                    }}
+                                                    className="w-full py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                                                >
+                                                    Recalcular a partir do Baseline
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 pt-4">
+                                        <button type="button" onClick={() => setIsEditingTank(false)} className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold">Cancelar</button>
+                                        <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">Guardar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )
+                }
+                {/* EDIT TRANSACTION MODAL */}
+                {
+                    editingTransaction && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+                            <div className="bg-slate-900 border border-slate-700 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95">
+                                <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white">Editar Abastecimento</h3>
+                                        <p className="text-slate-500 text-sm mt-1">ID: {editingTransaction.id}</p>
+                                    </div>
+                                    <button onClick={() => setEditingTransaction(null)} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
+                                        <X className="w-6 h-6" />
+                                    </button>
+                                </div>
+                                <form onSubmit={handleUpdateTransaction} className="p-8 space-y-6">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Viatura</label>
+                                            <select
+                                                value={editingTransaction.vehicleId}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, vehicleId: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                            >
+                                                {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Motorista</label>
+                                            <select
+                                                value={editingTransaction.driverId}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, driverId: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                            >
+                                                <option value="">Não Atribuído (BP)</option>
+                                                {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Litros</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={editingTransaction.liters}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, liters: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Custo (€)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={editingTransaction.totalCost}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, totalCost: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                            />
+                                        </div>
+                                        <div className="col-span-2 space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data e Hora</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={new Date(new Date(editingTransaction.timestamp).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, timestamp: new Date(e.target.value).toISOString() })}
+                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                            />
+                                        </div>
+                                        <div className="col-span-2 space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custo</label>
+                                            <select
+                                                value={editingTransaction.centroCustoId}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, centroCustoId: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                            >
+                                                <option value="">Sem Centro de Custo</option>
+                                                {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditingTransaction(null)}
+                                            className="flex-1 px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20"
+                                        >
+                                            Guardar Alterações
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )
+                }
+            </div>
         </div>
     );
 }

@@ -1,4 +1,5 @@
 import ApprovalsModal from './modals/ApprovalsModal';
+import PageHeader from '../../components/common/PageHeader';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
@@ -64,149 +65,143 @@ export default function Dashboard({
     const [showApprovalsModal, setShowApprovalsModal] = useState(false);
 
     return (
-        <div className="space-y-8">
+        <div className="animate-in fade-in duration-700">
             {/* ... Modal ... */}
             {hasAccess(userRole, 'equipa-oficina') && (
                 <ApprovalsModal isOpen={showApprovalsModal} onClose={() => setShowApprovalsModal(false)} />
             )}
 
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-                <div className="p-6 pr-12 relative overflow-visible group">
-
-
-                    <h1 className="text-4xl font-black text-white mb-2 tracking-tight flex items-center gap-3">
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 animate-gradient-x">{greeting},</span>
-                        <span className="text-white">{currentUser?.nome?.split(' ')[0] || 'Gestor'}</span>
-                    </h1>
-                    <p className="text-slate-400 font-medium flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Sistema operacional e online.
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-3 bg-slate-800/80 backdrop-blur-sm p-2 pr-4 rounded-xl border border-slate-700/50 shadow-sm">
+            <PageHeader
+                title={<span className="flex items-center gap-3">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">{greeting},</span>
+                    <span className="text-white">{currentUser?.nome?.split(' ')[0] || 'Gestor'}</span>
+                </span>}
+                subtitle="Sistema operacional e online."
+                icon={Activity}
+                actions={
+                    <div className="flex items-center gap-3 bg-slate-800/40 backdrop-blur-sm p-1.5 pr-4 rounded-xl border border-white/5 shadow-sm">
                         <div className="p-2 bg-indigo-500/20 rounded-lg">
                             <Calendar className="w-5 h-5 text-indigo-400" />
                         </div>
                         <div className="text-sm">
-                            <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Hoje</p>
-                            <p className="font-semibold text-white">{new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+                            <p className="text-white font-bold">{new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
                         </div>
                     </div>
-                </div>
-            </div>
+                }
+            />
 
-            {/* DASHBOARD GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-min">
+            <div className="p-4 md:p-8 space-y-8">
 
-                {/* 1. KPIs Row */}
-                {hasAccess(userRole, 'requisicoes') && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-0">
-                        <KPICard
-                            title="Serviços Ativos"
-                            value={activeServices}
-                            icon={Activity}
-                            color="blue"
-                            trend={todayServices > 0 ? `+${todayServices} hoje` : undefined}
-                            trendType="up"
-                            subtext="em tempo real"
-                        />
-                    </div>
-                )}
+                {/* DASHBOARD GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-min">
 
-                {hasAccess(userRole, 'viaturas') && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-75">
-                        <KPICard
-                            title="Frota Disponível"
-                            value={`${availableVehicles}`}
-                            subtext={`/ ${totalVehicles}`}
-                            icon={Bus}
-                            color="emerald"
-                            trendType="neutral"
-                        />
-                    </div>
-                )}
-
-                {hasAccess(userRole, 'motoristas') && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-                        <KPICard
-                            title="Motoristas Livres"
-                            value={activeDrivers}
-                            subtext={`/ ${totalDrivers}`}
-                            icon={User}
-                            color="indigo"
-                            trendType="neutral"
-                        />
-                    </div>
-                )}
-
-                {/* Approvals / Alerts */}
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-                    {userRole === 'admin' && pendingRegistrations > 0 ? (
-                        <div className="bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-2xl p-6 h-full flex flex-col justify-between animate-pulse-slow">
-                            <div>
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="p-3 rounded-xl bg-amber-500/20 text-amber-500">
-                                        <User className="w-6 h-6" />
-                                    </div>
-                                    <span className="bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-1 rounded-full">Ação Necessária</span>
-                                </div>
-                                <h3 className="text-amber-400 font-bold text-lg mt-2">Aprovações Pendentes</h3>
-                                <p className="text-slate-400 text-sm mt-1">{pendingRegistrations} novos utilizadores</p>
-                            </div>
-                            <button
-                                onClick={() => setShowApprovalsModal(true)}
-                                className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-amber-900/20 transition-all mt-4"
-                            >
-                                Rever Agora
-                            </button>
+                    {/* 1. KPIs Row */}
+                    {hasAccess(userRole, 'requisicoes') && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-0">
+                            <KPICard
+                                title="Serviços Ativos"
+                                value={activeServices}
+                                icon={Activity}
+                                color="blue"
+                                trend={todayServices > 0 ? `+${todayServices} hoje` : undefined}
+                                trendType="up"
+                                subtext="em tempo real"
+                            />
                         </div>
-                    ) : (
-                        <KPICard
-                            title="Alertas Urgentes"
-                            value={urgentRequests}
-                            icon={AlertTriangle}
-                            color="red"
-                            trendType={urgentRequests > 0 ? "down" : "neutral"}
-                        />
                     )}
-                </div>
 
-                {/* 2. Charts & Widgets Row */}
+                    {hasAccess(userRole, 'viaturas') && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-75">
+                            <KPICard
+                                title="Frota Disponível"
+                                value={`${availableVehicles}`}
+                                subtext={`/ ${totalVehicles}`}
+                                icon={Bus}
+                                color="emerald"
+                                trendType="neutral"
+                            />
+                        </div>
+                    )}
 
-                {/* Quick Actions - 1 Col */}
-                <div className="md:col-span-1 xl:col-span-1 2xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-                    <QuickActions
-                        onNewService={() => setActiveTab('requisicoes')}
-                        onNewClient={() => setActiveTab('clientes')}
-                        onNewVehicle={() => setActiveTab('viaturas')}
-                    />
-                </div>
+                    {hasAccess(userRole, 'motoristas') && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                            <KPICard
+                                title="Motoristas Livres"
+                                value={activeDrivers}
+                                subtext={`/ ${totalDrivers}`}
+                                icon={User}
+                                color="indigo"
+                                trendType="neutral"
+                            />
+                        </div>
+                    )}
 
-                {/* Fleet Status Chart - 1 Col */}
-                {hasAccess(userRole, 'viaturas') && (
-                    <div className="md:col-span-1 xl:col-span-1 2xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
-                        <FleetStatusChart
-                            total={totalVehicles}
-                            available={availableVehicles}
-                            maintenance={maintenanceVehicles}
-                            active={activeVehicles}
+                    {/* Approvals / Alerts */}
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                        {userRole === 'admin' && pendingRegistrations > 0 ? (
+                            <div className="bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-2xl p-6 h-full flex flex-col justify-between animate-pulse-slow">
+                                <div>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="p-3 rounded-xl bg-amber-500/20 text-amber-500">
+                                            <User className="w-6 h-6" />
+                                        </div>
+                                        <span className="bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-1 rounded-full">Ação Necessária</span>
+                                    </div>
+                                    <h3 className="text-amber-400 font-bold text-lg mt-2">Aprovações Pendentes</h3>
+                                    <p className="text-slate-400 text-sm mt-1">{pendingRegistrations} novos utilizadores</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowApprovalsModal(true)}
+                                    className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-amber-900/20 transition-all mt-4"
+                                >
+                                    Rever Agora
+                                </button>
+                            </div>
+                        ) : (
+                            <KPICard
+                                title="Alertas Urgentes"
+                                value={urgentRequests}
+                                icon={AlertTriangle}
+                                color="red"
+                                trendType={urgentRequests > 0 ? "down" : "neutral"}
+                            />
+                        )}
+                    </div>
+
+                    {/* 2. Charts & Widgets Row */}
+
+                    {/* Quick Actions - 1 Col */}
+                    <div className="md:col-span-1 xl:col-span-1 2xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+                        <QuickActions
+                            onNewService={() => setActiveTab('requisicoes')}
+                            onNewClient={() => setActiveTab('clientes')}
+                            onNewVehicle={() => setActiveTab('viaturas')}
                         />
                     </div>
-                )}
 
-                {/* Revenue Chart - 2 Cols */}
-                <div className="md:col-span-2 xl:col-span-2 2xl:col-span-2 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
-                    <RevenueChart services={servicos} />
+                    {/* Fleet Status Chart - 1 Col */}
+                    {hasAccess(userRole, 'viaturas') && (
+                        <div className="md:col-span-1 xl:col-span-1 2xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+                            <FleetStatusChart
+                                total={totalVehicles}
+                                available={availableVehicles}
+                                maintenance={maintenanceVehicles}
+                                active={activeVehicles}
+                            />
+                        </div>
+                    )}
+
+                    {/* Revenue Chart - 2 Cols */}
+                    <div className="md:col-span-2 xl:col-span-2 2xl:col-span-2 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
+                        <RevenueChart services={servicos} />
+                    </div>
+
+                    {/* 3. Activity Table - Full Width */}
+                    <div className="col-span-1 md:col-span-2 xl:col-span-3 2xl:col-span-4 h-full min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
+                        <ActivityTable items={activityItems} />
+                    </div>
+
                 </div>
-
-                {/* 3. Activity Table - Full Width */}
-                <div className="col-span-1 md:col-span-2 xl:col-span-3 2xl:col-span-4 h-full min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
-                    <ActivityTable items={activityItems} />
-                </div>
-
             </div>
         </div>
     );

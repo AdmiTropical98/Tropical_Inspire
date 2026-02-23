@@ -406,7 +406,7 @@ export default function EficienciaFrota() {
         : 0;
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="animate-in fade-in duration-500">
             <PageHeader
                 title="Eficiência da Frota"
                 subtitle="Custo operacional por quilómetro · Análise automática"
@@ -459,356 +459,359 @@ export default function EficienciaFrota() {
                 </div>
             </PageHeader>
 
-            {/* ── ANOMALY BANNER ── */}
-            {anomalousCount > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                        <p className="text-amber-300 font-bold text-sm">Anomalias Detectadas Automaticamente</p>
-                        <p className="text-amber-400/70 text-xs mt-0.5">
-                            {anomalousCount} abastecimento{anomalousCount !== 1 ? 's' : ''} com consumo {">"} 15% acima da média da viatura.
-                            Verifique os registos assinalados com ⚠ na tabela por viatura.
-                        </p>
+            <div className="p-4 md:p-8 space-y-8">
+
+                {/* ── ANOMALY BANNER ── */}
+                {anomalousCount > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-amber-300 font-bold text-sm">Anomalias Detectadas Automaticamente</p>
+                            <p className="text-amber-400/70 text-xs mt-0.5">
+                                {anomalousCount} abastecimento{anomalousCount !== 1 ? 's' : ''} com consumo {">"} 15% acima da média da viatura.
+                                Verifique os registos assinalados com ⚠ na tabela por viatura.
+                            </p>
+                        </div>
                     </div>
+                )}
+
+                {/* ── TABS ── */}
+                <div className="flex items-center gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-800/60 w-fit">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${activeTab === tab.id
+                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                }`}
+                        >
+                            <tab.icon className="w-4 h-4" />
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
-            )}
 
-            {/* ── TABS ── */}
-            <div className="flex items-center gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-800/60 w-fit">
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${activeTab === tab.id
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5'
-                            }`}
-                    >
-                        <tab.icon className="w-4 h-4" />
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* ── TAB: VIATURAS ── */}
-            {activeTab === 'viaturas' && (
-                <div className="space-y-3">
-                    {vehicleStats.length === 0 ? (
-                        <EmptyState message="Sem dados de abastecimento suficientes para calcular eficiência. São necessários pelo menos 2 abastecimentos por viatura com KM registados." />
-                    ) : (
-                        vehicleStats.map(v => (
-                            <div key={v.vehicleId} className={`bg-slate-900/60 border rounded-xl overflow-hidden transition-all duration-300 hover:border-slate-600/60
+                {/* ── TAB: VIATURAS ── */}
+                {activeTab === 'viaturas' && (
+                    <div className="space-y-3">
+                        {vehicleStats.length === 0 ? (
+                            <EmptyState message="Sem dados de abastecimento suficientes para calcular eficiência. São necessários pelo menos 2 abastecimentos por viatura com KM registados." />
+                        ) : (
+                            vehicleStats.map(v => (
+                                <div key={v.vehicleId} className={`bg-slate-900/60 border rounded-xl overflow-hidden transition-all duration-300 hover:border-slate-600/60
                                 ${v.alerta === 'critico' ? 'border-red-500/40' : v.alerta === 'alto' ? 'border-amber-500/30' : 'border-slate-800/60'}`}>
 
-                                {/* Vehicle Row */}
-                                <button
-                                    className="w-full flex items-center gap-4 p-4 hover:bg-white/2 transition-colors text-left"
-                                    onClick={() => setExpandedVehicle(expandedVehicle === v.vehicleId ? null : v.vehicleId)}
-                                >
-                                    {/* Score */}
-                                    <ScoreBadge score={v.score} />
+                                    {/* Vehicle Row */}
+                                    <button
+                                        className="w-full flex items-center gap-4 p-4 hover:bg-white/2 transition-colors text-left"
+                                        onClick={() => setExpandedVehicle(expandedVehicle === v.vehicleId ? null : v.vehicleId)}
+                                    >
+                                        {/* Score */}
+                                        <ScoreBadge score={v.score} />
 
-                                    {/* Vehicle Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-black text-white text-base">{v.matricula}</span>
-                                            <span className="text-slate-400 text-xs">{v.marca} {v.modelo}</span>
-                                            <AlertBadge level={v.alerta} />
+                                        {/* Vehicle Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-black text-white text-base">{v.matricula}</span>
+                                                <span className="text-slate-400 text-xs">{v.marca} {v.modelo}</span>
+                                                <AlertBadge level={v.alerta} />
+                                            </div>
+                                            <div className="flex items-center flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                                                <span className="text-slate-400 text-xs">{v.kmTotal.toLocaleString('pt-PT')} km</span>
+                                                <span className="text-slate-400 text-xs">{fmt(v.litrosTotal)} L</span>
+                                                <span className="text-slate-400 text-xs">{fmtEur(v.custoTotal)}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center flex-wrap gap-x-4 gap-y-0.5 mt-1">
-                                            <span className="text-slate-400 text-xs">{v.kmTotal.toLocaleString('pt-PT')} km</span>
-                                            <span className="text-slate-400 text-xs">{fmt(v.litrosTotal)} L</span>
-                                            <span className="text-slate-400 text-xs">{fmtEur(v.custoTotal)}</span>
-                                        </div>
-                                    </div>
 
-                                    {/* Key metrics */}
-                                    <div className="hidden md:flex items-center gap-6">
-                                        <div className="text-center">
-                                            <p className={`text-lg font-black ${v.alerta === 'critico' ? 'text-red-400' : v.alerta === 'alto' ? 'text-amber-400' : 'text-white'}`}>
-                                                {fmt(v.consumoMedio)} L
-                                            </p>
+                                        {/* Key metrics */}
+                                        <div className="hidden md:flex items-center gap-6">
+                                            <div className="text-center">
+                                                <p className={`text-lg font-black ${v.alerta === 'critico' ? 'text-red-400' : v.alerta === 'alto' ? 'text-amber-400' : 'text-white'}`}>
+                                                    {fmt(v.consumoMedio)} L
+                                                </p>
+                                                <p className="text-slate-500 text-[10px]">L/100km</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-lg font-black text-cyan-400">{fmt(v.custoKmMedio, 3)} €</p>
+                                                <p className="text-slate-500 text-[10px]">€/km</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <TrendIcon dir={v.tendencia} />
+                                                <p className="text-slate-500 text-[10px]">Tendência</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Expand icon */}
+                                        <div className="text-slate-500">
+                                            {expandedVehicle === v.vehicleId ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                        </div>
+                                    </button>
+
+                                    {/* Mobile metrics */}
+                                    <div className="md:hidden flex items-center gap-4 px-4 pb-3">
+                                        <div className="text-center flex-1">
+                                            <p className={`text-sm font-black ${v.alerta !== 'normal' ? 'text-amber-400' : 'text-white'}`}>{fmt(v.consumoMedio)} L</p>
                                             <p className="text-slate-500 text-[10px]">L/100km</p>
                                         </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-black text-cyan-400">{fmt(v.custoKmMedio, 3)} €</p>
+                                        <div className="text-center flex-1">
+                                            <p className="text-sm font-black text-cyan-400">{fmt(v.custoKmMedio, 3)} €</p>
                                             <p className="text-slate-500 text-[10px]">€/km</p>
                                         </div>
-                                        <div className="text-center">
+                                        <div className="text-center flex-1">
                                             <TrendIcon dir={v.tendencia} />
                                             <p className="text-slate-500 text-[10px]">Tendência</p>
                                         </div>
                                     </div>
 
-                                    {/* Expand icon */}
-                                    <div className="text-slate-500">
-                                        {expandedVehicle === v.vehicleId ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                    </div>
-                                </button>
-
-                                {/* Mobile metrics */}
-                                <div className="md:hidden flex items-center gap-4 px-4 pb-3">
-                                    <div className="text-center flex-1">
-                                        <p className={`text-sm font-black ${v.alerta !== 'normal' ? 'text-amber-400' : 'text-white'}`}>{fmt(v.consumoMedio)} L</p>
-                                        <p className="text-slate-500 text-[10px]">L/100km</p>
-                                    </div>
-                                    <div className="text-center flex-1">
-                                        <p className="text-sm font-black text-cyan-400">{fmt(v.custoKmMedio, 3)} €</p>
-                                        <p className="text-slate-500 text-[10px]">€/km</p>
-                                    </div>
-                                    <div className="text-center flex-1">
-                                        <TrendIcon dir={v.tendencia} />
-                                        <p className="text-slate-500 text-[10px]">Tendência</p>
-                                    </div>
-                                </div>
-
-                                {/* Expanded: Segments table */}
-                                {expandedVehicle === v.vehicleId && (
-                                    <div className="border-t border-slate-800/60 bg-slate-950/40 p-4">
-                                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-3">Histórico de Abastecimentos ({v.segmentos.length})</p>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-xs">
-                                                <thead>
-                                                    <tr className="text-slate-500 text-left border-b border-slate-800/60">
-                                                        <th className="pb-2 pr-4 font-semibold">Data</th>
-                                                        <th className="pb-2 pr-4 font-semibold">KM Percorridos</th>
-                                                        <th className="pb-2 pr-4 font-semibold">Litros</th>
-                                                        <th className="pb-2 pr-4 font-semibold">Consumo</th>
-                                                        <th className="pb-2 pr-4 font-semibold">Custo</th>
-                                                        <th className="pb-2 pr-4 font-semibold">€/km</th>
-                                                        <th className="pb-2 font-semibold">Estado</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {v.segmentos.slice(-20).reverse().map(s => (
-                                                        <tr key={s.transactionId} className={`border-b border-slate-900/60 hover:bg-white/2 transition-colors ${s.isAnormal ? 'bg-amber-500/5' : ''}`}>
-                                                            <td className="py-2 pr-4 text-slate-300">{new Date(s.timestamp).toLocaleDateString('pt-PT')}</td>
-                                                            <td className="py-2 pr-4 text-slate-300">{s.kmPercorridos.toLocaleString('pt-PT')} km</td>
-                                                            <td className="py-2 pr-4 text-slate-300">{fmt(s.liters)} L</td>
-                                                            <td className={`py-2 pr-4 font-bold ${s.isAnormal ? 'text-amber-400' : 'text-white'}`}>
-                                                                {s.isAnormal && '⚠ '}{fmt(s.consumo)} L/100km
-                                                            </td>
-                                                            <td className="py-2 pr-4 text-slate-300">{fmtEur(s.custo)}</td>
-                                                            <td className="py-2 pr-4 text-cyan-400 font-bold">{fmt(s.custoKm, 3)} €</td>
-                                                            <td className="py-2">
-                                                                {s.isAnormal
-                                                                    ? <span className="text-amber-400 text-[10px] bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">Anormal</span>
-                                                                    : <span className="text-emerald-400 text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">Normal</span>
-                                                                }
-                                                            </td>
+                                    {/* Expanded: Segments table */}
+                                    {expandedVehicle === v.vehicleId && (
+                                        <div className="border-t border-slate-800/60 bg-slate-950/40 p-4">
+                                            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-3">Histórico de Abastecimentos ({v.segmentos.length})</p>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-xs">
+                                                    <thead>
+                                                        <tr className="text-slate-500 text-left border-b border-slate-800/60">
+                                                            <th className="pb-2 pr-4 font-semibold">Data</th>
+                                                            <th className="pb-2 pr-4 font-semibold">KM Percorridos</th>
+                                                            <th className="pb-2 pr-4 font-semibold">Litros</th>
+                                                            <th className="pb-2 pr-4 font-semibold">Consumo</th>
+                                                            <th className="pb-2 pr-4 font-semibold">Custo</th>
+                                                            <th className="pb-2 pr-4 font-semibold">€/km</th>
+                                                            <th className="pb-2 font-semibold">Estado</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        {v.segmentos.slice(-20).reverse().map(s => (
+                                                            <tr key={s.transactionId} className={`border-b border-slate-900/60 hover:bg-white/2 transition-colors ${s.isAnormal ? 'bg-amber-500/5' : ''}`}>
+                                                                <td className="py-2 pr-4 text-slate-300">{new Date(s.timestamp).toLocaleDateString('pt-PT')}</td>
+                                                                <td className="py-2 pr-4 text-slate-300">{s.kmPercorridos.toLocaleString('pt-PT')} km</td>
+                                                                <td className="py-2 pr-4 text-slate-300">{fmt(s.liters)} L</td>
+                                                                <td className={`py-2 pr-4 font-bold ${s.isAnormal ? 'text-amber-400' : 'text-white'}`}>
+                                                                    {s.isAnormal && '⚠ '}{fmt(s.consumo)} L/100km
+                                                                </td>
+                                                                <td className="py-2 pr-4 text-slate-300">{fmtEur(s.custo)}</td>
+                                                                <td className="py-2 pr-4 text-cyan-400 font-bold">{fmt(s.custoKm, 3)} €</td>
+                                                                <td className="py-2">
+                                                                    {s.isAnormal
+                                                                        ? <span className="text-amber-400 text-[10px] bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">Anormal</span>
+                                                                        : <span className="text-emerald-400 text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">Normal</span>
+                                                                    }
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    )}
-                </div>
-            )}
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
 
-            {/* ── TAB: MOTORISTAS ── */}
-            {activeTab === 'motoristas' && (
-                <div className="space-y-3">
-                    {driverStats.length === 0 ? (
-                        <EmptyState message="Sem dados de motoristas nos abastecimentos. Verifique se os abastecimentos têm motoristas associados." />
-                    ) : (
-                        driverStats.map((d, idx) => (
-                            <div key={d.driverId} className={`bg-slate-900/60 border rounded-xl overflow-hidden transition-all hover:border-slate-600/60
+                {/* ── TAB: MOTORISTAS ── */}
+                {activeTab === 'motoristas' && (
+                    <div className="space-y-3">
+                        {driverStats.length === 0 ? (
+                            <EmptyState message="Sem dados de motoristas nos abastecimentos. Verifique se os abastecimentos têm motoristas associados." />
+                        ) : (
+                            driverStats.map((d, idx) => (
+                                <div key={d.driverId} className={`bg-slate-900/60 border rounded-xl overflow-hidden transition-all hover:border-slate-600/60
                                 ${d.alerta === 'critico' ? 'border-red-500/40' : d.alerta === 'alto' ? 'border-amber-500/30' : 'border-slate-800/60'}`}>
-                                <button
-                                    className="w-full flex items-center gap-4 p-4 hover:bg-white/2 transition-colors text-left"
-                                    onClick={() => setExpandedDriver(expandedDriver === d.driverId ? null : d.driverId)}
-                                >
-                                    {/* Rank badge */}
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0
+                                    <button
+                                        className="w-full flex items-center gap-4 p-4 hover:bg-white/2 transition-colors text-left"
+                                        onClick={() => setExpandedDriver(expandedDriver === d.driverId ? null : d.driverId)}
+                                    >
+                                        {/* Rank badge */}
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0
                                         ${idx === 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                                            idx === driverStats.length - 1 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                                                'bg-slate-800 text-slate-400 border border-slate-700'}`}>
-                                        {idx === driverStats.length - 1 ? <Award className="w-5 h-5" /> : idx + 1}
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-bold text-white">{d.nome}</span>
-                                            <AlertBadge level={d.alerta} />
+                                                idx === driverStats.length - 1 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                                    'bg-slate-800 text-slate-400 border border-slate-700'}`}>
+                                            {idx === driverStats.length - 1 ? <Award className="w-5 h-5" /> : idx + 1}
                                         </div>
-                                        <p className="text-slate-500 text-xs mt-0.5">
-                                            {d.abastecimentos} abastecimentos · {d.veiculosUsados.length} viatura{d.veiculosUsados.length !== 1 ? 's' : ''}
-                                        </p>
-                                    </div>
 
-                                    <div className="hidden md:flex items-center gap-6">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-bold text-white">{d.nome}</span>
+                                                <AlertBadge level={d.alerta} />
+                                            </div>
+                                            <p className="text-slate-500 text-xs mt-0.5">
+                                                {d.abastecimentos} abastecimentos · {d.veiculosUsados.length} viatura{d.veiculosUsados.length !== 1 ? 's' : ''}
+                                            </p>
+                                        </div>
+
+                                        <div className="hidden md:flex items-center gap-6">
+                                            <div className="text-center">
+                                                <p className="text-slate-300 text-sm font-bold">{d.kmConduzidos.toLocaleString('pt-PT')} km</p>
+                                                <p className="text-slate-500 text-[10px]">KM conduzidos</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className={`text-sm font-black ${d.alerta !== 'normal' ? 'text-amber-400' : 'text-white'}`}>{fmt(d.consumoMedio)} L</p>
+                                                <p className="text-slate-500 text-[10px]">L/100km</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-sm font-black text-cyan-400">{fmt(d.custoKmMedio, 3)} €</p>
+                                                <p className="text-slate-500 text-[10px]">€/km médio</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-sm font-black text-white">{fmtEur(d.custoTotal)}</p>
+                                                <p className="text-slate-500 text-[10px]">Custo Total</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-slate-500">
+                                            {expandedDriver === d.driverId ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                        </div>
+                                    </button>
+
+                                    {/* Mobile */}
+                                    <div className="md:hidden grid grid-cols-3 gap-2 px-4 pb-3">
                                         <div className="text-center">
-                                            <p className="text-slate-300 text-sm font-bold">{d.kmConduzidos.toLocaleString('pt-PT')} km</p>
-                                            <p className="text-slate-500 text-[10px]">KM conduzidos</p>
+                                            <p className="text-xs font-bold text-white">{d.kmConduzidos.toLocaleString('pt-PT')}</p>
+                                            <p className="text-slate-500 text-[10px]">km</p>
                                         </div>
                                         <div className="text-center">
-                                            <p className={`text-sm font-black ${d.alerta !== 'normal' ? 'text-amber-400' : 'text-white'}`}>{fmt(d.consumoMedio)} L</p>
+                                            <p className={`text-xs font-bold ${d.alerta !== 'normal' ? 'text-amber-400' : 'text-white'}`}>{fmt(d.consumoMedio)}</p>
                                             <p className="text-slate-500 text-[10px]">L/100km</p>
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-sm font-black text-cyan-400">{fmt(d.custoKmMedio, 3)} €</p>
-                                            <p className="text-slate-500 text-[10px]">€/km médio</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-sm font-black text-white">{fmtEur(d.custoTotal)}</p>
-                                            <p className="text-slate-500 text-[10px]">Custo Total</p>
+                                            <p className="text-xs font-bold text-cyan-400">{fmt(d.custoKmMedio, 3)} €</p>
+                                            <p className="text-slate-500 text-[10px]">€/km</p>
                                         </div>
                                     </div>
 
-                                    <div className="text-slate-500">
-                                        {expandedDriver === d.driverId ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                    </div>
-                                </button>
-
-                                {/* Mobile */}
-                                <div className="md:hidden grid grid-cols-3 gap-2 px-4 pb-3">
-                                    <div className="text-center">
-                                        <p className="text-xs font-bold text-white">{d.kmConduzidos.toLocaleString('pt-PT')}</p>
-                                        <p className="text-slate-500 text-[10px]">km</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className={`text-xs font-bold ${d.alerta !== 'normal' ? 'text-amber-400' : 'text-white'}`}>{fmt(d.consumoMedio)}</p>
-                                        <p className="text-slate-500 text-[10px]">L/100km</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-xs font-bold text-cyan-400">{fmt(d.custoKmMedio, 3)} €</p>
-                                        <p className="text-slate-500 text-[10px]">€/km</p>
-                                    </div>
-                                </div>
-
-                                {/* Expanded: consumption bar */}
-                                {expandedDriver === d.driverId && (
-                                    <div className="border-t border-slate-800/60 bg-slate-950/40 p-4 space-y-3">
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                            {[
-                                                { label: 'KM Conduzidos', value: `${d.kmConduzidos.toLocaleString('pt-PT')} km` },
-                                                { label: 'Consumo Médio', value: `${fmt(d.consumoMedio)} L/100km` },
-                                                { label: 'Custo Total', value: fmtEur(d.custoTotal) },
-                                                { label: '€/km Médio', value: `${fmt(d.custoKmMedio, 3)} €/km` },
-                                            ].map(item => (
-                                                <div key={item.label} className="bg-slate-900/60 rounded-lg p-3 border border-slate-800/60">
-                                                    <p className="text-white font-bold">{item.value}</p>
-                                                    <p className="text-slate-500 text-xs">{item.label}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Viaturas utilizadas</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {d.veiculosUsados.map(vid => (
-                                                    <span key={vid} className="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-2 py-1 rounded-lg">{vid}</span>
+                                    {/* Expanded: consumption bar */}
+                                    {expandedDriver === d.driverId && (
+                                        <div className="border-t border-slate-800/60 bg-slate-950/40 p-4 space-y-3">
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                {[
+                                                    { label: 'KM Conduzidos', value: `${d.kmConduzidos.toLocaleString('pt-PT')} km` },
+                                                    { label: 'Consumo Médio', value: `${fmt(d.consumoMedio)} L/100km` },
+                                                    { label: 'Custo Total', value: fmtEur(d.custoTotal) },
+                                                    { label: '€/km Médio', value: `${fmt(d.custoKmMedio, 3)} €/km` },
+                                                ].map(item => (
+                                                    <div key={item.label} className="bg-slate-900/60 rounded-lg p-3 border border-slate-800/60">
+                                                        <p className="text-white font-bold">{item.value}</p>
+                                                        <p className="text-slate-500 text-xs">{item.label}</p>
+                                                    </div>
                                                 ))}
                                             </div>
+                                            <div>
+                                                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Viaturas utilizadas</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {d.veiculosUsados.map(vid => (
+                                                        <span key={vid} className="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-2 py-1 rounded-lg">{vid}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    )}
-                </div>
-            )}
-
-            {/* ── TAB: MENSAL ── */}
-            {activeTab === 'mensal' && (
-                <div className="space-y-4">
-                    {/* Month summary cards */}
-                    {latestMonth && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {[
-                                {
-                                    label: 'Custo/km Este Mês', icon: BarChart3,
-                                    value: `${fmt(latestMonth.custoKmMedio, 3)} €/km`,
-                                    detail: prevMonth ? `${monthTrend > 0 ? '+' : ''}${fmtPct(monthTrend)} vs mês anterior` : 'Primeiro mês',
-                                    color: monthTrend > 3 ? 'text-red-400' : monthTrend < -3 ? 'text-emerald-400' : 'text-cyan-400'
-                                },
-                                {
-                                    label: 'Litros Este Mês', icon: Fuel,
-                                    value: `${fmt(latestMonth.litrosTotal)} L`,
-                                    detail: `${latestMonth.abastecimentos} abastecimentos`,
-                                    color: 'text-amber-400'
-                                },
-                                {
-                                    label: 'Custo Este Mês', icon: DollarSign,
-                                    value: fmtEur(latestMonth.custoTotal),
-                                    detail: `${latestMonth.kmTotal.toLocaleString('pt-PT')} km`,
-                                    color: 'text-emerald-400'
-                                },
-                                {
-                                    label: 'Tendência', icon: monthTrend > 3 ? TrendingUp : monthTrend < -3 ? TrendingDown : Activity,
-                                    value: monthTrend > 3 ? 'A subir ↑' : monthTrend < -3 ? 'A descer ↓' : 'Estável →',
-                                    detail: prevMonth ? `${prevMonth.label}: ${fmt(prevMonth.custoKmMedio, 3)} €/km` : '-',
-                                    color: monthTrend > 3 ? 'text-red-400' : monthTrend < -3 ? 'text-emerald-400' : 'text-slate-400'
-                                },
-                            ].map(card => (
-                                <div key={card.label} className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <card.icon className={`w-4 h-4 ${card.color}`} />
-                                        <p className="text-slate-500 text-xs">{card.label}</p>
-                                    </div>
-                                    <p className={`text-xl font-black ${card.color}`}>{card.value}</p>
-                                    <p className="text-slate-500 text-[10px] mt-1">{card.detail}</p>
+                                    )}
                                 </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Bar chart */}
-                    <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <p className="text-white font-bold">Evolução Custo/km da Frota</p>
-                                <p className="text-slate-500 text-xs">€/km médio por mês · últimos 12 meses</p>
-                            </div>
-                            <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block" />A descer</span>
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500 inline-block" />A subir</span>
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500 inline-block" />Estável</span>
-                            </div>
-                        </div>
-                        <MiniBarChart months={monthStats} />
+                            ))
+                        )}
                     </div>
+                )}
 
-                    {/* Monthly table */}
-                    <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl overflow-hidden">
-                        <div className="p-4 border-b border-slate-800/60">
-                            <p className="text-white font-bold text-sm">Detalhe Mensal</p>
+                {/* ── TAB: MENSAL ── */}
+                {activeTab === 'mensal' && (
+                    <div className="space-y-4">
+                        {/* Month summary cards */}
+                        {latestMonth && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {[
+                                    {
+                                        label: 'Custo/km Este Mês', icon: BarChart3,
+                                        value: `${fmt(latestMonth.custoKmMedio, 3)} €/km`,
+                                        detail: prevMonth ? `${monthTrend > 0 ? '+' : ''}${fmtPct(monthTrend)} vs mês anterior` : 'Primeiro mês',
+                                        color: monthTrend > 3 ? 'text-red-400' : monthTrend < -3 ? 'text-emerald-400' : 'text-cyan-400'
+                                    },
+                                    {
+                                        label: 'Litros Este Mês', icon: Fuel,
+                                        value: `${fmt(latestMonth.litrosTotal)} L`,
+                                        detail: `${latestMonth.abastecimentos} abastecimentos`,
+                                        color: 'text-amber-400'
+                                    },
+                                    {
+                                        label: 'Custo Este Mês', icon: DollarSign,
+                                        value: fmtEur(latestMonth.custoTotal),
+                                        detail: `${latestMonth.kmTotal.toLocaleString('pt-PT')} km`,
+                                        color: 'text-emerald-400'
+                                    },
+                                    {
+                                        label: 'Tendência', icon: monthTrend > 3 ? TrendingUp : monthTrend < -3 ? TrendingDown : Activity,
+                                        value: monthTrend > 3 ? 'A subir ↑' : monthTrend < -3 ? 'A descer ↓' : 'Estável →',
+                                        detail: prevMonth ? `${prevMonth.label}: ${fmt(prevMonth.custoKmMedio, 3)} €/km` : '-',
+                                        color: monthTrend > 3 ? 'text-red-400' : monthTrend < -3 ? 'text-emerald-400' : 'text-slate-400'
+                                    },
+                                ].map(card => (
+                                    <div key={card.label} className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <card.icon className={`w-4 h-4 ${card.color}`} />
+                                            <p className="text-slate-500 text-xs">{card.label}</p>
+                                        </div>
+                                        <p className={`text-xl font-black ${card.color}`}>{card.value}</p>
+                                        <p className="text-slate-500 text-[10px] mt-1">{card.detail}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Bar chart */}
+                        <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <p className="text-white font-bold">Evolução Custo/km da Frota</p>
+                                    <p className="text-slate-500 text-xs">€/km médio por mês · últimos 12 meses</p>
+                                </div>
+                                <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block" />A descer</span>
+                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500 inline-block" />A subir</span>
+                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500 inline-block" />Estável</span>
+                                </div>
+                            </div>
+                            <MiniBarChart months={monthStats} />
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                                <thead>
-                                    <tr className="text-slate-500 bg-slate-950/40 text-left">
-                                        {['Mês', 'KM Total', 'Litros', 'Custo Total', '€/km Médio', 'Abastecimentos', 'Tendência'].map(h => (
-                                            <th key={h} className="px-4 py-3 font-semibold">{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {[...monthStats].reverse().map(m => (
-                                        <tr key={m.mes} className="border-t border-slate-800/40 hover:bg-white/2 transition-colors">
-                                            <td className="px-4 py-3 text-white font-bold">{m.label.toUpperCase()}</td>
-                                            <td className="px-4 py-3 text-slate-300">{m.kmTotal.toLocaleString('pt-PT')} km</td>
-                                            <td className="px-4 py-3 text-slate-300">{fmt(m.litrosTotal)} L</td>
-                                            <td className="px-4 py-3 text-emerald-400 font-bold">{fmtEur(m.custoTotal)}</td>
-                                            <td className="px-4 py-3 text-cyan-400 font-black">{fmt(m.custoKmMedio, 3)} €/km</td>
-                                            <td className="px-4 py-3 text-slate-300">{m.abastecimentos}</td>
-                                            <td className="px-4 py-3"><TrendIcon dir={m.tendencia} /></td>
+
+                        {/* Monthly table */}
+                        <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl overflow-hidden">
+                            <div className="p-4 border-b border-slate-800/60">
+                                <p className="text-white font-bold text-sm">Detalhe Mensal</p>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                    <thead>
+                                        <tr className="text-slate-500 bg-slate-950/40 text-left">
+                                            {['Mês', 'KM Total', 'Litros', 'Custo Total', '€/km Médio', 'Abastecimentos', 'Tendência'].map(h => (
+                                                <th key={h} className="px-4 py-3 font-semibold">{h}</th>
+                                            ))}
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {[...monthStats].reverse().map(m => (
+                                            <tr key={m.mes} className="border-t border-slate-800/40 hover:bg-white/2 transition-colors">
+                                                <td className="px-4 py-3 text-white font-bold">{m.label.toUpperCase()}</td>
+                                                <td className="px-4 py-3 text-slate-300">{m.kmTotal.toLocaleString('pt-PT')} km</td>
+                                                <td className="px-4 py-3 text-slate-300">{fmt(m.litrosTotal)} L</td>
+                                                <td className="px-4 py-3 text-emerald-400 font-bold">{fmtEur(m.custoTotal)}</td>
+                                                <td className="px-4 py-3 text-cyan-400 font-black">{fmt(m.custoKmMedio, 3)} €/km</td>
+                                                <td className="px-4 py-3 text-slate-300">{m.abastecimentos}</td>
+                                                <td className="px-4 py-3"><TrendIcon dir={m.tendencia} /></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* ── FOOTER INFO ── */}
-            <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-900/30 rounded-lg p-3 border border-slate-800/40">
-                <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                <p>Os cálculos são baseados nos abastecimentos confirmados e importados BP registados no sistema. O Score de Eficiência varia entre 0 (muito ineficiente) e 100 (excelente). Abastecimentos sem KM registados não são incluídos nos cálculos de consumo.</p>
+                {/* ── FOOTER INFO ── */}
+                <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-900/30 rounded-lg p-3 border border-slate-800/40">
+                    <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <p>Os cálculos são baseados nos abastecimentos confirmados e importados BP registados no sistema. O Score de Eficiência varia entre 0 (muito ineficiente) e 100 (excelente). Abastecimentos sem KM registados não são incluídos nos cálculos de consumo.</p>
+                </div>
             </div>
         </div>
     );
