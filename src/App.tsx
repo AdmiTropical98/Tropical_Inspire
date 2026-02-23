@@ -1,11 +1,12 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Car, MessageSquare, Menu,
-  Truck, Calendar, Fuel, Clock, Wallet, Building2, Briefcase, Shield,
+  Truck, Calendar, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Award, LayoutTemplate,
   ChevronDown, ChevronRight, UserCheck, Activity,
   Gauge, Settings2, UserCog as UserCogIcon, User as UserIcon, LogOut,
-  ClipboardCheck, Navigation, AlertTriangle
+  Navigation, AlertTriangle
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -157,66 +158,24 @@ function App() {
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const savedTab = localStorage.getItem('activeTab');
-    if (savedTab) {
-      setActiveTab(savedTab);
-    }
-  }, []);
+  // Derive activeTab from current path
+  const activeTab = location.pathname.split('/')[1] || 'dashboard';
 
   const handleNavigate = (tab: string) => {
-    setActiveTab(tab);
-    localStorage.setItem('activeTab', tab);
+    navigate(`/${tab}`);
     setIsMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const showOpsGroup = hasAccess(userRole, 'escalas') || hasAccess(userRole, 'roteirizacao') || hasAccess(userRole, 'locais');
-  const showTechGroup = hasAccess(userRole, 'viaturas') || userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN' || userRole === 'GESTOR' || (userRole as any) === 'gestor';
-  const showFinGroup = hasAccess(userRole, 'contabilidade') || hasAccess(userRole, 'centros_custos') || hasAccess(userRole, 'fornecedores') || hasAccess(userRole, 'clientes') || hasAccess(userRole, 'relatorios');
-
   if (!isAuthenticated) {
-    if (activeTab === 'reset-password') return <ResetPassword />;
+    if (location.pathname === '/reset-password') return <ResetPassword />;
     return <Login />;
   }
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard': return <Dashboard setActiveTab={handleNavigate} />;
-      case 'alerts': return <AlertsPage />;
-      case 'backoffice': return <Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>;
-      case 'viaturas': return <Viaturas />;
-      case 'motoristas': return <Drivers />;
-      case 'requisicoes': return <Requisicoes />;
-      case 'escalas': return <Escalas />;
-      case 'escalas-history': return <EscalasHistory />;
-      case 'horas': return <Horas />;
-      case 'combustivel': return <FuelManager />;
-      case 'utilizadores': return <UserManagementTab />;
-      case 'gestores': return <GestoresTab />;
-      case 'equipa-oficina': return <EquipaOficinaTab />;
-      case 'meu-perfil': return <Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>;
-      case 'permissoes': return <PermissoesTab />;
-      case 'roteirizacao': return <RoteirizacaoTab />;
-      case 'geofences': return <GeofencesTab />;
-      case 'locais': return <LocaisTab />;
-      case 'avaliacao-drivers': return <AvaliacaoDriversTab />;
-      case 'contabilidade': return <ContabilidadeTab />;
-      case 'lancar-escalas': return <LancarEscalaTab />;
-      case 'controlo-operacional': return <ControloOperacionalTab />;
-      case 'mensagens': return <Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>;
-      case 'central-motorista': return <Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>;
-      case 'supervisores': return <Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>;
-      case 'centros-custos': return <Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>;
-      case 'clientes': return <Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>;
-      case 'relatorios': return <Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>;
-      default: return <Dashboard setActiveTab={handleNavigate} />;
-    }
-  };
 
   return (
     <div className="flex min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
@@ -376,7 +335,38 @@ function App() {
               <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
             </div>
           }>
-            {renderContent()}
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
+              <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
+              <Route path="/viaturas" element={<Viaturas />} />
+              <Route path="/motoristas" element={<Drivers />} />
+              <Route path="/requisicoes" element={<Requisicoes />} />
+              <Route path="/escalas" element={<Escalas />} />
+              <Route path="/escalas-history" element={<EscalasHistory />} />
+              <Route path="/horas" element={<Horas />} />
+              <Route path="/combustivel" element={<FuelManager />} />
+              <Route path="/utilizadores" element={<UserManagementTab />} />
+              <Route path="/gestores" element={<GestoresTab />} />
+              <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
+              <Route path="/meu-perfil" element={<Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>} />
+              <Route path="/permissoes" element={<PermissoesTab />} />
+              <Route path="/roteirizacao" element={<RoteirizacaoTab />} />
+              <Route path="/geofences" element={<GeofencesTab />} />
+              <Route path="/locais" element={<LocaisTab />} />
+              <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
+              <Route path="/contabilidade" element={<ContabilidadeTab />} />
+              <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
+              <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
+              <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
+              <Route path="/central-motorista" element={<Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>} />
+              <Route path="/supervisores" element={<Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>} />
+              <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
+              <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
+              <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
           </Suspense>
         </div>
       </main>
