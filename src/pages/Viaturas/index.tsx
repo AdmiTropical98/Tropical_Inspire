@@ -133,7 +133,7 @@ export default function Viaturas() {
                                     {stats.total}
                                 </span>
                             </h1>
-                            <p className="text-slate-400 text-lg font-medium max-w-2xl">
+                            <p className="text-slate-400 text-lg font-medium">
                                 {t('subtitle.vehicles')}
                             </p>
                         </div>

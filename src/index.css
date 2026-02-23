@@ -54,6 +54,29 @@
   min-height: 0; /* allow flex children to shrink and enable inner scrolling */
 }
 
+/* Enforce full-width dashboard layout: neutralize Tailwind max-width and centering utilities
+   so pages expand to available space. These use !important to override utility classes. */
+.app-layout [class*="max-w-"] {
+  max-width: none !important;
+}
+.app-layout .container,
+.app-layout [class*="container"] {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+.app-layout [class*="mx-auto"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Main content padding per design: 24px (py) and 32px (px) */
+.main-content {
+  padding: 24px 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 @layer components {
 
   /* Glassmorphism Utilities - Light Theme Optimized */
