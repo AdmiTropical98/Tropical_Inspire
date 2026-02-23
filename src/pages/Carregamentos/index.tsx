@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { parseNumber } from '../../utils/number';
 import ImportPreviewModal, { type ImportRow } from '../../components/ImportPreviewModal';
+import PageHeader from '../../components/common/PageHeader';
 
 export default function Carregamentos() {
     const { viaturas, motoristas, centrosCustos } = useWorkshop();
@@ -383,33 +384,61 @@ export default function Carregamentos() {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-900/90 to-slate-800/90 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative">
-                    <h1 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight">
-                        <div className="p-3 bg-blue-500/20 rounded-xl border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-                            <BatteryCharging className="w-8 h-8 text-blue-400" />
-                        </div>
-                        Carregamentos Elétricos
-                    </h1>
-                    <p className="text-slate-400 mt-2 text-lg font-light">Gestão de consumos e custos de energia</p>
+            <PageHeader
+                title="Carregamentos Elétricos"
+                subtitle="Gestão de consumos e custos de energia"
+                icon={BatteryCharging}
+                actions={
+                    <div className="flex gap-3 relative z-10">
+                        <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                        <button
+                            onClick={handleDownloadTemplate}
+                            className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 px-5 py-3 rounded-xl font-medium transition-all border border-slate-700 hover:border-slate-600 shadow-lg"
+                        >
+                            <TrendingUp className="w-4 h-4 rotate-180" />
+                            <span className="hidden sm:inline">Template</span>
+                        </button>
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={importing}
+                            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_20px_rgba(37,99,235,0.2)] hover:shadow-[0_4px_25px_rgba(37,99,235,0.4)] disabled:opacity-50 hover:-translate-y-0.5"
+                        >
+                            {importing ? <span className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></span> : <TrendingUp className="w-4 h-4" />}
+                            <span className="hidden sm:inline">Importar Excel</span>
+                        </button>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_20px_rgba(37,99,235,0.2)] hover:shadow-[0_4px_25px_rgba(37,99,235,0.4)] active:scale-95 hover:-translate-y-0.5"
+                        >
+                            <Plus className="w-5 h-5" />
+                            <span className="hidden sm:inline">Novo Registo</span>
+                        </button>
+                    </div>
+                }
+            >
+                <div className="flex flex-col md:flex-row gap-4 w-full max-w-2xl">
+                    <div className="relative flex-1 group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors h-5 w-5" />
+                        <input
+                            type="text"
+                            placeholder="Pesquisar por estação ou viatura..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                        />
+                    </div>
+                    <select
+                        value={filterVehicle}
+                        onChange={(e) => setFilterVehicle(e.target.value)}
+                        className="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                    >
+                        <option value="all">Todas as Viaturas</option>
+                        {viaturas.map(v => (
+                            <option key={v.id} value={v.id}>{v.matricula} ({v.modelo})</option>
+                        ))}
+                    </select>
                 </div>
-
-                <div className="flex gap-3 relative z-10">
-                    <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-                    <button onClick={handleDownloadTemplate} className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 px-5 py-3 rounded-xl font-medium transition-all border border-slate-700 hover:border-slate-600 shadow-lg">
-                        <TrendingUp className="w-4 h-4 rotate-180" /> <span className="hidden sm:inline">Template</span>
-                    </button>
-                    <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_20px_rgba(37,99,235,0.2)] hover:shadow-[0_4px_25px_rgba(37,99,235,0.4)] disabled:opacity-50 hover:-translate-y-0.5">
-                        {importing ? <span className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></span> : <Truck className="w-5 h-5" />}
-                        <span className="hidden sm:inline">Importar</span>
-                    </button>
-                    <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.4)] active:scale-95 hover:-translate-y-0.5">
-                        <Plus className="w-5 h-5" /> <span className="hidden sm:inline">Novo Registo</span>
-                    </button>
-                </div>
-            </div>
+            </PageHeader>
 
             {/* Debug Error Display */}
             {lastError && (

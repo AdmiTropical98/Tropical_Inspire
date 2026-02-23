@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Plus, Search, Trash2, MapPin, Phone, Mail, Building2 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import PageHeader from '../../components/common/PageHeader';
+import { Building2 as BuildingIcon } from 'lucide-react';
 import type { Fornecedor } from '../../types';
 
 export default function Fornecedores() {
@@ -35,30 +37,35 @@ export default function Fornecedores() {
     );
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-8">
-            {/* Toolbar */}
-            <div className="p-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-900/30 rounded-t-3xl">
-                <div className="relative">
+        <div className="space-y-8">
+            <PageHeader
+                title={t('suppliers.title') || 'Fornecedores'}
+                subtitle={t('suppliers.subtitle') || 'Gestão de parceiros e fornecedores de serviços.'}
+                icon={BuildingIcon}
+                actions={
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors shadow-lg shadow-blue-900/20"
+                    >
+                        <Plus className="h-4 w-4" />
+                        {t('suppliers.new')}
+                    </button>
+                }
+            >
+                <div className="relative max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 h-4 w-4" />
                     <input
                         type="text"
                         placeholder={t('suppliers.search')}
-                        className="pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-64 text-sm text-slate-200 placeholder-slate-500 transition-all"
+                        className="pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full text-sm text-slate-200 placeholder-slate-500 transition-all"
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
                     />
                 </div>
-                <button
-                    onClick={() => setShowForm(true)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors shadow-lg shadow-blue-900/20"
-                >
-                    <Plus className="h-4 w-4" />
-                    {t('suppliers.new')}
-                </button>
-            </div>
+            </PageHeader>
 
-            {/* Content */}
-            <div className="p-6 overflow-y-auto custom-scrollbar">
+            {/* Content Container */}
+            <div className="animate-in fade-in duration-500">
                 {showForm ? (
                     <div className="max-w-2xl mx-auto bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
                         <h2 className="text-lg font-bold mb-6 text-white flex items-center gap-2">

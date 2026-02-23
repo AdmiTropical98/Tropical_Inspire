@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import PageHeader from '../../components/common/PageHeader';
 import {
     Gauge, Car, Users, Calendar, TrendingUp, TrendingDown,
     AlertTriangle, CheckCircle, XCircle, Fuel, DollarSign,
@@ -405,66 +406,58 @@ export default function EficienciaFrota() {
         : 0;
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 p-4 md:p-6 space-y-6">
-
-            {/* ── HEADER ── */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-600/30 to-indigo-600/30 border border-blue-500/20">
-                            <Gauge className="w-6 h-6 text-blue-400" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-black text-white tracking-tight">Eficiência da Frota</h1>
-                            <p className="text-slate-400 text-sm">Custo operacional por quilómetro · Análise automática</p>
-                        </div>
+        <div className="space-y-6 animate-in fade-in duration-500">
+            <PageHeader
+                title="Eficiência da Frota"
+                subtitle="Custo operacional por quilómetro · Análise automática"
+                icon={Gauge}
+                actions={
+                    <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50">
+                        <Activity className="w-3.5 h-3.5 text-blue-400" />
+                        <span>{segments.length} segmentos analisados</span>
                     </div>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50">
-                    <Activity className="w-3.5 h-3.5 text-blue-400" />
-                    <span>{segments.length} segmentos analisados de {fuelTransactions.filter(t => t.status === 'confirmed' || t.isExternal).length} abastecimentos</span>
-                </div>
-            </div>
-
-            {/* ── FLEET KPI CARDS ── */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {[
-                    {
-                        label: 'KM Totais', value: `${(totalKm).toLocaleString('pt-PT')} km`,
-                        icon: Car, color: 'from-blue-600/20 to-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400'
-                    },
-                    {
-                        label: 'Litros Consumidos', value: `${totalLitros.toFixed(0)} L`,
-                        icon: Fuel, color: 'from-amber-600/20 to-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400'
-                    },
-                    {
-                        label: 'Custo Total', value: fmtEur(totalCusto),
-                        icon: DollarSign, color: 'from-emerald-600/20 to-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400'
-                    },
-                    {
-                        label: 'Consumo Médio', value: `${fmt(globalConsumoMedio)} L/100km`,
-                        icon: Gauge, color: 'from-purple-600/20 to-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400'
-                    },
-                    {
-                        label: 'Custo/km Médio', value: `${fmt(globalCustoKm, 3)} €/km`,
-                        icon: BarChart3, color: 'from-cyan-600/20 to-cyan-500/10', border: 'border-cyan-500/20', text: 'text-cyan-400'
-                    },
-                    {
-                        label: 'Alertas Activos', value: `${criticalVehicles} viaturas`,
-                        detail: `${anomalousCount} abastecimentos anormais`,
-                        icon: AlertTriangle, color: 'from-red-600/20 to-red-500/10', border: 'border-red-500/20', text: criticalVehicles > 0 ? 'text-red-400' : 'text-slate-500'
-                    },
-                ].map(kpi => (
-                    <div key={kpi.label} className={`bg-gradient-to-br ${kpi.color} border ${kpi.border} rounded-xl p-4 backdrop-blur-sm hover:brightness-110 transition-all duration-200`}>
-                        <div className="flex items-center justify-between mb-2">
-                            <kpi.icon className={`w-4 h-4 ${kpi.text}`} />
+                }
+            >
+                {/* ── FLEET KPI CARDS ── */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+                    {[
+                        {
+                            label: 'KM Totais', value: `${(totalKm).toLocaleString('pt-PT')} km`,
+                            icon: Car, color: 'from-blue-600/20 to-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400'
+                        },
+                        {
+                            label: 'Litros Consumidos', value: `${totalLitros.toFixed(0)} L`,
+                            icon: Fuel, color: 'from-amber-600/20 to-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400'
+                        },
+                        {
+                            label: 'Custo Total', value: fmtEur(totalCusto),
+                            icon: DollarSign, color: 'from-emerald-600/20 to-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400'
+                        },
+                        {
+                            label: 'Consumo Médio', value: `${fmt(globalConsumoMedio)} L/100km`,
+                            icon: Gauge, color: 'from-purple-600/20 to-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400'
+                        },
+                        {
+                            label: 'Custo/km Médio', value: `${fmt(globalCustoKm, 3)} €/km`,
+                            icon: BarChart3, color: 'from-cyan-600/20 to-cyan-500/10', border: 'border-cyan-500/20', text: 'text-cyan-400'
+                        },
+                        {
+                            label: 'Alertas Activos', value: `${criticalVehicles} viaturas`,
+                            detail: `${anomalousCount} abastecimentos anormais`,
+                            icon: AlertTriangle, color: 'from-red-600/20 to-red-500/10', border: 'border-red-500/20', text: criticalVehicles > 0 ? 'text-red-400' : 'text-slate-500'
+                        },
+                    ].map(kpi => (
+                        <div key={kpi.label} className={`bg-gradient-to-br ${kpi.color} border ${kpi.border} rounded-xl p-4 backdrop-blur-sm hover:brightness-110 transition-all duration-200`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <kpi.icon className={`w-4 h-4 ${kpi.text}`} />
+                            </div>
+                            <p className={`text-lg font-black ${kpi.text} leading-tight`}>{kpi.value}</p>
+                            <p className="text-slate-500 text-[10px] mt-0.5 font-medium">{kpi.label}</p>
+                            {kpi.detail && <p className="text-slate-600 text-[9px] mt-0.5">{kpi.detail}</p>}
                         </div>
-                        <p className={`text-lg font-black ${kpi.text} leading-tight`}>{kpi.value}</p>
-                        <p className="text-slate-500 text-[10px] mt-0.5 font-medium">{kpi.label}</p>
-                        {kpi.detail && <p className="text-slate-600 text-[9px] mt-0.5">{kpi.detail}</p>}
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            </PageHeader>
 
             {/* ── ANOMALY BANNER ── */}
             {anomalousCount > 0 && (

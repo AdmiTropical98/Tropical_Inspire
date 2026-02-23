@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import PageHeader from '../../components/common/PageHeader';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
 import {
@@ -267,34 +268,34 @@ export default function CentrosCustos() {
 
     /* ════════════════════════════════ RENDER ════════════════════════ */
     return (
-        <div className="space-y-8 bg-[#020617]">
+        <div className="space-y-8 animate-in fade-in duration-500">
 
-            {/* ── HEADER ── */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-4xl font-black bg-gradient-to-r from-white via-blue-200 to-slate-500 bg-clip-text text-transparent tracking-tight">Centros de Custos</h1>
-                    <p className="text-slate-400 mt-1 font-medium text-sm">Análise operacional por unidade · variação automática vs período anterior</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {/* Period filter */}
-                    <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1">
-                        <Filter className="w-3.5 h-3.5 text-slate-500 ml-1.5" />
-                        {PERIODS.map(p => (
-                            <button key={p.id} onClick={() => setPeriod(p.id)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period === p.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                {p.label}
-                            </button>
-                        ))}
+            <PageHeader
+                title="Centros de Custos"
+                subtitle="Análise operacional por unidade · variação automática vs período anterior"
+                icon={Building2}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">
+                            <Plus className="w-5 h-5" /> Novo Centro
+                        </button>
+                        <button onClick={handleRepairData} disabled={isRepairing} title="Corrigir Centros"
+                            className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 disabled:opacity-50">
+                            <Wrench className={`w-5 h-5 ${isRepairing ? 'animate-spin' : ''}`} />
+                        </button>
                     </div>
-                    <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 text-sm">
-                        <Plus className="w-4 h-4" />Novo Centro
-                    </button>
-                    <button onClick={handleRepairData} disabled={isRepairing} title="Corrigir Centros"
-                        className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 disabled:opacity-50">
-                        <Wrench className={`w-4 h-4 ${isRepairing ? 'animate-spin' : ''}`} />
-                    </button>
+                }
+            >
+                <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1 w-fit mt-4">
+                    <Filter className="w-3.5 h-3.5 text-slate-500 ml-1.5" />
+                    {PERIODS.map(p => (
+                        <button key={p.id} onClick={() => setPeriod(p.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period === p.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                            {p.label}
+                        </button>
+                    ))}
                 </div>
-            </div>
+            </PageHeader>
 
             {/* ── GLOBAL KPIs ── */}
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
