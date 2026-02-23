@@ -208,7 +208,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 *,
                 supplier:fornecedores(*),
                 cost_center:centros_custos(*),
-                vehicle:viaturas(matricula, marca, modelo)
+                vehicle:viaturas(matricula, marca, modelo),
+                lines:supplier_invoice_lines(*)
             `)
             .order('issue_date', { ascending: false });
         if (data) setSupplierInvoices(data as SupplierInvoice[]);
@@ -236,7 +237,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     useEffect(() => {
         if (!invoices.length && !expenses.length && !supplierInvoices.length) return;
 
-        const getSupplierInvoiceTotal = (invoice: SupplierInvoice) => invoice.total ?? invoice.total_value ?? 0;
+        const getSupplierInvoiceTotal = (invoice: SupplierInvoice) => invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0;
 
         const totalRevenue = invoices.reduce((acc, curr) => acc + (curr.total || 0), 0);
         const totalExpensesVal = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0) + 
@@ -303,14 +304,67 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     const addSupplierInvoice = async (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
-        const { error } = await supabase.from('supplier_invoices').insert(invoice);
-        if (error) throw error;
+        const { lines = [], ...invoiceData } = invoice;
+
+        const { data: createdInvoice, error: invoiceError } = await supabase
+            .from('supplier_invoices')
+            .insert(invoiceData)
+            .select('id')
+            .single();
+
+        if (invoiceError) throw invoiceError;
+
+        if (lines.length > 0) {
+            const lineRows = lines.map(line => ({
+                supplier_invoice_id: createdInvoice.id,
+                description: line.description,
+                quantity: line.quantity,
+                net_value: line.net_value,
+                iva_rate: line.iva_rate,
+                iva_value: line.iva_value,
+                total_value: line.total_value
+            }));
+
+            const { error: linesError } = await supabase.from('supplier_invoice_lines').insert(lineRows);
+            if (linesError) {
+                await supabase.from('supplier_invoices').delete().eq('id', createdInvoice.id);
+                throw linesError;
+            }
+        }
+
         await refreshData();
     };
 
     const updateSupplierInvoice = async (id: string, updates: Partial<SupplierInvoice>) => {
-        const { error } = await supabase.from('supplier_invoices').update(updates).eq('id', id);
-        if (error) throw error;
+        const { lines, ...invoiceData } = updates;
+
+        const { error: invoiceError } = await supabase.from('supplier_invoices').update(invoiceData).eq('id', id);
+        if (invoiceError) throw invoiceError;
+
+        if (lines) {
+            const { error: deleteLinesError } = await supabase
+                .from('supplier_invoice_lines')
+                .delete()
+                .eq('supplier_invoice_id', id);
+
+            if (deleteLinesError) throw deleteLinesError;
+
+            if (lines.length > 0) {
+                const lineRows = lines.map(line => ({
+                    supplier_invoice_id: id,
+                    description: line.description,
+                    quantity: line.quantity,
+                    net_value: line.net_value,
+                    iva_rate: line.iva_rate,
+                    iva_value: line.iva_value,
+                    total_value: line.total_value
+                }));
+
+                const { error: insertLinesError } = await supabase.from('supplier_invoice_lines').insert(lineRows);
+                if (insertLinesError) throw insertLinesError;
+            }
+        }
+
         await refreshData();
     };
 

@@ -481,7 +481,7 @@ export interface SupplierInvoice {
     issue_date: string;
     due_date: string;
     base_amount: number;
-    iva_rate: 6 | 13 | 23;
+    iva_rate: 0 | 6 | 13 | 23;
     iva_value: number;
     discount: {
         type: 'amount' | 'percentage';
@@ -493,6 +493,9 @@ export interface SupplierInvoice {
         value: number;
     }[];
     total: number;
+    total_liquido: number;
+    total_iva: number;
+    total_final: number;
     net_value: number;
     vat_value: number;
     total_value: number;
@@ -508,6 +511,20 @@ export interface SupplierInvoice {
     supplier?: Fornecedor;
     cost_center?: CentroCusto;
     vehicle?: Viatura;
+    lines?: SupplierInvoiceLine[];
+}
+
+export interface SupplierInvoiceLine {
+    id?: string;
+    supplier_invoice_id?: string;
+    description: string;
+    quantity: number;
+    net_value: number;
+    iva_rate: 0 | 6 | 13 | 23;
+    iva_value: number;
+    total_value: number;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface AdminUser {

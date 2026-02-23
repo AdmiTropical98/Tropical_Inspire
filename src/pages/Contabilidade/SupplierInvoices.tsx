@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     Plus, Search, FileText, Download, Eye, Edit, Trash2,
-    CheckCircle, Calendar, Building, Car, Filter
+    CheckCircle, Filter
 } from 'lucide-react';
-import type { SupplierInvoice, Fornecedor, CentroCusto, Viatura } from '../../types';
+import type { SupplierInvoice } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
 import InvoiceForm from '../../components/InvoiceForm';
@@ -33,8 +33,8 @@ export default function SupplierInvoices() {
         dateTo: ''
     });
 
-    const getInvoiceTotal = (invoice: SupplierInvoice) => invoice.total ?? invoice.total_value ?? 0;
-    const getInvoiceBase = (invoice: SupplierInvoice) => invoice.base_amount ?? invoice.net_value ?? 0;
+    const getInvoiceTotal = (invoice: SupplierInvoice) => invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0;
+    const getInvoiceBase = (invoice: SupplierInvoice) => invoice.total_liquido ?? invoice.base_amount ?? invoice.net_value ?? 0;
 
     // Filter invoices
     const filteredInvoices = supplierInvoices.filter(invoice => {
@@ -113,7 +113,7 @@ export default function SupplierInvoices() {
             doc.setTextColor(255, 255, 255);
             doc.text('Relatório de Faturas de Fornecedor', 14, 25);
 
-            let groupedData: Record<string, SupplierInvoice[]> = {};
+            const groupedData: Record<string, SupplierInvoice[]> = {};
 
             // Group data
             filteredInvoices.forEach(invoice => {
@@ -162,7 +162,8 @@ export default function SupplierInvoices() {
                     headStyles: { fillColor: [41, 128, 185] }
                 });
 
-                yPosition = (doc as any).lastAutoTable.finalY + 15;
+                const lastAutoTable = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
+                yPosition = (lastAutoTable?.finalY || yPosition) + 15;
             });
 
             doc.save(`relatorio_faturas_${groupBy}.pdf`);

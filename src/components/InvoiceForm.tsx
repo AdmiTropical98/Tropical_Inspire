@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Upload, FileText } from 'lucide-react';
-import type { SupplierInvoice, Fornecedor, CentroCusto, Viatura } from '../types';
+import type { SupplierInvoice, SupplierInvoiceLine, Fornecedor, CentroCusto, Viatura } from '../types';
 import { supabase } from '../lib/supabase';
 import StatusBadge from './common/StatusBadge';
 
@@ -23,34 +23,48 @@ export default function InvoiceForm({
 }: InvoiceFormProps) {
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
-    const resolveIvaRate = (sourceInvoice: SupplierInvoice): 6 | 13 | 23 => {
-        if (sourceInvoice.iva_rate === 6 || sourceInvoice.iva_rate === 13 || sourceInvoice.iva_rate === 23) {
-            return sourceInvoice.iva_rate;
+    const emptyLine = (): SupplierInvoiceLine => ({
+        description: '',
+        quantity: 1,
+        net_value: 0,
+        iva_rate: 23,
+        iva_value: 0,
+        total_value: 0
+    });
+
+    const normalizeLine = useCallback((line: SupplierInvoiceLine): SupplierInvoiceLine => {
+        const netValue = round2(Math.max(line.net_value || 0, 0));
+        const ivaValue = round2(netValue * ((line.iva_rate || 0) / 100));
+        return {
+            ...line,
+            description: line.description || '',
+            quantity: line.quantity || 1,
+            net_value: netValue,
+            iva_value: ivaValue,
+            total_value: round2(netValue + ivaValue)
+        };
+    }, []);
+
+    const inferLegacyRate = useCallback((legacyInvoice: SupplierInvoice): 0 | 6 | 13 | 23 => {
+        if (legacyInvoice.iva_rate === 0 || legacyInvoice.iva_rate === 6 || legacyInvoice.iva_rate === 13 || legacyInvoice.iva_rate === 23) {
+            return legacyInvoice.iva_rate;
         }
 
-        const referenceBase = sourceInvoice.base_amount || sourceInvoice.net_value || 0;
-        const referenceIva = sourceInvoice.iva_value || sourceInvoice.vat_value || 0;
-        if (referenceBase > 0) {
-            const guessedRate = Math.round((referenceIva / referenceBase) * 100);
-            if (guessedRate === 6 || guessedRate === 13 || guessedRate === 23) {
-                return guessedRate;
-            }
-        }
+        const referenceBase = legacyInvoice.net_value || legacyInvoice.base_amount || 0;
+        const referenceIva = legacyInvoice.vat_value || legacyInvoice.iva_value || 0;
+        if (referenceBase <= 0 || referenceIva <= 0) return 0;
 
-        return 23;
-    };
+        const guessedRate = Math.round((referenceIva / referenceBase) * 100);
+        if (guessedRate === 6 || guessedRate === 13 || guessedRate === 23) return guessedRate;
+        return 0;
+    }, []);
 
     const [formData, setFormData] = useState({
         supplier_id: '',
         invoice_number: '',
         issue_date: new Date().toISOString().split('T')[0],
         due_date: '',
-        base_amount: 0,
-        iva_rate: 23 as 6 | 13 | 23,
-        discount_type: 'amount' as 'amount' | 'percentage',
-        discount_value: 0,
-        extra_expenses: [{ description: '', value: 0 }],
-        expense_type: '',
+        lines: [emptyLine()],
         cost_center_id: '',
         vehicle_id: '',
         payment_status: 'pending' as const,
@@ -63,25 +77,23 @@ export default function InvoiceForm({
 
     useEffect(() => {
         if (invoice) {
-            const discount = invoice.discount || { type: 'amount' as const, value: 0 };
-            const extraExpenses = (invoice.extra_expenses && invoice.extra_expenses.length > 0)
-                ? invoice.extra_expenses
-                : [{ description: '', value: 0 }];
+            const mappedLines = invoice.lines && invoice.lines.length > 0
+                ? invoice.lines.map(normalizeLine)
+                : [normalizeLine({
+                    description: invoice.expense_type || 'Linha principal',
+                    quantity: 1,
+                    net_value: invoice.total_liquido || invoice.net_value || invoice.base_amount || 0,
+                    iva_rate: inferLegacyRate(invoice),
+                    iva_value: invoice.total_iva || invoice.vat_value || invoice.iva_value || 0,
+                    total_value: invoice.total_final || invoice.total_value || invoice.total || 0
+                })];
 
             setFormData({
                 supplier_id: invoice.supplier_id || '',
                 invoice_number: invoice.invoice_number,
                 issue_date: invoice.issue_date,
                 due_date: invoice.due_date,
-                base_amount: invoice.base_amount || invoice.net_value || 0,
-                iva_rate: resolveIvaRate(invoice),
-                discount_type: discount.type === 'percentage' ? 'percentage' : 'amount',
-                discount_value: discount.value || 0,
-                extra_expenses: extraExpenses.map(expense => ({
-                    description: expense.description || '',
-                    value: expense.value || 0
-                })),
-                expense_type: invoice.expense_type,
+                lines: mappedLines,
                 cost_center_id: invoice.cost_center_id || '',
                 vehicle_id: invoice.vehicle_id || '',
                 payment_status: invoice.payment_status,
@@ -90,64 +102,47 @@ export default function InvoiceForm({
                 pdf_url: invoice.pdf_url || ''
             });
         }
-    }, [invoice]);
+    }, [invoice, inferLegacyRate, normalizeLine]);
 
-    // Auto-suggest cost center for fuel expenses
-    useEffect(() => {
-        if (formData.expense_type.toLowerCase().includes('fuel') ||
-            formData.expense_type.toLowerCase().includes('combustível') ||
-            formData.expense_type.toLowerCase().includes('abastecimento')) {
-            // Find a cost center that might be related to fuel
-            const fuelCostCenter = costCenters.find(cc =>
-                cc.nome.toLowerCase().includes('fuel') ||
-                cc.nome.toLowerCase().includes('combustível') ||
-                cc.nome.toLowerCase().includes('posto')
-            );
-            if (fuelCostCenter && !formData.cost_center_id) {
-                setFormData(prev => ({ ...prev, cost_center_id: fuelCostCenter.id }));
-            }
-        }
-    }, [formData.expense_type, costCenters, formData.cost_center_id]);
-
-    const discountAppliedValue = round2(
-        formData.discount_type === 'percentage'
-            ? (formData.base_amount * formData.discount_value) / 100
-            : formData.discount_value
-    );
-    const normalizedDiscountValue = Math.min(Math.max(discountAppliedValue, 0), Math.max(formData.base_amount, 0));
-    const discountedBase = round2(Math.max(formData.base_amount - normalizedDiscountValue, 0));
-    const ivaValue = round2(discountedBase * (formData.iva_rate / 100));
-    const extraExpensesTotal = round2(
-        formData.extra_expenses.reduce((sum, expense) => sum + (expense.value || 0), 0)
-    );
-    const totalValue = round2(discountedBase + extraExpensesTotal + ivaValue);
+    const calculatedLines = formData.lines.map(normalizeLine);
+    const totalLiquido = round2(calculatedLines.reduce((sum, line) => sum + line.net_value, 0));
+    const totalIva = round2(calculatedLines.reduce((sum, line) => sum + line.iva_value, 0));
+    const totalFinal = round2(totalLiquido + totalIva);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const validLines = calculatedLines.filter(line => line.description.trim() && line.net_value > 0);
+        if (!validLines.length) {
+            alert('Adicione pelo menos uma linha válida na fatura.');
+            return;
+        }
+
+        const derivedExpenseType = validLines.map(line => line.description).join(' | ').slice(0, 180) || 'Fatura Fornecedor';
+
         await onSave({
             supplier_id: formData.supplier_id,
             invoice_number: formData.invoice_number,
             issue_date: formData.issue_date,
             due_date: formData.due_date,
-            base_amount: round2(formData.base_amount),
-            iva_rate: formData.iva_rate,
-            iva_value: ivaValue,
+            base_amount: totalLiquido,
+            iva_rate: 23,
+            iva_value: totalIva,
             discount: {
-                type: formData.discount_type,
-                value: round2(formData.discount_value),
-                applied_value: normalizedDiscountValue
+                type: 'amount',
+                value: 0,
+                applied_value: 0
             },
-            extra_expenses: formData.extra_expenses
-                .filter(expense => expense.description.trim() || expense.value > 0)
-                .map(expense => ({
-                    description: expense.description.trim(),
-                    value: round2(expense.value || 0)
-                })),
-            total: totalValue,
-            net_value: discountedBase,
-            vat_value: ivaValue,
-            total_value: totalValue,
-            expense_type: formData.expense_type,
+            extra_expenses: [],
+            total: totalFinal,
+            total_liquido: totalLiquido,
+            total_iva: totalIva,
+            total_final: totalFinal,
+            net_value: totalLiquido,
+            vat_value: totalIva,
+            total_value: totalFinal,
+            lines: validLines,
+            expense_type: derivedExpenseType,
             cost_center_id: formData.cost_center_id || undefined,
             vehicle_id: formData.vehicle_id || undefined,
             payment_status: formData.payment_status,
@@ -157,33 +152,37 @@ export default function InvoiceForm({
         });
     };
 
-    const updateExtraExpense = (index: number, field: 'description' | 'value', rawValue: string) => {
+    const updateLine = (index: number, field: 'description' | 'net_value' | 'iva_rate', rawValue: string) => {
         setFormData(prev => {
-            const nextExpenses = prev.extra_expenses.map((expense, expenseIndex) => {
-                if (expenseIndex !== index) return expense;
+            const nextLines = prev.lines.map((line, lineIndex) => {
+                if (lineIndex !== index) return line;
                 return {
-                    ...expense,
-                    [field]: field === 'value' ? (parseFloat(rawValue) || 0) : rawValue
+                    ...line,
+                    [field]: field === 'description'
+                        ? rawValue
+                        : field === 'iva_rate'
+                            ? (Number(rawValue) as 0 | 6 | 13 | 23)
+                            : (parseFloat(rawValue) || 0)
                 };
             });
 
-            return { ...prev, extra_expenses: nextExpenses };
+            return { ...prev, lines: nextLines };
         });
     };
 
-    const addExtraExpenseRow = () => {
+    const addLine = () => {
         setFormData(prev => ({
             ...prev,
-            extra_expenses: [...prev.extra_expenses, { description: '', value: 0 }]
+            lines: [...prev.lines, emptyLine()]
         }));
     };
 
-    const removeExtraExpenseRow = (index: number) => {
+    const removeLine = (index: number) => {
         setFormData(prev => ({
             ...prev,
-            extra_expenses: prev.extra_expenses.length > 1
-                ? prev.extra_expenses.filter((_, expenseIndex) => expenseIndex !== index)
-                : [{ description: '', value: 0 }]
+            lines: prev.lines.length > 1
+                ? prev.lines.filter((_, lineIndex) => lineIndex !== index)
+                : [emptyLine()]
         }));
     };
 
@@ -293,175 +292,128 @@ export default function InvoiceForm({
                         </div>
                     </div>
 
-                    {/* Financial Values */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Valor Base (€) *
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={formData.base_amount}
-                                onChange={(e) => setFormData(prev => ({ ...prev, base_amount: parseFloat(e.target.value) || 0 }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Desconto
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <select
-                                    value={formData.discount_type}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        discount_type: e.target.value as 'amount' | 'percentage'
-                                    }))}
-                                    className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="amount">€</option>
-                                    <option value="percentage">%</option>
-                                </select>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={formData.discount_value}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
-                                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
-                            <p className="text-xs text-slate-400 mt-1">
-                                Aplicado: €{normalizedDiscountValue.toFixed(2)}
-                            </p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                IVA
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <select
-                                    value={formData.iva_rate}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        iva_rate: Number(e.target.value) as 6 | 13 | 23
-                                    }))}
-                                    className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value={6}>6%</option>
-                                    <option value={13}>13%</option>
-                                    <option value={23}>23%</option>
-                                </select>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={ivaValue}
-                                    readOnly
-                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                                />
-                            </div>
-                            <p className="text-xs text-slate-400 mt-1">
-                                Base após desconto: €{discountedBase.toFixed(2)}
-                            </p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Total (€)
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={totalValue}
-                                readOnly
-                                className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Extra Expenses */}
+                    {/* Invoice Lines */}
                     <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <label className="block text-sm font-medium text-slate-300">
-                                Despesas Extra
-                            </label>
+                        <div className="flex items-center justify-between mb-3">
+                            <label className="block text-sm font-medium text-slate-300">Linhas da Fatura</label>
                             <button
                                 type="button"
-                                onClick={addExtraExpenseRow}
+                                onClick={addLine}
                                 className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors"
                             >
-                                Adicionar linha
+                                + Adicionar Linha
                             </button>
                         </div>
+
                         <div className="space-y-2">
-                            {formData.extra_expenses.map((expense, index) => (
+                            <div className="grid grid-cols-12 gap-2 text-xs text-slate-400 px-1">
+                                <span className="col-span-4">Descrição</span>
+                                <span className="col-span-2">Valor Líquido (€)</span>
+                                <span className="col-span-2">IVA %</span>
+                                <span className="col-span-2">IVA (€)</span>
+                                <span className="col-span-1">Total Linha</span>
+                                <span className="col-span-1 text-right">Ação</span>
+                            </div>
+
+                            {calculatedLines.map((line, index) => (
                                 <div key={index} className="grid grid-cols-12 gap-2">
                                     <input
                                         type="text"
-                                        value={expense.description}
-                                        onChange={(e) => updateExtraExpense(index, 'description', e.target.value)}
-                                        placeholder="Descrição"
-                                        className="col-span-7 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        value={formData.lines[index]?.description || ''}
+                                        onChange={(e) => updateLine(index, 'description', e.target.value)}
+                                        placeholder="Descrição da linha"
+                                        className="col-span-4 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <input
                                         type="number"
-                                        step="0.01"
                                         min="0"
-                                        value={expense.value}
-                                        onChange={(e) => updateExtraExpense(index, 'value', e.target.value)}
-                                        placeholder="0.00"
-                                        className="col-span-4 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        step="0.01"
+                                        value={formData.lines[index]?.net_value || 0}
+                                        onChange={(e) => updateLine(index, 'net_value', e.target.value)}
+                                        className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <select
+                                        value={formData.lines[index]?.iva_rate ?? 23}
+                                        onChange={(e) => updateLine(index, 'iva_rate', e.target.value)}
+                                        className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    >
+                                        <option value={23}>23%</option>
+                                        <option value={13}>13%</option>
+                                        <option value={6}>6%</option>
+                                        <option value={0}>0%</option>
+                                    </select>
+                                    <input
+                                        type="number"
+                                        value={line.iva_value}
+                                        readOnly
+                                        className="col-span-2 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                    />
+                                    <input
+                                        type="number"
+                                        value={line.total_value}
+                                        readOnly
+                                        className="col-span-1 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => removeExtraExpenseRow(index)}
+                                        onClick={() => removeLine(index)}
                                         className="col-span-1 px-2 py-2 text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
-                                        title="Remover despesa"
+                                        title="Remover linha"
                                     >
                                         <X className="w-4 h-4 mx-auto" />
                                     </button>
                                 </div>
                             ))}
                         </div>
-                        <p className="text-xs text-slate-400 mt-2">
-                            Total despesas extra: €{extraExpensesTotal.toFixed(2)}
-                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Total Líquido (€)</label>
+                                <input
+                                    type="number"
+                                    value={totalLiquido}
+                                    readOnly
+                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Total IVA (€)</label>
+                                <input
+                                    type="number"
+                                    value={totalIva}
+                                    readOnly
+                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Total Final (€)</label>
+                                <input
+                                    type="number"
+                                    value={totalFinal}
+                                    readOnly
+                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Expense Type and Cost Center */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Tipo de Despesa *
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.expense_type}
-                                onChange={(e) => setFormData(prev => ({ ...prev, expense_type: e.target.value }))}
-                                placeholder="Ex: Combustível, Manutenção, etc."
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Centro de Custo
-                            </label>
-                            <select
-                                value={formData.cost_center_id}
-                                onChange={(e) => setFormData(prev => ({ ...prev, cost_center_id: e.target.value }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">Selecionar centro de custo</option>
-                                {costCenters.map(cc => (
-                                    <option key={cc.id} value={cc.id}>
-                                        {cc.nome}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                    {/* Cost Center */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Centro de Custo
+                        </label>
+                        <select
+                            value={formData.cost_center_id}
+                            onChange={(e) => setFormData(prev => ({ ...prev, cost_center_id: e.target.value }))}
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="">Selecionar centro de custo</option>
+                            {costCenters.map(cc => (
+                                <option key={cc.id} value={cc.id}>
+                                    {cc.nome}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Vehicle and Payment Status */}

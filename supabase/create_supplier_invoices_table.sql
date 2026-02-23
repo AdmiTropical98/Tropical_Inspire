@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS public.supplier_invoices (
     discount JSONB NOT NULL DEFAULT '{"type":"amount","value":0,"applied_value":0}'::jsonb,
     extra_expenses JSONB NOT NULL DEFAULT '[]'::jsonb,
     total NUMERIC NOT NULL DEFAULT 0,
+    total_liquido NUMERIC NOT NULL DEFAULT 0,
+    total_iva NUMERIC NOT NULL DEFAULT 0,
+    total_final NUMERIC NOT NULL DEFAULT 0,
     net_value NUMERIC NOT NULL DEFAULT 0,
     vat_value NUMERIC NOT NULL DEFAULT 0,
     total_value NUMERIC NOT NULL DEFAULT 0,
@@ -57,3 +60,35 @@ CREATE TRIGGER trigger_update_supplier_invoices_updated_at
     BEFORE UPDATE ON public.supplier_invoices
     FOR EACH ROW
     EXECUTE FUNCTION update_supplier_invoices_updated_at();
+
+CREATE TABLE IF NOT EXISTS public.supplier_invoice_lines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    supplier_invoice_id UUID NOT NULL REFERENCES public.supplier_invoices(id) ON DELETE CASCADE,
+    description TEXT NOT NULL,
+    quantity NUMERIC NOT NULL DEFAULT 1,
+    net_value NUMERIC NOT NULL DEFAULT 0,
+    iva_rate NUMERIC NOT NULL DEFAULT 23 CHECK (iva_rate IN (0, 6, 13, 23)),
+    iva_value NUMERIC NOT NULL DEFAULT 0,
+    total_value NUMERIC NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+ALTER TABLE public.supplier_invoice_lines ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public Access" ON public.supplier_invoice_lines FOR ALL USING (true) WITH CHECK (true);
+ALTER PUBLICATION supabase_realtime ADD TABLE public.supplier_invoice_lines;
+
+CREATE INDEX IF NOT EXISTS idx_supplier_invoice_lines_invoice_id ON public.supplier_invoice_lines(supplier_invoice_id);
+
+CREATE OR REPLACE FUNCTION update_supplier_invoice_lines_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_supplier_invoice_lines_updated_at
+    BEFORE UPDATE ON public.supplier_invoice_lines
+    FOR EACH ROW
+    EXECUTE FUNCTION update_supplier_invoice_lines_updated_at();
