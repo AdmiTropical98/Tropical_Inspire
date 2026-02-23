@@ -10,8 +10,8 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
-    /* Prevent body scroll, let App handle it */
+    /* Allow the document to scroll normally; main content will control scrolling */
+    overflow: auto;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
@@ -19,9 +19,7 @@
   body {
     @apply bg-slate-50 text-slate-900 antialiased selection:bg-blue-500/30;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    height: 100dvh;
-    overscroll-behavior: none;
-    /* Mobile viewport fix */
+    /* Avoid forcing a fixed viewport height which can break scrolling behavior */
   }
 
   /* Prevent Zoom on Mobile Inputs */
@@ -39,6 +37,44 @@
       height: 3px;
     }
   }
+}
+
+/* Application layout helpers - keep sidebar fixed, make main content scrollable */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden; /* prevent double document scrollbar; main area will handle vertical scroll */
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0; /* allow flex children to shrink and enable inner scrolling */
+}
+
+/* Enforce full-width dashboard layout: neutralize Tailwind max-width and centering utilities
+   so pages expand to available space. These use !important to override utility classes. */
+.app-layout [class*="max-w-"] {
+  max-width: none !important;
+}
+.app-layout .container,
+.app-layout [class*="container"] {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+.app-layout [class*="mx-auto"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Main content padding per design: 24px (py) and 32px (px) */
+.main-content {
+  padding: 24px 32px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @layer components {

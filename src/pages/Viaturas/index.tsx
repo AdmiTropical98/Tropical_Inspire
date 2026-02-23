@@ -133,7 +133,7 @@ export default function Viaturas() {
                                     {stats.total}
                                 </span>
                             </h1>
-                            <p className="text-slate-400 text-lg font-medium max-w-2xl">
+                            <p className="text-slate-400 text-lg font-medium">
                                 {t('subtitle.vehicles')}
                             </p>
                         </div>
@@ -388,7 +388,7 @@ export default function Viaturas() {
 
                         {/* VIEW: CREATE */}
                         {activeTab === 'create' && (
-                            <div className="max-w-4xl mx-auto w-full animate-in slide-in-from-bottom-8 duration-500">
+                            <div className="w-full animate-in slide-in-from-bottom-8 duration-500">
                                 <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 

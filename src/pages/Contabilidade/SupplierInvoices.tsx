@@ -13,7 +13,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function SupplierInvoices() {
-    const { fornecedores, centrosCustos, viaturas } = useWorkshop();
+    const { fornecedores, centrosCustos, viaturas, requisicoes } = useWorkshop();
     const {
         supplierInvoices,
         addSupplierInvoice,
@@ -110,7 +110,7 @@ export default function SupplierInvoices() {
             doc.setTextColor(255, 255, 255);
             doc.text('Relatório de Faturas de Fornecedor', 14, 25);
 
-            let groupedData: Record<string, SupplierInvoice[]> = {};
+            const groupedData: Record<string, SupplierInvoice[]> = {};
 
             // Group data
             filteredInvoices.forEach(invoice => {
@@ -176,6 +176,7 @@ export default function SupplierInvoices() {
                 suppliers={fornecedores}
                 costCenters={centrosCustos}
                 vehicles={viaturas}
+                requisitions={requisicoes}
                 onSave={handleSave}
                 onCancel={handleCancel}
             />

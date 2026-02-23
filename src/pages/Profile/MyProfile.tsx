@@ -117,7 +117,7 @@ export default function MyProfile() {
     if (!currentUser) return null;
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="p-6 w-full space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">

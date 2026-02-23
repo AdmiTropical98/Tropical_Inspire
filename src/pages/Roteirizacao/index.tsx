@@ -244,7 +244,7 @@ export default function Roteirizacao() {
         // 3. Repeat.
 
         const optimized = [routeStops[0]];
-        let remaining = [...routeStops.slice(1)];
+        const remaining = [...routeStops.slice(1)];
 
         let current = optimized[0];
 

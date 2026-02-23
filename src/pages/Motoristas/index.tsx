@@ -170,7 +170,7 @@ export default function Motoristas() {
     }, [motoristas, filter, statusFilter, sortBy]);
 
     return (
-        <div className="w-full max-w-[1600px] mx-auto p-6 space-y-8 fade-in">
+        <div className="w-full p-6 space-y-8 fade-in">
             {selectedDriver && (
                 <DriverProfile
                     motorista={selectedDriver}
@@ -523,7 +523,7 @@ export default function Motoristas() {
                                                             {motorista.contacto}
                                                         </span>
                                                         {motorista.email && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-700 pl-3 truncate max-w-[150px] sm:max-w-[200px]">
+                                                            <span className="flex items-center gap-1 border-l border-slate-700 pl-3 truncate">
                                                                 <Mail className="w-3 h-3 shrink-0" />
                                                                 <span className="truncate">{motorista.email}</span>
                                                             </span>

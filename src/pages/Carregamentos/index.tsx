@@ -232,7 +232,7 @@ export default function Carregamentos() {
                 if (!userId) throw new Error('Sessão expirada. Faça login novamente.');
 
                 // Process Rows for Preview
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 const processedRows: ImportRow[] = (data as any[]).map((row, index) => {
                     const errors: string[] = [];
                     const rowNum = index + 2;

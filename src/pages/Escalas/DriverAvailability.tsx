@@ -143,7 +143,7 @@ export default function DriverAvailability() {
             {/* Main Section: Availability Config */}
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                 {localDriver ? (
-                    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Driver Header */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">

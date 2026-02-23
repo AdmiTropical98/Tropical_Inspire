@@ -216,7 +216,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                 }
 
                 // 2. Handle Strings (Aggrresive parsing)
-                let str = val.toString().trim();
+                const str = val.toString().trim();
 
                 // 2a. Handle AM/PM
                 const isPM = /pm/i.test(str);
@@ -228,7 +228,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                 const match = str.match(/(\d{1,2})[:.,hH](\d{2})/);
                 if (match) {
                     let h = parseInt(match[1], 10);
-                    let m = parseInt(match[2], 10);
+                    const m = parseInt(match[2], 10);
 
                     if (isPM && h < 12) h += 12;
                     if (isAM && h === 12) h = 0;
@@ -350,7 +350,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     const setRowType = (id: string, newType: 'entrada' | 'saida') => {
         setRows(prev => prev.map(r => {
             if (r.tempId !== id) return r;
-            let changes: Partial<GridRow> = { tipo: newType };
+            const changes: Partial<GridRow> = { tipo: newType };
             return { ...r, ...changes };
         }));
     };
@@ -622,7 +622,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             {/* Top Bar: Controls */}
             <div className="bg-[#0f172a] border-b border-slate-800 p-6 shadow-xl z-20">
 
-                <div className="max-w-[1920px] mx-auto w-full flex flex-col xl:flex-row gap-6">
+                <div className="w-full flex flex-col xl:flex-row gap-6">
                     {/* Left: Inputs */}
                     <div className="flex-1">
                         <div className="flex items-center gap-6 flex-1 h-full items-end flex-wrap">
@@ -762,7 +762,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
             {/* Main Grid Area */}
             <div className="flex-1 overflow-auto p-6 custom-scrollbar bg-[url('/grid-pattern.svg')] bg-repeat opacity-[0.98]">
-                <div className="max-w-[1920px] mx-auto">
+                <div className="w-full">
 
                     <div className="bg-[#0f172a] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
 

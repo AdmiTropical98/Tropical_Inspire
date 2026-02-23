@@ -4,12 +4,53 @@ import type { SupplierInvoice, Fornecedor, CentroCusto, Viatura } from '../types
 import { supabase } from '../lib/supabase';
 import StatusBadge from './common/StatusBadge';
 
+function AddLineForm({ onAdd, defaultVat }: { onAdd: (line: any) => void; defaultVat?: number }) {
+    const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('');
+    const [quantity, setQuantity] = useState<number>(1);
+    const [unitPrice, setUnitPrice] = useState<number>(0);
+    const [discount, setDiscount] = useState<number>(0);
+    const [vatRate, setVatRate] = useState<number>(defaultVat || 0.23);
+
+    const add = () => {
+        const net = quantity * unitPrice * (1 - (discount || 0));
+        const vat = net * (vatRate || 0);
+        const lineTotal = parseFloat((net + vat).toFixed(2));
+        onAdd({ description, category, quantity, unit_price: unitPrice, discount, vat_rate: vatRate, line_total: lineTotal });
+        setDescription(''); setCategory(''); setQuantity(1); setUnitPrice(0); setDiscount(0); setVatRate(defaultVat || 0.23);
+    };
+
+    return (
+        <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Descrição" className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm" />
+                <input value={category} onChange={e => setCategory(e.target.value)} placeholder="Categoria" className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm" />
+                <input type="number" value={quantity} onChange={e => setQuantity(parseFloat(e.target.value) || 1)} className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <input type="number" step="0.01" value={unitPrice} onChange={e => setUnitPrice(parseFloat(e.target.value) || 0)} placeholder="Preço Unitário" className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm" />
+                <input type="number" step="0.01" value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)} placeholder="Desconto (0-1)" className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm" />
+                <select value={vatRate} onChange={e => setVatRate(parseFloat(e.target.value))} className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm">
+                    <option value={0.23}>23%</option>
+                    <option value={0.13}>13%</option>
+                    <option value={0.06}>6%</option>
+                    <option value={0}>Isento</option>
+                </select>
+            </div>
+            <div className="flex justify-end">
+                <button type="button" onClick={add} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg">Adicionar Linha</button>
+            </div>
+        </div>
+    );
+}
+
 interface InvoiceFormProps {
     invoice?: SupplierInvoice | null;
     suppliers: Fornecedor[];
     costCenters: CentroCusto[];
     vehicles: Viatura[];
-    onSave: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+    requisitions?: any[];
+    onSave: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'> & { linked_request_id?: string; lines?: any[] }) => Promise<void>;
     onCancel: () => void;
 }
 
@@ -18,6 +59,7 @@ export default function InvoiceForm({
     suppliers,
     costCenters,
     vehicles,
+    requisitions,
     onSave,
     onCancel
 }: InvoiceFormProps) {
@@ -37,6 +79,10 @@ export default function InvoiceForm({
         notes: '',
         pdf_url: ''
     });
+
+    const [lines, setLines] = useState<any[]>([]);
+    const [linkedRequestId, setLinkedRequestId] = useState<string | ''>('');
+    const [vatRate, setVatRate] = useState<number>(0.23);
 
     const [uploading, setUploading] = useState(false);
 
@@ -58,6 +104,9 @@ export default function InvoiceForm({
                 notes: invoice.notes || '',
                 pdf_url: invoice.pdf_url || ''
             });
+            setLinkedRequestId((invoice as any).linked_request_id || '');
+            // if invoice has lines stored, set them
+            if ((invoice as any).lines && Array.isArray((invoice as any).lines)) setLines((invoice as any).lines);
         }
     }, [invoice]);
 
@@ -79,14 +128,18 @@ export default function InvoiceForm({
     }, [formData.expense_type, costCenters, formData.cost_center_id]);
 
     // Calculate total when net or VAT changes
+    // Recalculate totals from lines
     useEffect(() => {
-        const total = formData.net_value + formData.vat_value;
-        setFormData(prev => ({ ...prev, total_value: total }));
-    }, [formData.net_value, formData.vat_value]);
+        const net = lines.reduce((sum, l) => sum + (l.quantity * l.unit_price * (1 - (l.discount || 0))), 0);
+        const vat = lines.reduce((sum, l) => sum + ((l.quantity * l.unit_price * (1 - (l.discount || 0))) * (l.vat_rate || 0)), 0);
+        const total = net + vat;
+        setFormData(prev => ({ ...prev, net_value: parseFloat(net.toFixed(2)), vat_value: parseFloat(vat.toFixed(2)), total_value: parseFloat(total.toFixed(2)) }));
+    }, [lines]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onSave(formData);
+        const payload: any = { ...formData, linked_request_id: linkedRequestId || undefined, lines };
+        await onSave(payload);
     };
 
     const handleFileUpload = async (file: File) => {
@@ -197,15 +250,15 @@ export default function InvoiceForm({
 
                     {/* Values */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
+                            <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
                                 Valor Líquido (€) *
                             </label>
                             <input
                                 type="number"
                                 step="0.01"
-                                value={formData.net_value}
-                                onChange={(e) => setFormData(prev => ({ ...prev, net_value: parseFloat(e.target.value) || 0 }))}
+                                    value={formData.net_value}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, net_value: parseFloat(e.target.value) || 0 }))}
                                 className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                             />
@@ -217,8 +270,8 @@ export default function InvoiceForm({
                             <input
                                 type="number"
                                 step="0.01"
-                                value={formData.vat_value}
-                                onChange={(e) => setFormData(prev => ({ ...prev, vat_value: parseFloat(e.target.value) || 0 }))}
+                                    value={formData.vat_value}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, vat_value: parseFloat(e.target.value) || 0 }))}
                                 className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                             />
@@ -235,6 +288,21 @@ export default function InvoiceForm({
                                 className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
                             />
                         </div>
+                    </div>
+
+                    {/* Linked Request */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Requisição Associada (opcional)</label>
+                        <select
+                            value={linkedRequestId}
+                            onChange={(e) => setLinkedRequestId(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="">Nenhuma</option>
+                            {(requisitions || []).filter((r: any) => r.status !== 'concluida').map((r: any) => (
+                                <option key={r.id} value={r.id}>{r.numero} - {r.fornecedorId}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Expense Type and Cost Center */}
@@ -340,6 +408,32 @@ export default function InvoiceForm({
                                 className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                             />
                         </div>
+                    </div>
+
+                    {/* Invoice Lines */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-slate-300">Linhas da Fatura</h3>
+                        {lines.length === 0 ? (
+                            <div className="text-slate-500 text-sm">Nenhuma linha adicionada</div>
+                        ) : (
+                            <div className="space-y-2">
+                                {lines.map((l, idx) => (
+                                    <div key={idx} className="flex items-center justify-between gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+                                        <div className="flex-1">
+                                            <div className="text-sm font-bold text-white">{l.description}</div>
+                                            <div className="text-xs text-slate-400">{l.category} • {l.quantity} x {l.unit_price.toFixed(2)}€</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="font-mono text-white">{(l.line_total || 0).toFixed(2)} €</div>
+                                            <button type="button" onClick={() => setLines(lines.filter((_, i) => i !== idx))} className="text-xs text-red-400 mt-1">Remover</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Add Line Mini-Form */}
+                        <AddLineForm onAdd={(line) => setLines(prev => [...prev, line])} defaultVat={vatRate} />
                     </div>
 
                     {/* PDF Upload */}

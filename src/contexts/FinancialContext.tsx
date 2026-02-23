@@ -301,14 +301,60 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     const addSupplierInvoice = async (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
-        const { error } = await supabase.from('supplier_invoices').insert(invoice);
+        const { data, error } = await supabase.from('supplier_invoices').insert(invoice).select().single();
         if (error) throw error;
+
+        // If invoice is linked to a requisition, mark that requisition as completed and store invoice data
+        try {
+            if ((invoice as any).linked_request_id) {
+                const linkedId = (invoice as any).linked_request_id;
+                const fData = [{
+                    numero: invoice.invoice_number,
+                    valor_liquido: invoice.net_value,
+                    iva_taxa: invoice.net_value > 0 ? (invoice.vat_value / invoice.net_value) : 0,
+                    iva_valor: invoice.vat_value,
+                    valor_total: invoice.total_value
+                }];
+
+                await supabase.from('requisicoes').update({
+                    status: 'concluida',
+                    faturas_dados: fData,
+                    fatura: invoice.invoice_number,
+                    custo: invoice.total_value
+                }).eq('id', linkedId);
+            }
+        } catch (e) {
+            console.error('Error linking invoice to requisition:', e);
+        }
+
         await refreshData();
     };
 
     const updateSupplierInvoice = async (id: string, updates: Partial<SupplierInvoice>) => {
-        const { error } = await supabase.from('supplier_invoices').update(updates).eq('id', id);
+        const { data, error } = await supabase.from('supplier_invoices').update(updates).eq('id', id).select().single();
         if (error) throw error;
+
+        // If update contains a linked_request_id, ensure requisition is updated
+        try {
+            if ((updates as any).linked_request_id) {
+                const linkedId = (updates as any).linked_request_id;
+                const invoiceNumber = (updates as any).invoice_number || data?.invoice_number;
+                const net = (updates as any).net_value || data?.net_value || 0;
+                const vat = (updates as any).vat_value || data?.vat_value || 0;
+                const total = (updates as any).total_value || data?.total_value || 0;
+                const fData = [{ numero: invoiceNumber, valor_liquido: net, iva_taxa: net > 0 ? (vat / net) : 0, iva_valor: vat, valor_total: total }];
+
+                await supabase.from('requisicoes').update({
+                    status: 'concluida',
+                    faturas_dados: fData,
+                    fatura: invoiceNumber,
+                    custo: total
+                }).eq('id', linkedId);
+            }
+        } catch (e) {
+            console.error('Error linking updated invoice to requisition:', e);
+        }
+
         await refreshData();
     };
 

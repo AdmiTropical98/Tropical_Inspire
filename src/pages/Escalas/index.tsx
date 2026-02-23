@@ -31,7 +31,7 @@ import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import type { Servico, Notification } from '../../types';
+import type { Servico, Notification, Motorista } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, type GroupedTrip } from './EscalaAutomation';
 
@@ -50,7 +50,18 @@ interface NewServiceState {
 }
 
 // Sortable Driver Card Component
-function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, activeDriverMenuId, onClick, onDragOver, onDragLeave }: any) {
+interface SortableDriverCardProps {
+    driver: { id: string } & Partial<Motorista>;
+    children?: React.ReactNode;
+    isDistributeMode?: boolean;
+    activeDriverId?: string | null;
+    activeDriverMenuId?: string | null;
+    onClick?: () => void;
+    onDragOver?: (e: React.DragEvent) => void;
+    onDragLeave?: (e: React.DragEvent) => void;
+}
+
+function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, activeDriverMenuId, onClick, onDragOver, onDragLeave }: SortableDriverCardProps) {
     const {
         attributes,
         listeners,
@@ -211,8 +222,9 @@ export default function Escalas() {
 
             setAutomationTrips(suggested);
             setShowAutoModal(true);
-        } catch (error: any) {
-            alert('Erro na Automação: ' + error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            alert('Erro na Automação: ' + message);
         } finally {
             setIsAutoLoading(false);
         }
@@ -288,7 +300,7 @@ export default function Escalas() {
     };
 
     const confirmAutomation = async () => {
-        const allServicesToCreate: any[] = [];
+        const allServicesToCreate: Servico[] = [];
         automationTrips.forEach(trip => {
             trip.servicos.forEach(s => {
                 allServicesToCreate.push({
@@ -542,13 +554,13 @@ export default function Escalas() {
                 const data = XLSX.utils.sheet_to_json(ws);
                 const mappedServicos: Servico[] = [];
 
-                data.forEach((row: any) => {
+                data.forEach((row: Record<string, unknown>) => {
                     const nome = row['Nome do funcionário'] || row['Nome'] || 'Desconhecido';
                     const origem = row['Origem'] || '';
                     const destino = row['Destino'] || '';
 
                     // Parse Times
-                    const parseTime = (val: any) => {
+                    const parseTime = (val: unknown) => {
                         if (!val) return null;
                         if (typeof val === 'number') {
                             const totalSeconds = Math.round(val * 86400);
@@ -1110,14 +1122,16 @@ export default function Escalas() {
                                                                 activeDriverId={activeDriverId}
                                                                 activeDriverMenuId={activeDriverMenuId}
                                                                 onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
-                                                                onDragOver={(e: any) => {
+                                                                onDragOver={(e: React.DragEvent) => {
                                                                     e.preventDefault();
-                                                                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                                                                    const target = e.currentTarget as HTMLElement;
+                                                                    target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
                                                                 }}
-                                                                onDragLeave={(e: any) => {
+                                                                onDragLeave={(e: React.DragEvent) => {
                                                                     e.preventDefault();
-                                                                    e.currentTarget.style.borderColor = '';
-                                                                    e.currentTarget.style.backgroundColor = '';
+                                                                    const target = e.currentTarget as HTMLElement;
+                                                                    target.style.borderColor = '';
+                                                                    target.style.backgroundColor = '';
                                                                 }}
                                                             >
                                                                 {/* Card Header (Handle) */}
@@ -1707,7 +1721,7 @@ export default function Escalas() {
                         {
                             showNewServiceModal && (
                                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                                    <div className="bg-[#1e293b] border border-white/10 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="bg-[#1e293b] border border-white/10 p-0 rounded-2xl w-full shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                                         <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center gap-3">
                                             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
                                                 <Plus className="w-5 h-5" />
@@ -2157,7 +2171,7 @@ export default function Escalas() {
             {/* MODAL: AUTO SETTINGS */}
             {showAutoSettings && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-                    <div className="bg-[#1e293b] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+                    <div className="bg-[#1e293b] border border-white/10 p-6 rounded-2xl w-full shadow-2xl">
                         <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                             <MoreVertical className="w-5 h-5 text-blue-400" />
                             Configuração de Automação
@@ -2211,7 +2225,7 @@ export default function Escalas() {
             {/* MODAL: AUTOMATION PREVIEW */}
             {showAutoModal && (
                 <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-                    <div className="bg-[#1e293b] border border-emerald-500/20 p-6 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="bg-[#1e293b] border border-emerald-500/20 p-6 rounded-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
@@ -2317,7 +2331,7 @@ export default function Escalas() {
             {
                 showUrgentModal && (
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-                        <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
+                        <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
                             <div className="flex items-center gap-4 mb-8 text-red-500">
                                 <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
                                     <Siren className="w-8 h-8" />
@@ -2415,7 +2429,7 @@ export default function Escalas() {
             {/* Template Selection Modal */}
             {showTemplateModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-                    <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+                    <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
                         <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
@@ -2531,7 +2545,7 @@ export default function Escalas() {
             {/* Template Management Modal */}
             {showManageTemplates && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[80] flex items-center justify-center p-4">
-                    <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden h-[85vh]">
+                    <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full shadow-2xl flex flex-col overflow-hidden h-[85vh]">
                         <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
@@ -2715,7 +2729,7 @@ export default function Escalas() {
                                                         <FileText className="w-8 h-8 text-indigo-500/30" />
                                                     </div>
                                                     <h4 className="text-white font-bold mb-1">Modelo Vazio</h4>
-                                                    <p className="text-slate-500 text-xs max-w-[200px]">Adicione funcionários e locais acima para começar a construir este modelo.</p>
+                                                    <p className="text-slate-500 text-xs">Adicione funcionários e locais acima para começar a construir este modelo.</p>
                                                 </div>
                                             ) : (
                                                 <div className="grid grid-cols-1 gap-2">
@@ -2775,7 +2789,7 @@ export default function Escalas() {
                                             <FileText className="w-12 h-12 text-indigo-500/30" />
                                         </div>
                                         <h3 className="text-lg font-bold text-white mb-2">Selecione um Modelo</h3>
-                                        <p className="text-sm text-slate-400 max-w-xs">
+                                        <p className="text-sm text-slate-400">
                                             Escolha um modelo à esquerda ou crie um novo para gerir as escalas recorrentes.
                                         </p>
                                     </div>

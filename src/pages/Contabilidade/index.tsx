@@ -167,7 +167,7 @@ function ContabilidadeContent() {
 
 
     return (
-        <div className="min-h-screen bg-slate-900 text-slate-100 p-8 pt-24 space-y-8">
+        <div className="w-full min-h-0 bg-transparent text-slate-100 p-8 pt-24 space-y-8">
             <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
                     <h1 className="text-4xl font-black text-white tracking-tight mb-2">Gestão Financeira</h1>

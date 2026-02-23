@@ -490,6 +490,7 @@ export interface SupplierInvoice {
     payment_method?: string;
     notes?: string;
     pdf_url?: string;
+    linked_request_id?: string;
     created_at: string;
     updated_at: string;
     supplier?: Fornecedor;

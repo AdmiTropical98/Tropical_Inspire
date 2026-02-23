@@ -1,8 +1,8 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Calendar, Search, Filter, Shield, User, Clock, CheckCircle2, XCircle, FileDown, Trash2, Pencil, AlertTriangle } from 'lucide-react';
+import { Calendar, Search, User, Clock, FileDown, Trash2, Pencil } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -11,6 +11,12 @@ export default function EscalasHistory() {
     const { currentUser, userRole } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDate, setFilterDate] = useState('');
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(id);
+    }, []);
 
     // Filter Batches based on Role and Search
     const filteredBatches = useMemo(() => {
@@ -230,7 +236,6 @@ export default function EscalasHistory() {
     const getEditStatus = (batch: any) => {
         // Can edit ONLY if created < 1 hour ago
         const createdAt = new Date(batch.created_at).getTime();
-        const now = Date.now();
         const diffHours = (now - createdAt) / (1000 * 60 * 60);
 
         const isOwner = batch.created_by === currentUser?.nome || batch.created_by === currentUser?.email || batch.created_by === currentUser?.id;
@@ -239,7 +244,7 @@ export default function EscalasHistory() {
         const hasAccess = isOwner || isAdmin;
         const isEditable = diffHours < 1;
 
-        return { hasAccess, isEditable, diffHours };
+        return { hasAccess, isEditable };
     };
 
 
@@ -281,7 +286,7 @@ export default function EscalasHistory() {
                 ) : (
                     filteredBatches.map(batch => {
                         const stats = getBatchStats(batch.id);
-                        const { hasAccess, isEditable, diffHours } = getEditStatus(batch);
+                        const { hasAccess, isEditable } = getEditStatus(batch);
                         const isCancelled = batch.status === 'cancelled';
 
                         return (
