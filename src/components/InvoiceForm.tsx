@@ -263,7 +263,7 @@ export default function InvoiceForm({
                 </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="p-6 space-y-8">
                     {/* Supplier and Invoice Number */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -326,10 +326,10 @@ export default function InvoiceForm({
                         </div>
                     </div>
 
-                    {/* Invoice Lines */}
-                    <div>
+                    {/* 1) Invoice Lines */}
+                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 space-y-4">
                         <div className="flex items-center justify-between mb-3">
-                            <label className="block text-sm font-medium text-slate-300">Linhas da Fatura</label>
+                            <label className="block text-sm font-semibold text-slate-200">Linhas da Fatura</label>
                             <button
                                 type="button"
                                 onClick={addLine}
@@ -340,20 +340,19 @@ export default function InvoiceForm({
                         </div>
 
                         <div className="space-y-2">
-                            <div className="grid grid-cols-16 gap-2 text-xs text-slate-400 px-1">
+                            <div className="grid grid-cols-13 gap-2 text-xs text-slate-400 px-1">
                                 <span className="col-span-4">Descrição</span>
                                 <span className="col-span-1">Qtd</span>
                                 <span className="col-span-2">Preço Unit. (€)</span>
                                 <span className="col-span-1">Desc %</span>
-                                <span className="col-span-2">Valor Líquido (€)</span>
                                 <span className="col-span-2">IVA %</span>
-                                <span className="col-span-2">IVA (€)</span>
+                                <span className="col-span-1">IVA (€)</span>
                                 <span className="col-span-1">Total Linha</span>
                                 <span className="col-span-1 text-right">Ação</span>
                             </div>
 
                             {calculatedLines.map((line, index) => (
-                                <div key={index} className="grid grid-cols-16 gap-2">
+                                <div key={index} className="grid grid-cols-13 gap-2">
                                     <input
                                         type="text"
                                         value={formData.lines[index]?.description || ''}
@@ -383,12 +382,6 @@ export default function InvoiceForm({
                                         onChange={(e) => updateLine(index, 'discount_percentage', e.target.value)}
                                         className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
-                                    <input
-                                        type="number"
-                                        value={line.net_value}
-                                        readOnly
-                                        className="col-span-2 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                                    />
                                     <select
                                         value={formData.lines[index]?.iva_rate ?? 23}
                                         onChange={(e) => updateLine(index, 'iva_rate', e.target.value)}
@@ -403,7 +396,7 @@ export default function InvoiceForm({
                                         type="number"
                                         value={line.iva_value}
                                         readOnly
-                                        className="col-span-2 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                        className="col-span-1 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
                                     />
                                     <input
                                         type="number"
@@ -422,8 +415,12 @@ export default function InvoiceForm({
                                 </div>
                             ))}
                         </div>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                    {/* 2) Financial Summary */}
+                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5">
+                        <h3 className="text-sm font-semibold text-slate-200 mb-4">Resumo Financeiro</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Base Bruta (€)</label>
                                 <input
@@ -451,9 +448,6 @@ export default function InvoiceForm({
                                     className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
                                 />
                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Total IVA (€)</label>
                                 <input
@@ -464,38 +458,48 @@ export default function InvoiceForm({
                                 />
                             </div>
                             <div>
+                                <label className="block text-xs text-slate-400 mb-1">Outras despesas (€)</label>
+                                <input
+                                    type="number"
+                                    value={0}
+                                    readOnly
+                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-xs text-slate-400 mb-1">Total Final (€)</label>
                                 <input
                                     type="number"
                                     value={totalFinal}
                                     readOnly
-                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                    className="w-full bg-blue-600/20 border border-blue-500/60 rounded-lg px-3 py-2 text-blue-200 font-semibold cursor-not-allowed"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {/* Cost Center */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                            Centro de Custo
-                        </label>
-                        <select
-                            value={formData.cost_center_id}
-                            onChange={(e) => setFormData(prev => ({ ...prev, cost_center_id: e.target.value }))}
-                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                            <option value="">Selecionar centro de custo</option>
-                            {costCenters.map(cc => (
-                                <option key={cc.id} value={cc.id}>
-                                    {cc.nome}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    {/* 3) Accounting / Payment */}
+                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-200">Contabilístico / Pagamento</h3>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                Centro de Custo
+                            </label>
+                            <select
+                                value={formData.cost_center_id}
+                                onChange={(e) => setFormData(prev => ({ ...prev, cost_center_id: e.target.value }))}
+                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value="">Selecionar centro de custo</option>
+                                {costCenters.map(cc => (
+                                    <option key={cc.id} value={cc.id}>
+                                        {cc.nome}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                    {/* Vehicle and Payment Status */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
                                 Viatura (Opcional)
@@ -534,10 +538,9 @@ export default function InvoiceForm({
                                 <StatusBadge status={formData.payment_status} />
                             </div>
                         </div>
-                    </div>
+                        </div>
 
-                    {/* Payment Method and Notes */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
                                 Método de Pagamento
@@ -565,6 +568,7 @@ export default function InvoiceForm({
                                 rows={3}
                                 className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                             />
+                        </div>
                         </div>
                     </div>
 
