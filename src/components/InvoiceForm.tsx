@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Upload, FileText } from 'lucide-react';
-import type { SupplierInvoice, SupplierInvoiceLine, Fornecedor, CentroCusto, Viatura } from '../types';
+import type { SupplierInvoice, SupplierInvoiceLine, Fornecedor, CentroCusto, Viatura, Requisicao } from '../types';
 import { supabase } from '../lib/supabase';
 import StatusBadge from './common/StatusBadge';
 import InvoiceFinancialSummary from './InvoiceFinancialSummary';
+import { formatCurrency } from '../utils/format';
 
 interface InvoiceFormProps {
     invoice?: SupplierInvoice | null;
     suppliers: Fornecedor[];
     costCenters: CentroCusto[];
     vehicles: Viatura[];
+    requisitions: Requisicao[];
+    initialRequisition?: Requisicao | null;
     onSave: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
     onCancel: () => void;
 }
@@ -19,10 +22,13 @@ export default function InvoiceForm({
     suppliers,
     costCenters,
     vehicles,
+    requisitions,
+    initialRequisition,
     onSave,
     onCancel
 }: InvoiceFormProps) {
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+    const hasMeaningfulDifference = (a: number, b: number) => Math.abs(a - b) >= 0.01;
 
     const calculateLine = useCallback((line: SupplierInvoiceLine) => {
         const quantity = line.quantity || 0;
@@ -57,8 +63,9 @@ export default function InvoiceForm({
         total_value: 0
     });
 
-    const normalizeLine = useCallback((line: SupplierInvoiceLine): SupplierInvoiceLine => {
+    const normalizeLine = useCallback((line: SupplierInvoiceLine, overrideIvaValue?: number | null): SupplierInvoiceLine => {
         const calculated = calculateLine(line);
+        const effectiveIvaValue = Number.isFinite(overrideIvaValue) ? round2(overrideIvaValue as number) : calculated.ivaValue;
 
         return {
             ...line,
@@ -67,8 +74,8 @@ export default function InvoiceForm({
             unit_price: calculated.unitPrice,
             discount_percentage: calculated.discountPercentage,
             net_value: calculated.taxableBase,
-            iva_value: calculated.ivaValue,
-            total_value: calculated.totalValue
+            iva_value: effectiveIvaValue,
+            total_value: round2(calculated.taxableBase + effectiveIvaValue)
         };
     }, [calculateLine]);
 
@@ -88,6 +95,7 @@ export default function InvoiceForm({
 
     const [formData, setFormData] = useState({
         supplier_id: '',
+        requisition_id: '',
         invoice_number: '',
         issue_date: new Date().toISOString().split('T')[0],
         due_date: '',
@@ -99,14 +107,22 @@ export default function InvoiceForm({
         notes: '',
         pdf_url: ''
     });
+    const [manualIvaOverrides, setManualIvaOverrides] = useState<(number | null)[]>([null]);
+    const [financialImpact, setFinancialImpact] = useState<{
+        date: string;
+        description: string;
+        amount: number;
+        account_code: string;
+        type: 'expense' | 'revenue';
+    } | null>(null);
 
     const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         if (invoice) {
-            const mappedLines = invoice.lines && invoice.lines.length > 0
-                ? invoice.lines.map(normalizeLine)
-                : [normalizeLine({
+            const sourceLines = invoice.lines && invoice.lines.length > 0
+                ? invoice.lines
+                : [{
                     description: invoice.expense_type || 'Linha principal',
                     quantity: 1,
                     unit_price: invoice.total_liquido || invoice.net_value || invoice.base_amount || 0,
@@ -115,10 +131,19 @@ export default function InvoiceForm({
                     iva_rate: inferLegacyRate(invoice),
                     iva_value: invoice.total_iva || invoice.vat_value || invoice.iva_value || 0,
                     total_value: invoice.total_final || invoice.total_value || invoice.total || 0
-                })];
+                }];
+
+            const detectedOverrides = sourceLines.map((line) => {
+                const autoIvaValue = calculateLine(line).ivaValue;
+                const incomingIvaValue = round2(line.iva_value || 0);
+                return hasMeaningfulDifference(incomingIvaValue, autoIvaValue) ? incomingIvaValue : null;
+            });
+
+            const mappedLines = sourceLines.map((line, index) => normalizeLine(line, detectedOverrides[index]));
 
             setFormData({
                 supplier_id: invoice.supplier_id || '',
+                requisition_id: invoice.requisition_id || '',
                 invoice_number: invoice.invoice_number,
                 issue_date: invoice.issue_date,
                 due_date: invoice.due_date,
@@ -130,11 +155,97 @@ export default function InvoiceForm({
                 notes: invoice.notes || '',
                 pdf_url: invoice.pdf_url || ''
             });
-        }
-    }, [invoice, inferLegacyRate, normalizeLine]);
 
-    const lineBreakdowns = formData.lines.map(line => calculateLine(line));
-    const calculatedLines = formData.lines.map(normalizeLine);
+            setManualIvaOverrides(mappedLines.map((_, index) => detectedOverrides[index] ?? null));
+        }
+    }, [invoice, inferLegacyRate, normalizeLine, calculateLine]);
+
+    useEffect(() => {
+        if (invoice) return;
+
+        setManualIvaOverrides((prev) => {
+            if (prev.length === formData.lines.length) return prev;
+            if (prev.length < formData.lines.length) {
+                return [...prev, ...Array(formData.lines.length - prev.length).fill(null)];
+            }
+            return prev.slice(0, formData.lines.length);
+        });
+    }, [formData.lines.length, invoice]);
+
+    useEffect(() => {
+        if (invoice || !initialRequisition) return;
+
+        setFormData(prev => ({
+            ...prev,
+            supplier_id: prev.supplier_id || initialRequisition.fornecedorId || '',
+            vehicle_id: prev.vehicle_id || initialRequisition.viaturaId || '',
+            cost_center_id: prev.cost_center_id || initialRequisition.centroCustoId || '',
+            requisition_id: prev.requisition_id || initialRequisition.id
+        }));
+    }, [invoice, initialRequisition]);
+
+    useEffect(() => {
+        const loadFinancialImpact = async () => {
+            if (!invoice?.id) {
+                setFinancialImpact(null);
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('financial_movements')
+                .select('date, description, amount, account_code, type')
+                .eq('document_type', 'supplier_invoice')
+                .eq('document_id', invoice.id)
+                .maybeSingle();
+
+            if (error) {
+                console.warn('Unable to load financial impact:', error.message);
+                setFinancialImpact(null);
+                return;
+            }
+
+            setFinancialImpact(data || null);
+        };
+
+        loadFinancialImpact();
+    }, [invoice?.id]);
+
+    const getRequisitionStatusLabel = useCallback((status?: Requisicao['status']) => {
+        if (status === 'concluida') return 'Concluída';
+        return 'Pendente';
+    }, []);
+
+    const requisitionOptions = useMemo(() => {
+        const byDateDesc = [...requisitions].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+
+        return byDateDesc
+            .filter(req => req.id === formData.requisition_id || !formData.supplier_id || req.fornecedorId === formData.supplier_id)
+            .map(req => {
+                const supplier = suppliers.find(item => item.id === req.fornecedorId);
+                const vehicle = vehicles.find(item => item.id === req.viaturaId);
+                const numberToken = String(req.numero || '').includes('/')
+                    ? String(req.numero).split('/')[1]
+                    : String(req.numero || '');
+
+                return {
+                    id: req.id,
+                    label: `R:${numberToken || req.numero} — ${supplier?.nome || 'Fornecedor N/D'} — ${vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Sem viatura'} — ${getRequisitionStatusLabel(req.status)}`
+                };
+            });
+    }, [requisitions, formData.supplier_id, suppliers, vehicles, getRequisitionStatusLabel]);
+
+    const lineBreakdowns = formData.lines.map((line, index) => {
+        const calculated = calculateLine(line);
+        const overrideIvaValue = manualIvaOverrides[index];
+        const ivaValue = Number.isFinite(overrideIvaValue) ? round2(overrideIvaValue as number) : calculated.ivaValue;
+        return {
+            ...calculated,
+            ivaValue,
+            totalValue: round2(calculated.taxableBase + ivaValue)
+        };
+    });
+
+    const calculatedLines = formData.lines.map((line, index) => normalizeLine(line, manualIvaOverrides[index]));
     const grossBaseTotal = round2(lineBreakdowns.reduce((sum, line) => sum + line.subtotal, 0));
     const discountTotal = round2(lineBreakdowns.reduce((sum, line) => sum + line.discountValue, 0));
     const totalLiquido = round2(lineBreakdowns.reduce((sum, line) => sum + line.taxableBase, 0));
@@ -154,6 +265,7 @@ export default function InvoiceForm({
 
         await onSave({
             supplier_id: formData.supplier_id,
+            requisition_id: formData.requisition_id || undefined,
             invoice_number: formData.invoice_number,
             issue_date: formData.issue_date,
             due_date: formData.due_date,
@@ -204,6 +316,19 @@ export default function InvoiceForm({
 
             return { ...prev, lines: nextLines };
         });
+
+        if (field !== 'description') {
+            setManualIvaOverrides(prev => prev.map((value, lineIndex) => lineIndex === index ? null : value));
+        }
+    };
+
+    const updateManualIva = (index: number, rawValue: string) => {
+        const parsedValue = parseFloat(rawValue);
+        setManualIvaOverrides(prev => prev.map((value, lineIndex) => {
+            if (lineIndex !== index) return value;
+            if (!Number.isFinite(parsedValue) || rawValue.trim() === '') return null;
+            return round2(Math.max(0, parsedValue));
+        }));
     };
 
     const addLine = () => {
@@ -211,6 +336,7 @@ export default function InvoiceForm({
             ...prev,
             lines: [...prev.lines, emptyLine()]
         }));
+        setManualIvaOverrides(prev => [...prev, null]);
     };
 
     const removeLine = (index: number) => {
@@ -220,6 +346,9 @@ export default function InvoiceForm({
                 ? prev.lines.filter((_, lineIndex) => lineIndex !== index)
                 : [emptyLine()]
         }));
+        setManualIvaOverrides(prev => prev.length > 1
+            ? prev.filter((_, lineIndex) => lineIndex !== index)
+            : [null]);
     };
 
     const handleFileUpload = async (file: File) => {
@@ -299,6 +428,24 @@ export default function InvoiceForm({
                         </div>
                     </div>
 
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Requisição Associada (Opcional)
+                        </label>
+                        <select
+                            value={formData.requisition_id}
+                            onChange={(e) => setFormData(prev => ({ ...prev, requisition_id: e.target.value }))}
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="">Sem associação</option>
+                            {requisitionOptions.map(req => (
+                                <option key={req.id} value={req.id}>
+                                    {req.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Dates */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -342,12 +489,12 @@ export default function InvoiceForm({
 
                         <div className="space-y-2">
                             <div className="grid grid-cols-13 gap-2 text-xs text-slate-400 px-1">
-                                <span className="col-span-4">Descrição</span>
+                                <span className="col-span-4">Descrição (artigo/serviço)</span>
                                 <span className="col-span-1">Qtd</span>
                                 <span className="col-span-2">Preço Unit. (€)</span>
                                 <span className="col-span-1">Desc %</span>
                                 <span className="col-span-2">IVA %</span>
-                                <span className="col-span-1">IVA (€)</span>
+                                <span className="col-span-1">IVA (€) manual</span>
                                 <span className="col-span-1">Total Linha</span>
                                 <span className="col-span-1 text-right">Ação</span>
                             </div>
@@ -358,7 +505,7 @@ export default function InvoiceForm({
                                         type="text"
                                         value={formData.lines[index]?.description || ''}
                                         onChange={(e) => updateLine(index, 'description', e.target.value)}
-                                        placeholder="Descrição da linha"
+                                        placeholder="Ex.: Serviço de manutenção do veículo"
                                         className="col-span-4 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <input
@@ -395,9 +542,12 @@ export default function InvoiceForm({
                                     </select>
                                     <input
                                         type="number"
-                                        value={line.iva_value}
-                                        readOnly
-                                        className="col-span-1 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                        step="0.01"
+                                        min="0"
+                                        value={manualIvaOverrides[index] ?? line.iva_value}
+                                        onChange={(e) => updateManualIva(index, e.target.value)}
+                                        className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        title="Pode ajustar manualmente o IVA desta linha"
                                     />
                                     <input
                                         type="number"
@@ -426,6 +576,38 @@ export default function InvoiceForm({
                             totalIva={totalIva}
                             totalFinal={totalFinal}
                         />
+                    </div>
+
+                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5">
+                        <h3 className="text-sm font-semibold text-slate-200 mb-3">Financial Impact</h3>
+                        {invoice ? (
+                            financialImpact ? (
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2">
+                                        <span className="text-slate-400 block text-xs">Date</span>
+                                        <span className="text-white">{new Date(financialImpact.date).toLocaleDateString('pt-PT')}</span>
+                                    </div>
+                                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2">
+                                        <span className="text-slate-400 block text-xs">Account</span>
+                                        <span className="text-white">{financialImpact.account_code}</span>
+                                    </div>
+                                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 md:col-span-2">
+                                        <span className="text-slate-400 block text-xs">Description</span>
+                                        <span className="text-white">{financialImpact.description}</span>
+                                    </div>
+                                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 md:col-span-4">
+                                        <span className="text-slate-400 block text-xs">Movement Value</span>
+                                        <span className={`${financialImpact.type === 'revenue' ? 'text-emerald-400' : 'text-red-300'} font-semibold`}>
+                                            {financialImpact.type === 'revenue' ? '+' : '-'} {formatCurrency(Number(financialImpact.amount || 0))}
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-slate-400">Nenhum movimento financeiro encontrado para esta fatura.</p>
+                            )
+                        ) : (
+                            <p className="text-sm text-slate-400">O movimento financeiro será gerado automaticamente ao guardar a fatura.</p>
+                        )}
                     </div>
 
                     {/* 3) Accounting / Payment */}

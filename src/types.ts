@@ -78,6 +78,8 @@ export interface Requisicao {
     itens: ItemRequisicao[];
     obs: string;
     status?: 'pendente' | 'concluida';
+    financial_status?: 'PENDING' | 'PARTIAL' | 'INVOICED';
+    total_invoiced_amount?: number;
     fatura?: string;
     custo?: number; // Invoice Amount
     faturas_dados?: {
@@ -500,6 +502,7 @@ export interface SupplierInvoice {
     vat_value: number;
     total_value: number;
     expense_type: string;
+    requisition_id?: string;
     cost_center_id?: string;
     vehicle_id?: string;
     payment_status: 'pending' | 'scheduled' | 'paid' | 'overdue';
@@ -511,6 +514,7 @@ export interface SupplierInvoice {
     supplier?: Fornecedor;
     cost_center?: CentroCusto;
     vehicle?: Viatura;
+    requisition?: Requisicao;
     lines?: SupplierInvoiceLine[];
 }
 
@@ -558,6 +562,21 @@ export interface FinancialSummary {
     pendingPayments: number;
     expenseBreakdown: { category: string; value: number; color: string }[];
     topCostCenters: { id: string; nome: string; total: number }[];
+}
+
+export interface FinancialMovement {
+    id: string;
+    date: string;
+    document_type: string;
+    document_id: string;
+    description: string;
+    amount: number;
+    type: 'expense' | 'revenue';
+    cost_center_id?: string;
+    vehicle_id?: string;
+    account_code: '61' | '62' | '63' | '64' | '71';
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface RolePermissions {

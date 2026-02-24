@@ -524,6 +524,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             viaturaId: item.viatura_id,
                             centroCustoId: item.centro_custo_id,
                             criadoPor: item.criado_por,
+                            financial_status: item.financial_status,
+                            total_invoiced_amount: item.total_invoiced_amount,
                             custo: item.custo,
                             faturas_dados: parsedFaturas
                         };

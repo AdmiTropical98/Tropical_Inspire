@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Plus, Search, FileText, Trash2, Printer, Package, CheckCircle, RotateCcw,
     LayoutTemplate, List, PlusCircle, TrendingUp, Clock, AlertCircle, Calendar,
@@ -9,13 +10,16 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Requisicao, ItemRequisicao } from '../../types';
+import { useFinancial } from '../../contexts/FinancialContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageHeader from '../../components/common/PageHeader';
 import { ClipboardCheck } from 'lucide-react';
 
 export default function Requisicoes() {
+    const navigate = useNavigate();
     const { requisicoes, fornecedores, viaturas, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos } = useWorkshop();
+    const { supplierInvoices } = useFinancial();
     const { currentUser, userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
@@ -48,6 +52,48 @@ export default function Requisicoes() {
         } catch {
             return dateStr;
         }
+    };
+
+    const formatCurrency = (value: number) => new Intl.NumberFormat('pt-PT', {
+        style: 'currency',
+        currency: 'EUR'
+    }).format(value || 0);
+
+    const getEstimatedValue = (req: Requisicao) => {
+        const requisitionItems = Array.isArray(req.itens) ? req.itens : [];
+        return requisitionItems.reduce((sum, item) => {
+            const lineTotal = Number(item?.valor_total ?? 0);
+            if (Number.isFinite(lineTotal) && lineTotal > 0) return sum + lineTotal;
+
+            const quantity = Number(item?.quantidade ?? 0);
+            const unitPrice = Number(item?.valor_unitario ?? 0);
+            if (Number.isFinite(quantity) && Number.isFinite(unitPrice) && quantity > 0 && unitPrice > 0) {
+                return sum + (quantity * unitPrice);
+            }
+
+            return sum;
+        }, 0);
+    };
+
+    const getFinancialStatus = (req: Requisicao, totalInvoiced: number): 'PENDING' | 'PARTIAL' | 'INVOICED' => {
+        const estimatedValue = getEstimatedValue(req);
+        if ((totalInvoiced || 0) <= 0) return 'PENDING';
+        if (estimatedValue <= 0) return 'INVOICED';
+        if (totalInvoiced < estimatedValue) return 'PARTIAL';
+        return 'INVOICED';
+    };
+
+    const getFinancialBadge = (status: 'PENDING' | 'PARTIAL' | 'INVOICED') => {
+        if (status === 'INVOICED') return { label: 'Faturada', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+        if (status === 'PARTIAL') return { label: 'Parcial', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
+        return { label: 'Pendente', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
+    };
+
+    const getPaymentStatusLabel = (status?: string) => {
+        if (status === 'paid') return 'Pago';
+        if (status === 'scheduled') return 'Agendado';
+        if (status === 'overdue') return 'Vencido';
+        return 'Pendente';
     };
     const [tipo, setTipo] = useState<Requisicao['tipo']>('Oficina');
     const [fornecedorId, setFornecedorId] = useState('');
@@ -1023,6 +1069,15 @@ export default function Requisicoes() {
                             {filteredItems.map(req => {
                                 const fornecedor = fornecedores.find(f => f.id === req.fornecedorId);
                                 const viatura = viaturas.find(v => v.id === req.viaturaId);
+                                const associatedInvoices = supplierInvoices
+                                    .filter(invoice => invoice.requisition_id === req.id)
+                                    .sort((a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime());
+                                const totalInvoicedAmount = associatedInvoices.reduce((sum, invoice) => {
+                                    return sum + Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0);
+                                }, 0);
+                                const financialStatus = getFinancialStatus(req, totalInvoicedAmount);
+                                const financialBadge = getFinancialBadge(financialStatus);
+
                                 return (
                                     <div key={req.id} className={`bg-slate-900/40 backdrop-blur-xl border-y border-r border-slate-800 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-hidden border-l-4 ${req.status === 'concluida' ? 'border-l-emerald-500' : 'border-l-amber-500'}`}>
                                         {/* decorative blob */}
@@ -1083,6 +1138,46 @@ export default function Requisicoes() {
                                                             <User className="w-4 h-4 text-slate-500" />
                                                             <span className="text-slate-300">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
                                                         </span>
+                                                        <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${financialBadge.className}`}>
+                                                            <TrendingUp className="w-4 h-4" />
+                                                            <span className="font-semibold">{financialBadge.label}</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-4 bg-slate-950/40 border border-slate-800 rounded-xl p-3">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h4 className="text-sm font-semibold text-slate-200">Associated Invoices</h4>
+                                                            <span className="text-xs text-slate-400">
+                                                                Total Invoiced: <span className="text-white font-semibold">{formatCurrency(totalInvoicedAmount)}</span>
+                                                            </span>
+                                                        </div>
+
+                                                        {associatedInvoices.length === 0 ? (
+                                                            <p className="text-xs text-slate-500">Sem faturas associadas.</p>
+                                                        ) : (
+                                                            <div className="overflow-x-auto">
+                                                                <table className="w-full text-xs">
+                                                                    <thead>
+                                                                        <tr className="text-slate-400 border-b border-slate-800">
+                                                                            <th className="text-left py-2 pr-3 font-medium">Invoice Number</th>
+                                                                            <th className="text-left py-2 pr-3 font-medium">Date</th>
+                                                                            <th className="text-right py-2 pr-3 font-medium">Total</th>
+                                                                            <th className="text-left py-2 font-medium">Status</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {associatedInvoices.map(invoice => (
+                                                                            <tr key={invoice.id} className="border-b border-slate-900/80 last:border-0">
+                                                                                <td className="py-2 pr-3 text-slate-200 font-medium">{invoice.invoice_number}</td>
+                                                                                <td className="py-2 pr-3 text-slate-300">{formatSmallDate(invoice.issue_date)}</td>
+                                                                                <td className="py-2 pr-3 text-right text-slate-200">{formatCurrency(Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0))}</td>
+                                                                                <td className="py-2 text-slate-300">{getPaymentStatusLabel(invoice.payment_status)}</td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1097,6 +1192,15 @@ export default function Requisicoes() {
                                                 )}
 
                                                 <div className="flex items-center gap-2 mt-auto">
+                                                    <button
+                                                        onClick={() => navigate(`/finance/faturas/nova?requisitionId=${req.id}`)}
+                                                        className="flex items-center gap-2 px-3 py-3 text-indigo-300 bg-indigo-900/20 hover:bg-indigo-800/40 hover:text-white border border-indigo-500/20 rounded-xl transition-colors"
+                                                        title="Criar fatura a partir desta requisição"
+                                                    >
+                                                        <PlusCircle className="w-4 h-4" />
+                                                        <span className="text-sm font-medium">Create Invoice from Requisition</span>
+                                                    </button>
+
                                                     <button
                                                         onClick={() => generatePDF(req)}
                                                         className="p-3 text-blue-300 bg-blue-900/20 hover:bg-blue-800/40 hover:text-white border border-blue-500/20 rounded-xl transition-colors"

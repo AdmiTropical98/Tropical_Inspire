@@ -77,6 +77,9 @@ export default {
             transitionDuration: {
                 '120': '120ms',
                 '180': '180ms',
+            },
+            gridTemplateColumns: {
+                '13': 'repeat(13, minmax(0, 1fr))',
             }
         },
     },

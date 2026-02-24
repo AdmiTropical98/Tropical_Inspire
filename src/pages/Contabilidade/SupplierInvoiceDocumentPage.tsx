@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import InvoiceForm from '../../components/InvoiceForm';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
@@ -12,14 +12,22 @@ interface SupplierInvoiceDocumentPageProps {
 export default function SupplierInvoiceDocumentPage({ mode }: SupplierInvoiceDocumentPageProps) {
     const navigate = useNavigate();
     const { invoiceId } = useParams<{ invoiceId: string }>();
+    const [searchParams] = useSearchParams();
 
-    const { fornecedores, centrosCustos, viaturas } = useWorkshop();
+    const { fornecedores, centrosCustos, viaturas, requisicoes } = useWorkshop();
     const { supplierInvoices, addSupplierInvoice, updateSupplierInvoice } = useFinancial();
+
+    const initialRequisitionId = searchParams.get('requisitionId') || '';
 
     const selectedInvoice = useMemo(() => {
         if (mode !== 'edit' || !invoiceId) return null;
         return supplierInvoices.find(invoice => invoice.id === invoiceId) || null;
     }, [mode, invoiceId, supplierInvoices]);
+
+    const selectedRequisition = useMemo(() => {
+        if (mode !== 'create' || !initialRequisitionId) return null;
+        return requisicoes.find(req => req.id === initialRequisitionId) || null;
+    }, [mode, initialRequisitionId, requisicoes]);
 
     const handleSave = async (data: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
         try {
@@ -61,6 +69,8 @@ export default function SupplierInvoiceDocumentPage({ mode }: SupplierInvoiceDoc
                 suppliers={fornecedores}
                 costCenters={centrosCustos}
                 vehicles={viaturas}
+                requisitions={requisicoes}
+                initialRequisition={selectedRequisition}
                 onSave={handleSave}
                 onCancel={handleCancel}
             />

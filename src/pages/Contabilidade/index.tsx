@@ -11,6 +11,7 @@ import Alugueres from './Alugueres';
 import ExpensesList from './ExpensesList';
 import FixedCostsManager from './FixedCostsManager';
 import SupplierInvoices from './SupplierInvoices';
+import FinancialMovements from './FinancialMovements';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { formatCurrency } from '../../utils/format';
 import { supabase } from '../../lib/supabase';
@@ -21,7 +22,7 @@ import type { Fatura } from '../../types';
 function ContabilidadeContent() {
     // Only get what actually exists in the context
     const { summary, isLoading, refreshData } = useFinancial();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'receitas' | 'despesas' | 'fixos' | 'alugueres' | 'supplier_invoices'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'receitas' | 'despesas' | 'fixos' | 'alugueres' | 'supplier_invoices' | 'financial_movements'>('dashboard');
     const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
     const [selectedInvoice, setSelectedInvoice] = useState<Fatura | null>(null);
     const [invoices, setInvoices] = useState<Fatura[]>([]);
@@ -161,6 +162,7 @@ function ContabilidadeContent() {
             case 'fixos': return <FixedCostsManager />;
             case 'alugueres': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} onRefresh={fetchInvoices} />;
             case 'supplier_invoices': return <SupplierInvoices />;
+            case 'financial_movements': return <FinancialMovements />;
             default: return null;
         }
     };
@@ -187,6 +189,7 @@ function ContabilidadeContent() {
                             { id: 'dashboard', label: 'Visão Geral', icon: PieChart },
                             { id: 'receitas', label: 'Alugueres', icon: ArrowUpRight },
                             { id: 'supplier_invoices', label: 'Faturas Fornecedor', icon: Receipt },
+                            { id: 'financial_movements', label: 'Movimentos', icon: Wallet },
                             { id: 'despesas', label: 'Despesas', icon: TrendingDown },
                             { id: 'fixos', label: 'Fixos', icon: RefreshCcw },
                         ].map(tab => (

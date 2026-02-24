@@ -1,12 +1,13 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Expense, Fatura, FinancialSummary, TollRecord, ElectricChargingRecord, SupplierInvoice } from '../types';
+import type { Expense, Fatura, FinancialSummary, TollRecord, ElectricChargingRecord, SupplierInvoice, FinancialMovement } from '../types';
 
 interface FinancialContextType {
     expenses: Expense[];
     invoices: Fatura[];
     supplierInvoices: SupplierInvoice[];
+    financialMovements: FinancialMovement[];
     summary: FinancialSummary;
     tolls: TollRecord[];
     charging: ElectricChargingRecord[];
@@ -25,6 +26,83 @@ const FinancialContext = createContext<FinancialContextType | undefined>(undefin
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+    const getEstimatedRequisitionValue = (requisition: { itens?: any[] }) => {
+        const items = Array.isArray(requisition.itens) ? requisition.itens : [];
+        return round2(items.reduce((sum, item) => {
+            const lineTotal = Number(item?.valor_total ?? 0);
+            if (Number.isFinite(lineTotal) && lineTotal > 0) return sum + lineTotal;
+
+            const quantity = Number(item?.quantidade ?? 0);
+            const unitPrice = Number(item?.valor_unitario ?? 0);
+            if (Number.isFinite(quantity) && Number.isFinite(unitPrice) && quantity > 0 && unitPrice > 0) {
+                return sum + (quantity * unitPrice);
+            }
+
+            return sum;
+        }, 0));
+    };
+
+    const getRequisitionFinancialStatus = (totalInvoiced: number, estimatedValue: number): 'PENDING' | 'PARTIAL' | 'INVOICED' => {
+        const safeTotalInvoiced = round2(Math.max(0, totalInvoiced));
+        const safeEstimatedValue = round2(Math.max(0, estimatedValue));
+
+        if (safeTotalInvoiced === 0) return 'PENDING';
+        if (safeEstimatedValue <= 0) return 'INVOICED';
+        if (safeTotalInvoiced < safeEstimatedValue) return 'PARTIAL';
+        return 'INVOICED';
+    };
+
+    const syncRequisitionFinancialStatus = async (requisitionId?: string) => {
+        if (!requisitionId) return;
+
+        try {
+            const { data: requisitionData, error: requisitionError } = await supabase
+                .from('requisicoes')
+                .select('id,itens')
+                .eq('id', requisitionId)
+                .maybeSingle();
+
+            if (requisitionError || !requisitionData) {
+                if (requisitionError) {
+                    console.warn('Unable to fetch requisition for financial sync:', requisitionError.message);
+                }
+                return;
+            }
+
+            const { data: linkedInvoices, error: linkedInvoicesError } = await supabase
+                .from('supplier_invoices')
+                .select('total_final,total,total_value')
+                .eq('requisition_id', requisitionId);
+
+            if (linkedInvoicesError) {
+                console.warn('Unable to fetch linked invoices for requisition sync:', linkedInvoicesError.message);
+                return;
+            }
+
+            const totalInvoiced = round2((linkedInvoices || []).reduce((sum, invoice: any) => {
+                const total = Number(invoice?.total_final ?? invoice?.total ?? invoice?.total_value ?? 0);
+                return sum + (Number.isFinite(total) ? total : 0);
+            }, 0));
+
+            const estimatedValue = getEstimatedRequisitionValue(requisitionData);
+            const financialStatus = getRequisitionFinancialStatus(totalInvoiced, estimatedValue);
+
+            const { error: updateError } = await supabase
+                .from('requisicoes')
+                .update({
+                    financial_status: financialStatus,
+                    total_invoiced_amount: totalInvoiced
+                })
+                .eq('id', requisitionId);
+
+            if (updateError) {
+                console.warn('Unable to update requisition financial status:', updateError.message);
+            }
+        } catch (error) {
+            console.warn('Unexpected error while syncing requisition financial status:', error);
+        }
+    };
+
     const computeInvoiceFromLines = (lines: NonNullable<SupplierInvoice['lines']>) => {
         const normalizedLines = lines
             .map(line => {
@@ -36,7 +114,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 const discountValue = round2(subtotal * (discountPercentage / 100));
                 const netValue = round2(subtotal - discountValue);
                 const ivaRate = line.iva_rate || 0;
-                const ivaValue = round2(netValue * (ivaRate / 100));
+                const calculatedIvaValue = round2(netValue * (ivaRate / 100));
+                const providedIvaValue = round2(Number(line.iva_value || 0));
+                const ivaValue = Math.abs(providedIvaValue - calculatedIvaValue) >= 0.01
+                    ? providedIvaValue
+                    : calculatedIvaValue;
                 return {
                     ...line,
                     quantity,
@@ -64,6 +146,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [invoices, setInvoices] = useState<Fatura[]>([]);
     const [supplierInvoices, setSupplierInvoices] = useState<SupplierInvoice[]>([]);
+    const [financialMovements, setFinancialMovements] = useState<FinancialMovement[]>([]);
     const [tolls, setTolls] = useState<TollRecord[]>([]);
     const [charging, setCharging] = useState<ElectricChargingRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +166,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 fetchExpenses(),
                 fetchInvoices(),
                 fetchSupplierInvoices(),
+                fetchFinancialMovements(),
                 calculateSummary()
             ]);
         } catch (error) {
@@ -247,10 +331,21 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 supplier:fornecedores(*),
                 cost_center:centros_custos(*),
                 vehicle:viaturas(matricula, marca, modelo),
+                requisition:requisicoes(id, numero, status),
                 lines:supplier_invoice_lines(*)
             `)
             .order('issue_date', { ascending: false });
         if (data) setSupplierInvoices(data as SupplierInvoice[]);
+    };
+
+    const fetchFinancialMovements = async () => {
+        const { data } = await supabase
+            .from('financial_movements')
+            .select('*')
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false });
+
+        if (data) setFinancialMovements(data as FinancialMovement[]);
     };
 
     const calculateSummary = async () => {
@@ -271,56 +366,48 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         load();
     }, []);
 
-    // Helper to calc stats from current lists (which might be empty initially)
+    // ERP summary based only on financial movements
     useEffect(() => {
-        if (!invoices.length && !expenses.length && !supplierInvoices.length) return;
+        const totalRevenue = round2(financialMovements
+            .filter(m => m.type === 'revenue')
+            .reduce((acc, curr) => acc + Number(curr.amount || 0), 0));
 
-        const getSupplierInvoiceTotal = (invoice: SupplierInvoice) => invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0;
+        const totalExpensesVal = round2(financialMovements
+            .filter(m => m.type === 'expense')
+            .reduce((acc, curr) => acc + Number(curr.amount || 0), 0));
 
-        const totalRevenue = invoices.reduce((acc, curr) => acc + (curr.total || 0), 0);
-        const totalExpensesVal = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0) + 
-            supplierInvoices.reduce((acc, curr) => acc + getSupplierInvoiceTotal(curr), 0);
-        const pending = invoices.filter(i => i.status !== 'paga' && i.status !== 'anulada').reduce((acc, curr) => acc + (curr.total || 0), 0) +
-            supplierInvoices.filter(i => i.payment_status === 'pending' || i.payment_status === 'overdue').reduce((acc, curr) => acc + getSupplierInvoiceTotal(curr), 0);
+        const byAccount = (accountCode: FinancialMovement['account_code']) => round2(financialMovements
+            .filter(m => m.type === 'expense' && m.account_code === accountCode)
+            .reduce((sum, m) => sum + Number(m.amount || 0), 0));
 
-        // Breakdown - include supplier invoices
-        const supplierInvoiceExpenses = supplierInvoices.reduce((sum, inv) => sum + getSupplierInvoiceTotal(inv), 0);
         const breakdown = [
-            { category: 'Combustível & Energia', value: expenses.filter(e => e.id.startsWith('fuel-') || e.id.startsWith('charge-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-blue-500' },
-            { category: 'Manutenção', value: expenses.filter(e => e.id.startsWith('maint-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-red-500' },
-            { category: 'Via Verde', value: expenses.filter(e => e.id.startsWith('toll-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-emerald-500' },
-            { category: 'Requisições', value: expenses.filter(e => e.id.startsWith('req-')).reduce((sum, e) => sum + e.amount, 0), color: 'bg-amber-500' },
-            { category: 'Faturas Fornecedor', value: supplierInvoiceExpenses, color: 'bg-purple-500' },
-            { category: 'Fixos/Outros', value: expenses.filter(e => !e.id.match(/^(fuel|maint|req|toll|charge)-/)).reduce((sum, e) => sum + e.amount, 0), color: 'bg-indigo-500' },
+            { category: 'Combustível', value: byAccount('61'), color: 'bg-blue-500' },
+            { category: 'Manutenção', value: byAccount('62'), color: 'bg-red-500' },
+            { category: 'Portagens', value: byAccount('63'), color: 'bg-emerald-500' },
+            { category: 'Despesas Gerais', value: byAccount('64'), color: 'bg-indigo-500' },
         ];
 
-        // Top CC - include supplier invoices
         const ccStats: Record<string, number> = {};
-        expenses.forEach(e => {
-            if (e.cost_center_id) {
-                ccStats[e.cost_center_id] = (ccStats[e.cost_center_id] || 0) + e.amount;
-            }
-        });
-        supplierInvoices.forEach(inv => {
-            if (inv.cost_center_id) {
-                ccStats[inv.cost_center_id] = (ccStats[inv.cost_center_id] || 0) + getSupplierInvoiceTotal(inv);
-            }
+        financialMovements.forEach(movement => {
+            if (!movement.cost_center_id) return;
+            ccStats[movement.cost_center_id] = (ccStats[movement.cost_center_id] || 0) + Number(movement.amount || 0);
         });
 
-        // This requires CC names. For now just IDs or fetch them.
-        // Simplified:
-        const topCostCenters = Object.entries(ccStats).map(([id, total]) => ({ id, nome: 'Loading...', total })).sort((a, b) => b.total - a.total).slice(0, 5);
+        const topCostCenters = Object.entries(ccStats)
+            .map(([id, total]) => ({ id, nome: id, total: round2(total) }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 5);
 
         setSummary({
             totalRevenue,
             totalExpenses: totalExpensesVal,
             netProfit: totalRevenue - totalExpensesVal,
-            pendingPayments: pending,
+            pendingPayments: 0,
             expenseBreakdown: breakdown,
             topCostCenters
         });
 
-    }, [invoices, expenses, supplierInvoices]);
+    }, [financialMovements]);
 
 
     const addExpense = async (expense: Omit<Expense, 'id'>) => {
@@ -392,11 +479,14 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
         }
 
+        await syncRequisitionFinancialStatus(invoiceData.requisition_id);
+
         await refreshData();
     };
 
     const updateSupplierInvoice = async (id: string, updates: Partial<SupplierInvoice>) => {
         const { lines, ...invoiceData } = updates;
+        const existingInvoice = supplierInvoices.find(invoice => invoice.id === id);
 
         let normalizedInvoiceData = { ...invoiceData };
         let normalizedLines: NonNullable<SupplierInvoice['lines']> | undefined;
@@ -454,18 +544,29 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
         }
 
+        const previousRequisitionId = existingInvoice?.requisition_id;
+        const nextRequisitionId = normalizedInvoiceData.requisition_id ?? previousRequisitionId;
+
+        if (previousRequisitionId && previousRequisitionId !== nextRequisitionId) {
+            await syncRequisitionFinancialStatus(previousRequisitionId);
+        }
+        await syncRequisitionFinancialStatus(nextRequisitionId);
+
         await refreshData();
     };
 
     const deleteSupplierInvoice = async (id: string) => {
+        const existingInvoice = supplierInvoices.find(invoice => invoice.id === id);
         const { error } = await supabase.from('supplier_invoices').delete().eq('id', id);
         if (error) throw error;
+
+        await syncRequisitionFinancialStatus(existingInvoice?.requisition_id);
         await refreshData();
     };
 
     return (
         <FinancialContext.Provider value={{
-            expenses, invoices, supplierInvoices, summary, tolls, charging, isLoading,
+            expenses, invoices, supplierInvoices, financialMovements, summary, tolls, charging, isLoading,
             refreshData, addExpense, updateExpense, deleteExpense,
             addSupplierInvoice, updateSupplierInvoice, deleteSupplierInvoice
         }}>
