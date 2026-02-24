@@ -42,6 +42,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     quantity,
                     unit_price: unitPrice,
                     discount_percentage: discountPercentage,
+                    subtotal,
+                    discount_value: discountValue,
                     net_value: netValue,
                     iva_rate: ivaRate,
                     iva_value: ivaValue,
@@ -50,11 +52,13 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             })
             .filter(line => line.description.trim() && line.net_value !== 0);
 
+        const grossBaseTotal = round2(normalizedLines.reduce((sum, line) => sum + line.subtotal, 0));
+        const discountTotal = round2(normalizedLines.reduce((sum, line) => sum + line.discount_value, 0));
         const totalLiquido = round2(normalizedLines.reduce((sum, line) => sum + line.net_value, 0));
         const totalIva = round2(normalizedLines.reduce((sum, line) => sum + line.iva_value, 0));
         const totalFinal = round2(totalLiquido + totalIva);
 
-        return { normalizedLines, totalLiquido, totalIva, totalFinal };
+        return { normalizedLines, grossBaseTotal, discountTotal, totalLiquido, totalIva, totalFinal };
     };
 
     const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -339,7 +343,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const addSupplierInvoice = async (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
         const { lines = [], ...invoiceData } = invoice;
-        const { normalizedLines, totalLiquido, totalIva, totalFinal } = computeInvoiceFromLines(lines);
+        const { normalizedLines, grossBaseTotal, discountTotal, totalLiquido, totalIva, totalFinal } = computeInvoiceFromLines(lines);
 
         if (!normalizedLines.length) {
             throw new Error('Invoice must include at least one non-zero line.');
@@ -347,7 +351,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         const normalizedInvoiceData = {
             ...invoiceData,
-            base_amount: totalLiquido,
+            base_amount: grossBaseTotal,
             iva_value: totalIva,
             total: totalFinal,
             total_liquido: totalLiquido,
@@ -356,7 +360,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             net_value: totalLiquido,
             vat_value: totalIva,
             total_value: totalFinal,
-            discount: { type: 'amount', value: 0, applied_value: 0 },
+            discount: { type: 'amount', value: discountTotal, applied_value: discountTotal },
             extra_expenses: []
         };
 
@@ -407,7 +411,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             normalizedInvoiceData = {
                 ...normalizedInvoiceData,
-                base_amount: computed.totalLiquido,
+                base_amount: computed.grossBaseTotal,
                 iva_value: computed.totalIva,
                 total: computed.totalFinal,
                 total_liquido: computed.totalLiquido,
@@ -416,7 +420,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 net_value: computed.totalLiquido,
                 vat_value: computed.totalIva,
                 total_value: computed.totalFinal,
-                discount: { type: 'amount', value: 0, applied_value: 0 },
+                discount: { type: 'amount', value: computed.discountTotal, applied_value: computed.discountTotal },
                 extra_expenses: []
             };
         }

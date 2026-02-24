@@ -23,6 +23,28 @@ export default function InvoiceForm({
 }: InvoiceFormProps) {
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+    const calculateLine = useCallback((line: SupplierInvoiceLine) => {
+        const quantity = line.quantity || 0;
+        const inferredUnitPrice = line.unit_price ?? (quantity !== 0 ? (line.net_value || 0) / quantity : (line.net_value || 0));
+        const unitPrice = round2(inferredUnitPrice || 0);
+        const discountPercentage = Math.max(0, round2(line.discount_percentage || 0));
+        const subtotal = round2(quantity * unitPrice);
+        const discountValue = round2(subtotal * (discountPercentage / 100));
+        const taxableBase = round2(subtotal - discountValue);
+        const ivaValue = round2(taxableBase * ((line.iva_rate || 0) / 100));
+
+        return {
+            quantity,
+            unitPrice,
+            discountPercentage,
+            subtotal,
+            discountValue,
+            taxableBase,
+            ivaValue,
+            totalValue: round2(taxableBase + ivaValue)
+        };
+    }, []);
+
     const emptyLine = (): SupplierInvoiceLine => ({
         description: '',
         quantity: 1,
@@ -35,26 +57,19 @@ export default function InvoiceForm({
     });
 
     const normalizeLine = useCallback((line: SupplierInvoiceLine): SupplierInvoiceLine => {
-        const quantity = line.quantity || 0;
-        const inferredUnitPrice = line.unit_price ?? (quantity !== 0 ? (line.net_value || 0) / quantity : (line.net_value || 0));
-        const unitPrice = round2(inferredUnitPrice || 0);
-        const discountPercentage = Math.max(0, round2(line.discount_percentage || 0));
-        const subtotal = round2(quantity * unitPrice);
-        const discountValue = round2(subtotal * (discountPercentage / 100));
-        const taxableBase = round2(subtotal - discountValue);
-        const ivaValue = round2(taxableBase * ((line.iva_rate || 0) / 100));
+        const calculated = calculateLine(line);
 
         return {
             ...line,
             description: line.description || '',
-            quantity,
-            unit_price: unitPrice,
-            discount_percentage: discountPercentage,
-            net_value: taxableBase,
-            iva_value: ivaValue,
-            total_value: round2(taxableBase + ivaValue)
+            quantity: calculated.quantity,
+            unit_price: calculated.unitPrice,
+            discount_percentage: calculated.discountPercentage,
+            net_value: calculated.taxableBase,
+            iva_value: calculated.ivaValue,
+            total_value: calculated.totalValue
         };
-    }, []);
+    }, [calculateLine]);
 
     const inferLegacyRate = useCallback((legacyInvoice: SupplierInvoice): 0 | 6 | 13 | 23 => {
         if (legacyInvoice.iva_rate === 0 || legacyInvoice.iva_rate === 6 || legacyInvoice.iva_rate === 13 || legacyInvoice.iva_rate === 23) {
@@ -117,9 +132,12 @@ export default function InvoiceForm({
         }
     }, [invoice, inferLegacyRate, normalizeLine]);
 
+    const lineBreakdowns = formData.lines.map(line => calculateLine(line));
     const calculatedLines = formData.lines.map(normalizeLine);
-    const totalLiquido = round2(calculatedLines.reduce((sum, line) => sum + line.net_value, 0));
-    const totalIva = round2(calculatedLines.reduce((sum, line) => sum + line.iva_value, 0));
+    const grossBaseTotal = round2(lineBreakdowns.reduce((sum, line) => sum + line.subtotal, 0));
+    const discountTotal = round2(lineBreakdowns.reduce((sum, line) => sum + line.discountValue, 0));
+    const totalLiquido = round2(lineBreakdowns.reduce((sum, line) => sum + line.taxableBase, 0));
+    const totalIva = round2(lineBreakdowns.reduce((sum, line) => sum + line.ivaValue, 0));
     const totalFinal = round2(totalLiquido + totalIva);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -138,13 +156,13 @@ export default function InvoiceForm({
             invoice_number: formData.invoice_number,
             issue_date: formData.issue_date,
             due_date: formData.due_date,
-            base_amount: totalLiquido,
+            base_amount: grossBaseTotal,
             iva_rate: 23,
             iva_value: totalIva,
             discount: {
                 type: 'amount',
-                value: 0,
-                applied_value: 0
+                value: discountTotal,
+                applied_value: discountTotal
             },
             extra_expenses: [],
             total: totalFinal,
@@ -408,7 +426,25 @@ export default function InvoiceForm({
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Total Líquido (€)</label>
+                                <label className="block text-xs text-slate-400 mb-1">Base Bruta (€)</label>
+                                <input
+                                    type="number"
+                                    value={grossBaseTotal}
+                                    readOnly
+                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Descontos (€)</label>
+                                <input
+                                    type="number"
+                                    value={discountTotal}
+                                    readOnly
+                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Base após desconto (€)</label>
                                 <input
                                     type="number"
                                     value={totalLiquido}
@@ -416,6 +452,9 @@ export default function InvoiceForm({
                                     className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
                                 />
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Total IVA (€)</label>
                                 <input
