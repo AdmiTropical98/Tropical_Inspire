@@ -7,17 +7,16 @@ import {
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { formatCurrency } from '../../utils/format';
-import type { WorkshopItem } from '../../types';
 
-export default function Inventory() {
-    const { workshopItems, refreshInventoryData } = useWorkshop();
+export default function StockParts() {
+    const { stockItems, refreshInventoryData } = useWorkshop();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
-    const categories = Array.from(new Set(workshopItems.map(item => item.category).filter(Boolean)));
+    const categories = Array.from(new Set(stockItems.map(item => item.category).filter(Boolean)));
 
-    const filteredItems = workshopItems.filter(item => {
+    const filteredItems = stockItems.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (item.sku && item.sku.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
@@ -35,11 +34,11 @@ export default function Inventory() {
                         <div className="p-2 bg-blue-600 rounded-xl shadow-lg shadow-blue-600/20">
                             <Box className="w-6 h-6 text-white" />
                         </div>
-                        Inventário da Oficina
+                        Stock de Peças
                     </h1>
                     <p className="text-slate-400 mt-1 flex items-center gap-2">
                         <Layers className="w-4 h-4" />
-                        Gestão de stock e consumíveis em tempo real
+                        Peças consumíveis e consumos de oficina
                     </p>
                 </div>
 
@@ -54,7 +53,7 @@ export default function Inventory() {
                         className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-600/25 transition-all flex items-center gap-2"
                     >
                         <Plus className="w-5 h-5" />
-                        Novo Item
+                        Nova Peça
                     </button>
                 </div>
             </div>
@@ -63,20 +62,20 @@ export default function Inventory() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
                     {
-                        label: 'Total de Itens',
-                        count: workshopItems.length,
+                        label: 'Total de Peças',
+                        count: stockItems.length,
                         icon: Package,
                         color: 'blue'
                     },
                     {
                         label: 'Valor em Stock',
-                        count: formatCurrency(workshopItems.reduce((acc, i) => acc + (i.stock_quantity * i.average_cost), 0)),
+                        count: formatCurrency(stockItems.reduce((acc, i) => acc + (i.stock_quantity * i.average_cost), 0)),
                         icon: DollarSign,
                         color: 'green'
                     },
                     {
                         label: 'Stock Crítico',
-                        count: workshopItems.filter(i => i.stock_quantity <= i.minimum_stock).length,
+                        count: stockItems.filter(i => i.stock_quantity <= i.minimum_stock).length,
                         icon: AlertTriangle,
                         color: 'orange'
                     },
@@ -130,8 +129,8 @@ export default function Inventory() {
                     <button
                         onClick={() => setShowLowStockOnly(!showLowStockOnly)}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all border ${showLowStockOnly
-                                ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
-                                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-800'
+                            ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
+                            : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-800'
                             }`}
                     >
                         <AlertTriangle className="w-4 h-4" />
@@ -225,7 +224,7 @@ export default function Inventory() {
                         <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center mb-4 border border-slate-800">
                             <Search className="w-10 h-10 opacity-20" />
                         </div>
-                        <p className="font-bold uppercase tracking-widest text-xs">Nenhum item encontrado</p>
+                        <p className="font-bold uppercase tracking-widest text-xs">Nenhuma peça encontrada</p>
                         <p className="text-[10px] mt-2 brightness-75">Tente ajustar os seus filtros de pesquisa</p>
                     </div>
                 )}

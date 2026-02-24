@@ -25,7 +25,7 @@ interface FinancialContextType {
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
 
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { workshopItems, createStockMovement } = useWorkshop();
+    const { stockItems, createStockMovement } = useWorkshop();
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
     const getEstimatedRequisitionValue = (requisition: { itens?: any[] }) => {
@@ -503,16 +503,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 }
             }
 
-            // Integration: Stock Entry for recognized workshop items
             for (const line of normalizedLines) {
-                const workshopItem = workshopItems.find(wi =>
+                const stockItem = stockItems.find(wi =>
                     (wi.sku && line.description.toLowerCase().includes(wi.sku.toLowerCase())) ||
                     wi.name.toLowerCase() === line.description.toLowerCase()
                 );
 
-                if (workshopItem) {
+                if (stockItem) {
                     await createStockMovement({
-                        item_id: workshopItem.id,
+                        item_id: stockItem.id,
                         movement_type: 'entry',
                         quantity: line.quantity,
                         average_cost_at_time: line.unit_price,

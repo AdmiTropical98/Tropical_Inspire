@@ -7,9 +7,9 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { formatCurrency } from '../../utils/format';
 
 export default function StockAlerts() {
-    const { workshopItems } = useWorkshop();
+    const { stockItems } = useWorkshop();
 
-    const lowStockItems = workshopItems.filter(item => item.stock_quantity <= item.minimum_stock);
+    const lowStockItems = stockItems.filter(item => item.stock_quantity <= item.minimum_stock);
     const criticalItems = lowStockItems.filter(item => item.stock_quantity === 0);
     const warningItems = lowStockItems.filter(item => item.stock_quantity > 0);
 
@@ -111,8 +111,8 @@ export default function StockAlerts() {
                                 <div className="flex items-center gap-3 mb-1">
                                     <h3 className="text-lg font-black text-white truncate">{item.name}</h3>
                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${item.stock_quantity === 0
-                                            ? 'bg-red-500/10 border-red-500/30 text-red-500'
-                                            : 'bg-orange-500/10 border-orange-500/30 text-orange-500'
+                                        ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                                        : 'bg-orange-500/10 border-orange-500/30 text-orange-500'
                                         }`}>
                                         {item.stock_quantity === 0 ? 'Crítico' : 'Baixo'}
                                     </span>

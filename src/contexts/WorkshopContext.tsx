@@ -95,17 +95,25 @@ interface WorkshopContextType {
     addManualHourRecord: (record: import('../types').ManualHourRecord) => Promise<void>;
     deleteManualHourRecord: (id: string) => Promise<void>;
 
-    // Workshop Inventory
-    workshopItems: import('../types').WorkshopItem[];
-    setWorkshopItems: React.Dispatch<React.SetStateAction<import('../types').WorkshopItem[]>>;
+    // Workshop Stock
+    stockItems: import('../types').StockItem[];
+    setStockItems: React.Dispatch<React.SetStateAction<import('../types').StockItem[]>>;
     stockMovements: import('../types').StockMovement[];
     setStockMovements: React.Dispatch<React.SetStateAction<import('../types').StockMovement[]>>;
 
-    addWorkshopItem: (item: Omit<import('../types').WorkshopItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-    updateWorkshopItem: (item: import('../types').WorkshopItem) => Promise<void>;
-    deleteWorkshopItem: (id: string) => Promise<void>;
+    addStockItem: (item: Omit<import('../types').StockItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+    updateStockItem: (item: import('../types').StockItem) => Promise<void>;
+    deleteStockItem: (id: string) => Promise<void>;
     createStockMovement: (movement: Omit<import('../types').StockMovement, 'id' | 'created_at'>) => Promise<void>;
     refreshInventoryData: () => Promise<void>;
+
+    // Workshop Assets
+    workshopAssets: import('../types').WorkshopAsset[];
+    setWorkshopAssets: React.Dispatch<React.SetStateAction<import('../types').WorkshopAsset[]>>;
+    addWorkshopAsset: (asset: Omit<import('../types').WorkshopAsset, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+    updateWorkshopAsset: (asset: import('../types').WorkshopAsset) => Promise<void>;
+    deleteWorkshopAsset: (id: string) => Promise<void>;
+    assignWorkshopAsset: (assetId: string, technicianId: string | null) => Promise<void>;
 
     addFornecedor: (f: Fornecedor) => void;
     deleteFornecedor: (id: string) => void;
@@ -234,8 +242,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [escalaTemplates, setEscalaTemplates] = useState<EscalaTemplate[]>([]);
     const [escalaTemplateItems, setEscalaTemplateItems] = useState<EscalaTemplateItem[]>([]);
 
-    const [workshopItems, setWorkshopItems] = useState<import('../types').WorkshopItem[]>([]);
+    const [stockItems, setStockItems] = useState<import('../types').StockItem[]>([]);
     const [stockMovements, setStockMovements] = useState<import('../types').StockMovement[]>([]);
+    const [workshopAssets, setWorkshopAssets] = useState<import('../types').WorkshopAsset[]>([]);
 
 
 
@@ -623,13 +632,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 console.error('Error fetching scale templates:', e);
             }
 
-            // Workshop Inventory
+            // Workshop Stock
             try {
-                const { data: items } = await supabase.from('workshop_items').select('*, supplier:fornecedores(*)');
-                if (items) setWorkshopItems(items);
+                const { data: items } = await supabase.from('stock_items').select('*, supplier:fornecedores(*)');
+                if (items) setStockItems(items);
 
-                const { data: movements } = await supabase.from('stock_movements').select('*, item:workshop_items(*)').order('created_at', { ascending: false });
+                const { data: movements } = await supabase.from('stock_movements').select('*, item:stock_items(*)').order('created_at', { ascending: false });
                 if (movements) setStockMovements(movements);
+
+                const { data: assets } = await supabase.from('workshop_assets').select('*');
+                if (assets) setWorkshopAssets(assets);
             } catch (e) {
                 console.error('Error fetching inventory data:', e);
             }
@@ -1882,18 +1894,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         // Integration: Creating Stock Exit movements for Requisition parts
         if (newStatus === 'concluida') {
             for (const item of r.itens) {
-                // Try to find matching workshop item by name or SKU
-                const workshopItem = workshopItems.find(wi =>
+                // Try to find matching stock item by name or SKU
+                const stockItem = stockItems.find(wi =>
                     (wi.sku && item.descricao.toLowerCase().includes(wi.sku.toLowerCase())) ||
                     wi.name.toLowerCase() === item.descricao.toLowerCase()
                 );
 
-                if (workshopItem) {
+                if (stockItem) {
                     await createStockMovement({
-                        item_id: workshopItem.id,
+                        item_id: stockItem.id,
                         movement_type: 'exit',
                         quantity: item.quantidade,
-                        average_cost_at_time: workshopItem.average_cost,
+                        average_cost_at_time: stockItem.average_cost,
                         source_document: 'requisition',
                         document_id: id,
                         notes: `Requisicao: ${r.numero}`
@@ -1903,18 +1915,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const addWorkshopItem = async (item: Omit<import('../types').WorkshopItem, 'id' | 'created_at' | 'updated_at'>) => {
-        const { data, error } = await supabase.from('workshop_items').insert(item).select().single();
+    const addStockItem = async (item: Omit<import('../types').StockItem, 'id' | 'created_at' | 'updated_at'>) => {
+        const { data, error } = await supabase.from('stock_items').insert(item).select().single();
         if (!error && data) {
-            setWorkshopItems(prev => [...prev, data as import('../types').WorkshopItem]);
+            setStockItems(prev => [...prev, data as import('../types').StockItem]);
         } else if (error) {
-            console.error('Error adding workshop item:', error);
+            console.error('Error adding stock item:', error);
             alert('Erro ao adicionar item: ' + error.message);
         }
     };
 
-    const updateWorkshopItem = async (item: import('../types').WorkshopItem) => {
-        const { error } = await supabase.from('workshop_items').update({
+    const updateStockItem = async (item: import('../types').StockItem) => {
+        const { error } = await supabase.from('stock_items').update({
             name: item.name,
             sku: item.sku,
             category: item.category,
@@ -1926,19 +1938,19 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }).eq('id', item.id);
 
         if (!error) {
-            setWorkshopItems(prev => prev.map(wi => wi.id === item.id ? item : wi));
+            setStockItems(prev => prev.map(wi => wi.id === item.id ? item : wi));
         } else {
-            console.error('Error updating workshop item:', error);
+            console.error('Error updating stock item:', error);
             alert('Erro ao atualizar item: ' + error.message);
         }
     };
 
-    const deleteWorkshopItem = async (id: string) => {
-        const { error } = await supabase.from('workshop_items').delete().eq('id', id);
+    const deleteStockItem = async (id: string) => {
+        const { error } = await supabase.from('stock_items').delete().eq('id', id);
         if (!error) {
-            setWorkshopItems(prev => prev.filter(wi => wi.id !== id));
+            setStockItems(prev => prev.filter(wi => wi.id !== id));
         } else {
-            console.error('Error deleting workshop item:', error);
+            console.error('Error deleting stock item:', error);
             alert('Erro ao apagar item: ' + error.message);
         }
     };
@@ -1952,14 +1964,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             source_document: movement.source_document,
             document_id: movement.document_id,
             notes: movement.notes
-        }).select('*, item:workshop_items(*)').single();
+        }).select('*, item:stock_items(*)').single();
 
         if (!error && data) {
             setStockMovements(prev => [data as import('../types').StockMovement, ...prev]);
             // Refresh the specific item to get updated stock_quantity from DB
-            const { data: updatedItem } = await supabase.from('workshop_items').select('*, supplier:fornecedores(*)').eq('id', movement.item_id).single();
+            const { data: updatedItem } = await supabase.from('stock_items').select('*, supplier:fornecedores(*)').eq('id', movement.item_id).single();
             if (updatedItem) {
-                setWorkshopItems(prev => prev.map(wi => wi.id === updatedItem.id ? updatedItem : wi));
+                setStockItems(prev => prev.map(wi => wi.id === updatedItem.id ? updatedItem : wi));
             }
         } else if (error) {
             console.error('Error creating stock movement:', error);
@@ -1969,13 +1981,63 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const refreshInventoryData = async () => {
         try {
-            const { data: items } = await supabase.from('workshop_items').select('*, supplier:fornecedores(*)');
-            if (items) setWorkshopItems(items);
+            const { data: items } = await supabase.from('stock_items').select('*, supplier:fornecedores(*)');
+            if (items) setStockItems(items);
 
-            const { data: movements } = await supabase.from('stock_movements').select('*, item:workshop_items(*)').order('created_at', { ascending: false });
+            const { data: movements } = await supabase.from('stock_movements').select('*, item:stock_items(*)').order('created_at', { ascending: false });
             if (movements) setStockMovements(movements);
+
+            const { data: assets } = await supabase.from('workshop_assets').select('*');
+            if (assets) setWorkshopAssets(assets);
         } catch (e) {
             console.error('Error refreshing inventory data:', e);
+        }
+    };
+
+    const addWorkshopAsset = async (asset: Omit<import('../types').WorkshopAsset, 'id' | 'created_at' | 'updated_at'>) => {
+        const { data, error } = await supabase.from('workshop_assets').insert(asset).select().single();
+        if (!error && data) {
+            setWorkshopAssets(prev => [...prev, data as import('../types').WorkshopAsset]);
+        } else if (error) {
+            console.error('Error adding workshop asset:', error);
+            alert('Erro ao adicionar ativo: ' + error.message);
+        }
+    };
+
+    const updateWorkshopAsset = async (asset: import('../types').WorkshopAsset) => {
+        const { error } = await supabase.from('workshop_assets').update(asset).eq('id', asset.id);
+        if (!error) {
+            setWorkshopAssets(prev => prev.map(a => a.id === asset.id ? asset : a));
+        } else {
+            console.error('Error updating workshop asset:', error);
+            alert('Erro ao atualizar ativo: ' + error.message);
+        }
+    };
+
+    const deleteWorkshopAsset = async (id: string) => {
+        const { error } = await supabase.from('workshop_assets').delete().eq('id', id);
+        if (!error) {
+            setWorkshopAssets(prev => prev.filter(a => a.id !== id));
+        } else {
+            console.error('Error deleting workshop asset:', error);
+            alert('Erro ao apagar ativo: ' + error.message);
+        }
+    };
+
+    const assignWorkshopAsset = async (assetId: string, technicianId: string | null) => {
+        const status = technicianId ? 'assigned' : 'available';
+        const { error } = await supabase.from('workshop_assets').update({
+            assigned_technician_id: technicianId,
+            status: status
+        }).eq('id', assetId);
+
+        if (!error) {
+            setWorkshopAssets(prev => prev.map(a =>
+                a.id === assetId ? { ...a, assigned_technician_id: technicianId, status: status } : a
+            ));
+        } else {
+            console.error('Error assigning workshop asset:', error);
+            alert('Erro ao atribuir ativo: ' + error.message);
         }
     };
 
@@ -2613,13 +2675,19 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             areasOperacionais,
             escalaTemplates,
             escalaTemplateItems,
-            workshopItems,
-            setWorkshopItems,
+            stockItems,
+            setStockItems,
             stockMovements,
             setStockMovements,
-            addWorkshopItem,
-            updateWorkshopItem,
-            deleteWorkshopItem,
+            addStockItem,
+            updateStockItem,
+            deleteStockItem,
+            workshopAssets,
+            setWorkshopAssets,
+            addWorkshopAsset,
+            updateWorkshopAsset,
+            deleteWorkshopAsset,
+            assignWorkshopAsset,
             createStockMovement,
             refreshInventoryData,
             locais,

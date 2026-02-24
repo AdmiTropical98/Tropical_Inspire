@@ -796,7 +796,7 @@ export type ModulePermissions = PermissionAction[];
 
 export type DetailedPermissions = Partial<Record<SystemModule, ModulePermissions>>;
 
-export interface WorkshopItem {
+export interface StockItem {
     id: string;
     name: string;
     sku?: string;
@@ -811,6 +811,21 @@ export interface WorkshopItem {
     supplier?: Fornecedor;
 }
 
+export interface WorkshopAsset {
+    id: string;
+    name: string;
+    category?: string;
+    serial_number?: string;
+    purchase_date?: string;
+    purchase_value?: number;
+    assigned_technician_id?: string | null;
+    status: 'available' | 'assigned' | 'maintenance' | 'retired';
+    location?: string;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface StockMovement {
     id: string;
     item_id: string;
@@ -821,7 +836,7 @@ export interface StockMovement {
     document_id?: string;
     notes?: string;
     created_at: string;
-    item?: WorkshopItem;
+    item?: StockItem;
 }
 
 export type OperationType = 'alert' | 'schedule' | 'fleet' | 'team' | 'general';

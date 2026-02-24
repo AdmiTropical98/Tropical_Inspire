@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronRight, UserCheck, Activity,
   Gauge, Settings2, UserCog as UserCogIcon, User as UserIcon, LogOut,
   Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging, Ticket,
-  Box, History, BellRing
+  Box, History, BellRing, Wrench, UserPlus
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -43,9 +43,11 @@ import Fornecedores from './pages/Fornecedores';
 import ViaVerde from './pages/ViaVerde';
 import Carregamentos from './pages/Carregamentos';
 import EficienciaFrota from './pages/EficienciaFrota';
-import Inventory from './pages/Workshop/Inventory';
+import StockParts from './pages/Workshop/StockParts';
 import StockMovements from './pages/Workshop/StockMovements';
 import StockAlerts from './pages/Workshop/StockAlerts';
+import WorkshopAssets from './pages/Workshop/WorkshopAssets';
+import AssignedTools from './pages/Workshop/AssignedTools';
 
 // Lazy loading backoffice
 const Backoffice = lazy(() => import('./pages/Backoffice/index'));
@@ -302,9 +304,11 @@ function App() {
           <SidebarGroup title="Workshop" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'oficina') && (
               <>
-                <SidebarItem icon={Box} label="Inventário" active={activeTab === 'workshop-inventory'} onClick={() => handleNavigate('workshop-inventory')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={Box} label="Stock Peças" active={activeTab === 'workshop-stock'} onClick={() => handleNavigate('workshop-stock')} collapsed={isSidebarCollapsed} />
                 <SidebarItem icon={History} label="Movimentos Stock" active={activeTab === 'workshop-movements'} onClick={() => handleNavigate('workshop-movements')} collapsed={isSidebarCollapsed} />
-                <SidebarItem icon={BellRing} label="Alertas Stock" active={activeTab === 'workshop-alerts'} onClick={() => handleNavigate('workshop-alerts')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={Wrench} label="Inventário Oficina" active={activeTab === 'workshop-assets'} onClick={() => handleNavigate('workshop-assets')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={UserPlus} label="Ferramentas Atribuídas" active={activeTab === 'assigned-tools'} onClick={() => handleNavigate('assigned-tools')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={BellRing} label="Alertas" active={activeTab === 'workshop-alerts'} onClick={() => handleNavigate('workshop-alerts')} collapsed={isSidebarCollapsed} />
               </>
             )}
           </SidebarGroup>
@@ -401,8 +405,10 @@ function App() {
                 <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
                 <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
                 <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
-                <Route path="/workshop-inventory" element={<Inventory />} />
+                <Route path="/workshop-stock" element={<StockParts />} />
                 <Route path="/workshop-movements" element={<StockMovements />} />
+                <Route path="/workshop-assets" element={<WorkshopAssets />} />
+                <Route path="/assigned-tools" element={<AssignedTools />} />
                 <Route path="/workshop-alerts" element={<StockAlerts />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

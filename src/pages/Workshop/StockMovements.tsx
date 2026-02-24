@@ -8,12 +8,12 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { formatCurrency } from '../../utils/format';
 
 export default function StockMovements() {
-    const { stockMovements, workshopItems, refreshInventoryData } = useWorkshop();
+    const { stockMovements, stockItems, refreshInventoryData } = useWorkshop();
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<'all' | 'entry' | 'exit' | 'adjustment'>('all');
 
     const filteredMovements = stockMovements.filter(mov => {
-        const item = workshopItems.find(i => i.id === mov.item_id);
+        const item = stockItems.find(i => i.id === mov.item_id);
         const itemName = item?.name.toLowerCase() || '';
         const matchesSearch = itemName.includes(searchTerm.toLowerCase()) ||
             (mov.notes && mov.notes.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -86,8 +86,8 @@ export default function StockMovements() {
                             key={type}
                             onClick={() => setTypeFilter(type)}
                             className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${typeFilter === type
-                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20'
-                                    : 'bg-slate-800/50 border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+                                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20'
+                                : 'bg-slate-800/50 border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800'
                                 }`}
                         >
                             {type === 'all' ? 'Todos' :
@@ -115,7 +115,7 @@ export default function StockMovements() {
                         </thead>
                         <tbody className="divide-y divide-slate-800/50">
                             {filteredMovements.map((mov) => {
-                                const item = workshopItems.find(i => i.id === mov.item_id);
+                                const item = stockItems.find(i => i.id === mov.item_id);
                                 return (
                                     <tr key={mov.id} className="hover:bg-slate-800/30 transition-colors group">
                                         <td className="px-6 py-4">
@@ -131,7 +131,7 @@ export default function StockMovements() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
                                                 <div className={`p-1.5 rounded-lg ${mov.movement_type === 'entry' ? 'bg-green-500/10' :
-                                                        mov.movement_type === 'exit' ? 'bg-red-500/10' : 'bg-blue-500/10'
+                                                    mov.movement_type === 'exit' ? 'bg-red-500/10' : 'bg-blue-500/10'
                                                     }`}>
                                                     {getMovementIcon(mov.movement_type)}
                                                 </div>
@@ -158,7 +158,7 @@ export default function StockMovements() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <span className={`text-sm font-black ${mov.movement_type === 'entry' ? 'text-green-400' :
-                                                    mov.movement_type === 'exit' ? 'text-red-400' : 'text-blue-400'
+                                                mov.movement_type === 'exit' ? 'text-red-400' : 'text-blue-400'
                                                 }`}>
                                                 {mov.movement_type === 'exit' ? '-' : '+'}{mov.quantity}
                                             </span>
