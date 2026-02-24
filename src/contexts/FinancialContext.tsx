@@ -453,21 +453,32 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const { normalizedLines, grossBaseTotal, discountTotal, totalLiquido, totalIva, totalFinal } = computeInvoiceFromLines(lines);
 
         if (!normalizedLines.length) {
-            throw new Error('Invoice must include at least one non-zero line.');
+            throw new Error('A fatura deve incluir pelo menos uma linha válida.');
         }
 
         const normalizedInvoiceData = {
-            ...invoiceData,
+            supplier_id: invoiceData.supplier_id,
+            requisition_id: invoiceData.requisition_id || null,
+            invoice_number: invoiceData.invoice_number,
+            issue_date: invoiceData.issue_date,
+            due_date: invoiceData.due_date,
             base_amount: grossBaseTotal,
             iva_value: totalIva,
-            total: totalFinal,
+            total: totalFinal, // Primary total
             total_liquido: totalLiquido,
             total_iva: totalIva,
-            total_final: totalFinal,
+            total_final: totalFinal, // Critical for ledger
             net_value: totalLiquido,
             vat_value: totalIva,
             total_value: totalFinal,
             discount: { type: 'amount', value: discountTotal, applied_value: discountTotal },
+            expense_type: invoiceData.expense_type || 'Fatura Fornecedor',
+            cost_center_id: invoiceData.cost_center_id || null,
+            vehicle_id: invoiceData.vehicle_id || null,
+            payment_status: invoiceData.payment_status || 'pending',
+            payment_method: invoiceData.payment_method || null,
+            notes: invoiceData.notes || null,
+            pdf_url: invoiceData.pdf_url || null,
             extra_expenses: []
         };
 
@@ -477,7 +488,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             .select('id')
             .single();
 
-        if (invoiceError) throw invoiceError;
+        if (invoiceError) {
+            console.error('Database error details (supplier_invoices):', invoiceError);
+            throw new Error(`Erro ao guardar fatura: ${invoiceError.message} (${invoiceError.code})`);
+        }
 
         if (normalizedLines.length > 0) {
             const lineRows = normalizedLines.map(line => ({
@@ -492,14 +506,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 total_value: line.total_value
             }));
 
-            // Chunked insert for lines to avoid payload limits
             const CHUNK_SIZE = 50;
             for (let i = 0; i < lineRows.length; i += CHUNK_SIZE) {
                 const chunk = lineRows.slice(i, i + CHUNK_SIZE);
                 const { error: linesError } = await supabase.from('supplier_invoice_lines').insert(chunk);
                 if (linesError) {
+                    console.error('Database error details (supplier_invoice_lines):', linesError);
+                    // Attempt cleanup or just throw
                     await supabase.from('supplier_invoices').delete().eq('id', createdInvoice.id);
-                    throw linesError;
+                    throw new Error(`Erro ao guardar linhas da fatura: ${linesError.message}`);
                 }
             }
 
@@ -510,21 +525,24 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 );
 
                 if (stockItem) {
-                    await createStockMovement({
-                        item_id: stockItem.id,
-                        movement_type: 'entry',
-                        quantity: line.quantity,
-                        average_cost_at_time: line.unit_price,
-                        source_document: 'invoice',
-                        document_id: createdInvoice.id,
-                        notes: `Fatura: ${normalizedInvoiceData.invoice_number}`
-                    });
+                    try {
+                        await createStockMovement({
+                            item_id: stockItem.id,
+                            movement_type: 'entry',
+                            quantity: line.quantity,
+                            average_cost_at_time: line.unit_price,
+                            source_document: 'invoice',
+                            document_id: createdInvoice.id,
+                            notes: `Fatura: ${normalizedInvoiceData.invoice_number}`
+                        });
+                    } catch (smError) {
+                        console.warn('Non-critical error: Stock movement creation failed:', smError);
+                    }
                 }
             }
         }
 
         await syncRequisitionFinancialStatus(invoiceData.requisition_id);
-
         await refreshData();
         return createdInvoice.id as string;
     };
@@ -533,15 +551,33 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const { lines, ...invoiceData } = updates;
         const existingInvoice = supplierInvoices.find(invoice => invoice.id === id);
 
-        let normalizedInvoiceData = { ...invoiceData };
-        let normalizedLines: NonNullable<SupplierInvoice['lines']> | undefined;
+        let normalizedInvoiceData: any = {
+            supplier_id: invoiceData.supplier_id,
+            requisition_id: invoiceData.requisition_id,
+            invoice_number: invoiceData.invoice_number,
+            issue_date: invoiceData.issue_date,
+            due_date: invoiceData.due_date,
+            cost_center_id: invoiceData.cost_center_id,
+            vehicle_id: invoiceData.vehicle_id,
+            payment_status: invoiceData.payment_status,
+            payment_method: invoiceData.payment_method,
+            notes: invoiceData.notes,
+            pdf_url: invoiceData.pdf_url,
+            expense_type: invoiceData.expense_type
+        };
+
+        // Clean up undefined values to avoid updating to null unintentionally if not desired, 
+        // however for foreign keys we might want to set to null.
+        Object.keys(normalizedInvoiceData).forEach(key => {
+            if (normalizedInvoiceData[key] === undefined) delete normalizedInvoiceData[key];
+        });
 
         if (lines) {
             const computed = computeInvoiceFromLines(lines);
-            normalizedLines = computed.normalizedLines as any;
+            const normalizedLines = computed.normalizedLines;
 
             if (!normalizedLines || !normalizedLines.length) {
-                throw new Error('Invoice must include at least one non-zero line.');
+                throw new Error('A fatura deve incluir pelo menos uma linha válida.');
             }
 
             normalizedInvoiceData = {
@@ -558,18 +594,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 discount: { type: 'amount', value: computed.discountTotal, applied_value: computed.discountTotal },
                 extra_expenses: []
             };
-        }
 
-        const { error: invoiceError } = await supabase.from('supplier_invoices').update(normalizedInvoiceData).eq('id', id);
-        if (invoiceError) throw invoiceError;
+            const { error: invoiceError } = await supabase.from('supplier_invoices').update(normalizedInvoiceData).eq('id', id);
+            if (invoiceError) {
+                console.error('Database error details (update supplier_invoices):', invoiceError);
+                throw new Error(`Erro ao atualizar fatura: ${invoiceError.message}`);
+            }
 
-        if (lines) {
             const { error: deleteLinesError } = await supabase
                 .from('supplier_invoice_lines')
                 .delete()
                 .eq('supplier_invoice_id', id);
 
-            if (deleteLinesError) throw deleteLinesError;
+            if (deleteLinesError) {
+                console.error('Error cleaning up lines:', deleteLinesError);
+                throw deleteLinesError;
+            }
 
             if (normalizedLines && normalizedLines.length > 0) {
                 const lineRows = (normalizedLines as any[]).map(line => ({
@@ -588,8 +628,17 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 for (let i = 0; i < lineRows.length; i += CHUNK_SIZE) {
                     const chunk = lineRows.slice(i, i + CHUNK_SIZE);
                     const { error: insertLinesError } = await supabase.from('supplier_invoice_lines').insert(chunk);
-                    if (insertLinesError) throw insertLinesError;
+                    if (insertLinesError) {
+                        console.error('Error inserting replacement lines:', insertLinesError);
+                        throw insertLinesError;
+                    }
                 }
+            }
+        } else {
+            const { error: invoiceError } = await supabase.from('supplier_invoices').update(normalizedInvoiceData).eq('id', id);
+            if (invoiceError) {
+                console.error('Database error details (update supplier_invoices meta):', invoiceError);
+                throw new Error(`Erro ao atualizar dados da fatura: ${invoiceError.message}`);
             }
         }
 

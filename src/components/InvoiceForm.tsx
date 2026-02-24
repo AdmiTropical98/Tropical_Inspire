@@ -127,7 +127,7 @@ export default function InvoiceForm({
         lines: [emptyLine()],
         cost_center_id: '',
         vehicle_id: '',
-        payment_status: 'pending' as const,
+        payment_status: 'pending' as SupplierInvoice['payment_status'],
         payment_method: '',
         notes: '',
         pdf_url: ''
@@ -190,8 +190,8 @@ export default function InvoiceForm({
 
         const matchedSupplier = normalizedSupplierName
             ? suppliers.find((supplier) => normalizeName(supplier.nome) === normalizedSupplierName)
-                || suppliers.find((supplier) => normalizeName(supplier.nome).includes(normalizedSupplierName))
-                || suppliers.find((supplier) => normalizedSupplierName.includes(normalizeName(supplier.nome)))
+            || suppliers.find((supplier) => normalizeName(supplier.nome).includes(normalizedSupplierName))
+            || suppliers.find((supplier) => normalizedSupplierName.includes(normalizeName(supplier.nome)))
             : undefined;
 
         setFormData((prev) => ({
@@ -243,7 +243,7 @@ export default function InvoiceForm({
                 lines: mappedLines,
                 cost_center_id: invoice.cost_center_id || '',
                 vehicle_id: invoice.vehicle_id || '',
-                payment_status: invoice.payment_status,
+                payment_status: invoice.payment_status as SupplierInvoice['payment_status'],
                 payment_method: invoice.payment_method || '',
                 notes: invoice.notes || '',
                 pdf_url: invoice.pdf_url || ''
@@ -395,9 +395,9 @@ export default function InvoiceForm({
             }
 
             onCancel();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving invoice form:', error);
-            alert('Erro ao guardar fatura');
+            alert(error.message || 'Erro ao guardar fatura');
         }
     };
 
@@ -530,250 +530,250 @@ export default function InvoiceForm({
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-8">
-                    {/* Supplier and Invoice Number */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Fornecedor *
-                            </label>
-                            <select
-                                value={formData.supplier_id}
-                                onChange={(e) => setFormData(prev => ({ ...prev, supplier_id: e.target.value }))}
-                                className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('supplier_id') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
-                                required
-                            >
-                                <option value="">Selecionar fornecedor</option>
-                                {suppliers.map(supplier => (
-                                    <option key={supplier.id} value={supplier.id}>
-                                        {supplier.nome}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Número da Fatura *
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.invoice_number}
-                                onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                                className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('invoice_number') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
-                                required
-                            />
-                        </div>
-                    </div>
-
+                {/* Supplier and Invoice Number */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">
-                            Requisição Associada (Opcional)
+                            Fornecedor *
                         </label>
                         <select
-                            value={formData.requisition_id}
-                            onChange={(e) => setFormData(prev => ({ ...prev, requisition_id: e.target.value }))}
+                            value={formData.supplier_id}
+                            onChange={(e) => setFormData(prev => ({ ...prev, supplier_id: e.target.value }))}
+                            className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('supplier_id') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
+                            required
+                        >
+                            <option value="">Selecionar fornecedor</option>
+                            {suppliers.map(supplier => (
+                                <option key={supplier.id} value={supplier.id}>
+                                    {supplier.nome}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Número da Fatura *
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.invoice_number}
+                            onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
+                            className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('invoice_number') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Requisição Associada (Opcional)
+                    </label>
+                    <select
+                        value={formData.requisition_id}
+                        onChange={(e) => setFormData(prev => ({ ...prev, requisition_id: e.target.value }))}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="">Sem associação</option>
+                        {requisitionOptions.map(req => (
+                            <option key={req.id} value={req.id}>
+                                {req.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Dates */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Data de Emissão *
+                        </label>
+                        <input
+                            type="date"
+                            value={formData.issue_date}
+                            onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
+                            className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('issue_date') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Data de Vencimento *
+                        </label>
+                        <input
+                            type="date"
+                            value={formData.due_date}
+                            onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                        />
+                    </div>
+                </div>
+
+                {/* 1) Invoice Lines */}
+                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <label className="block text-sm font-semibold text-slate-200">Linhas da Fatura</label>
+                        <button
+                            type="button"
+                            onClick={addLine}
+                            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors"
+                        >
+                            + Adicionar Linha
+                        </button>
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="grid grid-cols-13 gap-2 text-xs text-slate-400 px-1">
+                            <span className="col-span-4">Descrição (artigo/serviço)</span>
+                            <span className="col-span-1">Qtd</span>
+                            <span className="col-span-2">Preço Unit. (€)</span>
+                            <span className="col-span-1">Desc %</span>
+                            <span className="col-span-2">IVA %</span>
+                            <span className="col-span-1">IVA (€) manual</span>
+                            <span className="col-span-1">Total Linha</span>
+                            <span className="col-span-1 text-right">Ação</span>
+                        </div>
+
+                        {calculatedLines.map((line, index) => (
+                            <div key={index} className="grid grid-cols-13 gap-2">
+                                <input
+                                    type="text"
+                                    value={formData.lines[index]?.description || ''}
+                                    onChange={(e) => updateLine(index, 'description', e.target.value)}
+                                    placeholder="Ex.: Serviço de manutenção do veículo"
+                                    className={`col-span-4 bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has(`line-${index}`) ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
+                                />
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={formData.lines[index]?.quantity ?? 0}
+                                    onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                                    className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={formData.lines[index]?.unit_price ?? 0}
+                                    onChange={(e) => updateLine(index, 'unit_price', e.target.value)}
+                                    className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={formData.lines[index]?.discount_percentage ?? 0}
+                                    onChange={(e) => updateLine(index, 'discount_percentage', e.target.value)}
+                                    className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <select
+                                    value={formData.lines[index]?.iva_rate ?? 23}
+                                    onChange={(e) => updateLine(index, 'iva_rate', e.target.value)}
+                                    className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value={23}>23%</option>
+                                    <option value={13}>13%</option>
+                                    <option value={6}>6%</option>
+                                    <option value={0}>0%</option>
+                                </select>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={manualIvaOverrides[index] ?? line.iva_value}
+                                    onChange={(e) => updateManualIva(index, e.target.value)}
+                                    className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    title="Pode ajustar manualmente o IVA desta linha"
+                                />
+                                <input
+                                    type="number"
+                                    value={line.total_value}
+                                    readOnly
+                                    className="col-span-1 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => removeLine(index)}
+                                    className="col-span-1 px-2 py-2 text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                    title="Remover linha"
+                                >
+                                    <X className="w-4 h-4 mx-auto" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 mt-8">
+                    <InvoiceFinancialSummary
+                        grossBaseTotal={grossBaseTotal}
+                        discountTotal={discountTotal}
+                        taxableBase={totalLiquido}
+                        totalIva={totalIva}
+                        totalFinal={totalFinal}
+                    />
+                </div>
+
+                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5">
+                    <h3 className="text-sm font-semibold text-slate-200 mb-3">Financial Impact</h3>
+                    {invoice ? (
+                        financialImpact.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-slate-400 border-b border-slate-700">
+                                            <th className="text-left py-2 pr-3">Date</th>
+                                            <th className="text-left py-2 pr-3">Account</th>
+                                            <th className="text-left py-2 pr-3">Description</th>
+                                            <th className="text-right py-2 pr-3">Debit</th>
+                                            <th className="text-right py-2 pr-3">Credit</th>
+                                            <th className="text-right py-2">Net</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {financialImpact.map((movement, index) => (
+                                            <tr key={`${movement.account_code}-${index}`} className="border-b border-slate-800 last:border-0">
+                                                <td className="py-2 pr-3 text-slate-300">{new Date(movement.date).toLocaleDateString('pt-PT')}</td>
+                                                <td className="py-2 pr-3 text-white">{movement.account_code}</td>
+                                                <td className="py-2 pr-3 text-slate-300">{movement.description}</td>
+                                                <td className="py-2 pr-3 text-right text-red-300">{formatCurrency(Number(movement.debit || 0))}</td>
+                                                <td className="py-2 pr-3 text-right text-emerald-300">{formatCurrency(Number(movement.credit || 0))}</td>
+                                                <td className="py-2 text-right text-slate-200">{formatCurrency(Number(movement.amount || 0))}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-slate-400">Nenhum movimento financeiro encontrado para esta fatura.</p>
+                        )
+                    ) : (
+                        <p className="text-sm text-slate-400">O movimento financeiro será gerado automaticamente ao guardar a fatura.</p>
+                    )}
+                </div>
+
+                {/* 3) Accounting / Payment */}
+                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-200">Contabilístico / Pagamento</h3>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Centro de Custo
+                        </label>
+                        <select
+                            value={formData.cost_center_id}
+                            onChange={(e) => setFormData(prev => ({ ...prev, cost_center_id: e.target.value }))}
                             className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
-                            <option value="">Sem associação</option>
-                            {requisitionOptions.map(req => (
-                                <option key={req.id} value={req.id}>
-                                    {req.label}
+                            <option value="">Selecionar centro de custo</option>
+                            {costCenters.map(cc => (
+                                <option key={cc.id} value={cc.id}>
+                                    {cc.nome}
                                 </option>
                             ))}
                         </select>
                     </div>
 
-                    {/* Dates */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Data de Emissão *
-                            </label>
-                            <input
-                                type="date"
-                                value={formData.issue_date}
-                                onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
-                                className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('issue_date') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Data de Vencimento *
-                            </label>
-                            <input
-                                type="date"
-                                value={formData.due_date}
-                                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    {/* 1) Invoice Lines */}
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 space-y-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <label className="block text-sm font-semibold text-slate-200">Linhas da Fatura</label>
-                            <button
-                                type="button"
-                                onClick={addLine}
-                                className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors"
-                            >
-                                + Adicionar Linha
-                            </button>
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="grid grid-cols-13 gap-2 text-xs text-slate-400 px-1">
-                                <span className="col-span-4">Descrição (artigo/serviço)</span>
-                                <span className="col-span-1">Qtd</span>
-                                <span className="col-span-2">Preço Unit. (€)</span>
-                                <span className="col-span-1">Desc %</span>
-                                <span className="col-span-2">IVA %</span>
-                                <span className="col-span-1">IVA (€) manual</span>
-                                <span className="col-span-1">Total Linha</span>
-                                <span className="col-span-1 text-right">Ação</span>
-                            </div>
-
-                            {calculatedLines.map((line, index) => (
-                                <div key={index} className="grid grid-cols-13 gap-2">
-                                    <input
-                                        type="text"
-                                        value={formData.lines[index]?.description || ''}
-                                        onChange={(e) => updateLine(index, 'description', e.target.value)}
-                                        placeholder="Ex.: Serviço de manutenção do veículo"
-                                        className={`col-span-4 bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has(`line-${index}`) ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
-                                    />
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.lines[index]?.quantity ?? 0}
-                                        onChange={(e) => updateLine(index, 'quantity', e.target.value)}
-                                        className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.lines[index]?.unit_price ?? 0}
-                                        onChange={(e) => updateLine(index, 'unit_price', e.target.value)}
-                                        className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={formData.lines[index]?.discount_percentage ?? 0}
-                                        onChange={(e) => updateLine(index, 'discount_percentage', e.target.value)}
-                                        className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                    <select
-                                        value={formData.lines[index]?.iva_rate ?? 23}
-                                        onChange={(e) => updateLine(index, 'iva_rate', e.target.value)}
-                                        className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    >
-                                        <option value={23}>23%</option>
-                                        <option value={13}>13%</option>
-                                        <option value={6}>6%</option>
-                                        <option value={0}>0%</option>
-                                    </select>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={manualIvaOverrides[index] ?? line.iva_value}
-                                        onChange={(e) => updateManualIva(index, e.target.value)}
-                                        className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        title="Pode ajustar manualmente o IVA desta linha"
-                                    />
-                                    <input
-                                        type="number"
-                                        value={line.total_value}
-                                        readOnly
-                                        className="col-span-1 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeLine(index)}
-                                        className="col-span-1 px-2 py-2 text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
-                                        title="Remover linha"
-                                    >
-                                        <X className="w-4 h-4 mx-auto" />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 mt-8">
-                        <InvoiceFinancialSummary
-                            grossBaseTotal={grossBaseTotal}
-                            discountTotal={discountTotal}
-                            taxableBase={totalLiquido}
-                            totalIva={totalIva}
-                            totalFinal={totalFinal}
-                        />
-                    </div>
-
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5">
-                        <h3 className="text-sm font-semibold text-slate-200 mb-3">Financial Impact</h3>
-                        {invoice ? (
-                            financialImpact.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="text-slate-400 border-b border-slate-700">
-                                                <th className="text-left py-2 pr-3">Date</th>
-                                                <th className="text-left py-2 pr-3">Account</th>
-                                                <th className="text-left py-2 pr-3">Description</th>
-                                                <th className="text-right py-2 pr-3">Debit</th>
-                                                <th className="text-right py-2 pr-3">Credit</th>
-                                                <th className="text-right py-2">Net</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {financialImpact.map((movement, index) => (
-                                                <tr key={`${movement.account_code}-${index}`} className="border-b border-slate-800 last:border-0">
-                                                    <td className="py-2 pr-3 text-slate-300">{new Date(movement.date).toLocaleDateString('pt-PT')}</td>
-                                                    <td className="py-2 pr-3 text-white">{movement.account_code}</td>
-                                                    <td className="py-2 pr-3 text-slate-300">{movement.description}</td>
-                                                    <td className="py-2 pr-3 text-right text-red-300">{formatCurrency(Number(movement.debit || 0))}</td>
-                                                    <td className="py-2 pr-3 text-right text-emerald-300">{formatCurrency(Number(movement.credit || 0))}</td>
-                                                    <td className="py-2 text-right text-slate-200">{formatCurrency(Number(movement.amount || 0))}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-slate-400">Nenhum movimento financeiro encontrado para esta fatura.</p>
-                            )
-                        ) : (
-                            <p className="text-sm text-slate-400">O movimento financeiro será gerado automaticamente ao guardar a fatura.</p>
-                        )}
-                    </div>
-
-                    {/* 3) Accounting / Payment */}
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 space-y-4">
-                        <h3 className="text-sm font-semibold text-slate-200">Contabilístico / Pagamento</h3>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Centro de Custo
-                            </label>
-                            <select
-                                value={formData.cost_center_id}
-                                onChange={(e) => setFormData(prev => ({ ...prev, cost_center_id: e.target.value }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">Selecionar centro de custo</option>
-                                {costCenters.map(cc => (
-                                    <option key={cc.id} value={cc.id}>
-                                        {cc.nome}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
                                 Viatura (Opcional)
@@ -812,9 +812,9 @@ export default function InvoiceForm({
                                 <StatusBadge status={formData.payment_status} />
                             </div>
                         </div>
-                        </div>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
                                 Método de Pagamento
@@ -843,79 +843,79 @@ export default function InvoiceForm({
                                 className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                             />
                         </div>
-                        </div>
                     </div>
+                </div>
 
-                    {/* PDF Upload */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                            PDF da Fatura
+                {/* PDF Upload */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                        PDF da Fatura
+                    </label>
+                    <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg cursor-pointer transition-colors">
+                            <Upload className="w-4 h-4" />
+                            <span className="text-sm">Upload PDF</span>
+                            <input
+                                type="file"
+                                accept=".pdf,image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleFileUpload(file);
+                                }}
+                                className="hidden"
+                                disabled={uploading}
+                            />
                         </label>
-                        <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg cursor-pointer transition-colors">
-                                <Upload className="w-4 h-4" />
-                                <span className="text-sm">Upload PDF</span>
-                                <input
-                                    type="file"
-                                    accept=".pdf,image/*"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleFileUpload(file);
-                                    }}
-                                    className="hidden"
-                                    disabled={uploading}
-                                />
-                            </label>
-                            {uploading && <span className="text-slate-400">A fazer upload...</span>}
-                            {!uploading && importStatusMessage && (
-                                <span className="text-slate-400 text-sm">{importStatusMessage}</span>
-                            )}
-                            {formData.pdf_url && (
-                                <a
-                                    href={formData.pdf_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-blue-400 hover:text-blue-300"
-                                >
-                                    <FileText className="w-4 h-4" />
-                                    <span className="text-sm">Ver PDF</span>
-                                </a>
-                            )}
-                            {activeImport?.status && (
-                                <span className="text-xs text-slate-300 px-2 py-1 bg-slate-800 border border-slate-700 rounded-md">
-                                    Importação: {activeImport.status}
-                                </span>
-                            )}
-                            {activeImport && (
-                                <button
-                                    type="button"
-                                    onClick={handleReparse}
-                                    disabled={uploading}
-                                    className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-200 rounded-lg transition-colors text-sm"
-                                >
-                                    <RefreshCw className="w-4 h-4" />
-                                    Re-parse
-                                </button>
-                            )}
-                        </div>
+                        {uploading && <span className="text-slate-400">A fazer upload...</span>}
+                        {!uploading && importStatusMessage && (
+                            <span className="text-slate-400 text-sm">{importStatusMessage}</span>
+                        )}
+                        {formData.pdf_url && (
+                            <a
+                                href={formData.pdf_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-blue-400 hover:text-blue-300"
+                            >
+                                <FileText className="w-4 h-4" />
+                                <span className="text-sm">Ver PDF</span>
+                            </a>
+                        )}
+                        {activeImport?.status && (
+                            <span className="text-xs text-slate-300 px-2 py-1 bg-slate-800 border border-slate-700 rounded-md">
+                                Importação: {activeImport.status}
+                            </span>
+                        )}
+                        {activeImport && (
+                            <button
+                                type="button"
+                                onClick={handleReparse}
+                                disabled={uploading}
+                                className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-200 rounded-lg transition-colors text-sm"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                Re-parse
+                            </button>
+                        )}
                     </div>
+                </div>
 
-                    {/* Actions */}
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            className="px-4 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                        >
-                            {invoice ? 'Atualizar' : 'Criar'} Fatura
-                        </button>
-                    </div>
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="px-4 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                        {invoice ? 'Atualizar' : 'Criar'} Fatura
+                    </button>
+                </div>
             </form>
         </div>
     );
