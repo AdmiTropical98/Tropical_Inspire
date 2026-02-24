@@ -3,6 +3,7 @@ import { X, Upload, FileText } from 'lucide-react';
 import type { SupplierInvoice, SupplierInvoiceLine, Fornecedor, CentroCusto, Viatura } from '../types';
 import { supabase } from '../lib/supabase';
 import StatusBadge from './common/StatusBadge';
+import InvoiceFinancialSummary from './InvoiceFinancialSummary';
 
 interface InvoiceFormProps {
     invoice?: SupplierInvoice | null;
@@ -417,65 +418,14 @@ export default function InvoiceForm({
                         </div>
                     </div>
 
-                    {/* 2) Financial Summary */}
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5">
-                        <h3 className="text-sm font-semibold text-slate-200 mb-4">Resumo Financeiro</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Base Bruta (€)</label>
-                                <input
-                                    type="number"
-                                    value={grossBaseTotal}
-                                    readOnly
-                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Descontos (€)</label>
-                                <input
-                                    type="number"
-                                    value={discountTotal}
-                                    readOnly
-                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Base após desconto (€)</label>
-                                <input
-                                    type="number"
-                                    value={totalLiquido}
-                                    readOnly
-                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Total IVA (€)</label>
-                                <input
-                                    type="number"
-                                    value={totalIva}
-                                    readOnly
-                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Outras despesas (€)</label>
-                                <input
-                                    type="number"
-                                    value={0}
-                                    readOnly
-                                    className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Total Final (€)</label>
-                                <input
-                                    type="number"
-                                    value={totalFinal}
-                                    readOnly
-                                    className="w-full bg-blue-600/20 border border-blue-500/60 rounded-lg px-3 py-2 text-blue-200 font-semibold cursor-not-allowed"
-                                />
-                            </div>
-                        </div>
+                    <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 mt-8">
+                        <InvoiceFinancialSummary
+                            grossBaseTotal={grossBaseTotal}
+                            discountTotal={discountTotal}
+                            taxableBase={totalLiquido}
+                            totalIva={totalIva}
+                            totalFinal={totalFinal}
+                        />
                     </div>
 
                     {/* 3) Accounting / Payment */}
