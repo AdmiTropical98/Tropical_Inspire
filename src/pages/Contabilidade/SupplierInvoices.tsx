@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Plus, Search, FileText, Download, Eye, Edit, Trash2,
     CheckCircle, Filter
@@ -6,23 +7,20 @@ import {
 import type { SupplierInvoice } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useFinancial } from '../../contexts/FinancialContext';
-import InvoiceForm from '../../components/InvoiceForm';
 import StatusBadge from '../../components/common/StatusBadge';
 import { formatCurrency } from '../../utils/format';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function SupplierInvoices() {
+    const navigate = useNavigate();
     const { fornecedores, centrosCustos, viaturas } = useWorkshop();
     const {
         supplierInvoices,
-        addSupplierInvoice,
         updateSupplierInvoice,
         deleteSupplierInvoice
     } = useFinancial();
 
-    const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
-    const [selectedInvoice, setSelectedInvoice] = useState<SupplierInvoice | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState({
         supplier: '',
@@ -55,13 +53,11 @@ export default function SupplierInvoices() {
     });
 
     const handleCreateNew = () => {
-        setSelectedInvoice(null);
-        setView('create');
+        navigate('/finance/faturas/nova');
     };
 
     const handleEdit = (invoice: SupplierInvoice) => {
-        setSelectedInvoice(invoice);
-        setView('edit');
+        navigate(`/finance/faturas/${invoice.id}/editar`);
     };
 
     const handleView = (invoice: SupplierInvoice) => {
@@ -79,26 +75,6 @@ export default function SupplierInvoices() {
         if (confirm('Tem certeza que deseja excluir esta fatura?')) {
             await deleteSupplierInvoice(invoice.id);
         }
-    };
-
-    const handleSave = async (data: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
-        try {
-            if (selectedInvoice) {
-                await updateSupplierInvoice(selectedInvoice.id, data);
-            } else {
-                await addSupplierInvoice(data);
-            }
-            setView('list');
-            setSelectedInvoice(null);
-        } catch (error) {
-            console.error('Error saving invoice:', error);
-            alert('Erro ao guardar fatura');
-        }
-    };
-
-    const handleCancel = () => {
-        setView('list');
-        setSelectedInvoice(null);
     };
 
     const generateReport = async (groupBy: 'vehicle' | 'supplier' | 'cost_center' | 'period') => {
@@ -172,19 +148,6 @@ export default function SupplierInvoices() {
             alert('Erro ao gerar relatório');
         }
     };
-
-    if (view === 'create' || view === 'edit') {
-        return (
-            <InvoiceForm
-                invoice={selectedInvoice}
-                suppliers={fornecedores}
-                costCenters={centrosCustos}
-                vehicles={viaturas}
-                onSave={handleSave}
-                onCancel={handleCancel}
-            />
-        );
-    }
 
     return (
         <div className="space-y-6">

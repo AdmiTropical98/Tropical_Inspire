@@ -250,21 +250,20 @@ export default function InvoiceForm({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between p-6 border-b border-slate-700">
-                    <h2 className="text-xl font-semibold text-white">
-                        {invoice ? 'Editar Fatura' : 'Nova Fatura de Fornecedor'}
-                    </h2>
-                    <button
-                        onClick={onCancel}
-                        className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
-                    >
-                        <X className="w-5 h-5 text-slate-400" />
-                    </button>
-                </div>
+        <div className="w-full bg-slate-900 border border-slate-700 rounded-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-700">
+                <h2 className="text-xl font-semibold text-white">
+                    {invoice ? 'Editar Fatura' : 'Nova Fatura de Fornecedor'}
+                </h2>
+                <button
+                    onClick={onCancel}
+                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                    <X className="w-5 h-5 text-slate-400" />
+                </button>
+            </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Supplier and Invoice Number */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -620,8 +619,7 @@ export default function InvoiceForm({
                             {invoice ? 'Atualizar' : 'Criar'} Fatura
                         </button>
                     </div>
-                </form>
-            </div>
+            </form>
         </div>
     );
 }
