@@ -525,7 +525,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             centroCustoId: item.centro_custo_id,
                             criadoPor: item.criado_por,
                             financial_status: item.financial_status,
+                            erp_status: item.erp_status,
                             total_invoiced_amount: item.total_invoiced_amount,
+                            approved_value: item.approved_value,
                             custo: item.custo,
                             faturas_dados: parsedFaturas
                         };
@@ -1751,6 +1753,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             centro_custo_id: r.centroCustoId,
             obs: r.obs || '',
             status: r.status || 'pendente',
+            erp_status: r.erp_status || 'pending',
+            approved_value: r.approved_value ?? null,
             criado_por: r.criadoPor,
             itens: r.itens
         });
@@ -1769,6 +1773,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             centro_custo_id: r.centroCustoId,
             obs: r.obs || '',
             status: r.status,
+            erp_status: r.erp_status,
+            approved_value: r.approved_value ?? null,
             criado_por: r.criadoPor,
             itens: r.itens
         }).eq('id', r.id);
@@ -1810,11 +1816,22 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 0
             );
 
+            const targetValue = Number(r.approved_value ?? updates.custo ?? 0) || (Array.isArray(r.itens)
+                ? r.itens.reduce((sum, item) => {
+                    const lineTotal = Number(item?.valor_total ?? 0);
+                    if (Number.isFinite(lineTotal) && lineTotal > 0) return sum + lineTotal;
+                    return sum + (Number(item?.quantidade ?? 0) * Number(item?.valor_unitario ?? 0));
+                }, 0)
+                : 0);
+
+            updates.erp_status = updates.custo >= targetValue ? 'closed' : 'invoiced';
+
         } else {
 
             updates.fatura = "";
             updates.custo = null;
             updates.faturas_dados = null;
+            updates.erp_status = newStatus === 'pendente' ? 'pending' : 'awaiting_invoice';
         }
 
         const { error } = await supabase

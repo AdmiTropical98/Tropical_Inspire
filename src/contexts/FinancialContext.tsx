@@ -52,13 +52,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return 'INVOICED';
     };
 
+    const getRequisitionErpStatus = (totalInvoiced: number, targetValue: number): 'pending' | 'awaiting_invoice' | 'invoiced' | 'closed' => {
+        const safeTotalInvoiced = round2(Math.max(0, totalInvoiced));
+        const safeTargetValue = round2(Math.max(0, targetValue));
+
+        if (safeTotalInvoiced <= 0) return 'awaiting_invoice';
+        if (safeTargetValue > 0 && safeTotalInvoiced < safeTargetValue) return 'invoiced';
+        return 'closed';
+    };
+
     const syncRequisitionFinancialStatus = async (requisitionId?: string) => {
         if (!requisitionId) return;
 
         try {
             const { data: requisitionData, error: requisitionError } = await supabase
                 .from('requisicoes')
-                .select('id,itens')
+                .select('id,itens,approved_value,custo')
                 .eq('id', requisitionId)
                 .maybeSingle();
 
@@ -84,12 +93,14 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 return sum + (Number.isFinite(total) ? total : 0);
             }, 0));
 
-            const estimatedValue = getEstimatedRequisitionValue(requisitionData);
+            const estimatedValue = round2(Number((requisitionData as any).approved_value ?? 0) || getEstimatedRequisitionValue(requisitionData));
             const financialStatus = getRequisitionFinancialStatus(totalInvoiced, estimatedValue);
+            const erpStatus = getRequisitionErpStatus(totalInvoiced, estimatedValue);
 
             const { error: updateError } = await supabase
                 .from('requisicoes')
                 .update({
+                    erp_status: erpStatus,
                     financial_status: financialStatus,
                     total_invoiced_amount: totalInvoiced
                 })
@@ -366,31 +377,34 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         load();
     }, []);
 
-    // ERP summary based only on financial movements
+    // ERP summary based only on financial movements (ledger as single source of truth)
     useEffect(() => {
+        const ledgerAmount = (movement: FinancialMovement) => round2(Number(movement.debit || 0) - Number(movement.credit || 0));
+
         const totalRevenue = round2(financialMovements
-            .filter(m => m.type === 'revenue')
-            .reduce((acc, curr) => acc + Number(curr.amount || 0), 0));
+            .filter(m => m.account_code.startsWith('7'))
+            .reduce((acc, curr) => acc + (Number(curr.credit || 0) - Number(curr.debit || 0)), 0));
 
         const totalExpensesVal = round2(financialMovements
-            .filter(m => m.type === 'expense')
-            .reduce((acc, curr) => acc + Number(curr.amount || 0), 0));
+            .filter(m => m.account_code.startsWith('6'))
+            .reduce((acc, curr) => acc + ledgerAmount(curr), 0));
 
         const byAccount = (accountCode: FinancialMovement['account_code']) => round2(financialMovements
-            .filter(m => m.type === 'expense' && m.account_code === accountCode)
-            .reduce((sum, m) => sum + Number(m.amount || 0), 0));
+            .filter(m => m.account_code === accountCode)
+            .reduce((sum, movement) => sum + ledgerAmount(movement), 0));
 
         const breakdown = [
             { category: 'Combustível', value: byAccount('61'), color: 'bg-blue-500' },
             { category: 'Manutenção', value: byAccount('62'), color: 'bg-red-500' },
             { category: 'Portagens', value: byAccount('63'), color: 'bg-emerald-500' },
-            { category: 'Despesas Gerais', value: byAccount('64'), color: 'bg-indigo-500' },
+            { category: 'Serviços Externos', value: byAccount('64'), color: 'bg-indigo-500' },
         ];
 
         const ccStats: Record<string, number> = {};
         financialMovements.forEach(movement => {
             if (!movement.cost_center_id) return;
-            ccStats[movement.cost_center_id] = (ccStats[movement.cost_center_id] || 0) + Number(movement.amount || 0);
+            const movementValue = movement.account_code.startsWith('6') ? ledgerAmount(movement) : 0;
+            ccStats[movement.cost_center_id] = (ccStats[movement.cost_center_id] || 0) + movementValue;
         });
 
         const topCostCenters = Object.entries(ccStats)
@@ -398,11 +412,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             .sort((a, b) => b.total - a.total)
             .slice(0, 5);
 
+        const pendingPayments = round2(Math.max(0, financialMovements
+            .filter(m => m.account_code === '21')
+            .reduce((sum, movement) => sum + (Number(movement.credit || 0) - Number(movement.debit || 0)), 0)));
+
         setSummary({
             totalRevenue,
             totalExpenses: totalExpensesVal,
             netProfit: totalRevenue - totalExpensesVal,
-            pendingPayments: 0,
+            pendingPayments,
             expenseBreakdown: breakdown,
             topCostCenters
         });

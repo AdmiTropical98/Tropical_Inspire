@@ -1,35 +1,42 @@
-import { useMemo, useState } from 'react';
-import { BookOpen, Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { BookOpen, ExternalLink, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useFinancial } from '../../contexts/FinancialContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import type { FinancialMovement } from '../../types';
 import { formatCurrency } from '../../utils/format';
 
-type MovementPreset = 'all' | 'this_month_expenses' | 'revenue_only' | 'fuel_by_cost_center';
+type MovementPreset = 'all' | 'this_month_expenses' | 'revenue_only' | 'fuel_only';
+type ClassFilter = 'all' | '6' | '7';
 
 const ACCOUNT_LABELS: Record<FinancialMovement['account_code'], string> = {
+    '12': 'Bank',
+    '21': 'Suppliers',
+    '60': 'Costs',
     '61': 'Fuel',
     '62': 'Maintenance',
     '63': 'Tolls',
-    '64': 'General Expenses',
-    '71': 'Revenue'
+    '64': 'External Services',
+    '70': 'Revenue',
+    '71': 'Rentals',
+    '72': 'Services'
 };
 
-const DOC_LABELS: Record<string, string> = {
-    supplier_invoice: 'Supplier Invoice',
-    fuel_record: 'Fuel Record',
-    toll_expense: 'Toll Expense',
+const DOC_LABELS: Record<FinancialMovement['document_type'], string> = {
+    invoice: 'Invoice',
     requisition: 'Requisition',
-    fixed_expense: 'Fixed Expense',
-    revenue_invoice: 'Revenue Invoice'
+    fuel: 'Fuel',
+    expense: 'Expense',
+    adjustment: 'Adjustment'
 };
 
-export default function FinancialMovements() {
+export default function FinancialMovements({ initialPreset }: { initialPreset?: MovementPreset }) {
+    const navigate = useNavigate();
     const { financialMovements } = useFinancial();
     const { centrosCustos, viaturas } = useWorkshop();
     const [search, setSearch] = useState('');
     const [accountFilter, setAccountFilter] = useState<'all' | FinancialMovement['account_code']>('all');
-    const [typeFilter, setTypeFilter] = useState<'all' | FinancialMovement['type']>('all');
+    const [classFilter, setClassFilter] = useState<ClassFilter>('all');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [activePreset, setActivePreset] = useState<MovementPreset>('all');
@@ -39,7 +46,7 @@ export default function FinancialMovements() {
 
         if (preset === 'all') {
             setAccountFilter('all');
-            setTypeFilter('all');
+            setClassFilter('all');
             setDateFrom('');
             setDateTo('');
             setSearch('');
@@ -52,7 +59,7 @@ export default function FinancialMovements() {
             const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
 
             setAccountFilter('all');
-            setTypeFilter('expense');
+            setClassFilter('6');
             setDateFrom(start);
             setDateTo(end);
             setSearch('');
@@ -60,8 +67,8 @@ export default function FinancialMovements() {
         }
 
         if (preset === 'revenue_only') {
-            setAccountFilter('71');
-            setTypeFilter('revenue');
+            setAccountFilter('all');
+            setClassFilter('7');
             setDateFrom('');
             setDateTo('');
             setSearch('');
@@ -69,17 +76,23 @@ export default function FinancialMovements() {
         }
 
         setAccountFilter('61');
-        setTypeFilter('expense');
+        setClassFilter('all');
         setDateFrom('');
         setDateTo('');
         setSearch('');
     };
 
+    useEffect(() => {
+        if (initialPreset) {
+            applyPreset(initialPreset);
+        }
+    }, [initialPreset]);
+
     const filteredMovements = useMemo(() => {
         const query = search.trim().toLowerCase();
         return financialMovements.filter(movement => {
             const matchesAccount = accountFilter === 'all' || movement.account_code === accountFilter;
-            const matchesType = typeFilter === 'all' || movement.type === typeFilter;
+            const matchesClass = classFilter === 'all' || movement.account_code.startsWith(classFilter);
             const matchesDateFrom = !dateFrom || movement.date >= dateFrom;
             const matchesDateTo = !dateTo || movement.date <= dateTo;
 
@@ -89,13 +102,48 @@ export default function FinancialMovements() {
                 movement.description,
                 movement.document_id,
                 movement.document_type,
+                movement.source_requisition_id,
                 account,
                 document
             ].some(value => String(value || '').toLowerCase().includes(query));
 
-            return matchesAccount && matchesType && matchesDateFrom && matchesDateTo && matchesSearch;
+            return matchesAccount && matchesClass && matchesDateFrom && matchesDateTo && matchesSearch;
         });
-    }, [financialMovements, search, accountFilter, typeFilter, dateFrom, dateTo]);
+    }, [financialMovements, search, accountFilter, classFilter, dateFrom, dateTo]);
+
+    const openDocument = (movement: FinancialMovement) => {
+        if (movement.document_type === 'invoice') {
+            const isSupplierFlow = movement.account_code === '62' || movement.account_code === '21';
+            if (isSupplierFlow) {
+                navigate(`/finance/faturas/${movement.document_id}/editar`);
+                return;
+            }
+            navigate('/contabilidade');
+            return;
+        }
+
+        if (movement.document_type === 'requisition') {
+            navigate('/requisicoes');
+            return;
+        }
+
+        if (movement.document_type === 'fuel') {
+            navigate('/combustivel');
+            return;
+        }
+
+        if (movement.document_type === 'expense') {
+            navigate('/contabilidade');
+            return;
+        }
+
+        if (movement.source_requisition_id) {
+            navigate('/requisicoes');
+            return;
+        }
+
+        navigate('/contabilidade');
+    };
 
     const resolveCostCenter = (costCenterId?: string) => {
         if (!costCenterId) return '—';
@@ -143,10 +191,10 @@ export default function FinancialMovements() {
                         Revenue Only
                     </button>
                     <button
-                        onClick={() => applyPreset('fuel_by_cost_center')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'fuel_by_cost_center' ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-300 border-slate-600 hover:bg-slate-800'}`}
+                        onClick={() => applyPreset('fuel_only')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'fuel_only' ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-300 border-slate-600 hover:bg-slate-800'}`}
                     >
-                        Fuel by Cost Center
+                        Fuel Only
                     </button>
                 </div>
 
@@ -171,18 +219,22 @@ export default function FinancialMovements() {
                         <option value="61">61 Fuel</option>
                         <option value="62">62 Maintenance</option>
                         <option value="63">63 Tolls</option>
-                        <option value="64">64 General Expenses</option>
-                        <option value="71">71 Revenue</option>
+                        <option value="64">64 External Services</option>
+                        <option value="70">70 Revenue</option>
+                        <option value="71">71 Rentals</option>
+                        <option value="72">72 Services</option>
+                        <option value="12">12 Bank</option>
+                        <option value="21">21 Suppliers</option>
                     </select>
 
                     <select
-                        value={typeFilter}
-                        onChange={(e) => setTypeFilter(e.target.value as 'all' | FinancialMovement['type'])}
+                        value={classFilter}
+                        onChange={(e) => setClassFilter(e.target.value as ClassFilter)}
                         className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                        <option value="all">All Types</option>
-                        <option value="expense">Expense</option>
-                        <option value="revenue">Revenue</option>
+                        <option value="all">All Classes</option>
+                        <option value="6">6x Costs</option>
+                        <option value="7">7x Revenue</option>
                     </select>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -213,7 +265,10 @@ export default function FinancialMovements() {
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Account</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Cost Center</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Vehicle</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Amount</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Debit</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Credit</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Net</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Drill-Down</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/50">
@@ -230,8 +285,24 @@ export default function FinancialMovements() {
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-300">{resolveCostCenter(movement.cost_center_id)}</td>
                                     <td className="px-4 py-3 text-sm text-slate-300">{resolveVehicle(movement.vehicle_id)}</td>
-                                    <td className={`px-4 py-3 text-sm text-right font-semibold ${movement.type === 'revenue' ? 'text-emerald-400' : 'text-red-300'}`}>
-                                        {movement.type === 'revenue' ? '+' : '-'} {formatCurrency(Number(movement.amount || 0))}
+                                    <td className="px-4 py-3 text-sm text-right text-red-300 font-semibold">
+                                        {formatCurrency(Number(movement.debit || 0))}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-right text-emerald-300 font-semibold">
+                                        {formatCurrency(Number(movement.credit || 0))}
+                                    </td>
+                                    <td className={`px-4 py-3 text-sm text-right font-semibold ${Number(movement.credit || 0) > Number(movement.debit || 0) ? 'text-emerald-400' : 'text-red-300'}`}>
+                                        {formatCurrency(Number(movement.amount || 0))}
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                        <button
+                                            onClick={() => openDocument(movement)}
+                                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md border border-slate-600 text-slate-200 hover:bg-slate-700/60 transition-colors"
+                                            title="Open source document"
+                                        >
+                                            <ExternalLink className="w-3.5 h-3.5" />
+                                            Open
+                                        </button>
                                     </td>
                                 </tr>
                             ))}

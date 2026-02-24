@@ -75,18 +75,25 @@ export default function Requisicoes() {
         }, 0);
     };
 
-    const getFinancialStatus = (req: Requisicao, totalInvoiced: number): 'PENDING' | 'PARTIAL' | 'INVOICED' => {
-        const estimatedValue = getEstimatedValue(req);
-        if ((totalInvoiced || 0) <= 0) return 'PENDING';
-        if (estimatedValue <= 0) return 'INVOICED';
-        if (totalInvoiced < estimatedValue) return 'PARTIAL';
-        return 'INVOICED';
+    const getTargetValue = (req: Requisicao) => {
+        const approved = Number(req.approved_value ?? 0);
+        if (Number.isFinite(approved) && approved > 0) return approved;
+        return getEstimatedValue(req);
     };
 
-    const getFinancialBadge = (status: 'PENDING' | 'PARTIAL' | 'INVOICED') => {
-        if (status === 'INVOICED') return { label: 'Faturada', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
-        if (status === 'PARTIAL') return { label: 'Parcial', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
-        return { label: 'Pendente', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
+    const getErpStatus = (req: Requisicao, totalInvoiced: number): Requisicao['erp_status'] => {
+        const targetValue = getTargetValue(req);
+
+        if ((totalInvoiced || 0) <= 0) return 'awaiting_invoice';
+        if (targetValue > 0 && totalInvoiced < targetValue) return 'invoiced';
+        return 'closed';
+    };
+
+    const getErpBadge = (status?: Requisicao['erp_status']) => {
+        if (status === 'closed') return { label: 'Closed', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+        if (status === 'invoiced') return { label: 'Invoiced', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
+        if (status === 'awaiting_invoice') return { label: 'Awaiting Invoice', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
+        return { label: 'Pending', className: 'bg-slate-500/10 text-slate-300 border-slate-500/20' };
     };
 
     const getPaymentStatusLabel = (status?: string) => {
@@ -1075,8 +1082,8 @@ export default function Requisicoes() {
                                 const totalInvoicedAmount = associatedInvoices.reduce((sum, invoice) => {
                                     return sum + Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0);
                                 }, 0);
-                                const financialStatus = getFinancialStatus(req, totalInvoicedAmount);
-                                const financialBadge = getFinancialBadge(financialStatus);
+                                const erpStatus = req.erp_status || getErpStatus(req, totalInvoicedAmount);
+                                const erpBadge = getErpBadge(erpStatus);
 
                                 return (
                                     <div key={req.id} className={`bg-slate-900/40 backdrop-blur-xl border-y border-r border-slate-800 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-hidden border-l-4 ${req.status === 'concluida' ? 'border-l-emerald-500' : 'border-l-amber-500'}`}>
@@ -1138,9 +1145,9 @@ export default function Requisicoes() {
                                                             <User className="w-4 h-4 text-slate-500" />
                                                             <span className="text-slate-300">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
                                                         </span>
-                                                        <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${financialBadge.className}`}>
+                                                        <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${erpBadge.className}`}>
                                                             <TrendingUp className="w-4 h-4" />
-                                                            <span className="font-semibold">{financialBadge.label}</span>
+                                                            <span className="font-semibold">{erpBadge.label}</span>
                                                         </span>
                                                     </div>
 

@@ -78,6 +78,8 @@ export interface Requisicao {
     itens: ItemRequisicao[];
     obs: string;
     status?: 'pendente' | 'concluida';
+    erp_status?: 'pending' | 'awaiting_invoice' | 'invoiced' | 'closed';
+    approved_value?: number;
     financial_status?: 'PENDING' | 'PARTIAL' | 'INVOICED';
     total_invoiced_amount?: number;
     fatura?: string;
@@ -567,16 +569,21 @@ export interface FinancialSummary {
 export interface FinancialMovement {
     id: string;
     date: string;
-    document_type: string;
+    document_type: 'invoice' | 'requisition' | 'fuel' | 'expense' | 'adjustment';
     document_id: string;
     description: string;
+    debit: number;
+    credit: number;
     amount: number;
-    type: 'expense' | 'revenue';
     cost_center_id?: string;
     vehicle_id?: string;
-    account_code: '61' | '62' | '63' | '64' | '71';
+    supplier_id?: string;
+    source_requisition_id?: string;
+    account_code: '12' | '21' | '60' | '61' | '62' | '63' | '64' | '70' | '71' | '72';
+    account_name?: string;
+    is_reversal?: boolean;
+    reversal_of?: string | null;
     created_at?: string;
-    updated_at?: string;
 }
 
 export interface RolePermissions {

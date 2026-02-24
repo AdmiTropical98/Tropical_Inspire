@@ -108,13 +108,14 @@ export default function InvoiceForm({
         pdf_url: ''
     });
     const [manualIvaOverrides, setManualIvaOverrides] = useState<(number | null)[]>([null]);
-    const [financialImpact, setFinancialImpact] = useState<{
+    const [financialImpact, setFinancialImpact] = useState<Array<{
         date: string;
         description: string;
+        debit: number;
+        credit: number;
         amount: number;
         account_code: string;
-        type: 'expense' | 'revenue';
-    } | null>(null);
+    }>>([]);
 
     const [uploading, setUploading] = useState(false);
 
@@ -187,24 +188,24 @@ export default function InvoiceForm({
     useEffect(() => {
         const loadFinancialImpact = async () => {
             if (!invoice?.id) {
-                setFinancialImpact(null);
+                setFinancialImpact([]);
                 return;
             }
 
             const { data, error } = await supabase
                 .from('financial_movements')
-                .select('date, description, amount, account_code, type')
-                .eq('document_type', 'supplier_invoice')
+                .select('date, description, debit, credit, amount, account_code')
+                .eq('document_type', 'invoice')
                 .eq('document_id', invoice.id)
-                .maybeSingle();
+                .order('created_at', { ascending: false });
 
             if (error) {
                 console.warn('Unable to load financial impact:', error.message);
-                setFinancialImpact(null);
+                setFinancialImpact([]);
                 return;
             }
 
-            setFinancialImpact(data || null);
+            setFinancialImpact(data || []);
         };
 
         loadFinancialImpact();
@@ -581,26 +582,32 @@ export default function InvoiceForm({
                     <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5">
                         <h3 className="text-sm font-semibold text-slate-200 mb-3">Financial Impact</h3>
                         {invoice ? (
-                            financialImpact ? (
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2">
-                                        <span className="text-slate-400 block text-xs">Date</span>
-                                        <span className="text-white">{new Date(financialImpact.date).toLocaleDateString('pt-PT')}</span>
-                                    </div>
-                                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2">
-                                        <span className="text-slate-400 block text-xs">Account</span>
-                                        <span className="text-white">{financialImpact.account_code}</span>
-                                    </div>
-                                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 md:col-span-2">
-                                        <span className="text-slate-400 block text-xs">Description</span>
-                                        <span className="text-white">{financialImpact.description}</span>
-                                    </div>
-                                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 md:col-span-4">
-                                        <span className="text-slate-400 block text-xs">Movement Value</span>
-                                        <span className={`${financialImpact.type === 'revenue' ? 'text-emerald-400' : 'text-red-300'} font-semibold`}>
-                                            {financialImpact.type === 'revenue' ? '+' : '-'} {formatCurrency(Number(financialImpact.amount || 0))}
-                                        </span>
-                                    </div>
+                            financialImpact.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="text-slate-400 border-b border-slate-700">
+                                                <th className="text-left py-2 pr-3">Date</th>
+                                                <th className="text-left py-2 pr-3">Account</th>
+                                                <th className="text-left py-2 pr-3">Description</th>
+                                                <th className="text-right py-2 pr-3">Debit</th>
+                                                <th className="text-right py-2 pr-3">Credit</th>
+                                                <th className="text-right py-2">Net</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {financialImpact.map((movement, index) => (
+                                                <tr key={`${movement.account_code}-${index}`} className="border-b border-slate-800 last:border-0">
+                                                    <td className="py-2 pr-3 text-slate-300">{new Date(movement.date).toLocaleDateString('pt-PT')}</td>
+                                                    <td className="py-2 pr-3 text-white">{movement.account_code}</td>
+                                                    <td className="py-2 pr-3 text-slate-300">{movement.description}</td>
+                                                    <td className="py-2 pr-3 text-right text-red-300">{formatCurrency(Number(movement.debit || 0))}</td>
+                                                    <td className="py-2 pr-3 text-right text-emerald-300">{formatCurrency(Number(movement.credit || 0))}</td>
+                                                    <td className="py-2 text-right text-slate-200">{formatCurrency(Number(movement.amount || 0))}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             ) : (
                                 <p className="text-sm text-slate-400">Nenhum movimento financeiro encontrado para esta fatura.</p>

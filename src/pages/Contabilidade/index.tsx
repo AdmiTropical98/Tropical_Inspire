@@ -23,6 +23,7 @@ function ContabilidadeContent() {
     // Only get what actually exists in the context
     const { summary, isLoading, refreshData } = useFinancial();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'receitas' | 'despesas' | 'fixos' | 'alugueres' | 'supplier_invoices' | 'financial_movements'>('dashboard');
+    const [ledgerPreset, setLedgerPreset] = useState<'all' | 'this_month_expenses' | 'revenue_only' | 'fuel_only'>('all');
     const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
     const [selectedInvoice, setSelectedInvoice] = useState<Fatura | null>(null);
     const [invoices, setInvoices] = useState<Fatura[]>([]);
@@ -127,10 +128,10 @@ function ContabilidadeContent() {
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* KPI Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <KPICard title="Receita Total" value={summary.totalRevenue} icon={<Wallet className="w-5 h-5 text-emerald-400" />} color="bg-emerald-500/10 text-emerald-500 border-emerald-500/20" />
-                            <KPICard title="Despesas Totais" value={summary.totalExpenses} icon={<TrendingDown className="w-5 h-5 text-red-400" />} color="bg-red-500/10 text-red-500 border-red-500/20" />
-                            <KPICard title="Lucro Líquido" value={summary.netProfit} icon={<DollarSign className="w-5 h-5 text-indigo-400" />} color="bg-indigo-500/10 text-indigo-500 border-indigo-500/20" />
-                            <KPICard title="Pendentes" value={summary.pendingPayments} icon={<CreditCard className="w-5 h-5 text-amber-400" />} color="bg-amber-500/10 text-amber-500 border-amber-500/20" />
+                            <KPICard title="Receita Total" value={summary.totalRevenue} icon={<Wallet className="w-5 h-5 text-emerald-400" />} color="bg-emerald-500/10 text-emerald-500 border-emerald-500/20" onClick={() => { setLedgerPreset('revenue_only'); setActiveTab('financial_movements'); }} />
+                            <KPICard title="Despesas Totais" value={summary.totalExpenses} icon={<TrendingDown className="w-5 h-5 text-red-400" />} color="bg-red-500/10 text-red-500 border-red-500/20" onClick={() => { setLedgerPreset('this_month_expenses'); setActiveTab('financial_movements'); }} />
+                            <KPICard title="Lucro Líquido" value={summary.netProfit} icon={<DollarSign className="w-5 h-5 text-indigo-400" />} color="bg-indigo-500/10 text-indigo-500 border-indigo-500/20" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
+                            <KPICard title="Pendentes" value={summary.pendingPayments} icon={<CreditCard className="w-5 h-5 text-amber-400" />} color="bg-amber-500/10 text-amber-500 border-amber-500/20" onClick={() => { setLedgerPreset('all'); setActiveTab('financial_movements'); }} />
                         </div>
                         {/* Charts Area */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -162,7 +163,7 @@ function ContabilidadeContent() {
             case 'fixos': return <FixedCostsManager />;
             case 'alugueres': return <Alugueres invoices={invoices} onDelete={handleDeleteInvoice} onSaveRental={handleSaveRental} onRefresh={fetchInvoices} />;
             case 'supplier_invoices': return <SupplierInvoices />;
-            case 'financial_movements': return <FinancialMovements />;
+            case 'financial_movements': return <FinancialMovements initialPreset={ledgerPreset} />;
             default: return null;
         }
     };
@@ -211,11 +212,15 @@ export default function Contabilidade() {
     );
 }
 
-function KPICard({ title, value, icon, color }: any) {
+function KPICard({ title, value, icon, color, onClick }: any) {
     return (
-        <div className={`p-6 rounded-xl border ${color.split(' ')[2]} ${color.split(' ')[0]} backdrop-blur-sm relative overflow-hidden`}>
+        <button
+            type="button"
+            onClick={onClick}
+            className={`w-full text-left p-6 rounded-xl border ${color.split(' ')[2]} ${color.split(' ')[0]} backdrop-blur-sm relative overflow-hidden hover:opacity-90 transition-opacity`}
+        >
             <div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg bg-white/10 ${color.split(' ')[1]}`}>{icon}</div><h3 className="text-sm font-semibold uppercase opacity-80">{title}</h3></div>
             <p className="text-3xl font-bold mt-2">{formatCurrency(value)}</p>
-        </div>
+        </button>
     );
 }
