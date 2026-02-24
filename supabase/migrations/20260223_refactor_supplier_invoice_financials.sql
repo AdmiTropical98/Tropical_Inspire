@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS public.supplier_invoice_lines (
     supplier_invoice_id UUID NOT NULL REFERENCES public.supplier_invoices(id) ON DELETE CASCADE,
     description TEXT NOT NULL,
     quantity NUMERIC NOT NULL DEFAULT 1,
+    unit_price NUMERIC NOT NULL DEFAULT 0,
+    discount_percentage NUMERIC NOT NULL DEFAULT 0,
     net_value NUMERIC NOT NULL DEFAULT 0,
     iva_rate NUMERIC NOT NULL DEFAULT 23 CHECK (iva_rate IN (0, 6, 13, 23)),
     iva_value NUMERIC NOT NULL DEFAULT 0,
@@ -55,6 +57,18 @@ BEGIN
         CREATE POLICY "Public Access" ON public.supplier_invoice_lines FOR ALL USING (true) WITH CHECK (true);
     END IF;
 END $$;
+
+ALTER TABLE public.supplier_invoice_lines
+    ADD COLUMN IF NOT EXISTS unit_price NUMERIC NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS discount_percentage NUMERIC NOT NULL DEFAULT 0;
+
+UPDATE public.supplier_invoice_lines
+SET
+    unit_price = CASE
+        WHEN COALESCE(quantity, 0) = 0 THEN COALESCE(unit_price, net_value, 0)
+        ELSE COALESCE(unit_price, net_value / NULLIF(quantity, 0), 0)
+    END,
+    discount_percentage = COALESCE(discount_percentage, 0);
 
 DO $$
 BEGIN

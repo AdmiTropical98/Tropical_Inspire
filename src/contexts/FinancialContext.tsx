@@ -28,11 +28,20 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const computeInvoiceFromLines = (lines: NonNullable<SupplierInvoice['lines']>) => {
         const normalizedLines = lines
             .map(line => {
-                const netValue = round2(line.net_value || 0);
+                const quantity = round2(line.quantity || 0);
+                const inferredUnitPrice = line.unit_price ?? (quantity !== 0 ? (line.net_value || 0) / quantity : (line.net_value || 0));
+                const unitPrice = round2(inferredUnitPrice || 0);
+                const discountPercentage = Math.max(0, round2(line.discount_percentage || 0));
+                const subtotal = round2(quantity * unitPrice);
+                const discountValue = round2(subtotal * (discountPercentage / 100));
+                const netValue = round2(subtotal - discountValue);
                 const ivaRate = line.iva_rate || 0;
                 const ivaValue = round2(netValue * (ivaRate / 100));
                 return {
                     ...line,
+                    quantity,
+                    unit_price: unitPrice,
+                    discount_percentage: discountPercentage,
                     net_value: netValue,
                     iva_rate: ivaRate,
                     iva_value: ivaValue,
@@ -364,6 +373,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 supplier_invoice_id: createdInvoice.id,
                 description: line.description,
                 quantity: line.quantity,
+                unit_price: line.unit_price,
+                discount_percentage: line.discount_percentage,
                 net_value: line.net_value,
                 iva_rate: line.iva_rate,
                 iva_value: line.iva_value,
@@ -426,6 +437,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     supplier_invoice_id: id,
                     description: line.description,
                     quantity: line.quantity,
+                    unit_price: line.unit_price,
+                    discount_percentage: line.discount_percentage,
                     net_value: line.net_value,
                     iva_rate: line.iva_rate,
                     iva_value: line.iva_value,

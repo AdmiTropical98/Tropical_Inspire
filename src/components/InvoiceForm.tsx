@@ -26,6 +26,8 @@ export default function InvoiceForm({
     const emptyLine = (): SupplierInvoiceLine => ({
         description: '',
         quantity: 1,
+        unit_price: 0,
+        discount_percentage: 0,
         net_value: 0,
         iva_rate: 23,
         iva_value: 0,
@@ -33,15 +35,24 @@ export default function InvoiceForm({
     });
 
     const normalizeLine = useCallback((line: SupplierInvoiceLine): SupplierInvoiceLine => {
-        const netValue = round2(line.net_value || 0);
-        const ivaValue = round2(netValue * ((line.iva_rate || 0) / 100));
+        const quantity = line.quantity || 0;
+        const inferredUnitPrice = line.unit_price ?? (quantity !== 0 ? (line.net_value || 0) / quantity : (line.net_value || 0));
+        const unitPrice = round2(inferredUnitPrice || 0);
+        const discountPercentage = Math.max(0, round2(line.discount_percentage || 0));
+        const subtotal = round2(quantity * unitPrice);
+        const discountValue = round2(subtotal * (discountPercentage / 100));
+        const taxableBase = round2(subtotal - discountValue);
+        const ivaValue = round2(taxableBase * ((line.iva_rate || 0) / 100));
+
         return {
             ...line,
             description: line.description || '',
-            quantity: line.quantity || 1,
-            net_value: netValue,
+            quantity,
+            unit_price: unitPrice,
+            discount_percentage: discountPercentage,
+            net_value: taxableBase,
             iva_value: ivaValue,
-            total_value: round2(netValue + ivaValue)
+            total_value: round2(taxableBase + ivaValue)
         };
     }, []);
 
@@ -82,6 +93,8 @@ export default function InvoiceForm({
                 : [normalizeLine({
                     description: invoice.expense_type || 'Linha principal',
                     quantity: 1,
+                    unit_price: invoice.total_liquido || invoice.net_value || invoice.base_amount || 0,
+                    discount_percentage: 0,
                     net_value: invoice.total_liquido || invoice.net_value || invoice.base_amount || 0,
                     iva_rate: inferLegacyRate(invoice),
                     iva_value: invoice.total_iva || invoice.vat_value || invoice.iva_value || 0,
@@ -152,17 +165,21 @@ export default function InvoiceForm({
         });
     };
 
-    const updateLine = (index: number, field: 'description' | 'net_value' | 'iva_rate', rawValue: string) => {
+    const updateLine = (index: number, field: 'description' | 'quantity' | 'unit_price' | 'discount_percentage' | 'iva_rate', rawValue: string) => {
         setFormData(prev => {
             const nextLines = prev.lines.map((line, lineIndex) => {
                 if (lineIndex !== index) return line;
+
+                const numericValue = parseFloat(rawValue);
                 return {
                     ...line,
                     [field]: field === 'description'
                         ? rawValue
                         : field === 'iva_rate'
                             ? (Number(rawValue) as 0 | 6 | 13 | 23)
-                            : (parseFloat(rawValue) || 0)
+                            : Number.isFinite(numericValue)
+                                ? numericValue
+                                : 0
                 };
             });
 
@@ -306,8 +323,11 @@ export default function InvoiceForm({
                         </div>
 
                         <div className="space-y-2">
-                            <div className="grid grid-cols-12 gap-2 text-xs text-slate-400 px-1">
+                            <div className="grid grid-cols-16 gap-2 text-xs text-slate-400 px-1">
                                 <span className="col-span-4">Descrição</span>
+                                <span className="col-span-1">Qtd</span>
+                                <span className="col-span-2">Preço Unit. (€)</span>
+                                <span className="col-span-1">Desc %</span>
                                 <span className="col-span-2">Valor Líquido (€)</span>
                                 <span className="col-span-2">IVA %</span>
                                 <span className="col-span-2">IVA (€)</span>
@@ -316,7 +336,7 @@ export default function InvoiceForm({
                             </div>
 
                             {calculatedLines.map((line, index) => (
-                                <div key={index} className="grid grid-cols-12 gap-2">
+                                <div key={index} className="grid grid-cols-16 gap-2">
                                     <input
                                         type="text"
                                         value={formData.lines[index]?.description || ''}
@@ -327,9 +347,30 @@ export default function InvoiceForm({
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={formData.lines[index]?.net_value || 0}
-                                        onChange={(e) => updateLine(index, 'net_value', e.target.value)}
+                                        value={formData.lines[index]?.quantity ?? 0}
+                                        onChange={(e) => updateLine(index, 'quantity', e.target.value)}
+                                        className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.lines[index]?.unit_price ?? 0}
+                                        onChange={(e) => updateLine(index, 'unit_price', e.target.value)}
                                         className="col-span-2 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.lines[index]?.discount_percentage ?? 0}
+                                        onChange={(e) => updateLine(index, 'discount_percentage', e.target.value)}
+                                        className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <input
+                                        type="number"
+                                        value={line.net_value}
+                                        readOnly
+                                        className="col-span-2 bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-slate-300 cursor-not-allowed"
                                     />
                                     <select
                                         value={formData.lines[index]?.iva_rate ?? 23}

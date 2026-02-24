@@ -519,6 +519,8 @@ export interface SupplierInvoiceLine {
     supplier_invoice_id?: string;
     description: string;
     quantity: number;
+    unit_price: number;
+    discount_percentage: number;
     net_value: number;
     iva_rate: 0 | 6 | 13 | 23;
     iva_value: number;

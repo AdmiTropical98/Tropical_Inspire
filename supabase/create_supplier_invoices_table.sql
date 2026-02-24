@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS public.supplier_invoice_lines (
     supplier_invoice_id UUID NOT NULL REFERENCES public.supplier_invoices(id) ON DELETE CASCADE,
     description TEXT NOT NULL,
     quantity NUMERIC NOT NULL DEFAULT 1,
+    unit_price NUMERIC NOT NULL DEFAULT 0,
+    discount_percentage NUMERIC NOT NULL DEFAULT 0,
     net_value NUMERIC NOT NULL DEFAULT 0,
     iva_rate NUMERIC NOT NULL DEFAULT 23 CHECK (iva_rate IN (0, 6, 13, 23)),
     iva_value NUMERIC NOT NULL DEFAULT 0,
