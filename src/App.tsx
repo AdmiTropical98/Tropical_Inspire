@@ -6,7 +6,8 @@ import {
   BarChart3, MapPin, Hammer, Award, LayoutTemplate,
   ChevronDown, ChevronRight, UserCheck, Activity,
   Gauge, Settings2, UserCog as UserCogIcon, User as UserIcon, LogOut,
-  Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging, Ticket
+  Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging, Ticket,
+  Box, History, BellRing
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -42,6 +43,9 @@ import Fornecedores from './pages/Fornecedores';
 import ViaVerde from './pages/ViaVerde';
 import Carregamentos from './pages/Carregamentos';
 import EficienciaFrota from './pages/EficienciaFrota';
+import Inventory from './pages/Workshop/Inventory';
+import StockMovements from './pages/Workshop/StockMovements';
+import StockAlerts from './pages/Workshop/StockAlerts';
 
 // Lazy loading backoffice
 const Backoffice = lazy(() => import('./pages/Backoffice/index'));
@@ -294,6 +298,17 @@ function App() {
             )}
           </SidebarGroup>
 
+          {/* WORKSHOP GROUP */}
+          <SidebarGroup title="Workshop" collapsed={isSidebarCollapsed}>
+            {hasAccess(userRole, 'oficina') && (
+              <>
+                <SidebarItem icon={Box} label="Inventário" active={activeTab === 'workshop-inventory'} onClick={() => handleNavigate('workshop-inventory')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={History} label="Movimentos Stock" active={activeTab === 'workshop-movements'} onClick={() => handleNavigate('workshop-movements')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={BellRing} label="Alertas Stock" active={activeTab === 'workshop-alerts'} onClick={() => handleNavigate('workshop-alerts')} collapsed={isSidebarCollapsed} />
+              </>
+            )}
+          </SidebarGroup>
+
           {/* MONITORING GROUP */}
           <SidebarGroup title="Monitoring" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'horas') && (
@@ -386,6 +401,9 @@ function App() {
                 <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
                 <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
                 <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
+                <Route path="/workshop-inventory" element={<Inventory />} />
+                <Route path="/workshop-movements" element={<StockMovements />} />
+                <Route path="/workshop-alerts" element={<StockAlerts />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </div>

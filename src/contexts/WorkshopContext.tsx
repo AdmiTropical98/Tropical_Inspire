@@ -95,6 +95,18 @@ interface WorkshopContextType {
     addManualHourRecord: (record: import('../types').ManualHourRecord) => Promise<void>;
     deleteManualHourRecord: (id: string) => Promise<void>;
 
+    // Workshop Inventory
+    workshopItems: import('../types').WorkshopItem[];
+    setWorkshopItems: React.Dispatch<React.SetStateAction<import('../types').WorkshopItem[]>>;
+    stockMovements: import('../types').StockMovement[];
+    setStockMovements: React.Dispatch<React.SetStateAction<import('../types').StockMovement[]>>;
+
+    addWorkshopItem: (item: Omit<import('../types').WorkshopItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+    updateWorkshopItem: (item: import('../types').WorkshopItem) => Promise<void>;
+    deleteWorkshopItem: (id: string) => Promise<void>;
+    createStockMovement: (movement: Omit<import('../types').StockMovement, 'id' | 'created_at'>) => Promise<void>;
+    refreshInventoryData: () => Promise<void>;
+
     addFornecedor: (f: Fornecedor) => void;
     deleteFornecedor: (id: string) => void;
     addCliente: (c: Cliente) => void;
@@ -221,6 +233,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [areasOperacionais, setAreasOperacionais] = useState<AreaOperacional[]>([]);
     const [escalaTemplates, setEscalaTemplates] = useState<EscalaTemplate[]>([]);
     const [escalaTemplateItems, setEscalaTemplateItems] = useState<EscalaTemplateItem[]>([]);
+
+    const [workshopItems, setWorkshopItems] = useState<import('../types').WorkshopItem[]>([]);
+    const [stockMovements, setStockMovements] = useState<import('../types').StockMovement[]>([]);
 
 
 
@@ -606,6 +621,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 })));
             } catch (e) {
                 console.error('Error fetching scale templates:', e);
+            }
+
+            // Workshop Inventory
+            try {
+                const { data: items } = await supabase.from('workshop_items').select('*, supplier:fornecedores(*)');
+                if (items) setWorkshopItems(items);
+
+                const { data: movements } = await supabase.from('stock_movements').select('*, item:workshop_items(*)').order('created_at', { ascending: false });
+                if (movements) setStockMovements(movements);
+            } catch (e) {
+                console.error('Error fetching inventory data:', e);
             }
 
             // 2. Eva Transports
@@ -1852,6 +1878,105 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     : req
             )
         );
+
+        // Integration: Creating Stock Exit movements for Requisition parts
+        if (newStatus === 'concluida') {
+            for (const item of r.itens) {
+                // Try to find matching workshop item by name or SKU
+                const workshopItem = workshopItems.find(wi =>
+                    (wi.sku && item.descricao.toLowerCase().includes(wi.sku.toLowerCase())) ||
+                    wi.name.toLowerCase() === item.descricao.toLowerCase()
+                );
+
+                if (workshopItem) {
+                    await createStockMovement({
+                        item_id: workshopItem.id,
+                        movement_type: 'exit',
+                        quantity: item.quantidade,
+                        average_cost_at_time: workshopItem.average_cost,
+                        source_document: 'requisition',
+                        document_id: id,
+                        notes: `Requisicao: ${r.numero}`
+                    });
+                }
+            }
+        }
+    };
+
+    const addWorkshopItem = async (item: Omit<import('../types').WorkshopItem, 'id' | 'created_at' | 'updated_at'>) => {
+        const { data, error } = await supabase.from('workshop_items').insert(item).select().single();
+        if (!error && data) {
+            setWorkshopItems(prev => [...prev, data as import('../types').WorkshopItem]);
+        } else if (error) {
+            console.error('Error adding workshop item:', error);
+            alert('Erro ao adicionar item: ' + error.message);
+        }
+    };
+
+    const updateWorkshopItem = async (item: import('../types').WorkshopItem) => {
+        const { error } = await supabase.from('workshop_items').update({
+            name: item.name,
+            sku: item.sku,
+            category: item.category,
+            stock_quantity: item.stock_quantity,
+            minimum_stock: item.minimum_stock,
+            average_cost: item.average_cost,
+            location: item.location,
+            supplier_id: item.supplier_id
+        }).eq('id', item.id);
+
+        if (!error) {
+            setWorkshopItems(prev => prev.map(wi => wi.id === item.id ? item : wi));
+        } else {
+            console.error('Error updating workshop item:', error);
+            alert('Erro ao atualizar item: ' + error.message);
+        }
+    };
+
+    const deleteWorkshopItem = async (id: string) => {
+        const { error } = await supabase.from('workshop_items').delete().eq('id', id);
+        if (!error) {
+            setWorkshopItems(prev => prev.filter(wi => wi.id !== id));
+        } else {
+            console.error('Error deleting workshop item:', error);
+            alert('Erro ao apagar item: ' + error.message);
+        }
+    };
+
+    const createStockMovement = async (movement: Omit<import('../types').StockMovement, 'id' | 'created_at'>) => {
+        const { data, error } = await supabase.from('stock_movements').insert({
+            item_id: movement.item_id,
+            movement_type: movement.movement_type,
+            quantity: movement.quantity,
+            average_cost_at_time: movement.average_cost_at_time,
+            source_document: movement.source_document,
+            document_id: movement.document_id,
+            notes: movement.notes
+        }).select('*, item:workshop_items(*)').single();
+
+        if (!error && data) {
+            setStockMovements(prev => [data as import('../types').StockMovement, ...prev]);
+            // Refresh the specific item to get updated stock_quantity from DB
+            const { data: updatedItem } = await supabase.from('workshop_items').select('*, supplier:fornecedores(*)').eq('id', movement.item_id).single();
+            if (updatedItem) {
+                setWorkshopItems(prev => prev.map(wi => wi.id === updatedItem.id ? updatedItem : wi));
+            }
+        } else if (error) {
+            console.error('Error creating stock movement:', error);
+            alert('Erro ao registar movimento: ' + error.message);
+        }
+    };
+
+    const refreshInventoryData = async () => {
+        try {
+            const { data: items } = await supabase.from('workshop_items').select('*, supplier:fornecedores(*)');
+            if (items) setWorkshopItems(items);
+
+            const { data: movements } = await supabase.from('stock_movements').select('*, item:workshop_items(*)').order('created_at', { ascending: false });
+            if (movements) setStockMovements(movements);
+        } catch (e) {
+            console.error('Error refreshing inventory data:', e);
+        }
     };
 
     // Motoristas and others remain local for now as per plan focus
@@ -2488,6 +2613,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             areasOperacionais,
             escalaTemplates,
             escalaTemplateItems,
+            workshopItems,
+            setWorkshopItems,
+            stockMovements,
+            setStockMovements,
+            addWorkshopItem,
+            updateWorkshopItem,
+            deleteWorkshopItem,
+            createStockMovement,
+            refreshInventoryData,
             locais,
             addServico,
             updateServico,

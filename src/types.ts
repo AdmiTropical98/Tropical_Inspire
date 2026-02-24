@@ -761,6 +761,20 @@ export type PermissionAction = 'ver' | 'criar' | 'editar' | 'eliminar' | 'export
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
 
+export type UserRole = 'ADMIN_MASTER' | 'ADMIN' | 'GESTOR' | 'SUPERVISOR' | 'OFICINA' | 'MOTORISTA';
+
+export interface UserProfile {
+    id: string;
+    email: string;
+    nome: string;
+    role: UserRole;
+    status: UserStatus;
+    email_confirmed: boolean;
+    permissions?: DetailedPermissions;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export type SystemModule =
     | 'dashboard'
     | 'frota'
@@ -775,27 +789,39 @@ export type SystemModule =
     | 'permissoes'
     | 'mensagens'
     | 'configuracoes'
-    | 'backoffice';
+    | 'backoffice'
+    | 'oficina';
 
 export type ModulePermissions = PermissionAction[];
 
 export type DetailedPermissions = Partial<Record<SystemModule, ModulePermissions>>;
 
-export type UserRole = 'ADMIN_MASTER' | 'ADMIN' | 'GESTOR' | 'SUPERVISOR' | 'OFICINA' | 'MOTORISTA';
-
-export interface UserProfile {
+export interface WorkshopItem {
     id: string;
-    email: string;
-    nome?: string;
-    role: UserRole;
-    email_confirmed: boolean;
-    permissions?: DetailedPermissions; // Multi-level granular permissions
-    status?: UserStatus;
-    activation_token?: string;
-    token_expires_at?: string;
-    last_login?: string;
-    createdAt: string;
-    updatedAt: string;
+    name: string;
+    sku?: string;
+    category?: string;
+    stock_quantity: number;
+    minimum_stock: number;
+    average_cost: number;
+    location?: string;
+    supplier_id?: string;
+    created_at?: string;
+    updated_at?: string;
+    supplier?: Fornecedor;
+}
+
+export interface StockMovement {
+    id: string;
+    item_id: string;
+    movement_type: 'entry' | 'exit' | 'adjustment';
+    quantity: number;
+    average_cost_at_time?: number;
+    source_document?: 'invoice' | 'requisition' | 'manual';
+    document_id?: string;
+    notes?: string;
+    created_at: string;
+    item?: WorkshopItem;
 }
 
 export type OperationType = 'alert' | 'schedule' | 'fleet' | 'team' | 'general';

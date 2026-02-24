@@ -142,6 +142,7 @@ const LEGACY_MAP: Record<string, { module: SystemModule, action: PermissionActio
     'gestores': { module: 'utilizadores', action: 'ver' },
     'configuracoes': { module: 'configuracoes', action: 'ver' },
     'permissoes': { module: 'permissoes', action: 'ver' },
+    'oficina': { module: 'oficina', action: 'ver' },
 };
 
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Expense, Fatura, FinancialSummary, TollRecord, ElectricChargingRecord, SupplierInvoice, FinancialMovement } from '../types';
+import { useWorkshop } from './WorkshopContext';
 
 interface FinancialContextType {
     expenses: Expense[];
@@ -24,6 +25,7 @@ interface FinancialContextType {
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
 
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { workshopItems, createStockMovement } = useWorkshop();
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
     const getEstimatedRequisitionValue = (requisition: { itens?: any[] }) => {
@@ -485,15 +487,40 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 unit_price: line.unit_price,
                 discount_percentage: line.discount_percentage,
                 net_value: line.net_value,
-                iva_rate: line.iva_rate,
+                iva_rate: line.iva_rate as any,
                 iva_value: line.iva_value,
                 total_value: line.total_value
             }));
 
-            const { error: linesError } = await supabase.from('supplier_invoice_lines').insert(lineRows);
-            if (linesError) {
-                await supabase.from('supplier_invoices').delete().eq('id', createdInvoice.id);
-                throw linesError;
+            // Chunked insert for lines to avoid payload limits
+            const CHUNK_SIZE = 50;
+            for (let i = 0; i < lineRows.length; i += CHUNK_SIZE) {
+                const chunk = lineRows.slice(i, i + CHUNK_SIZE);
+                const { error: linesError } = await supabase.from('supplier_invoice_lines').insert(chunk);
+                if (linesError) {
+                    await supabase.from('supplier_invoices').delete().eq('id', createdInvoice.id);
+                    throw linesError;
+                }
+            }
+
+            // Integration: Stock Entry for recognized workshop items
+            for (const line of normalizedLines) {
+                const workshopItem = workshopItems.find(wi =>
+                    (wi.sku && line.description.toLowerCase().includes(wi.sku.toLowerCase())) ||
+                    wi.name.toLowerCase() === line.description.toLowerCase()
+                );
+
+                if (workshopItem) {
+                    await createStockMovement({
+                        item_id: workshopItem.id,
+                        movement_type: 'entry',
+                        quantity: line.quantity,
+                        average_cost_at_time: line.unit_price,
+                        source_document: 'invoice',
+                        document_id: createdInvoice.id,
+                        notes: `Fatura: ${normalizedInvoiceData.invoice_number}`
+                    });
+                }
             }
         }
 
@@ -512,9 +539,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         if (lines) {
             const computed = computeInvoiceFromLines(lines);
-            normalizedLines = computed.normalizedLines;
+            normalizedLines = computed.normalizedLines as any;
 
-            if (!normalizedLines.length) {
+            if (!normalizedLines || !normalizedLines.length) {
                 throw new Error('Invoice must include at least one non-zero line.');
             }
 
@@ -546,20 +573,24 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (deleteLinesError) throw deleteLinesError;
 
             if (normalizedLines && normalizedLines.length > 0) {
-                const lineRows = normalizedLines.map(line => ({
+                const lineRows = (normalizedLines as any[]).map(line => ({
                     supplier_invoice_id: id,
                     description: line.description,
                     quantity: line.quantity,
                     unit_price: line.unit_price,
                     discount_percentage: line.discount_percentage,
                     net_value: line.net_value,
-                    iva_rate: line.iva_rate,
+                    iva_rate: line.iva_rate as any,
                     iva_value: line.iva_value,
                     total_value: line.total_value
                 }));
 
-                const { error: insertLinesError } = await supabase.from('supplier_invoice_lines').insert(lineRows);
-                if (insertLinesError) throw insertLinesError;
+                const CHUNK_SIZE = 50;
+                for (let i = 0; i < lineRows.length; i += CHUNK_SIZE) {
+                    const chunk = lineRows.slice(i, i + CHUNK_SIZE);
+                    const { error: insertLinesError } = await supabase.from('supplier_invoice_lines').insert(chunk);
+                    if (insertLinesError) throw insertLinesError;
+                }
             }
         }
 
