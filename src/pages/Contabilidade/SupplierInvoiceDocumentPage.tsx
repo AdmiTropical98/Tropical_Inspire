@@ -29,17 +29,17 @@ export default function SupplierInvoiceDocumentPage({ mode }: SupplierInvoiceDoc
         return requisicoes.find(req => req.id === initialRequisitionId) || null;
     }, [mode, initialRequisitionId, requisicoes]);
 
-    const handleSave = async (data: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
+    const handleSave = async (data: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>): Promise<string> => {
         try {
             if (mode === 'edit' && selectedInvoice) {
-                await updateSupplierInvoice(selectedInvoice.id, data);
-            } else {
-                await addSupplierInvoice(data);
+                return await updateSupplierInvoice(selectedInvoice.id, data);
             }
-            navigate('/contabilidade');
+
+            return await addSupplierInvoice(data);
         } catch (error) {
             console.error('Error saving invoice:', error);
             alert('Erro ao guardar fatura');
+            throw error;
         }
     };
 

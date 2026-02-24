@@ -16,8 +16,8 @@ interface FinancialContextType {
     addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
     updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
     deleteExpense: (id: string) => Promise<void>;
-    addSupplierInvoice: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-    updateSupplierInvoice: (id: string, updates: Partial<SupplierInvoice>) => Promise<void>;
+    addSupplierInvoice: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<string>;
+    updateSupplierInvoice: (id: string, updates: Partial<SupplierInvoice>) => Promise<string>;
     deleteSupplierInvoice: (id: string) => Promise<void>;
 }
 
@@ -500,6 +500,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         await syncRequisitionFinancialStatus(invoiceData.requisition_id);
 
         await refreshData();
+        return createdInvoice.id as string;
     };
 
     const updateSupplierInvoice = async (id: string, updates: Partial<SupplierInvoice>) => {
@@ -571,6 +572,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         await syncRequisitionFinancialStatus(nextRequisitionId);
 
         await refreshData();
+        return id;
     };
 
     const deleteSupplierInvoice = async (id: string) => {

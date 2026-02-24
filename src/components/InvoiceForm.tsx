@@ -1,10 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Upload, FileText } from 'lucide-react';
-import type { SupplierInvoice, SupplierInvoiceLine, Fornecedor, CentroCusto, Viatura, Requisicao } from '../types';
+import type {
+    SupplierInvoice,
+    SupplierInvoiceLine,
+    Fornecedor,
+    CentroCusto,
+    Viatura,
+    Requisicao,
+    InvoiceImport,
+    InvoiceImportExtractedData,
+} from '../types';
 import { supabase } from '../lib/supabase';
 import StatusBadge from './common/StatusBadge';
 import InvoiceFinancialSummary from './InvoiceFinancialSummary';
 import { formatCurrency } from '../utils/format';
+import {
+    createInvoiceImportFromPdf,
+    getInvoiceImport,
+    markInvoiceImportConfirmed,
+} from '../services/invoiceImportService';
 
 interface InvoiceFormProps {
     invoice?: SupplierInvoice | null;
@@ -13,7 +27,7 @@ interface InvoiceFormProps {
     vehicles: Viatura[];
     requisitions: Requisicao[];
     initialRequisition?: Requisicao | null;
-    onSave: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+    onSave: (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => Promise<string>;
     onCancel: () => void;
 }
 
@@ -29,6 +43,16 @@ export default function InvoiceForm({
 }: InvoiceFormProps) {
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
     const hasMeaningfulDifference = (a: number, b: number) => Math.abs(a - b) >= 0.01;
+    const normalizeName = (value: string) => value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    const parseRate = (value: number): 0 | 6 | 13 | 23 => {
+        const rounded = Math.round(value);
+        if (rounded === 6 || rounded === 13 || rounded === 23) return rounded;
+        return 0;
+    };
 
     const calculateLine = useCallback((line: SupplierInvoiceLine) => {
         const quantity = line.quantity || 0;
@@ -118,6 +142,66 @@ export default function InvoiceForm({
     }>>([]);
 
     const [uploading, setUploading] = useState(false);
+    const [activeImport, setActiveImport] = useState<InvoiceImport | null>(null);
+    const [importStatusMessage, setImportStatusMessage] = useState('');
+
+    const pollImportUntilDone = async (importId: string) => {
+        for (let attempt = 0; attempt < 60; attempt += 1) {
+            const currentImport = await getInvoiceImport(importId);
+            setActiveImport(currentImport);
+
+            if (currentImport.status === 'ready' || currentImport.status === 'error') {
+                return currentImport;
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+
+        throw new Error('Timeout ao processar a fatura. Tente novamente.');
+    };
+
+    const applyImportedData = (payload: InvoiceImportExtractedData) => {
+        const importedLines: SupplierInvoiceLine[] = (payload.lines || [])
+            .map((line) => {
+                const quantity = Math.max(0, Number(line.quantity) || 0) || 1;
+                const unitPrice = round2(Math.max(0, Number(line.unit_price) || 0));
+                const ivaValue = round2(Math.max(0, Number(line.iva_value) || 0));
+                const totalValue = round2(Math.max(0, Number(line.total_value) || (quantity * unitPrice + ivaValue)));
+                const netValue = round2(Math.max(0, totalValue - ivaValue));
+
+                return {
+                    description: line.description || '',
+                    quantity,
+                    unit_price: unitPrice,
+                    discount_percentage: 0,
+                    net_value: netValue,
+                    iva_rate: parseRate(Number(line.iva_rate) || 0),
+                    iva_value: ivaValue,
+                    total_value: totalValue,
+                };
+            })
+            .filter((line) => line.description.trim());
+
+        const fallbackLine: SupplierInvoiceLine[] = importedLines.length ? importedLines : [emptyLine()];
+        const normalizedSupplierName = normalizeName(payload.supplier_name || '');
+
+        const matchedSupplier = normalizedSupplierName
+            ? suppliers.find((supplier) => normalizeName(supplier.nome) === normalizedSupplierName)
+                || suppliers.find((supplier) => normalizeName(supplier.nome).includes(normalizedSupplierName))
+                || suppliers.find((supplier) => normalizedSupplierName.includes(normalizeName(supplier.nome)))
+            : undefined;
+
+        setFormData((prev) => ({
+            ...prev,
+            supplier_id: prev.supplier_id || matchedSupplier?.id || '',
+            invoice_number: payload.invoice_number || prev.invoice_number,
+            issue_date: payload.issue_date || prev.issue_date,
+            due_date: payload.due_date || prev.due_date,
+            lines: fallbackLine,
+        }));
+
+        setManualIvaOverrides(fallbackLine.map((line) => line.iva_value || null));
+    };
 
     useEffect(() => {
         if (invoice) {
@@ -264,37 +348,49 @@ export default function InvoiceForm({
 
         const derivedExpenseType = validLines.map(line => line.description).join(' | ').slice(0, 180) || 'Fatura Fornecedor';
 
-        await onSave({
-            supplier_id: formData.supplier_id,
-            requisition_id: formData.requisition_id || undefined,
-            invoice_number: formData.invoice_number,
-            issue_date: formData.issue_date,
-            due_date: formData.due_date,
-            base_amount: grossBaseTotal,
-            iva_rate: 23,
-            iva_value: totalIva,
-            discount: {
-                type: 'amount',
-                value: discountTotal,
-                applied_value: discountTotal
-            },
-            extra_expenses: [],
-            total: totalFinal,
-            total_liquido: totalLiquido,
-            total_iva: totalIva,
-            total_final: totalFinal,
-            net_value: totalLiquido,
-            vat_value: totalIva,
-            total_value: totalFinal,
-            lines: validLines,
-            expense_type: derivedExpenseType,
-            cost_center_id: formData.cost_center_id || undefined,
-            vehicle_id: formData.vehicle_id || undefined,
-            payment_status: formData.payment_status,
-            payment_method: formData.payment_method || undefined,
-            notes: formData.notes || undefined,
-            pdf_url: formData.pdf_url || undefined
-        });
+        try {
+            const savedInvoiceId = await onSave({
+                supplier_id: formData.supplier_id,
+                requisition_id: formData.requisition_id || undefined,
+                invoice_number: formData.invoice_number,
+                issue_date: formData.issue_date,
+                due_date: formData.due_date,
+                base_amount: grossBaseTotal,
+                iva_rate: 23,
+                iva_value: totalIva,
+                discount: {
+                    type: 'amount',
+                    value: discountTotal,
+                    applied_value: discountTotal
+                },
+                extra_expenses: [],
+                total: totalFinal,
+                total_liquido: totalLiquido,
+                total_iva: totalIva,
+                total_final: totalFinal,
+                net_value: totalLiquido,
+                vat_value: totalIva,
+                total_value: totalFinal,
+                lines: validLines,
+                expense_type: derivedExpenseType,
+                cost_center_id: formData.cost_center_id || undefined,
+                vehicle_id: formData.vehicle_id || undefined,
+                payment_status: formData.payment_status,
+                payment_method: formData.payment_method || undefined,
+                notes: formData.notes || undefined,
+                pdf_url: formData.pdf_url || undefined
+            });
+
+            if (activeImport?.id && savedInvoiceId) {
+                await markInvoiceImportConfirmed(activeImport.id, savedInvoiceId);
+                setActiveImport((prev) => prev ? { ...prev, status: 'confirmed', supplier_invoice_id: savedInvoiceId } : prev);
+            }
+
+            onCancel();
+        } catch (error) {
+            console.error('Error saving invoice form:', error);
+            alert('Erro ao guardar fatura');
+        }
     };
 
     const updateLine = (index: number, field: 'description' | 'quantity' | 'unit_price' | 'discount_percentage' | 'iva_rate', rawValue: string) => {
@@ -357,24 +453,25 @@ export default function InvoiceForm({
 
         setUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-            const filePath = `supplier-invoices/${fileName}`;
+            setImportStatusMessage('A processar fatura com IA...');
+            const createdImport = await createInvoiceImportFromPdf(file);
+            setActiveImport(createdImport);
+            setFormData(prev => ({ ...prev, pdf_url: createdImport.pdf_url || prev.pdf_url }));
 
-            const { error: uploadError } = await supabase.storage
-                .from('documents')
-                .upload(filePath, file);
+            const completedImport = await pollImportUntilDone(createdImport.id);
 
-            if (uploadError) throw uploadError;
+            if (completedImport.status === 'error') {
+                throw new Error(completedImport.error_message || 'Falha ao extrair dados da fatura');
+            }
 
-            const { data } = supabase.storage
-                .from('documents')
-                .getPublicUrl(filePath);
-
-            setFormData(prev => ({ ...prev, pdf_url: data.publicUrl }));
+            if (completedImport.status === 'ready' && completedImport.extracted_json) {
+                applyImportedData(completedImport.extracted_json);
+                setImportStatusMessage('Dados extraídos. Revise e confirme antes de guardar.');
+            }
         } catch (error) {
             console.error('Error uploading file:', error);
-            alert('Erro ao fazer upload do arquivo');
+            setImportStatusMessage('Falha no processamento inteligente da fatura.');
+            alert('Erro ao processar PDF da fatura');
         } finally {
             setUploading(false);
         }
@@ -732,6 +829,9 @@ export default function InvoiceForm({
                                 />
                             </label>
                             {uploading && <span className="text-slate-400">A fazer upload...</span>}
+                            {!uploading && importStatusMessage && (
+                                <span className="text-slate-400 text-sm">{importStatusMessage}</span>
+                            )}
                             {formData.pdf_url && (
                                 <a
                                     href={formData.pdf_url}
@@ -742,6 +842,11 @@ export default function InvoiceForm({
                                     <FileText className="w-4 h-4" />
                                     <span className="text-sm">Ver PDF</span>
                                 </a>
+                            )}
+                            {activeImport?.status && (
+                                <span className="text-xs text-slate-300 px-2 py-1 bg-slate-800 border border-slate-700 rounded-md">
+                                    Importação: {activeImport.status}
+                                </span>
                             )}
                         </div>
                     </div>
