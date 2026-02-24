@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Upload, FileText } from 'lucide-react';
+import { X, Upload, FileText, RefreshCw } from 'lucide-react';
 import type {
     SupplierInvoice,
     SupplierInvoiceLine,
@@ -18,6 +18,7 @@ import {
     createInvoiceImportFromPdf,
     getInvoiceImport,
     markInvoiceImportConfirmed,
+    reparseInvoiceImport,
 } from '../services/invoiceImportService';
 
 interface InvoiceFormProps {
@@ -144,13 +145,14 @@ export default function InvoiceForm({
     const [uploading, setUploading] = useState(false);
     const [activeImport, setActiveImport] = useState<InvoiceImport | null>(null);
     const [importStatusMessage, setImportStatusMessage] = useState('');
+    const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
 
     const pollImportUntilDone = async (importId: string) => {
         for (let attempt = 0; attempt < 60; attempt += 1) {
             const currentImport = await getInvoiceImport(importId);
             setActiveImport(currentImport);
 
-            if (currentImport.status === 'ready' || currentImport.status === 'error') {
+            if (currentImport.status === 'ready' || currentImport.status === 'failed') {
                 return currentImport;
             }
 
@@ -163,11 +165,12 @@ export default function InvoiceForm({
     const applyImportedData = (payload: InvoiceImportExtractedData) => {
         const importedLines: SupplierInvoiceLine[] = (payload.lines || [])
             .map((line) => {
-                const quantity = Math.max(0, Number(line.quantity) || 0) || 1;
+                const quantity = Math.max(0, Number(line.qty) || 0) || 1;
                 const unitPrice = round2(Math.max(0, Number(line.unit_price) || 0));
-                const ivaValue = round2(Math.max(0, Number(line.iva_value) || 0));
-                const totalValue = round2(Math.max(0, Number(line.total_value) || (quantity * unitPrice + ivaValue)));
-                const netValue = round2(Math.max(0, totalValue - ivaValue));
+                const vatPercent = parseRate(Number(line.vat_percent) || 0);
+                const netValue = round2(quantity * unitPrice);
+                const ivaValue = round2(netValue * (vatPercent / 100));
+                const totalValue = round2(netValue + ivaValue);
 
                 return {
                     description: line.description || '',
@@ -175,7 +178,7 @@ export default function InvoiceForm({
                     unit_price: unitPrice,
                     discount_percentage: 0,
                     net_value: netValue,
-                    iva_rate: parseRate(Number(line.iva_rate) || 0),
+                    iva_rate: vatPercent,
                     iva_value: ivaValue,
                     total_value: totalValue,
                 };
@@ -183,7 +186,7 @@ export default function InvoiceForm({
             .filter((line) => line.description.trim());
 
         const fallbackLine: SupplierInvoiceLine[] = importedLines.length ? importedLines : [emptyLine()];
-        const normalizedSupplierName = normalizeName(payload.supplier_name || '');
+        const normalizedSupplierName = normalizeName(payload.supplier || '');
 
         const matchedSupplier = normalizedSupplierName
             ? suppliers.find((supplier) => normalizeName(supplier.nome) === normalizedSupplierName)
@@ -195,12 +198,17 @@ export default function InvoiceForm({
             ...prev,
             supplier_id: prev.supplier_id || matchedSupplier?.id || '',
             invoice_number: payload.invoice_number || prev.invoice_number,
-            issue_date: payload.issue_date || prev.issue_date,
-            due_date: payload.due_date || prev.due_date,
+            issue_date: payload.date || prev.issue_date,
             lines: fallbackLine,
         }));
 
         setManualIvaOverrides(fallbackLine.map((line) => line.iva_value || null));
+        setAiFilledFields(new Set([
+            'supplier_id',
+            'invoice_number',
+            'issue_date',
+            ...fallbackLine.map((_, index) => `line-${index}`),
+        ]));
     };
 
     useEffect(() => {
@@ -383,7 +391,7 @@ export default function InvoiceForm({
 
             if (activeImport?.id && savedInvoiceId) {
                 await markInvoiceImportConfirmed(activeImport.id, savedInvoiceId);
-                setActiveImport((prev) => prev ? { ...prev, status: 'confirmed', supplier_invoice_id: savedInvoiceId } : prev);
+                setActiveImport((prev) => prev ? { ...prev, status: 'confirmed' } : prev);
             }
 
             onCancel();
@@ -453,15 +461,19 @@ export default function InvoiceForm({
 
         setUploading(true);
         try {
-            setImportStatusMessage('A processar fatura com IA...');
+            setImportStatusMessage('Reading invoice...');
             const createdImport = await createInvoiceImportFromPdf(file);
             setActiveImport(createdImport);
-            setFormData(prev => ({ ...prev, pdf_url: createdImport.pdf_url || prev.pdf_url }));
+            const { data: previewUrlData } = supabase.storage
+                .from('invoices')
+                .getPublicUrl(createdImport.file_path);
+
+            setFormData(prev => ({ ...prev, pdf_url: previewUrlData.publicUrl || prev.pdf_url }));
 
             const completedImport = await pollImportUntilDone(createdImport.id);
 
-            if (completedImport.status === 'error') {
-                throw new Error(completedImport.error_message || 'Falha ao extrair dados da fatura');
+            if (completedImport.status === 'failed') {
+                throw new Error(completedImport.error || 'Falha ao extrair dados da fatura');
             }
 
             if (completedImport.status === 'ready' && completedImport.extracted_json) {
@@ -472,6 +484,32 @@ export default function InvoiceForm({
             console.error('Error uploading file:', error);
             setImportStatusMessage('Falha no processamento inteligente da fatura.');
             alert('Erro ao processar PDF da fatura');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleReparse = async () => {
+        if (!activeImport?.id || !activeImport?.file_path || uploading) return;
+
+        setUploading(true);
+        try {
+            setImportStatusMessage('Reading invoice...');
+            await reparseInvoiceImport(activeImport.id, activeImport.file_path);
+
+            const completedImport = await pollImportUntilDone(activeImport.id);
+            if (completedImport.status === 'failed') {
+                throw new Error(completedImport.error || 'Falha ao reprocessar fatura');
+            }
+
+            if (completedImport.status === 'ready' && completedImport.extracted_json) {
+                applyImportedData(completedImport.extracted_json);
+                setImportStatusMessage('Dados extraídos novamente. Revise e confirme antes de guardar.');
+            }
+        } catch (error) {
+            console.error('Error reparsing file:', error);
+            setImportStatusMessage('Falha no reprocessamento da fatura.');
+            alert('Erro ao reprocessar PDF da fatura');
         } finally {
             setUploading(false);
         }
@@ -501,7 +539,7 @@ export default function InvoiceForm({
                             <select
                                 value={formData.supplier_id}
                                 onChange={(e) => setFormData(prev => ({ ...prev, supplier_id: e.target.value }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('supplier_id') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
                                 required
                             >
                                 <option value="">Selecionar fornecedor</option>
@@ -520,7 +558,7 @@ export default function InvoiceForm({
                                 type="text"
                                 value={formData.invoice_number}
                                 onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('invoice_number') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
                                 required
                             />
                         </div>
@@ -554,7 +592,7 @@ export default function InvoiceForm({
                                 type="date"
                                 value={formData.issue_date}
                                 onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has('issue_date') ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
                                 required
                             />
                         </div>
@@ -604,7 +642,7 @@ export default function InvoiceForm({
                                         value={formData.lines[index]?.description || ''}
                                         onChange={(e) => updateLine(index, 'description', e.target.value)}
                                         placeholder="Ex.: Serviço de manutenção do veículo"
-                                        className="col-span-4 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className={`col-span-4 bg-slate-800 border rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${aiFilledFields.has(`line-${index}`) ? 'border-emerald-500/70 bg-emerald-950/20' : 'border-slate-600'}`}
                                     />
                                     <input
                                         type="number"
@@ -819,7 +857,7 @@ export default function InvoiceForm({
                                 <span className="text-sm">Upload PDF</span>
                                 <input
                                     type="file"
-                                    accept=".pdf"
+                                    accept=".pdf,image/*"
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) handleFileUpload(file);
@@ -847,6 +885,17 @@ export default function InvoiceForm({
                                 <span className="text-xs text-slate-300 px-2 py-1 bg-slate-800 border border-slate-700 rounded-md">
                                     Importação: {activeImport.status}
                                 </span>
+                            )}
+                            {activeImport && (
+                                <button
+                                    type="button"
+                                    onClick={handleReparse}
+                                    disabled={uploading}
+                                    className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-200 rounded-lg transition-colors text-sm"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    Re-parse
+                                </button>
                             )}
                         </div>
                     </div>

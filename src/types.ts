@@ -535,50 +535,31 @@ export interface SupplierInvoiceLine {
     updated_at?: string;
 }
 
-export type InvoiceImportStatus = 'processing' | 'ready' | 'confirmed' | 'error';
+export type InvoiceImportStatus = 'processing' | 'ready' | 'failed' | 'confirmed';
 
 export interface InvoiceImportExtractedLine {
     description: string;
-    quantity: number;
+    qty: number;
     unit_price: number;
-    iva_rate: 0 | 6 | 13 | 23;
-    iva_value: number;
-    total_value: number;
+    vat_percent: 0 | 6 | 13 | 23;
 }
 
 export interface InvoiceImportExtractedData {
-    supplier_name: string;
+    supplier: string;
     invoice_number: string;
-    issue_date: string;
-    due_date?: string;
-    totals: {
-        net: number;
-        vat: number;
-        total: number;
-    };
-    vat_breakdown?: Array<{
-        rate: number;
-        base: number;
-        vat: number;
-    }>;
+    date: string;
+    total: number;
+    vat_total: number;
     lines: InvoiceImportExtractedLine[];
-    raw_text?: string;
 }
 
 export interface InvoiceImport {
     id: string;
-    storage_path: string;
-    pdf_url?: string;
+    file_path: string;
     status: InvoiceImportStatus;
-    language: string;
     extracted_json?: InvoiceImportExtractedData | null;
-    error_message?: string | null;
-    supplier_invoice_id?: string | null;
-    created_by?: string | null;
+    error?: string | null;
     created_at: string;
-    updated_at: string;
-    processed_at?: string | null;
-    confirmed_at?: string | null;
 }
 
 export interface AdminUser {
