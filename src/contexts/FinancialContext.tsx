@@ -23,6 +23,31 @@ interface FinancialContextType {
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
 
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+    const computeInvoiceFromLines = (lines: NonNullable<SupplierInvoice['lines']>) => {
+        const normalizedLines = lines
+            .map(line => {
+                const netValue = round2(line.net_value || 0);
+                const ivaRate = line.iva_rate || 0;
+                const ivaValue = round2(netValue * (ivaRate / 100));
+                return {
+                    ...line,
+                    net_value: netValue,
+                    iva_rate: ivaRate,
+                    iva_value: ivaValue,
+                    total_value: round2(netValue + ivaValue)
+                };
+            })
+            .filter(line => line.description.trim() && line.net_value !== 0);
+
+        const totalLiquido = round2(normalizedLines.reduce((sum, line) => sum + line.net_value, 0));
+        const totalIva = round2(normalizedLines.reduce((sum, line) => sum + line.iva_value, 0));
+        const totalFinal = round2(totalLiquido + totalIva);
+
+        return { normalizedLines, totalLiquido, totalIva, totalFinal };
+    };
+
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [invoices, setInvoices] = useState<Fatura[]>([]);
     const [supplierInvoices, setSupplierInvoices] = useState<SupplierInvoice[]>([]);
@@ -305,17 +330,37 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const addSupplierInvoice = async (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
         const { lines = [], ...invoiceData } = invoice;
+        const { normalizedLines, totalLiquido, totalIva, totalFinal } = computeInvoiceFromLines(lines);
+
+        if (!normalizedLines.length) {
+            throw new Error('Invoice must include at least one non-zero line.');
+        }
+
+        const normalizedInvoiceData = {
+            ...invoiceData,
+            base_amount: totalLiquido,
+            iva_value: totalIva,
+            total: totalFinal,
+            total_liquido: totalLiquido,
+            total_iva: totalIva,
+            total_final: totalFinal,
+            net_value: totalLiquido,
+            vat_value: totalIva,
+            total_value: totalFinal,
+            discount: { type: 'amount', value: 0, applied_value: 0 },
+            extra_expenses: []
+        };
 
         const { data: createdInvoice, error: invoiceError } = await supabase
             .from('supplier_invoices')
-            .insert(invoiceData)
+            .insert(normalizedInvoiceData)
             .select('id')
             .single();
 
         if (invoiceError) throw invoiceError;
 
-        if (lines.length > 0) {
-            const lineRows = lines.map(line => ({
+        if (normalizedLines.length > 0) {
+            const lineRows = normalizedLines.map(line => ({
                 supplier_invoice_id: createdInvoice.id,
                 description: line.description,
                 quantity: line.quantity,
@@ -338,7 +383,34 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const updateSupplierInvoice = async (id: string, updates: Partial<SupplierInvoice>) => {
         const { lines, ...invoiceData } = updates;
 
-        const { error: invoiceError } = await supabase.from('supplier_invoices').update(invoiceData).eq('id', id);
+        let normalizedInvoiceData = { ...invoiceData };
+        let normalizedLines: NonNullable<SupplierInvoice['lines']> | undefined;
+
+        if (lines) {
+            const computed = computeInvoiceFromLines(lines);
+            normalizedLines = computed.normalizedLines;
+
+            if (!normalizedLines.length) {
+                throw new Error('Invoice must include at least one non-zero line.');
+            }
+
+            normalizedInvoiceData = {
+                ...normalizedInvoiceData,
+                base_amount: computed.totalLiquido,
+                iva_value: computed.totalIva,
+                total: computed.totalFinal,
+                total_liquido: computed.totalLiquido,
+                total_iva: computed.totalIva,
+                total_final: computed.totalFinal,
+                net_value: computed.totalLiquido,
+                vat_value: computed.totalIva,
+                total_value: computed.totalFinal,
+                discount: { type: 'amount', value: 0, applied_value: 0 },
+                extra_expenses: []
+            };
+        }
+
+        const { error: invoiceError } = await supabase.from('supplier_invoices').update(normalizedInvoiceData).eq('id', id);
         if (invoiceError) throw invoiceError;
 
         if (lines) {
@@ -349,8 +421,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             if (deleteLinesError) throw deleteLinesError;
 
-            if (lines.length > 0) {
-                const lineRows = lines.map(line => ({
+            if (normalizedLines && normalizedLines.length > 0) {
+                const lineRows = normalizedLines.map(line => ({
                     supplier_invoice_id: id,
                     description: line.description,
                     quantity: line.quantity,

@@ -33,7 +33,7 @@ export default function InvoiceForm({
     });
 
     const normalizeLine = useCallback((line: SupplierInvoiceLine): SupplierInvoiceLine => {
-        const netValue = round2(Math.max(line.net_value || 0, 0));
+        const netValue = round2(line.net_value || 0);
         const ivaValue = round2(netValue * ((line.iva_rate || 0) / 100));
         return {
             ...line,
@@ -112,7 +112,7 @@ export default function InvoiceForm({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const validLines = calculatedLines.filter(line => line.description.trim() && line.net_value > 0);
+        const validLines = calculatedLines.filter(line => line.description.trim() && line.net_value !== 0);
         if (!validLines.length) {
             alert('Adicione pelo menos uma linha válida na fatura.');
             return;
@@ -326,7 +326,6 @@ export default function InvoiceForm({
                                     />
                                     <input
                                         type="number"
-                                        min="0"
                                         step="0.01"
                                         value={formData.lines[index]?.net_value || 0}
                                         onChange={(e) => updateLine(index, 'net_value', e.target.value)}
