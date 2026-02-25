@@ -17,6 +17,7 @@ import { formatCurrency } from '../utils/format';
 import {
     createInvoiceImportFromPdf,
     getInvoiceImport,
+    getInvoiceImportPreviewUrl,
     markInvoiceImportConfirmed,
     reparseInvoiceImport,
 } from '../services/invoiceImportService';
@@ -464,16 +465,15 @@ export default function InvoiceForm({
             setImportStatusMessage('Reading invoice...');
             const createdImport = await createInvoiceImportFromPdf(file);
             setActiveImport(createdImport);
-            const { data: previewUrlData } = supabase.storage
-                .from('invoices')
-                .getPublicUrl(createdImport.file_path);
+            const previewUrl = await getInvoiceImportPreviewUrl(createdImport.file_path);
 
-            setFormData(prev => ({ ...prev, pdf_url: previewUrlData.publicUrl || prev.pdf_url }));
+            setFormData(prev => ({ ...prev, pdf_url: previewUrl || prev.pdf_url }));
 
             const completedImport = await pollImportUntilDone(createdImport.id);
 
             if (completedImport.status === 'failed') {
-                throw new Error(completedImport.error || 'Falha ao extrair dados da fatura');
+                setImportStatusMessage(`PDF carregado, mas a extração automática falhou${completedImport.error ? `: ${completedImport.error}` : '.'}`);
+                return;
             }
 
             if (completedImport.status === 'ready' && completedImport.extracted_json) {
@@ -499,7 +499,8 @@ export default function InvoiceForm({
 
             const completedImport = await pollImportUntilDone(activeImport.id);
             if (completedImport.status === 'failed') {
-                throw new Error(completedImport.error || 'Falha ao reprocessar fatura');
+                setImportStatusMessage(`Reprocessamento falhou${completedImport.error ? `: ${completedImport.error}` : '.'}`);
+                return;
             }
 
             if (completedImport.status === 'ready' && completedImport.extracted_json) {

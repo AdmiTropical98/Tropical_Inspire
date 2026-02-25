@@ -28,6 +28,65 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const { stockItems, createStockMovement } = useWorkshop();
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+    const extractMissingColumn = (error: any): string | null => {
+        const message = String(error?.message || '');
+        const details = String(error?.details || '');
+        const combined = `${message}\n${details}`;
+
+        const postgrestMatch = combined.match(/Could not find the '([^']+)' column/i);
+        if (postgrestMatch?.[1]) return postgrestMatch[1];
+
+        const postgresMatch = combined.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i);
+        if (postgresMatch?.[1]) return postgresMatch[1];
+
+        return null;
+    };
+
+    const sanitizePayloadBySchema = async <T extends Record<string, any>>(
+        operation: (payload: Partial<T>) => Promise<{ error: any; data?: any }>,
+        initialPayload: Partial<T>,
+        maxRetries = 12
+    ) => {
+        const payload: Partial<T> = { ...initialPayload };
+
+        for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+            const result = await operation(payload);
+            if (!result.error) return result;
+
+            const missingColumn = extractMissingColumn(result.error);
+            if (!missingColumn || !(missingColumn in payload)) {
+                throw result.error;
+            }
+
+            delete payload[missingColumn as keyof T];
+        }
+
+        throw new Error('Unable to execute database operation due to schema mismatch.');
+    };
+
+    const insertSupplierInvoiceLinesSafe = async (rows: Array<Record<string, any>>) => {
+        if (!rows.length) return;
+
+        let payloadRows = rows.map(row => ({ ...row }));
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+            const { error } = await supabase.from('supplier_invoice_lines').insert(payloadRows);
+            if (!error) return;
+
+            const missingColumn = extractMissingColumn(error);
+            if (!missingColumn || !(missingColumn in payloadRows[0])) {
+                throw error;
+            }
+
+            payloadRows = payloadRows.map(row => {
+                const next = { ...row };
+                delete next[missingColumn];
+                return next;
+            });
+        }
+
+        throw new Error('Unable to insert invoice lines due to schema mismatch.');
+    };
+
     const getEstimatedRequisitionValue = (requisition: { itens?: any[] }) => {
         const items = Array.isArray(requisition.itens) ? requisition.itens : [];
         return round2(items.reduce((sum, item) => {
@@ -337,7 +396,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     const fetchSupplierInvoices = async () => {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('supplier_invoices')
             .select(`
                 *,
@@ -348,7 +407,18 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 lines:supplier_invoice_lines(*)
             `)
             .order('issue_date', { ascending: false });
-        if (data) setSupplierInvoices(data as SupplierInvoice[]);
+
+        if (!error && data) {
+            setSupplierInvoices(data as SupplierInvoice[]);
+            return;
+        }
+
+        const { data: fallbackData } = await supabase
+            .from('supplier_invoices')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (fallbackData) setSupplierInvoices(fallbackData as SupplierInvoice[]);
     };
 
     const fetchFinancialMovements = async () => {
@@ -482,16 +552,14 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             extra_expenses: []
         };
 
-        const { data: createdInvoice, error: invoiceError } = await supabase
-            .from('supplier_invoices')
-            .insert(normalizedInvoiceData)
-            .select('id')
-            .single();
-
-        if (invoiceError) {
-            console.error('Database error details (supplier_invoices):', invoiceError);
-            throw new Error(`Erro ao guardar fatura: ${invoiceError.message} (${invoiceError.code})`);
-        }
+        const { data: createdInvoice } = await sanitizePayloadBySchema(
+            (payload) => supabase
+                .from('supplier_invoices')
+                .insert(payload)
+                .select('id')
+                .single(),
+            normalizedInvoiceData
+        );
 
         if (normalizedLines.length > 0) {
             const lineRows = normalizedLines.map(line => ({
@@ -506,16 +574,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 total_value: line.total_value
             }));
 
-            const CHUNK_SIZE = 50;
-            for (let i = 0; i < lineRows.length; i += CHUNK_SIZE) {
-                const chunk = lineRows.slice(i, i + CHUNK_SIZE);
-                const { error: linesError } = await supabase.from('supplier_invoice_lines').insert(chunk);
-                if (linesError) {
-                    console.error('Database error details (supplier_invoice_lines):', linesError);
-                    // Attempt cleanup or just throw
-                    await supabase.from('supplier_invoices').delete().eq('id', createdInvoice.id);
-                    throw new Error(`Erro ao guardar linhas da fatura: ${linesError.message}`);
-                }
+            try {
+                await insertSupplierInvoiceLinesSafe(lineRows);
+            } catch (linesError) {
+                await supabase.from('supplier_invoices').delete().eq('id', createdInvoice.id);
+                throw linesError;
             }
 
             for (const line of normalizedLines) {
@@ -550,6 +613,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const updateSupplierInvoice = async (id: string, updates: Partial<SupplierInvoice>) => {
         const { lines, ...invoiceData } = updates;
         const existingInvoice = supplierInvoices.find(invoice => invoice.id === id);
+        let normalizedLines: any[] | undefined;
 
         let normalizedInvoiceData: any = {
             supplier_id: invoiceData.supplier_id,
@@ -574,7 +638,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         if (lines) {
             const computed = computeInvoiceFromLines(lines);
-            const normalizedLines = computed.normalizedLines;
+            normalizedLines = computed.normalizedLines;
 
             if (!normalizedLines || !normalizedLines.length) {
                 throw new Error('A fatura deve incluir pelo menos uma linha válida.');
@@ -595,11 +659,12 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 extra_expenses: []
             };
 
-            const { error: invoiceError } = await supabase.from('supplier_invoices').update(normalizedInvoiceData).eq('id', id);
-            if (invoiceError) {
-                console.error('Database error details (update supplier_invoices):', invoiceError);
-                throw new Error(`Erro ao atualizar fatura: ${invoiceError.message}`);
-            }
+        await sanitizePayloadBySchema(
+            (payload) => supabase.from('supplier_invoices').update(payload).eq('id', id),
+            normalizedInvoiceData
+        );
+
+        if (lines) {
 
             const { error: deleteLinesError } = await supabase
                 .from('supplier_invoice_lines')
@@ -624,21 +689,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     total_value: line.total_value
                 }));
 
-                const CHUNK_SIZE = 50;
-                for (let i = 0; i < lineRows.length; i += CHUNK_SIZE) {
-                    const chunk = lineRows.slice(i, i + CHUNK_SIZE);
-                    const { error: insertLinesError } = await supabase.from('supplier_invoice_lines').insert(chunk);
-                    if (insertLinesError) {
-                        console.error('Error inserting replacement lines:', insertLinesError);
-                        throw insertLinesError;
-                    }
-                }
-            }
-        } else {
-            const { error: invoiceError } = await supabase.from('supplier_invoices').update(normalizedInvoiceData).eq('id', id);
-            if (invoiceError) {
-                console.error('Database error details (update supplier_invoices meta):', invoiceError);
-                throw new Error(`Erro ao atualizar dados da fatura: ${invoiceError.message}`);
+                await insertSupplierInvoiceLinesSafe(lineRows);
             }
         }
 
