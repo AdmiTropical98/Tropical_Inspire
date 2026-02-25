@@ -112,9 +112,9 @@ ALTER TABLE public.financial_movements
 
 ALTER TABLE public.financial_movements
     ADD CONSTRAINT financial_movements_debit_credit_non_negative
-        CHECK (debit >= 0 AND credit >= 0),
+        CHECK (debit >= 0 AND credit >= 0) NOT VALID,
     ADD CONSTRAINT financial_movements_single_side
-        CHECK ((debit = 0 AND credit > 0) OR (credit = 0 AND debit > 0));
+        CHECK ((debit = 0 AND credit > 0) OR (credit = 0 AND debit > 0)) NOT VALID;
 
 DROP INDEX IF EXISTS idx_financial_movements_document;
 CREATE INDEX IF NOT EXISTS idx_financial_movements_document
@@ -284,7 +284,11 @@ $$ LANGUAGE plpgsql;
 ALTER TABLE public.requisicoes
     ADD COLUMN IF NOT EXISTS erp_status TEXT NOT NULL DEFAULT 'pending'
         CHECK (erp_status IN ('pending', 'awaiting_invoice', 'invoiced', 'closed')),
-    ADD COLUMN IF NOT EXISTS approved_value NUMERIC;
+    ADD COLUMN IF NOT EXISTS approved_value NUMERIC,
+    ADD COLUMN IF NOT EXISTS financial_status TEXT NOT NULL DEFAULT 'PENDING'
+        CHECK (financial_status IN ('PENDING', 'PARTIAL', 'INVOICED')),
+    ADD COLUMN IF NOT EXISTS total_invoiced_amount NUMERIC NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS itens JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE INDEX IF NOT EXISTS idx_requisicoes_erp_status
     ON public.requisicoes(erp_status);
@@ -323,7 +327,7 @@ BEGIN
     FROM public.supplier_invoices si
     WHERE si.requisition_id = p_requisition_id;
 
-    SELECT COALESCE(r.approved_value, r.custo, public.requisition_estimated_value(r.id), 0)
+    SELECT COALESCE(r.approved_value, public.requisition_estimated_value(r.id), 0)
     INTO v_target_value
     FROM public.requisicoes r
     WHERE r.id = p_requisition_id;

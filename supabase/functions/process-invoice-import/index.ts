@@ -7,6 +7,23 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const STORAGE_BUCKETS = ['invoices', 'documents'];
+
+const downloadInvoiceFile = async (supabaseAdmin: any, storagePath: string) => {
+    let lastError: any = null;
+
+    for (const bucket of STORAGE_BUCKETS) {
+        const { data, error } = await supabaseAdmin.storage
+            .from(bucket)
+            .download(storagePath);
+
+        if (!error && data) return data;
+        lastError = error;
+    }
+
+    throw new Error(lastError?.message || 'Unable to download uploaded PDF');
+};
+
 type ImportedLine = {
     description: string;
     quantity: number;
@@ -190,7 +207,7 @@ serve(async (req) => {
 
         const { data: importRow, error: importError } = await supabaseAdmin
             .from('invoice_imports')
-            .select('id,storage_path,language,status')
+            .select('id,file_path,storage_path,language,status')
             .eq('id', importId)
             .single();
 
@@ -203,13 +220,10 @@ serve(async (req) => {
             .update({ status: 'processing', error_message: null })
             .eq('id', importId);
 
-        const { data: fileData, error: fileError } = await supabaseAdmin.storage
-            .from('documents')
-            .download(importRow.storage_path);
+        const storagePath = importRow.file_path || importRow.storage_path;
+        if (!storagePath) throw new Error('Missing storage path for invoice import');
 
-        if (fileError || !fileData) {
-            throw new Error(fileError?.message || 'Unable to download uploaded PDF');
-        }
+        const fileData = await downloadInvoiceFile(supabaseAdmin, storagePath);
 
         const fileBuffer = await fileData.arrayBuffer();
         const bytes = new Uint8Array(fileBuffer);

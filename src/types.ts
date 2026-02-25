@@ -542,6 +542,7 @@ export interface InvoiceImportExtractedLine {
     qty: number;
     unit_price: number;
     vat_percent: 0 | 6 | 13 | 23;
+    vat_value?: number;
 }
 
 export interface InvoiceImportExtractedData {

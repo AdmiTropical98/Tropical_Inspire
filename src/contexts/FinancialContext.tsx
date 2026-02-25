@@ -658,6 +658,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 discount: { type: 'amount', value: computed.discountTotal, applied_value: computed.discountTotal },
                 extra_expenses: []
             };
+        }
 
         await sanitizePayloadBySchema(
             (payload) => supabase.from('supplier_invoices').update(payload).eq('id', id),

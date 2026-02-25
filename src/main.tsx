@@ -33,6 +33,18 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { ChatProvider } from './contexts/ChatContext'
 import { FinancialProvider } from './contexts/FinancialContext'
 
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+    .catch((error) => console.warn('Unable to unregister service workers in dev:', error));
+
+  if ('caches' in window) {
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .catch((error) => console.warn('Unable to clear cache storage in dev:', error));
+  }
+}
+
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
     <WorkshopProvider>

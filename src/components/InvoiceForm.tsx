@@ -19,6 +19,7 @@ import {
     getInvoiceImport,
     getInvoiceImportPreviewUrl,
     markInvoiceImportConfirmed,
+    parseInvoicePdfLocally,
     reparseInvoiceImport,
 } from '../services/invoiceImportService';
 
@@ -170,7 +171,10 @@ export default function InvoiceForm({
                 const unitPrice = round2(Math.max(0, Number(line.unit_price) || 0));
                 const vatPercent = parseRate(Number(line.vat_percent) || 0);
                 const netValue = round2(quantity * unitPrice);
-                const ivaValue = round2(netValue * (vatPercent / 100));
+                const importedVatValue = Number((line as any).vat_value);
+                const ivaValue = Number.isFinite(importedVatValue)
+                    ? round2(Math.max(0, importedVatValue))
+                    : round2(netValue * (vatPercent / 100));
                 const totalValue = round2(netValue + ivaValue);
 
                 return {
@@ -186,7 +190,8 @@ export default function InvoiceForm({
             })
             .filter((line) => line.description.trim());
 
-        const fallbackLine: SupplierInvoiceLine[] = importedLines.length ? importedLines : [emptyLine()];
+        const hasImportedLines = importedLines.length > 0;
+        const fallbackLine: SupplierInvoiceLine[] = hasImportedLines ? importedLines : [emptyLine()];
         const normalizedSupplierName = normalizeName(payload.supplier || '');
 
         const matchedSupplier = normalizedSupplierName
@@ -200,15 +205,17 @@ export default function InvoiceForm({
             supplier_id: prev.supplier_id || matchedSupplier?.id || '',
             invoice_number: payload.invoice_number || prev.invoice_number,
             issue_date: payload.date || prev.issue_date,
-            lines: fallbackLine,
+            lines: hasImportedLines ? fallbackLine : prev.lines,
         }));
 
-        setManualIvaOverrides(fallbackLine.map((line) => line.iva_value || null));
+        if (hasImportedLines) {
+            setManualIvaOverrides(fallbackLine.map((line) => line.iva_value || null));
+        }
         setAiFilledFields(new Set([
             'supplier_id',
             'invoice_number',
             'issue_date',
-            ...fallbackLine.map((_, index) => `line-${index}`),
+            ...(hasImportedLines ? fallbackLine.map((_, index) => `line-${index}`) : []),
         ]));
     };
 
@@ -482,8 +489,18 @@ export default function InvoiceForm({
             }
         } catch (error) {
             console.error('Error uploading file:', error);
-            setImportStatusMessage('Falha no processamento inteligente da fatura.');
-            alert('Erro ao processar PDF da fatura');
+            try {
+                const localExtract = await parseInvoicePdfLocally(file);
+                applyImportedData(localExtract);
+                setImportStatusMessage(
+                    `OCR indisponível no servidor. Extração local aplicada (data: ${localExtract.date || 'n/a'}, linhas: ${localExtract.lines?.length || 0}). Revise os dados antes de guardar.`
+                );
+            } catch (localError) {
+                console.error('Local PDF parse also failed:', localError);
+                const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+                setImportStatusMessage(`Falha no processamento inteligente da fatura: ${errorMessage}`);
+                alert(`Erro ao processar PDF da fatura: ${errorMessage}`);
+            }
         } finally {
             setUploading(false);
         }
