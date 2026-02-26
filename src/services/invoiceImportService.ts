@@ -146,14 +146,36 @@ const extractPdfRowsByGeometry = async (file: File): Promise<PositionalRow[]> =>
         const page = await pdf.getPage(pageNumber);
         const content = await page.getTextContent();
 
-        const entries = (content.items as any[])
-            .map((item) => ({
-                text: String(item?.str || '').trim(),
-                x: Number(item?.transform?.[4] || 0),
-                y: Number(item?.transform?.[5] || 0),
-                w: Number(item?.width || 0),
-            }))
-            .filter((item) => item.text);
+        const entries: (PositionalItem & { y: number })[] = [];
+        (content.items as any[]).forEach((item) => {
+            const str = String(item?.str || '').trim();
+            if (!str) return;
+
+            const x = Number(item?.transform?.[4] || 0);
+            const y = Number(item?.transform?.[5] || 0);
+            const w = Number(item?.width || 0);
+
+            // Split bundled columns: detect multiple numbers or gaps
+            // Example: "53,50 41,50" or "53,50 HOR 41,50"
+            const parts = str.split(/(\s{2,})|(?<=\d)\s+(?=[A-Z])|(?<=[A-Z])\s+(?=\d)|(?<=\d)\s+(?=\d)/i);
+            if (parts.length > 1) {
+                let currentOffset = 0;
+                parts.forEach((part) => {
+                    if (!part || /^\s+$/.test(part)) {
+                        currentOffset += part?.length || 0;
+                        return;
+                    }
+                    const partStr = part.trim();
+                    if (partStr) {
+                        const partX = x + (currentOffset / str.length) * w;
+                        entries.push({ text: partStr, x: partX, y, w: (partStr.length / str.length) * w });
+                    }
+                    currentOffset += part.length;
+                });
+            } else {
+                entries.push({ text: str, x, y, w });
+            }
+        });
 
         const groups: Map<number, PositionalItem[]> = new Map();
         for (const entry of entries) {
@@ -412,18 +434,24 @@ const extractDetailedLines = (
         if (NON_ITEM_LINE_REGEX.test(rowText)) continue;
 
         // Eticadata column heuristics based on X coordinates (standard A4 is ~595 pts wide)
-        // Ranges provided by user:
         // Description: 0–350
         // Quantity: 350–430
         // Unit: 430–480
         // Unit Price: 480–560
+        // Net Value: 505–565 (overlaps Price, handled by index)
 
-        const descriptionItems = row.items.filter(i => i.x < 350 && !NUMBER_TOKEN_REGEX.test(i.text) && !UNIT_TOKEN_REGEX.test(i.text));
-        const qtyItem = row.items.find(i => i.x >= 350 && i.x < 430 && NUMBER_TOKEN_REGEX.test(i.text));
-        const unitItemRaw = row.items.find(i => i.x >= 430 && i.x < 480 && UNIT_TOKEN_REGEX.test(i.text));
-        const unitPriceItem = row.items.find(i => i.x >= 480 && i.x < 560 && NUMBER_TOKEN_REGEX.test(i.text));
-        const vatItem = row.items.find(i => i.x >= 560 && NUMBER_TOKEN_REGEX.test(i.text));
-        const netValueItem = row.items.find(i => i.x >= 505 && i.x < 565 && NUMBER_TOKEN_REGEX.test(i.text) && i !== unitPriceItem && i !== qtyItem);
+        // Find all numeric tokens in the row
+        const tokens = row.items.sort((a, b) => a.x - b.x);
+
+        const descriptionItems = tokens.filter(i => i.x < 350 && !NUMBER_TOKEN_REGEX.test(i.text) && !UNIT_TOKEN_REGEX.test(i.text));
+        const qtyItem = tokens.find(i => i.x >= 340 && i.x < 430 && NUMBER_TOKEN_REGEX.test(i.text));
+        const unitItemRaw = tokens.find(i => i.x >= 390 && i.x < 480 && UNIT_TOKEN_REGEX.test(i.text));
+        const unitPriceItem = tokens.find(i => i.x >= 450 && i.x < 560 && NUMBER_TOKEN_REGEX.test(i.text) && i !== qtyItem);
+        const vatItem = tokens.find(i => i.x >= 550 && NUMBER_TOKEN_REGEX.test(i.text));
+
+        // Multi-column mapping logic: find net value IF it exists as a separate token after unit price
+        const priceIndex = tokens.indexOf(unitPriceItem!);
+        const netValueItem = priceIndex !== -1 ? tokens.slice(priceIndex + 1).find(i => i.x >= 500 && i.x < 570 && NUMBER_TOKEN_REGEX.test(i.text) && i !== vatItem) : undefined;
 
         const qty = qtyItem ? toNumber(qtyItem.text) : 0;
         const unitToken = normalizeUnitToken(unitItemRaw?.text);
@@ -431,7 +459,7 @@ const extractDetailedLines = (
         const subtotal = netValueItem ? toNumber(netValueItem.text) : (qty > 0 && unitPrice > 0 ? Number((qty * unitPrice).toFixed(2)) : 0);
 
         if (qty > 0 && unitToken && unitPrice > 0) {
-            // New valid line (requires Qty, Unit, and Price simultaneously)
+            // New valid line
             const description = descriptionItems.map(i => i.text).join(' ').trim();
             const vatPercent = vatItem ? clampVat(toNumber(vatItem.text)) : fallbackVatPercent;
 
@@ -445,7 +473,7 @@ const extractDetailedLines = (
             };
             parsed.push(currentLine);
         } else if (currentLine && descriptionItems.length > 0) {
-            // Continuation row: only if we have text in the description zone and no numeric columns identified as a new item
+            // Continuation row: strictly text only in description zone
             const extraDesc = descriptionItems.map(i => i.text).join(' ').trim();
 
             // Safety check: ensure we didn't accidentally catch a fragment of a non-item line
