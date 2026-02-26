@@ -324,8 +324,7 @@ type ParsedInvoiceLine = {
     vat_value?: number;
 };
 
-const UNIT_TOKEN_SOURCE = '(?:[A-Z0-9]{1,8})';
-const UNIT_TOKEN_REGEX = new RegExp(`^${UNIT_TOKEN_SOURCE}$`, 'i');
+
 const NUMBER_TOKEN_SOURCE = '(?:\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d+)?|\\d+(?:[.,]\\d+)?)';
 const NUMBER_TOKEN_REGEX = new RegExp(`^${NUMBER_TOKEN_SOURCE}$`);
 const LABOR_DESCRIPTION_REGEX = /m[aã]o\s*obra|mao\s*(de\s*)?obra|labor/i;
