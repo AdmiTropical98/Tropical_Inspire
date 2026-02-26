@@ -155,12 +155,13 @@ const extractPdfRowsByGeometry = async (file: File): Promise<PositionalRow[]> =>
             const y = Number(item?.transform?.[5] || 0);
             const w = Number(item?.width || 0);
 
-            // Split bundled columns: detect multiple numbers or gaps
-            // Example: "53,50 41,50" or "53,50 HOR 41,50"
+            // Aggressive Splitter: Split on 2+ spaces OR space between number and unit/price
+            // This handles "53,50 HOR 41,50" or "80,00 23,00 0,00"
             const parts = str.split(/(\s{2,})|(?<=\d)\s+(?=[A-Z])|(?<=[A-Z])\s+(?=\d)|(?<=\d)\s+(?=\d)/i);
             if (parts.length > 1) {
                 let currentOffset = 0;
                 parts.forEach((part) => {
+                    if (part === undefined) return;
                     if (!part || /^\s+$/.test(part)) {
                         currentOffset += part?.length || 0;
                         return;
@@ -224,6 +225,16 @@ const findLabeledAmount = (lines: string[], labelRegexes: RegExp[]): number => {
 
 const extractAmountAfterLabelInCompact = (compact: string, labelRegexes: RegExp[]): number => {
     for (const regex of labelRegexes) {
+        // The regex.source might contain unescaped backslashes if it was created from a literal,
+        // but when concatenating into a new RegExp string, backslashes need to be escaped.
+        // For example, if regex.source is "\\bfoo\\b", it needs to become "\\\\bfoo\\\\b" in the new string.
+        // However, the original regexes are simple, like /total\s+il[ií]quido\s*[:\-]?\s*/i,
+        // where \s is already correctly represented as "\\s" in regex.source.
+        // The only part that needs attention is the `[^\\d]` which correctly translates to `[^\d]` in the RegExp constructor.
+        // The instruction implies a fix, but the current `[^\\d]` is already correct for "not a digit" in a string passed to RegExp.
+        // If the intention was to escape `regex.source` itself, it would be `regex.source.replace(/\\/g, '\\\\')`.
+        // Given the instruction and the current code, the most faithful interpretation is to ensure `regex.source` is correctly embedded.
+        // Assuming `regex.source` is already correctly escaped for direct use in `new RegExp`.
         const match = compact.match(new RegExp(`${regex.source}[^\\d]{0,20}(\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d{2})|\\d+(?:[.,]\\d{2}))`, 'i'));
         if (match?.[1]) {
             const value = toNumber(match[1]);
@@ -433,50 +444,54 @@ const extractDetailedLines = (
         const rowText = row.items.map(i => i.text).join(' ');
         if (NON_ITEM_LINE_REGEX.test(rowText)) continue;
 
-        // Eticadata column heuristics based on X coordinates (standard A4 is ~595 pts wide)
-        // Description: 0–350
-        // Quantity: 350–430
-        // Unit: 430–480
-        // Unit Price: 480–560
-        // Net Value: 505–565 (overlaps Price, handled by index)
-
-        // Find all numeric tokens in the row
+        // Pivot-Based Detection: Identify the "Pillar" (Qty + Unit + Price)
+        // Description is everything strictly before the first numeric pillar token
         const tokens = row.items.sort((a, b) => a.x - b.x);
 
-        const descriptionItems = tokens.filter(i => i.x < 350 && !NUMBER_TOKEN_REGEX.test(i.text) && !UNIT_TOKEN_REGEX.test(i.text));
-        const qtyItem = tokens.find(i => i.x >= 340 && i.x < 430 && NUMBER_TOKEN_REGEX.test(i.text));
-        const unitItemRaw = tokens.find(i => i.x >= 390 && i.x < 480 && UNIT_TOKEN_REGEX.test(i.text));
-        const unitPriceItem = tokens.find(i => i.x >= 450 && i.x < 560 && NUMBER_TOKEN_REGEX.test(i.text) && i !== qtyItem);
-        const vatItem = tokens.find(i => i.x >= 550 && NUMBER_TOKEN_REGEX.test(i.text));
+        // Strategy: find the first token at X > 300 that is a number
+        const qtyIndex = tokens.findIndex(i => i.x >= 300 && i.x < 430 && NUMBER_TOKEN_REGEX.test(i.text));
 
-        // Multi-column mapping logic: find net value IF it exists as a separate token after unit price
-        const priceIndex = tokens.indexOf(unitPriceItem!);
-        const netValueItem = priceIndex !== -1 ? tokens.slice(priceIndex + 1).find(i => i.x >= 500 && i.x < 570 && NUMBER_TOKEN_REGEX.test(i.text) && i !== vatItem) : undefined;
+        if (qtyIndex !== -1) {
+            const qtyItem = tokens[qtyIndex];
+            // Try to find Unit and Price relative to Qty
+            const unitItemRaw = tokens.slice(qtyIndex + 1).find(i => i.x < 480 && !NUMBER_TOKEN_REGEX.test(i.text) && normalizeUnitToken(i.text));
+            const unitPriceItem = tokens.slice(qtyIndex + 1).find(i => i.x > qtyItem.x && NUMBER_TOKEN_REGEX.test(i.text) && i !== unitItemRaw);
 
-        const qty = qtyItem ? toNumber(qtyItem.text) : 0;
-        const unitToken = normalizeUnitToken(unitItemRaw?.text);
-        const unitPrice = unitPriceItem ? toNumber(unitPriceItem.text) : 0;
-        const subtotal = netValueItem ? toNumber(netValueItem.text) : (qty > 0 && unitPrice > 0 ? Number((qty * unitPrice).toFixed(2)) : 0);
+            const qty = toNumber(qtyItem.text);
+            const unitToken = unitItemRaw ? normalizeUnitToken(unitItemRaw.text) : '';
+            const unitPrice = unitPriceItem ? toNumber(unitPriceItem.text) : 0;
 
-        if (qty > 0 && unitToken && unitPrice > 0) {
-            // New valid line
-            const description = descriptionItems.map(i => i.text).join(' ').trim();
-            const vatPercent = vatItem ? clampVat(toNumber(vatItem.text)) : fallbackVatPercent;
+            if (qty > 0 && unitToken && unitPrice > 0) {
+                // We have a solid item match. Treat everything before qtyIndex as description.
+                const description = tokens.slice(0, qtyIndex)
+                    .filter(i => !NUMBER_TOKEN_REGEX.test(i.text))
+                    .map(i => i.text).join(' ').trim();
 
-            currentLine = {
-                description: description,
-                unidade_medida: unitToken as InvoiceUnit,
-                qty,
-                unit_price: unitPrice,
-                vat_percent: vatPercent,
-                vat_value: Number((subtotal * (vatPercent / 100)).toFixed(2))
-            };
-            parsed.push(currentLine);
-        } else if (currentLine && descriptionItems.length > 0) {
-            // Continuation row: strictly text only in description zone
+                // Find VAT and Net Value after Price
+                const priceIndex = tokens.indexOf(unitPriceItem!);
+                const vatItem = tokens.slice(priceIndex + 1).find(i => i.x > unitPriceItem!.x && NUMBER_TOKEN_REGEX.test(i.text));
+                const netValueItem = tokens.slice(priceIndex + 1).find(i => i.x > unitPriceItem!.x && i !== vatItem && NUMBER_TOKEN_REGEX.test(i.text));
+
+                const subtotal = netValueItem ? toNumber(netValueItem.text) : Number((qty * unitPrice).toFixed(2));
+                const vatPercent = vatItem ? clampVat(toNumber(vatItem.text)) : fallbackVatPercent;
+
+                currentLine = {
+                    description: description,
+                    unidade_medida: unitToken as InvoiceUnit,
+                    qty,
+                    unit_price: unitPrice,
+                    vat_percent: vatPercent,
+                    vat_value: Number((subtotal * (vatPercent / 100)).toFixed(2))
+                };
+                parsed.push(currentLine);
+                continue;
+            }
+        }
+
+        // Continuation logic: if no valid item pillar, check for pure description text
+        if (currentLine) {
+            const descriptionItems = tokens.filter(i => i.x < 350 && !NUMBER_TOKEN_REGEX.test(i.text));
             const extraDesc = descriptionItems.map(i => i.text).join(' ').trim();
-
-            // Safety check: ensure we didn't accidentally catch a fragment of a non-item line
             if (extraDesc && !NON_ITEM_LINE_REGEX.test(extraDesc) && !TABLE_END_REGEX.test(extraDesc)) {
                 currentLine.description = `${currentLine.description} ${extraDesc}`.trim();
             }
