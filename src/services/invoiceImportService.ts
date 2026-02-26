@@ -296,9 +296,9 @@ const UNIT_TOKEN_REGEX = new RegExp(`^${UNIT_TOKEN_SOURCE}$`, 'i');
 const NUMBER_TOKEN_SOURCE = '(?:\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d+)?|\\d+(?:[.,]\\d+)?)';
 const NUMBER_TOKEN_REGEX = new RegExp(`^${NUMBER_TOKEN_SOURCE}$`);
 const LABOR_DESCRIPTION_REGEX = /m[aã]o\s*obra|mao\s*(de\s*)?obra|labor/i;
-const NON_ITEM_LINE_REGEX = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|resumo\s+do\s+iva|a\s+transportar|original|duplicado|triplicado|segunda\s*via|valor\s*il[ií]quido|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|eticadata|software)/i;
+const NON_ITEM_LINE_REGEX = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|resumo\s+do\s+iva|a\s+transportar|original|duplicado|triplicado|segunda\s*via|valor\s*il[ií]quido|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|eticadata|software|observa[çc][oõ]es|condi[çc][oõ]es|página)/i;
 const TABLE_START_REGEX = /arm\s+opera[çc][aã]o\/?pe[çc]a\s+descri[çc][aã]o\s+qtd\.?\s*un/i;
-const TABLE_END_REGEX = /resumo\s+do\s+iva|total\s+i?l[ií]quido|total\s+documento/i;
+const TABLE_END_REGEX = /resumo\s+do\s+iva|total\s+i?l[ií]quido|total\s+documento|totais(?:\s+servi[çc]os\s+internos)?|descri[çc][aã]o\s+de\s+trabalhos/i;
 const TABLE_CONTINUE_MARKER_REGEX = /a\s+transportar|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|v\.?\s*liquido|liquido|v\.?\s*mercadoria|mercadoria/i;
 const SECTION_MARKER_REGEX = /^\s*(duplicado|triplicado|segunda\s*via)\b/i;
 const normalizeUnitToken = (token?: string): InvoiceUnit | '' => {
@@ -306,11 +306,13 @@ const normalizeUnitToken = (token?: string): InvoiceUnit | '' => {
     if (!value) return '';
 
     if (['UN', 'UND', 'UNID', 'UNIDADE', 'UNIDADES', 'UNI'].includes(value)) return 'UN';
-    if (['H', 'HR', 'HRS', 'HORA', 'HORAS', 'HOF', 'HOR'].includes(value)) return 'H';
+    if (['H', 'HR', 'HRS', 'HORA', 'HORAS', 'HOF', 'HOR', 'HO'].includes(value)) return 'H';
     if (['L', 'LT', 'LTS', 'LITRO', 'LITROS'].includes(value)) return 'L';
     if (['CX', 'CAIXA', 'CAIXAS'].includes(value)) return 'CX';
     if (/m[aã]o\s*obra|mao\s*(de\s*)?obra|labor|serralharia|mecanica|mec[aâ]nica/i.test(value)) return 'H';
-    return 'UN';
+
+    // Strict restriction: only return valid units or empty
+    return '';
 };
 
 const isLikelyLeadingCodeToken = (token: string): boolean => {
@@ -418,23 +420,24 @@ const extractDetailedLines = (
 
         const descriptionItems = row.items.filter(i => i.x < 350 && !NUMBER_TOKEN_REGEX.test(i.text) && !UNIT_TOKEN_REGEX.test(i.text));
         const qtyItem = row.items.find(i => i.x >= 350 && i.x < 430 && NUMBER_TOKEN_REGEX.test(i.text));
-        const unitItem = row.items.find(i => i.x >= 430 && i.x < 480 && (UNIT_TOKEN_REGEX.test(i.text) && !NUMBER_TOKEN_REGEX.test(i.text)));
+        const unitItemRaw = row.items.find(i => i.x >= 430 && i.x < 480 && UNIT_TOKEN_REGEX.test(i.text));
         const unitPriceItem = row.items.find(i => i.x >= 480 && i.x < 560 && NUMBER_TOKEN_REGEX.test(i.text));
         const vatItem = row.items.find(i => i.x >= 560 && NUMBER_TOKEN_REGEX.test(i.text));
         const netValueItem = row.items.find(i => i.x >= 505 && i.x < 565 && NUMBER_TOKEN_REGEX.test(i.text) && i !== unitPriceItem && i !== qtyItem);
 
         const qty = qtyItem ? toNumber(qtyItem.text) : 0;
+        const unitToken = normalizeUnitToken(unitItemRaw?.text);
         const unitPrice = unitPriceItem ? toNumber(unitPriceItem.text) : 0;
         const subtotal = netValueItem ? toNumber(netValueItem.text) : (qty > 0 && unitPrice > 0 ? Number((qty * unitPrice).toFixed(2)) : 0);
 
-        if (qty > 0 && unitPrice > 0 && subtotal > 0) {
-            // This is a new item line
+        if (qty > 0 && unitToken && unitPrice > 0) {
+            // New valid line (requires Qty, Unit, and Price simultaneously)
             const description = descriptionItems.map(i => i.text).join(' ').trim();
             const vatPercent = vatItem ? clampVat(toNumber(vatItem.text)) : fallbackVatPercent;
 
             currentLine = {
                 description: description,
-                unidade_medida: normalizeUnitToken(unitItem?.text || '') || (LABOR_DESCRIPTION_REGEX.test(description) ? 'H' : 'UN'),
+                unidade_medida: unitToken as InvoiceUnit,
                 qty,
                 unit_price: unitPrice,
                 vat_percent: vatPercent,
@@ -442,9 +445,11 @@ const extractDetailedLines = (
             };
             parsed.push(currentLine);
         } else if (currentLine && descriptionItems.length > 0) {
-            // This might be a continuation of the previous description
+            // Continuation row: only if we have text in the description zone and no numeric columns identified as a new item
             const extraDesc = descriptionItems.map(i => i.text).join(' ').trim();
-            if (extraDesc && !/total|p[aá]g/i.test(extraDesc)) {
+
+            // Safety check: ensure we didn't accidentally catch a fragment of a non-item line
+            if (extraDesc && !NON_ITEM_LINE_REGEX.test(extraDesc) && !TABLE_END_REGEX.test(extraDesc)) {
                 currentLine.description = `${currentLine.description} ${extraDesc}`.trim();
             }
         }
