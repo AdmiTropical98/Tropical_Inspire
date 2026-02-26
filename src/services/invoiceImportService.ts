@@ -284,11 +284,11 @@ const UNIT_IN_LINE_REGEX = new RegExp(`\\b${KNOWN_UNIT_TOKEN_SOURCE}\\b`, 'i');
 const NUMBER_TOKEN_SOURCE = '(?:\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d+)?|\\d+(?:[.,]\\d+)?)';
 const NUMBER_TOKEN_REGEX = new RegExp(`^${NUMBER_TOKEN_SOURCE}$`);
 const LABOR_DESCRIPTION_REGEX = /m[aã]o\s*obra|mao\s*(de\s*)?obra|labor/i;
-const NON_ITEM_LINE_REGEX = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|resumo\s+do\s+iva|a\s+transportar|original|duplicado|triplicado)/i;
+const NON_ITEM_LINE_REGEX = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|resumo\s+do\s+iva|a\s+transportar|original|duplicado|triplicado|segunda\s*via|valor\s*il[ií]quido|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|eticadata|software)/i;
 const TABLE_START_REGEX = /arm\s+opera[çc][aã]o\/?pe[çc]a\s+descri[çc][aã]o\s+qtd\.?\s*un/i;
-const TABLE_END_REGEX = /resumo\s+do\s+iva|total\s+i?l[ií]quido/i;
-const TABLE_CONTINUE_MARKER_REGEX = /a\s+transportar|totais(?:\s+servi[çc]os\s+internos)?|transporte/i;
-const SECTION_MARKER_REGEX = /^\s*(original|duplicado|triplicado)\b/i;
+const TABLE_END_REGEX = /resumo\s+do\s+iva|total\s+i?l[ií]quido|total\s+documento/i;
+const TABLE_CONTINUE_MARKER_REGEX = /a\s+transportar|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|v\.?\s*liquido|liquido|v\.?\s*mercadoria|mercadoria/i;
+const SECTION_MARKER_REGEX = /^\s*(duplicado|triplicado|segunda\s*via)\b/i;
 const normalizeUnitToken = (token?: string): InvoiceUnit | '' => {
     const value = (token || '').trim().toUpperCase();
     if (!value) return '';
@@ -418,10 +418,24 @@ const getScopedTableLines = (lines: string[]): string[] => {
     for (let index = startIndex + 1; index < normalizedLines.length; index += 1) {
         const line = normalizedLines[index];
         if (!line) continue;
-        if (TABLE_END_REGEX.test(line)) break;
-        if (TABLE_CONTINUE_MARKER_REGEX.test(line)) continue;
+
+        // Ignore redundant headers (e.g. on page 2, 3...)
         if (TABLE_START_REGEX.test(line)) continue;
-        if (SECTION_MARKER_REGEX.test(line) && !/^\s*original\b/i.test(line)) break;
+
+        // Skip intermediate footers/summaries, but DON'T break
+        if (TABLE_CONTINUE_MARKER_REGEX.test(line)) continue;
+        if (TABLE_END_REGEX.test(line)) {
+            // Only break if it's likely the FINAL summary (Resumo do IVA usually follows)
+            if (/resumo\s+do\s+iva/i.test(line)) break;
+            continue;
+        }
+
+        // Break if we hit a new document section that isn't the original
+        if (SECTION_MARKER_REGEX.test(line)) break;
+
+        // Skip specific page markers
+        if (/^\d+\s*\/\s*\d+$/i.test(line) || /^\d+\s*$/i.test(line)) continue;
+
         scoped.push(line);
     }
 
