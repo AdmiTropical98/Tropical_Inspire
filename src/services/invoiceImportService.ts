@@ -1,7 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { InvoiceImport, InvoiceImportStatus, InvoiceUnit } from '../types';
 import * as pdfjsLib from 'pdfjs-dist';
-import { ALLOWED_INVOICE_UNITS } from '../types';
 import type { InvoiceImportExtractedData } from '../types';
 
 const INVOICE_IMPORT_BUCKET = 'invoices';
@@ -101,6 +100,17 @@ const clampVat = (value: number): 0 | 6 | 13 | 23 => {
     return 0;
 };
 
+interface PositionalItem {
+    text: string;
+    x: number;
+    w?: number;
+}
+
+interface PositionalRow {
+    y: number;
+    items: PositionalItem[];
+}
+
 const extractPdfLines = async (file: File): Promise<string[]> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true } as any).promise;
@@ -127,10 +137,10 @@ const extractPdfLines = async (file: File): Promise<string[]> => {
     return lines.map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
 };
 
-const extractPdfRowsByGeometry = async (file: File): Promise<string[]> => {
+const extractPdfRowsByGeometry = async (file: File): Promise<PositionalRow[]> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true } as any).promise;
-    const rows: string[] = [];
+    const allRows: PositionalRow[] = [];
 
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
         const page = await pdf.getPage(pageNumber);
@@ -141,34 +151,38 @@ const extractPdfRowsByGeometry = async (file: File): Promise<string[]> => {
                 text: String(item?.str || '').trim(),
                 x: Number(item?.transform?.[4] || 0),
                 y: Number(item?.transform?.[5] || 0),
+                w: Number(item?.width || 0),
             }))
             .filter((item) => item.text);
 
-        const groups: Array<{ y: number; items: Array<{ text: string; x: number }> }> = [];
+        const groups: Map<number, PositionalItem[]> = new Map();
         for (const entry of entries) {
-            const group = groups.find((candidate) => Math.abs(candidate.y - entry.y) <= 2.5);
-            if (group) {
-                group.items.push({ text: entry.text, x: entry.x });
+            let foundY: number | null = null;
+            for (const y of groups.keys()) {
+                if (Math.abs(y - entry.y) <= 3.5) {
+                    foundY = y;
+                    break;
+                }
+            }
+
+            if (foundY !== null) {
+                groups.get(foundY)!.push({ text: entry.text, x: entry.x, w: entry.w });
             } else {
-                groups.push({ y: entry.y, items: [{ text: entry.text, x: entry.x }] });
+                groups.set(entry.y, [{ text: entry.text, x: entry.x, w: entry.w }]);
             }
         }
 
-        groups
-            .sort((a, b) => b.y - a.y)
-            .forEach((group) => {
-                const row = group.items
-                    .sort((a, b) => a.x - b.x)
-                    .map((item) => item.text)
-                    .join(' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+        const sortedGroups = Array.from(groups.entries())
+            .sort((a, b) => b[0] - a[0])
+            .map(([y, items]) => ({
+                y,
+                items: items.sort((a, b) => a.x - b.x),
+            }));
 
-                if (row) rows.push(row);
-            });
+        allRows.push(...sortedGroups);
     }
 
-    return rows;
+    return allRows;
 };
 
 const findLabeledAmount = (lines: string[], labelRegexes: RegExp[]): number => {
@@ -277,10 +291,8 @@ type ParsedInvoiceLine = {
     vat_value?: number;
 };
 
-const KNOWN_UNIT_TOKEN_SOURCE = '(?:UN|UND|UNID(?:ADE|ADES)?|UNI|CX|CAIXA(?:S)?|L|LT|LTS|LITRO(?:S)?|H|HR|HRS|HORA(?:S)?|HOF)';
 const UNIT_TOKEN_SOURCE = '(?:[A-Z0-9]{1,8})';
 const UNIT_TOKEN_REGEX = new RegExp(`^${UNIT_TOKEN_SOURCE}$`, 'i');
-const UNIT_IN_LINE_REGEX = new RegExp(`\\b${KNOWN_UNIT_TOKEN_SOURCE}\\b`, 'i');
 const NUMBER_TOKEN_SOURCE = '(?:\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d+)?|\\d+(?:[.,]\\d+)?)';
 const NUMBER_TOKEN_REGEX = new RegExp(`^${NUMBER_TOKEN_SOURCE}$`);
 const LABOR_DESCRIPTION_REGEX = /m[aã]o\s*obra|mao\s*(de\s*)?obra|labor/i;
@@ -299,81 +311,6 @@ const normalizeUnitToken = (token?: string): InvoiceUnit | '' => {
     if (['CX', 'CAIXA', 'CAIXAS'].includes(value)) return 'CX';
     if (/m[aã]o\s*obra|mao\s*(de\s*)?obra|labor|serralharia|mecanica|mec[aâ]nica/i.test(value)) return 'H';
     return 'UN';
-};
-
-const mergeUniqueParsedLines = (base: ParsedInvoiceLine[], extra: ParsedInvoiceLine[]): ParsedInvoiceLine[] => {
-    if (!extra.length) return base;
-
-    const seen = new Set(
-        base.map((line) => [
-            line.description.toLowerCase().replace(/\s+/g, ' ').trim(),
-            line.unidade_medida,
-            line.qty.toFixed(2),
-            line.unit_price.toFixed(2),
-            line.vat_percent,
-        ].join('|'))
-    );
-
-    const merged = [...base];
-    for (const line of extra) {
-        const key = [
-            line.description.toLowerCase().replace(/\s+/g, ' ').trim(),
-            line.unidade_medida,
-            line.qty.toFixed(2),
-            line.unit_price.toFixed(2),
-            line.vat_percent,
-        ].join('|');
-        if (seen.has(key)) continue;
-        seen.add(key);
-        merged.push(line);
-    }
-
-    return merged;
-};
-
-const extractLaborLinesLooseUnit = (
-    lines: string[],
-    fallbackVatPercent: 0 | 6 | 13 | 23
-): ParsedInvoiceLine[] => {
-    const parsed: ParsedInvoiceLine[] = [];
-    const looseRegex = new RegExp(`(.*)\\s+(${NUMBER_TOKEN_SOURCE})\\s+([A-Z0-9]{1,8})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})$`, 'i');
-
-    for (const rawLine of lines) {
-        const line = rawLine.replace(/\s+/g, ' ').trim();
-        if (!line) continue;
-        if (/total\s+materiais|total\s+il[ií]quido|resumo\s+do\s+iva|descri[çc][aã]o\s+de\s+trabalhos|a\s+transportar/i.test(line)) continue;
-
-        const match = line.match(looseRegex);
-        if (!match) continue;
-
-        const description = cleanDescriptionFromTokens(match[1].trim().split(/\s+/));
-        if (!description || !LABOR_DESCRIPTION_REGEX.test(description)) continue;
-
-        const qty = toNumber(match[2]);
-        const unitRaw = String(match[3] || '').toUpperCase();
-        const unitPrice = toNumber(match[4]);
-        const netValue = toNumber(match[6]);
-        const vatPercent = clampVat(toNumber(match[7])) || fallbackVatPercent;
-
-        if (qty <= 0 || unitPrice <= 0 || netValue <= 0) continue;
-
-        const unit = /^(H|HR|HRS|HOF|H0F|HOR|HORA|HORAS)$/.test(unitRaw)
-            ? 'H'
-            : normalizeUnitToken(unitRaw);
-
-        if (!unit || !ALLOWED_INVOICE_UNITS.includes(unit)) continue;
-
-        parsed.push({
-            description,
-            unidade_medida: unit || 'H',
-            qty,
-            unit_price: unitPrice,
-            vat_percent: vatPercent,
-            vat_value: Number((netValue * (vatPercent / 100)).toFixed(2)),
-        });
-    }
-
-    return parsed;
 };
 
 const isLikelyLeadingCodeToken = (token: string): boolean => {
@@ -399,145 +336,28 @@ const cleanDescriptionFromTokens = (tokens: string[]): string => {
         .trim();
 };
 
-const inferUnitFromDescription = (description: string, token?: string): InvoiceUnit => {
-    const normalized = normalizeUnitToken(token);
-    if (normalized) return normalized;
-    if (LABOR_DESCRIPTION_REGEX.test(description)) return 'H';
-    return 'UN';
-};
-
-const getScopedTableLines = (lines: string[]): string[] => {
-    const normalizedLines = lines
-        .map((line) => line.replace(/\s+/g, ' ').trim())
-        .filter(Boolean);
-
-    const startIndex = normalizedLines.findIndex((line) => TABLE_START_REGEX.test(line));
+const getScopedTableLines = (rows: PositionalRow[]): PositionalRow[] => {
+    const startIndex = rows.findIndex((row) => TABLE_START_REGEX.test(row.items.map(i => i.text).join(' ')));
     if (startIndex < 0) return [];
 
-    const scoped: string[] = [];
-    for (let index = startIndex + 1; index < normalizedLines.length; index += 1) {
-        const line = normalizedLines[index];
-        if (!line) continue;
+    const scoped: PositionalRow[] = [];
+    for (let index = startIndex + 1; index < rows.length; index += 1) {
+        const row = rows[index];
+        const rowText = row.items.map(i => i.text).join(' ');
 
-        // Ignore redundant headers (e.g. on page 2, 3...)
-        if (TABLE_START_REGEX.test(line)) continue;
-
-        // Skip intermediate footers/summaries, but DON'T break
-        if (TABLE_CONTINUE_MARKER_REGEX.test(line)) continue;
-        if (TABLE_END_REGEX.test(line)) {
-            // Only break if it's likely the FINAL summary (Resumo do IVA usually follows)
-            if (/resumo\s+do\s+iva/i.test(line)) break;
+        if (TABLE_START_REGEX.test(rowText)) continue;
+        if (TABLE_CONTINUE_MARKER_REGEX.test(rowText)) continue;
+        if (TABLE_END_REGEX.test(rowText)) {
+            if (/resumo\s+do\s+iva/i.test(rowText)) break;
             continue;
         }
+        if (SECTION_MARKER_REGEX.test(rowText)) break;
+        if (/^\d+\s*\/\s*\d+$/i.test(rowText) || (/^\d+\s*$/i.test(rowText) && row.items.length === 1)) continue;
 
-        // Break if we hit a new document section that isn't the original
-        if (SECTION_MARKER_REGEX.test(line)) break;
-
-        // Skip specific page markers
-        if (/^\d+\s*\/\s*\d+$/i.test(line) || /^\d+\s*$/i.test(line)) continue;
-
-        scoped.push(line);
+        scoped.push(row);
     }
 
     return scoped;
-};
-
-const extractStrictScopedLines = (lines: string[], fallbackVatPercent: 0 | 6 | 13 | 23): ParsedInvoiceLine[] => {
-    const scopedLines = getScopedTableLines(lines);
-    if (!scopedLines.length) return [];
-
-    const strictLineRegex = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s+(UN|HOR|H|L|CX)\s+(\d+(?:[.,]\d+)?)/i;
-    const parsed: ParsedInvoiceLine[] = [];
-
-    for (const rawLine of scopedLines) {
-        const line = rawLine.replace(/\s+/g, ' ').trim();
-        if (!line || NON_ITEM_LINE_REGEX.test(line)) continue;
-
-        const match = line.match(strictLineRegex);
-        if (!match) continue;
-
-        const description = String(match[1] || '').trim();
-        const qty = toNumber(match[2] || '0');
-        const unitToken = String(match[3] || '').toUpperCase() === 'HOR' ? 'H' : String(match[3] || '');
-        const unitMeasure = normalizeUnitToken(unitToken) || inferUnitFromDescription(description, unitToken);
-        const unitPrice = toNumber(match[4] || '0');
-
-        if (!description || qty <= 0 || unitPrice <= 0) continue;
-
-        const netValue = Number((qty * unitPrice).toFixed(2));
-        parsed.push({
-            description,
-            unidade_medida: unitMeasure,
-            qty,
-            unit_price: unitPrice,
-            vat_percent: fallbackVatPercent,
-            vat_value: Number((netValue * (fallbackVatPercent / 100)).toFixed(2)),
-        });
-    }
-
-    return parsed;
-};
-
-const extractLooseTableLines = (lines: string[], fallbackVatPercent: 0 | 6 | 13 | 23): ParsedInvoiceLine[] => {
-    const parsed: ParsedInvoiceLine[] = [];
-
-    for (const rawLine of lines) {
-        const line = rawLine.replace(/\s+/g, ' ').trim();
-        if (!line) continue;
-        if (/total\s+materiais|total\s+il[ií]quido|resumo\s+do\s+iva|descri[çc][aã]o\s+de\s+trabalhos|transport[ea]/i.test(line)) continue;
-
-        const tokens = line.split(/\s+/);
-        if (tokens.length < 4) continue;
-
-        const firstNumberIndex = tokens.findIndex((token) => NUMBER_TOKEN_REGEX.test(token));
-        if (firstNumberIndex <= 0) continue;
-
-        const description = cleanDescriptionFromTokens(tokens.slice(0, firstNumberIndex));
-        if (!description || NON_ITEM_LINE_REGEX.test(description)) continue;
-
-        let cursor = firstNumberIndex;
-        const qtyRaw = toNumber(tokens[cursor]);
-        cursor += 1;
-
-        let unitToken = '';
-        if (cursor < tokens.length && UNIT_TOKEN_REGEX.test(tokens[cursor]) && !NUMBER_TOKEN_REGEX.test(tokens[cursor])) {
-            unitToken = tokens[cursor];
-            cursor += 1;
-        }
-
-        const numericValues = tokens
-            .slice(cursor)
-            .filter((token) => NUMBER_TOKEN_REGEX.test(token))
-            .map((token) => toNumber(token))
-            .filter((value) => Number.isFinite(value) && value >= 0);
-
-        const qty = qtyRaw > 0 ? qtyRaw : 1;
-        let unitPrice = numericValues[0] || 0;
-        let netValue = numericValues.length >= 2 ? numericValues[numericValues.length - 2] : 0;
-        const vatPercent = numericValues.length > 0
-            ? clampVat(numericValues[numericValues.length - 1]) || fallbackVatPercent
-            : fallbackVatPercent;
-
-        if (unitPrice <= 0 && netValue > 0 && qty > 0) {
-            unitPrice = Number((netValue / qty).toFixed(2));
-        }
-        if (netValue <= 0 && unitPrice > 0 && qty > 0) {
-            netValue = Number((qty * unitPrice).toFixed(2));
-        }
-
-        if (qty <= 0 || unitPrice <= 0 || netValue <= 0) continue;
-
-        parsed.push({
-            description,
-            unidade_medida: inferUnitFromDescription(description, unitToken),
-            qty,
-            unit_price: unitPrice,
-            vat_percent: vatPercent,
-            vat_value: Number((netValue * (vatPercent / 100)).toFixed(2)),
-        });
-    }
-
-    return parsed;
 };
 
 const dedupeAndReconcileLines = (
@@ -570,264 +390,117 @@ const dedupeAndReconcileLines = (
 };
 
 const extractDetailedLines = (
-    lines: string[],
-    compact: string,
+    positionalRows: PositionalRow[],
+    fallbackLines: string[],
     total: number,
     vatTotal: number,
     fallbackVatPercent: 0 | 6 | 13 | 23
 ): ParsedInvoiceLine[] => {
-    const strictScoped = extractStrictScopedLines(lines, fallbackVatPercent);
-    if (strictScoped.length > 0) {
-        return mergeUniqueParsedLines(strictScoped, []);
+    const scopedRows = getScopedTableLines(positionalRows);
+    if (!scopedRows.length) {
+        // Fallback to text based parsing if geometry fails
+        return extractDetailedLinesLegacy(fallbackLines, total, vatTotal, fallbackVatPercent);
     }
 
-    const rowParsed: ParsedInvoiceLine[] = [];
-    for (const rawLine of lines) {
-        const line = rawLine.replace(/\s+/g, ' ').trim();
-        if (!line) continue;
-        if (/opera[çc][aã]o\/pe[çc]a|descri[çc][aã]o\s+qtd|total\s+materiais|resumo\s+do\s+iva|descri[çc][aã]o\s+de\s+trabalhos|transport[ea]/i.test(line)) continue;
+    const parsed: ParsedInvoiceLine[] = [];
+    let currentLine: ParsedInvoiceLine | null = null;
 
-        const qtyTokenMatch = line.match(new RegExp(`(${NUMBER_TOKEN_SOURCE})\\s+(${UNIT_TOKEN_SOURCE})\\b`, 'i'));
-        if (!qtyTokenMatch?.[1]) continue;
+    for (const row of scopedRows) {
+        const rowText = row.items.map(i => i.text).join(' ');
+        if (NON_ITEM_LINE_REGEX.test(rowText)) continue;
 
-        const qtyIndex = line.indexOf(qtyTokenMatch[1]);
-        if (qtyIndex <= 0) continue;
+        // Eticadata column heuristics based on X coordinates (standard A4 is ~595 pts wide)
+        // Description: starts early (X < 150), ends before qty (X < 350)
+        // Qty: 350-400
+        // Unit: 400-440
+        // UnitPrice: 440-500
+        // NetValue: 500-560
+        // VAT: 560+
 
-        const left = line.slice(0, qtyIndex).trim();
-        const right = line.slice(qtyIndex).trim();
+        const descriptionItems = row.items.filter(i => i.x < 350 && !NUMBER_TOKEN_REGEX.test(i.text) && !UNIT_TOKEN_REGEX.test(i.text));
+        const qtyItem = row.items.find(i => i.x >= 340 && i.x <= 410 && NUMBER_TOKEN_REGEX.test(i.text));
+        const unitItem = row.items.find(i => i.x >= 390 && i.x <= 450 && UNIT_TOKEN_REGEX.test(i.text) && !NUMBER_TOKEN_REGEX.test(i.text));
+        const unitPriceItem = row.items.find(i => i.x >= 430 && i.x <= 510 && NUMBER_TOKEN_REGEX.test(i.text) && i !== qtyItem);
+        const vatItem = row.items.find(i => i.x >= 550 && NUMBER_TOKEN_REGEX.test(i.text));
+        const netValueItem = row.items.find(i => i.x >= 500 && i.x < 560 && NUMBER_TOKEN_REGEX.test(i.text) && i !== unitPriceItem && i !== qtyItem);
 
-        const rightNumbers = [...right.matchAll(new RegExp(`(${NUMBER_TOKEN_SOURCE})`, 'g'))].map((m) => toNumber(m[1]));
-        if (rightNumbers.length < 3) continue;
+        const qty = qtyItem ? toNumber(qtyItem.text) : 0;
+        const unitPrice = unitPriceItem ? toNumber(unitPriceItem.text) : 0;
+        const subtotal = netValueItem ? toNumber(netValueItem.text) : (qty > 0 && unitPrice > 0 ? Number((qty * unitPrice).toFixed(2)) : 0);
 
-        const postUnitNumbers = rightNumbers.slice(1);
-        if (postUnitNumbers.length < 2) continue;
+        if (qty > 0 && unitPrice > 0 && subtotal > 0) {
+            // This is a new item line
+            const description = descriptionItems.map(i => i.text).join(' ').trim();
+            const vatPercent = vatItem ? clampVat(toNumber(vatItem.text)) : fallbackVatPercent;
 
-        const qty = toNumber(qtyTokenMatch[1]);
-        const unitMeasure = normalizeUnitToken(qtyTokenMatch[2]);
-        if (!unitMeasure) continue;
-        const unitPrice = postUnitNumbers[0] || 0;
-        const vatPercent = clampVat(postUnitNumbers[postUnitNumbers.length - 1]) || fallbackVatPercent;
-        const netValue = postUnitNumbers[postUnitNumbers.length - 2] || 0;
-
-        const leftTokens = left.split(/\s+/);
-        const description = cleanDescriptionFromTokens(leftTokens);
-
-        if (!description || qty <= 0 || unitPrice <= 0 || netValue <= 0) continue;
-
-        rowParsed.push({
-            description,
-            unidade_medida: unitMeasure,
-            qty,
-            unit_price: unitPrice,
-            vat_percent: vatPercent,
-            vat_value: Number((netValue * (vatPercent / 100)).toFixed(2)),
-        });
-    }
-
-    if (rowParsed.length > 0) {
-        return mergeUniqueParsedLines(rowParsed, extractLaborLinesLooseUnit(lines, fallbackVatPercent));
-    }
-
-    const compactParsed: ParsedInvoiceLine[] = [];
-    const blockStart = compact.search(/opera[çc][aã]o\/pe[çc]a|descri[çc][aã]o\s+qtd|v\.?\s*liquido|%iva/i);
-    const blockEndCandidate = compact.search(/total\s+materiais|total\s+il[ií]quido|resumo\s+do\s+iva|descri[çc][aã]o\s+de\s+trabalhos/i);
-    const blockText = blockStart >= 0
-        ? compact.slice(blockStart, blockEndCandidate > blockStart ? blockEndCandidate : undefined)
-        : compact;
-
-    const rowRegex = new RegExp(`([A-Z0-9.\\/-]{3,})\\s+(.+?)\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${UNIT_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})`, 'gi');
-    let match: RegExpExecArray | null;
-    while ((match = rowRegex.exec(blockText)) !== null) {
-        const code = match[1] || '';
-        if (!code.trim()) continue;
-
-        const description = (match[2] || '').replace(/\s+/g, ' ').trim();
-        const qty = toNumber(match[3]);
-        const unitMeasure = normalizeUnitToken(match[4]);
-        if (!unitMeasure) continue;
-        const unitPrice = toNumber(match[5]);
-        const netValue = toNumber(match[7]);
-        const vatPercent = clampVat(toNumber(match[8])) || fallbackVatPercent;
-
-        if (!description || qty <= 0 || unitPrice <= 0 || netValue <= 0) continue;
-
-        compactParsed.push({
-            description,
-            unidade_medida: unitMeasure,
-            qty,
-            unit_price: unitPrice,
-            vat_percent: vatPercent,
-            vat_value: Number((netValue * (vatPercent / 100)).toFixed(2)),
-        });
-    }
-
-    if (compactParsed.length >= 2) {
-        return mergeUniqueParsedLines(compactParsed, extractLaborLinesLooseUnit(lines, fallbackVatPercent));
-    }
-
-    const twoLineParsed: ParsedInvoiceLine[] = [];
-    let pendingDescription = '';
-
-    for (const rawLine of lines) {
-        const line = rawLine.replace(/\s+/g, ' ').trim();
-        if (!line) continue;
-        if (/total\s+materiais|total\s+il[ií]quido|resumo\s+do\s+iva|descri[çc][aã]o\s+de\s+trabalhos/i.test(line)) continue;
-
-        const numericOnly = line.match(new RegExp(`^(${NUMBER_TOKEN_SOURCE})\\s+(${UNIT_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})$`, 'i'));
-        if (numericOnly && pendingDescription) {
-            const qty = toNumber(numericOnly[1]);
-            const unitMeasure = normalizeUnitToken(numericOnly[2]);
-            if (!unitMeasure) {
-                pendingDescription = '';
-                continue;
-            }
-            const unitPrice = toNumber(numericOnly[3]);
-            const netValue = toNumber(numericOnly[5]);
-            const vatPercent = clampVat(toNumber(numericOnly[6])) || fallbackVatPercent;
-
-            if (qty > 0 && unitPrice > 0 && netValue > 0) {
-                twoLineParsed.push({
-                    description: pendingDescription,
-                    unidade_medida: unitMeasure,
-                    qty,
-                    unit_price: unitPrice,
-                    vat_percent: vatPercent,
-                    vat_value: Number((netValue * (vatPercent / 100)).toFixed(2)),
-                });
-            }
-
-            pendingDescription = '';
-            continue;
-        }
-
-        const looksLikeDescription = /[A-Za-zÁÀÃÂÉÈÊÍÌÎÓÒÔÕÚÙÛÇ]/i.test(line) && !UNIT_IN_LINE_REGEX.test(line);
-        if (looksLikeDescription) {
-            const tokens = line.split(/\s+/);
-            const cleaned = cleanDescriptionFromTokens(tokens);
-
-            if (cleaned && !/^(arm|opera[çc][aã]o\/pe[çc]a|descri[çc][aã]o)$/i.test(cleaned)) {
-                pendingDescription = cleaned;
+            currentLine = {
+                description: cleanDescriptionFromTokens(description.split(/\s+/)),
+                unidade_medida: normalizeUnitToken(unitItem?.text || '') || (LABOR_DESCRIPTION_REGEX.test(description) ? 'H' : 'UN'),
+                qty,
+                unit_price: unitPrice,
+                vat_percent: vatPercent,
+                vat_value: Number((subtotal * (vatPercent / 100)).toFixed(2))
+            };
+            parsed.push(currentLine);
+        } else if (currentLine && descriptionItems.length > 0) {
+            // This might be a continuation of the previous description
+            const extraDesc = descriptionItems.map(i => i.text).join(' ').trim();
+            if (extraDesc && !/total|p[aá]g/i.test(extraDesc)) {
+                currentLine.description = `${currentLine.description} ${extraDesc}`.trim();
             }
         }
     }
 
-    if (twoLineParsed.length > 0) {
-        return mergeUniqueParsedLines(twoLineParsed, extractLaborLinesLooseUnit(lines, fallbackVatPercent));
-    }
+    if (parsed.length > 0) return parsed;
+    return extractDetailedLinesLegacy(fallbackLines, total, vatTotal, fallbackVatPercent);
+};
 
-    const byRegex: ParsedInvoiceLine[] = [];
-
-    for (const rawLine of lines) {
-        const line = rawLine.replace(/\s+/g, ' ').trim();
-        if (!line) continue;
-        if (/total\s+materiais|total\s+il[ií]quido|resumo\s+do\s+iva|descri[çc][aã]o\s+de\s+trabalhos/i.test(line)) continue;
-
-        const match = line.match(new RegExp(`(.*)\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${UNIT_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})\\s+(${NUMBER_TOKEN_SOURCE})$`, 'i'));
-        if (!match) continue;
-
-        const leftPart = match[1].trim();
-        const qty = toNumber(match[2]);
-        const unitMeasure = normalizeUnitToken(match[3]);
-        if (!unitMeasure) continue;
-        const unitPrice = toNumber(match[4]);
-        const netValue = toNumber(match[6]);
-        const vatPercent = clampVat(toNumber(match[7])) || fallbackVatPercent;
-
-        if (qty <= 0 || unitPrice <= 0 || netValue <= 0) continue;
-
-        const leftTokens = leftPart.split(/\s+/);
-        const description = cleanDescriptionFromTokens(leftTokens) || leftPart;
-        if (!description) continue;
-
-        byRegex.push({
-            description,
-            unidade_medida: unitMeasure,
-            qty,
-            unit_price: unitPrice,
-            vat_percent: vatPercent,
-            vat_value: Number((netValue * (vatPercent / 100)).toFixed(2)),
-        });
-    }
-
-    if (byRegex.length > 0) {
-        return mergeUniqueParsedLines(byRegex, extractLaborLinesLooseUnit(lines, fallbackVatPercent));
-    }
-
-    const startIndex = lines.findIndex((line) => /opera[çc][aã]o\/pe[çc]a|descri[çc][aã]o\s+qtd|v\.?\s*liquido|%iva/i.test(line));
-    const endIndexRaw = lines.findIndex((line, index) => index > (startIndex >= 0 ? startIndex : 0) && /total\s+materiais|total\s+il[ií]quido|resumo\s+do\s+iva/i.test(line));
-    const endIndex = endIndexRaw >= 0 ? endIndexRaw : lines.length;
-
-    const region = lines.slice(startIndex >= 0 ? startIndex + 1 : 0, endIndex);
+const extractDetailedLinesLegacy = (
+    lines: string[],
+    _total: number,
+    _vatTotal: number,
+    fallbackVatPercent: 0 | 6 | 13 | 23
+): ParsedInvoiceLine[] => {
+    // Legacy parsing for non-eticadata PDFs
+    const strictLineRegex = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s+(UN|HOR|H|L|CX)\s+(\d+(?:[.,]\d+)?)/i;
     const parsed: ParsedInvoiceLine[] = [];
 
-    for (const line of region) {
-        if (/^\s*(total|transporte|desconto|arm|opera[çc][aã]o)/i.test(line)) continue;
+    for (const rawLine of lines) {
+        const line = rawLine.replace(/\s+/g, ' ').trim();
+        if (!line || NON_ITEM_LINE_REGEX.test(line)) continue;
+        if (/opera[çc][aã]o\/pe[çc]a|descri[çc][aã]o\s+qtd|total|resumo/i.test(line)) continue;
 
-        const tokens = line.trim().split(/\s+/);
-        if (tokens.length < 8) continue;
+        const match = line.match(strictLineRegex);
+        if (match) {
+            const description = String(match[1] || '').trim();
+            const qty = toNumber(match[2] || '0');
+            const unitToken = String(match[3] || '').toUpperCase() === 'HOR' ? 'H' : String(match[3] || '');
+            const unitMeasure = normalizeUnitToken(unitToken) || (LABOR_DESCRIPTION_REGEX.test(description) ? 'H' : 'UN');
+            const unitPrice = toNumber(match[4] || '0');
 
-        const qtyIndex = tokens.findIndex((token, index) =>
-            NUMBER_TOKEN_REGEX.test(token) && index + 2 < tokens.length && UNIT_TOKEN_REGEX.test(tokens[index + 1])
-        );
-
-        if (qtyIndex < 0) continue;
-
-        const numericTail = tokens.slice(qtyIndex + 2).filter((token) => NUMBER_TOKEN_REGEX.test(token));
-        if (numericTail.length < 3) continue;
-
-        const qty = toNumber(tokens[qtyIndex]);
-        const unitMeasure = normalizeUnitToken(tokens[qtyIndex + 1]);
-        if (!unitMeasure) continue;
-        const unitPrice = toNumber(numericTail[0]);
-        const vatPercent = clampVat(toNumber(numericTail[numericTail.length - 1])) || fallbackVatPercent;
-        const netValue = toNumber(numericTail[numericTail.length - 2]);
-
-        const descriptionTokens = tokens.slice(0, qtyIndex);
-        const description = cleanDescriptionFromTokens(descriptionTokens);
-
-        if (!description || qty <= 0 || unitPrice <= 0 || netValue <= 0) continue;
-
-        const vatValue = Number((netValue * (vatPercent / 100)).toFixed(2));
-        parsed.push({
-            description,
-            unidade_medida: unitMeasure,
-            qty,
-            unit_price: unitPrice,
-            vat_percent: vatPercent,
-            vat_value: vatValue,
-        });
-    }
-
-    if (parsed.length === 0) {
-        const looseFallback = extractLooseTableLines(lines, fallbackVatPercent);
-        if (looseFallback.length > 0) return mergeUniqueParsedLines(looseFallback, extractLaborLinesLooseUnit(lines, fallbackVatPercent));
-
-        const laborFallback = extractLaborLinesLooseUnit(lines, fallbackVatPercent);
-        if (laborFallback.length > 0) return laborFallback;
-
-        const inferredNet = total > 0 ? Math.max(0, Number((total - vatTotal).toFixed(2))) : 0;
-        if (inferredNet > 0) {
-            return [{
-                description: 'Total da fatura',
-                unidade_medida: 'UN',
-                qty: 1,
-                unit_price: inferredNet,
-                vat_percent: fallbackVatPercent,
-                vat_value: vatTotal,
-            }];
+            if (description && qty > 0 && unitPrice > 0) {
+                const netValue = Number((qty * unitPrice).toFixed(2));
+                parsed.push({
+                    description: cleanDescriptionFromTokens(description.split(/\s+/)),
+                    unidade_medida: unitMeasure as InvoiceUnit,
+                    qty,
+                    unit_price: unitPrice,
+                    vat_percent: fallbackVatPercent,
+                    vat_value: Number((netValue * (fallbackVatPercent / 100)).toFixed(2)),
+                });
+                continue;
+            }
         }
-        return [];
     }
 
-    const withLabor = mergeUniqueParsedLines(parsed, extractLaborLinesLooseUnit(lines, fallbackVatPercent));
-    return mergeUniqueParsedLines(withLabor, extractLooseTableLines(lines, fallbackVatPercent));
+    return parsed;
 };
 
 export async function parseInvoicePdfLocally(file: File): Promise<InvoiceImportExtractedData> {
-    const geometryLines = await extractPdfRowsByGeometry(file);
+    const positionalRows = await extractPdfRowsByGeometry(file);
     const textLines = await extractPdfLines(file);
     const seenLines = new Set<string>();
-    const lines = [...geometryLines, ...textLines].filter((line) => {
+    const lines = textLines.filter((line) => {
         const normalized = line.replace(/\s+/g, ' ').trim().toLowerCase();
         if (!normalized || seenLines.has(normalized)) return false;
         seenLines.add(normalized);
@@ -873,7 +546,7 @@ export async function parseInvoicePdfLocally(file: File): Promise<InvoiceImportE
         || compact.match(/\b(6|13|23)[.,]00\b/);
     const vatPercent = clampVat(vatRateMatch ? Number(vatRateMatch[1]) : inferVatPercentFromTotals(total, vatTotal));
     const extractedLines = dedupeAndReconcileLines(
-        extractDetailedLines(lines, compact, total, vatTotal, vatPercent),
+        extractDetailedLines(positionalRows, lines, total, vatTotal, vatPercent),
         total > 0 ? total : (netFromSummary > 0 ? Number((netFromSummary + vatTotal).toFixed(2)) : total),
         vatTotal,
         vatPercent
