@@ -410,19 +410,18 @@ const extractDetailedLines = (
         if (NON_ITEM_LINE_REGEX.test(rowText)) continue;
 
         // Eticadata column heuristics based on X coordinates (standard A4 is ~595 pts wide)
-        // Description: starts early (X < 150), ends before qty (X < 350)
-        // Qty: 350-400
-        // Unit: 400-440
-        // UnitPrice: 440-500
-        // NetValue: 500-560
-        // VAT: 560+
+        // Ranges provided by user:
+        // Description: 0–350
+        // Quantity: 350–430
+        // Unit: 430–480
+        // Unit Price: 480–560
 
         const descriptionItems = row.items.filter(i => i.x < 350 && !NUMBER_TOKEN_REGEX.test(i.text) && !UNIT_TOKEN_REGEX.test(i.text));
-        const qtyItem = row.items.find(i => i.x >= 340 && i.x <= 410 && NUMBER_TOKEN_REGEX.test(i.text));
-        const unitItem = row.items.find(i => i.x >= 390 && i.x <= 450 && UNIT_TOKEN_REGEX.test(i.text) && !NUMBER_TOKEN_REGEX.test(i.text));
-        const unitPriceItem = row.items.find(i => i.x >= 430 && i.x <= 510 && NUMBER_TOKEN_REGEX.test(i.text) && i !== qtyItem);
-        const vatItem = row.items.find(i => i.x >= 550 && NUMBER_TOKEN_REGEX.test(i.text));
-        const netValueItem = row.items.find(i => i.x >= 500 && i.x < 560 && NUMBER_TOKEN_REGEX.test(i.text) && i !== unitPriceItem && i !== qtyItem);
+        const qtyItem = row.items.find(i => i.x >= 350 && i.x < 430 && NUMBER_TOKEN_REGEX.test(i.text));
+        const unitItem = row.items.find(i => i.x >= 430 && i.x < 480 && (UNIT_TOKEN_REGEX.test(i.text) && !NUMBER_TOKEN_REGEX.test(i.text)));
+        const unitPriceItem = row.items.find(i => i.x >= 480 && i.x < 560 && NUMBER_TOKEN_REGEX.test(i.text));
+        const vatItem = row.items.find(i => i.x >= 560 && NUMBER_TOKEN_REGEX.test(i.text));
+        const netValueItem = row.items.find(i => i.x >= 505 && i.x < 565 && NUMBER_TOKEN_REGEX.test(i.text) && i !== unitPriceItem && i !== qtyItem);
 
         const qty = qtyItem ? toNumber(qtyItem.text) : 0;
         const unitPrice = unitPriceItem ? toNumber(unitPriceItem.text) : 0;
@@ -434,7 +433,7 @@ const extractDetailedLines = (
             const vatPercent = vatItem ? clampVat(toNumber(vatItem.text)) : fallbackVatPercent;
 
             currentLine = {
-                description: cleanDescriptionFromTokens(description.split(/\s+/)),
+                description: description,
                 unidade_medida: normalizeUnitToken(unitItem?.text || '') || (LABOR_DESCRIPTION_REGEX.test(description) ? 'H' : 'UN'),
                 qty,
                 unit_price: unitPrice,
