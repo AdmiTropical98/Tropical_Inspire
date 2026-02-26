@@ -182,7 +182,8 @@ const extractPdfRowsByGeometry = async (file: File): Promise<PositionalRow[]> =>
         for (const entry of entries) {
             let foundY: number | null = null;
             for (const y of groups.keys()) {
-                if (Math.abs(y - entry.y) <= 3.5) {
+                // Increased tolerance to 5.5 to group slightly offset blocks
+                if (Math.abs(y - entry.y) <= 5.5) {
                     foundY = y;
                     break;
                 }
@@ -225,23 +226,13 @@ const findLabeledAmount = (lines: string[], labelRegexes: RegExp[]): number => {
 
 const extractAmountAfterLabelInCompact = (compact: string, labelRegexes: RegExp[]): number => {
     for (const regex of labelRegexes) {
-        // The regex.source might contain unescaped backslashes if it was created from a literal,
-        // but when concatenating into a new RegExp string, backslashes need to be escaped.
-        // For example, if regex.source is "\\bfoo\\b", it needs to become "\\\\bfoo\\\\b" in the new string.
-        // However, the original regexes are simple, like /total\s+il[ií]quido\s*[:\-]?\s*/i,
-        // where \s is already correctly represented as "\\s" in regex.source.
-        // The only part that needs attention is the `[^\\d]` which correctly translates to `[^\d]` in the RegExp constructor.
-        // The instruction implies a fix, but the current `[^\\d]` is already correct for "not a digit" in a string passed to RegExp.
-        // If the intention was to escape `regex.source` itself, it would be `regex.source.replace(/\\/g, '\\\\')`.
-        // Given the instruction and the current code, the most faithful interpretation is to ensure `regex.source` is correctly embedded.
-        // Assuming `regex.source` is already correctly escaped for direct use in `new RegExp`.
+        // Correctly escaped numeric pattern for currency values
         const match = compact.match(new RegExp(`${regex.source}[^\\d]{0,20}(\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d{2})|\\d+(?:[.,]\\d{2}))`, 'i'));
         if (match?.[1]) {
             const value = toNumber(match[1]);
             if (value > 0) return value;
         }
     }
-
     return 0;
 };
 
@@ -438,21 +429,19 @@ const extractDetailedLines = (
 
     const parsed: ParsedInvoiceLine[] = [];
     let currentLine: ParsedInvoiceLine | null = null;
+    let pendingDescriptionBuffer: string[] = [];
 
     for (const row of scopedRows) {
         const rowText = row.items.map(i => i.text).join(' ');
         if (NON_ITEM_LINE_REGEX.test(rowText)) continue;
 
-        // Pivot-Based Detection: Identify the "Pillar" (Qty + Unit + Price)
-        // Description is everything strictly before the first numeric pillar token
         const tokens = row.items.sort((a, b) => a.x - b.x);
 
-        // Strategy: find the first token at X > 300 that is a number
+        // Pivot-Based Detection: Identify the "Pillar" (Qty + Unit + Price)
         const qtyIndex = tokens.findIndex(i => i.x >= 300 && i.x < 430 && NUMBER_TOKEN_REGEX.test(i.text));
 
         if (qtyIndex !== -1) {
             const qtyItem = tokens[qtyIndex];
-            // Try to find Unit and Price relative to Qty
             const unitItemRaw = tokens.slice(qtyIndex + 1).find(i => i.x < 480 && !NUMBER_TOKEN_REGEX.test(i.text) && normalizeUnitToken(i.text));
             const unitPriceItem = tokens.slice(qtyIndex + 1).find(i => i.x > qtyItem.x && NUMBER_TOKEN_REGEX.test(i.text) && i !== unitItemRaw);
 
@@ -461,12 +450,14 @@ const extractDetailedLines = (
             const unitPrice = unitPriceItem ? toNumber(unitPriceItem.text) : 0;
 
             if (qty > 0 && unitToken && unitPrice > 0) {
-                // We have a solid item match. Treat everything before qtyIndex as description.
-                const description = tokens.slice(0, qtyIndex)
+                // We found a new item pillar. Construct description from buffer + current row prefix.
+                const rowPrefix = tokens.slice(0, qtyIndex)
                     .filter(i => !NUMBER_TOKEN_REGEX.test(i.text))
                     .map(i => i.text).join(' ').trim();
 
-                // Find VAT and Net Value after Price
+                const fullDescription = [...pendingDescriptionBuffer, rowPrefix].join(' ').trim();
+                pendingDescriptionBuffer = [];
+
                 const priceIndex = tokens.indexOf(unitPriceItem!);
                 const vatItem = tokens.slice(priceIndex + 1).find(i => i.x > unitPriceItem!.x && NUMBER_TOKEN_REGEX.test(i.text));
                 const netValueItem = tokens.slice(priceIndex + 1).find(i => i.x > unitPriceItem!.x && i !== vatItem && NUMBER_TOKEN_REGEX.test(i.text));
@@ -475,7 +466,7 @@ const extractDetailedLines = (
                 const vatPercent = vatItem ? clampVat(toNumber(vatItem.text)) : fallbackVatPercent;
 
                 currentLine = {
-                    description: description,
+                    description: fullDescription,
                     unidade_medida: unitToken as InvoiceUnit,
                     qty,
                     unit_price: unitPrice,
@@ -487,12 +478,22 @@ const extractDetailedLines = (
             }
         }
 
-        // Continuation logic: if no valid item pillar, check for pure description text
-        if (currentLine) {
-            const descriptionItems = tokens.filter(i => i.x < 350 && !NUMBER_TOKEN_REGEX.test(i.text));
-            const extraDesc = descriptionItems.map(i => i.text).join(' ').trim();
-            if (extraDesc && !NON_ITEM_LINE_REGEX.test(extraDesc) && !TABLE_END_REGEX.test(extraDesc)) {
-                currentLine.description = `${currentLine.description} ${extraDesc}`.trim();
+        // Buffer/Continuation logic:
+        // 1. If we have a current item, check if this line is purely text (no numeric clusters)
+        // 2. If it is purely numeric noise (like totals/iva row), discard
+        // 3. Otherwise, if it's mostly text, either continue description or add to pre-buffer
+        const numberTokens = tokens.filter(i => NUMBER_TOKEN_REGEX.test(i.text));
+        const textTokens = tokens.filter(i => i.x < 400 && !NUMBER_TOKEN_REGEX.test(i.text));
+
+        // Majority Numeric Filter: if more numbers than text tokens, it's likely a footer/total line we missed
+        if (numberTokens.length >= textTokens.length && numberTokens.length > 1) continue;
+
+        const extraText = textTokens.map(i => i.text).join(' ').trim();
+        if (extraText && !NON_ITEM_LINE_REGEX.test(extraText) && !TABLE_END_REGEX.test(extraText)) {
+            if (currentLine) {
+                currentLine.description = `${currentLine.description} ${extraText}`.trim();
+            } else {
+                pendingDescriptionBuffer.push(extraText);
             }
         }
     }
