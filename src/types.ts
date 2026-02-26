@@ -520,10 +520,14 @@ export interface SupplierInvoice {
     lines?: SupplierInvoiceLine[];
 }
 
+export const ALLOWED_INVOICE_UNITS = ['UN', 'H', 'L', 'CX'] as const;
+export type InvoiceUnit = typeof ALLOWED_INVOICE_UNITS[number];
+
 export interface SupplierInvoiceLine {
     id?: string;
     supplier_invoice_id?: string;
     description: string;
+    unidade_medida: InvoiceUnit;
     quantity: number;
     unit_price: number;
     discount_percentage: number;
@@ -539,6 +543,7 @@ export type InvoiceImportStatus = 'processing' | 'ready' | 'failed' | 'confirmed
 
 export interface InvoiceImportExtractedLine {
     description: string;
+    unidade_medida?: InvoiceUnit;
     qty: number;
     unit_price: number;
     vat_percent: 0 | 6 | 13 | 23;

@@ -1,7 +1,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Expense, Fatura, FinancialSummary, TollRecord, ElectricChargingRecord, SupplierInvoice, FinancialMovement } from '../types';
+import { ALLOWED_INVOICE_UNITS } from '../types';
+import type { Expense, Fatura, FinancialSummary, TollRecord, ElectricChargingRecord, SupplierInvoice, FinancialMovement, InvoiceUnit } from '../types';
 import { useWorkshop } from './WorkshopContext';
 
 interface FinancialContextType {
@@ -27,6 +28,29 @@ const FinancialContext = createContext<FinancialContextType | undefined>(undefin
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { stockItems, createStockMovement } = useWorkshop();
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+    const normalizeInvoiceUnit = (value: unknown): InvoiceUnit | null => {
+        const token = String(value || '').trim().toUpperCase();
+        if (!token) return null;
+        if (token === 'HOR' || token === 'HR' || token === 'HRS' || token === 'HOF') return 'H';
+        if (token === 'LT' || token === 'LTS') return 'L';
+        if (token === 'CAIXA' || token === 'CAIXAS') return 'CX';
+        if (token === 'UND' || token === 'UNID' || token === 'UNIDADE' || token === 'UNIDADES' || token === 'UNI') return 'UN';
+        return ALLOWED_INVOICE_UNITS.includes(token as InvoiceUnit) ? (token as InvoiceUnit) : null;
+    };
+
+    const normalizeAndValidateInvoiceLinesUnits = (lines: NonNullable<SupplierInvoice['lines']>) => {
+        return lines.map((line) => {
+            const normalizedUnit = normalizeInvoiceUnit((line as any).unidade_medida);
+            if (!normalizedUnit) {
+                throw new Error(`Unidade inválida na linha "${line.description}". Use apenas: ${ALLOWED_INVOICE_UNITS.join(', ')}`);
+            }
+
+            return {
+                ...line,
+                unidade_medida: normalizedUnit,
+            };
+        });
+    };
 
     const extractMissingColumn = (error: any): string | null => {
         const message = String(error?.message || '');
@@ -178,6 +202,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const computeInvoiceFromLines = (lines: NonNullable<SupplierInvoice['lines']>) => {
         const normalizedLines = lines
             .map(line => {
+                const normalizedUnit = normalizeInvoiceUnit((line as any).unidade_medida);
                 const quantity = round2(line.quantity || 0);
                 const inferredUnitPrice = line.unit_price ?? (quantity !== 0 ? (line.net_value || 0) / quantity : (line.net_value || 0));
                 const unitPrice = round2(inferredUnitPrice || 0);
@@ -193,6 +218,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     : calculatedIvaValue;
                 return {
                     ...line,
+                    unidade_medida: normalizedUnit,
                     quantity,
                     unit_price: unitPrice,
                     discount_percentage: discountPercentage,
@@ -204,7 +230,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     total_value: round2(netValue + ivaValue)
                 };
             })
-            .filter(line => line.description.trim() && line.net_value !== 0);
+            .filter(line => line.description.trim() && line.net_value !== 0 && !!line.unidade_medida) as Array<NonNullable<SupplierInvoice['lines']>[number] & { unidade_medida: InvoiceUnit }>;
 
         const grossBaseTotal = round2(normalizedLines.reduce((sum, line) => sum + line.subtotal, 0));
         const discountTotal = round2(normalizedLines.reduce((sum, line) => sum + line.discount_value, 0));
@@ -520,10 +546,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const addSupplierInvoice = async (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at'>) => {
         const { lines = [], ...invoiceData } = invoice;
-        const { normalizedLines, grossBaseTotal, discountTotal, totalLiquido, totalIva, totalFinal } = computeInvoiceFromLines(lines);
+        const validatedLines = normalizeAndValidateInvoiceLinesUnits(lines);
+        const { normalizedLines, grossBaseTotal, discountTotal, totalLiquido, totalIva, totalFinal } = computeInvoiceFromLines(validatedLines);
 
         if (!normalizedLines.length) {
             throw new Error('A fatura deve incluir pelo menos uma linha válida.');
+        }
+
+        if (normalizedLines.some(line => !ALLOWED_INVOICE_UNITS.includes(line.unidade_medida))) {
+            throw new Error(`Unidade inválida. Use apenas: ${ALLOWED_INVOICE_UNITS.join(', ')}`);
         }
 
         const normalizedInvoiceData = {
@@ -565,6 +596,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             const lineRows = normalizedLines.map(line => ({
                 supplier_invoice_id: createdInvoice.id,
                 description: line.description,
+                unidade_medida: line.unidade_medida,
                 quantity: line.quantity,
                 unit_price: line.unit_price,
                 discount_percentage: line.discount_percentage,
@@ -637,11 +669,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
 
         if (lines) {
-            const computed = computeInvoiceFromLines(lines);
+            const validatedLines = normalizeAndValidateInvoiceLinesUnits(lines);
+            const computed = computeInvoiceFromLines(validatedLines);
             normalizedLines = computed.normalizedLines;
 
             if (!normalizedLines || !normalizedLines.length) {
                 throw new Error('A fatura deve incluir pelo menos uma linha válida.');
+            }
+
+            if (normalizedLines.some(line => !ALLOWED_INVOICE_UNITS.includes((line as any).unidade_medida))) {
+                throw new Error(`Unidade inválida. Use apenas: ${ALLOWED_INVOICE_UNITS.join(', ')}`);
             }
 
             normalizedInvoiceData = {
@@ -681,6 +718,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 const lineRows = (normalizedLines as any[]).map(line => ({
                     supplier_invoice_id: id,
                     description: line.description,
+                    unidade_medida: line.unidade_medida,
                     quantity: line.quantity,
                     unit_price: line.unit_price,
                     discount_percentage: line.discount_percentage,

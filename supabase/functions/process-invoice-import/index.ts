@@ -26,11 +26,32 @@ const downloadInvoiceFile = async (supabaseAdmin: any, storagePath: string) => {
 
 type ImportedLine = {
     description: string;
+    unidade_medida?: string;
     quantity: number;
     unit_price: number;
     iva_rate: 0 | 6 | 13 | 23;
     iva_value: number;
     total_value: number;
+};
+
+const NON_ITEM_TEXT_REGEX = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|iva\s+total|resumo\s+do\s+iva|a\s+transportar)/i;
+const LABOR_DESCRIPTION_REGEX = /m[aã]o\s*obra|mao\s*(de\s*)?obra|labor|serralharia|mecanica|mec[aâ]nica/i;
+
+const normalizeUnit = (value: unknown): string => {
+    const token = String(value || '').trim().toUpperCase();
+    if (!token) return '';
+    if (['UN', 'UND', 'UNID', 'UNIDADE', 'UNIDADES', 'UNI'].includes(token)) return 'UN';
+    if (['H', 'HR', 'HRS', 'HORA', 'HORAS', 'HOF', 'HOR'].includes(token)) return 'H';
+    if (['L', 'LT', 'LTS', 'LITRO', 'LITROS'].includes(token)) return 'L';
+    if (['CX', 'CAIXA', 'CAIXAS'].includes(token)) return 'CX';
+    return '';
+};
+
+const inferAllowedUnit = (description: string, rawUnit: unknown): string => {
+    const normalized = normalizeUnit(rawUnit);
+    if (normalized) return normalized;
+    if (LABOR_DESCRIPTION_REGEX.test(description)) return 'H';
+    return 'UN';
 };
 
 type ParsedInvoice = {
@@ -92,20 +113,31 @@ const normalizeParsedInvoice = (raw: any): ParsedInvoice => {
 
     const lines: ImportedLine[] = rawLines
         .map((line: any) => {
-            const quantity = Math.max(0, toNumber(line?.quantity));
-            const unitPrice = Math.max(0, toNumber(line?.unit_price));
-            const totalValue = Math.max(0, toNumber(line?.total_value || quantity * unitPrice));
+            const description = String(line?.description || '').trim();
+            const quantityRaw = Math.max(0, toNumber(line?.quantity || line?.qty));
+            const unitPriceRaw = Math.max(0, toNumber(line?.unit_price || line?.price || line?.valor_unitario));
+            const totalValueRaw = Math.max(0, toNumber(line?.total_value || line?.total || line?.net_value || line?.net));
+            const quantity = quantityRaw > 0 ? quantityRaw : (totalValueRaw > 0 ? 1 : 0);
+            const unitPrice = unitPriceRaw > 0
+                ? unitPriceRaw
+                : (totalValueRaw > 0 && quantity > 0 ? Number((totalValueRaw / quantity).toFixed(2)) : 0);
+            const totalValue = totalValueRaw > 0 ? totalValueRaw : Math.max(0, quantity * unitPrice);
             const ivaValue = Math.max(0, toNumber(line?.iva_value));
             return {
-                description: String(line?.description || '').trim(),
-                quantity: quantity || 1,
+                description,
+                unidade_medida: inferAllowedUnit(description, line?.unidade_medida || line?.unit || line?.uom),
+                quantity,
                 unit_price: unitPrice,
                 iva_rate: clampIvaRate(line?.iva_rate),
                 iva_value: ivaValue,
                 total_value: totalValue,
             };
         })
-        .filter((line: ImportedLine) => line.description.length > 0);
+        .filter((line: ImportedLine) => {
+            if (line.description.length === 0) return false;
+            if (NON_ITEM_TEXT_REGEX.test(line.description)) return false;
+            return line.quantity > 0 || line.unit_price > 0 || line.total_value > 0;
+        });
 
     const netFromLines = lines.reduce((sum, line) => sum + Math.max(0, line.total_value - line.iva_value), 0);
     const vatFromLines = lines.reduce((sum, line) => sum + Math.max(0, line.iva_value), 0);
@@ -159,7 +191,7 @@ const callAiOcrService = async (fileBase64: string, language: string) => {
         throw new Error('AI_OCR_ENDPOINT is not configured');
     }
 
-    const prompt = `Extrai os dados desta fatura de fornecedor em português (Portugal). Responde APENAS JSON com o formato: {"supplier_name":"","invoice_number":"","issue_date":"YYYY-MM-DD","due_date":"YYYY-MM-DD opcional","totals":{"net":0,"vat":0,"total":0},"vat_breakdown":[{"rate":23,"base":0,"vat":0}],"lines":[{"description":"","quantity":1,"unit_price":0,"iva_rate":23,"iva_value":0,"total_value":0}],"raw_text":"opcional"}. Usa números decimais reais e datas ISO.`;
+    const prompt = `Extrai os dados desta fatura de fornecedor em português (Portugal). Responde APENAS JSON com o formato: {"supplier_name":"","invoice_number":"","issue_date":"YYYY-MM-DD","due_date":"YYYY-MM-DD opcional","totals":{"net":0,"vat":0,"total":0},"vat_breakdown":[{"rate":23,"base":0,"vat":0}],"lines":[{"description":"","unidade_medida":"UN","quantity":1,"unit_price":0,"iva_rate":23,"iva_value":0,"total_value":0}],"raw_text":"opcional"}. Usa números decimais reais e datas ISO. Em lines inclui APENAS itens/serviços faturáveis da grelha. DEVOLVER TODAS as linhas da grelha (não resumir, não agrupar, não truncar), mesmo que sejam >50 linhas. NÃO incluir IBAN, NIB, SWIFT/BIC, dados bancários, referências de pagamento, totais, subtotais, observações ou rodapé.`;
 
     const response = await fetch(endpoint, {
         method: 'POST',

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Upload, FileText, RefreshCw } from 'lucide-react';
+import { ALLOWED_INVOICE_UNITS } from '../types';
 import type {
     SupplierInvoice,
     SupplierInvoiceLine,
+    InvoiceUnit,
     Fornecedor,
     CentroCusto,
     Viatura,
@@ -44,6 +46,18 @@ export default function InvoiceForm({
     onSave,
     onCancel
 }: InvoiceFormProps) {
+    const allowedUnits = ALLOWED_INVOICE_UNITS;
+    const normalizeInvoiceUnit = (value: string): InvoiceUnit | '' => {
+        const token = (value || '').trim().toUpperCase();
+        if (!token) return '';
+        if (token === 'HOR') return 'H';
+        if (token === 'HRS' || token === 'HR' || token === 'HOF') return 'H';
+        if (token === 'LT' || token === 'LTS') return 'L';
+        if (token === 'CAIXA' || token === 'CAIXAS') return 'CX';
+        if (token === 'UND' || token === 'UNID' || token === 'UNIDADE' || token === 'UNIDADES' || token === 'UNI') return 'UN';
+        return allowedUnits.includes(token as InvoiceUnit) ? (token as InvoiceUnit) : '';
+    };
+
     const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
     const hasMeaningfulDifference = (a: number, b: number) => Math.abs(a - b) >= 0.01;
     const normalizeName = (value: string) => value
@@ -56,6 +70,8 @@ export default function InvoiceForm({
         if (rounded === 6 || rounded === 13 || rounded === 23) return rounded;
         return 0;
     };
+    const nonItemTextRegex = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|iva\s+total|resumo\s+do\s+iva|a\s+transportar)/i;
+    const pageMarkerRegex = /^(original|duplicado|triplicado)\s*\d*\s*\/?$/i;
 
     const calculateLine = useCallback((line: SupplierInvoiceLine) => {
         const quantity = line.quantity || 0;
@@ -81,6 +97,7 @@ export default function InvoiceForm({
 
     const emptyLine = (): SupplierInvoiceLine => ({
         description: '',
+        unidade_medida: 'UN',
         quantity: 1,
         unit_price: 0,
         discount_percentage: 0,
@@ -97,6 +114,7 @@ export default function InvoiceForm({
         return {
             ...line,
             description: line.description || '',
+            unidade_medida: normalizeInvoiceUnit(line.unidade_medida || 'UN') || 'UN',
             quantity: calculated.quantity,
             unit_price: calculated.unitPrice,
             discount_percentage: calculated.discountPercentage,
@@ -164,21 +182,100 @@ export default function InvoiceForm({
         throw new Error('Timeout ao processar a fatura. Tente novamente.');
     };
 
+    const scoreExtractedPayload = (payload?: InvoiceImportExtractedData | null): number => {
+        if (!payload) return -1;
+
+        const validLines = (payload.lines || [])
+            .map((line) => {
+                const description = String(line.description || '').trim();
+                const unidade_medida = normalizeInvoiceUnit(String(line.unidade_medida || ''));
+                const qty = Math.max(0, Number(line.qty) || 0);
+                const unit_price = Math.max(0, Number(line.unit_price) || 0);
+                const vat_percent = parseRate(Number(line.vat_percent) || 0);
+                const net = round2(qty * unit_price);
+                const vat = round2(net * (vat_percent / 100));
+                return { description, unidade_medida, qty, unit_price, vat_percent, net, vat };
+            })
+            .filter((line) => {
+                if (!line.description) return false;
+                if (!line.unidade_medida) return false;
+                if (nonItemTextRegex.test(line.description)) return false;
+                if (pageMarkerRegex.test(line.description)) return false;
+                return line.qty > 0 && line.unit_price > 0;
+            });
+
+        if (!validLines.length) return 0;
+
+        const netSum = round2(validLines.reduce((sum, line) => sum + line.net, 0));
+        const vatSum = round2(validLines.reduce((sum, line) => sum + line.vat, 0));
+        const targetNet = round2(Math.max(0, Number(payload.total || 0) - Number(payload.vat_total || 0)));
+        const targetVat = round2(Math.max(0, Number(payload.vat_total || 0)));
+        const netPenalty = targetNet > 0 ? Math.abs(netSum - targetNet) : 0;
+        const vatPenalty = targetVat > 0 ? Math.abs(vatSum - targetVat) : 0;
+
+        return (validLines.length * 100) - netPenalty - vatPenalty;
+    };
+
+    const mergeExtractedPayloads = (
+        serverExtract: InvoiceImportExtractedData,
+        localExtract?: InvoiceImportExtractedData | null
+    ): InvoiceImportExtractedData => {
+        if (!localExtract) return serverExtract;
+
+        const serverScore = scoreExtractedPayload(serverExtract);
+        const localScore = scoreExtractedPayload(localExtract);
+        const primary = localScore > serverScore ? localExtract : serverExtract;
+        const secondary = localScore > serverScore ? serverExtract : localExtract;
+
+        const mergedLines = [...(primary.lines || [])];
+        const seen = new Set(
+            mergedLines.map((line) => [
+                String(line.description || '').trim().toLowerCase().replace(/\s+/g, ' '),
+                normalizeInvoiceUnit(String(line.unidade_medida || '')) || '',
+                Number(line.qty || 0).toFixed(2),
+                Number(line.unit_price || 0).toFixed(2),
+            ].join('|'))
+        );
+
+        for (const line of secondary.lines || []) {
+            const key = [
+                String(line.description || '').trim().toLowerCase().replace(/\s+/g, ' '),
+                normalizeInvoiceUnit(String(line.unidade_medida || '')) || '',
+                Number(line.qty || 0).toFixed(2),
+                Number(line.unit_price || 0).toFixed(2),
+            ].join('|');
+
+            if (seen.has(key)) continue;
+            seen.add(key);
+            mergedLines.push(line);
+        }
+
+        return {
+            ...primary,
+            supplier: primary.supplier || secondary.supplier,
+            invoice_number: primary.invoice_number || secondary.invoice_number,
+            date: primary.date || secondary.date,
+            total: Number(primary.total || 0) > 0 ? primary.total : secondary.total,
+            vat_total: Number(primary.vat_total || 0) > 0 ? primary.vat_total : secondary.vat_total,
+            lines: mergedLines,
+        };
+    };
+
     const applyImportedData = (payload: InvoiceImportExtractedData) => {
         const importedLines: SupplierInvoiceLine[] = (payload.lines || [])
             .map((line) => {
                 const quantity = Math.max(0, Number(line.qty) || 0) || 1;
-                const unitPrice = round2(Math.max(0, Number(line.unit_price) || 0));
+                const inferredLineTotal = Math.max(0, Number((line as any).total_value || (line as any).total || (line as any).net_value || 0));
+                const baseUnitPrice = Math.max(0, Number(line.unit_price) || 0);
+                const unitPrice = round2(baseUnitPrice > 0 ? baseUnitPrice : (inferredLineTotal > 0 ? inferredLineTotal / quantity : 0));
                 const vatPercent = parseRate(Number(line.vat_percent) || 0);
                 const netValue = round2(quantity * unitPrice);
-                const importedVatValue = Number((line as any).vat_value);
-                const ivaValue = Number.isFinite(importedVatValue)
-                    ? round2(Math.max(0, importedVatValue))
-                    : round2(netValue * (vatPercent / 100));
+                const ivaValue = round2(netValue * (vatPercent / 100));
                 const totalValue = round2(netValue + ivaValue);
 
                 return {
                     description: line.description || '',
+                    unidade_medida: normalizeInvoiceUnit(line.unidade_medida || 'UN') || 'UN',
                     quantity,
                     unit_price: unitPrice,
                     discount_percentage: 0,
@@ -188,7 +285,14 @@ export default function InvoiceForm({
                     total_value: totalValue,
                 };
             })
-            .filter((line) => line.description.trim());
+            .filter((line) => {
+                const description = line.description.trim();
+                if (!description) return false;
+                if (nonItemTextRegex.test(description)) return false;
+                if (pageMarkerRegex.test(description)) return false;
+                if (!allowedUnits.includes(line.unidade_medida as InvoiceUnit)) return false;
+                return line.quantity > 0 || line.unit_price > 0;
+            });
 
         const hasImportedLines = importedLines.length > 0;
         const fallbackLine: SupplierInvoiceLine[] = hasImportedLines ? importedLines : [emptyLine()];
@@ -209,7 +313,7 @@ export default function InvoiceForm({
         }));
 
         if (hasImportedLines) {
-            setManualIvaOverrides(fallbackLine.map((line) => line.iva_value || null));
+            setManualIvaOverrides(fallbackLine.map(() => null));
         }
         setAiFilledFields(new Set([
             'supplier_id',
@@ -225,6 +329,7 @@ export default function InvoiceForm({
                 ? invoice.lines
                 : [{
                     description: invoice.expense_type || 'Linha principal',
+                    unidade_medida: 'UN',
                     quantity: 1,
                     unit_price: invoice.total_liquido || invoice.net_value || invoice.base_amount || 0,
                     discount_percentage: 0,
@@ -362,6 +467,12 @@ export default function InvoiceForm({
             return;
         }
 
+        const invalidUnitLine = validLines.find(line => !allowedUnits.includes(line.unidade_medida));
+        if (invalidUnitLine) {
+            alert(`Unidade inválida na linha "${invalidUnitLine.description}". Use apenas: ${allowedUnits.join(', ')}`);
+            return;
+        }
+
         const derivedExpenseType = validLines.map(line => line.description).join(' | ').slice(0, 180) || 'Fatura Fornecedor';
 
         try {
@@ -409,7 +520,7 @@ export default function InvoiceForm({
         }
     };
 
-    const updateLine = (index: number, field: 'description' | 'quantity' | 'unit_price' | 'discount_percentage' | 'iva_rate', rawValue: string) => {
+    const updateLine = (index: number, field: 'description' | 'unidade_medida' | 'quantity' | 'unit_price' | 'discount_percentage' | 'iva_rate', rawValue: string) => {
         setFormData(prev => {
             const nextLines = prev.lines.map((line, lineIndex) => {
                 if (lineIndex !== index) return line;
@@ -419,6 +530,8 @@ export default function InvoiceForm({
                     ...line,
                     [field]: field === 'description'
                         ? rawValue
+                        : field === 'unidade_medida'
+                            ? (normalizeInvoiceUnit(rawValue || 'UN') || 'UN')
                         : field === 'iva_rate'
                             ? (Number(rawValue) as 0 | 6 | 13 | 23)
                             : Number.isFinite(numericValue)
@@ -430,7 +543,7 @@ export default function InvoiceForm({
             return { ...prev, lines: nextLines };
         });
 
-        if (field !== 'description') {
+        if (field !== 'description' && field !== 'unidade_medida') {
             setManualIvaOverrides(prev => prev.map((value, lineIndex) => lineIndex === index ? null : value));
         }
     };
@@ -484,8 +597,27 @@ export default function InvoiceForm({
             }
 
             if (completedImport.status === 'ready' && completedImport.extracted_json) {
-                applyImportedData(completedImport.extracted_json);
-                setImportStatusMessage('Dados extraídos. Revise e confirme antes de guardar.');
+                let bestExtract = completedImport.extracted_json;
+                let usedLocalEnhancement = false;
+
+                try {
+                    const localExtract = await parseInvoicePdfLocally(file);
+                    const localLines = localExtract?.lines?.length || 0;
+
+                    if (localLines > 0) {
+                        bestExtract = mergeExtractedPayloads(completedImport.extracted_json, localExtract);
+                        usedLocalEnhancement = true;
+                    }
+                } catch (localEnhanceError) {
+                    console.warn('Local parse enhancement skipped:', localEnhanceError);
+                }
+
+                applyImportedData(bestExtract);
+                setImportStatusMessage(
+                    usedLocalEnhancement
+                        ? 'Dados extraídos e melhorados localmente. Revise e confirme antes de guardar.'
+                        : 'Dados extraídos. Revise e confirme antes de guardar.'
+                );
             }
         } catch (error) {
             console.error('Error uploading file:', error);
@@ -521,8 +653,36 @@ export default function InvoiceForm({
             }
 
             if (completedImport.status === 'ready' && completedImport.extracted_json) {
-                applyImportedData(completedImport.extracted_json);
-                setImportStatusMessage('Dados extraídos novamente. Revise e confirme antes de guardar.');
+                let bestExtract = completedImport.extracted_json;
+                let usedLocalEnhancement = false;
+
+                try {
+                    const previewUrl = await getInvoiceImportPreviewUrl(activeImport.file_path);
+                    if (previewUrl) {
+                        const response = await fetch(previewUrl);
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            const inferredName = activeImport.file_path.split('/').pop() || 'invoice.pdf';
+                            const file = new File([blob], inferredName, { type: blob.type || 'application/pdf' });
+                            const localExtract = await parseInvoicePdfLocally(file);
+                            const localLines = localExtract?.lines?.length || 0;
+
+                            if (localLines > 0) {
+                                bestExtract = mergeExtractedPayloads(completedImport.extracted_json, localExtract);
+                                usedLocalEnhancement = true;
+                            }
+                        }
+                    }
+                } catch (localEnhanceError) {
+                    console.warn('Local parse enhancement skipped on reparse:', localEnhanceError);
+                }
+
+                applyImportedData(bestExtract);
+                setImportStatusMessage(
+                    usedLocalEnhancement
+                        ? 'Dados reprocessados e melhorados localmente. Revise e confirme antes de guardar.'
+                        : 'Dados extraídos novamente. Revise e confirme antes de guardar.'
+                );
             }
         } catch (error) {
             console.error('Error reparsing file:', error);
@@ -642,9 +802,10 @@ export default function InvoiceForm({
                     </div>
 
                     <div className="space-y-2">
-                        <div className="grid grid-cols-13 gap-2 text-xs text-slate-400 px-1">
+                        <div className="grid grid-cols-14 gap-2 text-xs text-slate-400 px-1">
                             <span className="col-span-4">Descrição (artigo/serviço)</span>
                             <span className="col-span-1">Qtd</span>
+                            <span className="col-span-1">Unid.</span>
                             <span className="col-span-2">Preço Unit. (€)</span>
                             <span className="col-span-1">Desc %</span>
                             <span className="col-span-2">IVA %</span>
@@ -654,7 +815,7 @@ export default function InvoiceForm({
                         </div>
 
                         {calculatedLines.map((line, index) => (
-                            <div key={index} className="grid grid-cols-13 gap-2">
+                            <div key={index} className="grid grid-cols-14 gap-2">
                                 <input
                                     type="text"
                                     value={formData.lines[index]?.description || ''}
@@ -669,6 +830,15 @@ export default function InvoiceForm({
                                     onChange={(e) => updateLine(index, 'quantity', e.target.value)}
                                     className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
+                                <select
+                                    value={formData.lines[index]?.unidade_medida || 'UN'}
+                                    onChange={(e) => updateLine(index, 'unidade_medida', e.target.value)}
+                                    className="col-span-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    {allowedUnits.map((unit) => (
+                                        <option key={unit} value={unit}>{unit}</option>
+                                    ))}
+                                </select>
                                 <input
                                     type="number"
                                     step="0.01"
