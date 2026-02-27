@@ -36,6 +36,7 @@ import LocaisTab from './pages/Locais';
 import AvaliacaoDriversTab from './pages/Avaliacao';
 import ContabilidadeTab from './pages/Contabilidade';
 import SupplierInvoiceDocumentPage from './pages/Contabilidade/SupplierInvoiceDocumentPage';
+import ProcessamentoSalarios from './pages/Contabilidade/ProcessamentoSalarios';
 import NovaFaturaPage from './pages/Finance/NovaFaturaPage';
 import LancarEscalaTab from './pages/LancarEscala';
 import ControloOperacionalTab from './pages/ControloOperacional';
@@ -348,6 +349,7 @@ function App() {
           {/* FINANCE GROUP */}
           <SidebarGroup title="Finance" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Processamento de Salários" active={activeTab === 'processamento-salarios'} onClick={() => handleNavigate('processamento-salarios')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'fornecedores') && <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'clientes') && <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />}
@@ -391,6 +393,7 @@ function App() {
                 <Route path="/locais" element={<LocaisTab />} />
                 <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
                 <Route path="/contabilidade" element={<ContabilidadeTab />} />
+                <Route path="/processamento-salarios" element={<ProcessamentoSalarios />} />
                 <Route path="/finance/faturas/nova" element={<NovaFaturaPage />} />
                 <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
                 <Route path="/lancar-escalas" element={<LancarEscalaTab />} />

@@ -640,6 +640,24 @@ export interface ManualHourRecord {
     createdAt?: string;
 }
 
+export interface DriverPayrollManual {
+    id: string;
+    driver_id: string;
+    mes: number;
+    ano: number;
+    ordenado_base: number;
+    horas_extra: number;
+    valor_horas_extra: number;
+    folgas_trabalhadas: number;
+    valor_folgas: number;
+    outros_abonos: number;
+    descontos: number;
+    total_bruto: number;
+    observacoes?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface Gestor {
     id: string;
     nome: string;
