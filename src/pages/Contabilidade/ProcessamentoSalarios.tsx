@@ -51,6 +51,11 @@ const toNumber = (value: string) => {
     return Number.isNaN(parsed) ? 0 : parsed;
 };
 
+const isMissingPayrollTableError = (error: any) => {
+    const message = (error?.message || '').toLowerCase();
+    return message.includes('could not find the table') && message.includes('driver_payroll_manual');
+};
+
 export default function ProcessamentoSalarios() {
     const { motoristas } = useWorkshop();
 
@@ -60,6 +65,7 @@ export default function ProcessamentoSalarios() {
     const [rows, setRows] = useState<PayrollRow[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isPersistenceUnavailable, setIsPersistenceUnavailable] = useState(false);
 
     const motoristaById = useMemo(() => {
         return new Map(motoristas.map(m => [m.id, m.nome]));
@@ -99,10 +105,20 @@ export default function ProcessamentoSalarios() {
 
         if (error) {
             console.error('Erro ao carregar processamento salarial:', error);
+
+            if (isMissingPayrollTableError(error)) {
+                setIsPersistenceUnavailable(true);
+                createNewProcessing();
+                setIsLoading(false);
+                return;
+            }
+
             alert('Erro ao carregar processamento salarial: ' + error.message);
             setIsLoading(false);
             return;
         }
+
+        setIsPersistenceUnavailable(false);
 
         if (data && data.length > 0) {
             const loadedRows = data.map((item: any) => {
@@ -146,6 +162,11 @@ export default function ProcessamentoSalarios() {
     };
 
     const saveProcessing = async () => {
+        if (isPersistenceUnavailable) {
+            alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique a migração "20260227_create_driver_payroll_manual.sql" no Supabase para ativar o guardar.');
+            return;
+        }
+
         setIsSaving(true);
         const payload = rows
             .filter(r => r.driver_id)
@@ -176,10 +197,20 @@ export default function ProcessamentoSalarios() {
 
         if (error) {
             console.error('Erro ao guardar processamento:', error);
+
+            if (isMissingPayrollTableError(error)) {
+                setIsPersistenceUnavailable(true);
+                alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique a migração "20260227_create_driver_payroll_manual.sql" no Supabase para ativar o guardar.');
+                setIsSaving(false);
+                return;
+            }
+
             alert('Erro ao guardar processamento: ' + error.message);
             setIsSaving(false);
             return;
         }
+
+        setIsPersistenceUnavailable(false);
 
         alert('Processamento salarial guardado com sucesso.');
         await loadProcessing();
@@ -303,7 +334,7 @@ export default function ProcessamentoSalarios() {
 
                     <button
                         onClick={saveProcessing}
-                        disabled={isSaving || isLoading}
+                        disabled={isSaving || isLoading || isPersistenceUnavailable}
                         className="px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-500 disabled:opacity-60 flex items-center gap-2"
                     >
                         <Save className="w-4 h-4" />
@@ -329,6 +360,13 @@ export default function ProcessamentoSalarios() {
                     </button>
                 </div>
             </div>
+
+            {isPersistenceUnavailable && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                    Processamento em modo local: a tabela de persistência ainda não existe no Supabase. Execute a migração
+                    {' '}"20260227_create_driver_payroll_manual.sql" para ativar o guardar.
+                </div>
+            )}
 
             <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40">
                 <table className="w-full min-w-[1700px] text-sm">
