@@ -40,7 +40,6 @@ const MONTHS = [
 
 const calculateTotal = (row: PayrollRow) => {
     return (
-        (row.vencimento_base || 0) +
         (row.abonos || 0) +
         (row.valor_horas_extra || 0) +
         (row.valor_folgas || 0)
@@ -324,7 +323,7 @@ export default function ProcessamentoSalarios() {
             .map(r => ({
                 Motorista: motoristaById.get(r.driver_id) || 'Sem nome',
                 'Vencimento Base': r.vencimento_base,
-                Abonos: r.abonos,
+                'Bruto Acordado': r.abonos,
                 'Horas Extra': r.horas_extra,
                 'Valor Hora Bruto': r.valor_hora_bruto,
                 'Valor Horas Extra': r.valor_horas_extra,
@@ -358,7 +357,7 @@ export default function ProcessamentoSalarios() {
             head: [[
                 'Motorista',
                 'Vencimento Base',
-                'Abonos',
+                'Bruto Acordado',
                 'Horas Extra',
                 'Valor Hora Bruto',
                 'Valor Horas Extra',
@@ -542,7 +541,7 @@ export default function ProcessamentoSalarios() {
                         <tr>
                             <th className="p-2 text-left">Motorista</th>
                             <th className="p-2 text-right">Vencimento Base (€)</th>
-                            <th className="p-2 text-right">Abonos (€)</th>
+                            <th className="p-2 text-right">Bruto Acordado (€)</th>
                             <th className="p-2 text-right">Horas Extra</th>
                             <th className="p-2 text-right">Valor Hora Bruto (€)</th>
                             <th className="p-2 text-right">Valor Horas Extra (€)</th>
