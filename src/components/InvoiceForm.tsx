@@ -165,6 +165,7 @@ export default function InvoiceForm({
     const [uploading, setUploading] = useState(false);
     const [activeImport, setActiveImport] = useState<InvoiceImport | null>(null);
     const [importStatusMessage, setImportStatusMessage] = useState('');
+    const [hasUserRequestedOcr, setHasUserRequestedOcr] = useState(false);
     const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
 
     const pollImportUntilDone = async (importId: string) => {
@@ -364,6 +365,9 @@ export default function InvoiceForm({
 
             setManualIvaOverrides(mappedLines.map((_, index) => detectedOverrides[index] ?? null));
         }
+
+        setHasUserRequestedOcr(false);
+        setImportStatusMessage('');
     }, [invoice, inferLegacyRate, normalizeLine, calculateLine]);
 
     useEffect(() => {
@@ -577,9 +581,10 @@ export default function InvoiceForm({
             : [null]);
     };
 
-    const handleFileUpload = async (file: File) => {
+    const onFileUpload = async (file?: File | null) => {
         if (!file) return;
 
+        setHasUserRequestedOcr(true);
         setUploading(true);
         try {
             setImportStatusMessage('Reading invoice...');
@@ -1047,15 +1052,14 @@ export default function InvoiceForm({
                                 type="file"
                                 accept=".pdf,image/*"
                                 onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleFileUpload(file);
+                                    onFileUpload(e.target.files?.[0] ?? null);
                                 }}
                                 className="hidden"
                                 disabled={uploading}
                             />
                         </label>
                         {uploading && <span className="text-slate-400">A fazer upload...</span>}
-                        {!uploading && importStatusMessage && (
+                        {!uploading && hasUserRequestedOcr && importStatusMessage && (
                             <span className="text-slate-400 text-sm">{importStatusMessage}</span>
                         )}
                         {formData.pdf_url && (
