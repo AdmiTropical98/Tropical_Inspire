@@ -12,6 +12,12 @@ interface PayrollRow {
     driver_id: string;
     vencimento_base: number;
     abonos: number;
+    valor_hora_bruto: number;
+    horas_extra: number;
+    valor_horas_extra: number;
+    valor_folga_bruto: number;
+    folgas_trabalhadas: number;
+    valor_folgas: number;
     total_bruto: number;
     liquido: number;
     descricao_acordo: string;
@@ -35,7 +41,9 @@ const MONTHS = [
 const calculateTotal = (row: PayrollRow) => {
     return (
         (row.vencimento_base || 0) +
-        (row.abonos || 0)
+        (row.abonos || 0) +
+        (row.valor_horas_extra || 0) +
+        (row.valor_folgas || 0)
     );
 };
 
@@ -51,6 +59,10 @@ const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 1
 type SourceField =
     | 'vencimento_base'
     | 'abonos'
+    | 'valor_hora_bruto'
+    | 'horas_extra'
+    | 'valor_folga_bruto'
+    | 'folgas_trabalhadas'
     | 'liquido'
     | 'descricao_acordo';
 
@@ -59,10 +71,18 @@ const recalculatePayrollRow = (row: PayrollRow, sourceField?: SourceField): Payr
         ...row,
         vencimento_base: round2(row.vencimento_base || 0),
         abonos: round2(row.abonos || 0),
+        valor_hora_bruto: round2(row.valor_hora_bruto || 0),
+        horas_extra: round2(row.horas_extra || 0),
+        valor_horas_extra: round2(row.valor_horas_extra || 0),
+        valor_folga_bruto: round2(row.valor_folga_bruto || 0),
+        folgas_trabalhadas: round2(row.folgas_trabalhadas || 0),
+        valor_folgas: round2(row.valor_folgas || 0),
         liquido: round2(row.liquido || 0),
         descricao_acordo: row.descricao_acordo || ''
     };
 
+    normalized.valor_horas_extra = round2((normalized.horas_extra || 0) * (normalized.valor_hora_bruto || 0));
+    normalized.valor_folgas = round2((normalized.folgas_trabalhadas || 0) * (normalized.valor_folga_bruto || 0));
     normalized.total_bruto = round2(calculateTotal(normalized));
     return normalized;
 };
@@ -134,6 +154,24 @@ export default function ProcessamentoSalarios() {
                     driver_id: item.driver_id,
                     vencimento_base: Number(item.vencimento_base ?? item.ordenado_base) || 0,
                     abonos: Number(item.abonos ?? item.outros_abonos) || 0,
+                    valor_hora_bruto:
+                        Number(
+                            item.valor_hora_bruto ??
+                            ((Number(item.horas_extra) || 0) > 0
+                                ? (Number(item.valor_horas_extra) || 0) / (Number(item.horas_extra) || 1)
+                                : 0)
+                        ) || 0,
+                    horas_extra: Number(item.horas_extra) || 0,
+                    valor_horas_extra: Number(item.valor_horas_extra) || 0,
+                    valor_folga_bruto:
+                        Number(
+                            item.valor_folga_bruto ??
+                            ((Number(item.folgas_trabalhadas) || 0) > 0
+                                ? (Number(item.valor_folgas) || 0) / (Number(item.folgas_trabalhadas) || 1)
+                                : 0)
+                        ) || 0,
+                    folgas_trabalhadas: Number(item.folgas_trabalhadas) || 0,
+                    valor_folgas: Number(item.valor_folgas) || 0,
                     total_bruto: Number(item.total_bruto) || 0,
                     liquido: Number(item.liquido) || 0,
                     descricao_acordo: item.descricao_acordo ?? item.observacoes ?? ''
@@ -176,6 +214,12 @@ export default function ProcessamentoSalarios() {
                 driver_id: driverId,
                 vencimento_base: 0,
                 abonos: 0,
+                valor_hora_bruto: 0,
+                horas_extra: 0,
+                valor_horas_extra: 0,
+                valor_folga_bruto: 0,
+                folgas_trabalhadas: 0,
+                valor_folgas: 0,
                 total_bruto: 0,
                 liquido: 0,
                 descricao_acordo: ''
@@ -208,7 +252,7 @@ export default function ProcessamentoSalarios() {
 
     const saveProcessing = async () => {
         if (isPersistenceUnavailable) {
-            alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique as migrações "20260227_create_driver_payroll_manual.sql", "20260227_enhance_driver_payroll_manual_structure.sql" e "20260227_refactor_driver_payroll_manual_salary_map.sql" no Supabase para ativar o guardar.');
+            alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique as migrações "20260227_create_driver_payroll_manual.sql", "20260227_enhance_driver_payroll_manual_structure.sql", "20260227_refactor_driver_payroll_manual_salary_map.sql" e "20260227_add_hourly_and_dayoff_rates_to_driver_payroll_manual.sql" no Supabase para ativar o guardar.');
             return;
         }
 
@@ -230,6 +274,12 @@ export default function ProcessamentoSalarios() {
                 ano,
                 vencimento_base: r.vencimento_base || 0,
                 abonos: r.abonos || 0,
+                valor_hora_bruto: r.valor_hora_bruto || 0,
+                horas_extra: r.horas_extra || 0,
+                valor_horas_extra: round2((r.horas_extra || 0) * (r.valor_hora_bruto || 0)),
+                valor_folga_bruto: r.valor_folga_bruto || 0,
+                folgas_trabalhadas: r.folgas_trabalhadas || 0,
+                valor_folgas: round2((r.folgas_trabalhadas || 0) * (r.valor_folga_bruto || 0)),
                 total_bruto: calculateTotal(r),
                 liquido: r.liquido || 0,
                 descricao_acordo: r.descricao_acordo.trim(),
@@ -251,7 +301,7 @@ export default function ProcessamentoSalarios() {
 
             if (isMissingPayrollTableError(error)) {
                 setIsPersistenceUnavailable(true);
-                alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique as migrações "20260227_create_driver_payroll_manual.sql", "20260227_enhance_driver_payroll_manual_structure.sql" e "20260227_refactor_driver_payroll_manual_salary_map.sql" no Supabase para ativar o guardar.');
+                alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique as migrações "20260227_create_driver_payroll_manual.sql", "20260227_enhance_driver_payroll_manual_structure.sql", "20260227_refactor_driver_payroll_manual_salary_map.sql" e "20260227_add_hourly_and_dayoff_rates_to_driver_payroll_manual.sql" no Supabase para ativar o guardar.');
                 setIsSaving(false);
                 return;
             }
@@ -275,6 +325,12 @@ export default function ProcessamentoSalarios() {
                 Motorista: motoristaById.get(r.driver_id) || 'Sem nome',
                 'Vencimento Base': r.vencimento_base,
                 Abonos: r.abonos,
+                'Horas Extra': r.horas_extra,
+                'Valor Hora Bruto': r.valor_hora_bruto,
+                'Valor Horas Extra': r.valor_horas_extra,
+                'Folgas Trabalhadas': r.folgas_trabalhadas,
+                'Valor Folga Bruto': r.valor_folga_bruto,
+                'Valor Folgas': r.valor_folgas,
                 'Total Bruto': calculateTotal(r),
                 Líquido: r.liquido,
                 'Descrição Acordo': r.descricao_acordo
@@ -303,6 +359,12 @@ export default function ProcessamentoSalarios() {
                 'Motorista',
                 'Vencimento Base',
                 'Abonos',
+                'Horas Extra',
+                'Valor Hora Bruto',
+                'Valor Horas Extra',
+                'Folgas Trabalhadas',
+                'Valor Folga Bruto',
+                'Valor Folgas',
                 'Total Bruto',
                 'Líquido',
                 'Descrição Acordo'
@@ -311,6 +373,12 @@ export default function ProcessamentoSalarios() {
                 motoristaById.get(r.driver_id) || 'Sem nome',
                 formatCurrency(r.vencimento_base || 0),
                 formatCurrency(r.abonos || 0),
+                String(r.horas_extra || 0),
+                formatCurrency(r.valor_hora_bruto || 0),
+                formatCurrency(r.valor_horas_extra || 0),
+                String(r.folgas_trabalhadas || 0),
+                formatCurrency(r.valor_folga_bruto || 0),
+                formatCurrency(r.valor_folgas || 0),
                 formatCurrency(calculateTotal(r)),
                 formatCurrency(r.liquido || 0),
                 r.descricao_acordo || ''
@@ -321,7 +389,13 @@ export default function ProcessamentoSalarios() {
                 '',
                 '',
                 '',
-                formatCurrency(totalGeral)
+                '',
+                '',
+                '',
+                '',
+                formatCurrency(totalGeral),
+                '',
+                ''
             ]],
             styles: { fontSize: 9 },
             headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -332,7 +406,13 @@ export default function ProcessamentoSalarios() {
                 2: { halign: 'right' },
                 3: { halign: 'right' },
                 4: { halign: 'right' },
-                5: { halign: 'left' }
+                5: { halign: 'right' },
+                6: { halign: 'right' },
+                7: { halign: 'right' },
+                8: { halign: 'right' },
+                9: { halign: 'right' },
+                10: { halign: 'right' },
+                11: { halign: 'left' }
             }
         });
 
@@ -452,7 +532,7 @@ export default function ProcessamentoSalarios() {
             {isPersistenceUnavailable && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
                     Processamento em modo local: a tabela de persistência ainda não existe no Supabase. Execute a migração
-                    {' '}"20260227_create_driver_payroll_manual.sql", "20260227_enhance_driver_payroll_manual_structure.sql" e "20260227_refactor_driver_payroll_manual_salary_map.sql" para ativar o guardar.
+                    {' '}"20260227_create_driver_payroll_manual.sql", "20260227_enhance_driver_payroll_manual_structure.sql", "20260227_refactor_driver_payroll_manual_salary_map.sql" e "20260227_add_hourly_and_dayoff_rates_to_driver_payroll_manual.sql" para ativar o guardar.
                 </div>
             )}
 
@@ -463,6 +543,12 @@ export default function ProcessamentoSalarios() {
                             <th className="p-2 text-left">Motorista</th>
                             <th className="p-2 text-right">Vencimento Base (€)</th>
                             <th className="p-2 text-right">Abonos (€)</th>
+                            <th className="p-2 text-right">Horas Extra</th>
+                            <th className="p-2 text-right">Valor Hora Bruto (€)</th>
+                            <th className="p-2 text-right">Valor Horas Extra (€)</th>
+                            <th className="p-2 text-right">Folgas Trabalhadas</th>
+                            <th className="p-2 text-right">Valor Folga Bruto (€)</th>
+                            <th className="p-2 text-right">Valor Folgas (€)</th>
                             <th className="p-2 text-right">Total Bruto (€)</th>
                             <th className="p-2 text-right">Líquido (€)</th>
                             <th className="p-2 text-left">Descrição Acordo *</th>
@@ -472,11 +558,11 @@ export default function ProcessamentoSalarios() {
                     <tbody>
                         {isLoading ? (
                             <tr>
-                                <td className="p-6 text-center text-slate-500" colSpan={7}>A carregar processamento...</td>
+                                <td className="p-6 text-center text-slate-500" colSpan={13}>A carregar processamento...</td>
                             </tr>
                         ) : rows.length === 0 ? (
                             <tr>
-                                <td className="p-6 text-center text-slate-500" colSpan={7}>Sem linhas. Clique em "Adicionar Motorista".</td>
+                                <td className="p-6 text-center text-slate-500" colSpan={13}>Sem linhas. Clique em "Adicionar Motorista".</td>
                             </tr>
                         ) : visibleRows.map((row) => {
                             const rowIndex = rows.findIndex(r => r.driver_id === row.driver_id);
@@ -505,6 +591,58 @@ export default function ProcessamentoSalarios() {
                                         onChange={(e) => updateRow(rowIndex, { abonos: toNumber(e.target.value) }, 'abonos')}
                                         className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white"
                                     />
+                                </td>
+
+                                <td className="p-2">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={row.horas_extra}
+                                        onChange={(e) => updateRow(rowIndex, { horas_extra: toNumber(e.target.value) }, 'horas_extra')}
+                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white"
+                                    />
+                                </td>
+
+                                <td className="p-2">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={row.valor_hora_bruto}
+                                        onChange={(e) => updateRow(rowIndex, { valor_hora_bruto: toNumber(e.target.value) }, 'valor_hora_bruto')}
+                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white"
+                                    />
+                                </td>
+
+                                <td className="p-2">
+                                    <div className="px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-semibold text-right">
+                                        {formatCurrency(row.valor_horas_extra)}
+                                    </div>
+                                </td>
+
+                                <td className="p-2">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={row.folgas_trabalhadas}
+                                        onChange={(e) => updateRow(rowIndex, { folgas_trabalhadas: toNumber(e.target.value) }, 'folgas_trabalhadas')}
+                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white"
+                                    />
+                                </td>
+
+                                <td className="p-2">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={row.valor_folga_bruto}
+                                        onChange={(e) => updateRow(rowIndex, { valor_folga_bruto: toNumber(e.target.value) }, 'valor_folga_bruto')}
+                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white"
+                                    />
+                                </td>
+
+                                <td className="p-2">
+                                    <div className="px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-semibold text-right">
+                                        {formatCurrency(row.valor_folgas)}
+                                    </div>
                                 </td>
 
                                 <td className="p-2">
