@@ -318,12 +318,32 @@ type ParsedInvoiceLine = {
 
 const NUMBER_TOKEN_SOURCE = '(?:\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d+)?|\\d+(?:[.,]\\d+)?)';
 const NUMBER_TOKEN_REGEX = new RegExp(`^${NUMBER_TOKEN_SOURCE}$`);
-const LABOR_DESCRIPTION_REGEX = /m[aã]o\s*obra|mao\s*(de\s*)?obra|labor/i;
-const NON_ITEM_LINE_REGEX = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|resumo\s+do\s+iva|a\s+transportar|original|duplicado|triplicado|segunda\s*via|valor\s*il[ií]quido|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|eticadata|software|observa[çc][oõ]es|condi[çc][oõ]es|página)/i;
+const NON_ITEM_LINE_REGEX = /(iban|swift|bic|nib|entidade|refer[êe]ncia|multibanco|pagamento|dados\s+banc[aá]rios|transfer[êe]ncia|vencimento|total\s+a\s+pagar|subtotal|resumo\s+do\s+iva|resumos?|a\s+transportar|original|duplicado|triplicado|segunda\s*via|valor\s*il[ií]quido|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|eticadata|software|observa[çc][oõ]es|condi[çc][oõ]es|página|descri[çc][aã]o\s+de\s+trabalhos)/i;
 const TABLE_START_REGEX = /arm\s+opera[çc][aã]o\/?pe[çc]a\s+descri[çc][aã]o\s+qtd\.?\s*un/i;
 const TABLE_END_REGEX = /resumo\s+do\s+iva|total\s+i?l[ií]quido|total\s+documento|totais(?:\s+servi[çc]os\s+internos)?|descri[çc][aã]o\s+de\s+trabalhos/i;
 const TABLE_CONTINUE_MARKER_REGEX = /a\s+transportar|totais(?:\s+servi[çc]os\s+internos)?|transporte|continua|v\.?\s*liquido|liquido|v\.?\s*mercadoria|mercadoria/i;
 const SECTION_MARKER_REGEX = /^\s*(duplicado|triplicado|segunda\s*via)\b/i;
+const UNIT_ANCHOR_REGEX = /^(UN|UND|UNID|UNIDADE|UNIDADES|UNI|HOR|H|HR|HRS|HORA|HORAS|L|LT|LTS|LITRO|LITROS|CX|CAIXA|CAIXAS|MT|MTS|METRO|METROS)$/i;
+
+const normalizeTokenForMatch = (token: string): string => token
+    .replace(/[|;,]/g, ' ')
+    .replace(/[()\[\]{}]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const isNumericToken = (token: string): boolean => NUMBER_TOKEN_REGEX.test(normalizeTokenForMatch(token));
+
+const isAnchorUnitToken = (token: string): boolean => UNIT_ANCHOR_REGEX.test(normalizeTokenForMatch(token).toUpperCase());
+
+const findFirstUnitAnchorIndex = (tokens: string[]): number => tokens.findIndex((token) => isAnchorUnitToken(token));
+
+const normalizeAnchorUnitToInvoiceUnit = (token: string): InvoiceUnit | '' => {
+    const normalized = normalizeTokenForMatch(token).toUpperCase();
+    if (!normalized) return '';
+
+    if (['MT', 'MTS', 'METRO', 'METROS'].includes(normalized)) return 'UN';
+    return normalizeUnitToken(normalized);
+};
 const normalizeUnitToken = (token?: string): InvoiceUnit | '' => {
     const value = (token || '').trim().toUpperCase();
     if (!value) return '';
@@ -336,29 +356,6 @@ const normalizeUnitToken = (token?: string): InvoiceUnit | '' => {
 
     // Strict restriction: only return valid units or empty
     return '';
-};
-
-const isLikelyLeadingCodeToken = (token: string): boolean => {
-    if (!token) return false;
-    if (/^\d+$/.test(token)) return true;
-    return /^[A-Z0-9./-]{3,20}$/i.test(token) && /\d/.test(token);
-};
-
-const cleanDescriptionFromTokens = (tokens: string[]): string => {
-    if (!tokens.length) return '';
-
-    let startIndex = 0;
-    let removed = 0;
-    while (startIndex < tokens.length && removed < 2 && isLikelyLeadingCodeToken(tokens[startIndex])) {
-        startIndex += 1;
-        removed += 1;
-    }
-
-    return tokens
-        .slice(startIndex)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
 };
 
 const getScopedTableLines = (rows: PositionalRow[]): PositionalRow[] => {
@@ -436,45 +433,49 @@ const extractDetailedLines = (
         if (NON_ITEM_LINE_REGEX.test(rowText)) continue;
 
         const tokens = row.items.sort((a, b) => a.x - b.x);
+        const tokenTexts = tokens.map((item) => normalizeTokenForMatch(item.text)).filter(Boolean);
+        const unitIndex = findFirstUnitAnchorIndex(tokenTexts);
 
-        // Pivot-Based Detection: Identify the "Pillar" (Qty + Unit + Price)
-        const qtyIndex = tokens.findIndex(i => i.x >= 300 && i.x < 430 && NUMBER_TOKEN_REGEX.test(i.text));
+        if (unitIndex > 0) {
+            const qtyToken = tokenTexts[unitIndex - 1];
+            const qty = isNumericToken(qtyToken) ? toNumber(qtyToken) : 0;
+            const unitToken = normalizeAnchorUnitToInvoiceUnit(tokenTexts[unitIndex]);
 
-        if (qtyIndex !== -1) {
-            const qtyItem = tokens[qtyIndex];
-            const unitItemRaw = tokens.slice(qtyIndex + 1).find(i => i.x < 480 && !NUMBER_TOKEN_REGEX.test(i.text) && normalizeUnitToken(i.text));
-            const unitPriceItem = tokens.slice(qtyIndex + 1).find(i => i.x > qtyItem.x && NUMBER_TOKEN_REGEX.test(i.text) && i !== unitItemRaw);
+            const numbersAfterUnit = tokenTexts
+                .slice(unitIndex + 1)
+                .filter((token) => isNumericToken(token))
+                .map((token) => toNumber(token));
 
-            const qty = toNumber(qtyItem.text);
-            const unitToken = unitItemRaw ? normalizeUnitToken(unitItemRaw.text) : '';
-            const unitPrice = unitPriceItem ? toNumber(unitPriceItem.text) : 0;
-
+            const unitPrice = numbersAfterUnit[0] || 0;
             if (qty > 0 && unitToken && unitPrice > 0) {
-                // We found a new item pillar. Construct description from buffer + current row prefix.
-                const rowPrefix = tokens.slice(0, qtyIndex)
-                    .filter(i => !NUMBER_TOKEN_REGEX.test(i.text))
-                    .map(i => i.text).join(' ').trim();
-
-                const fullDescription = [...pendingDescriptionBuffer, rowPrefix].join(' ').trim();
+                const rowDescription = tokenTexts.slice(0, unitIndex - 1).join(' ').replace(/\s+/g, ' ').trim();
+                const fullDescription = [...pendingDescriptionBuffer, rowDescription].join(' ').replace(/\s+/g, ' ').trim();
                 pendingDescriptionBuffer = [];
 
-                const priceIndex = tokens.indexOf(unitPriceItem!);
-                const vatItem = tokens.slice(priceIndex + 1).find(i => i.x > unitPriceItem!.x && NUMBER_TOKEN_REGEX.test(i.text));
-                const netValueItem = tokens.slice(priceIndex + 1).find(i => i.x > unitPriceItem!.x && i !== vatItem && NUMBER_TOKEN_REGEX.test(i.text));
+                let vatPercent = fallbackVatPercent;
+                for (let index = numbersAfterUnit.length - 1; index >= 1; index -= 1) {
+                    const candidateVat = clampVat(numbersAfterUnit[index]);
+                    if (candidateVat > 0) {
+                        vatPercent = candidateVat;
+                        break;
+                    }
+                }
 
-                const subtotal = netValueItem ? toNumber(netValueItem.text) : Number((qty * unitPrice).toFixed(2));
-                const vatPercent = vatItem ? clampVat(toNumber(vatItem.text)) : fallbackVatPercent;
+                const subtotalCandidate = numbersAfterUnit.length >= 3 ? numbersAfterUnit[numbersAfterUnit.length - 2] : 0;
+                const subtotal = subtotalCandidate > 0 ? subtotalCandidate : Number((qty * unitPrice).toFixed(2));
 
-                currentLine = {
-                    description: fullDescription,
-                    unidade_medida: unitToken as InvoiceUnit,
-                    qty,
-                    unit_price: unitPrice,
-                    vat_percent: vatPercent,
-                    vat_value: Number((subtotal * (vatPercent / 100)).toFixed(2))
-                };
-                parsed.push(currentLine);
-                continue;
+                if (fullDescription && !NON_ITEM_LINE_REGEX.test(fullDescription)) {
+                    currentLine = {
+                        description: fullDescription,
+                        unidade_medida: unitToken,
+                        qty,
+                        unit_price: unitPrice,
+                        vat_percent: vatPercent,
+                        vat_value: Number((subtotal * (vatPercent / 100)).toFixed(2))
+                    };
+                    parsed.push(currentLine);
+                    continue;
+                }
             }
         }
 
@@ -482,13 +483,13 @@ const extractDetailedLines = (
         // 1. If we have a current item, check if this line is purely text (no numeric clusters)
         // 2. If it is purely numeric noise (like totals/iva row), discard
         // 3. Otherwise, if it's mostly text, either continue description or add to pre-buffer
-        const numberTokens = tokens.filter(i => NUMBER_TOKEN_REGEX.test(i.text));
-        const textTokens = tokens.filter(i => i.x < 400 && !NUMBER_TOKEN_REGEX.test(i.text));
+        const numberTokens = tokenTexts.filter((token) => isNumericToken(token));
+        const textTokens = tokenTexts.filter((token) => !isNumericToken(token));
 
         // Majority Numeric Filter: if more numbers than text tokens, it's likely a footer/total line we missed
         if (numberTokens.length >= textTokens.length && numberTokens.length > 1) continue;
 
-        const extraText = textTokens.map(i => i.text).join(' ').trim();
+        const extraText = textTokens.join(' ').replace(/\s+/g, ' ').trim();
         if (extraText && !NON_ITEM_LINE_REGEX.test(extraText) && !TABLE_END_REGEX.test(extraText)) {
             if (currentLine) {
                 currentLine.description = `${currentLine.description} ${extraText}`.trim();
@@ -508,8 +509,6 @@ const extractDetailedLinesLegacy = (
     _vatTotal: number,
     fallbackVatPercent: 0 | 6 | 13 | 23
 ): ParsedInvoiceLine[] => {
-    // Legacy parsing for non-eticadata PDFs
-    const strictLineRegex = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s+(UN|HOR|H|L|CX)\s+(\d+(?:[.,]\d+)?)/i;
     const parsed: ParsedInvoiceLine[] = [];
 
     for (const rawLine of lines) {
@@ -517,26 +516,29 @@ const extractDetailedLinesLegacy = (
         if (!line || NON_ITEM_LINE_REGEX.test(line)) continue;
         if (/opera[çc][aã]o\/pe[çc]a|descri[çc][aã]o\s+qtd|total|resumo/i.test(line)) continue;
 
-        const match = line.match(strictLineRegex);
-        if (match) {
-            const description = String(match[1] || '').trim();
-            const qty = toNumber(match[2] || '0');
-            const unitToken = String(match[3] || '').toUpperCase() === 'HOR' ? 'H' : String(match[3] || '');
-            const unitMeasure = normalizeUnitToken(unitToken) || (LABOR_DESCRIPTION_REGEX.test(description) ? 'H' : 'UN');
-            const unitPrice = toNumber(match[4] || '0');
+        const tokens = line.split(/\s+/).map((token) => normalizeTokenForMatch(token)).filter(Boolean);
+        const unitIndex = findFirstUnitAnchorIndex(tokens);
+        if (unitIndex <= 0) continue;
 
-            if (description && qty > 0 && unitPrice > 0) {
-                const netValue = Number((qty * unitPrice).toFixed(2));
-                parsed.push({
-                    description: cleanDescriptionFromTokens(description.split(/\s+/)),
-                    unidade_medida: unitMeasure as InvoiceUnit,
-                    qty,
-                    unit_price: unitPrice,
-                    vat_percent: fallbackVatPercent,
-                    vat_value: Number((netValue * (fallbackVatPercent / 100)).toFixed(2)),
-                });
-                continue;
-            }
+        const qtyToken = tokens[unitIndex - 1];
+        if (!isNumericToken(qtyToken)) continue;
+
+        const qty = toNumber(qtyToken);
+        const unitMeasure = normalizeAnchorUnitToInvoiceUnit(tokens[unitIndex]);
+        const unitPriceToken = tokens.slice(unitIndex + 1).find((token) => isNumericToken(token));
+        const unitPrice = unitPriceToken ? toNumber(unitPriceToken) : 0;
+        const description = tokens.slice(0, unitIndex - 1).join(' ').replace(/\s+/g, ' ').trim();
+
+        if (description && qty > 0 && unitMeasure && unitPrice > 0) {
+            const netValue = Number((qty * unitPrice).toFixed(2));
+            parsed.push({
+                description,
+                unidade_medida: unitMeasure,
+                qty,
+                unit_price: unitPrice,
+                vat_percent: fallbackVatPercent,
+                vat_value: Number((netValue * (fallbackVatPercent / 100)).toFixed(2)),
+            });
         }
     }
 
