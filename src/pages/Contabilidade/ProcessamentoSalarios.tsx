@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Calculator, Download, Save, PlusCircle } from 'lucide-react';
+import { Calculator, Download, Save, PlusCircle, Search, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -51,6 +51,49 @@ const toNumber = (value: string) => {
     return Number.isNaN(parsed) ? 0 : parsed;
 };
 
+const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+type SourceField =
+    | 'ordenado_base'
+    | 'horas_extra'
+    | 'valor_horas_extra'
+    | 'folgas_trabalhadas'
+    | 'valor_folgas'
+    | 'outros_abonos'
+    | 'descontos'
+    | 'observacoes';
+
+const recalculatePayrollRow = (row: PayrollRow, sourceField?: SourceField): PayrollRow => {
+    const normalized: PayrollRow = {
+        ...row,
+        ordenado_base: round2(row.ordenado_base || 0),
+        horas_extra: round2(row.horas_extra || 0),
+        valor_horas_extra: round2(row.valor_horas_extra || 0),
+        folgas_trabalhadas: round2(row.folgas_trabalhadas || 0),
+        valor_folgas: round2(row.valor_folgas || 0),
+        outros_abonos: round2(row.outros_abonos || 0),
+        descontos: round2(row.descontos || 0)
+    };
+
+    const valorHora = normalized.ordenado_base > 0 ? normalized.ordenado_base / 173 : 0;
+    const valorFolgaUnitaria = valorHora * 8;
+
+    if (sourceField === 'valor_horas_extra') {
+        normalized.horas_extra = round2(valorHora > 0 ? normalized.valor_horas_extra / valorHora : 0);
+    } else if (sourceField === 'horas_extra' || sourceField === 'ordenado_base') {
+        normalized.valor_horas_extra = round2(normalized.horas_extra * valorHora);
+    }
+
+    if (sourceField === 'valor_folgas') {
+        normalized.folgas_trabalhadas = round2(valorFolgaUnitaria > 0 ? normalized.valor_folgas / valorFolgaUnitaria : 0);
+    } else if (sourceField === 'folgas_trabalhadas' || sourceField === 'ordenado_base') {
+        normalized.valor_folgas = round2(normalized.folgas_trabalhadas * valorFolgaUnitaria);
+    }
+
+    normalized.total_bruto = round2(calculateTotal(normalized));
+    return normalized;
+};
+
 const isMissingPayrollTableError = (error: any) => {
     const message = (error?.message || '').toLowerCase();
     return message.includes('could not find the table') && message.includes('driver_payroll_manual');
@@ -63,6 +106,9 @@ export default function ProcessamentoSalarios() {
     const [mes, setMes] = useState(today.getMonth() + 1);
     const [ano, setAno] = useState(today.getFullYear());
     const [rows, setRows] = useState<PayrollRow[]>([]);
+    const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
+    const [showDriverPicker, setShowDriverPicker] = useState(false);
+    const [driverSearch, setDriverSearch] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isPersistenceUnavailable, setIsPersistenceUnavailable] = useState(false);
@@ -76,22 +122,10 @@ export default function ProcessamentoSalarios() {
     }, [motoristas]);
 
     const createNewProcessing = () => {
-        const baseRows: PayrollRow[] = sortedMotoristas.map(m => {
-            const row: PayrollRow = {
-                driver_id: m.id,
-                ordenado_base: m.vencimentoBase || 0,
-                horas_extra: 0,
-                valor_horas_extra: 0,
-                folgas_trabalhadas: 0,
-                valor_folgas: 0,
-                outros_abonos: 0,
-                descontos: 0,
-                total_bruto: 0,
-                observacoes: ''
-            };
-            return { ...row, total_bruto: calculateTotal(row) };
-        });
-        setRows(baseRows);
+        setRows([]);
+        setSelectedDrivers([]);
+        setShowDriverPicker(false);
+        setDriverSearch('');
     };
 
     const loadProcessing = async () => {
@@ -135,9 +169,10 @@ export default function ProcessamentoSalarios() {
                     total_bruto: Number(item.total_bruto) || 0,
                     observacoes: item.observacoes || ''
                 };
-                return { ...row, total_bruto: calculateTotal(row) };
+                return recalculatePayrollRow(row);
             });
             setRows(loadedRows);
+            setSelectedDrivers(loadedRows.map(r => r.driver_id));
         } else {
             createNewProcessing();
         }
@@ -151,15 +186,61 @@ export default function ProcessamentoSalarios() {
         }
     }, [mes, ano, sortedMotoristas.length]);
 
-    const updateRow = (index: number, patch: Partial<PayrollRow>) => {
+    const updateRow = (index: number, patch: Partial<PayrollRow>, sourceField?: SourceField) => {
         setRows(prev => {
             const next = [...prev];
-            const updated = { ...next[index], ...patch };
-            updated.total_bruto = calculateTotal(updated);
-            next[index] = updated;
+            if (!next[index]) return prev;
+            next[index] = recalculatePayrollRow({ ...next[index], ...patch }, sourceField);
             return next;
         });
     };
+
+    const addDriverToProcessing = (driverId: string) => {
+        if (!driverId) return;
+
+        setSelectedDrivers(prev => (prev.includes(driverId) ? prev : [...prev, driverId]));
+        setRows(prev => {
+            const existing = prev.find(row => row.driver_id === driverId);
+            if (existing) return prev;
+
+            const motorista = sortedMotoristas.find(m => m.id === driverId);
+            const row: PayrollRow = recalculatePayrollRow({
+                driver_id: driverId,
+                ordenado_base: motorista?.vencimentoBase || 0,
+                horas_extra: 0,
+                valor_horas_extra: 0,
+                folgas_trabalhadas: 0,
+                valor_folgas: 0,
+                outros_abonos: 0,
+                descontos: 0,
+                total_bruto: 0,
+                observacoes: ''
+            }, 'ordenado_base');
+
+            return [...prev, row];
+        });
+
+        setDriverSearch('');
+        setShowDriverPicker(false);
+    };
+
+    const removeDriverFromProcessing = (driverId: string) => {
+        setSelectedDrivers(prev => prev.filter(id => id !== driverId));
+        setRows(prev => prev.filter(row => row.driver_id !== driverId));
+    };
+
+    const availableDrivers = useMemo(() => {
+        const query = driverSearch.trim().toLowerCase();
+        return sortedMotoristas
+            .filter(m => !selectedDrivers.includes(m.id))
+            .filter(m => !query || m.nome.toLowerCase().includes(query));
+    }, [driverSearch, selectedDrivers, sortedMotoristas]);
+
+    const visibleRows = useMemo(() => {
+        return selectedDrivers
+            .map(driverId => rows.find(row => row.driver_id === driverId))
+            .filter((row): row is PayrollRow => Boolean(row));
+    }, [rows, selectedDrivers]);
 
     const saveProcessing = async () => {
         if (isPersistenceUnavailable) {
@@ -168,7 +249,7 @@ export default function ProcessamentoSalarios() {
         }
 
         setIsSaving(true);
-        const payload = rows
+        const payload = visibleRows
             .filter(r => r.driver_id)
             .map(r => ({
                 driver_id: r.driver_id,
@@ -218,7 +299,7 @@ export default function ProcessamentoSalarios() {
     };
 
     const exportToAccounting = () => {
-        const exportData = rows
+        const exportData = visibleRows
             .filter(r => r.driver_id)
             .map(r => ({
                 Motorista: motoristaById.get(r.driver_id) || 'Sem nome',
@@ -237,7 +318,7 @@ export default function ProcessamentoSalarios() {
     };
 
     const exportToPdf = () => {
-        const exportRows = rows.filter(r => r.driver_id);
+        const exportRows = visibleRows.filter(r => r.driver_id);
         const doc = new jsPDF('l', 'mm', 'a4');
         const monthLabel = MONTHS.find(m => m.value === mes)?.label || String(mes);
         const totalGeral = exportRows.reduce((acc, row) => acc + calculateTotal(row), 0);
@@ -332,6 +413,48 @@ export default function ProcessamentoSalarios() {
                         Novo Processamento
                     </button>
 
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowDriverPicker(prev => !prev)}
+                            className="px-4 py-2 rounded-xl border border-slate-700 bg-slate-800 text-white font-semibold hover:bg-slate-700 flex items-center gap-2"
+                        >
+                            <PlusCircle className="w-4 h-4" />
+                            Adicionar Motorista
+                        </button>
+
+                        {showDriverPicker && (
+                            <div className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-700 bg-slate-900 shadow-xl z-20">
+                                <div className="p-3 border-b border-slate-800">
+                                    <div className="relative">
+                                        <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                                        <input
+                                            type="text"
+                                            value={driverSearch}
+                                            onChange={(e) => setDriverSearch(e.target.value)}
+                                            placeholder="Pesquisar motorista..."
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-white"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="max-h-64 overflow-auto p-2">
+                                    {availableDrivers.length === 0 ? (
+                                        <div className="px-3 py-2 text-sm text-slate-500">Sem motoristas disponíveis.</div>
+                                    ) : (
+                                        availableDrivers.map((m) => (
+                                            <button
+                                                key={m.id}
+                                                onClick={() => addDriverToProcessing(m.id)}
+                                                className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-800"
+                                            >
+                                                {m.nome}
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <button
                         onClick={saveProcessing}
                         disabled={isSaving || isLoading || isPersistenceUnavailable}
@@ -343,7 +466,7 @@ export default function ProcessamentoSalarios() {
 
                     <button
                         onClick={exportToAccounting}
-                        disabled={rows.length === 0}
+                        disabled={visibleRows.length === 0}
                         className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-500 disabled:opacity-60 flex items-center gap-2"
                     >
                         <Download className="w-4 h-4" />
@@ -352,7 +475,7 @@ export default function ProcessamentoSalarios() {
 
                     <button
                         onClick={exportToPdf}
-                        disabled={rows.length === 0}
+                        disabled={visibleRows.length === 0}
                         className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 disabled:opacity-60 flex items-center gap-2"
                     >
                         <Download className="w-4 h-4" />
@@ -382,6 +505,7 @@ export default function ProcessamentoSalarios() {
                             <th className="p-3 text-right">Descontos (€)</th>
                             <th className="p-3 text-right">Total Bruto (€)</th>
                             <th className="p-3 text-left">Observações</th>
+                            <th className="p-3 text-center">Remover</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -391,29 +515,23 @@ export default function ProcessamentoSalarios() {
                             </tr>
                         ) : rows.length === 0 ? (
                             <tr>
-                                <td className="p-6 text-center text-slate-500" colSpan={10}>Sem linhas. Clique em "Novo Processamento".</td>
+                                <td className="p-6 text-center text-slate-500" colSpan={11}>Sem linhas. Clique em "Adicionar Motorista".</td>
                             </tr>
-                        ) : rows.map((row, index) => (
-                            <tr key={`${row.driver_id}-${index}`} className="border-t border-slate-800/60 hover:bg-slate-800/20">
-                                <td className="p-2">
-                                    <select
-                                        value={row.driver_id}
-                                        onChange={(e) => updateRow(index, { driver_id: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                                    >
-                                        <option value="">Selecionar motorista</option>
-                                        {sortedMotoristas.map(m => (
-                                            <option key={m.id} value={m.id}>{m.nome}</option>
-                                        ))}
-                                    </select>
+                        ) : visibleRows.map((row) => {
+                            const rowIndex = rows.findIndex(r => r.driver_id === row.driver_id);
+
+                            return (
+                            <tr key={row.driver_id} className="border-t border-slate-800/60 hover:bg-slate-800/20">
+                                <td className="p-2 text-white font-medium">
+                                    {motoristaById.get(row.driver_id) || 'Sem nome'}
                                 </td>
 
                                 <td className="p-2">
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={row.ordenado_base}
-                                        onChange={(e) => updateRow(index, { ordenado_base: toNumber(e.target.value) })}
+                                        value={row.ordenado_base.toFixed(2)}
+                                        onChange={(e) => updateRow(rowIndex, { ordenado_base: toNumber(e.target.value) }, 'ordenado_base')}
                                         className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
                                     />
                                 </td>
@@ -422,8 +540,8 @@ export default function ProcessamentoSalarios() {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={row.horas_extra}
-                                        onChange={(e) => updateRow(index, { horas_extra: toNumber(e.target.value) })}
+                                        value={row.horas_extra.toFixed(2)}
+                                        onChange={(e) => updateRow(rowIndex, { horas_extra: toNumber(e.target.value) }, 'horas_extra')}
                                         className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
                                     />
                                 </td>
@@ -432,8 +550,8 @@ export default function ProcessamentoSalarios() {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={row.valor_horas_extra}
-                                        onChange={(e) => updateRow(index, { valor_horas_extra: toNumber(e.target.value) })}
+                                        value={row.valor_horas_extra.toFixed(2)}
+                                        onChange={(e) => updateRow(rowIndex, { valor_horas_extra: toNumber(e.target.value) }, 'valor_horas_extra')}
                                         className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
                                     />
                                 </td>
@@ -442,8 +560,8 @@ export default function ProcessamentoSalarios() {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={row.folgas_trabalhadas}
-                                        onChange={(e) => updateRow(index, { folgas_trabalhadas: toNumber(e.target.value) })}
+                                        value={row.folgas_trabalhadas.toFixed(2)}
+                                        onChange={(e) => updateRow(rowIndex, { folgas_trabalhadas: toNumber(e.target.value) }, 'folgas_trabalhadas')}
                                         className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
                                     />
                                 </td>
@@ -452,8 +570,8 @@ export default function ProcessamentoSalarios() {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={row.valor_folgas}
-                                        onChange={(e) => updateRow(index, { valor_folgas: toNumber(e.target.value) })}
+                                        value={row.valor_folgas.toFixed(2)}
+                                        onChange={(e) => updateRow(rowIndex, { valor_folgas: toNumber(e.target.value) }, 'valor_folgas')}
                                         className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
                                     />
                                 </td>
@@ -462,8 +580,8 @@ export default function ProcessamentoSalarios() {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={row.outros_abonos}
-                                        onChange={(e) => updateRow(index, { outros_abonos: toNumber(e.target.value) })}
+                                        value={row.outros_abonos.toFixed(2)}
+                                        onChange={(e) => updateRow(rowIndex, { outros_abonos: toNumber(e.target.value) }, 'outros_abonos')}
                                         className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
                                     />
                                 </td>
@@ -472,8 +590,8 @@ export default function ProcessamentoSalarios() {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        value={row.descontos}
-                                        onChange={(e) => updateRow(index, { descontos: toNumber(e.target.value) })}
+                                        value={row.descontos.toFixed(2)}
+                                        onChange={(e) => updateRow(rowIndex, { descontos: toNumber(e.target.value) }, 'descontos')}
                                         className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
                                     />
                                 </td>
@@ -488,13 +606,23 @@ export default function ProcessamentoSalarios() {
                                     <input
                                         type="text"
                                         value={row.observacoes}
-                                        onChange={(e) => updateRow(index, { observacoes: e.target.value })}
+                                        onChange={(e) => updateRow(rowIndex, { observacoes: e.target.value }, 'observacoes')}
                                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
                                         placeholder="Observações"
                                     />
                                 </td>
+
+                                <td className="p-2 text-center">
+                                    <button
+                                        onClick={() => removeDriverFromProcessing(row.driver_id)}
+                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                                        title="Remover motorista"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </td>
                             </tr>
-                        ))}
+                        )})}
                     </tbody>
                 </table>
             </div>
