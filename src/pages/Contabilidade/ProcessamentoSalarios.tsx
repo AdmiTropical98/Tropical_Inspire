@@ -10,16 +10,19 @@ import { formatCurrency } from '../../utils/format';
 interface PayrollRow {
     id?: string;
     driver_id: string;
-    ordenado_base: number;
-    horas_extra: number;
-    valor_horas_extra: number;
+    regime_salarial: string;
+    vencimento_base: number;
+    abonos: number;
+    horas_extra_25: number;
+    horas_extra_37_5: number;
+    horas_feriado: number;
     folgas_trabalhadas: number;
-    valor_folgas: number;
-    outros_abonos: number;
-    descontos: number;
+    outros_ajustes: number;
     total_bruto: number;
     observacoes: string;
 }
+
+const SALARY_REGIMES = ['Base Mensal', 'Valor Diário', 'Carta CAM', 'Personalizado'] as const;
 
 const MONTHS = [
     { value: 1, label: 'Janeiro' },
@@ -38,11 +41,13 @@ const MONTHS = [
 
 const calculateTotal = (row: PayrollRow) => {
     return (
-        (row.ordenado_base || 0) +
-        (row.valor_horas_extra || 0) +
-        (row.valor_folgas || 0) +
-        (row.outros_abonos || 0) -
-        (row.descontos || 0)
+        (row.vencimento_base || 0) +
+        (row.abonos || 0) +
+        (row.horas_extra_25 || 0) +
+        (row.horas_extra_37_5 || 0) +
+        (row.horas_feriado || 0) +
+        (row.folgas_trabalhadas || 0) +
+        (row.outros_ajustes || 0)
     );
 };
 
@@ -54,41 +59,28 @@ const toNumber = (value: string) => {
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 type SourceField =
-    | 'ordenado_base'
-    | 'horas_extra'
-    | 'valor_horas_extra'
+    | 'regime_salarial'
+    | 'vencimento_base'
+    | 'abonos'
+    | 'horas_extra_25'
+    | 'horas_extra_37_5'
+    | 'horas_feriado'
     | 'folgas_trabalhadas'
-    | 'valor_folgas'
-    | 'outros_abonos'
-    | 'descontos'
+    | 'outros_ajustes'
     | 'observacoes';
 
 const recalculatePayrollRow = (row: PayrollRow, sourceField?: SourceField): PayrollRow => {
     const normalized: PayrollRow = {
         ...row,
-        ordenado_base: round2(row.ordenado_base || 0),
-        horas_extra: round2(row.horas_extra || 0),
-        valor_horas_extra: round2(row.valor_horas_extra || 0),
+        regime_salarial: row.regime_salarial || '',
+        vencimento_base: round2(row.vencimento_base || 0),
+        abonos: round2(row.abonos || 0),
+        horas_extra_25: round2(row.horas_extra_25 || 0),
+        horas_extra_37_5: round2(row.horas_extra_37_5 || 0),
+        horas_feriado: round2(row.horas_feriado || 0),
         folgas_trabalhadas: round2(row.folgas_trabalhadas || 0),
-        valor_folgas: round2(row.valor_folgas || 0),
-        outros_abonos: round2(row.outros_abonos || 0),
-        descontos: round2(row.descontos || 0)
+        outros_ajustes: round2(row.outros_ajustes || 0)
     };
-
-    const valorHora = normalized.ordenado_base > 0 ? normalized.ordenado_base / 173 : 0;
-    const valorFolgaUnitaria = valorHora * 8;
-
-    if (sourceField === 'valor_horas_extra') {
-        normalized.horas_extra = round2(valorHora > 0 ? normalized.valor_horas_extra / valorHora : 0);
-    } else if (sourceField === 'horas_extra' || sourceField === 'ordenado_base') {
-        normalized.valor_horas_extra = round2(normalized.horas_extra * valorHora);
-    }
-
-    if (sourceField === 'valor_folgas') {
-        normalized.folgas_trabalhadas = round2(valorFolgaUnitaria > 0 ? normalized.valor_folgas / valorFolgaUnitaria : 0);
-    } else if (sourceField === 'folgas_trabalhadas' || sourceField === 'ordenado_base') {
-        normalized.valor_folgas = round2(normalized.folgas_trabalhadas * valorFolgaUnitaria);
-    }
 
     normalized.total_bruto = round2(calculateTotal(normalized));
     return normalized;
@@ -159,13 +151,14 @@ export default function ProcessamentoSalarios() {
                 const row: PayrollRow = {
                     id: item.id,
                     driver_id: item.driver_id,
-                    ordenado_base: Number(item.ordenado_base) || 0,
-                    horas_extra: Number(item.horas_extra) || 0,
-                    valor_horas_extra: Number(item.valor_horas_extra) || 0,
-                    folgas_trabalhadas: Number(item.folgas_trabalhadas) || 0,
-                    valor_folgas: Number(item.valor_folgas) || 0,
-                    outros_abonos: Number(item.outros_abonos) || 0,
-                    descontos: Number(item.descontos) || 0,
+                    regime_salarial: item.regime_salarial || '',
+                    vencimento_base: Number(item.vencimento_base ?? item.ordenado_base) || 0,
+                    abonos: Number(item.abonos ?? item.outros_abonos) || 0,
+                    horas_extra_25: Number(item.horas_extra_25) || 0,
+                    horas_extra_37_5: Number(item.horas_extra_37_5) || 0,
+                    horas_feriado: Number(item.horas_feriado) || 0,
+                    folgas_trabalhadas: Number(item.folgas_trabalhadas ?? item.valor_folgas) || 0,
+                    outros_ajustes: Number(item.outros_ajustes) || 0,
                     total_bruto: Number(item.total_bruto) || 0,
                     observacoes: item.observacoes || ''
                 };
@@ -203,19 +196,19 @@ export default function ProcessamentoSalarios() {
             const existing = prev.find(row => row.driver_id === driverId);
             if (existing) return prev;
 
-            const motorista = sortedMotoristas.find(m => m.id === driverId);
             const row: PayrollRow = recalculatePayrollRow({
                 driver_id: driverId,
-                ordenado_base: motorista?.vencimentoBase || 0,
-                horas_extra: 0,
-                valor_horas_extra: 0,
+                regime_salarial: '',
+                vencimento_base: 0,
+                abonos: 0,
+                horas_extra_25: 0,
+                horas_extra_37_5: 0,
+                horas_feriado: 0,
                 folgas_trabalhadas: 0,
-                valor_folgas: 0,
-                outros_abonos: 0,
-                descontos: 0,
+                outros_ajustes: 0,
                 total_bruto: 0,
                 observacoes: ''
-            }, 'ordenado_base');
+            });
 
             return [...prev, row];
         });
@@ -244,7 +237,7 @@ export default function ProcessamentoSalarios() {
 
     const saveProcessing = async () => {
         if (isPersistenceUnavailable) {
-            alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique a migração "20260227_create_driver_payroll_manual.sql" no Supabase para ativar o guardar.');
+            alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique as migrações "20260227_create_driver_payroll_manual.sql" e "20260227_enhance_driver_payroll_manual_structure.sql" no Supabase para ativar o guardar.');
             return;
         }
 
@@ -255,13 +248,14 @@ export default function ProcessamentoSalarios() {
                 driver_id: r.driver_id,
                 mes,
                 ano,
-                ordenado_base: r.ordenado_base || 0,
-                horas_extra: r.horas_extra || 0,
-                valor_horas_extra: r.valor_horas_extra || 0,
+                regime_salarial: r.regime_salarial || null,
+                vencimento_base: r.vencimento_base || 0,
+                abonos: r.abonos || 0,
+                horas_extra_25: r.horas_extra_25 || 0,
+                horas_extra_37_5: r.horas_extra_37_5 || 0,
+                horas_feriado: r.horas_feriado || 0,
                 folgas_trabalhadas: r.folgas_trabalhadas || 0,
-                valor_folgas: r.valor_folgas || 0,
-                outros_abonos: r.outros_abonos || 0,
-                descontos: r.descontos || 0,
+                outros_ajustes: r.outros_ajustes || 0,
                 total_bruto: calculateTotal(r),
                 observacoes: r.observacoes || ''
             }));
@@ -281,7 +275,7 @@ export default function ProcessamentoSalarios() {
 
             if (isMissingPayrollTableError(error)) {
                 setIsPersistenceUnavailable(true);
-                alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique a migração "20260227_create_driver_payroll_manual.sql" no Supabase para ativar o guardar.');
+                alert('A tabela de processamento salarial ainda não existe na base de dados. Aplique as migrações "20260227_create_driver_payroll_manual.sql" e "20260227_enhance_driver_payroll_manual_structure.sql" no Supabase para ativar o guardar.');
                 setIsSaving(false);
                 return;
             }
@@ -303,11 +297,14 @@ export default function ProcessamentoSalarios() {
             .filter(r => r.driver_id)
             .map(r => ({
                 Motorista: motoristaById.get(r.driver_id) || 'Sem nome',
-                'Ordenado Base': r.ordenado_base,
-                'Horas Extra (€)': r.valor_horas_extra,
-                'Folgas (€)': r.valor_folgas,
-                'Outros Abonos': r.outros_abonos,
-                Descontos: r.descontos,
+                'Regime Salarial': r.regime_salarial || '',
+                'Vencimento Base': r.vencimento_base,
+                Abonos: r.abonos,
+                'Horas Extra 25%': r.horas_extra_25,
+                'Horas Extra 37.5%': r.horas_extra_37_5,
+                'Horas Feriado': r.horas_feriado,
+                'Folgas Trabalhadas': r.folgas_trabalhadas,
+                'Outros Ajustes': r.outros_ajustes,
                 'Total Bruto': calculateTotal(r)
             }));
 
@@ -332,24 +329,33 @@ export default function ProcessamentoSalarios() {
             startY: 26,
             head: [[
                 'Motorista',
-                'Ordenado Base',
-                'Horas Extra (€)',
-                'Folgas (€)',
-                'Outros Abonos',
-                'Descontos',
+                'Regime Salarial',
+                'Vencimento Base',
+                'Abonos',
+                'Horas Extra 25%',
+                'Horas Extra 37.5%',
+                'Horas Feriado',
+                'Folgas Trabalhadas',
+                'Outros Ajustes',
                 'Total Bruto'
             ]],
             body: exportRows.map(r => [
                 motoristaById.get(r.driver_id) || 'Sem nome',
-                formatCurrency(r.ordenado_base || 0),
-                formatCurrency(r.valor_horas_extra || 0),
-                formatCurrency(r.valor_folgas || 0),
-                formatCurrency(r.outros_abonos || 0),
-                formatCurrency(r.descontos || 0),
+                r.regime_salarial || '',
+                formatCurrency(r.vencimento_base || 0),
+                formatCurrency(r.abonos || 0),
+                formatCurrency(r.horas_extra_25 || 0),
+                formatCurrency(r.horas_extra_37_5 || 0),
+                formatCurrency(r.horas_feriado || 0),
+                formatCurrency(r.folgas_trabalhadas || 0),
+                formatCurrency(r.outros_ajustes || 0),
                 formatCurrency(calculateTotal(r))
             ]),
             foot: [[
                 'TOTAL GERAL',
+                '',
+                '',
+                '',
                 '',
                 '',
                 '',
@@ -362,12 +368,15 @@ export default function ProcessamentoSalarios() {
             footStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
             columnStyles: {
                 0: { halign: 'left' },
-                1: { halign: 'right' },
+                1: { halign: 'left' },
                 2: { halign: 'right' },
                 3: { halign: 'right' },
                 4: { halign: 'right' },
                 5: { halign: 'right' },
-                6: { halign: 'right' }
+                6: { halign: 'right' },
+                7: { halign: 'right' },
+                8: { halign: 'right' },
+                9: { halign: 'right' }
             }
         });
 
@@ -487,22 +496,23 @@ export default function ProcessamentoSalarios() {
             {isPersistenceUnavailable && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
                     Processamento em modo local: a tabela de persistência ainda não existe no Supabase. Execute a migração
-                    {' '}"20260227_create_driver_payroll_manual.sql" para ativar o guardar.
+                    {' '}"20260227_create_driver_payroll_manual.sql" e "20260227_enhance_driver_payroll_manual_structure.sql" para ativar o guardar.
                 </div>
             )}
 
             <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40">
-                <table className="w-full min-w-[1700px] text-sm">
+                <table className="w-full min-w-[2100px] text-sm">
                     <thead className="bg-slate-950/60 text-slate-400 uppercase text-[11px] tracking-wide">
                         <tr>
                             <th className="p-3 text-left">Motorista</th>
-                            <th className="p-3 text-right">Ordenado Base (€)</th>
-                            <th className="p-3 text-right">Horas Extra</th>
-                            <th className="p-3 text-right">Valor Horas Extra (€)</th>
-                            <th className="p-3 text-right">Folgas Trabalhadas</th>
-                            <th className="p-3 text-right">Valor Folgas (€)</th>
-                            <th className="p-3 text-right">Outros Abonos (€)</th>
-                            <th className="p-3 text-right">Descontos (€)</th>
+                            <th className="p-3 text-left">Regime Salarial</th>
+                            <th className="p-3 text-right">Vencimento Base (€)</th>
+                            <th className="p-3 text-right">Abonos (€)</th>
+                            <th className="p-3 text-right">Horas Extra 25% (€)</th>
+                            <th className="p-3 text-right">Horas Extra 37.5% (€)</th>
+                            <th className="p-3 text-right">Horas Feriado (€)</th>
+                            <th className="p-3 text-right">Folgas Trabalhadas (€)</th>
+                            <th className="p-3 text-right">Outros Ajustes (€)</th>
                             <th className="p-3 text-right">Total Bruto (€)</th>
                             <th className="p-3 text-left">Observações</th>
                             <th className="p-3 text-center">Remover</th>
@@ -511,11 +521,11 @@ export default function ProcessamentoSalarios() {
                     <tbody>
                         {isLoading ? (
                             <tr>
-                                <td className="p-6 text-center text-slate-500" colSpan={10}>A carregar processamento...</td>
+                                <td className="p-6 text-center text-slate-500" colSpan={13}>A carregar processamento...</td>
                             </tr>
                         ) : rows.length === 0 ? (
                             <tr>
-                                <td className="p-6 text-center text-slate-500" colSpan={11}>Sem linhas. Clique em "Adicionar Motorista".</td>
+                                <td className="p-6 text-center text-slate-500" colSpan={13}>Sem linhas. Clique em "Adicionar Motorista".</td>
                             </tr>
                         ) : visibleRows.map((row) => {
                             const rowIndex = rows.findIndex(r => r.driver_id === row.driver_id);
@@ -527,72 +537,92 @@ export default function ProcessamentoSalarios() {
                                 </td>
 
                                 <td className="p-2">
+                                    <select
+                                        value={row.regime_salarial}
+                                        onChange={(e) => updateRow(rowIndex, { regime_salarial: e.target.value }, 'regime_salarial')}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                    >
+                                        <option value="">Selecionar</option>
+                                        {SALARY_REGIMES.map((regime) => (
+                                            <option key={regime} value={regime}>{regime}</option>
+                                        ))}
+                                    </select>
+                                </td>
+
+                                <td className="p-2">
                                     <input
                                         type="number"
-                                        step="0.01"
-                                        value={row.ordenado_base.toFixed(2)}
-                                        onChange={(e) => updateRow(rowIndex, { ordenado_base: toNumber(e.target.value) }, 'ordenado_base')}
-                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                        step="any"
+                                        value={row.vencimento_base}
+                                        onChange={(e) => updateRow(rowIndex, { vencimento_base: toNumber(e.target.value) }, 'vencimento_base')}
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        className="w-full min-w-[130px] text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
                                 </td>
 
                                 <td className="p-2">
                                     <input
                                         type="number"
-                                        step="0.01"
-                                        value={row.horas_extra.toFixed(2)}
-                                        onChange={(e) => updateRow(rowIndex, { horas_extra: toNumber(e.target.value) }, 'horas_extra')}
-                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                        step="any"
+                                        value={row.abonos}
+                                        onChange={(e) => updateRow(rowIndex, { abonos: toNumber(e.target.value) }, 'abonos')}
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        className="w-full min-w-[130px] text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
                                 </td>
 
                                 <td className="p-2">
                                     <input
                                         type="number"
-                                        step="0.01"
-                                        value={row.valor_horas_extra.toFixed(2)}
-                                        onChange={(e) => updateRow(rowIndex, { valor_horas_extra: toNumber(e.target.value) }, 'valor_horas_extra')}
-                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                        step="any"
+                                        value={row.horas_extra_25}
+                                        onChange={(e) => updateRow(rowIndex, { horas_extra_25: toNumber(e.target.value) }, 'horas_extra_25')}
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        className="w-full min-w-[130px] text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
                                 </td>
 
                                 <td className="p-2">
                                     <input
                                         type="number"
-                                        step="0.01"
-                                        value={row.folgas_trabalhadas.toFixed(2)}
+                                        step="any"
+                                        value={row.horas_extra_37_5}
+                                        onChange={(e) => updateRow(rowIndex, { horas_extra_37_5: toNumber(e.target.value) }, 'horas_extra_37_5')}
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        className="w-full min-w-[130px] text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                </td>
+
+                                <td className="p-2">
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={row.horas_feriado}
+                                        onChange={(e) => updateRow(rowIndex, { horas_feriado: toNumber(e.target.value) }, 'horas_feriado')}
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        className="w-full min-w-[130px] text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                </td>
+
+                                <td className="p-2">
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={row.folgas_trabalhadas}
                                         onChange={(e) => updateRow(rowIndex, { folgas_trabalhadas: toNumber(e.target.value) }, 'folgas_trabalhadas')}
-                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        className="w-full min-w-[130px] text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
                                 </td>
 
                                 <td className="p-2">
                                     <input
                                         type="number"
-                                        step="0.01"
-                                        value={row.valor_folgas.toFixed(2)}
-                                        onChange={(e) => updateRow(rowIndex, { valor_folgas: toNumber(e.target.value) }, 'valor_folgas')}
-                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                                    />
-                                </td>
-
-                                <td className="p-2">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={row.outros_abonos.toFixed(2)}
-                                        onChange={(e) => updateRow(rowIndex, { outros_abonos: toNumber(e.target.value) }, 'outros_abonos')}
-                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                                    />
-                                </td>
-
-                                <td className="p-2">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={row.descontos.toFixed(2)}
-                                        onChange={(e) => updateRow(rowIndex, { descontos: toNumber(e.target.value) }, 'descontos')}
-                                        className="w-full text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                        step="any"
+                                        value={row.outros_ajustes}
+                                        onChange={(e) => updateRow(rowIndex, { outros_ajustes: toNumber(e.target.value) }, 'outros_ajustes')}
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        className="w-full min-w-[130px] text-right bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
                                 </td>
 
