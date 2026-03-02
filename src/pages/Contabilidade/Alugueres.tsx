@@ -57,6 +57,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
         centroCustoId: string;
         dias: number;
         dataInicio: string;
+        precoDia: number;
     }
 
     // Rental Form State
@@ -123,7 +124,8 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                         viaturaId: line.viaturaId,
                         centroCustoId: ccId,
                         dias: count,
-                        dataInicio: line.dataInicio
+                        dataInicio: line.dataInicio,
+                        precoDia: line.precoDia
                     }));
 
                     setRentalLines(prev => [
@@ -157,22 +159,26 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
         // Restore Lines
         const details = invoice.aluguerDetails;
-        if (details?.detalhesViaturas) {
-            setRentalLines(details.detalhesViaturas.map(d => ({
+        const detailLines = details?.viaturas || details?.detalhesViaturas;
+        if (detailLines) {
+            setRentalLines(detailLines.map(d => ({
                 id: crypto.randomUUID(),
                 viaturaId: d.viaturaId,
                 centroCustoId: d.centroCustoId || '',
                 dias: d.dias,
-                dataInicio: d.dataInicio
+                dataInicio: d.dataInicio || details?.dataInicio || new Date().toISOString().split('T')[0],
+                precoDia: d.precoDia ?? d.precoDiario ?? (viaturas.find(vi => vi.id === d.viaturaId)?.precoDiario || 0)
             })));
         } else if (invoice.aluguerDetails?.viaturaId) {
+            const legacyVehicle = viaturas.find(vi => vi.id === invoice.aluguerDetails?.viaturaId);
             // Legacy fallback
             setRentalLines([{
                 id: crypto.randomUUID(),
                 viaturaId: invoice.aluguerDetails.viaturaId,
                 centroCustoId: invoice.aluguerDetails.centroCustoId || '',
                 dias: invoice.aluguerDetails.dias,
-                dataInicio: invoice.aluguerDetails.dataInicio
+                dataInicio: invoice.aluguerDetails.dataInicio,
+                precoDia: legacyVehicle?.precoDiario || 0
             }]);
         }
 
@@ -201,13 +207,17 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
     const handleLoadTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const template = templates.find(t => t.name === e.target.value);
         if (template) {
-            setRentalLines(template.vehicleIds.map(vId => ({
+            setRentalLines(template.vehicleIds.map(vId => {
+                const selectedVehicle = viaturas.find(v => v.id === vId);
+                return {
                 id: crypto.randomUUID(),
                 viaturaId: vId,
                 centroCustoId: '',
                 dias: dias,
-                dataInicio: dataInicio
-            })));
+                dataInicio: dataInicio,
+                precoDia: selectedVehicle?.precoDiario || 0
+                };
+            }));
         }
     };
 
@@ -232,7 +242,11 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
         filteredInvoices.forEach(inv => {
             const ref = inv.aluguerDetails?.periodoReferencia || '';
             const monthKey = ref || inv.data.substring(0, 7); // YYYY-MM
-            const ccId = inv.aluguerDetails?.centroCustoId || 'uncategorized';
+            const detailCostCenters = (inv.aluguerDetails?.viaturas || inv.aluguerDetails?.detalhesViaturas || [])
+                .map(detail => detail.centroCustoId || 'uncategorized');
+            const ccIds = detailCostCenters.length > 0
+                ? Array.from(new Set(detailCostCenters))
+                : [inv.aluguerDetails?.centroCustoId || 'uncategorized'];
 
             // Key based ONLY on Client and Month
             const key = `${inv.clienteId}-${monthKey}`;
@@ -250,7 +264,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                 };
             }
             groups[key].invoices.push(inv);
-            groups[key].centroCustoIds.add(ccId);
+            ccIds.forEach(ccId => groups[key].centroCustoIds.add(ccId));
             groups[key].total += inv.total;
         });
 
@@ -259,12 +273,14 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
     const handleAddViatura = () => {
         if (tempViaturaId) {
+            const selectedVehicle = viaturas.find(item => item.id === tempViaturaId);
             setRentalLines([...rentalLines, {
                 id: crypto.randomUUID(),
                 viaturaId: tempViaturaId,
                 centroCustoId: centroCustoId,
                 dias: dias,
-                dataInicio: dataInicio
+                dataInicio: dataInicio,
+                precoDia: selectedVehicle?.precoDiario || 0
             }]);
             setTempViaturaId('');
         }
@@ -282,17 +298,17 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
     const calculateTotalDaily = () => {
         return rentalLines.reduce((acc, l) => {
-            const v = viaturas.find(vi => vi.id === l.viaturaId);
-            return acc + (v?.precoDiario || 0);
+            return acc + (l.precoDia || 0);
         }, 0);
     };
 
     const calculateGrandTotal = () => {
         return rentalLines.reduce((acc, l) => {
-            const v = viaturas.find(vi => vi.id === l.viaturaId);
-            return acc + ((v?.precoDiario || 0) * l.dias);
+            return acc + ((l.precoDia || 0) * l.dias);
         }, 0);
     };
+
+    const calculateLineTotal = (line: RentalLine) => (line.precoDia || 0) * line.dias;
 
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(val);
@@ -371,7 +387,10 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
             // Column 2: Vehicle Info
             const col2X = 70;
-            const viaturasIds = invoice.aluguerDetails?.viaturasIds;
+            const detailLines = invoice.aluguerDetails?.viaturas || invoice.aluguerDetails?.detalhesViaturas || [];
+            const viaturasIds = detailLines.length > 0
+                ? detailLines.map(detail => detail.viaturaId)
+                : invoice.aluguerDetails?.viaturasIds;
             const singleViaturaId = invoice.aluguerDetails?.viaturaId;
 
             doc.setFont('helvetica', 'normal');
@@ -381,17 +400,25 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
             if (viaturasIds && viaturasIds.length > 0) {
                 let currentY = yPos + 6;
-                viaturasIds.forEach((vid: string) => {
+                viaturasIds.forEach((vid: string, index: number) => {
                     const v = viaturas.find(vi => vi.id === vid);
                     if (v) {
+                        const line = detailLines[index];
+                        const ccName = line?.centroCustoId ? (centrosCustos.find(cc => cc.id === line.centroCustoId)?.nome || line.centroCustoId) : null;
+                        const daysLabel = line?.dias ? ` (${line.dias} dias)` : '';
                         doc.setFont('helvetica', 'bold');
                         doc.setFontSize(10);
                         doc.setTextColor(0);
-                        doc.text(`${v.marca} ${v.modelo}`, col2X, currentY);
+                        doc.text(`${v.marca} ${v.modelo}${daysLabel}`, col2X, currentY);
                         doc.setFontSize(8);
                         doc.setTextColor(80);
-                        doc.text(v.matricula, col2X + 35, currentY); // Offset plate slightly
-                        currentY += 5;
+                        doc.text(v.matricula, col2X + 35, currentY);
+                        if (ccName) {
+                            doc.text(`CC: ${ccName}`, col2X, currentY + 4);
+                            currentY += 8;
+                        } else {
+                            currentY += 5;
+                        }
                     }
                 });
             } else if (singleViaturaId) {
@@ -568,12 +595,33 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
             const costCenterGroups = new Map<string, { total: number; items: Fatura[] }>();
 
             rentals.forEach(rental => {
+                const lineDetails = rental.aluguerDetails?.viaturas || rental.aluguerDetails?.detalhesViaturas || [];
+
+                if (lineDetails.length > 0) {
+                    const totalsByCc = new Map<string, number>();
+
+                    lineDetails.forEach(detail => {
+                        const detailNet = detail.total ?? ((detail.precoDia ?? detail.precoDiario ?? 0) * detail.dias);
+                        const detailGross = detailNet * 1.23;
+                        const ccId = detail.centroCustoId || 'uncategorized';
+                        totalsByCc.set(ccId, (totalsByCc.get(ccId) || 0) + detailGross);
+                    });
+
+                    totalsByCc.forEach((grossTotal, ccId) => {
+                        const current = costCenterGroups.get(ccId) || { total: 0, items: [] };
+                        if (!current.items.some(item => item.id === rental.id)) {
+                            current.items.push(rental);
+                        }
+                        current.total += grossTotal;
+                        costCenterGroups.set(ccId, current);
+                    });
+                    return;
+                }
+
                 const ccId = rental.aluguerDetails?.centroCustoId || 'uncategorized';
                 const current = costCenterGroups.get(ccId) || { total: 0, items: [] };
-
                 current.items.push(rental);
                 current.total += rental.total;
-
                 costCenterGroups.set(ccId, current);
             });
 
@@ -655,17 +703,18 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                 const bodyData: any[][] = [];
 
                 group.items.forEach(pdfInv => {
-                    const vehicleIds = pdfInv.aluguerDetails?.viaturasIds || (pdfInv.aluguerDetails?.viaturaId ? [pdfInv.aluguerDetails?.viaturaId] : []);
+                    const lineDetails = pdfInv.aluguerDetails?.viaturas || pdfInv.aluguerDetails?.detalhesViaturas || [];
 
-                    if (vehicleIds.length > 0) {
-                        vehicleIds.forEach(vid => {
-                            const v = viaturas.find(veh => veh.id === vid);
-                            const details = pdfInv.aluguerDetails?.detalhesViaturas?.find(d => d.viaturaId === vid);
+                    if (lineDetails.length > 0) {
+                        lineDetails
+                            .filter(details => (details.centroCustoId || 'uncategorized') === ccId)
+                            .forEach(details => {
+                                const v = viaturas.find(veh => veh.id === details.viaturaId);
 
                             let vehicleTotal = 0;
                             if (details) {
-                                // Calculate specific total for this vehicle: (daily * days) * 1.23 (tax)
-                                vehicleTotal = (details.precoDiario * details.dias) * 1.23;
+                                const detailNet = details.total ?? ((details.precoDia ?? details.precoDiario ?? 0) * details.dias);
+                                vehicleTotal = detailNet * 1.23;
                             } else if (v && pdfInv.aluguerDetails?.dias) {
                                 // Fallback logic
                                 vehicleTotal = ((v.precoDiario || 0) * pdfInv.aluguerDetails.dias) * 1.23;
@@ -710,6 +759,41 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                             ]);
                         });
                     } else {
+                        const vehicleIds = pdfInv.aluguerDetails?.viaturasIds || (pdfInv.aluguerDetails?.viaturaId ? [pdfInv.aluguerDetails?.viaturaId] : []);
+                        if (vehicleIds.length > 0) {
+                            vehicleIds.forEach(vid => {
+                                const v = viaturas.find(veh => veh.id === vid);
+                                const vehicleTotal = ((v?.precoDiario || 0) * (pdfInv.aluguerDetails?.dias || 0)) * 1.23;
+
+                                const refDate = pdfInv.aluguerDetails?.periodoReferencia
+                                    ? new Date(pdfInv.aluguerDetails.periodoReferencia + '-01')
+                                    : new Date(pdfInv.data);
+
+                                const refMonthStr = refDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+                                const capitalRef = refMonthStr.charAt(0).toUpperCase() + refMonthStr.slice(1);
+
+                                const startRef = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+                                const endRef = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0);
+                                const dateRangeStr = `${startRef.toLocaleDateString('pt-PT')} -> ${endRef.toLocaleDateString('pt-PT')}`;
+
+                                const netVal = vehicleTotal / 1.23;
+                                const vatVal = vehicleTotal - netVal;
+                                const days = pdfInv.aluguerDetails?.dias || 0;
+
+                                bodyData.push([
+                                    dateRangeStr,
+                                    capitalRef,
+                                    v ? v.matricula : 'Viatura Removida',
+                                    days,
+                                    formatCurrency(netVal),
+                                    formatCurrency(vatVal),
+                                    formatCurrency(vehicleTotal)
+                                ]);
+                            });
+                        }
+                    }
+
+                    if (lineDetails.length === 0 && (!pdfInv.aluguerDetails?.viaturasIds || pdfInv.aluguerDetails.viaturasIds.length === 0) && !pdfInv.aluguerDetails?.viaturaId) {
                         // Fallback
                         const netVal = pdfInv.total / 1.23;
                         const vatVal = pdfInv.total - netVal;
@@ -898,14 +982,20 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
             doc.text('1. OBJETO DO ALUGUER (VIATURAS)', 15, yPos);
             yPos += 7;
 
-            const viaturasIds = invoice.aluguerDetails?.viaturasIds || (invoice.aluguerDetails?.viaturaId ? [invoice.aluguerDetails?.viaturaId] : []);
+            const contractLines = invoice.aluguerDetails?.viaturas || invoice.aluguerDetails?.detalhesViaturas || [];
+            const viaturasIds = contractLines.length > 0
+                ? contractLines.map(line => line.viaturaId)
+                : (invoice.aluguerDetails?.viaturasIds || (invoice.aluguerDetails?.viaturaId ? [invoice.aluguerDetails?.viaturaId] : []));
 
             if (viaturasIds.length > 0) {
-                viaturasIds.forEach(vid => {
+                viaturasIds.forEach((vid, index) => {
                     const v = viaturas.find(vi => vi.id === vid);
                     if (v) {
+                        const line = contractLines[index];
+                        const ccName = line?.centroCustoId ? (centrosCustos.find(cc => cc.id === line.centroCustoId)?.nome || line.centroCustoId) : 'Sem Centro de Custo';
+                        const daysLabel = line?.dias ? ` • ${line.dias} dias` : '';
                         doc.setFont('helvetica', 'normal');
-                        doc.text(`• ${v.marca} ${v.modelo} - Matrícula: ${v.matricula}`, 20, yPos);
+                        doc.text(`• ${v.marca} ${v.modelo} - Matrícula: ${v.matricula} • CC: ${ccName}${daysLabel}`, 20, yPos);
                         yPos += 6;
                     }
                 });
@@ -976,11 +1066,40 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
             return;
         }
 
+        const monthlyDaysByVehicle = rentalLines.reduce((acc, line) => {
+            const monthKey = (periodoReferencia || line.dataInicio || new Date().toISOString().slice(0, 7)).slice(0, 7);
+            const key = `${line.viaturaId}::${monthKey}`;
+            acc[key] = (acc[key] || 0) + Math.max(0, Number(line.dias) || 0);
+            return acc;
+        }, {} as Record<string, number>);
+
+        const overLimitEntries = Object.entries(monthlyDaysByVehicle).filter(([, totalDays]) => totalDays > 31);
+
+        if (overLimitEntries.length > 0) {
+            const details = overLimitEntries.map(([compoundKey, totalDays]) => {
+                const [vehicleId, monthKey] = compoundKey.split('::');
+                const vehicle = viaturas.find(v => v.id === vehicleId);
+                const monthDate = new Date(`${monthKey}-01`);
+                const monthLabel = isNaN(monthDate.getTime())
+                    ? monthKey
+                    : monthDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+
+                return `- ${vehicle ? `${vehicle.marca} ${vehicle.modelo} (${vehicle.matricula})` : vehicleId}: ${totalDays} dias em ${monthLabel}`;
+            }).join('\n');
+
+            const shouldContinue = window.confirm(
+                `Atenção: foram detetados totais acima de 31 dias para a mesma viatura no mesmo mês.\n\n${details}\n\nDeseja continuar mesmo assim?`
+            );
+
+            if (!shouldContinue) {
+                return;
+            }
+        }
+
         const detailsMap = rentalLines.map(l => {
-            const v = viaturas.find(vi => vi.id === l.viaturaId);
-            const precoDiario = v?.precoDiario || 0;
             const dataFim = new Date(l.dataInicio);
             dataFim.setDate(dataFim.getDate() + l.dias);
+            const total = l.precoDia * l.dias;
 
             return {
                 viaturaId: l.viaturaId,
@@ -988,14 +1107,16 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                 dias: l.dias,
                 dataInicio: l.dataInicio,
                 dataFim: dataFim.toISOString().split('T')[0],
-                precoDiario
+                precoDia: l.precoDia,
+                total,
+                precoDiario: l.precoDia
             };
         });
 
         const invoiceItems = detailsMap.map(detail => {
             const v = viaturas.find(vi => vi.id === detail.viaturaId);
             const cc = centrosCustos.find(c => c.id === detail.centroCustoId);
-            const netTotal = detail.precoDiario * detail.dias;
+            const netTotal = detail.total;
             const descSuffix = cc ? ` [${cc.nome}]` : '';
             return {
                 id: crypto.randomUUID(),
@@ -1008,7 +1129,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
         });
 
         // Calculate totals from detailsMap (Net Values)
-        const subtotal = detailsMap.reduce((sum, item) => sum + (item.precoDiario * item.dias), 0);
+        const subtotal = detailsMap.reduce((sum, item) => sum + item.total, 0);
         const amountVat = subtotal * 0.23;
         const total = subtotal + amountVat;
 
@@ -1017,6 +1138,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
         // Use Custom Reference OR Format based on Date
         const referenceToSave = periodoReferencia || '';
+        const uniqueCostCenters = Array.from(new Set(detailsMap.map(d => d.centroCustoId).filter(Boolean)));
 
         const rentalData: Fatura = {
             id: editingId || crypto.randomUUID(),
@@ -1034,10 +1156,19 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
             aluguerDetails: {
                 viaturaId: rentalLines[0]?.viaturaId || '',
                 viaturasIds: Array.from(new Set(rentalLines.map(l => l.viaturaId))),
+                viaturas: detailsMap.map(item => ({
+                    viaturaId: item.viaturaId,
+                    centroCustoId: item.centroCustoId,
+                    dias: item.dias,
+                    precoDia: item.precoDia,
+                    total: item.total,
+                    dataInicio: item.dataInicio,
+                    dataFim: item.dataFim
+                })),
                 dias: detailsMap.reduce((sum, d) => sum + d.dias, 0),
                 dataInicio: new Date(Math.min(...startDates)).toISOString().split('T')[0],
                 dataFim: new Date(Math.max(...endDates)).toISOString().split('T')[0],
-                centroCustoId: centroCustoId || undefined,
+                centroCustoId: uniqueCostCenters.length === 1 ? uniqueCostCenters[0] : undefined,
                 periodoReferencia: referenceToSave,
                 detalhesViaturas: detailsMap
             }
@@ -1077,18 +1208,6 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                             >
                                 <option value="">Selecione o Cliente</option>
                                 {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-400">Centro de Custo (Opcional)</label>
-                            <select
-                                value={centroCustoId}
-                                onChange={(e) => setCentroCustoId(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
-                            >
-                                <option value="">Selecione o Centro de Custo</option>
-                                {centrosCustos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                             </select>
                         </div>
 
@@ -1147,7 +1266,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                     <div>
                                                         <p className="text-white font-semibold">{v?.marca} {v?.modelo}</p>
                                                         <div className="flex items-center gap-2">
-                                                            <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(v?.precoDiario || 0)}/dia</p>
+                                                            <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(line.precoDia || 0)}/dia</p>
                                                             {(() => {
                                                                 const cv = cartrackVehicles.find(cv => cv.registration.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === v?.matricula.replace(/[^a-zA-Z0-9]/g, '').toUpperCase());
                                                                 if (cv?.currentCentroCustoName) {
@@ -1213,6 +1332,23 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
                                                     />
                                                 </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Custo/Dia (€)</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={line.precoDia}
+                                                        onChange={(e) => updateLineDetails(line.id, 'precoDia', Number(e.target.value))}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Total</label>
+                                                    <div className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-2 py-2 text-emerald-400 text-xs font-semibold">
+                                                        {formatCurrency(calculateLineTotal(line))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -1260,7 +1396,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-400">Data de Início</label>
+                            <label className="text-sm font-medium text-slate-400">Data de Início (Padrão)</label>
                             <input
                                 type="date"
                                 value={dataInicio}
@@ -1271,7 +1407,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Dias</label>
+                                <label className="text-sm font-medium text-slate-400">Dias (Padrão)</label>
                                 <input
                                     type="number"
                                     min="1"
@@ -1289,7 +1425,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                         </div>
 
                         <div className="space-y-2 md:col-span-2">
-                            <label className="text-sm font-medium text-slate-400">Centro de Custo (Opcional)</label>
+                            <label className="text-sm font-medium text-slate-400">Centro de Custo (Padrão para novas linhas)</label>
                             <select
                                 value={centroCustoId}
                                 onChange={(e) => setCentroCustoId(e.target.value)}
@@ -1319,13 +1455,17 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                     onClose={() => setIsSelectionModalOpen(false)}
                     viaturas={filteredDisplayViaturas}
                     onConfirm={(vIds) => {
-                        const newLines = vIds.map(vId => ({
+                        const newLines = vIds.map(vId => {
+                            const selectedVehicle = viaturas.find(item => item.id === vId);
+                            return {
                             id: crypto.randomUUID(),
                             viaturaId: vId,
                             centroCustoId: centroCustoId,
                             dias: dias,
-                            dataInicio: dataInicio
-                        }));
+                            dataInicio: dataInicio,
+                            precoDia: selectedVehicle?.precoDiario || 0
+                            };
+                        });
                         setRentalLines([...rentalLines, ...newLines]);
                         setIsSelectionModalOpen(false);
                     }}
@@ -1463,9 +1603,16 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                             // Group invoices by Cost Center within this Reference Group
                                             const invoicesByCC: Record<string, Fatura[]> = {};
                                             group.invoices.forEach(inv => {
-                                                const ccId = inv.aluguerDetails?.centroCustoId || 'uncategorized';
-                                                if (!invoicesByCC[ccId]) invoicesByCC[ccId] = [];
-                                                invoicesByCC[ccId].push(inv);
+                                                const detailCostCenters = (inv.aluguerDetails?.viaturas || inv.aluguerDetails?.detalhesViaturas || [])
+                                                    .map(detail => detail.centroCustoId || 'uncategorized');
+                                                const ccIds = detailCostCenters.length > 0
+                                                    ? Array.from(new Set(detailCostCenters))
+                                                    : [inv.aluguerDetails?.centroCustoId || 'uncategorized'];
+
+                                                ccIds.forEach(ccId => {
+                                                    if (!invoicesByCC[ccId]) invoicesByCC[ccId] = [];
+                                                    invoicesByCC[ccId].push(inv);
+                                                });
                                             });
 
                                             return Object.entries(invoicesByCC).map(([ccId, ccInvoices]) => {
@@ -1490,8 +1637,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                         {/* INVOICES LIST FOR THIS CC */}
                                                         {ccInvoices.map(inv => {
                                                             const vehicle = viaturas.find(v => v.id === inv.aluguerDetails?.viaturaId);
+                                                            const detailsForCostCenter = (inv.aluguerDetails?.viaturas || inv.aluguerDetails?.detalhesViaturas || [])
+                                                                .filter(detail => (detail.centroCustoId || 'uncategorized') === ccId);
+                                                            const displayDetails = detailsForCostCenter.length > 0
+                                                                ? detailsForCostCenter
+                                                                : (inv.aluguerDetails?.viaturas || inv.aluguerDetails?.detalhesViaturas || []);
                                                             return (
-                                                                <tr key={inv.id} className="bg-slate-900/30 hover:bg-slate-800/30 transition-colors animate-in fade-in slide-in-from-top-1 border-b border-slate-800/50">
+                                                                <tr key={`${inv.id}-${ccId}`} className="bg-slate-900/30 hover:bg-slate-800/30 transition-colors animate-in fade-in slide-in-from-top-1 border-b border-slate-800/50">
                                                                     <td className="px-6 py-4 pl-12 border-l-4 border-slate-800" colSpan={7}>
                                                                         <div className="grid grid-cols-12 items-center gap-4">
                                                                             <div className="col-span-4">
@@ -1504,12 +1656,12 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                                                     )}
                                                                                 </div>
                                                                                 <div className="text-slate-300 mt-1">
-                                                                                    {inv.aluguerDetails?.viaturasIds ? (
+                                                                                    {displayDetails.length > 0 ? (
                                                                                         <div className="space-y-1">
-                                                                                            {inv.aluguerDetails.viaturasIds.map((vid: string) => {
-                                                                                                const v = viaturas.find(vi => vi.id === vid);
+                                                                                            {displayDetails.map((detail, detailIndex) => {
+                                                                                                const v = viaturas.find(vi => vi.id === detail.viaturaId);
                                                                                                 return v ? (
-                                                                                                    <div key={vid} className="text-sm flex items-center gap-2">
+                                                                                                    <div key={`${inv.id}-${ccId}-${detail.viaturaId}-${detail.dataInicio}-${detailIndex}`} className="text-sm flex items-center gap-2">
                                                                                                         <span>{v.marca} {v.modelo}</span>
                                                                                                         <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{v.matricula}</span>
                                                                                                     </div>

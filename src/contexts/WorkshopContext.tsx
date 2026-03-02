@@ -2959,20 +2959,31 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     continue;
                 }
 
+                const precoDia = viatura.precoDiario || 0;
+
                 const rentalData = {
                     numero: `AUTO-${today.replace(/-/g, '')}-${v.registration.replace(/[^a-zA-Z0-9]/g, '').slice(-4)}`,
                     data: today,
                     vencimento: today,
                     clienteId: null, // Set to null for internal auto-sync to avoid FKEY issues
                     status: 'emitida',
-                    subtotal: viatura.precoDiario || 0,
-                    imposto: (viatura.precoDiario || 0) * 0.23,
+                    subtotal: precoDia,
+                    imposto: precoDia * 0.23,
                     desconto: 0,
-                    total: (viatura.precoDiario || 0) * 1.23,
+                    total: precoDia * 1.23,
                     tipo: 'aluguer',
                     aluguerDetails: {
                         viaturaId: viatura.id,
                         viaturasIds: [viatura.id],
+                        viaturas: [{
+                            viaturaId: viatura.id,
+                            dias: 1,
+                            dataInicio: today,
+                            dataFim: today,
+                            precoDia,
+                            total: precoDia,
+                            centroCustoId: v.currentCentroCustoId
+                        }],
                         dias: 1,
                         dataInicio: today,
                         dataFim: today,
@@ -2982,7 +2993,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             dias: 1,
                             dataInicio: today,
                             dataFim: today,
-                            precoDiario: viatura.precoDiario || 0,
+                            precoDia,
+                            total: precoDia,
+                            precoDiario: precoDia,
                             centroCustoId: v.currentCentroCustoId
                         }]
                     }

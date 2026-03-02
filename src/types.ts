@@ -460,6 +460,15 @@ export interface Fatura {
     aluguerDetails?: {
         viaturaId: string;
         viaturasIds?: string[]; // New: support multiple vehicles
+        viaturas?: {
+            viaturaId: string;
+            centroCustoId?: string;
+            dias: number;
+            precoDia: number;
+            total: number;
+            dataInicio?: string;
+            dataFim?: string;
+        }[];
         dias: number;
         dataInicio: string;
         dataFim: string;
@@ -470,7 +479,9 @@ export interface Fatura {
             dias: number;
             dataInicio: string;
             dataFim: string;
-            precoDiario: number;
+            precoDia: number;
+            total: number;
+            precoDiario?: number;
             centroCustoId?: string;
         }[];
     };
