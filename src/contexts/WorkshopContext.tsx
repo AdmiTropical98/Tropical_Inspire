@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional, EscalaTemplate, EscalaTemplateItem } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
@@ -106,6 +106,7 @@ interface WorkshopContextType {
     deleteStockItem: (id: string) => Promise<void>;
     createStockMovement: (movement: Omit<import('../types').StockMovement, 'id' | 'created_at'>) => Promise<void>;
     refreshInventoryData: () => Promise<void>;
+    syncStockRequisitionsToInventory: () => Promise<{ processed: number; failed: number }>;
 
     // Workshop Assets
     workshopAssets: import('../types').WorkshopAsset[];
@@ -252,6 +253,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     // COMPLIANCE LOGIC
     const [complianceStats, setComplianceStats] = useState<Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>>({});
     const [geofenceMappings, setGeofenceMappings] = useState<Record<string, string>>({});
+    const stockSyncInProgressReqIdsRef = useRef<Set<string>>(new Set());
+    const stockBackfillRunningRef = useRef(false);
+    const stockAutoAttemptedReqIdsRef = useRef<Set<string>>(new Set());
+    const stockItemsTableRef = useRef<'stock_items' | 'workshop_items'>('stock_items');
 
     // Helper: Haversine Distance (km)
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -1780,6 +1785,422 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!error) setViaturas(prev => prev.filter(v => v.id !== id));
     };
 
+    const syncStockFromRequisition = async (
+        requisicao: Requisicao,
+        options?: { notifyOnFailure?: boolean }
+    ): Promise<{ failedItems: string[] }> => {
+        if (requisicao.tipo !== 'Stock' || !Array.isArray(requisicao.itens) || requisicao.itens.length === 0) {
+            return { failedItems: [] };
+        }
+
+        const { data: existingReqEntries } = await supabase
+            .from('stock_movements')
+            .select('item_id')
+            .eq('source_document', 'requisition')
+            .eq('movement_type', 'entry')
+            .eq('document_id', requisicao.id);
+
+        const existingEntryItemIds = new Set((existingReqEntries || []).map((entry: any) => String(entry.item_id)));
+
+        const normalizeStockName = (value: string) => value
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim();
+
+        const isMissingTableError = (error: any, table: 'stock_items' | 'workshop_items') => {
+            if (!error) return false;
+            const message = String(error.message || '').toLowerCase();
+            return message.includes(`public.${table}`) || message.includes(`relation \"public.${table}\"`);
+        };
+
+        let stockItemsTable: 'stock_items' | 'workshop_items' = stockItemsTableRef.current;
+
+        const switchToLegacyTable = () => {
+            stockItemsTable = 'workshop_items';
+            stockItemsTableRef.current = 'workshop_items';
+        };
+
+        const fetchStockItemsFromDb = async () => {
+            let response = await supabase
+                .from(stockItemsTable)
+                .select('*, supplier:fornecedores(*)');
+
+            if (isMissingTableError(response.error, 'stock_items') && stockItemsTable === 'stock_items') {
+                switchToLegacyTable();
+                response = await supabase
+                    .from(stockItemsTable)
+                    .select('*, supplier:fornecedores(*)');
+            }
+
+            return response;
+        };
+
+        const { data: existingDbItems } = await fetchStockItemsFromDb();
+
+        const baseStockItems = (existingDbItems && existingDbItems.length > 0)
+            ? existingDbItems
+            : stockItems;
+
+        const requisicoesForSync = requisicoes.some(req => req.id === requisicao.id)
+            ? requisicoes
+            : [requisicao, ...requisicoes];
+
+        const stockByName = new Map(
+            baseStockItems
+                .filter(item => item.name?.trim())
+                .map(item => [normalizeStockName(item.name.trim()), item])
+        );
+
+        const failedItems: string[] = [];
+        const failedDetails: string[] = [];
+
+        const registerFailure = (description: string, reason?: string) => {
+            failedItems.push(description);
+            if (reason) {
+                failedDetails.push(`${description} (${reason})`);
+            } else {
+                failedDetails.push(description);
+            }
+        };
+
+        for (const requisitionItem of requisicao.itens) {
+            const description = requisitionItem.descricao?.trim();
+            const quantity = Number(requisitionItem.quantidade ?? 0);
+
+            if (!description || !Number.isFinite(quantity) || quantity <= 0) {
+                continue;
+            }
+
+            const valueTotal = Number(requisitionItem.valor_total ?? 0);
+            const valueUnit = Number(requisitionItem.valor_unitario ?? 0);
+            const unitCost = Number.isFinite(valueUnit) && valueUnit > 0
+                ? valueUnit
+                : (Number.isFinite(valueTotal) && valueTotal > 0
+                    ? valueTotal / quantity
+                    : 0);
+
+            const normalizedName = normalizeStockName(description);
+            let stockItem = stockByName.get(normalizedName);
+
+            if (!stockItem) {
+                let { data: newStockItem, error: stockItemError } = await supabase
+                    .from(stockItemsTable)
+                    .insert({
+                        name: description,
+                        category: 'Requisição',
+                        stock_quantity: 0,
+                        minimum_stock: 0,
+                        average_cost: unitCost,
+                        supplier_id: requisicao.fornecedorId || null
+                    })
+                    .select('*, supplier:fornecedores(*)')
+                    .single();
+
+                if (isMissingTableError(stockItemError, 'stock_items') && stockItemsTable === 'stock_items') {
+                    switchToLegacyTable();
+                    const retryWithLegacyTable = await supabase
+                        .from(stockItemsTable)
+                        .insert({
+                            name: description,
+                            category: 'Requisição',
+                            stock_quantity: 0,
+                            minimum_stock: 0,
+                            average_cost: unitCost,
+                            supplier_id: requisicao.fornecedorId || null
+                        })
+                        .select('*, supplier:fornecedores(*)')
+                        .single();
+
+                    newStockItem = retryWithLegacyTable.data;
+                    stockItemError = retryWithLegacyTable.error;
+                }
+
+                const isSupplierFkError = !!stockItemError && stockItemError.code === '23503' && (stockItemError.message || '').toLowerCase().includes('supplier_id');
+
+                if ((stockItemError || !newStockItem) && isSupplierFkError) {
+                    const retryInsert = await supabase
+                        .from(stockItemsTable)
+                        .insert({
+                            name: description,
+                            category: 'Requisição',
+                            stock_quantity: 0,
+                            minimum_stock: 0,
+                            average_cost: unitCost,
+                            supplier_id: null
+                        })
+                        .select('*, supplier:fornecedores(*)')
+                        .single();
+
+                    newStockItem = retryInsert.data;
+                    stockItemError = retryInsert.error;
+                }
+
+                if (stockItemError || !newStockItem) {
+                    const searchToken = description.replace(/[%_]/g, ' ').trim();
+                    let existingByNameResponse = await supabase
+                        .from(stockItemsTable)
+                        .select('*, supplier:fornecedores(*)')
+                        .ilike('name', `%${searchToken}%`)
+                        .limit(25);
+
+                    if (isMissingTableError(existingByNameResponse.error, 'stock_items') && stockItemsTable === 'stock_items') {
+                        switchToLegacyTable();
+                        existingByNameResponse = await supabase
+                            .from(stockItemsTable)
+                            .select('*, supplier:fornecedores(*)')
+                            .ilike('name', `%${searchToken}%`)
+                            .limit(25);
+                    }
+
+                    const existingByNameCandidates = existingByNameResponse.data;
+
+                    const existingByName = (existingByNameCandidates || []).find((candidate: any) => {
+                        const candidateNormalized = normalizeStockName(String(candidate?.name || ''));
+                        return candidateNormalized === normalizedName
+                            || candidateNormalized.includes(normalizedName)
+                            || normalizedName.includes(candidateNormalized);
+                    }) || (existingByNameCandidates || [])[0];
+
+                    if (!existingByName) {
+                        console.error('Error creating stock item from requisition:', stockItemError);
+                        registerFailure(description, stockItemError?.message || stockItemError?.code || 'erro a criar item');
+                        continue;
+                    }
+
+                    stockItem = existingByName as import('../types').StockItem;
+                } else {
+                    stockItem = newStockItem as import('../types').StockItem;
+                }
+
+                stockByName.set(normalizedName, stockItem);
+
+                setStockItems(prev => {
+                    if (prev.some(item => item.id === stockItem!.id)) {
+                        return prev.map(item => item.id === stockItem!.id ? stockItem! : item);
+                    }
+                    return [...prev, stockItem!];
+                });
+            }
+
+            const { count: reqEntryCount } = await supabase
+                .from('stock_movements')
+                .select('id', { count: 'exact', head: true })
+                .eq('source_document', 'requisition')
+                .eq('movement_type', 'entry')
+                .eq('item_id', stockItem.id);
+
+            const { count: nonReqOrNonEntryCount } = await supabase
+                .from('stock_movements')
+                .select('id', { count: 'exact', head: true })
+                .eq('item_id', stockItem.id)
+                .or('source_document.neq.requisition,movement_type.neq.entry');
+
+            const hasAnyReqEntryForItem = Number(reqEntryCount || 0) > 0;
+            const hasOtherMovementTypes = Number(nonReqOrNonEntryCount || 0) > 0;
+
+            const expectedQtyFromStockRequisitions = requisicoesForSync
+                .filter(req => req.tipo === 'Stock')
+                .reduce((sum, req) => {
+                    const reqItems = Array.isArray(req.itens) ? req.itens : [];
+                    const reqItemQty = reqItems.reduce((itemSum, reqItem) => {
+                        const reqDescription = reqItem.descricao?.trim();
+                        const reqNormalized = reqDescription ? normalizeStockName(reqDescription) : '';
+                        if (!reqNormalized || reqNormalized !== normalizedName) {
+                            return itemSum;
+                        }
+
+                        const reqQuantity = Number(reqItem.quantidade ?? 0);
+                        if (!Number.isFinite(reqQuantity) || reqQuantity <= 0) {
+                            return itemSum;
+                        }
+
+                        return itemSum + reqQuantity;
+                    }, 0);
+
+                    return sum + reqItemQty;
+                }, 0);
+
+            if (expectedQtyFromStockRequisitions > 0 && !hasOtherMovementTypes) {
+                const currentQty = Number(stockItem.stock_quantity ?? 0);
+                const shouldReconcile = !hasAnyReqEntryForItem
+                    ? currentQty > expectedQtyFromStockRequisitions
+                    : currentQty !== expectedQtyFromStockRequisitions;
+
+                if (shouldReconcile) {
+                    const { data: reconciledItem, error: reconcileError } = await supabase
+                        .from(stockItemsTable)
+                        .update({ stock_quantity: expectedQtyFromStockRequisitions })
+                        .eq('id', stockItem.id)
+                        .select('*, supplier:fornecedores(*)')
+                        .single();
+
+                    if (!reconcileError && reconciledItem) {
+                        stockItem = reconciledItem as import('../types').StockItem;
+                        stockByName.set(normalizedName, stockItem);
+                        setStockItems(prev => {
+                            if (prev.some(item => item.id === stockItem!.id)) {
+                                return prev.map(item => item.id === stockItem!.id ? stockItem! : item);
+                            }
+                            return [...prev, stockItem!];
+                        });
+                    }
+                }
+            }
+
+            if (existingEntryItemIds.has(String(stockItem.id))) {
+                continue;
+            }
+
+            const { data: movementData, error: movementError } = await supabase
+                .from('stock_movements')
+                .insert({
+                    item_id: stockItem.id,
+                    movement_type: 'entry',
+                    quantity,
+                    average_cost_at_time: unitCost,
+                    source_document: 'requisition',
+                    document_id: requisicao.id,
+                    notes: `Requisicao Stock: ${requisicao.numero}`
+                })
+                .select('*, item:stock_items(*)')
+                .single();
+
+            if (movementError || !movementData) {
+                const isDuplicateMovement = !!movementError && (
+                    movementError.code === '23505'
+                    || (movementError.message || '').toLowerCase().includes('duplicate')
+                );
+
+                if (isDuplicateMovement) {
+                    existingEntryItemIds.add(String(stockItem.id));
+                    continue;
+                }
+
+                const { data: currentItem } = await supabase
+                    .from(stockItemsTable)
+                    .select('id, stock_quantity, average_cost, supplier_id, name')
+                    .eq('id', stockItem.id)
+                    .single();
+
+                if (!currentItem) {
+                    console.error('Error creating stock movement from requisition:', movementError);
+                    registerFailure(description, movementError?.message || movementError?.code || 'erro ao criar movimento');
+                    continue;
+                }
+
+                const currentQty = Number(currentItem.stock_quantity ?? 0);
+                const currentAvg = Number(currentItem.average_cost ?? 0);
+                const safeUnitCost = Number.isFinite(unitCost) && unitCost >= 0 ? unitCost : 0;
+                const targetQtyFromRequisitions = expectedQtyFromStockRequisitions > 0
+                    ? expectedQtyFromStockRequisitions
+                    : (currentQty + quantity);
+                const newQty = Math.max(currentQty, targetQtyFromRequisitions);
+                const newAvg = newQty > 0
+                    ? ((currentQty * currentAvg) + (quantity * safeUnitCost)) / newQty
+                    : currentAvg;
+
+                const stockUpdatePayload: any = {
+                    stock_quantity: newQty,
+                    average_cost: Number(newAvg.toFixed(6))
+                };
+
+                if (!currentItem.supplier_id && requisicao.fornecedorId) {
+                    stockUpdatePayload.supplier_id = requisicao.fornecedorId;
+                }
+
+                let { data: fallbackUpdatedItem, error: fallbackUpdateError } = await supabase
+                    .from(stockItemsTable)
+                    .update(stockUpdatePayload)
+                    .eq('id', stockItem.id)
+                    .select('*, supplier:fornecedores(*)')
+                    .single();
+
+                if (isMissingTableError(fallbackUpdateError, 'stock_items') && stockItemsTable === 'stock_items') {
+                    switchToLegacyTable();
+                    const retryFallbackWithLegacyTable = await supabase
+                        .from(stockItemsTable)
+                        .update(stockUpdatePayload)
+                        .eq('id', stockItem.id)
+                        .select('*, supplier:fornecedores(*)')
+                        .single();
+
+                    fallbackUpdatedItem = retryFallbackWithLegacyTable.data;
+                    fallbackUpdateError = retryFallbackWithLegacyTable.error;
+                }
+
+                const isFallbackSupplierFkError = !!fallbackUpdateError && fallbackUpdateError.code === '23503' && (fallbackUpdateError.message || '').toLowerCase().includes('supplier_id');
+
+                if ((fallbackUpdateError || !fallbackUpdatedItem) && isFallbackSupplierFkError) {
+                    delete stockUpdatePayload.supplier_id;
+                    const retryFallback = await supabase
+                        .from(stockItemsTable)
+                        .update(stockUpdatePayload)
+                        .eq('id', stockItem.id)
+                        .select('*, supplier:fornecedores(*)')
+                        .single();
+
+                    fallbackUpdatedItem = retryFallback.data;
+                    fallbackUpdateError = retryFallback.error;
+                }
+
+                if (fallbackUpdateError || !fallbackUpdatedItem) {
+                    console.error('Error creating stock movement from requisition:', movementError);
+                    console.error('Fallback stock quantity update failed:', fallbackUpdateError);
+                    registerFailure(description, fallbackUpdateError?.message || movementError?.message || movementError?.code || 'erro fallback de stock');
+                    continue;
+                }
+
+                existingEntryItemIds.add(String(stockItem.id));
+
+                setStockItems(prev => {
+                    if (prev.some(item => item.id === fallbackUpdatedItem.id)) {
+                        return prev.map(item => item.id === fallbackUpdatedItem.id ? fallbackUpdatedItem as import('../types').StockItem : item);
+                    }
+                    return [...prev, fallbackUpdatedItem as import('../types').StockItem];
+                });
+
+                const normalizedUpdatedName = fallbackUpdatedItem.name?.trim() ? normalizeStockName(fallbackUpdatedItem.name.trim()) : '';
+                if (normalizedUpdatedName) {
+                    stockByName.set(normalizedUpdatedName, fallbackUpdatedItem as import('../types').StockItem);
+                }
+
+                continue;
+            }
+
+            setStockMovements(prev => [movementData as import('../types').StockMovement, ...prev]);
+            existingEntryItemIds.add(String(stockItem.id));
+
+            const { data: updatedItem } = await supabase
+                .from(stockItemsTable)
+                .select('*, supplier:fornecedores(*)')
+                .eq('id', stockItem.id)
+                .single();
+
+            if (updatedItem) {
+                const normalizedUpdatedName = updatedItem.name?.trim().toLowerCase();
+                if (normalizedUpdatedName) {
+                    stockByName.set(normalizedUpdatedName, updatedItem as import('../types').StockItem);
+                }
+
+                setStockItems(prev => {
+                    if (prev.some(item => item.id === updatedItem.id)) {
+                        return prev.map(item => item.id === updatedItem.id ? updatedItem as import('../types').StockItem : item);
+                    }
+                    return [...prev, updatedItem as import('../types').StockItem];
+                });
+            }
+        }
+
+        if (failedItems.length > 0 && options?.notifyOnFailure) {
+            const detailsPreview = failedDetails.slice(0, 3).join(' | ');
+            alert(`Alguns itens de Stock não foram criados automaticamente: ${detailsPreview}${failedDetails.length > 3 ? ' | ...' : ''}`);
+        }
+
+        return { failedItems };
+    };
+
     const addRequisicao = async (r: Requisicao) => {
         const { error } = await supabase.from('requisicoes').insert({
             id: r.id,
@@ -1801,7 +2222,79 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             return;
         }
         setRequisicoes(prev => [{ ...r, status: r.status || 'pendente' }, ...prev]);
+
+        if (r.tipo === 'Stock') {
+            stockSyncInProgressReqIdsRef.current.add(r.id);
+            try {
+                await syncStockFromRequisition(r, { notifyOnFailure: true });
+            } finally {
+                stockSyncInProgressReqIdsRef.current.delete(r.id);
+            }
+        }
     };
+
+    const runStockRequisitionsSync = async (mode: 'auto' | 'manual'): Promise<{ processed: number; failed: number }> => {
+        if (stockBackfillRunningRef.current) {
+            return { processed: 0, failed: 0 };
+        }
+
+        const stockRequisitions = requisicoes.filter(req => req.tipo === 'Stock');
+        if (stockRequisitions.length === 0) {
+            return { processed: 0, failed: 0 };
+        }
+
+        stockBackfillRunningRef.current = true;
+        let processed = 0;
+        let failed = 0;
+
+        try {
+            const candidateRequisitions = stockRequisitions.filter(req => {
+                if (stockSyncInProgressReqIdsRef.current.has(req.id)) return false;
+                if (mode === 'auto' && stockAutoAttemptedReqIdsRef.current.has(req.id)) return false;
+                return true;
+            });
+            if (candidateRequisitions.length === 0) return { processed: 0, failed: 0 };
+
+            for (const requisicao of candidateRequisitions) {
+                stockSyncInProgressReqIdsRef.current.add(requisicao.id);
+                try {
+                    const result = await syncStockFromRequisition(requisicao, {
+                        notifyOnFailure: mode === 'manual'
+                    });
+                    if (result.failedItems.length > 0) {
+                        failed += 1;
+                    } else {
+                        processed += 1;
+                    }
+                } catch (syncError) {
+                    failed += 1;
+                    console.error('Error syncing requisition to stock:', requisicao.id, syncError);
+                } finally {
+                    stockSyncInProgressReqIdsRef.current.delete(requisicao.id);
+                    if (mode === 'auto') {
+                        stockAutoAttemptedReqIdsRef.current.add(requisicao.id);
+                    }
+                }
+            }
+
+            return { processed, failed };
+        } finally {
+            stockBackfillRunningRef.current = false;
+        }
+    };
+
+    const syncStockRequisitionsToInventory = async (): Promise<{ processed: number; failed: number }> => {
+        return runStockRequisitionsSync('manual');
+    };
+
+    useEffect(() => {
+        const stockRequisitions = requisicoes.filter(req => req.tipo === 'Stock');
+        if (stockRequisitions.length === 0 || stockBackfillRunningRef.current) {
+            return;
+        }
+
+        void runStockRequisitionsSync('auto');
+    }, [requisicoes]);
     const updateRequisicao = async (r: Requisicao) => {
         const { error } = await supabase.from('requisicoes').update({
             data: r.data,
@@ -1891,28 +2384,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             )
         );
 
-        // Integration: Creating Stock Exit movements for Requisition parts
-        if (newStatus === 'concluida') {
-            for (const item of r.itens) {
-                // Try to find matching stock item by name or SKU
-                const stockItem = stockItems.find(wi =>
-                    (wi.sku && item.descricao.toLowerCase().includes(wi.sku.toLowerCase())) ||
-                    wi.name.toLowerCase() === item.descricao.toLowerCase()
-                );
-
-                if (stockItem) {
-                    await createStockMovement({
-                        item_id: stockItem.id,
-                        movement_type: 'exit',
-                        quantity: item.quantidade,
-                        average_cost_at_time: stockItem.average_cost,
-                        source_document: 'requisition',
-                        document_id: id,
-                        notes: `Requisicao: ${r.numero}`
-                    });
-                }
-            }
-        }
     };
 
     const addStockItem = async (item: Omit<import('../types').StockItem, 'id' | 'created_at' | 'updated_at'>) => {
@@ -2690,6 +3161,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             assignWorkshopAsset,
             createStockMovement,
             refreshInventoryData,
+            syncStockRequisitionsToInventory,
             locais,
             addServico,
             updateServico,

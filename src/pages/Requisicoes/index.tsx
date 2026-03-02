@@ -18,13 +18,14 @@ import { ClipboardCheck } from 'lucide-react';
 
 export default function Requisicoes() {
     const navigate = useNavigate();
-    const { requisicoes, fornecedores, viaturas, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos } = useWorkshop();
+    const { requisicoes, fornecedores, viaturas, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
     const { supplierInvoices } = useFinancial();
     const { currentUser, userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
     const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [isSyncingStock, setIsSyncingStock] = useState(false);
 
     // Edit Request State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -241,6 +242,31 @@ export default function Requisicoes() {
         setObs('');
         setItems([]);
         setActiveTab('list');
+    };
+
+    const handleManualStockSync = async () => {
+        if (isSyncingStock) return;
+
+        setIsSyncingStock(true);
+        try {
+            const result = await syncStockRequisitionsToInventory();
+            if (result.failed > 0) {
+                alert(`Sincronização concluída com alertas. Processadas: ${result.processed}, falhadas: ${result.failed}.`);
+                return;
+            }
+
+            if (result.processed === 0) {
+                alert('Não existem requisições Stock pendentes de sincronização.');
+                return;
+            }
+
+            alert(`Sincronização concluída. Requisições Stock processadas: ${result.processed}.`);
+        } catch (error) {
+            console.error('Erro ao sincronizar requisições Stock:', error);
+            alert('Ocorreu um erro ao sincronizar requisições Stock.');
+        } finally {
+            setIsSyncingStock(false);
+        }
     };
 
     const totalRequisicao = items.reduce((sum, item) => sum + (item.valor_total || 0), 0);
@@ -821,24 +847,39 @@ export default function Requisicoes() {
                 subtitle={t('req.subtitle')}
                 icon={ClipboardCheck}
             >
-                <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
-                    {[
-                        { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
-                        { id: 'list', icon: List, label: 'Lista' },
-                        { id: 'create', icon: PlusCircle, label: 'Nova' },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
+                <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+                    <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
+                        {[
+                            { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
+                            { id: 'list', icon: List, label: 'Lista' },
+                            { id: 'create', icon: PlusCircle, label: 'Nova' },
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
                             ${activeTab === tab.id
-                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                            >
+                                <tab.icon className="w-4 h-4" />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {hasAccess(userRole, 'requisicoes_edit') && (
+                        <button
+                            type="button"
+                            onClick={handleManualStockSync}
+                            disabled={isSyncingStock}
+                            className="px-4 py-2.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 hover:text-indigo-200 text-sm font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 w-fit"
+                            title="Sincronizar requisições Stock para Stock de Peças"
                         >
-                            <tab.icon className="w-4 h-4" />
-                            {tab.label}
+                            <RotateCcw className={`w-4 h-4 ${isSyncingStock ? 'animate-spin' : ''}`} />
+                            {isSyncingStock ? 'A sincronizar...' : 'Sincronizar Stock'}
                         </button>
-                    ))}
+                    )}
                 </div>
             </PageHeader>
 
