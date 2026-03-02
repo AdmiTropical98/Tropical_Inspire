@@ -4,6 +4,7 @@ import type { Fatura } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import VehicleSelectionModal from './VehicleSelectionModal';
 
 interface AlugueresProps {
@@ -15,6 +16,7 @@ interface AlugueresProps {
 
 export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh }: AlugueresProps) {
     const { viaturas, centrosCustos, clientes, getVehicleOccupancyHistory, cartrackVehicles, syncRealTimeRentals } = useWorkshop();
+    const BASE_TEMPLATE_KEY = '__base_template__';
 
     // Filter duplicates: Keep only used vehicles if duplicates exist
     const filteredDisplayViaturas = (() => {
@@ -60,6 +62,20 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
         precoDia: number;
     }
 
+    interface RentalTemplateLine {
+        viaturaId: string;
+        centroCustoId: string;
+        dias: number;
+        dataInicio: string;
+        precoDia: number;
+    }
+
+    interface RentalTemplate {
+        name: string;
+        lines: RentalTemplateLine[];
+        vehicleIds?: string[];
+    }
+
     // Rental Form State
     const [editingId, setEditingId] = useState<string | null>(null); // EDIT MODE ID
     const [clienteId, setClienteId] = useState('');
@@ -75,9 +91,53 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
 
     // Templates State
-    const [templates, setTemplates] = useState<{ name: string, vehicleIds: string[] }[]>(() => {
+    const [templates, setTemplates] = useState<RentalTemplate[]>(() => {
         const saved = localStorage.getItem('rental_templates');
-        return saved ? JSON.parse(saved) : [];
+        if (!saved) return [];
+
+        try {
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed)) return [];
+
+            return parsed
+                .map((template: any): RentalTemplate | null => {
+                    if (!template?.name) return null;
+
+                    if (Array.isArray(template.lines) && template.lines.length > 0) {
+                        const normalizedLines = template.lines
+                            .filter((line: any) => !!line?.viaturaId)
+                            .map((line: any) => ({
+                                viaturaId: line.viaturaId,
+                                centroCustoId: line.centroCustoId || '',
+                                dias: Math.max(1, Number(line.dias) || 1),
+                                dataInicio: line.dataInicio || new Date().toISOString().split('T')[0],
+                                precoDia: Math.max(0, Number(line.precoDia) || 0)
+                            }));
+
+                        if (normalizedLines.length === 0) return null;
+                        return { name: template.name, lines: normalizedLines };
+                    }
+
+                    if (Array.isArray(template.vehicleIds) && template.vehicleIds.length > 0) {
+                        return {
+                            name: template.name,
+                            lines: template.vehicleIds.map((viaturaId: string) => ({
+                                viaturaId,
+                                centroCustoId: '',
+                                dias: 1,
+                                dataInicio: new Date().toISOString().split('T')[0],
+                                precoDia: 0
+                            })),
+                            vehicleIds: template.vehicleIds
+                        };
+                    }
+
+                    return null;
+                })
+                .filter(Boolean) as RentalTemplate[];
+        } catch {
+            return [];
+        }
     });
     const [newTemplateName, setNewTemplateName] = useState('');
     const [showSaveTemplate, setShowSaveTemplate] = useState(false);
@@ -151,6 +211,49 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
         setExpandedGroups(newExpanded);
     };
 
+    const buildBaseTemplateLines = (): RentalTemplateLine[] => {
+        const today = new Date().toISOString().split('T')[0];
+        const sourceVehicles = filteredDisplayViaturas.slice(0, 3);
+
+        return sourceVehicles.map(vehicle => ({
+            viaturaId: vehicle.id,
+            centroCustoId: vehicle.centro_custo_id || '',
+            dias: dias > 0 ? dias : 1,
+            dataInicio: dataInicio || today,
+            precoDia: vehicle.precoDiario || 0
+        }));
+    };
+
+    const handleDownloadTemplateModel = () => {
+        const lines = buildBaseTemplateLines();
+        if (lines.length === 0) {
+            alert('Não existem viaturas disponíveis para gerar o template base.');
+            return;
+        }
+
+        const rows = lines.map(line => {
+            const vehicle = viaturas.find(v => v.id === line.viaturaId);
+            const costCenter = centrosCustos.find(cc => cc.id === line.centroCustoId);
+
+            return {
+                ViaturaId: line.viaturaId,
+                Matricula: vehicle?.matricula || '',
+                Marca: vehicle?.marca || '',
+                Modelo: vehicle?.modelo || '',
+                CentroCustoId: line.centroCustoId || '',
+                CentroCusto: costCenter?.nome || '',
+                DataInicio: line.dataInicio,
+                Dias: line.dias,
+                CustoDiaEUR: line.precoDia
+            };
+        });
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Aluguer');
+        XLSX.writeFile(workbook, 'template_aluguer_viaturas.xlsx');
+    };
+
     // ... (keep handleSaveTemplate, handleLoadTemplate, filteredInvoices, handleAddViatura, handleRemoveViatura, getVehicleSettings, updateVehicleDetails, calculateTotalDaily, calculateGrandTotal) ...
 
     const handleEdit = (invoice: Fatura) => {
@@ -195,9 +298,29 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
     const handleSaveTemplate = () => {
         if (!newTemplateName) return;
-        const vehicleIds = Array.from(new Set(rentalLines.map(l => l.viaturaId)));
-        const newTemplate = { name: newTemplateName, vehicleIds };
-        const updated = [...templates, newTemplate];
+
+        const normalizedName = newTemplateName.trim();
+        if (!normalizedName) return;
+
+        const templateLines: RentalTemplateLine[] = rentalLines.map(line => ({
+            viaturaId: line.viaturaId,
+            centroCustoId: line.centroCustoId || '',
+            dias: Math.max(1, Number(line.dias) || 1),
+            dataInicio: line.dataInicio,
+            precoDia: Math.max(0, Number(line.precoDia) || 0)
+        }));
+
+        const newTemplate: RentalTemplate = {
+            name: normalizedName,
+            lines: templateLines,
+            vehicleIds: Array.from(new Set(templateLines.map(line => line.viaturaId)))
+        };
+
+        const updated = [
+            ...templates.filter(template => template.name !== normalizedName),
+            newTemplate
+        ];
+
         setTemplates(updated);
         localStorage.setItem('rental_templates', JSON.stringify(updated));
         setNewTemplateName('');
@@ -205,19 +328,58 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
     };
 
     const handleLoadTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if (e.target.value === BASE_TEMPLATE_KEY) {
+            const baseLines = buildBaseTemplateLines();
+            if (baseLines.length === 0) {
+                alert('Não existem viaturas disponíveis para carregar o template base.');
+                return;
+            }
+
+            setRentalLines(baseLines.map(line => ({
+                id: crypto.randomUUID(),
+                viaturaId: line.viaturaId,
+                centroCustoId: line.centroCustoId,
+                dias: line.dias,
+                dataInicio: line.dataInicio,
+                precoDia: line.precoDia
+            })));
+            return;
+        }
+
         const template = templates.find(t => t.name === e.target.value);
         if (template) {
-            setRentalLines(template.vehicleIds.map(vId => {
-                const selectedVehicle = viaturas.find(v => v.id === vId);
+            const sourceLines = template.lines.length > 0
+                ? template.lines
+                : (template.vehicleIds || []).map(vId => ({
+                    viaturaId: vId,
+                    centroCustoId: '',
+                    dias,
+                    dataInicio,
+                    precoDia: viaturas.find(v => v.id === vId)?.precoDiario || 0
+                }));
+
+            const loadedLines: RentalLine[] = sourceLines.map(line => {
+                const selectedVehicle = viaturas.find(v => v.id === line.viaturaId);
                 return {
-                id: crypto.randomUUID(),
-                viaturaId: vId,
-                centroCustoId: '',
-                dias: dias,
-                dataInicio: dataInicio,
-                precoDia: selectedVehicle?.precoDiario || 0
+                    id: crypto.randomUUID(),
+                    viaturaId: line.viaturaId,
+                    centroCustoId: line.centroCustoId || '',
+                    dias: Math.max(1, Number(line.dias) || 1),
+                    dataInicio: line.dataInicio || dataInicio,
+                    precoDia: Number(line.precoDia) > 0 ? Number(line.precoDia) : (selectedVehicle?.precoDiario || 0)
                 };
-            }));
+            });
+
+            setRentalLines(loadedLines);
+
+            if (loadedLines.length > 0) {
+                const firstLine = loadedLines[0];
+                setDataInicio(firstLine.dataInicio);
+                setDias(firstLine.dias);
+
+                const uniqueCostCenters = Array.from(new Set(loadedLines.map(line => line.centroCustoId).filter(Boolean)));
+                setCentroCustoId(uniqueCostCenters.length === 1 ? uniqueCostCenters[0] : '');
+            }
         }
     };
 
@@ -1364,8 +1526,16 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                         className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
                                     >
                                         <option value="">Carregar Kit Salvo...</option>
-                                        {templates.map(t => <option key={t.name} value={t.name}>{t.name} ({t.vehicleIds.length} viaturas)</option>)}
+                                        <option value={BASE_TEMPLATE_KEY}>Template Base (rápido)</option>
+                                        {templates.map(t => <option key={t.name} value={t.name}>{t.name} ({t.lines.length} linha(s))</option>)}
                                     </select>
+                                    <button
+                                        onClick={handleDownloadTemplateModel}
+                                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 text-sm"
+                                        title="Baixar template base em Excel"
+                                    >
+                                        Baixar Excel
+                                    </button>
                                     <button
                                         onClick={() => setShowSaveTemplate(!showSaveTemplate)}
                                         disabled={rentalLines.length === 0}
