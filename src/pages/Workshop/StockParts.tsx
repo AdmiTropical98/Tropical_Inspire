@@ -3,16 +3,27 @@ import {
     Plus, Search, AlertTriangle, Box,
     ArrowUpRight, MoreHorizontal,
     Settings, History, Package,
-    Tag, DollarSign, Layers
+    Tag, DollarSign, Layers, X
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { formatCurrency } from '../../utils/format';
 
 export default function StockParts() {
-    const { stockItems, refreshInventoryData } = useWorkshop();
+    const { stockItems, refreshInventoryData, addStockItem } = useWorkshop();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [newPart, setNewPart] = useState({
+        name: '',
+        sku: '',
+        category: '',
+        stock_quantity: 0,
+        minimum_stock: 0,
+        average_cost: 0,
+        location: ''
+    });
 
     const categories = Array.from(new Set(stockItems.map(item => item.category).filter(Boolean)));
 
@@ -24,6 +35,37 @@ export default function StockParts() {
 
         return matchesSearch && matchesCategory && matchesLowStock;
     });
+
+    const handleCreatePart = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newPart.name.trim()) return;
+
+        setIsSaving(true);
+        try {
+            await addStockItem({
+                name: newPart.name.trim(),
+                sku: newPart.sku.trim() || undefined,
+                category: newPart.category.trim() || undefined,
+                stock_quantity: Math.max(0, Number(newPart.stock_quantity) || 0),
+                minimum_stock: Math.max(0, Number(newPart.minimum_stock) || 0),
+                average_cost: Math.max(0, Number(newPart.average_cost) || 0),
+                location: newPart.location.trim() || undefined,
+                supplier_id: undefined
+            });
+            setShowCreateModal(false);
+            setNewPart({
+                name: '',
+                sku: '',
+                category: '',
+                stock_quantity: 0,
+                minimum_stock: 0,
+                average_cost: 0,
+                location: ''
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -45,12 +87,13 @@ export default function StockParts() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={refreshInventoryData}
-                        className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-700"
+                        className="h-11 w-11 inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-700"
                     >
                         <History className="w-5 h-5" />
                     </button>
                     <button
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-600/25 transition-all flex items-center gap-2"
+                        onClick={() => setShowCreateModal(true)}
+                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/25 transition-all"
                     >
                         <Plus className="w-5 h-5" />
                         Nova Peça
@@ -229,6 +272,115 @@ export default function StockParts() {
                     </div>
                 )}
             </div>
+
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
+                            <h3 className="text-xl font-black text-white">Nova Peça</h3>
+                            <button
+                                type="button"
+                                onClick={() => setShowCreateModal(false)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreatePart} className="p-6 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome</label>
+                                    <input
+                                        required
+                                        value={newPart.name}
+                                        onChange={(e) => setNewPart(prev => ({ ...prev, name: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">SKU</label>
+                                    <input
+                                        value={newPart.sku}
+                                        onChange={(e) => setNewPart(prev => ({ ...prev, sku: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                                    <input
+                                        value={newPart.category}
+                                        onChange={(e) => setNewPart(prev => ({ ...prev, category: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Qtd Inicial</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={newPart.stock_quantity}
+                                        onChange={(e) => setNewPart(prev => ({ ...prev, stock_quantity: Number(e.target.value) || 0 }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stock Mínimo</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={newPart.minimum_stock}
+                                        onChange={(e) => setNewPart(prev => ({ ...prev, minimum_stock: Number(e.target.value) || 0 }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Custo Médio (€)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={newPart.average_cost}
+                                        onChange={(e) => setNewPart(prev => ({ ...prev, average_cost: Number(e.target.value) || 0 }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Localização</label>
+                                    <input
+                                        value={newPart.location}
+                                        onChange={(e) => setNewPart(prev => ({ ...prev, location: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-bold transition-colors"
+                                >
+                                    {isSaving ? 'A guardar...' : 'Guardar peça'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

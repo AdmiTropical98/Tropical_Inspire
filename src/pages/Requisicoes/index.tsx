@@ -1086,106 +1086,104 @@ export default function Requisicoes() {
                                 const erpBadge = getErpBadge(erpStatus);
 
                                 return (
-                                    <div key={req.id} className={`bg-slate-900/40 backdrop-blur-xl border-y border-r border-slate-800 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-hidden border-l-4 ${req.status === 'concluida' ? 'border-l-emerald-500' : 'border-l-amber-500'}`}>
+                                    <div key={req.id} className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/70 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-hidden">
                                         {/* decorative blob */}
                                         <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors pointer-events-none"></div>
+                                        <div className={`absolute left-0 top-0 h-full w-1.5 ${req.status === 'concluida' ? 'bg-emerald-500/70' : 'bg-amber-500/70'}`} />
 
                                         <div className="flex flex-col lg:flex-row gap-6 relative z-10">
                                             {/* Left Info */}
-                                            <div className="flex-1 flex gap-5">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <div className="h-20 w-24 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col items-center justify-center shadow-lg">
-                                                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Número</span>
-                                                        <span className="text-xl font-mono font-bold text-blue-400">R:{req.numero?.split('/')[1]}</span>
-                                                        <span className="text-[10px] text-slate-600">{req.numero?.split('/')[0]}</span>
-                                                    </div>
-                                                    <div className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border w-full text-center
+                                            <div className="flex-1 min-w-0 space-y-4">
+                                                <div className="flex flex-wrap items-center justify-between gap-4">
+                                                    <div className="flex flex-wrap items-center gap-3">
+                                                        <span className="h-10 px-4 inline-flex items-center rounded-xl border border-slate-700 bg-slate-950 text-sm font-mono font-bold text-blue-300">
+                                                            R:{req.numero?.split('/')[1]}
+                                                        </span>
+                                                        <span className={`h-10 px-4 inline-flex items-center rounded-xl text-xs font-bold uppercase tracking-wider border
                                                             ${req.status === 'concluida' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}
                                                         `}>
-                                                        {req.status === 'concluida' ? 'Concluída' : 'Pendente'}
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex-1 space-y-3">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className={`text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wide border flex items-center gap-1.5
-                                                                ${req.tipo === 'Oficina' ? 'bg-slate-800 border-slate-700 text-slate-300' : ''}
-                                                                ${req.tipo === 'Stock' ? 'bg-purple-900/30 border-purple-500/30 text-purple-400' : ''}
-                                                                ${req.tipo === 'Viatura' ? 'bg-indigo-900/30 border-indigo-500/30 text-indigo-400' : ''}
-                                                            `}>
-                                                            {req.tipo === 'Oficina' && (
-                                                                <Building className="w-3 h-3" />
-                                                            )}
+                                                            {req.status === 'concluida' ? 'Concluída' : 'Pendente'}
+                                                        </span>
+                                                        <span className={`h-10 px-4 inline-flex items-center rounded-xl text-xs font-bold uppercase tracking-wide border gap-1.5
+                                                            ${req.tipo === 'Oficina' ? 'bg-slate-800 border-slate-700 text-slate-300' : ''}
+                                                            ${req.tipo === 'Stock' ? 'bg-purple-900/30 border-purple-500/30 text-purple-400' : ''}
+                                                            ${req.tipo === 'Viatura' ? 'bg-indigo-900/30 border-indigo-500/30 text-indigo-400' : ''}
+                                                        `}>
+                                                            {req.tipo === 'Oficina' && <Building className="w-3 h-3" />}
                                                             {req.tipo === 'Stock' && <Box className="w-3 h-3" />}
                                                             {req.tipo === 'Viatura' && <Truck className="w-3 h-3" />}
                                                             {req.tipo}
                                                         </span>
-                                                        <span className="text-xs text-slate-500 font-medium flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-md border border-slate-800">
-                                                            <Calendar className="w-3 h-3" />
-                                                            {formatSmallDate(req.data)}
-                                                        </span>
                                                     </div>
 
-                                                    <div>
-                                                        <h3 className="font-bold text-white text-xl leading-snug">{fornecedor?.nome || t('req.card.unknown_supplier')}</h3>
-                                                        {viatura && (
-                                                            <div className="flex items-center gap-2 mt-1 text-sm text-indigo-300 font-medium">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                                                                {viatura.matricula} - {viatura.marca} {viatura.modelo}
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                    <span className="h-10 px-4 inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 text-sm text-slate-300">
+                                                        <Calendar className="w-4 h-4 text-slate-400" />
+                                                        {formatSmallDate(req.data)}
+                                                    </span>
+                                                </div>
 
-                                                    <div className="flex items-center gap-4 text-sm text-slate-400">
-                                                        <span className="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
-                                                            <Package className="w-4 h-4 text-slate-500" />
-                                                            <span className="text-white font-bold">{(req.itens || []).length}</span> itens
-                                                        </span>
-                                                        <span className="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
-                                                            <User className="w-4 h-4 text-slate-500" />
-                                                            <span className="text-slate-300">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
-                                                        </span>
-                                                        <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${erpBadge.className}`}>
-                                                            <TrendingUp className="w-4 h-4" />
-                                                            <span className="font-semibold">{erpBadge.label}</span>
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="mt-4 bg-slate-950/40 border border-slate-800 rounded-xl p-3">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <h4 className="text-sm font-semibold text-slate-200">Associated Invoices</h4>
-                                                            <span className="text-xs text-slate-400">
-                                                                Total Invoiced: <span className="text-white font-semibold">{formatCurrency(totalInvoicedAmount)}</span>
-                                                            </span>
+                                                <div>
+                                                    <h3 className="font-bold text-white text-xl leading-snug">{fornecedor?.nome || t('req.card.unknown_supplier')}</h3>
+                                                    {viatura && (
+                                                        <div className="flex items-center gap-2 mt-1 text-sm text-indigo-300 font-medium">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+                                                            {viatura.matricula} - {viatura.marca} {viatura.modelo}
                                                         </div>
+                                                    )}
+                                                </div>
 
-                                                        {associatedInvoices.length === 0 ? (
-                                                            <p className="text-xs text-slate-500">Sem faturas associadas.</p>
-                                                        ) : (
-                                                            <div className="overflow-x-auto">
-                                                                <table className="w-full text-xs">
-                                                                    <thead>
-                                                                        <tr className="text-slate-400 border-b border-slate-800">
-                                                                            <th className="text-left py-2 pr-3 font-medium">Invoice Number</th>
-                                                                            <th className="text-left py-2 pr-3 font-medium">Date</th>
-                                                                            <th className="text-right py-2 pr-3 font-medium">Total</th>
-                                                                            <th className="text-left py-2 font-medium">Status</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {associatedInvoices.map(invoice => (
-                                                                            <tr key={invoice.id} className="border-b border-slate-900/80 last:border-0">
-                                                                                <td className="py-2 pr-3 text-slate-200 font-medium">{invoice.invoice_number}</td>
-                                                                                <td className="py-2 pr-3 text-slate-300">{formatSmallDate(invoice.issue_date)}</td>
-                                                                                <td className="py-2 pr-3 text-right text-slate-200">{formatCurrency(Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0))}</td>
-                                                                                <td className="py-2 text-slate-300">{getPaymentStatusLabel(invoice.payment_status)}</td>
-                                                                            </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        )}
+                                                <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
+                                                    <span className="h-9 flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
+                                                        <Package className="w-4 h-4 text-slate-500" />
+                                                        <span className="text-white font-bold">{(req.itens || []).length}</span> itens
+                                                    </span>
+                                                    <span className="h-9 flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
+                                                        <User className="w-4 h-4 text-slate-500" />
+                                                        <span className="text-slate-300">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
+                                                    </span>
+                                                    <span className={`h-9 flex items-center gap-2 px-3 py-1.5 rounded-lg border ${erpBadge.className}`}>
+                                                        <TrendingUp className="w-4 h-4" />
+                                                        <span className="font-semibold">{erpBadge.label}</span>
+                                                    </span>
+                                                </div>
+
+                                                <div className="mt-2 bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4">
+                                                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                                        <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                                            <FileText className="w-4 h-4 text-slate-400" />
+                                                            Faturas associadas
+                                                        </h4>
+                                                        <span className="text-xs text-slate-400">
+                                                            Total faturado: <span className="text-white font-semibold">{formatCurrency(totalInvoicedAmount)}</span>
+                                                        </span>
                                                     </div>
+
+                                                    {associatedInvoices.length === 0 ? (
+                                                        <p className="text-xs text-slate-500">Sem faturas associadas.</p>
+                                                    ) : (
+                                                        <div className="overflow-x-auto rounded-xl border border-slate-800/80">
+                                                            <table className="w-full text-xs">
+                                                                <thead className="bg-slate-950/70">
+                                                                    <tr className="text-slate-400 border-b border-slate-800">
+                                                                        <th className="text-left py-2.5 px-3 font-semibold">Nº Fatura</th>
+                                                                        <th className="text-left py-2.5 px-3 font-semibold">Data</th>
+                                                                        <th className="text-right py-2.5 px-3 font-semibold">Total</th>
+                                                                        <th className="text-left py-2.5 px-3 font-semibold">Estado</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {associatedInvoices.map(invoice => (
+                                                                        <tr key={invoice.id} className="border-b border-slate-900/80 last:border-0 hover:bg-slate-900/40">
+                                                                            <td className="py-2.5 px-3 text-slate-200 font-medium">{invoice.invoice_number}</td>
+                                                                            <td className="py-2.5 px-3 text-slate-300">{formatSmallDate(invoice.issue_date)}</td>
+                                                                            <td className="py-2.5 px-3 text-right text-slate-200">{formatCurrency(Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0))}</td>
+                                                                            <td className="py-2.5 px-3 text-slate-300">{getPaymentStatusLabel(invoice.payment_status)}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -1445,59 +1443,64 @@ export default function Requisicoes() {
                                     </label>
 
                                     <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-inner mb-4">
-                                        <div className="flex flex-col md:flex-row gap-4">
-                                            <input
-                                                placeholder={t('req.form.desc_placeholder')}
-                                                className="flex-1 px-5 py-3.5 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all placeholder-slate-600 shadow-sm"
-                                                value={newItemDesc}
-                                                onChange={e => setNewItemDesc(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        addItem();
-                                                    }
-                                                }}
-                                            />
-                                            <div className="flex flex-wrap md:flex-nowrap gap-4">
-                                                <div className="relative w-24">
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        className="w-full px-4 py-3.5 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-center shadow-sm"
-                                                        value={newItemQtd}
-                                                        onChange={e => setNewItemQtd(parseInt(e.target.value) || 1)}
-                                                    />
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs font-bold uppercase pointer-events-none">Qtd</span>
-                                                </div>
-                                                <div className="relative w-32">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="0,00"
-                                                        className="w-full pl-8 pr-4 py-3.5 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-right shadow-sm"
-                                                        value={newItemValorUnitario}
-                                                        onChange={e => setNewItemValorUnitario(e.target.value)}
-                                                    />
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs font-bold pointer-events-none">€</span>
-                                                    <span className="absolute -top-2 left-2 bg-slate-900 px-1 text-[10px] text-slate-500 font-bold uppercase">Unit.</span>
-                                                </div>
-                                                <div className="relative w-32">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="0,00"
-                                                        className="w-full pl-8 pr-4 py-3.5 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-right shadow-sm"
-                                                        value={newItemValorTotal}
-                                                        onChange={e => setNewItemValorTotal(e.target.value)}
-                                                    />
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs font-bold pointer-events-none">€</span>
-                                                    <span className="absolute -top-2 left-2 bg-slate-900 px-1 text-[10px] text-slate-500 font-bold uppercase">Total</span>
-                                                </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-end">
+                                            <div className="md:col-span-12 xl:col-span-4 space-y-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descrição</label>
+                                                <input
+                                                    placeholder={t('req.form.desc_placeholder')}
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all placeholder-slate-600 shadow-sm"
+                                                    value={newItemDesc}
+                                                    onChange={e => setNewItemDesc(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            addItem();
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-4 xl:col-span-2 space-y-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Qtd</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-center shadow-sm"
+                                                    value={newItemQtd}
+                                                    onChange={e => setNewItemQtd(parseInt(e.target.value) || 1)}
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-4 xl:col-span-2 space-y-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Unitário (€)</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="0,00"
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-right shadow-sm"
+                                                    value={newItemValorUnitario}
+                                                    onChange={e => setNewItemValorUnitario(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-4 xl:col-span-2 space-y-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total (€)</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="0,00"
+                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-right shadow-sm"
+                                                    value={newItemValorTotal}
+                                                    onChange={e => setNewItemValorTotal(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-12 xl:col-span-2">
                                                 <button
                                                     type="button"
                                                     onClick={addItem}
-                                                    className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all font-bold shadow-lg shadow-blue-900/20 active:scale-95 flex items-center gap-2"
+                                                    className="w-full h-[46px] bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all font-bold shadow-lg shadow-blue-900/20 active:scale-[0.98] inline-flex items-center justify-center gap-2"
                                                 >
                                                     {itemEmEdicao ? <CheckCircle className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                                                    <span className="hidden md:inline">{itemEmEdicao ? 'Guardar' : 'Adicionar'}</span>
+                                                    <span>{itemEmEdicao ? 'Guardar' : 'Adicionar'}</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -1575,10 +1578,15 @@ export default function Requisicoes() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1 font-sans">Observações</label>
+                                <div className="bg-slate-950/30 rounded-3xl p-6 border border-slate-800/50 space-y-3">
+                                    <label className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wider">
+                                        <div className="bg-slate-800 p-1.5 rounded-lg border border-slate-700">
+                                            <FileText className="w-4 h-4 text-blue-400" />
+                                        </div>
+                                        Observações
+                                    </label>
                                     <textarea
-                                        className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm resize-none h-32"
+                                        className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm resize-none h-36"
                                         placeholder="Notas ou instruções adicionais..."
                                         value={obs}
                                         onChange={e => setObs(e.target.value)}

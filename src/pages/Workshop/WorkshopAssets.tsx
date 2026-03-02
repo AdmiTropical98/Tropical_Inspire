@@ -4,14 +4,26 @@ import {
     Settings, UserPlus,
     AlertCircle, ShieldCheck,
     History, MapPin, Tag,
-    Info, ExternalLink
+    Info, ExternalLink, X
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 
 export default function WorkshopAssets() {
-    const { workshopAssets, refreshInventoryData, motoristas } = useWorkshop();
+    const { workshopAssets, refreshInventoryData, motoristas, addWorkshopAsset } = useWorkshop();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [newAsset, setNewAsset] = useState({
+        name: '',
+        category: '',
+        serial_number: '',
+        purchase_date: '',
+        purchase_value: 0,
+        status: 'available' as const,
+        location: '',
+        notes: ''
+    });
 
     const filteredAssets = workshopAssets.filter(asset => {
         const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -41,6 +53,39 @@ export default function WorkshopAssets() {
         }
     };
 
+    const handleCreateAsset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newAsset.name.trim()) return;
+
+        setIsSaving(true);
+        try {
+            await addWorkshopAsset({
+                name: newAsset.name.trim(),
+                category: newAsset.category.trim() || undefined,
+                serial_number: newAsset.serial_number.trim() || undefined,
+                purchase_date: newAsset.purchase_date || undefined,
+                purchase_value: Number(newAsset.purchase_value) > 0 ? Number(newAsset.purchase_value) : undefined,
+                assigned_technician_id: null,
+                status: newAsset.status,
+                location: newAsset.location.trim() || undefined,
+                notes: newAsset.notes.trim() || undefined
+            });
+            setShowCreateModal(false);
+            setNewAsset({
+                name: '',
+                category: '',
+                serial_number: '',
+                purchase_date: '',
+                purchase_value: 0,
+                status: 'available',
+                location: '',
+                notes: ''
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header Panel */}
@@ -61,12 +106,13 @@ export default function WorkshopAssets() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={refreshInventoryData}
-                        className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-700"
+                        className="h-11 w-11 inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-700"
                     >
                         <History className="w-5 h-5" />
                     </button>
                     <button
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-600/25 transition-all flex items-center gap-2"
+                        onClick={() => setShowCreateModal(true)}
+                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/25 transition-all"
                     >
                         <Plus className="w-5 h-5" />
                         Novo Equipamento
@@ -198,6 +244,112 @@ export default function WorkshopAssets() {
                     </div>
                 )}
             </div>
+
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
+                            <h3 className="text-xl font-black text-white">Novo Equipamento</h3>
+                            <button
+                                type="button"
+                                onClick={() => setShowCreateModal(false)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateAsset} className="p-6 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome</label>
+                                    <input
+                                        required
+                                        value={newAsset.name}
+                                        onChange={(e) => setNewAsset(prev => ({ ...prev, name: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                                    <input
+                                        value={newAsset.category}
+                                        onChange={(e) => setNewAsset(prev => ({ ...prev, category: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nº Série</label>
+                                    <input
+                                        value={newAsset.serial_number}
+                                        onChange={(e) => setNewAsset(prev => ({ ...prev, serial_number: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data Compra</label>
+                                    <input
+                                        type="date"
+                                        value={newAsset.purchase_date}
+                                        onChange={(e) => setNewAsset(prev => ({ ...prev, purchase_date: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Compra (€)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={newAsset.purchase_value}
+                                        onChange={(e) => setNewAsset(prev => ({ ...prev, purchase_value: Number(e.target.value) || 0 }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Localização</label>
+                                    <input
+                                        value={newAsset.location}
+                                        onChange={(e) => setNewAsset(prev => ({ ...prev, location: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Notas</label>
+                                    <textarea
+                                        value={newAsset.notes}
+                                        onChange={(e) => setNewAsset(prev => ({ ...prev, notes: e.target.value }))}
+                                        className="w-full px-4 py-3 h-24 resize-none bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white rounded-xl font-bold transition-colors"
+                                >
+                                    {isSaving ? 'A guardar...' : 'Guardar equipamento'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
