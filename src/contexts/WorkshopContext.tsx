@@ -18,6 +18,51 @@ const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => 
     return R * c; // in metres
 };
 
+const isServiceUrgent = (serviceDate?: string, serviceHour?: string) => {
+    if (!serviceHour) return false;
+
+    const [hoursRaw, minutesRaw] = serviceHour.split(':');
+    const hours = Number(hoursRaw);
+    const minutes = Number(minutesRaw);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return false;
+
+    const dateBase = serviceDate || new Date().toISOString().split('T')[0];
+    const serviceDateTime = new Date(`${dateBase}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
+    if (Number.isNaN(serviceDateTime.getTime())) return false;
+
+    const diffMinutes = (serviceDateTime.getTime() - Date.now()) / 60000;
+    return diffMinutes >= 0 && diffMinutes < 60;
+};
+
+const isMissingUrgentColumnError = (error: any) => {
+    const message = String(error?.message || error?.details || '').toLowerCase();
+    return message.includes('is_urgent') &&
+        (
+            message.includes('schema cache') ||
+            message.includes('column') ||
+            message.includes('does not exist') ||
+            message.includes('could not find')
+        );
+};
+
+const isMissingServiceGeofencingColumnError = (error: any) => {
+    const message = String(error?.message || error?.details || '').toLowerCase();
+    const missingGeofenceColumn =
+        message.includes('origem_location_id') ||
+        message.includes('destino_location_id') ||
+        message.includes('origin_arrival_time') ||
+        message.includes('destination_arrival_time');
+
+    return missingGeofenceColumn &&
+        (
+            message.includes('schema cache') ||
+            message.includes('column') ||
+            message.includes('does not exist') ||
+            message.includes('could not find')
+        );
+};
+
 interface WorkshopContextType {
     fornecedores: Fornecedor[];
     setFornecedores: React.Dispatch<React.SetStateAction<Fornecedor[]>>;
@@ -257,6 +302,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const stockBackfillRunningRef = useRef(false);
     const stockAutoAttemptedReqIdsRef = useRef<Set<string>>(new Set());
     const stockItemsTableRef = useRef<'stock_items' | 'workshop_items'>('stock_items');
+    const supportsUrgentColumnRef = useRef(true);
+    const supportsServiceGeofencingColumnsRef = useRef(true);
+    const autoGeofenceSyncRunningRef = useRef(false);
 
     // Helper: Haversine Distance (km)
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -270,6 +318,39 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const d = R * c; // Distance in km
         return d * 1000; // Returns meters
+    };
+
+    const normalizeLocationName = (value?: string | null) => {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '');
+    };
+
+    const resolveLocationByName = (locationName?: string, explicitId?: string | null) => {
+        if (explicitId) {
+            return locais.find(l => l.id === explicitId) || null;
+        }
+
+        const normalizedTarget = normalizeLocationName(locationName);
+        if (!normalizedTarget) return null;
+
+        return locais.find(local => {
+            const normalizedLocal = normalizeLocationName(local.nome);
+            return normalizedLocal.includes(normalizedTarget) || normalizedTarget.includes(normalizedLocal);
+        }) || null;
+    };
+
+    const stripGeofencingColumnsFromPayload = (payload: any) => {
+        const {
+            origem_location_id,
+            destino_location_id,
+            origin_arrival_time,
+            destination_arrival_time,
+            ...rest
+        } = payload;
+        return rest;
     };
 
     const runComplianceCheck = async () => {
@@ -458,6 +539,19 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             setCartrackError(null);
             setDbConnectionError(null);
 
+            let loadedViaturas: any[] = [];
+            const normalizePlateRef = (plate?: string | null) => (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            const resolveVehicleIdFromLegacyRef = (value: any) => {
+                if (!value) return undefined;
+                const candidate = String(value);
+                const byId = loadedViaturas.find(v => v.id === candidate);
+                if (byId) return byId.id;
+
+                const normalized = normalizePlateRef(candidate);
+                const byPlate = loadedViaturas.find(v => normalizePlateRef(v.matricula) === normalized);
+                return byPlate?.id;
+            };
+
             // 1. Core Data
             try {
                 const { data: zo } = await supabase.from('zonas_operacionais').select('*');
@@ -505,7 +599,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             try {
                 const { data: v, error } = await supabase.from('viaturas').select('*');
                 if (error) throw error;
-                if (v) setViaturas(v.map((item: any) => ({ ...item, precoDiario: item.preco_diario })));
+                if (v) {
+                    loadedViaturas = v;
+                    setViaturas(v.map((item: any) => ({ ...item, precoDiario: item.preco_diario })));
+                }
             } catch (e: any) {
                 console.error('Error fetching viaturas:', e);
                 setDbConnectionError(`Erro Conexão (Viaturas): ${e.message || 'Desconhecido'}`);
@@ -550,7 +647,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             itens: item.itens || [],
                             numero: String(item.numero),
                             fornecedorId: item.fornecedor_id,
-                            viaturaId: item.viatura_id,
+                            viaturaId: item.viatura_id || resolveVehicleIdFromLegacyRef(item.vehicle_id) || resolveVehicleIdFromLegacyRef(item.license_plate) || resolveVehicleIdFromLegacyRef(item.matricula),
                             centroCustoId: item.centro_custo_id,
                             criadoPor: item.criado_por,
                             financial_status: item.financial_status,
@@ -949,7 +1046,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     failureReason: s.failure_reason,
                     batchId: s.batch_id, // FIX: Ensure batch association persists
                     tipo: s.tipo,
-                    departamento: s.departamento
+                    departamento: s.departamento,
+                    isUrgent: Boolean(s.is_urgent) || s.status === 'URGENTE',
+                    originLocationId: s.origem_location_id,
+                    destinationLocationId: s.destino_location_id,
+                    originArrivalTime: s.origin_arrival_time,
+                    destinationArrivalTime: s.destination_arrival_time
                 })));
             }
 
@@ -975,7 +1077,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             });
 
             const { data: transData } = await supabase.from('fuel_transactions').select('*');
-            if (transData) setFuelTransactions(transData.map((t: any) => ({ ...t, driverId: t.driver_id, vehicleId: t.vehicle_id, staffId: t.staff_id, staffName: t.staff_name, pumpCounterAfter: t.pump_counter_after, pricePerLiter: t.price_per_liter, totalCost: t.total_cost, centroCustoId: t.centro_custo_id, isExternal: t.is_external })));
+            if (transData) setFuelTransactions(transData.map((t: any) => ({
+                ...t,
+                driverId: t.driver_id,
+                vehicleId: resolveVehicleIdFromLegacyRef(t.vehicle_id) || t.vehicle_id,
+                staffId: t.staff_id,
+                staffName: t.staff_name,
+                pumpCounterAfter: t.pump_counter_after,
+                pricePerLiter: t.price_per_liter,
+                totalCost: t.total_cost,
+                centroCustoId: t.centro_custo_id,
+                isExternal: t.is_external
+            })));
 
             const { data: refillData } = await supabase.from('tank_refills').select('*');
             if (refillData) setTankRefills(refillData.map((r: any) => ({ ...r, litersAdded: r.liters_added, levelBefore: r.level_before, levelAfter: r.level_after, totalSpentSinceLast: r.total_spent_since_last, pumpMeterReading: r.pump_meter_reading, systemExpectedReading: r.system_expected_reading, staffId: r.staff_id, staffName: r.staff_name, pricePerLiter: r.price_per_liter, totalCost: r.total_cost })));
@@ -1117,32 +1230,78 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const addServico = async (s: Servico) => {
         try {
             console.log('Adding service to DB:', s);
+            const urgent = s.isUrgent ?? isServiceUrgent(s.data, s.hora);
+            const statusToPersist = urgent ? 'URGENTE' : s.status;
+            const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
+            const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
+            const basePayload: any = {
+                id: s.id,
+                motorista_id: s.motoristaId,
+                passageiro: s.passageiro,
+                hora: s.hora,
+                origem: s.origem,
+                destino: s.destino,
+                voo: s.voo,
+                obs: s.obs,
+                concluido: s.concluido,
+                centro_custo_id: s.centroCustoId,
+                status: statusToPersist,
+                failure_reason: s.failureReason
+            };
 
-            const { data, error } = await supabase
+            if (supportsServiceGeofencingColumnsRef.current) {
+                basePayload.origem_location_id = origemLocation?.id || null;
+                basePayload.destino_location_id = destinoLocation?.id || null;
+                basePayload.origin_arrival_time = s.originArrivalTime || null;
+                basePayload.destination_arrival_time = s.destinationArrivalTime || null;
+            }
+
+            if (supportsUrgentColumnRef.current) {
+                basePayload.is_urgent = urgent;
+            }
+
+            let payloadToPersist: any = { ...basePayload };
+
+            let { data, error } = await supabase
                 .from('servicos')
-                .insert({
-                    id: s.id,
-                    motorista_id: s.motoristaId,
-                    passageiro: s.passageiro,
-                    hora: s.hora,
-                    origem: s.origem,
-                    destino: s.destino,
-                    voo: s.voo,
-                    obs: s.obs,
-                    concluido: s.concluido,
-                    centro_custo_id: s.centroCustoId,
-                    status: s.status,
-                    failure_reason: s.failureReason
-                })
+                .insert(payloadToPersist)
                 .select()
                 .single();
+
+            if (error && supportsUrgentColumnRef.current && isMissingUrgentColumnError(error)) {
+                supportsUrgentColumnRef.current = false;
+                const { is_urgent, ...fallbackPayload } = payloadToPersist;
+                payloadToPersist = fallbackPayload;
+                ({ data, error } = await supabase
+                    .from('servicos')
+                    .insert(fallbackPayload)
+                    .select()
+                    .single());
+            }
+
+            if (error && supportsServiceGeofencingColumnsRef.current && isMissingServiceGeofencingColumnError(error)) {
+                supportsServiceGeofencingColumnsRef.current = false;
+                const fallbackPayload = stripGeofencingColumnsFromPayload(payloadToPersist);
+                payloadToPersist = fallbackPayload;
+                ({ data, error } = await supabase
+                    .from('servicos')
+                    .insert(fallbackPayload)
+                    .select()
+                    .single());
+            }
 
             if (error) throw error;
 
             const confirmedService: Servico = {
                 ...s,
                 motoristaId: data.motorista_id,
-                centroCustoId: data.centro_custo_id
+                centroCustoId: data.centro_custo_id,
+                status: data.status,
+                isUrgent: supportsUrgentColumnRef.current ? Boolean(data.is_urgent) : urgent,
+                originLocationId: supportsServiceGeofencingColumnsRef.current ? (data.origem_location_id || origemLocation?.id || null) : (s.originLocationId || null),
+                destinationLocationId: supportsServiceGeofencingColumnsRef.current ? (data.destino_location_id || destinoLocation?.id || null) : (s.destinationLocationId || null),
+                originArrivalTime: supportsServiceGeofencingColumnsRef.current ? (data.origin_arrival_time || null) : (s.originArrivalTime || null),
+                destinationArrivalTime: supportsServiceGeofencingColumnsRef.current ? (data.destination_arrival_time || null) : (s.destinationArrivalTime || null)
             };
 
             await logServiceHistory(s.id, 'CREATE', null, confirmedService);
@@ -1169,7 +1328,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const updateServico = async (s: Servico) => {
         try {
             console.log('Updating service:', s.id, s);
-            const { data, error } = await supabase.from('servicos').update({
+            const urgent = s.isUrgent ?? isServiceUrgent(s.data, s.hora);
+            const statusToPersist = urgent ? 'URGENTE' : s.status;
+            const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
+            const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
+            const updatePayload: any = {
                 motorista_id: s.motoristaId,
                 passageiro: s.passageiro,
                 hora: s.hora,
@@ -1179,9 +1342,38 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 obs: s.obs,
                 concluido: s.concluido,
                 centro_custo_id: s.centroCustoId,
-                status: s.status,
+                status: statusToPersist,
                 failure_reason: s.failureReason
-            }).eq('id', s.id).select();
+            };
+
+            if (supportsServiceGeofencingColumnsRef.current) {
+                updatePayload.origem_location_id = origemLocation?.id || null;
+                updatePayload.destino_location_id = destinoLocation?.id || null;
+                updatePayload.origin_arrival_time = s.originArrivalTime || null;
+                updatePayload.destination_arrival_time = s.destinationArrivalTime || null;
+            }
+
+            if (supportsUrgentColumnRef.current) {
+                updatePayload.is_urgent = urgent;
+            }
+
+            let payloadToPersist: any = { ...updatePayload };
+
+            let { data, error } = await supabase.from('servicos').update(payloadToPersist).eq('id', s.id).select();
+
+            if (error && supportsUrgentColumnRef.current && isMissingUrgentColumnError(error)) {
+                supportsUrgentColumnRef.current = false;
+                const { is_urgent, ...fallbackPayload } = payloadToPersist;
+                payloadToPersist = fallbackPayload;
+                ({ data, error } = await supabase.from('servicos').update(fallbackPayload).eq('id', s.id).select());
+            }
+
+            if (error && supportsServiceGeofencingColumnsRef.current && isMissingServiceGeofencingColumnError(error)) {
+                supportsServiceGeofencingColumnsRef.current = false;
+                const fallbackPayload = stripGeofencingColumnsFromPayload(payloadToPersist);
+                payloadToPersist = fallbackPayload;
+                ({ data, error } = await supabase.from('servicos').update(fallbackPayload).eq('id', s.id).select());
+            }
 
             if (error) throw error;
 
@@ -1196,10 +1388,28 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             // Find previous state for logging
             const previousState = servicos.find(item => item.id === s.id);
-            await logServiceHistory(s.id, 'UPDATE', previousState, s);
+            const persistedRow = data[0] || {};
+            const updatedService: Servico = {
+                ...s,
+                status: statusToPersist,
+                isUrgent: urgent,
+                originLocationId: supportsServiceGeofencingColumnsRef.current
+                    ? (persistedRow.origem_location_id ?? origemLocation?.id ?? null)
+                    : (s.originLocationId ?? null),
+                destinationLocationId: supportsServiceGeofencingColumnsRef.current
+                    ? (persistedRow.destino_location_id ?? destinoLocation?.id ?? null)
+                    : (s.destinationLocationId ?? null),
+                originArrivalTime: supportsServiceGeofencingColumnsRef.current
+                    ? (persistedRow.origin_arrival_time ?? s.originArrivalTime ?? null)
+                    : (s.originArrivalTime ?? null),
+                destinationArrivalTime: supportsServiceGeofencingColumnsRef.current
+                    ? (persistedRow.destination_arrival_time ?? s.destinationArrivalTime ?? null)
+                    : (s.destinationArrivalTime ?? null)
+            };
+            await logServiceHistory(s.id, 'UPDATE', previousState, updatedService);
 
             console.log('Service updated:', data);
-            setServicos(prev => prev.map(item => item.id === s.id ? s : item));
+            setServicos(prev => prev.map(item => item.id === s.id ? updatedService : item));
         } catch (error: any) {
             console.error('Error updating service:', error);
             alert(`Erro ao atualizar serviço: ${error.message}`);
@@ -3011,6 +3221,121 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const autoConfirmServiceArrivals = async (vehicleSnapshot?: import('../services/cartrack').CartrackVehicle[]) => {
+        if (!supportsServiceGeofencingColumnsRef.current) return;
+        if (autoGeofenceSyncRunningRef.current) return;
+
+        const pendingServices = servicos.filter((s: Servico) =>
+            !!s.motoristaId &&
+            !s.concluido &&
+            (!s.originArrivalTime || !s.destinationArrivalTime)
+        );
+
+        if (pendingServices.length === 0 || locais.length === 0) return;
+
+        autoGeofenceSyncRunningRef.current = true;
+
+        try {
+            const normalizePlate = (plate?: string | null) => (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            const nowIso = new Date().toISOString();
+
+            const vehicles = (vehicleSnapshot && vehicleSnapshot.length > 0)
+                ? vehicleSnapshot
+                : await CartrackService.getVehicles();
+
+            if (!vehicleSnapshot && vehicles.length > 0) {
+                setCartrackVehicles(vehicles);
+            }
+
+            const updates: Array<{ serviceId: string; payload: any; partial: Partial<Servico> }> = [];
+
+            for (const service of pendingServices) {
+                const motorista = motoristas.find(m => m.id === service.motoristaId);
+                if (!motorista) continue;
+
+                const vehicle = vehicles.find(v =>
+                    (motorista.cartrackId && String(v.id) === String(motorista.cartrackId)) ||
+                    (motorista.currentVehicle && normalizePlate(v.registration) === normalizePlate(motorista.currentVehicle))
+                );
+
+                if (!vehicle || !vehicle.latitude || !vehicle.longitude) continue;
+
+                const originLocation = resolveLocationByName(service.origem, service.originLocationId);
+                const destinationLocation = resolveLocationByName(service.destino, service.destinationLocationId);
+
+                const payload: any = {};
+                const partial: Partial<Servico> = {};
+
+                if (originLocation && !service.originLocationId) {
+                    payload.origem_location_id = originLocation.id;
+                    partial.originLocationId = originLocation.id;
+                }
+
+                if (destinationLocation && !service.destinationLocationId) {
+                    payload.destino_location_id = destinationLocation.id;
+                    partial.destinationLocationId = destinationLocation.id;
+                }
+
+                if (originLocation && !service.originArrivalTime) {
+                    const originDistance = getDistance(vehicle.latitude, vehicle.longitude, originLocation.latitude, originLocation.longitude);
+                    const originRadius = originLocation.raio || 50;
+                    if (originDistance <= originRadius) {
+                        payload.origin_arrival_time = nowIso;
+                        partial.originArrivalTime = nowIso;
+                    }
+                }
+
+                const canConfirmDestination = !!service.originArrivalTime || !!partial.originArrivalTime || !originLocation;
+
+                if (destinationLocation && !service.destinationArrivalTime && canConfirmDestination) {
+                    const destinationDistance = getDistance(vehicle.latitude, vehicle.longitude, destinationLocation.latitude, destinationLocation.longitude);
+                    const destinationRadius = destinationLocation.raio || 50;
+                    if (destinationDistance <= destinationRadius) {
+                        payload.destination_arrival_time = nowIso;
+                        partial.destinationArrivalTime = nowIso;
+                    }
+                }
+
+                if (Object.keys(payload).length > 0) {
+                    updates.push({ serviceId: service.id, payload, partial });
+                }
+            }
+
+            if (updates.length === 0) return;
+
+            const applied: Record<string, Partial<Servico>> = {};
+
+            for (const update of updates) {
+                const { error } = await supabase
+                    .from('servicos')
+                    .update(update.payload)
+                    .eq('id', update.serviceId);
+
+                if (!error) {
+                    applied[update.serviceId] = update.partial;
+                } else {
+                    if (isMissingServiceGeofencingColumnError(error)) {
+                        supportsServiceGeofencingColumnsRef.current = false;
+                        break;
+                    }
+                    console.error('Erro ao confirmar chegada automática:', update.serviceId, error);
+                }
+            }
+
+            if (Object.keys(applied).length > 0) {
+                setServicos(prev => prev.map((service: Servico) => {
+                    const servicePatch = applied[service.id];
+                    if (!servicePatch) return service;
+                    return { ...service, ...servicePatch };
+                }));
+            }
+        } catch (error) {
+            console.error('Erro no auto geofencing Cartrack:', error);
+        } finally {
+            autoGeofenceSyncRunningRef.current = false;
+        }
+    };
+
     // Auto-sync effect
     useEffect(() => {
         const interval = setInterval(() => {
@@ -3018,6 +3343,34 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         }, 15 * 60 * 1000); // 15 minutes
         return () => clearInterval(interval);
     }, [cartrackVehicles, viaturas]);
+
+    useEffect(() => {
+        autoConfirmServiceArrivals(cartrackVehicles);
+    }, [cartrackVehicles, servicos, motoristas, locais]);
+
+    useEffect(() => {
+        const hasPending = servicos.some((s: Servico) =>
+            !!s.motoristaId && !s.concluido && (!s.originArrivalTime || !s.destinationArrivalTime)
+        );
+
+        if (!hasPending) return;
+
+        const pollCartrackAndConfirm = async () => {
+            try {
+                const vehicles = await CartrackService.getVehicles();
+                if (vehicles.length > 0) {
+                    setCartrackVehicles(vehicles);
+                    await autoConfirmServiceArrivals(vehicles);
+                }
+            } catch (error) {
+                console.warn('Falha no polling Cartrack para geofencing:', error);
+            }
+        };
+
+        pollCartrackAndConfirm();
+        const interval = setInterval(pollCartrackAndConfirm, 60 * 1000);
+        return () => clearInterval(interval);
+    }, [servicos, motoristas, locais]);
 
     // NEW: Zonas Operacionais Methods
     const addZonaOperacional = async (z: Omit<ZonaOperacional, 'id' | 'created_at'>) => {
@@ -3313,7 +3666,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         return { success: false, error: batchError.message };
                     }
 
-                    const servicesToInsert = services.map(s => ({
+                    const servicesToInsert = services.map(s => {
+                        const urgent = s.isUrgent ?? isServiceUrgent(s.data || batchData.referenceDate, s.hora);
+                        const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
+                        const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
+
+                        const serviceRow: any = {
                         id: s.id,
                         motorista_id: s.motoristaId,
                         passageiro: s.passageiro,
@@ -3326,18 +3684,93 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         concluido: false,
                         centro_custo_id: batchData.centroCustoId,
                         batch_id: batch.id,
-                        departamento: s.departamento
-                    }));
+                        departamento: s.departamento,
+                        status: urgent ? 'URGENTE' : (s.status || null)
+                    };
 
-                    const { error: servicesError } = await supabase
+                        if (supportsServiceGeofencingColumnsRef.current) {
+                            serviceRow.origem_location_id = origemLocation?.id || null;
+                            serviceRow.destino_location_id = destinoLocation?.id || null;
+                            serviceRow.origin_arrival_time = s.originArrivalTime || null;
+                            serviceRow.destination_arrival_time = s.destinationArrivalTime || null;
+                        }
+
+                        if (supportsUrgentColumnRef.current) {
+                            serviceRow.is_urgent = urgent;
+                        }
+
+                        return serviceRow;
+                    });
+
+                    let { error: servicesError } = await supabase
                         .from('servicos')
                         .insert(servicesToInsert);
+
+                    if (servicesError && supportsUrgentColumnRef.current && isMissingUrgentColumnError(servicesError)) {
+                        supportsUrgentColumnRef.current = false;
+                        const fallbackInsertRows = servicesToInsert.map(row => {
+                            const { is_urgent, ...rest } = row;
+                            return rest;
+                        });
+
+                        ({ error: servicesError } = await supabase
+                            .from('servicos')
+                            .insert(fallbackInsertRows));
+                    }
+
+                    if (servicesError && supportsServiceGeofencingColumnsRef.current && isMissingServiceGeofencingColumnError(servicesError)) {
+                        supportsServiceGeofencingColumnsRef.current = false;
+                        const fallbackInsertRows = servicesToInsert.map(row => stripGeofencingColumnsFromPayload(row));
+
+                        ({ error: servicesError } = await supabase
+                            .from('servicos')
+                            .insert(fallbackInsertRows));
+                    }
 
                     if (servicesError) {
                         return { success: false, error: servicesError.message };
                     }
 
                     setScaleBatches(prev => [...prev, batch]);
+
+                    const urgentCreatedServices = servicesToInsert.filter(s => s.is_urgent || s.status === 'URGENTE');
+                    if (urgentCreatedServices.length > 0) {
+                        const centro = centrosCustos.find(c => c.id === batchData.centroCustoId);
+
+                        await addNotification({
+                            id: crypto.randomUUID(),
+                            type: 'system_alert',
+                            data: {
+                                title: '⚠ Serviço URGENTE criado',
+                                message: `${urgentCreatedServices.length} serviço(s) urgente(s) para ${centro?.nome || 'Centro Operacional'}.`,
+                                priority: 'high'
+                            },
+                            status: 'pending',
+                            timestamp: new Date().toISOString()
+                        });
+
+                        await Promise.all(
+                            urgentCreatedServices
+                                .filter(s => !!s.motorista_id)
+                                .map(s => addNotification({
+                                    id: crypto.randomUUID(),
+                                    type: 'transport_assignment',
+                                    data: {
+                                        serviceId: s.id,
+                                        passenger: s.passageiro,
+                                        origin: s.origem,
+                                        destination: s.destino,
+                                        time: s.hora,
+                                        title: '⚠ Serviço URGENTE atribuído',
+                                        message: `${s.passageiro} • ${s.hora} • ${s.origem} → ${s.destino}`,
+                                        priority: 'high'
+                                    },
+                                    status: 'pending',
+                                    response: { driverId: s.motorista_id as string, serviceId: s.id },
+                                    timestamp: new Date().toISOString()
+                                }))
+                        );
+                    }
 
                     return { success: true, data: batch };
 

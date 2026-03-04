@@ -212,9 +212,14 @@ export interface Servico {
     validationPoints?: string[]; // IDs of required POIs to visit
     tipo?: 'entrada' | 'saida' | 'outro';
     departamento?: string;
-    status?: 'pending' | 'started' | 'completed' | 'failed';
+    status?: 'pending' | 'started' | 'completed' | 'failed' | 'URGENTE';
     failureReason?: string;
     batchId?: string; // Link to ScaleBatch
+    isUrgent?: boolean;
+    originLocationId?: string | null;
+    destinationLocationId?: string | null;
+    originArrivalTime?: string | null;
+    destinationArrivalTime?: string | null;
 }
 
 export interface ScaleBatch {

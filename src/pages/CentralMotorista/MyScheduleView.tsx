@@ -121,6 +121,13 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
         setSelectedServiceId(null);
     };
 
+    const formatArrivalTime = (isoTime?: string | null) => {
+        if (!isoTime) return '';
+        const parsed = new Date(isoTime);
+        if (Number.isNaN(parsed.getTime())) return '';
+        return parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 relative">
             {failureModalOpen && (
@@ -315,11 +322,23 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                                                                 <span className="text-slate-300">{service.origem}</span>
                                                             </div>
+                                                            {service.originArrivalTime && (
+                                                                <div className="ml-4 flex items-center gap-2 text-[11px] text-emerald-400 font-semibold">
+                                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                                    <span>Chegada confirmada {formatArrivalTime(service.originArrivalTime)}</span>
+                                                                </div>
+                                                            )}
                                                             <div className="ml-0.5 border-l border-slate-700 h-3"></div>
                                                             <div className="flex items-center gap-2 text-sm">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
                                                                 <span className="text-white font-medium">{service.destino}</span>
                                                             </div>
+                                                            {service.destinationArrivalTime && (
+                                                                <div className="ml-4 flex items-center gap-2 text-[11px] text-emerald-400 font-semibold">
+                                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                                    <span>Chegada confirmada {formatArrivalTime(service.destinationArrivalTime)}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
@@ -493,6 +512,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                             <div>
                                                                 <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block mb-0.5">De (Origem)</span>
                                                                 <p className="text-slate-200 font-medium leading-tight text-sm">{service.origem}</p>
+                                                                {service.originArrivalTime && (
+                                                                    <div className="mt-1.5 flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold">
+                                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                                        <span>Chegada confirmada {formatArrivalTime(service.originArrivalTime)}</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -503,6 +528,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                             <div>
                                                                 <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider block mb-0.5">Para (Destino)</span>
                                                                 <p className="text-white font-bold leading-tight text-sm">{service.destino}</p>
+                                                                {service.destinationArrivalTime && (
+                                                                    <div className="mt-1.5 flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold">
+                                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                                        <span>Chegada confirmada {formatArrivalTime(service.destinationArrivalTime)}</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
