@@ -1166,9 +1166,16 @@ export default function Requisicoes() {
                                                 <div>
                                                     <h3 className="font-bold text-white text-xl leading-snug">{fornecedor?.nome || t('req.card.unknown_supplier')}</h3>
                                                     {viatura && (
-                                                        <div className="flex items-center gap-2 mt-1 text-sm text-indigo-300 font-medium">
+                                                        <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-indigo-300 font-medium">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
                                                             {viatura.matricula} - {viatura.marca} {viatura.modelo}
+                                                            <button
+                                                                onClick={() => navigate(`/viaturas/${viatura.id}`)}
+                                                                className="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/20 transition-colors text-[11px]"
+                                                                title="Abrir perfil da viatura"
+                                                            >
+                                                                Perfil <ArrowRight className="w-3 h-3" />
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>

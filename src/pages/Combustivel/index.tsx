@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Fuel, Droplets, History, Check, Truck,
     Gauge, Trash2, LayoutTemplate, BarChart3, Edit, X,
@@ -16,6 +17,7 @@ import autoTable from 'jspdf-autotable';
 import PageHeader from '../../components/common/PageHeader';
 
 export default function Combustivel() {
+    const navigate = useNavigate();
     const {
         fuelTank, fuelTransactions, tankRefills, registerRefuel, motoristas, viaturas, registerTankRefill, deleteFuelTransaction, deleteTankRefill, centrosCustos, updateFuelTank, vehicleMetrics, recalculateFuelTank, updateFuelTransaction
     } = useWorkshop();
@@ -1395,6 +1397,15 @@ export default function Combustivel() {
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex justify-end gap-2">
+                                                            {vehicle?.id && (
+                                                                <button
+                                                                    onClick={() => navigate(`/viaturas/${vehicle.id}`)}
+                                                                    className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-300 transition-colors"
+                                                                    title="Abrir perfil da viatura"
+                                                                >
+                                                                    <Car className="w-4 h-4" />
+                                                                </button>
+                                                            )}
                                                             <button
                                                                 onClick={() => setEditingTransaction(tx)}
                                                                 className="text-slate-600 hover:text-blue-400 transition-colors"

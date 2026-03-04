@@ -1,571 +1,596 @@
-import React, { useState } from 'react';
-import { X, Save, FileText, Calendar, Plus, Trash2, Shield, Wrench, Fuel } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Car, Fuel, Wrench, ClipboardList, Gauge, CalendarClock, AlertTriangle } from 'lucide-react';
+import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+    LineChart,
+    Line,
+    AreaChart,
+    Area
+} from 'recharts';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import type { Viatura, Manutencao, Multa, Seguro } from '../../types';
+import { supabase } from '../../lib/supabase';
+import type { Requisicao, FuelTransaction, Manutencao } from '../../types';
 
-interface VehicleProfileProps {
-    viatura: Viatura;
-    onClose: () => void;
+const normalizePlate = (value?: string | null) => (value || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+const isLikelyUUID = (value?: string | null) => !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+interface VehicleProfileSummaryRow {
+    vehicle_id: string;
+    total_fuel_cost: number;
+    total_maintenance_cost: number;
+    total_cost: number;
+    total_requisitions: number;
+    total_refuels: number;
+    total_liters: number;
+    km_travelled: number;
+    average_consumption: number;
+    cost_per_km: number;
+    current_km: number;
 }
 
-export default function VehicleProfile({ viatura: initialViatura, onClose }: VehicleProfileProps) {
-    const { updateViatura, viaturas, requisicoes, fuelTransactions, centrosCustos } = useWorkshop();
+export default function VehicleProfile() {
+    const navigate = useNavigate();
+    const { viaturaId } = useParams();
+    const { viaturas, requisicoes, fuelTransactions, motoristas } = useWorkshop();
+    const [maintenanceRecords, setMaintenanceRecords] = useState<Manutencao[]>([]);
+    const [summarySql, setSummarySql] = useState<VehicleProfileSummaryRow | null>(null);
+    const [monthlyFuelSql, setMonthlyFuelSql] = useState<Array<{ month: string; cost: number; liters: number }>>([]);
+    const [monthlyMaintenanceSql, setMonthlyMaintenanceSql] = useState<Array<{ month: string; cost: number }>>([]);
+    const [consumptionSql, setConsumptionSql] = useState<Array<{ month: string; average_consumption: number }>>([]);
 
-    // Live data from context to handle updates
-    const viatura = viaturas.find(v => v.id === initialViatura.id) || initialViatura;
+    const viatura = viaturas.find(v => v.id === viaturaId);
 
-    const [activeTab, setActiveTab] = useState<'detalhes' | 'multas' | 'manutencao' | 'requisicoes' | 'abastecimentos'>('detalhes');
+    useEffect(() => {
+        const loadVehicleProfileAggregates = async () => {
+            if (!viaturaId || !viatura) {
+                setSummarySql(null);
+                setMonthlyFuelSql([]);
+                setMonthlyMaintenanceSql([]);
+                setConsumptionSql([]);
+                setMaintenanceRecords([]);
+                return;
+            }
 
-    // --- State for Forms ---
-    const [showFineForm, setShowFineForm] = useState(false);
-    const [newFine, setNewFine] = useState<Partial<Multa>>({
-        data: new Date().toISOString().split('T')[0],
-        valor: 0,
-        motivo: '',
-        pago: false
+            const plate = normalizePlate(viatura.matricula);
+
+            const [
+                summaryResult,
+                monthlyFuelResult,
+                monthlyMaintenanceResult,
+                consumptionResult,
+                maintenanceResult
+            ] = await Promise.all([
+                supabase
+                    .from('vehicle_profile_summary')
+                    .select('*')
+                    .eq('vehicle_id', viaturaId)
+                    .maybeSingle(),
+                supabase
+                    .from('vehicle_fuel_monthly_summary')
+                    .select('month,cost,liters')
+                    .eq('vehicle_id', viaturaId)
+                    .order('month', { ascending: true }),
+                supabase
+                    .from('vehicle_maintenance_monthly_summary')
+                    .select('month,cost')
+                    .eq('vehicle_id', viaturaId)
+                    .order('month', { ascending: true }),
+                supabase
+                    .from('vehicle_consumption_monthly_summary')
+                    .select('month,average_consumption')
+                    .eq('vehicle_id', viaturaId)
+                    .order('month', { ascending: true }),
+                supabase
+                    .from('manutencoes')
+                    .select('id,data,tipo,km,oficina,custo,descricao,pdf_url,vehicle_id,license_plate,matricula')
+                    .or(`vehicle_id.eq.${viaturaId},license_plate.eq.${plate},matricula.eq.${plate}`)
+                    .order('data', { ascending: false })
+            ]);
+
+            if (!summaryResult.error) setSummarySql(summaryResult.data as VehicleProfileSummaryRow | null);
+            if (!monthlyFuelResult.error) setMonthlyFuelSql((monthlyFuelResult.data || []).map(row => ({ month: row.month, cost: Number(row.cost || 0), liters: Number(row.liters || 0) })));
+            if (!monthlyMaintenanceResult.error) setMonthlyMaintenanceSql((monthlyMaintenanceResult.data || []).map(row => ({ month: row.month, cost: Number(row.cost || 0) })));
+            if (!consumptionResult.error) setConsumptionSql((consumptionResult.data || []).map(row => ({ month: row.month, average_consumption: Number(row.average_consumption || 0) })));
+
+            if (!maintenanceResult.error) {
+                setMaintenanceRecords((maintenanceResult.data || []).map((item: any) => ({
+                    id: item.id,
+                    data: item.data,
+                    tipo: item.tipo || 'outros',
+                    km: Number(item.km || 0),
+                    oficina: item.oficina || '—',
+                    custo: Number(item.custo || 0),
+                    descricao: item.descricao || '',
+                    pdfUrl: item.pdf_url || undefined
+                })));
+            }
+        };
+
+        loadVehicleProfileAggregates();
+    }, [viaturaId, viatura]);
+
+    const resolveVehicleRef = useMemo(() => {
+        const byPlate = new Map<string, string>();
+        viaturas.forEach(v => byPlate.set(normalizePlate(v.matricula), v.id));
+
+        return (value?: string | null) => {
+            if (!value) return undefined;
+            if (isLikelyUUID(value) && viaturas.some(v => v.id === value)) return value;
+            return byPlate.get(normalizePlate(value));
+        };
+    }, [viaturas]);
+
+    const requisitionVehicleId = (req: Requisicao) => {
+        const raw = req as Requisicao & Record<string, any>;
+        return req.viaturaId
+            || resolveVehicleRef(raw.viatura_id)
+            || resolveVehicleRef(raw.vehicle_id)
+            || resolveVehicleRef(raw.matricula)
+            || resolveVehicleRef(raw.license_plate);
+    };
+
+    const fuelVehicleId = (tx: FuelTransaction) => {
+        const raw = tx as FuelTransaction & Record<string, any>;
+        return tx.vehicleId
+            ? (resolveVehicleRef(tx.vehicleId) || tx.vehicleId)
+            : resolveVehicleRef(raw.vehicle_id || raw.license_plate || raw.matricula);
+    };
+
+    const vehicleRequisitions = useMemo(() => {
+        if (!viatura) return [];
+        return requisicoes
+            .filter(req => requisitionVehicleId(req) === viatura.id)
+            .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+    }, [requisicoes, viatura]);
+
+    const vehicleFuelTransactions = useMemo(() => {
+        if (!viatura) return [];
+        return fuelTransactions
+            .filter(tx => fuelVehicleId(tx) === viatura.id)
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }, [fuelTransactions, viatura]);
+
+    const maintenanceHistory = useMemo(() => {
+        const fromVehicle = viatura?.manutencoes || [];
+        const merged = [...fromVehicle, ...maintenanceRecords];
+        const unique = new Map<string, Manutencao>();
+        merged.forEach(item => {
+            const key = item.id || `${item.data}-${item.km}-${item.custo}`;
+            if (!unique.has(key)) unique.set(key, item);
+        });
+        return [...unique.values()].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+    }, [viatura, maintenanceRecords]);
+
+    const requisitionCost = (req: Requisicao) => {
+        if (typeof req.custo === 'number') return req.custo;
+        return (req.itens || []).reduce((acc, item) => {
+            if (typeof item.valor_total === 'number') return acc + item.valor_total;
+            if (typeof item.valor_unitario === 'number') return acc + (item.valor_unitario * (item.quantidade || 0));
+            return acc;
+        }, 0);
+    };
+
+    const fuelByDateAsc = [...vehicleFuelTransactions].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const consumptionSeries = fuelByDateAsc.map((tx, index) => {
+        if (index === 0) return { date: tx.timestamp, consumo: null as number | null, txId: tx.id };
+        const previous = fuelByDateAsc[index - 1];
+        const kmDelta = Number(tx.km || 0) - Number(previous.km || 0);
+        if (kmDelta <= 0) return { date: tx.timestamp, consumo: null as number | null, txId: tx.id };
+        return {
+            date: tx.timestamp,
+            consumo: Number((((tx.liters || 0) / kmDelta) * 100).toFixed(2)),
+            txId: tx.id
+        };
     });
 
-    const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
-    const [newMaintenance, setNewMaintenance] = useState<Partial<Manutencao>>({
-        data: new Date().toISOString().split('T')[0],
-        tipo: 'preventiva',
-        km: 0,
-        oficina: '',
-        custo: 0,
-        descricao: ''
-    });
+    const validConsumption = consumptionSeries.filter(row => typeof row.consumo === 'number').map(row => row.consumo as number);
+    const averageConsumptionBase = validConsumption.length ? validConsumption.reduce((a, b) => a + b, 0) / validConsumption.length : 0;
 
-    // Insurance State (editing directly on details tab)
-    const [isEditingInsurance, setIsEditingInsurance] = useState(false);
-    const [insuranceData, setInsuranceData] = useState<Partial<Seguro>>(viatura.seguro || {
-        apolice: '',
-        validade: '',
-        companhia: ''
-    });
+    const totalFuelCostBase = vehicleFuelTransactions.reduce((acc, tx) => acc + Number(tx.totalCost || tx.total_cost || 0), 0);
+    const totalLitersBase = vehicleFuelTransactions.reduce((acc, tx) => acc + Number(tx.liters || 0), 0);
+    const maintenanceFromHistory = maintenanceHistory.reduce((acc, item) => acc + Number(item.custo || 0), 0);
+    const maintenanceFromRequisitions = vehicleRequisitions.reduce((acc, req) => acc + requisitionCost(req), 0);
+    const totalMaintenanceCostBase = maintenanceFromHistory + maintenanceFromRequisitions;
+    const totalGeneralCostBase = totalFuelCostBase + totalMaintenanceCostBase;
 
-    // Filter requisitions for this vehicle
-    const vehicleRequisitions = requisicoes.filter(r => r.viaturaId === viatura.id || (r.tipo === 'Viatura' && r.viaturaId === viatura.id));
+    const kmValues = fuelByDateAsc.map(t => Number(t.km || 0)).filter(v => Number.isFinite(v) && v > 0);
+    const kmFromMaintenance = maintenanceHistory.map(m => Number(m.km || 0)).filter(v => Number.isFinite(v) && v > 0);
+    const allKm = [...kmValues, ...kmFromMaintenance];
+    const currentKmBase = allKm.length ? Math.max(...allKm) : 0;
+    const kmTravelledBase = kmValues.length > 1 ? Math.max(...kmValues) - Math.min(...kmValues) : 0;
+    const costPerKmBase = kmTravelledBase > 0 ? totalGeneralCostBase / kmTravelledBase : 0;
 
-    // Filter fuel transactions
-    const vehicleFuelTransactions = fuelTransactions
-        .filter(t => t.vehicleId === viatura.id)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const vehicleStatus = viatura?.estado === 'em_manutencao'
+        ? 'Manutenção'
+        : ((viatura?.obs || '').toLowerCase().includes('avaria') || (viatura?.obs || '').toLowerCase().includes('oficina')
+            ? 'Manutenção'
+            : 'Operacional');
 
-    // Helper to calculate consumption
-    const calculateConsumption = (currentTx: typeof vehicleFuelTransactions[0], index: number) => {
-        // Find previous transaction (chronologically before current, so later in sorted array)
-        // Ensure we are comparing within the same vehicle context (which we are, since filtered)
-        // We need to look for the next item in the descending array that has a valid KM reading
+    const monthlyFuelFallback = Object.values(vehicleFuelTransactions.reduce((acc, tx) => {
+        const key = new Date(tx.timestamp).toISOString().slice(0, 7);
+        if (!acc[key]) acc[key] = { month: key, cost: 0, liters: 0 };
+        acc[key].cost += Number(tx.totalCost || tx.total_cost || 0);
+        acc[key].liters += Number(tx.liters || 0);
+        return acc;
+    }, {} as Record<string, { month: string; cost: number; liters: number }>)).sort((a, b) => a.month.localeCompare(b.month));
 
-        // Simple approach: strict previous record
-        const previousTx = vehicleFuelTransactions[index + 1];
+    const monthlyMaintenanceFallback = Object.values([
+        ...maintenanceHistory.map(item => ({ date: item.data, value: Number(item.custo || 0) })),
+        ...vehicleRequisitions.map(req => ({ date: req.data, value: requisitionCost(req) }))
+    ].reduce((acc, entry) => {
+        const key = new Date(entry.date).toISOString().slice(0, 7);
+        if (!acc[key]) acc[key] = { month: key, cost: 0 };
+        acc[key].cost += entry.value;
+        return acc;
+    }, {} as Record<string, { month: string; cost: number }>)).sort((a, b) => a.month.localeCompare(b.month));
 
-        if (!previousTx) return null;
+    const monthlyFuel = monthlyFuelSql.length ? monthlyFuelSql : monthlyFuelFallback;
+    const monthlyMaintenance = monthlyMaintenanceSql.length ? monthlyMaintenanceSql : monthlyMaintenanceFallback;
 
-        const kmDelta = currentTx.km - previousTx.km;
-        if (kmDelta <= 0) return null;
+    const averageConsumption = summarySql?.average_consumption ?? averageConsumptionBase;
+    const totalFuelCost = summarySql?.total_fuel_cost ?? totalFuelCostBase;
+    const totalLiters = summarySql?.total_liters ?? totalLitersBase;
+    const totalMaintenanceCost = summarySql?.total_maintenance_cost ?? totalMaintenanceCostBase;
+    const totalGeneralCost = summarySql?.total_cost ?? totalGeneralCostBase;
+    const currentKm = summarySql?.current_km ?? currentKmBase;
+    const kmTravelled = summarySql?.km_travelled ?? kmTravelledBase;
+    const costPerKm = summarySql?.cost_per_km ?? costPerKmBase;
+    const totalRequisitionsCount = summarySql?.total_requisitions ?? vehicleRequisitions.length;
+    const totalRefuelsCount = summarySql?.total_refuels ?? vehicleFuelTransactions.length;
+    const pendingReq = vehicleRequisitions.filter(r => (r.status || 'pendente') !== 'concluida').length;
 
-        const consumption = (currentTx.liters / kmDelta) * 100;
-        return consumption.toFixed(1);
-    };
+    const lastFuelDate = vehicleFuelTransactions[0]?.timestamp;
+    const daysWithoutFuelRecord = lastFuelDate ? Math.floor((Date.now() - new Date(lastFuelDate).getTime()) / (1000 * 60 * 60 * 24)) : null;
+    const lastMaintenance = maintenanceHistory[0];
+    const kmSinceMaintenance = lastMaintenance ? Math.max(currentKm - Number(lastMaintenance.km || 0), 0) : currentKm;
+    const maintenanceDays = lastMaintenance ? Math.floor((Date.now() - new Date(lastMaintenance.data).getTime()) / (1000 * 60 * 60 * 24)) : null;
 
-    // --- Handlers ---
+    const consumptionNumbers = consumptionSeries.map(c => c.consumo).filter((v): v is number => typeof v === 'number');
+    const lastConsumption = consumptionNumbers.length ? consumptionNumbers[consumptionNumbers.length - 1] : null;
+    const historicAverage = consumptionNumbers.length > 1
+        ? consumptionNumbers.slice(0, -1).reduce((acc, value) => acc + value, 0) / (consumptionNumbers.length - 1)
+        : averageConsumption;
 
-    const handleUpdateInsurance = () => {
-        const updatedViatura = {
-            ...viatura,
-            seguro: insuranceData as Seguro
-        };
-        updateViatura(updatedViatura);
-        setIsEditingInsurance(false);
-    };
+    const profileAlerts = [
+        pendingReq > 0
+            ? { id: 'pending-req', title: 'Requisições pendentes', description: `${pendingReq} requisição(ões) por fechar` }
+            : null,
+        (lastConsumption !== null && historicAverage > 0 && lastConsumption > historicAverage * 1.2)
+            ? { id: 'abnormal-consumption', title: 'Consumo anormal', description: `${lastConsumption.toFixed(2)} L/100km (>20% acima da média)` }
+            : null,
+        (kmSinceMaintenance >= 10000)
+            ? { id: 'km-review', title: 'Revisão por km', description: `${kmSinceMaintenance.toLocaleString('pt-PT')} km desde a última manutenção` }
+            : null,
+        (maintenanceDays !== null && maintenanceDays >= 365)
+            ? { id: 'annual-review', title: 'Revisão anual', description: `${maintenanceDays} dias desde a última manutenção` }
+            : null,
+        (daysWithoutFuelRecord !== null && daysWithoutFuelRecord >= 30)
+            ? { id: 'km-no-record', title: 'Km sem registo recente', description: `${daysWithoutFuelRecord} dias sem abastecimento registado` }
+            : null
+    ].filter(Boolean) as Array<{ id: string; title: string; description: string }>;
 
-    const handleAddFine = (e: React.FormEvent) => {
-        e.preventDefault();
-        const fine: Multa = {
-            id: crypto.randomUUID(),
-            data: newFine.data!,
-            valor: Number(newFine.valor),
-            motivo: newFine.motivo!,
-            pago: newFine.pago || false,
-            obs: newFine.obs
-        };
+    const timeline = useMemo(() => {
+        if (!viatura) return [] as Array<{ id: string; date: string; type: 'fuel' | 'req' | 'maintenance' | 'alert'; title: string; subtitle: string }>;
 
-        const updatedViatura = {
-            ...viatura,
-            multas: [...(viatura.multas || []), fine]
-        };
+        const events: Array<{ id: string; date: string; type: 'fuel' | 'req' | 'maintenance' | 'alert'; title: string; subtitle: string }> = [];
 
-        updateViatura(updatedViatura);
-        setShowFineForm(false);
-        setNewFine({ data: new Date().toISOString().split('T')[0], valor: 0, motivo: '', pago: false });
-    };
+        vehicleFuelTransactions.forEach(tx => {
+            events.push({
+                id: `fuel-${tx.id}`,
+                date: tx.timestamp,
+                type: 'fuel',
+                title: `Abastecimento • ${(tx.liters || 0).toFixed(2)}L`,
+                subtitle: `${Number(tx.totalCost || tx.total_cost || 0).toFixed(2)}€ • ${(tx.km || 0)} km`
+            });
+        });
 
-    const handleDeleteFine = (fineId: string) => {
-        if (!confirm('Tem a certeza que deseja eliminar esta multa?')) return;
-        const updatedViatura = {
-            ...viatura,
-            multas: viatura.multas?.filter(m => m.id !== fineId)
-        };
-        updateViatura(updatedViatura);
-    };
+        vehicleRequisitions.forEach(req => {
+            events.push({
+                id: `req-${req.id}`,
+                date: req.data,
+                type: 'req',
+                title: `Requisição #${req.numero}`,
+                subtitle: `${requisitionCost(req).toFixed(2)}€ • ${req.status || 'pendente'}`
+            });
+        });
 
-    const handleAddMaintenance = (e: React.FormEvent) => {
-        e.preventDefault();
-        const maintenance: Manutencao = {
-            id: crypto.randomUUID(),
-            data: newMaintenance.data!,
-            tipo: newMaintenance.tipo as any,
-            km: Number(newMaintenance.km),
-            oficina: newMaintenance.oficina!,
-            custo: Number(newMaintenance.custo),
-            descricao: newMaintenance.descricao!
-        };
+        maintenanceHistory.forEach(item => {
+            events.push({
+                id: `maintenance-${item.id}`,
+                date: item.data,
+                type: 'maintenance',
+                title: `Manutenção ${item.tipo}`,
+                subtitle: `${Number(item.custo || 0).toFixed(2)}€ • ${item.oficina}`
+            });
+        });
 
-        const updatedViatura = {
-            ...viatura,
-            manutencoes: [...(viatura.manutencoes || []), maintenance]
-        };
+        events.push({
+            id: `status-${viatura.id}`,
+            date: new Date().toISOString(),
+            type: 'maintenance',
+            title: 'Alteração de estado',
+            subtitle: `Estado atual: ${vehicleStatus}`
+        });
 
-        updateViatura(updatedViatura);
-        setShowMaintenanceForm(false);
-        setNewMaintenance({ data: new Date().toISOString().split('T')[0], tipo: 'preventiva', km: 0, oficina: '', custo: 0, descricao: '' });
-    };
+        profileAlerts.forEach(alert => {
+            events.push({
+                id: `alert-${alert.id}`,
+                date: new Date().toISOString(),
+                type: 'alert',
+                title: alert.title,
+                subtitle: alert.description
+            });
+        });
 
-    const handleDeleteMaintenance = (mId: string) => {
-        if (!confirm('Eliminar registo de manutenção?')) return;
-        const updatedViatura = {
-            ...viatura,
-            manutencoes: viatura.manutencoes?.filter(m => m.id !== mId)
-        };
-        updateViatura(updatedViatura);
-    };
+        return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [viatura, vehicleFuelTransactions, vehicleRequisitions, maintenanceHistory, profileAlerts, vehicleStatus]);
+
+    if (!viatura) {
+        return (
+            <div className="space-y-6">
+                <button
+                    onClick={() => navigate('/viaturas')}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg"
+                >
+                    <ArrowLeft className="w-4 h-4" /> Voltar à Frota
+                </button>
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400">
+                    Viatura não encontrada.
+                </div>
+            </div>
+        );
+    }
+
+    const statusColor = vehicleStatus === 'Operacional' ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : 'text-amber-400 border-amber-500/30 bg-amber-500/10';
 
     return (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm transition-all" onClick={onClose}>
-            <div
-                className="w-full max-w-2xl bg-[#0f172a] border-l border-slate-700 h-full shadow-2xl flex flex-col animate-slide-in-right"
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-[#1e293b]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                            <span className="text-blue-400 font-bold text-lg">{viatura.marca.charAt(0)}</span>
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-white">{viatura.marca} {viatura.modelo}</h2>
-                            <div className="flex items-center gap-2 text-slate-400 text-sm">
-                                <span className="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 font-mono text-xs">{viatura.matricula}</span>
-                                <span>• {viatura.ano}</span>
-                            </div>
+        <div className="space-y-8">
+            <div className="flex items-center justify-between">
+                <button
+                    onClick={() => navigate('/viaturas')}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 text-slate-300 hover:text-white rounded-lg"
+                >
+                    <ArrowLeft className="w-4 h-4" /> Voltar à Frota
+                </button>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <div className="text-slate-400 text-sm">Perfil da Viatura</div>
+                        <h1 className="text-3xl font-black text-white mt-1">{viatura.marca} {viatura.modelo}</h1>
+                        <div className="mt-3 flex items-center gap-3 text-sm">
+                            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-200 font-mono">{viatura.matricula}</span>
+                            <span className="text-slate-400">Ano {viatura.ano || 'N/A'}</span>
+                            <span className={`px-2 py-1 rounded border ${statusColor}`}>{vehicleStatus}</span>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
-                        <X className="w-6 h-6" />
-                    </button>
+                    <div className="text-right">
+                        <div className="text-xs uppercase tracking-wider text-slate-500">Quilometragem Atual</div>
+                        <div className="text-2xl font-black text-white">{currentKm.toLocaleString('pt-PT')} km</div>
+                    </div>
                 </div>
+            </div>
 
-                {/* Tabs */}
-                <div className="flex border-b border-slate-800 bg-[#1e293b]/50 overflow-x-auto">
-                    <button
-                        onClick={() => setActiveTab('detalhes')}
-                        className={`flex-1 min-w-[100px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'detalhes' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                    >
-                        Detalhes
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('abastecimentos')}
-                        className={`flex-1 min-w-[120px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'abastecimentos' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                    >
-                        Abastecimentos
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('manutencao')}
-                        className={`flex-1 min-w-[100px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'manutencao' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                    >
-                        Manutenções
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('multas')}
-                        className={`flex-1 min-w-[100px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'multas' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                    >
-                        Multas
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('requisicoes')}
-                        className={`flex-1 min-w-[100px] py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'requisicoes' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                    >
-                        Requisições
-                    </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {[
+                    { label: 'Total combustível', value: `${totalFuelCost.toFixed(2)}€`, icon: Fuel, color: 'text-blue-400' },
+                    { label: 'Total manutenção', value: `${totalMaintenanceCost.toFixed(2)}€`, icon: Wrench, color: 'text-amber-400' },
+                    { label: 'Custo total', value: `${totalGeneralCost.toFixed(2)}€`, icon: ClipboardList, color: 'text-purple-400' },
+                    { label: 'Custo por km', value: `${costPerKm.toFixed(3)}€/km`, icon: Gauge, color: 'text-violet-400' },
+                    { label: 'Consumo médio', value: `${averageConsumption.toFixed(2)} L/100km`, icon: Gauge, color: 'text-emerald-400' },
+                    { label: 'Km percorridos', value: `${kmTravelled.toLocaleString('pt-PT')} km`, icon: Car, color: 'text-indigo-400' },
+                    { label: 'Nº requisições', value: String(totalRequisitionsCount), icon: ClipboardList, color: 'text-fuchsia-400' },
+                    { label: 'Nº abastecimentos', value: String(totalRefuelsCount), icon: Fuel, color: 'text-cyan-400' }
+                ].map(card => (
+                    <div key={card.label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-xs uppercase text-slate-500 font-bold tracking-wider">{card.label}</div>
+                                <div className="text-xl font-black text-white mt-1">{card.value}</div>
+                            </div>
+                            <card.icon className={`w-5 h-5 ${card.color}`} />
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h2 className="text-lg font-bold text-white mb-4">Alertas Automáticos</h2>
+                <div className="space-y-3">
+                    {profileAlerts.map(alert => (
+                        <div key={alert.id} className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                            <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-400" />
+                            <div>
+                                <div className="text-sm font-semibold text-white">{alert.title}</div>
+                                <div className="text-xs text-slate-400">{alert.description}</div>
+                            </div>
+                        </div>
+                    ))}
+                    {profileAlerts.length === 0 && <p className="text-slate-500 text-sm">Sem alertas ativos para esta viatura.</p>}
                 </div>
+            </div>
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0f172a]">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h2 className="text-lg font-bold text-white mb-4">Histórico de Requisições</h2>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr className="text-slate-500 border-b border-slate-800">
+                                    <th className="text-left py-2">Nº</th>
+                                    <th className="text-left py-2">Data</th>
+                                    <th className="text-left py-2">Peça/Material</th>
+                                    <th className="text-left py-2">Qtd</th>
+                                    <th className="text-left py-2">Custo</th>
+                                    <th className="text-left py-2">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {vehicleRequisitions.map(req => {
+                                    const itemsText = (req.itens || []).map(i => i.descricao).filter(Boolean).join(', ') || '—';
+                                    const qty = (req.itens || []).reduce((acc, i) => acc + Number(i.quantidade || 0), 0);
+                                    const cost = requisitionCost(req);
 
-                    {/* --- DETAILS & INSURANCE --- */}
-                    {activeTab === 'detalhes' && (
-                        <div className="space-y-8">
-                            {/* Cost Center Section */}
-                            <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5">
-                                <h3 className="text-white font-bold flex items-center gap-2 mb-4">
-                                    <TrendingDown className="w-5 h-5 text-indigo-400" />
-                                    Centro de Custo
-                                </h3>
-                                <div className="space-y-4">
-                                    <p className="text-sm text-slate-400">
-                                        Associe esta viatura a um Centro de Custo para que as despesas (Portagens, Carregamentos, etc.) sejam atribuídas automaticamente.
-                                    </p>
-                                    <div className="flex gap-4">
-                                        <select
-                                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white"
-                                            value={viatura.centro_custo_id || ''}
-                                            onChange={(e) => updateViatura({ ...viatura, centro_custo_id: e.target.value })}
-                                        >
-                                            <option value="">-- Sem Centro de Custo --</option>
-                                            {centrosCustos.map(cc => (
-                                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Insurance Section */}
-                            <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-white font-bold flex items-center gap-2">
-                                        <Shield className="w-5 h-5 text-emerald-400" />
-                                        Seguro da Viatura
-                                    </h3>
-                                    {!isEditingInsurance ? (
-                                        <button
-                                            onClick={() => { setInsuranceData(viatura.seguro || {}); setIsEditingInsurance(true); }}
-                                            className="text-xs text-blue-400 hover:text-blue-300 font-medium"
-                                        >
-                                            Editar
-                                        </button>
-                                    ) : (
-                                        <div className="flex gap-2">
-                                            <button onClick={() => setIsEditingInsurance(false)} className="text-xs text-slate-400 hover:text-white">Cancelar</button>
-                                            <button onClick={handleUpdateInsurance} className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
-                                                <Save className="w-3 h-3" /> Guardar
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {isEditingInsurance ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Companhia</label>
-                                            <input
-                                                type="text"
-                                                value={insuranceData.companhia || ''}
-                                                onChange={e => setInsuranceData({ ...insuranceData, companhia: e.target.value })}
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white mt-1"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Apólice nº</label>
-                                            <input
-                                                type="text"
-                                                value={insuranceData.apolice || ''}
-                                                onChange={e => setInsuranceData({ ...insuranceData, apolice: e.target.value })}
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white mt-1"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Validade</label>
-                                            <input
-                                                type="date"
-                                                value={insuranceData.validade || ''}
-                                                onChange={e => setInsuranceData({ ...insuranceData, validade: e.target.value })}
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white mt-1"
-                                            />
-                                        </div>
-                                    </div>
-                                ) : (
-                                    viatura.seguro ? (
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-xs text-slate-500 uppercase font-bold">Companhia</p>
-                                                <p className="text-white">{viatura.seguro.companhia}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-slate-500 uppercase font-bold">Apólice</p>
-                                                <p className="text-white font-mono">{viatura.seguro.apolice}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-slate-500 uppercase font-bold">Validade</p>
-                                                <p className={`font-medium ${new Date(viatura.seguro.validade) < new Date() ? 'text-red-400' : 'text-white'}`}>
-                                                    {viatura.seguro.validade}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-4 text-slate-500 text-sm border border-dashed border-slate-700 rounded-lg">
-                                            Sem dados de seguro registados.
-                                        </div>
-                                    )
-                                )}
-                            </div>
-
-                            {/* Documents Placeholder */}
-                            <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5">
-                                <h3 className="text-white font-bold flex items-center gap-2 mb-4">
-                                    <FileText className="w-5 h-5 text-blue-400" />
-                                    Documentos
-                                </h3>
-                                <div className="text-center py-6 text-slate-500 text-sm border border-dashed border-slate-700 rounded-lg">
-                                    Gestão de documentos digitais (PDF) brevemente...
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* --- FUEL TRANSACTIONS TAB --- */}
-                    {activeTab === 'abastecimentos' && (
-                        <div className="space-y-6">
-                            <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                                <Fuel className="w-5 h-5 text-yellow-500" />
-                                Histórico de Abastecimentos
-                            </h3>
-
-                            <div className="space-y-3">
-                                {vehicleFuelTransactions.length > 0 ? (
-                                    vehicleFuelTransactions.map((tx, idx) => {
-                                        const consumption = calculateConsumption(tx, idx);
-                                        return (
-                                            <div key={tx.id} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-white font-bold">{new Date(tx.timestamp).toLocaleDateString()}</span>
-                                                            <span className="text-slate-500 text-xs">{new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        </div>
-                                                        <p className="text-slate-400 text-xs mt-0.5">{tx.staffName || 'Admin'}</p>
-                                                    </div>
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
-                                                        {tx.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                                                    </span>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-                                                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                                                        <p className="text-xs text-slate-500 uppercase font-bold">Litros</p>
-                                                        <p className="text-yellow-500 font-mono font-bold text-lg">{tx.liters} L</p>
-                                                    </div>
-                                                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                                                        <p className="text-xs text-slate-500 uppercase font-bold">KM (Odo)</p>
-                                                        <p className="text-white font-mono">{tx.km}</p>
-                                                    </div>
-                                                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                                                        <p className="text-xs text-slate-500 uppercase font-bold">Consumo</p>
-                                                        <p className={`font-mono font-bold ${consumption ? 'text-blue-400' : 'text-slate-600'}`}>
-                                                            {consumption ? `${consumption} L/100` : '--'}
-                                                        </p>
-                                                    </div>
-                                                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                                                        <p className="text-xs text-slate-500 uppercase font-bold">Custo</p>
-                                                        <p className="text-white font-mono">
-                                                            {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '--'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="text-center py-8 text-slate-500 text-sm italic border border-dashed border-slate-700 rounded-lg">
-                                        Sem registos de abastecimento para esta viatura.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* --- FINES TAB --- */}
-                    {activeTab === 'multas' && (
-                        <div className="space-y-6">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-white font-bold text-lg">Registo de Multas</h3>
-                                <button
-                                    onClick={() => setShowFineForm(!showFineForm)}
-                                    className="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-red-500/20"
-                                >
-                                    <Plus className="w-4 h-4" /> Nova Multa
-                                </button>
-                            </div>
-
-                            {showFineForm && (
-                                <form onSubmit={handleAddFine} className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-4 animate-fade-in-down">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Data</label>
-                                            <input type="date" required value={newFine.data} onChange={e => setNewFine({ ...newFine, data: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Valor (€)</label>
-                                            <input type="number" required value={newFine.valor} onChange={e => setNewFine({ ...newFine, valor: parseFloat(e.target.value) })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-500 font-bold uppercase">Motivo</label>
-                                        <input type="text" required value={newFine.motivo} onChange={e => setNewFine({ ...newFine, motivo: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" placeholder="Ex: Excesso de velocidade" />
-                                    </div>
-                                    <button type="submit" className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg">Registar Multa</button>
-                                </form>
-                            )}
-
-                            <div className="space-y-3">
-                                {viatura.multas && viatura.multas.length > 0 ? (
-                                    viatura.multas.map(multa => (
-                                        <div key={multa.id} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 flex justify-between items-center group">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-white font-bold">{multa.motivo}</span>
-                                                    <span className="text-red-400 bg-red-400/10 px-2 py-0.5 rounded text-xs font-bold border border-red-400/20">
-                                                        {multa.valor.toFixed(2)}€
-                                                    </span>
-                                                </div>
-                                                <p className="text-slate-400 text-xs flex items-center gap-2">
-                                                    <Calendar className="w-3 h-3" /> {multa.data}
-                                                    {multa.pago ? <span className="text-emerald-400 ml-2">• Pago</span> : <span className="text-amber-400 ml-2">• Pendente</span>}
-                                                </p>
-                                            </div>
-                                            <button onClick={() => handleDeleteFine(multa.id)} className="text-slate-500 hover:text-red-400 p-2 opacity-0 group-hover:opacity-100 transition-all">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-slate-500 text-sm italic">Sem multas registadas</div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* --- MAINTENANCE TAB --- */}
-                    {activeTab === 'manutencao' && (
-                        <div className="space-y-6">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-white font-bold text-lg">Histórico de Manutenções</h3>
-                                <button
-                                    onClick={() => setShowMaintenanceForm(!showMaintenanceForm)}
-                                    className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-blue-500/20"
-                                >
-                                    <Plus className="w-4 h-4" /> Registar Manutenção
-                                </button>
-                            </div>
-
-                            {showMaintenanceForm && (
-                                <form onSubmit={handleAddMaintenance} className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-4 animate-fade-in-down">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Data</label>
-                                            <input type="date" required value={newMaintenance.data} onChange={e => setNewMaintenance({ ...newMaintenance, data: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Tipo</label>
-                                            <select value={newMaintenance.tipo} onChange={e => setNewMaintenance({ ...newMaintenance, tipo: e.target.value as any })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
-                                                <option value="preventiva">Preventiva</option>
-                                                <option value="corretiva">Corretiva</option>
-                                                <option value="inspecao">Inspeção</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Oficina</label>
-                                            <input type="text" required value={newMaintenance.oficina} onChange={e => setNewMaintenance({ ...newMaintenance, oficina: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" placeholder="Norauto, Midas..." />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-500 font-bold uppercase">Custo (€)</label>
-                                            <input type="number" required value={newMaintenance.custo} onChange={e => setNewMaintenance({ ...newMaintenance, custo: parseFloat(e.target.value) })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-500 font-bold uppercase">KM Atuais</label>
-                                        <input type="number" required value={newMaintenance.km} onChange={e => setNewMaintenance({ ...newMaintenance, km: parseInt(e.target.value) })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-500 font-bold uppercase">Descrição</label>
-                                        <textarea required value={newMaintenance.descricao} onChange={e => setNewMaintenance({ ...newMaintenance, descricao: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" rows={2} placeholder="Mudança de óleo e filtros..." />
-                                    </div>
-                                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg">Guardar Registo</button>
-                                </form>
-                            )}
-
-                            <div className="space-y-3">
-                                {viatura.manutencoes && viatura.manutencoes.length > 0 ? (
-                                    viatura.manutencoes
-                                        .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()) // Newest first
-                                        .map(manutencao => (
-                                            <div key={manutencao.id} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 flex justify-between items-start group">
-                                                <div className="flex gap-4">
-                                                    <div className="mt-1 bg-slate-800 p-2 rounded-lg text-slate-400">
-                                                        <Wrench className="w-4 h-4" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-white font-bold capitalize">{manutencao.tipo}</span>
-                                                            <span className="text-slate-500 text-xs px-1.5 border border-slate-700 rounded bg-slate-900">{manutencao.km} km</span>
-                                                            <span className="text-emerald-400 text-xs font-bold">{manutencao.custo.toFixed(2)}€</span>
-                                                        </div>
-                                                        <p className="text-slate-300 text-sm mb-1">{manutencao.descricao}</p>
-                                                        <p className="text-slate-500 text-xs flex items-center gap-2">
-                                                            <Calendar className="w-3 h-3" /> {manutencao.data} • {manutencao.oficina}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <button onClick={() => handleDeleteMaintenance(manutencao.id)} className="text-slate-500 hover:text-red-400 p-2 opacity-0 group-hover:opacity-100 transition-all">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        ))
-                                ) : (
-                                    <div className="text-center py-8 text-slate-500 text-sm italic">Sem registos de manutenção</div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* --- REQUISITIONS TAB --- */}
-                    {activeTab === 'requisicoes' && (
-                        <div className="space-y-6">
-                            <h3 className="text-white font-bold text-lg">Requisições Associadas</h3>
-
-                            <div className="space-y-3">
-                                {vehicleRequisitions.length > 0 ? (
-                                    vehicleRequisitions.map(req => (
-                                        <div key={req.id} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <span className="text-blue-400 font-mono text-xs font-bold">Req #{req.numero}</span>
-                                                    <p className="text-slate-400 text-xs mt-0.5">{req.data}</p>
-                                                </div>
-                                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${req.status === 'concluida' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
-                                                    {req.status || 'Pendente'}
+                                    return (
+                                        <tr key={req.id} className="border-b border-slate-800/60 text-slate-300">
+                                            <td className="py-2 font-mono">{req.numero}</td>
+                                            <td className="py-2">{new Date(req.data).toLocaleDateString('pt-PT')}</td>
+                                            <td className="py-2 max-w-[260px] truncate" title={itemsText}>{itemsText}</td>
+                                            <td className="py-2">{qty || '—'}</td>
+                                            <td className="py-2">{cost.toFixed(2)}€</td>
+                                            <td className="py-2">
+                                                <span className={`px-2 py-0.5 rounded text-xs border ${(req.status || 'pendente') === 'concluida' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                                                    {(req.status || 'pendente') === 'concluida' ? 'Concluído' : 'Pendente'}
                                                 </span>
-                                            </div>
-                                            <div className="space-y-1 mb-3">
-                                                {req.itens.map((item, idx) => (
-                                                    <div key={idx} className="flex justify-between text-sm text-slate-300">
-                                                        <span>{item.descricao}</span>
-                                                        <span className="text-slate-500">x{item.quantidade}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-slate-500 text-sm italic">Sem requisições associadas a esta viatura.</div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        {vehicleRequisitions.length === 0 && <p className="text-slate-500 py-6 text-center">Sem requisições associadas.</p>}
+                    </div>
+                </div>
 
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h2 className="text-lg font-bold text-white mb-4">Histórico de Combustível</h2>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr className="text-slate-500 border-b border-slate-800">
+                                    <th className="text-left py-2">Data</th>
+                                    <th className="text-left py-2">Litros</th>
+                                    <th className="text-left py-2">€/L</th>
+                                    <th className="text-left py-2">Custo</th>
+                                    <th className="text-left py-2">Km</th>
+                                    <th className="text-left py-2">Motorista</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {vehicleFuelTransactions.map(tx => {
+                                    const motorista = motoristas.find(m => m.id === tx.driverId);
+                                    return (
+                                        <tr key={tx.id} className="border-b border-slate-800/60 text-slate-300">
+                                            <td className="py-2">{new Date(tx.timestamp).toLocaleDateString('pt-PT')}</td>
+                                            <td className="py-2">{Number(tx.liters || 0).toFixed(2)}</td>
+                                            <td className="py-2">{Number(tx.pricePerLiter || tx.price_per_liter || 0).toFixed(3)}</td>
+                                            <td className="py-2">{Number(tx.totalCost || tx.total_cost || 0).toFixed(2)}€</td>
+                                            <td className="py-2">{Number(tx.km || 0).toLocaleString('pt-PT')}</td>
+                                            <td className="py-2">{motorista?.nome || tx.staffName || '—'}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        {vehicleFuelTransactions.length === 0 && <p className="text-slate-500 py-6 text-center">Sem abastecimentos associados.</p>}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                        <div className="bg-slate-800/60 rounded-lg p-3">
+                            <div className="text-xs text-slate-500 uppercase">Total Litros</div>
+                            <div className="text-white font-bold">{totalLiters.toFixed(2)} L</div>
+                        </div>
+                        <div className="bg-slate-800/60 rounded-lg p-3">
+                            <div className="text-xs text-slate-500 uppercase">Consumo Médio</div>
+                            <div className="text-white font-bold">{averageConsumption.toFixed(2)} L/100km</div>
+                        </div>
+                        <div className="bg-slate-800/60 rounded-lg p-3">
+                            <div className="text-xs text-slate-500 uppercase">Total Combustível</div>
+                            <div className="text-white font-bold">{totalFuelCost.toFixed(2)}€</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h2 className="text-lg font-bold text-white mb-4">Cronograma / Timeline</h2>
+                <div className="space-y-3">
+                    {timeline.map(event => (
+                        <div key={event.id} className="flex items-start gap-3 p-3 bg-slate-800/40 border border-slate-800 rounded-xl">
+                            <div className={`mt-0.5 ${event.type === 'alert' ? 'text-amber-400' : 'text-blue-400'}`}>
+                                {event.type === 'alert' ? <AlertTriangle className="w-4 h-4" /> : <CalendarClock className="w-4 h-4" />}
+                            </div>
+                            <div className="flex-1">
+                                <div className="text-white font-semibold text-sm">{event.title}</div>
+                                <div className="text-slate-400 text-xs">{event.subtitle}</div>
+                            </div>
+                            <div className="text-slate-500 text-xs whitespace-nowrap">{new Date(event.date).toLocaleDateString('pt-PT')}</div>
+                        </div>
+                    ))}
+                    {timeline.length === 0 && <p className="text-slate-500 text-center py-4">Sem eventos para esta viatura.</p>}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h3 className="text-white font-bold mb-4">Combustível por mês</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={monthlyFuel}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                <XAxis dataKey="month" stroke="#64748b" />
+                                <YAxis stroke="#64748b" />
+                                <Tooltip />
+                                <Bar dataKey="cost" fill="#3b82f6" name="Custo (€)" radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h3 className="text-white font-bold mb-4">Custos de manutenção por mês</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={monthlyMaintenance}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                <XAxis dataKey="month" stroke="#64748b" />
+                                <YAxis stroke="#64748b" />
+                                <Tooltip />
+                                <Bar dataKey="cost" fill="#f59e0b" name="Custo (€)" radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h3 className="text-white font-bold mb-4">Consumo médio ao longo do tempo</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                                data={consumptionSql.length
+                                    ? consumptionSql.map(item => ({ date: item.month, consumo: item.average_consumption }))
+                                    : consumptionSeries.filter(item => typeof item.consumo === 'number').map(item => ({ date: new Date(item.date).toLocaleDateString('pt-PT'), consumo: item.consumo }))}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                <XAxis dataKey="date" stroke="#64748b" />
+                                <YAxis stroke="#64748b" />
+                                <Tooltip />
+                                <Line type="monotone" dataKey="consumo" stroke="#10b981" strokeWidth={2} dot={false} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h3 className="text-white font-bold mb-4">Litros abastecidos</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={monthlyFuel}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                <XAxis dataKey="month" stroke="#64748b" />
+                                <YAxis stroke="#64748b" />
+                                <Tooltip />
+                                <Area type="monotone" dataKey="liters" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.2} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </div>
         </div>

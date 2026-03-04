@@ -188,6 +188,58 @@ export default function Escalas() {
         obs: ''
     });
 
+    const isUrgentService = (service: Partial<Servico>) => {
+        if (service.isUrgent || service.status === 'URGENTE') return true;
+        if (!service.hora) return false;
+
+        const [hoursRaw, minutesRaw] = service.hora.split(':');
+        const hours = Number(hoursRaw);
+        const minutes = Number(minutesRaw);
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return false;
+
+        const dateBase = service.data || selectedDate || new Date().toISOString().split('T')[0];
+        const serviceDateTime = new Date(`${dateBase}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
+        if (Number.isNaN(serviceDateTime.getTime())) return false;
+
+        const diffMinutes = (serviceDateTime.getTime() - Date.now()) / 60000;
+        return diffMinutes >= 0 && diffMinutes < 60;
+    };
+
+    const notifyUrgentAssignment = async (service: Servico, driverId: string) => {
+        const driver = motoristas.find(m => m.id === driverId);
+        const centro = centrosCustos.find(c => c.id === service.centroCustoId);
+
+        await addNotification({
+            id: crypto.randomUUID(),
+            type: 'transport_assignment',
+            data: {
+                serviceId: service.id,
+                passenger: service.passageiro,
+                origin: service.origem,
+                destination: service.destino,
+                time: service.hora,
+                title: '⚠ Serviço URGENTE atribuído',
+                message: `${service.passageiro} • ${service.hora} • ${service.origem} → ${service.destino}`,
+                priority: 'high'
+            },
+            status: 'pending',
+            response: { driverId, serviceId: service.id },
+            timestamp: new Date().toISOString()
+        });
+
+        await addNotification({
+            id: crypto.randomUUID(),
+            type: 'system_alert',
+            data: {
+                title: '⚠ Atribuição URGENTE confirmada',
+                message: `Motorista ${driver?.nome || 'N/D'} atribuído ao serviço ${service.hora} (${centro?.nome || 'Centro Operacional'}).`,
+                priority: 'high'
+            },
+            status: 'pending',
+            timestamp: new Date().toISOString()
+        });
+    };
+
     const handleRunAutomation = async () => {
         setIsAutoLoading(true);
         try {
@@ -454,6 +506,8 @@ export default function Escalas() {
 
     const pendentes = filteredServicos.filter(s => !s.motoristaId).sort((a, b) => a.hora.localeCompare(b.hora));
     const assigned = filteredServicos.filter(s => s.motoristaId);
+    const urgentServices = filteredServicos.filter(s => isUrgentService(s));
+    const urgentPendingServices = urgentServices.filter(s => !s.motoristaId);
 
     // Logic & Filters
     const filteredMotoristas = motoristas.filter(m => {
@@ -639,7 +693,7 @@ export default function Escalas() {
     const handleCreateService = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const servicesToAdd: Servico[] = [{
+        const entryService: Servico = {
             id: crypto.randomUUID(),
             data: selectedDate, // Use currently selected date
             hora: newService.hora,
@@ -651,11 +705,15 @@ export default function Escalas() {
             concluido: false,
             centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
             validationPoints: newService.validationPoints
-        }];
+        };
+        entryService.isUrgent = isUrgentService(entryService);
+        entryService.status = entryService.isUrgent ? 'URGENTE' : entryService.status;
+
+        const servicesToAdd: Servico[] = [entryService];
 
         if (newService.temRegresso) {
             const returnDest = newService.destinoRegresso || newService.origem;
-            servicesToAdd.push({
+            const returnService: Servico = {
                 id: crypto.randomUUID(),
                 data: selectedDate,
                 hora: newService.horaRegresso,
@@ -667,7 +725,11 @@ export default function Escalas() {
                 concluido: false,
                 centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
                 validationPoints: newService.validationPoints
-            });
+            };
+
+            returnService.isUrgent = isUrgentService(returnService);
+            returnService.status = returnService.isUrgent ? 'URGENTE' : returnService.status;
+            servicesToAdd.push(returnService);
         }
 
         const batchData = {
@@ -714,6 +776,11 @@ export default function Escalas() {
 
         const servicesToUpdate = servicos.filter(s => selectedPendentes.includes(s.id));
         await Promise.all(servicesToUpdate.map(s => updateServico({ ...s, motoristaId: selectedMotoristaForAssign })));
+        await Promise.all(
+            servicesToUpdate
+                .filter(s => isUrgentService(s))
+                .map(s => notifyUrgentAssignment(s, selectedMotoristaForAssign))
+        );
 
         setSelectedPendentes([]);
         setSelectedMotoristaForAssign('');
@@ -871,6 +938,15 @@ export default function Escalas() {
                                     </button>
 
                                     <button
+                                        onClick={() => setShowUrgentModal(true)}
+                                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-red-900/20 active:scale-95 transition-all"
+                                        title="Transporte de Emergência"
+                                    >
+                                        <Siren className="w-4 h-4" />
+                                        <span className="hidden md:inline">Emergência</span>
+                                    </button>
+
+                                    <button
                                         onClick={handleRunAutomation}
                                         disabled={isAutoLoading || selectedCentroCusto === 'all'}
                                         className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
@@ -919,6 +995,14 @@ export default function Escalas() {
                             <div className="flex flex-col items-center">
                                 <span className="text-[10px] uppercase text-slate-500 font-bold">Total</span>
                                 <span className="text-xl font-bold text-white">{totalServices}</span>
+                            </div>
+                            <div className="w-px h-8 bg-white/5"></div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-[10px] uppercase text-red-400 font-bold">Urgentes</span>
+                                <div className="flex items-center gap-1">
+                                    <span className={`text-xl font-bold ${urgentServices.length > 0 ? 'text-red-400' : 'text-slate-500'}`}>{urgentServices.length}</span>
+                                    {urgentServices.length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
+                                </div>
                             </div>
                             <div className="w-px h-8 bg-white/5"></div>
                             <div className="flex flex-col items-center">
@@ -1008,6 +1092,15 @@ export default function Escalas() {
                     </div>
                 </div>
             </PageHeader>
+
+            {urgentPendingServices.length > 0 && (
+                <div className="mx-6 mt-4 mb-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-red-300 text-sm font-bold">
+                        <AlertTriangle className="w-4 h-4" />
+                        ⚠ {urgentPendingServices.length} serviço(s) URGENTE(s) pendente(s) de atribuição.
+                    </div>
+                </div>
+            )}
 
             {/* MAIN CONTENT AREA */}
 
@@ -1242,11 +1335,14 @@ export default function Escalas() {
                                                                                         // RENDER SINGLE SERVICE (Legacy)
                                                                                         const service = firstService;
                                                                                         const compliance = complianceStats?.[service.id];
+                                                                                        const isUrgent = isUrgentService(service);
                                                                                         const complianceColor = compliance?.status === 'success'
                                                                                             ? 'border-emerald-500 bg-emerald-500/10'
                                                                                             : compliance?.status === 'failed'
                                                                                                 ? 'border-red-500 bg-red-500/10'
-                                                                                                : 'border-white/5 hover:border-blue-500/30';
+                                                                                                : isUrgent
+                                                                                                    ? 'border-red-500/60 bg-red-500/10 hover:border-red-500/80'
+                                                                                                    : 'border-white/5 hover:border-blue-500/30';
 
                                                                                         return (
                                                                                             <div key={service.id} className="relative z-10 flex gap-2 md:gap-4 group/item">
@@ -1280,6 +1376,9 @@ export default function Escalas() {
                                                                                                             <span className="text-xs font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
                                                                                                                 {service.passageiro}
                                                                                                             </span>
+                                                                                                            {isUrgent && (
+                                                                                                                <span className="mt-1 inline-flex w-fit items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
+                                                                                                            )}
                                                                                                             {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
                                                                                                                 <span className="text-[9px] text-slate-500 italic line-clamp-1">{service.obs}</span>
                                                                                                             )}
@@ -1325,6 +1424,7 @@ export default function Escalas() {
                                                                                         );
                                                                                     } else {
                                                                                         // RENDER GROUP CARD
+                                                                                        const hasUrgentInGroup = group.some(s => isUrgentService(s));
                                                                                         return (
                                                                                             <div key={groupKey} className="relative z-10 flex gap-2 md:gap-4">
                                                                                                 {/* Time Column */}
@@ -1339,8 +1439,10 @@ export default function Escalas() {
                                                                                                 <div
                                                                                                     className={`flex-1 rounded-xl border transition-all duration-300 overflow-hidden
                                                                                     ${isExpanded
-                                                                                                            ? 'bg-slate-800/80 border-blue-500/50'
-                                                                                                            : 'bg-gradient-to-br from-blue-900/20 to-slate-900/50 border-blue-500/20 hover:border-blue-500/40 cursor-pointer'
+                                                                                                            ? hasUrgentInGroup ? 'bg-red-900/30 border-red-500/50' : 'bg-slate-800/80 border-blue-500/50'
+                                                                                                            : hasUrgentInGroup
+                                                                                                                ? 'bg-gradient-to-br from-red-900/20 to-slate-900/50 border-red-500/30 hover:border-red-500/50 cursor-pointer'
+                                                                                                                : 'bg-gradient-to-br from-blue-900/20 to-slate-900/50 border-blue-500/20 hover:border-blue-500/40 cursor-pointer'
                                                                                                         }
                                                                                 `}
                                                                                                     onClick={() => {
@@ -1355,6 +1457,9 @@ export default function Escalas() {
                                                                                                                     {group.length}
                                                                                                                 </div>
                                                                                                                 <span className="font-bold text-blue-100 text-sm">Passageiros</span>
+                                                                                                                {hasUrgentInGroup && (
+                                                                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
+                                                                                                                )}
                                                                                                             </div>
                                                                                                             <div className={`p-1 rounded-lg transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-white/10' : ''}`}>
                                                                                                                 <LayoutList className="w-4 h-4 text-blue-400" />
@@ -1385,7 +1490,7 @@ export default function Escalas() {
                                                                                                     {isExpanded && (
                                                                                                         <div className="border-t border-white/5 bg-[#0b1120]/30 divide-y divide-white/5">
                                                                                                             {group.map(service => (
-                                                                                                                <div key={service.id} className="p-3 hover:bg-white/5 transition-colors relative group/subitem">
+                                                                                                                <div key={service.id} className={`p-3 hover:bg-white/5 transition-colors relative group/subitem ${isUrgentService(service) ? 'bg-red-500/5 border-l-2 border-red-500/50' : ''}`}>
                                                                                                                     <button
                                                                                                                         onClick={(e) => {
                                                                                                                             e.stopPropagation();
@@ -1398,7 +1503,12 @@ export default function Escalas() {
                                                                                                                     </button>
 
                                                                                                                     <div className="pr-8">
-                                                                                                                        <div className="font-medium text-slate-200 text-sm mb-1">{service.passageiro}</div>
+                                                                                                                        <div className="font-medium text-slate-200 text-sm mb-1 flex items-center gap-2">
+                                                                                                                            <span>{service.passageiro}</span>
+                                                                                                                            {isUrgentService(service) && (
+                                                                                                                                <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
+                                                                                                                            )}
+                                                                                                                        </div>
                                                                                                                         <div className="flex items-center gap-2 text-xs">
                                                                                                                             <ArrowRight className="w-3 h-3 text-slate-600" />
                                                                                                                             <span className="text-slate-400 truncate">{service.destino}</span>
@@ -1641,8 +1751,11 @@ export default function Escalas() {
                                                     </div>
 
                                                     {/* Passageiro */}
-                                                    <div className="text-sm font-medium text-slate-200 truncate" title={service.passageiro}>
-                                                        {service.passageiro}
+                                                    <div className="text-sm font-medium text-slate-200 truncate flex items-center gap-2" title={service.passageiro}>
+                                                        <span className="truncate">{service.passageiro}</span>
+                                                        {isUrgentService(service) && (
+                                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300 shrink-0">⚠ URGENTE</span>
+                                                        )}
                                                     </div>
 
                                                     {/* Origem */}
@@ -1669,6 +1782,9 @@ export default function Escalas() {
                                                                 const newDriverId = e.target.value;
                                                                 if (newDriverId) {
                                                                     await updateServico({ ...service, motoristaId: newDriverId });
+                                                                    if (isUrgentService(service)) {
+                                                                        await notifyUrgentAssignment(service, newDriverId);
+                                                                    }
                                                                 } else {
                                                                     await updateServico({ ...service, motoristaId: undefined });
                                                                 }
@@ -1706,7 +1822,7 @@ export default function Escalas() {
                         {/* MODAL: NEW SERVICE */}
                         {
                             showNewServiceModal && (
-                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto">
                                     <div className="bg-[#1e293b] border border-white/10 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                                         <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center gap-3">
                                             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
@@ -1990,6 +2106,9 @@ export default function Escalas() {
                                                                             <div className="flex items-center gap-2">
                                                                                 <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
                                                                                 <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
+                                                                                    {isUrgentService(service) && (
+                                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
+                                                                                    )}
                                                                             </div>
                                                                             <div className="flex gap-2">
                                                                                 <button
@@ -2013,6 +2132,9 @@ export default function Escalas() {
                                                                                 onChange={(e) => {
                                                                                     if (e.target.value) {
                                                                                         updateServico({ ...service, motoristaId: e.target.value });
+                                                                                        if (isUrgentService(service)) {
+                                                                                            notifyUrgentAssignment(service, e.target.value);
+                                                                                        }
                                                                                     }
                                                                                 }}
                                                                             >
@@ -2092,6 +2214,9 @@ export default function Escalas() {
                                                                                 <div className="flex items-center gap-2">
                                                                                     <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
                                                                                     <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
+                                                                                    {isUrgentService(service) && (
+                                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
+                                                                                    )}
                                                                                 </div>
                                                                                 <button
                                                                                     onClick={(e) => handleDeleteService(service.id, e)}
@@ -2115,6 +2240,9 @@ export default function Escalas() {
                                                                                     onChange={(e) => {
                                                                                         if (e.target.value) {
                                                                                             updateServico({ ...service, motoristaId: e.target.value });
+                                                                                            if (isUrgentService(service)) {
+                                                                                                notifyUrgentAssignment(service, e.target.value);
+                                                                                            }
                                                                                         }
                                                                                     }}
                                                                                 >
@@ -2156,7 +2284,7 @@ export default function Escalas() {
 
             {/* MODAL: AUTO SETTINGS */}
             {showAutoSettings && (
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 overflow-y-auto">
                     <div className="bg-[#1e293b] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
                         <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                             <MoreVertical className="w-5 h-5 text-blue-400" />
@@ -2210,7 +2338,7 @@ export default function Escalas() {
 
             {/* MODAL: AUTOMATION PREVIEW */}
             {showAutoModal && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
                     <div className="bg-[#1e293b] border border-emerald-500/20 p-6 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-4">
@@ -2316,7 +2444,7 @@ export default function Escalas() {
             {/* MODAL: URGENT REQUEST */}
             {
                 showUrgentModal && (
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
                         <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
                             <div className="flex items-center gap-4 mb-8 text-red-500">
                                 <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">

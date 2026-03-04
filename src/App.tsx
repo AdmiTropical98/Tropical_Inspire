@@ -20,6 +20,7 @@ import ResetPassword from './pages/Auth/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import AlertsPage from './pages/Alerts';
 import Viaturas from './pages/Viaturas';
+import VehicleProfile from './pages/Viaturas/VehicleProfile';
 import Drivers from './pages/Motoristas';
 import Requisicoes from './pages/Requisicoes';
 import Escalas from './pages/Escalas';
@@ -178,6 +179,7 @@ function App() {
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
+  const isFleetRoute = activeTab === 'viaturas' || activeTab === 'vehicles';
   const handleNavigate = (tab: string) => {
     navigate(`/${tab}`);
     setIsMobileMenuOpen(false);
@@ -279,7 +281,7 @@ function App() {
               </>
             )}
             {hasAccess(userRole, 'viaturas') && (
-              <SidebarItem icon={Car} label="Frota" active={activeTab === 'viaturas'} onClick={() => handleNavigate('viaturas')} collapsed={isSidebarCollapsed} />
+              <SidebarItem icon={Car} label="Frota" active={isFleetRoute} onClick={() => handleNavigate('viaturas')} collapsed={isSidebarCollapsed} />
             )}
             {hasAccess(userRole, 'motoristas') && (
               <SidebarItem icon={UserCogIcon} label="Equipa" active={activeTab === 'motoristas'} onClick={() => handleNavigate('motoristas')} collapsed={isSidebarCollapsed} />
@@ -377,6 +379,8 @@ function App() {
                 <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
                 <Route path="/viaturas" element={<Viaturas />} />
+                <Route path="/viaturas/:viaturaId" element={<VehicleProfile />} />
+                <Route path="/vehicles/:viaturaId" element={<VehicleProfile />} />
                 <Route path="/motoristas" element={<Drivers />} />
                 <Route path="/requisicoes" element={<Requisicoes />} />
                 <Route path="/escalas" element={<Escalas />} />

@@ -137,6 +137,7 @@ CREATE TABLE IF NOT EXISTS public.servicos (
     obs TEXT,
     concluido BOOLEAN DEFAULT false,
     centro_custo_id UUID REFERENCES public.centros_custos(id) ON DELETE SET NULL,
+    is_urgent BOOLEAN DEFAULT false,
     departamento TEXT
 );
 ALTER TABLE public.servicos ENABLE ROW LEVEL SECURITY;

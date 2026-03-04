@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Search, Trash2, Car, Calendar, Info, LayoutTemplate,
     List, PlusCircle, Wrench, AlertTriangle, Fuel, CheckCircle, ArrowRight,
@@ -9,16 +10,14 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Viatura } from '../../types';
 
-import VehicleProfile from './VehicleProfile';
-
 export default function Viaturas() {
+    const navigate = useNavigate();
     const { viaturas, addViatura, deleteViatura } = useWorkshop();
     const { t } = useTranslation();
 
     // Navigation
     const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'create'>('overview');
 
-    const [selectedViatura, setSelectedViatura] = useState<Viatura | null>(null);
     const [filter, setFilter] = useState('');
 
     const [formData, setFormData] = useState<Omit<Viatura, 'id'>>({
@@ -114,13 +113,6 @@ export default function Viaturas() {
             <div className="flex flex-col">
                 {/* Scrollable Content Area */}
                 <div className="space-y-10">
-
-                    {selectedViatura && (
-                        <VehicleProfile
-                            viatura={selectedViatura}
-                            onClose={() => setSelectedViatura(null)}
-                        />
-                    )}
 
                     {/* Header Section */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -256,7 +248,7 @@ export default function Viaturas() {
                                         {stats.maintenance > 0 ? (
                                             <div className="space-y-3">
                                                 {viaturas.filter(v => getVehicleStatus(v) === 'maintenance').map(v => (
-                                                    <div key={v.id} className="flex items-center justify-between p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl hover:bg-amber-500/10 transition-colors cursor-pointer" onClick={() => setSelectedViatura(v)}>
+                                                    <div key={v.id} className="flex items-center justify-between p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl hover:bg-amber-500/10 transition-colors cursor-pointer" onClick={() => navigate(`/vehicles/${v.id}`)}>
                                                         <div className="flex items-center gap-4">
                                                             <div className="p-2 bg-amber-500/20 rounded-lg text-amber-500">
                                                                 <Car className="w-5 h-5" />
@@ -337,7 +329,7 @@ export default function Viaturas() {
                                         return (
                                             <div
                                                 key={viatura.id}
-                                                onClick={() => setSelectedViatura(viatura)}
+                                                onClick={() => navigate(`/vehicles/${viatura.id}`)}
                                                 className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/10 transition-all cursor-pointer group relative overflow-visible"
                                             >
                                                 <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
