@@ -205,6 +205,13 @@ export default function Escalas() {
         return diffMinutes >= 0 && diffMinutes < 60;
     };
 
+    const formatCheckpointTime = (value?: string | null) => {
+        if (!value) return '--';
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return '--';
+        return parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    };
+
     const notifyUrgentAssignment = async (service: Servico, driverId: string) => {
         const driver = motoristas.find(m => m.id === driverId);
         const centro = centrosCustos.find(c => c.id === service.centroCustoId);
@@ -1419,6 +1426,22 @@ export default function Escalas() {
                                                                                                     <div className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></div>
                                                                                                     <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
                                                                                                 </div>
+                                                                                                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                                                                                                    <div className="rounded border border-white/5 bg-slate-900/40 px-2 py-1.5">
+                                                                                                        <div className="text-slate-500 font-bold uppercase">Origem</div>
+                                                                                                        <div className={`${(service.originConfirmed || service.originArrivalTime) ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                                                                            {(service.originConfirmed || service.originArrivalTime) ? '✔ Confirmado' : 'Pendente'}
+                                                                                                        </div>
+                                                                                                        <div className="text-slate-400">Hora: {formatCheckpointTime(service.originArrivalTime)}</div>
+                                                                                                    </div>
+                                                                                                    <div className="rounded border border-white/5 bg-slate-900/40 px-2 py-1.5">
+                                                                                                        <div className="text-slate-500 font-bold uppercase">Destino</div>
+                                                                                                        <div className={`${(service.destinationConfirmed || service.destinationArrivalTime) ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                                                                            {(service.destinationConfirmed || service.destinationArrivalTime) ? '✔ Confirmado' : 'Pendente'}
+                                                                                                        </div>
+                                                                                                        <div className="text-slate-400">Hora: {formatCheckpointTime(service.destinationArrivalTime)}</div>
+                                                                                                    </div>
+                                                                                                </div>
                                                                                             </div>
 
                                                                                         );
@@ -1512,6 +1535,22 @@ export default function Escalas() {
                                                                                                                         <div className="flex items-center gap-2 text-xs">
                                                                                                                             <ArrowRight className="w-3 h-3 text-slate-600" />
                                                                                                                             <span className="text-slate-400 truncate">{service.destino}</span>
+                                                                                                                        </div>
+                                                                                                                        <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px]">
+                                                                                                                            <div className="rounded border border-white/5 bg-slate-900/40 px-2 py-1.5">
+                                                                                                                                <div className="text-slate-500 font-bold uppercase">Origem</div>
+                                                                                                                                <div className={`${(service.originConfirmed || service.originArrivalTime) ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                                                                                                    {(service.originConfirmed || service.originArrivalTime) ? '✔ Confirmado' : 'Pendente'}
+                                                                                                                                </div>
+                                                                                                                                <div className="text-slate-400">Hora: {formatCheckpointTime(service.originArrivalTime)}</div>
+                                                                                                                            </div>
+                                                                                                                            <div className="rounded border border-white/5 bg-slate-900/40 px-2 py-1.5">
+                                                                                                                                <div className="text-slate-500 font-bold uppercase">Destino</div>
+                                                                                                                                <div className={`${(service.destinationConfirmed || service.destinationArrivalTime) ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                                                                                                    {(service.destinationConfirmed || service.destinationArrivalTime) ? '✔ Confirmado' : 'Pendente'}
+                                                                                                                                </div>
+                                                                                                                                <div className="text-slate-400">Hora: {formatCheckpointTime(service.destinationArrivalTime)}</div>
+                                                                                                                            </div>
                                                                                                                         </div>
                                                                                                                         <div className="text-[10px] text-slate-500 italic mt-1 pl-5">"{service.obs}"</div>
 

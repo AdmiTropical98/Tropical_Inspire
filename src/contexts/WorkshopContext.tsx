@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional, EscalaTemplate, EscalaTemplateItem, ServiceEvent } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional, EscalaTemplate, EscalaTemplateItem, ServiceEvent, DriverVehicleSession } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -35,6 +35,48 @@ const isServiceUrgent = (serviceDate?: string, serviceHour?: string) => {
     return diffMinutes >= 0 && diffMinutes < 60;
 };
 
+const parseServiceDateTime = (serviceDate?: string, serviceHour?: string): Date | null => {
+    if (!serviceHour) return null;
+
+    if (serviceHour.includes('T') || serviceHour.includes('-')) {
+        const parsed = new Date(serviceHour);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    if (!serviceHour.includes(':')) return null;
+
+    const dateBase = serviceDate || new Date().toISOString().split('T')[0];
+    const parsed = new Date(`${dateBase}T${serviceHour}:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const deriveServiceLifecycleStatus = ({
+    rawStatus,
+    serviceDate,
+    serviceHour,
+    isCompleted,
+    nowTs = Date.now()
+}: {
+    rawStatus?: string | null;
+    serviceDate?: string;
+    serviceHour?: string;
+    isCompleted: boolean;
+    nowTs?: number;
+}) => {
+    if (isCompleted) return 'completed';
+
+    const normalized = String(rawStatus || '').trim().toLowerCase();
+
+    if (normalized === 'completed') return 'completed';
+    if (normalized === 'failed') return 'failed';
+    if (normalized === 'active' || normalized === 'started') return 'active';
+
+    const serviceDateTime = parseServiceDateTime(serviceDate, serviceHour);
+    if (serviceDateTime && serviceDateTime.getTime() <= nowTs) return 'active';
+
+    return 'scheduled';
+};
+
 const isMissingUrgentColumnError = (error: any) => {
     const message = String(error?.message || error?.details || '').toLowerCase();
     return message.includes('is_urgent') &&
@@ -65,6 +107,15 @@ const isMissingServiceGeofencingColumnError = (error: any) => {
             message.includes('does not exist') ||
             message.includes('could not find')
         );
+};
+
+const isMissingDriverVehicleSessionsTableError = (error: any) => {
+    const message = String(error?.message || error?.details || '').toLowerCase();
+    return message.includes('driver_vehicle_sessions') && (
+        message.includes('does not exist') ||
+        message.includes('schema cache') ||
+        message.includes('relation')
+    );
 };
 
 interface WorkshopContextType {
@@ -287,6 +338,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     // NEW: Services State (Lifted)
     const [servicos, setServicos] = useState<any[]>([]);
     const [serviceEvents, setServiceEvents] = useState<ServiceEvent[]>([]);
+    const [driverVehicleSessions, setDriverVehicleSessions] = useState<DriverVehicleSession[]>([]);
     const [scaleBatches, setScaleBatches] = useState<ScaleBatch[]>([]);
     const [zonasOperacionais, setZonasOperacionais] = useState<ZonaOperacional[]>([]);
     const [areasOperacionais, setAreasOperacionais] = useState<AreaOperacional[]>([]);
@@ -310,6 +362,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const supportsUrgentColumnRef = useRef(true);
     const supportsServiceGeofencingColumnsRef = useRef(true);
     const supportsServiceEventsTableRef = useRef(true);
+    const supportsDriverVehicleSessionsTableRef = useRef(true);
     const autoGeofenceSyncRunningRef = useRef(false);
 
     // Helper: Haversine Distance (km)
@@ -361,6 +414,143 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             ...rest
         } = payload;
         return rest;
+    };
+
+    const getVehicleByDriver = async (driverId: string, activeSessionsByDriver?: Map<string, string>): Promise<string | null> => {
+        if (activeSessionsByDriver?.has(driverId)) {
+            return activeSessionsByDriver.get(driverId) || null;
+        }
+
+        const inMemorySession = driverVehicleSessions
+            .filter(s => s.driverId === driverId && s.active)
+            .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0];
+
+        if (inMemorySession?.vehicleId) return inMemorySession.vehicleId;
+
+        if (!supportsDriverVehicleSessionsTableRef.current) return null;
+
+        const { data, error } = await supabase.rpc('get_vehicle_by_driver', { p_driver_id: driverId });
+
+        if (error) {
+            if (isMissingDriverVehicleSessionsTableError(error)) {
+                supportsDriverVehicleSessionsTableRef.current = false;
+                return null;
+            }
+            console.warn('Falha ao obter viatura ativa por motorista:', error);
+            return null;
+        }
+
+        if (!data) return null;
+        return String(data);
+    };
+
+    const syncDriverVehicleSessions = async (assignments: Array<{ driverId: string; vehicleId: string; moving: boolean; timestamp: string }>) => {
+        if (!supportsDriverVehicleSessionsTableRef.current) return;
+        if (assignments.length === 0) return;
+
+        try {
+            const { data: activeRows, error: fetchError } = await supabase
+                .from('driver_vehicle_sessions')
+                .select('*')
+                .eq('active', true)
+                .order('start_time', { ascending: false });
+
+            if (fetchError) {
+                if (isMissingDriverVehicleSessionsTableError(fetchError)) {
+                    supportsDriverVehicleSessionsTableRef.current = false;
+                    return;
+                }
+                console.warn('Falha ao carregar sessões ativas motorista/viatura:', fetchError);
+                return;
+            }
+
+            const activeSessions = (activeRows || []).map((row: any) => ({
+                id: row.id,
+                driverId: row.driver_id,
+                vehicleId: row.vehicle_id,
+                startTime: row.start_time,
+                endTime: row.end_time,
+                active: Boolean(row.active)
+            } as DriverVehicleSession));
+
+            const nowIso = new Date().toISOString();
+
+            for (const assignment of assignments) {
+                const normalizedDriverId = String(assignment.driverId);
+                const normalizedVehicleId = String(assignment.vehicleId);
+                const isMoving = assignment.moving;
+
+                const samePairActive = activeSessions.find(session =>
+                    session.active &&
+                    session.driverId === normalizedDriverId &&
+                    session.vehicleId === normalizedVehicleId
+                );
+
+                if (samePairActive && isMoving) continue;
+
+                const sessionsToClose = activeSessions.filter(session =>
+                    session.active && (
+                        session.driverId === normalizedDriverId ||
+                        session.vehicleId === normalizedVehicleId
+                    )
+                );
+
+                if (sessionsToClose.length > 0) {
+                    const idsToClose = sessionsToClose.map(session => session.id);
+                    const { error: closeError } = await supabase
+                        .from('driver_vehicle_sessions')
+                        .update({
+                            active: false,
+                            end_time: assignment.timestamp || nowIso
+                        })
+                        .in('id', idsToClose);
+
+                    if (closeError && !isMissingDriverVehicleSessionsTableError(closeError)) {
+                        console.warn('Falha ao fechar sessões motorista/viatura:', closeError);
+                    }
+
+                    sessionsToClose.forEach(session => {
+                        session.active = false;
+                        session.endTime = assignment.timestamp || nowIso;
+                    });
+                }
+
+                if (!isMoving) continue;
+
+                const { data: inserted, error: insertError } = await supabase
+                    .from('driver_vehicle_sessions')
+                    .insert({
+                        driver_id: normalizedDriverId,
+                        vehicle_id: normalizedVehicleId,
+                        start_time: assignment.timestamp || nowIso,
+                        active: true
+                    })
+                    .select('*')
+                    .single();
+
+                if (insertError) {
+                    if (isMissingDriverVehicleSessionsTableError(insertError)) {
+                        supportsDriverVehicleSessionsTableRef.current = false;
+                        return;
+                    }
+                    console.warn('Falha ao criar sessão motorista/viatura:', insertError);
+                    continue;
+                }
+
+                activeSessions.push({
+                    id: inserted.id,
+                    driverId: inserted.driver_id,
+                    vehicleId: inserted.vehicle_id,
+                    startTime: inserted.start_time,
+                    endTime: inserted.end_time,
+                    active: Boolean(inserted.active)
+                });
+            }
+
+            setDriverVehicleSessions(activeSessions.filter(session => session.active));
+        } catch (error) {
+            console.warn('Erro no sync automático de sessões motorista/viatura:', error);
+        }
     };
 
     const runComplianceCheck = async () => {
@@ -909,6 +1099,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 // Enrich Cartrack Vehicles with local data or Cartrack Driver List fallback
                 console.log('Enriching vehicles:', cVehicles.length, 'drivers:', cDrivers.length);
+                const detectedSessionAssignments: Array<{ driverId: string; vehicleId: string; moving: boolean; timestamp: string }> = [];
                 const enrichedVehicles = cVehicles.map(v => {
                     let resolvedName = v.driverName;
 
@@ -946,6 +1137,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         displayName = resolvedName!;
                     }
 
+                    if (localM) {
+                        detectedSessionAssignments.push({
+                            driverId: localM.id,
+                            vehicleId: String(v.id),
+                            moving: Boolean((v.status && v.status !== 'stopped') || Number(v.speed || 0) > 0),
+                            timestamp: v.last_position_update || new Date().toISOString()
+                        });
+                    }
+
                     // 3. Detect current Cost Center from POIs (Locais)
                     let currentCCId: string | undefined = undefined;
                     let currentCCName: string | undefined = undefined;
@@ -981,6 +1181,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 setMotoristas(updatedMotoristas);
                 setCartrackVehicles(enrichedVehicles);
+                await syncDriverVehicleSessions(detectedSessionAssignments);
 
                 // FINAL SAFETY: Merge tags found in vehicles into the drivers list
                 // This handles cases where a tag is known to the system (swiped in a car) 
@@ -1044,6 +1245,33 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const { data: notifs } = await supabase.from('notifications').select('*');
             if (notifs) setNotifications(notifs.map((n: any) => ({ ...n, data: typeof n.data === 'string' ? JSON.parse(n.data) : n.data, response: typeof n.response === 'string' ? JSON.parse(n.response) : n.response })));
 
+            if (supportsDriverVehicleSessionsTableRef.current) {
+                const { data: sessionsData, error: sessionsError } = await supabase
+                    .from('driver_vehicle_sessions')
+                    .select('*')
+                    .eq('active', true)
+                    .order('start_time', { ascending: false });
+
+                if (sessionsError) {
+                    if (isMissingDriverVehicleSessionsTableError(sessionsError)) {
+                        supportsDriverVehicleSessionsTableRef.current = false;
+                    } else {
+                        console.warn('Erro ao carregar sessões motorista/viatura:', sessionsError);
+                    }
+                } else {
+                    const mappedSessions = (sessionsData || []).map((session: any) => ({
+                        id: session.id,
+                        driverId: session.driver_id,
+                        vehicleId: session.vehicle_id,
+                        startTime: session.start_time,
+                        endTime: session.end_time,
+                        active: Boolean(session.active)
+                    } as DriverVehicleSession));
+
+                    setDriverVehicleSessions(mappedSessions);
+                }
+            }
+
             let eventsByServiceId = new Map<string, ServiceEvent[]>();
             if (supportsServiceEventsTableRef.current) {
                 const { data: rawEvents, error: eventsError } = await supabase
@@ -1086,29 +1314,41 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             if (servError) console.error('Error fetching services:', servError);
             if (servs) {
                 console.log('Fetched services:', servs.length);
-                setServicos(servs.map((s: any) => ({
-                    ...s,
-                    motoristaId: s.motorista_id,
-                    centroCustoId: s.centro_custo_id,
-                    status: s.status,
-                    failureReason: s.failure_reason,
-                    batchId: s.batch_id, // FIX: Ensure batch association persists
-                    tipo: s.tipo,
-                    departamento: s.departamento,
-                    isUrgent: Boolean(s.is_urgent) || s.status === 'URGENTE',
-                    originLocationId: s.origem_location_id,
-                    destinationLocationId: s.destino_location_id,
-                    originArrivalTime: s.origin_arrival_time,
-                    destinationArrivalTime: s.destination_arrival_time,
-                    originConfirmed: Boolean(s.origin_confirmed),
-                    destinationConfirmed: Boolean(s.destination_confirmed),
-                    originDepartureTime: s.origin_departure_time,
-                    destinationDepartureTime: s.destination_departure_time,
-                    originStopDurationSeconds: s.origin_arrival_time && s.origin_departure_time
-                        ? Math.max(0, Math.round((new Date(s.origin_departure_time).getTime() - new Date(s.origin_arrival_time).getTime()) / 1000))
-                        : null,
-                    serviceEvents: eventsByServiceId.get(s.id) || []
-                })));
+                setServicos(servs.map((s: any) => {
+                    const destinationConfirmed = Boolean(s.destination_confirmed);
+                    const completed = Boolean(s.concluido) || destinationConfirmed || Boolean(s.destination_arrival_time);
+                    const lifecycleStatus = deriveServiceLifecycleStatus({
+                        rawStatus: s.status,
+                        serviceDate: s.data,
+                        serviceHour: s.hora,
+                        isCompleted: completed
+                    });
+
+                    return {
+                        ...s,
+                        motoristaId: s.motorista_id,
+                        centroCustoId: s.centro_custo_id,
+                        status: lifecycleStatus,
+                        concluido: completed,
+                        failureReason: s.failure_reason,
+                        batchId: s.batch_id,
+                        tipo: s.tipo,
+                        departamento: s.departamento,
+                        isUrgent: Boolean(s.is_urgent) || s.status === 'URGENTE',
+                        originLocationId: s.origem_location_id,
+                        destinationLocationId: s.destino_location_id,
+                        originArrivalTime: s.origin_arrival_time,
+                        destinationArrivalTime: s.destination_arrival_time,
+                        originConfirmed: Boolean(s.origin_confirmed),
+                        destinationConfirmed,
+                        originDepartureTime: s.origin_departure_time,
+                        destinationDepartureTime: s.destination_departure_time,
+                        originStopDurationSeconds: s.origin_arrival_time && s.origin_departure_time
+                            ? Math.max(0, Math.round((new Date(s.origin_departure_time).getTime() - new Date(s.origin_arrival_time).getTime()) / 1000))
+                            : null,
+                        serviceEvents: eventsByServiceId.get(s.id) || []
+                    };
+                }));
             }
 
             const { data: batches, error: batchError } = await supabase.from('scale_batches').select('*');
@@ -1287,7 +1527,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         try {
             console.log('Adding service to DB:', s);
             const urgent = s.isUrgent ?? isServiceUrgent(s.data, s.hora);
-            const statusToPersist = urgent ? 'URGENTE' : s.status;
+            const completedToPersist = Boolean(s.concluido || s.destinationConfirmed || s.destinationArrivalTime);
+            const statusToPersist = deriveServiceLifecycleStatus({
+                rawStatus: s.status,
+                serviceDate: s.data,
+                serviceHour: s.hora,
+                isCompleted: completedToPersist
+            });
             const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
             const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
             const basePayload: any = {
@@ -1299,7 +1545,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 destino: s.destino,
                 voo: s.voo,
                 obs: s.obs,
-                concluido: s.concluido,
+                concluido: completedToPersist,
                 centro_custo_id: s.centroCustoId,
                 status: statusToPersist,
                 failure_reason: s.failureReason
@@ -1356,7 +1602,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 ...s,
                 motoristaId: data.motorista_id,
                 centroCustoId: data.centro_custo_id,
-                status: data.status,
+                status: deriveServiceLifecycleStatus({
+                    rawStatus: data.status,
+                    serviceDate: data.data,
+                    serviceHour: data.hora,
+                    isCompleted: Boolean(data.concluido || data.destination_confirmed || data.destination_arrival_time)
+                }),
+                concluido: Boolean(data.concluido || data.destination_confirmed || data.destination_arrival_time),
                 isUrgent: supportsUrgentColumnRef.current ? Boolean(data.is_urgent) : urgent,
                 originLocationId: supportsServiceGeofencingColumnsRef.current ? (data.origem_location_id || origemLocation?.id || null) : (s.originLocationId || null),
                 destinationLocationId: supportsServiceGeofencingColumnsRef.current ? (data.destino_location_id || destinoLocation?.id || null) : (s.destinationLocationId || null),
@@ -1393,7 +1645,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         try {
             console.log('Updating service:', s.id, s);
             const urgent = s.isUrgent ?? isServiceUrgent(s.data, s.hora);
-            const statusToPersist = urgent ? 'URGENTE' : s.status;
+            const completedToPersist = Boolean(s.concluido || s.destinationConfirmed || s.destinationArrivalTime);
+            const statusToPersist = deriveServiceLifecycleStatus({
+                rawStatus: s.status,
+                serviceDate: s.data,
+                serviceHour: s.hora,
+                isCompleted: completedToPersist
+            });
             const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
             const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
             const updatePayload: any = {
@@ -1404,7 +1662,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 destino: s.destino,
                 voo: s.voo,
                 obs: s.obs,
-                concluido: s.concluido,
+                concluido: completedToPersist,
                 centro_custo_id: s.centroCustoId,
                 status: statusToPersist,
                 failure_reason: s.failureReason
@@ -1457,9 +1715,18 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             // Find previous state for logging
             const previousState = servicos.find(item => item.id === s.id);
             const persistedRow = data[0] || {};
+            const completedAfterPersist = Boolean(
+                persistedRow.concluido ?? completedToPersist ?? s.concluido ?? s.destinationConfirmed ?? s.destinationArrivalTime
+            );
             const updatedService: Servico = {
                 ...s,
-                status: statusToPersist,
+                status: deriveServiceLifecycleStatus({
+                    rawStatus: persistedRow.status ?? statusToPersist,
+                    serviceDate: persistedRow.data ?? s.data,
+                    serviceHour: persistedRow.hora ?? s.hora,
+                    isCompleted: completedAfterPersist
+                }),
+                concluido: completedAfterPersist,
                 isUrgent: urgent,
                 originLocationId: supportsServiceGeofencingColumnsRef.current
                     ? (persistedRow.origem_location_id ?? origemLocation?.id ?? null)
@@ -3305,7 +3572,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!supportsServiceGeofencingColumnsRef.current) return;
         if (autoGeofenceSyncRunningRef.current) return;
 
-        const pendingServices = servicos.filter((s: Servico) => !!s.motoristaId && !s.concluido);
+        const pendingServices = servicos.filter((s: Servico) =>
+            !!s.motoristaId && (s.status !== 'completed' || !s.concluido)
+        );
 
         if (pendingServices.length === 0 || locais.length === 0) return;
 
@@ -3315,19 +3584,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const normalizePlate = (plate?: string | null) => (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             const nowIso = new Date().toISOString();
             const nowTs = new Date(nowIso).getTime();
-
-            const getServiceDateTime = (service: Servico): Date | null => {
-                const datePart = service.data || new Date().toISOString().split('T')[0];
-                if (!service.hora) return null;
-
-                if (service.hora.includes('T') || service.hora.includes('-')) {
-                    const parsed = new Date(service.hora);
-                    return Number.isNaN(parsed.getTime()) ? null : parsed;
-                }
-
-                const parsed = new Date(`${datePart}T${service.hora}:00`);
-                return Number.isNaN(parsed.getTime()) ? null : parsed;
-            };
 
             const isInsideLocation = (vehicle: import('../services/cartrack').CartrackVehicle, location: Local | null) => {
                 if (!location) return { inside: false, distance: Infinity, radius: 0 };
@@ -3356,6 +3612,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 ? vehicleSnapshot
                 : await CartrackService.getVehicles();
 
+            const activeSessionsByDriver = driverVehicleSessions.reduce((acc, session) => {
+                if (session.active && session.driverId && session.vehicleId && !acc.has(session.driverId)) {
+                    acc.set(session.driverId, session.vehicleId);
+                }
+                return acc;
+            }, new Map<string, string>());
+
             if (!vehicleSnapshot && vehicles.length > 0) {
                 setCartrackVehicles(vehicles);
             }
@@ -3383,7 +3646,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 });
             };
 
-            const queueEvent = (serviceId: string, vehicleId: string, eventType: string, locationId?: string | null, metadata?: any) => {
+            const queueEvent = (
+                serviceId: string,
+                vehicleId: string,
+                eventType: string,
+                eventTimestamp: string,
+                locationId?: string | null,
+                metadata?: any
+            ) => {
                 const existingForService = currentEventsByService.get(serviceId) || [];
                 const alreadyExists = existingForService.some(event =>
                     event.eventType === eventType &&
@@ -3402,7 +3672,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     service_id: serviceId,
                     vehicle_id: vehicleId,
                     event_type: eventType,
-                    timestamp: nowIso,
+                    timestamp: eventTimestamp,
                     location_id: locationId || null,
                     metadata
                 });
@@ -3412,7 +3682,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 const motorista = motoristas.find(m => m.id === service.motoristaId);
                 if (!motorista) continue;
 
+                const sessionVehicleId = await getVehicleByDriver(motorista.id, activeSessionsByDriver);
+
                 const vehicle = vehicles.find(v =>
+                    (sessionVehicleId && String(v.id) === String(sessionVehicleId)) ||
                     (motorista.cartrackId && String(v.id) === String(motorista.cartrackId)) ||
                     (motorista.currentVehicle && normalizePlate(v.registration) === normalizePlate(motorista.currentVehicle))
                 );
@@ -3421,16 +3694,48 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 const originLocation = resolveLocationByName(service.origem, service.originLocationId);
                 const destinationLocation = resolveLocationByName(service.destino, service.destinationLocationId);
-                const serviceDateTime = getServiceDateTime(service);
 
                 const payload: any = {};
                 const partial: Partial<Servico> = {};
 
                 const originConfirmed = Boolean(service.originConfirmed || service.originArrivalTime);
                 const destinationConfirmed = Boolean(service.destinationConfirmed || service.destinationArrivalTime);
+                const serviceDateTime = parseServiceDateTime(service.data, service.hora);
+                const lifecycleStatus = deriveServiceLifecycleStatus({
+                    rawStatus: service.status,
+                    serviceDate: service.data,
+                    serviceHour: service.hora,
+                    isCompleted: Boolean(service.concluido || destinationConfirmed || service.destinationArrivalTime),
+                    nowTs
+                });
+
+                if (service.status !== lifecycleStatus) {
+                    payload.status = lifecycleStatus;
+                    partial.status = lifecycleStatus;
+                }
+
+                if (lifecycleStatus === 'completed' && !service.concluido) {
+                    payload.concluido = true;
+                    partial.concluido = true;
+                }
+
+                if (lifecycleStatus !== 'active') {
+                    if (Object.keys(payload).length > 0) {
+                        updates.push({ serviceId: service.id, payload, partial });
+                    }
+                    continue;
+                }
 
                 const originState = isInsideLocation(vehicle, originLocation);
                 const destinationState = isInsideLocation(vehicle, destinationLocation);
+                const positionTimestamp = vehicle.last_position_update && !Number.isNaN(new Date(vehicle.last_position_update).getTime())
+                    ? new Date(vehicle.last_position_update).toISOString()
+                    : nowIso;
+                const baseGpsMetadata = {
+                    latitude: vehicle.latitude,
+                    longitude: vehicle.longitude,
+                    gps_timestamp: positionTimestamp
+                };
 
                 if (originLocation && !service.originLocationId) {
                     payload.origem_location_id = originLocation.id;
@@ -3443,7 +3748,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 if (originLocation && !originConfirmed && !originState.inside && originState.distance <= (originState.radius + 100)) {
-                    queueEvent(service.id, String(vehicle.id), 'approaching_origin', originLocation.id, {
+                    queueEvent(service.id, String(vehicle.id), 'approaching_origin', positionTimestamp, originLocation.id, {
+                        ...baseGpsMetadata,
                         distance_meters: Math.round(originState.distance)
                     });
                 }
@@ -3455,7 +3761,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     }
                     payload.origin_confirmed = true;
                     partial.originConfirmed = true;
-                    queueEvent(service.id, String(vehicle.id), 'entered_origin', originLocation.id, {
+                    queueEvent(service.id, String(vehicle.id), 'entered_origin', positionTimestamp, originLocation.id, {
+                        ...baseGpsMetadata,
                         distance_meters: Math.round(originState.distance)
                     });
                 }
@@ -3463,7 +3770,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 if (originLocation && originConfirmed && !service.originDepartureTime && !originState.inside) {
                     payload.origin_departure_time = nowIso;
                     partial.originDepartureTime = nowIso;
-                    queueEvent(service.id, String(vehicle.id), 'left_origin', originLocation.id, {
+                    queueEvent(service.id, String(vehicle.id), 'left_origin', positionTimestamp, originLocation.id, {
+                        ...baseGpsMetadata,
                         distance_meters: Math.round(originState.distance)
                     });
 
@@ -3488,7 +3796,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     }
                     payload.destination_confirmed = true;
                     partial.destinationConfirmed = true;
-                    queueEvent(service.id, String(vehicle.id), 'entered_destination', destinationLocation.id, {
+                    payload.status = 'completed';
+                    payload.concluido = true;
+                    partial.status = 'completed';
+                    partial.concluido = true;
+                    queueEvent(service.id, String(vehicle.id), 'entered_destination', positionTimestamp, destinationLocation.id, {
+                        ...baseGpsMetadata,
                         distance_meters: Math.round(destinationState.distance)
                     });
 
@@ -3505,7 +3818,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 if (destinationLocation && destinationConfirmed && !service.destinationDepartureTime && !destinationState.inside) {
                     payload.destination_departure_time = nowIso;
                     partial.destinationDepartureTime = nowIso;
-                    queueEvent(service.id, String(vehicle.id), 'left_destination', destinationLocation.id, {
+                    queueEvent(service.id, String(vehicle.id), 'left_destination', positionTimestamp, destinationLocation.id, {
+                        ...baseGpsMetadata,
                         distance_meters: Math.round(destinationState.distance)
                     });
                 }
@@ -3941,6 +4255,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                     const servicesToInsert = services.map(s => {
                         const urgent = s.isUrgent ?? isServiceUrgent(s.data || batchData.referenceDate, s.hora);
+                        const isCompleted = Boolean(s.concluido || s.destinationConfirmed || s.destinationArrivalTime);
                         const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
                         const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
 
@@ -3954,11 +4269,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         voo: s.voo,
                         obs: s.obs,
                         tipo: s.tipo || 'outro',
-                        concluido: false,
+                        concluido: isCompleted,
                         centro_custo_id: batchData.centroCustoId,
                         batch_id: batch.id,
                         departamento: s.departamento,
-                        status: urgent ? 'URGENTE' : (s.status || null)
+                        status: deriveServiceLifecycleStatus({
+                            rawStatus: s.status,
+                            serviceDate: s.data || batchData.referenceDate,
+                            serviceHour: s.hora,
+                            isCompleted
+                        })
                     };
 
                         if (supportsServiceGeofencingColumnsRef.current) {

@@ -207,6 +207,15 @@ export interface ServiceEvent {
     metadata?: Record<string, any> | null;
 }
 
+export interface DriverVehicleSession {
+    id: string;
+    driverId: string;
+    vehicleId: string;
+    startTime: string;
+    endTime?: string | null;
+    active: boolean;
+}
+
 export interface Servico {
     id: string;
     data?: string; // YYYY-MM-DD - Data da escala operacional
@@ -222,7 +231,7 @@ export interface Servico {
     validationPoints?: string[]; // IDs of required POIs to visit
     tipo?: 'entrada' | 'saida' | 'outro';
     departamento?: string;
-    status?: 'pending' | 'started' | 'completed' | 'failed' | 'URGENTE';
+    status?: 'scheduled' | 'active' | 'completed' | 'pending' | 'started' | 'failed' | 'URGENTE';
     failureReason?: string;
     batchId?: string; // Link to ScaleBatch
     isUrgent?: boolean;
