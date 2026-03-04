@@ -197,6 +197,16 @@ export interface Local {
     centroCustoId?: string; // NEW: Map Geofence to specific Cost Center
 }
 
+export interface ServiceEvent {
+    id: string;
+    serviceId: string;
+    vehicleId?: string | null;
+    eventType: 'approaching_origin' | 'entered_origin' | 'left_origin' | 'entered_destination' | 'left_destination' | string;
+    timestamp: string;
+    locationId?: string | null;
+    metadata?: Record<string, any> | null;
+}
+
 export interface Servico {
     id: string;
     data?: string; // YYYY-MM-DD - Data da escala operacional
@@ -220,6 +230,12 @@ export interface Servico {
     destinationLocationId?: string | null;
     originArrivalTime?: string | null;
     destinationArrivalTime?: string | null;
+    originConfirmed?: boolean;
+    destinationConfirmed?: boolean;
+    originDepartureTime?: string | null;
+    destinationDepartureTime?: string | null;
+    originStopDurationSeconds?: number | null;
+    serviceEvents?: ServiceEvent[];
 }
 
 export interface ScaleBatch {

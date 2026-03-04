@@ -128,6 +128,35 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
         return parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     };
 
+    const formatDuration = (seconds?: number | null) => {
+        const safe = Number(seconds || 0);
+        if (!Number.isFinite(safe) || safe <= 0) return '0s';
+        if (safe < 60) return `${safe}s`;
+        const min = Math.floor(safe / 60);
+        const sec = safe % 60;
+        return sec === 0 ? `${min} min` : `${min} min ${sec}s`;
+    };
+
+    const eventLabel: Record<string, string> = {
+        approaching_origin: 'Veículo aproximou-se da origem',
+        entered_origin: 'Entrou na geofence da origem',
+        left_origin: 'Saiu da origem',
+        entered_destination: 'Entrou no destino',
+        left_destination: 'Saiu do destino'
+    };
+
+    const getServiceTimeline = (service: Servico) => {
+        const events = (service.serviceEvents || []).slice().sort((a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+
+        return events.map(event => ({
+            id: event.id,
+            time: formatArrivalTime(event.timestamp),
+            label: eventLabel[event.eventType] || event.eventType
+        }));
+    };
+
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 relative">
             {failureModalOpen && (
@@ -328,6 +357,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                     <span>Chegada confirmada {formatArrivalTime(service.originArrivalTime)}</span>
                                                                 </div>
                                                             )}
+                                                            {service.originDepartureTime && (
+                                                                <div className="ml-4 flex items-center gap-2 text-[11px] text-blue-300 font-semibold">
+                                                                    <Clock className="w-3.5 h-3.5" />
+                                                                    <span>Saída {formatArrivalTime(service.originDepartureTime)} • Tempo parado {formatDuration(service.originStopDurationSeconds)}</span>
+                                                                </div>
+                                                            )}
                                                             <div className="ml-0.5 border-l border-slate-700 h-3"></div>
                                                             <div className="flex items-center gap-2 text-sm">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
@@ -337,6 +372,22 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                 <div className="ml-4 flex items-center gap-2 text-[11px] text-emerald-400 font-semibold">
                                                                     <CheckCircle className="w-3.5 h-3.5" />
                                                                     <span>Chegada confirmada {formatArrivalTime(service.destinationArrivalTime)}</span>
+                                                                </div>
+                                                            )}
+                                                            {service.destinationDepartureTime && (
+                                                                <div className="ml-4 flex items-center gap-2 text-[11px] text-blue-300 font-semibold">
+                                                                    <Clock className="w-3.5 h-3.5" />
+                                                                    <span>Saída {formatArrivalTime(service.destinationDepartureTime)}</span>
+                                                                </div>
+                                                            )}
+                                                            {getServiceTimeline(service).length > 0 && (
+                                                                <div className="mt-2 bg-slate-900/40 rounded-lg border border-white/5 p-2 space-y-1.5">
+                                                                    {getServiceTimeline(service).map(item => (
+                                                                        <div key={item.id} className="flex items-center gap-2 text-[11px] text-slate-300">
+                                                                            <span className="text-blue-300 font-semibold min-w-[38px]">{item.time || '--:--'}</span>
+                                                                            <span>{item.label}</span>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -518,6 +569,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                         <span>Chegada confirmada {formatArrivalTime(service.originArrivalTime)}</span>
                                                                     </div>
                                                                 )}
+                                                                {service.originDepartureTime && (
+                                                                    <div className="mt-1.5 flex items-center gap-1.5 text-blue-300 text-[11px] font-semibold">
+                                                                        <Clock className="w-3.5 h-3.5" />
+                                                                        <span>Saída {formatArrivalTime(service.originDepartureTime)} • Tempo parado {formatDuration(service.originStopDurationSeconds)}</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -534,10 +591,28 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                         <span>Chegada confirmada {formatArrivalTime(service.destinationArrivalTime)}</span>
                                                                     </div>
                                                                 )}
+                                                                {service.destinationDepartureTime && (
+                                                                    <div className="mt-1.5 flex items-center gap-1.5 text-blue-300 text-[11px] font-semibold">
+                                                                        <Clock className="w-3.5 h-3.5" />
+                                                                        <span>Saída {formatArrivalTime(service.destinationDepartureTime)}</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {getServiceTimeline(service).length > 0 && (
+                                                    <div className="bg-slate-900/40 rounded-xl border border-white/5 p-3 space-y-2">
+                                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Timeline automática</span>
+                                                        {getServiceTimeline(service).map(item => (
+                                                            <div key={item.id} className="flex items-center gap-2 text-xs text-slate-300">
+                                                                <span className="text-blue-300 font-semibold min-w-[42px]">{item.time || '--:--'}</span>
+                                                                <span>{item.label}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
 
                                                 {!service.concluido && !service.isGroup && (
                                                     <div className="grid grid-cols-2 gap-3 mt-2 border-t border-slate-700/50 pt-3">

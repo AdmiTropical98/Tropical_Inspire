@@ -9,7 +9,7 @@ import type { Local } from '../../types';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.icon({
+const DefaultIcon = L.icon({
     iconUrl: markerIcon,
     shadowUrl: markerShadow,
     iconSize: [25, 41],
@@ -23,6 +23,25 @@ interface GeofenceMapProps {
     selectedVehicle?: CartrackVehicle | null;
     locais?: Local[]; // NEW: POIs from our database
     onSelectVehicle?: (v: CartrackVehicle) => void;
+    activeServiceByVehicle?: Record<string, VehicleServiceTracking>;
+}
+
+export interface VehicleServiceTracking {
+    serviceId: string;
+    passenger?: string;
+    hora?: string;
+    origem?: string;
+    destino?: string;
+    originConfirmed?: boolean;
+    destinationConfirmed?: boolean;
+    originInside?: boolean;
+    destinationInside?: boolean;
+    originArrivalTime?: string | null;
+    destinationArrivalTime?: string | null;
+    originDepartureTime?: string | null;
+    destinationDepartureTime?: string | null;
+    lastEventLabel?: string;
+    lastEventTime?: string | null;
 }
 
 // Custom icon for car with rotation and license plate label
@@ -138,7 +157,7 @@ function AutoFitBounds({ geofences, vehicles, locais = [] }: { geofences: Cartra
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [geofences, vehicles, map]);
+    }, [geofences, vehicles, locais, map]);
 
     return null;
 }
@@ -182,7 +201,7 @@ function MapFocus({ vehicle }: { vehicle: CartrackVehicle | null }) {
     return null;
 }
 
-export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle = null, locais = [], onSelectVehicle }: GeofenceMapProps) {
+export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle = null, locais = [], onSelectVehicle, activeServiceByVehicle = {} }: GeofenceMapProps) {
     const [center] = useState<[number, number]>([38.7223, -9.1393]); // Lisbon default
 
     return (
@@ -312,6 +331,8 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                     // Safety check for valid coordinates
                     if (!vehicle.latitude || !vehicle.longitude) return null;
 
+                    const activeService = activeServiceByVehicle[vehicle.id];
+
                     return (
                         <Marker
                             key={vehicle.id}
@@ -334,6 +355,32 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                                         </span>
                                     </div>
                                     <div className="space-y-2 text-xs text-slate-600">
+                                        {activeService && (
+                                            <div className="mb-2 rounded-lg border border-blue-100 bg-blue-50 p-2">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-[9px] font-black uppercase tracking-wider text-blue-700">Serviço Ativo</span>
+                                                    <span className="text-[10px] font-mono font-black text-blue-900">{activeService.hora || '--:--'}</span>
+                                                </div>
+                                                <div className="mt-1 text-[10px] font-bold text-slate-700">
+                                                    {activeService.origem || 'Origem'} → {activeService.destino || 'Destino'}
+                                                </div>
+                                                <div className="mt-2 grid grid-cols-2 gap-1">
+                                                    <span className={`rounded px-1.5 py-1 text-[9px] font-bold uppercase tracking-wider ${activeService.originInside ? 'bg-emerald-100 text-emerald-700' : activeService.originConfirmed ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                        Origem {activeService.originInside ? 'Dentro' : activeService.originConfirmed ? 'OK' : 'Pendente'}
+                                                    </span>
+                                                    <span className={`rounded px-1.5 py-1 text-[9px] font-bold uppercase tracking-wider ${activeService.destinationInside ? 'bg-emerald-100 text-emerald-700' : activeService.destinationConfirmed ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                        Destino {activeService.destinationInside ? 'Dentro' : activeService.destinationConfirmed ? 'OK' : 'Pendente'}
+                                                    </span>
+                                                </div>
+                                                {activeService.lastEventLabel && (
+                                                    <div className="mt-2 text-[9px] text-slate-500">
+                                                        <span className="font-black uppercase tracking-wider">Último Evento:</span>{' '}
+                                                        {activeService.lastEventLabel}
+                                                        {activeService.lastEventTime ? ` • ${new Date(activeService.lastEventTime).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-start">
                                             <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mt-1">Motorista</span>
                                             <div className="flex flex-col items-end">
@@ -356,7 +403,9 @@ export default function GeofenceMap({ geofences, vehicles = [], selectedVehicle 
                                             </span>
                                         </div>
                                         <div className="text-[9px] text-slate-400 mt-3 pt-2 border-t border-slate-50 text-right italic font-medium">
-                                            Atualizado: {new Date(vehicle.last_position_update || vehicle.last_activity || Date.now()).toLocaleTimeString()}
+                                            Atualizado: {(vehicle.last_position_update || vehicle.last_activity)
+                                                ? new Date(vehicle.last_position_update || vehicle.last_activity).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+                                                : '--:--'}
                                         </div>
                                     </div>
                                 </div>

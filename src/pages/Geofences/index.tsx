@@ -1,22 +1,23 @@
 import { MapPin, RefreshCw, AlertCircle, Car, Layers, History, Search, X } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
-import GeofenceMap from './GeofenceMap';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import GeofenceMap, { type VehicleServiceTracking } from './GeofenceMap';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { CartrackService, debugLastResponse } from '../../services/cartrack';
+import { CartrackService, debugLastResponse, type CartrackGeofence, type CartrackVehicle } from '../../services/cartrack';
+import type { Local, Servico } from '../../types';
 
 export default function Geofences() {
-    const { geofenceVisits, refreshData, cartrackError, locais, cartrackVehicles, centrosCustos, geofenceMappings, updateGeofenceMapping } = useWorkshop();
+    const { geofenceVisits, refreshData, cartrackError, locais, cartrackVehicles, centrosCustos, geofenceMappings, updateGeofenceMapping, servicos, motoristas } = useWorkshop();
 
-    const [geofences, setGeofences] = useState<any[]>([]);
+    const [geofences, setGeofences] = useState<CartrackGeofence[]>([]);
     const [activeTab, setActiveTab] = useState<'map' | 'history'>('map');
-    const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+    const [selectedVehicle, setSelectedVehicle] = useState<CartrackVehicle | null>(null);
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
     // Error handled by context
     const [searchTerm, setSearchTerm] = useState('');
-    const [debugInfo, setDebugInfo] = useState<any>(null); // DEBUG STATE
+    const [debugInfo, setDebugInfo] = useState<unknown>(null); // DEBUG STATE
     const refreshInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const fetchData = async (isRefresh = false) => {
@@ -73,6 +74,106 @@ export default function Geofences() {
             driverName: matchingVehicle?.driverName || 'N/A'
         };
     });
+
+    const activeServiceByVehicle = useMemo<Record<string, VehicleServiceTracking>>(() => {
+        const normalizePlate = (plate?: string | null) => String(plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+        const resolveLocation = (service: Servico, rawName?: string, explicitId?: string | null): Local | null => {
+            if (explicitId) {
+                return locais.find(local => local.id === explicitId) || null;
+            }
+
+            const normalizedTarget = normalizePlate(rawName);
+            if (!normalizedTarget) return null;
+
+            return locais.find(local => {
+                const localName = normalizePlate(local.nome);
+                return localName.includes(normalizedTarget) || normalizedTarget.includes(localName);
+            }) || null;
+        };
+
+        const distanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        };
+
+        const parseServiceTime = (service: Servico) => {
+            if (!service.hora) return Number.MAX_SAFE_INTEGER;
+            if (service.hora.includes('T') || service.hora.includes('-')) {
+                const parsed = new Date(service.hora).getTime();
+                return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+            }
+            const datePart = service.data || new Date().toISOString().split('T')[0];
+            const parsed = new Date(`${datePart}T${service.hora}:00`).getTime();
+            return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+        };
+
+        const sortedActive = [...(servicos as Servico[])]
+            .filter(service => !!service.motoristaId && !service.concluido)
+            .sort((a, b) => parseServiceTime(a) - parseServiceTime(b));
+
+        const map: Record<string, VehicleServiceTracking> = {};
+
+        sortedActive.forEach(service => {
+            const motorista = motoristas.find(driver => driver.id === service.motoristaId);
+            if (!motorista) return;
+
+            const vehicle = cartrackVehicles.find(v =>
+                (motorista.cartrackId && String(v.id) === String(motorista.cartrackId)) ||
+                (motorista.currentVehicle && normalizePlate(v.registration) === normalizePlate(motorista.currentVehicle))
+            );
+
+            if (!vehicle || map[vehicle.id]) return;
+
+            const originLocation = resolveLocation(service, service.origem, service.originLocationId);
+            const destinationLocation = resolveLocation(service, service.destino, service.destinationLocationId);
+
+            const originInside = originLocation
+                ? distanceMeters(vehicle.latitude, vehicle.longitude, originLocation.latitude, originLocation.longitude) <= (originLocation.raio || 50)
+                : false;
+
+            const destinationInside = destinationLocation
+                ? distanceMeters(vehicle.latitude, vehicle.longitude, destinationLocation.latitude, destinationLocation.longitude) <= (destinationLocation.raio || 50)
+                : false;
+
+            const lastEvent = [...(service.serviceEvents || [])].sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )[0];
+
+            const eventLabel: Record<string, string> = {
+                approaching_origin: 'Aproximou-se da origem',
+                entered_origin: 'Entrou na origem',
+                left_origin: 'Saiu da origem',
+                entered_destination: 'Entrou no destino',
+                left_destination: 'Saiu do destino'
+            };
+
+            map[vehicle.id] = {
+                serviceId: service.id,
+                passenger: service.passageiro,
+                hora: service.hora,
+                origem: service.origem,
+                destino: service.destino,
+                originConfirmed: Boolean(service.originConfirmed || service.originArrivalTime),
+                destinationConfirmed: Boolean(service.destinationConfirmed || service.destinationArrivalTime),
+                originInside,
+                destinationInside,
+                originArrivalTime: service.originArrivalTime,
+                destinationArrivalTime: service.destinationArrivalTime,
+                originDepartureTime: service.originDepartureTime,
+                destinationDepartureTime: service.destinationDepartureTime,
+                lastEventLabel: lastEvent ? (eventLabel[lastEvent.eventType] || lastEvent.eventType) : undefined,
+                lastEventTime: lastEvent?.timestamp || null
+            };
+        });
+
+        return map;
+    }, [servicos, motoristas, cartrackVehicles, locais]);
 
     return (
         <div className="p-4 md:p-8 w-full mx-auto space-y-6 min-h-screen bg-[#0a0a0f]">
@@ -194,6 +295,11 @@ export default function Geofences() {
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
+                                            {activeServiceByVehicle[vehicle.id] && (
+                                                <div className="text-[8px] font-black px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                                                    SERVIÇO ATIVO {activeServiceByVehicle[vehicle.id].hora || ''}
+                                                </div>
+                                            )}
                                             <div className={`text-[8px] font-black px-2 py-0.5 rounded-md ${vehicle.status === 'moving' ? 'bg-green-500/10 text-green-400' :
                                                 vehicle.status === 'idle' ? 'bg-orange-500/10 text-orange-400' :
                                                     'bg-white/5 text-slate-600'
@@ -218,6 +324,7 @@ export default function Geofences() {
                             locais={locais}
                             selectedVehicle={selectedVehicle}
                             onSelectVehicle={setSelectedVehicle}
+                            activeServiceByVehicle={activeServiceByVehicle}
                         />
 
                         {/* Floating Status */}

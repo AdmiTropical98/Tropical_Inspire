@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional, EscalaTemplate, EscalaTemplateItem } from '../types';
+import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional, EscalaTemplate, EscalaTemplateItem, ServiceEvent } from '../types';
 import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -52,7 +52,11 @@ const isMissingServiceGeofencingColumnError = (error: any) => {
         message.includes('origem_location_id') ||
         message.includes('destino_location_id') ||
         message.includes('origin_arrival_time') ||
-        message.includes('destination_arrival_time');
+        message.includes('destination_arrival_time') ||
+        message.includes('origin_confirmed') ||
+        message.includes('destination_confirmed') ||
+        message.includes('origin_departure_time') ||
+        message.includes('destination_departure_time');
 
     return missingGeofenceColumn &&
         (
@@ -282,6 +286,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     // NEW: Services State (Lifted)
     const [servicos, setServicos] = useState<any[]>([]);
+    const [serviceEvents, setServiceEvents] = useState<ServiceEvent[]>([]);
     const [scaleBatches, setScaleBatches] = useState<ScaleBatch[]>([]);
     const [zonasOperacionais, setZonasOperacionais] = useState<ZonaOperacional[]>([]);
     const [areasOperacionais, setAreasOperacionais] = useState<AreaOperacional[]>([]);
@@ -304,6 +309,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const stockItemsTableRef = useRef<'stock_items' | 'workshop_items'>('stock_items');
     const supportsUrgentColumnRef = useRef(true);
     const supportsServiceGeofencingColumnsRef = useRef(true);
+    const supportsServiceEventsTableRef = useRef(true);
     const autoGeofenceSyncRunningRef = useRef(false);
 
     // Helper: Haversine Distance (km)
@@ -348,6 +354,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             destino_location_id,
             origin_arrival_time,
             destination_arrival_time,
+            origin_confirmed,
+            destination_confirmed,
+            origin_departure_time,
+            destination_departure_time,
             ...rest
         } = payload;
         return rest;
@@ -1034,6 +1044,44 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const { data: notifs } = await supabase.from('notifications').select('*');
             if (notifs) setNotifications(notifs.map((n: any) => ({ ...n, data: typeof n.data === 'string' ? JSON.parse(n.data) : n.data, response: typeof n.response === 'string' ? JSON.parse(n.response) : n.response })));
 
+            let eventsByServiceId = new Map<string, ServiceEvent[]>();
+            if (supportsServiceEventsTableRef.current) {
+                const { data: rawEvents, error: eventsError } = await supabase
+                    .from('service_events')
+                    .select('*')
+                    .order('timestamp', { ascending: true });
+
+                if (eventsError) {
+                    const message = String(eventsError?.message || eventsError?.details || '').toLowerCase();
+                    if (message.includes('service_events') && (message.includes('does not exist') || message.includes('schema cache'))) {
+                        supportsServiceEventsTableRef.current = false;
+                    } else {
+                        console.warn('Error fetching service events:', eventsError);
+                    }
+                } else {
+                    const mapped = (rawEvents || []).map((event: any) => ({
+                        id: event.id,
+                        serviceId: event.service_id,
+                        vehicleId: event.vehicle_id,
+                        eventType: event.event_type,
+                        timestamp: event.timestamp,
+                        locationId: event.location_id,
+                        metadata: event.metadata
+                    } as ServiceEvent));
+
+                    setServiceEvents(mapped);
+
+                    eventsByServiceId = mapped.reduce((acc, event) => {
+                        const serviceId = String(event.serviceId || '');
+                        if (!serviceId) return acc;
+                        const current = acc.get(serviceId) || [];
+                        current.push(event);
+                        acc.set(serviceId, current);
+                        return acc;
+                    }, new Map<string, ServiceEvent[]>());
+                }
+            }
+
             const { data: servs, error: servError } = await supabase.from('servicos').select('*');
             if (servError) console.error('Error fetching services:', servError);
             if (servs) {
@@ -1051,7 +1099,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     originLocationId: s.origem_location_id,
                     destinationLocationId: s.destino_location_id,
                     originArrivalTime: s.origin_arrival_time,
-                    destinationArrivalTime: s.destination_arrival_time
+                    destinationArrivalTime: s.destination_arrival_time,
+                    originConfirmed: Boolean(s.origin_confirmed),
+                    destinationConfirmed: Boolean(s.destination_confirmed),
+                    originDepartureTime: s.origin_departure_time,
+                    destinationDepartureTime: s.destination_departure_time,
+                    originStopDurationSeconds: s.origin_arrival_time && s.origin_departure_time
+                        ? Math.max(0, Math.round((new Date(s.origin_departure_time).getTime() - new Date(s.origin_arrival_time).getTime()) / 1000))
+                        : null,
+                    serviceEvents: eventsByServiceId.get(s.id) || []
                 })));
             }
 
@@ -1254,6 +1310,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 basePayload.destino_location_id = destinoLocation?.id || null;
                 basePayload.origin_arrival_time = s.originArrivalTime || null;
                 basePayload.destination_arrival_time = s.destinationArrivalTime || null;
+                basePayload.origin_confirmed = Boolean(s.originConfirmed);
+                basePayload.destination_confirmed = Boolean(s.destinationConfirmed);
+                basePayload.origin_departure_time = s.originDepartureTime || null;
+                basePayload.destination_departure_time = s.destinationDepartureTime || null;
             }
 
             if (supportsUrgentColumnRef.current) {
@@ -1301,7 +1361,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 originLocationId: supportsServiceGeofencingColumnsRef.current ? (data.origem_location_id || origemLocation?.id || null) : (s.originLocationId || null),
                 destinationLocationId: supportsServiceGeofencingColumnsRef.current ? (data.destino_location_id || destinoLocation?.id || null) : (s.destinationLocationId || null),
                 originArrivalTime: supportsServiceGeofencingColumnsRef.current ? (data.origin_arrival_time || null) : (s.originArrivalTime || null),
-                destinationArrivalTime: supportsServiceGeofencingColumnsRef.current ? (data.destination_arrival_time || null) : (s.destinationArrivalTime || null)
+                destinationArrivalTime: supportsServiceGeofencingColumnsRef.current ? (data.destination_arrival_time || null) : (s.destinationArrivalTime || null),
+                originConfirmed: supportsServiceGeofencingColumnsRef.current ? Boolean(data.origin_confirmed) : Boolean(s.originConfirmed),
+                destinationConfirmed: supportsServiceGeofencingColumnsRef.current ? Boolean(data.destination_confirmed) : Boolean(s.destinationConfirmed),
+                originDepartureTime: supportsServiceGeofencingColumnsRef.current ? (data.origin_departure_time || null) : (s.originDepartureTime || null),
+                destinationDepartureTime: supportsServiceGeofencingColumnsRef.current ? (data.destination_departure_time || null) : (s.destinationDepartureTime || null)
             };
 
             await logServiceHistory(s.id, 'CREATE', null, confirmedService);
@@ -1351,6 +1415,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 updatePayload.destino_location_id = destinoLocation?.id || null;
                 updatePayload.origin_arrival_time = s.originArrivalTime || null;
                 updatePayload.destination_arrival_time = s.destinationArrivalTime || null;
+                updatePayload.origin_confirmed = Boolean(s.originConfirmed);
+                updatePayload.destination_confirmed = Boolean(s.destinationConfirmed);
+                updatePayload.origin_departure_time = s.originDepartureTime || null;
+                updatePayload.destination_departure_time = s.destinationDepartureTime || null;
             }
 
             if (supportsUrgentColumnRef.current) {
@@ -1404,7 +1472,19 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     : (s.originArrivalTime ?? null),
                 destinationArrivalTime: supportsServiceGeofencingColumnsRef.current
                     ? (persistedRow.destination_arrival_time ?? s.destinationArrivalTime ?? null)
-                    : (s.destinationArrivalTime ?? null)
+                    : (s.destinationArrivalTime ?? null),
+                originConfirmed: supportsServiceGeofencingColumnsRef.current
+                    ? Boolean(persistedRow.origin_confirmed ?? s.originConfirmed)
+                    : Boolean(s.originConfirmed),
+                destinationConfirmed: supportsServiceGeofencingColumnsRef.current
+                    ? Boolean(persistedRow.destination_confirmed ?? s.destinationConfirmed)
+                    : Boolean(s.destinationConfirmed),
+                originDepartureTime: supportsServiceGeofencingColumnsRef.current
+                    ? (persistedRow.origin_departure_time ?? s.originDepartureTime ?? null)
+                    : (s.originDepartureTime ?? null),
+                destinationDepartureTime: supportsServiceGeofencingColumnsRef.current
+                    ? (persistedRow.destination_departure_time ?? s.destinationDepartureTime ?? null)
+                    : (s.destinationDepartureTime ?? null)
             };
             await logServiceHistory(s.id, 'UPDATE', previousState, updatedService);
 
@@ -3225,11 +3305,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!supportsServiceGeofencingColumnsRef.current) return;
         if (autoGeofenceSyncRunningRef.current) return;
 
-        const pendingServices = servicos.filter((s: Servico) =>
-            !!s.motoristaId &&
-            !s.concluido &&
-            (!s.originArrivalTime || !s.destinationArrivalTime)
-        );
+        const pendingServices = servicos.filter((s: Servico) => !!s.motoristaId && !s.concluido);
 
         if (pendingServices.length === 0 || locais.length === 0) return;
 
@@ -3238,6 +3314,43 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         try {
             const normalizePlate = (plate?: string | null) => (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             const nowIso = new Date().toISOString();
+            const nowTs = new Date(nowIso).getTime();
+
+            const getServiceDateTime = (service: Servico): Date | null => {
+                const datePart = service.data || new Date().toISOString().split('T')[0];
+                if (!service.hora) return null;
+
+                if (service.hora.includes('T') || service.hora.includes('-')) {
+                    const parsed = new Date(service.hora);
+                    return Number.isNaN(parsed.getTime()) ? null : parsed;
+                }
+
+                const parsed = new Date(`${datePart}T${service.hora}:00`);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            };
+
+            const isInsideLocation = (vehicle: import('../services/cartrack').CartrackVehicle, location: Local | null) => {
+                if (!location) return { inside: false, distance: Infinity, radius: 0 };
+                const distance = getDistance(vehicle.latitude, vehicle.longitude, location.latitude, location.longitude);
+                const radius = location.raio || 50;
+                return { inside: distance <= radius, distance, radius };
+            };
+
+            const currentEventsByService = serviceEvents.reduce((acc, event) => {
+                const key = String(event.serviceId || '');
+                if (!key) return acc;
+                const list = acc.get(key) || [];
+                list.push(event);
+                acc.set(key, list);
+                return acc;
+            }, new Map<string, ServiceEvent[]>());
+
+            const existingAlertKeys = new Set(
+                notifications
+                    .filter(n => n.type === 'system_alert')
+                    .map(n => String(n.data?.requestId || ''))
+                    .filter(Boolean)
+            );
 
             const vehicles = (vehicleSnapshot && vehicleSnapshot.length > 0)
                 ? vehicleSnapshot
@@ -3248,6 +3361,52 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             }
 
             const updates: Array<{ serviceId: string; payload: any; partial: Partial<Servico> }> = [];
+            const eventsToInsert: Array<{ service_id: string; vehicle_id: string; event_type: string; timestamp: string; location_id: string | null; metadata?: any }> = [];
+            const alertsToCreate: Notification[] = [];
+
+            const queueAlert = (service: Servico, keySuffix: string, title: string, message: string, priority: 'normal' | 'high' = 'high') => {
+                const requestId = `${service.id}:${keySuffix}`;
+                if (existingAlertKeys.has(requestId)) return;
+                existingAlertKeys.add(requestId);
+                alertsToCreate.push({
+                    id: crypto.randomUUID(),
+                    type: 'system_alert',
+                    data: {
+                        title,
+                        message,
+                        priority,
+                        serviceId: service.id,
+                        requestId
+                    },
+                    status: 'pending',
+                    timestamp: nowIso
+                });
+            };
+
+            const queueEvent = (serviceId: string, vehicleId: string, eventType: string, locationId?: string | null, metadata?: any) => {
+                const existingForService = currentEventsByService.get(serviceId) || [];
+                const alreadyExists = existingForService.some(event =>
+                    event.eventType === eventType &&
+                    String(event.locationId || '') === String(locationId || '')
+                );
+
+                const alreadyQueued = eventsToInsert.some(event =>
+                    event.service_id === serviceId &&
+                    event.event_type === eventType &&
+                    String(event.location_id || '') === String(locationId || '')
+                );
+
+                if (alreadyExists || alreadyQueued) return;
+
+                eventsToInsert.push({
+                    service_id: serviceId,
+                    vehicle_id: vehicleId,
+                    event_type: eventType,
+                    timestamp: nowIso,
+                    location_id: locationId || null,
+                    metadata
+                });
+            };
 
             for (const service of pendingServices) {
                 const motorista = motoristas.find(m => m.id === service.motoristaId);
@@ -3262,9 +3421,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 const originLocation = resolveLocationByName(service.origem, service.originLocationId);
                 const destinationLocation = resolveLocationByName(service.destino, service.destinationLocationId);
+                const serviceDateTime = getServiceDateTime(service);
 
                 const payload: any = {};
                 const partial: Partial<Servico> = {};
+
+                const originConfirmed = Boolean(service.originConfirmed || service.originArrivalTime);
+                const destinationConfirmed = Boolean(service.destinationConfirmed || service.destinationArrivalTime);
+
+                const originState = isInsideLocation(vehicle, originLocation);
+                const destinationState = isInsideLocation(vehicle, destinationLocation);
 
                 if (originLocation && !service.originLocationId) {
                     payload.origem_location_id = originLocation.id;
@@ -3276,29 +3442,129 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     partial.destinationLocationId = destinationLocation.id;
                 }
 
-                if (originLocation && !service.originArrivalTime) {
-                    const originDistance = getDistance(vehicle.latitude, vehicle.longitude, originLocation.latitude, originLocation.longitude);
-                    const originRadius = originLocation.raio || 50;
-                    if (originDistance <= originRadius) {
+                if (originLocation && !originConfirmed && !originState.inside && originState.distance <= (originState.radius + 100)) {
+                    queueEvent(service.id, String(vehicle.id), 'approaching_origin', originLocation.id, {
+                        distance_meters: Math.round(originState.distance)
+                    });
+                }
+
+                if (originLocation && !originConfirmed && originState.inside) {
+                    if (!service.originArrivalTime) {
                         payload.origin_arrival_time = nowIso;
                         partial.originArrivalTime = nowIso;
                     }
+                    payload.origin_confirmed = true;
+                    partial.originConfirmed = true;
+                    queueEvent(service.id, String(vehicle.id), 'entered_origin', originLocation.id, {
+                        distance_meters: Math.round(originState.distance)
+                    });
                 }
 
-                const canConfirmDestination = !!service.originArrivalTime || !!partial.originArrivalTime || !originLocation;
+                if (originLocation && originConfirmed && !service.originDepartureTime && !originState.inside) {
+                    payload.origin_departure_time = nowIso;
+                    partial.originDepartureTime = nowIso;
+                    queueEvent(service.id, String(vehicle.id), 'left_origin', originLocation.id, {
+                        distance_meters: Math.round(originState.distance)
+                    });
 
-                if (destinationLocation && !service.destinationArrivalTime && canConfirmDestination) {
-                    const destinationDistance = getDistance(vehicle.latitude, vehicle.longitude, destinationLocation.latitude, destinationLocation.longitude);
-                    const destinationRadius = destinationLocation.raio || 50;
-                    if (destinationDistance <= destinationRadius) {
+                    if (service.originArrivalTime) {
+                        const stopDurationSeconds = Math.max(0, Math.round((nowTs - new Date(service.originArrivalTime).getTime()) / 1000));
+                        partial.originStopDurationSeconds = stopDurationSeconds;
+                        if (stopDurationSeconds < 30) {
+                            queueAlert(
+                                service,
+                                'short_origin_stop',
+                                'Veículo não parou na origem',
+                                `Serviço ${service.hora} • ${service.origem}: tempo parado inferior a 30s.`
+                            );
+                        }
+                    }
+                }
+
+                if (destinationLocation && !destinationConfirmed && destinationState.inside) {
+                    if (!service.destinationArrivalTime) {
                         payload.destination_arrival_time = nowIso;
                         partial.destinationArrivalTime = nowIso;
+                    }
+                    payload.destination_confirmed = true;
+                    partial.destinationConfirmed = true;
+                    queueEvent(service.id, String(vehicle.id), 'entered_destination', destinationLocation.id, {
+                        distance_meters: Math.round(destinationState.distance)
+                    });
+
+                    if (!originConfirmed && !partial.originConfirmed) {
+                        queueAlert(
+                            service,
+                            'destination_without_origin',
+                            'Serviço executado sem passar na origem',
+                            `O serviço ${service.hora} chegou ao destino (${service.destino}) sem confirmação de origem.`
+                        );
+                    }
+                }
+
+                if (destinationLocation && destinationConfirmed && !service.destinationDepartureTime && !destinationState.inside) {
+                    payload.destination_departure_time = nowIso;
+                    partial.destinationDepartureTime = nowIso;
+                    queueEvent(service.id, String(vehicle.id), 'left_destination', destinationLocation.id, {
+                        distance_meters: Math.round(destinationState.distance)
+                    });
+                }
+
+                if (serviceDateTime && !originConfirmed) {
+                    const diffMinutes = (serviceDateTime.getTime() - nowTs) / 60000;
+                    if (diffMinutes >= 0 && diffMinutes <= 5) {
+                        queueAlert(
+                            service,
+                            'possible_delay',
+                            'POSSÍVEL ATRASO',
+                            `Faltam menos de 5 minutos para ${service.hora} e a origem ainda não foi confirmada.`
+                        );
+                    }
+
+                    if (diffMinutes < -15) {
+                        queueAlert(
+                            service,
+                            'origin_not_visited',
+                            'Motorista não passou pela origem',
+                            `Serviço ${service.hora} concluído/expirado sem confirmação de passagem na origem.`
+                        );
                     }
                 }
 
                 if (Object.keys(payload).length > 0) {
                     updates.push({ serviceId: service.id, payload, partial });
                 }
+            }
+
+            if (eventsToInsert.length > 0 && supportsServiceEventsTableRef.current) {
+                const { data: insertedEvents, error: eventsError } = await supabase
+                    .from('service_events')
+                    .insert(eventsToInsert)
+                    .select('*');
+
+                if (eventsError) {
+                    const message = String(eventsError?.message || eventsError?.details || '').toLowerCase();
+                    if (message.includes('service_events') && (message.includes('does not exist') || message.includes('schema cache'))) {
+                        supportsServiceEventsTableRef.current = false;
+                    } else {
+                        console.error('Erro ao gravar eventos de serviço:', eventsError);
+                    }
+                } else if (insertedEvents && insertedEvents.length > 0) {
+                    const mappedInserted = insertedEvents.map((event: any) => ({
+                        id: event.id,
+                        serviceId: event.service_id,
+                        vehicleId: event.vehicle_id,
+                        eventType: event.event_type,
+                        timestamp: event.timestamp,
+                        locationId: event.location_id,
+                        metadata: event.metadata
+                    } as ServiceEvent));
+                    setServiceEvents(prev => [...prev, ...mappedInserted]);
+                }
+            }
+
+            if (alertsToCreate.length > 0) {
+                await Promise.all(alertsToCreate.map(alert => addNotification(alert)));
             }
 
             if (updates.length === 0) return;
@@ -3326,7 +3592,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 setServicos(prev => prev.map((service: Servico) => {
                     const servicePatch = applied[service.id];
                     if (!servicePatch) return service;
-                    return { ...service, ...servicePatch };
+                    const originArrival = servicePatch.originArrivalTime ?? service.originArrivalTime;
+                    const originDeparture = servicePatch.originDepartureTime ?? service.originDepartureTime;
+                    const stopDuration = (servicePatch.originStopDurationSeconds !== undefined)
+                        ? servicePatch.originStopDurationSeconds
+                        : (originArrival && originDeparture
+                            ? Math.max(0, Math.round((new Date(originDeparture).getTime() - new Date(originArrival).getTime()) / 1000))
+                            : null);
+                    return { ...service, ...servicePatch, originStopDurationSeconds: stopDuration };
                 }));
             }
         } catch (error) {
@@ -3350,7 +3623,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const hasPending = servicos.some((s: Servico) =>
-            !!s.motoristaId && !s.concluido && (!s.originArrivalTime || !s.destinationArrivalTime)
+            !!s.motoristaId && !s.concluido
         );
 
         if (!hasPending) return;
@@ -3368,7 +3641,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         };
 
         pollCartrackAndConfirm();
-        const interval = setInterval(pollCartrackAndConfirm, 60 * 1000);
+        const interval = setInterval(pollCartrackAndConfirm, 10 * 1000);
         return () => clearInterval(interval);
     }, [servicos, motoristas, locais]);
 
@@ -3693,6 +3966,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             serviceRow.destino_location_id = destinoLocation?.id || null;
                             serviceRow.origin_arrival_time = s.originArrivalTime || null;
                             serviceRow.destination_arrival_time = s.destinationArrivalTime || null;
+                            serviceRow.origin_confirmed = Boolean(s.originConfirmed);
+                            serviceRow.destination_confirmed = Boolean(s.destinationConfirmed);
+                            serviceRow.origin_departure_time = s.originDepartureTime || null;
+                            serviceRow.destination_departure_time = s.destinationDepartureTime || null;
                         }
 
                         if (supportsUrgentColumnRef.current) {
