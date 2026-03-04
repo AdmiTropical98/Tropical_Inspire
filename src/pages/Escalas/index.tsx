@@ -26,6 +26,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 import PageHeader from '../../components/common/PageHeader';
+import DispatchBoard from './DispatchBoard';
+import { coerceServiceStatus, updateServiceStatus } from '../../services/serviceStatus';
 
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -33,7 +35,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
-import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, type GroupedTrip } from './EscalaAutomation';
+import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, generateAutoDispatchTrips, type GroupedTrip } from './EscalaAutomation';
 
 interface NewServiceState {
     hora: string;
@@ -50,7 +52,7 @@ interface NewServiceState {
 }
 
 // Sortable Driver Card Component
-function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, activeDriverMenuId, onClick, onDragOver, onDragLeave }: any) {
+function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, activeDriverMenuId, onClick, onDragOver, onDragLeave, onDrop }: any) {
     const {
         attributes,
         listeners,
@@ -71,7 +73,7 @@ function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId
         <div
             ref={setNodeRef}
             style={style}
-            className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200 h-[600px]
+            className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200 min-h-[420px] max-h-[calc(100vh-280px)]
                 ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
                 border border-white/5 hover:border-white/10
                 ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
@@ -79,6 +81,7 @@ function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId
             onClick={onClick}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
+            onDrop={onDrop}
         >
             {/* Handle for Dragging (Optional: could handle on whole card, but let's use header) */}
             <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
@@ -93,7 +96,7 @@ export default function Escalas() {
         motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
         updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
         complianceStats, locais, checkRouteValidation, scaleBatches, createScaleBatch,
-        zonasOperacionais, refreshData,
+        zonasOperacionais, refreshData, viaturas, cartrackVehicles,
         escalaTemplates, escalaTemplateItems, addEscalaTemplate, deleteEscalaTemplate, addTemplateItem, deleteTemplateItem
     } = useWorkshop();
     const { userRole } = useAuth();
@@ -169,10 +172,17 @@ export default function Escalas() {
     const [showAutoModal, setShowAutoModal] = useState(false);
     const [isAutoLoading, setIsAutoLoading] = useState(false);
     const [automationTrips, setAutomationTrips] = useState<GroupedTrip[]>([]);
+    const [automationMode, setAutomationMode] = useState<'import' | 'auto-dispatch'>('import');
     const [autoSettings, setAutoSettings] = useState({
         albufeiraUrl: localStorage.getItem('auto_sheet_albufeira') || '',
         quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || ''
     });
+
+    const viaturaById = useMemo(() => {
+        const map = new Map<string, any>();
+        viaturas.forEach(v => map.set(v.id, v));
+        return map;
+    }, [viaturas]);
 
     const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [showManageTemplates, setShowManageTemplates] = useState(false);
@@ -210,6 +220,41 @@ export default function Escalas() {
         const parsed = new Date(value);
         if (Number.isNaN(parsed.getTime())) return '--';
         return parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const getServiceVisualState = (service: Servico): 'urgent' | 'completed' | 'active' | 'delayed' | 'scheduled' => {
+        if (isUrgentService(service)) return 'urgent';
+        const canonical = coerceServiceStatus(service.status) || updateServiceStatus(service);
+        if (canonical === 'COMPLETED') return 'completed';
+        if (canonical === 'EN_ROUTE_ORIGIN' || canonical === 'ARRIVED_ORIGIN' || canonical === 'BOARDING' || canonical === 'EN_ROUTE_DESTINATION') return 'active';
+        if (canonical === 'DRIVER_ASSIGNED' || canonical === 'SCHEDULED') return 'scheduled';
+        return 'scheduled';
+    };
+
+    const getServiceVisualStyles = (service: Servico) => {
+        const state = getServiceVisualState(service);
+        if (state === 'urgent') return { label: 'Urgent', badge: 'bg-red-500/20 text-red-300 border-red-500/40', border: 'border-red-500/40' };
+        if (state === 'completed') return { label: 'Completed', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', border: 'border-emerald-500/30' };
+        if (state === 'active') return { label: 'Active', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40', border: 'border-amber-500/30' };
+        if (state === 'delayed') return { label: 'Delayed', badge: 'bg-red-500/20 text-red-300 border-red-500/40', border: 'border-red-500/30' };
+        return { label: 'Scheduled', badge: 'bg-slate-500/20 text-slate-300 border-slate-500/40', border: 'border-slate-600/30' };
+    };
+
+    const handlePendingDragStart = (serviceId: string) => (e: React.DragEvent) => {
+        e.dataTransfer.setData('text/plain', serviceId);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDropServiceOnDriver = async (driverId: string, e: React.DragEvent) => {
+        e.preventDefault();
+        const serviceId = e.dataTransfer.getData('text/plain');
+        if (!serviceId) return;
+        const service = servicos.find(s => s.id === serviceId);
+        if (!service) return;
+        await updateServico({ ...service, motoristaId: driverId });
+        if (isUrgentService(service)) {
+            await notifyUrgentAssignment(service, driverId);
+        }
     };
 
     const notifyUrgentAssignment = async (service: Servico, driverId: string) => {
@@ -269,9 +314,49 @@ export default function Escalas() {
             const suggested = suggestDrivers(trips, motoristas, servicos, selectedCentroCusto);
 
             setAutomationTrips(suggested);
+            setAutomationMode('import');
             setShowAutoModal(true);
         } catch (error: any) {
             alert('Erro na Automação: ' + error.message);
+        } finally {
+            setIsAutoLoading(false);
+        }
+    };
+
+    const handleGenerateAutoDispatch = async () => {
+        setIsAutoLoading(true);
+        try {
+            const plannedPassengers = servicos.filter((s: Servico) => {
+                if (s.concluido || s.motoristaId) return false;
+                if ((s.data || selectedDate) !== selectedDate) return false;
+                if (selectedCentroCusto !== 'all' && s.centroCustoId !== selectedCentroCusto) return false;
+                return Boolean(s.hora && s.origem && s.destino && s.passageiro);
+            });
+
+            if (plannedPassengers.length === 0) {
+                alert('Sem passageiros planeados pendentes para gerar serviços automáticos nesta data.');
+                return;
+            }
+
+            const generated = generateAutoDispatchTrips({
+                services: plannedPassengers,
+                motoristas,
+                viaturas,
+                existingServicos: servicos,
+                locais,
+                cartrackVehicles,
+                selectedDate,
+                selectedCentroCusto
+            });
+
+            if (generated.length === 0) {
+                alert('Não foi possível gerar serviços automáticos com os critérios atuais.');
+                return;
+            }
+
+            setAutomationTrips(generated);
+            setAutomationMode('auto-dispatch');
+            setShowAutoModal(true);
         } finally {
             setIsAutoLoading(false);
         }
@@ -348,14 +433,45 @@ export default function Escalas() {
 
     const confirmAutomation = async () => {
         const allServicesToCreate: any[] = [];
-        automationTrips.forEach(trip => {
-            trip.servicos.forEach(s => {
+
+        if (automationMode === 'auto-dispatch') {
+            automationTrips.forEach(trip => {
+                const passengerNames = trip.servicos.map(s => s.passageiro).filter(Boolean);
+                const passengerCount = Number(trip.passengerCount || trip.servicos.length || 1);
+                const vehicleCapacity = Number(trip.vehicleCapacity || viaturaById.get(trip.vehicleId || '')?.vehicleCapacity || 8);
+                const occupancyRate = Number((((passengerCount / Math.max(vehicleCapacity, 1)) * 100)).toFixed(2));
+
                 allServicesToCreate.push({
-                    ...s,
-                    motoristaId: trip.motoristaId
+                    id: crypto.randomUUID(),
+                    data: selectedDate,
+                    hora: trip.hora,
+                    passageiro: passengerCount > 1 ? `Grupo (${passengerCount} passageiros)` : (passengerNames[0] || 'Passageiro'),
+                    origem: trip.origem,
+                    destino: trip.destino,
+                    obs: `Auto Dispatch | ${passengerNames.join(', ')}`,
+                    concluido: false,
+                    centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined,
+                    motoristaId: trip.motoristaId,
+                    vehicleId: trip.vehicleId || null,
+                    passengerCount,
+                    occupancyRate,
+                    originLocationId: trip.servicos[0]?.originLocationId || null,
+                    destinationLocationId: trip.servicos[0]?.destinationLocationId || null
                 });
             });
-        });
+        } else {
+            automationTrips.forEach(trip => {
+                trip.servicos.forEach(s => {
+                    allServicesToCreate.push({
+                        ...s,
+                        motoristaId: trip.motoristaId,
+                        vehicleId: trip.vehicleId || null,
+                        passengerCount: Number(trip.passengerCount || 1),
+                        occupancyRate: trip.occupancyRate ?? null
+                    });
+                });
+            });
+        }
 
         const batchData = {
             notes: `Automação: ${selectedDate}`,
@@ -963,6 +1079,15 @@ export default function Escalas() {
                                     </button>
 
                                     <button
+                                        onClick={handleGenerateAutoDispatch}
+                                        disabled={isAutoLoading}
+                                        className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-fuchsia-900/20 active:scale-95 transition-all"
+                                    >
+                                        {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
+                                        <span className="hidden md:inline">Gerar Serviços Automaticamente</span>
+                                    </button>
+
+                                    <button
                                         onClick={() => setShowTemplateModal(true)}
                                         className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/40 active:scale-95 transition-all"
                                     >
@@ -1119,557 +1244,20 @@ export default function Escalas() {
                         {/* Status Tabs (Stick to top of widget) */}
 
                         {viewMode === 'cards' && (
-                            /* CARD VIEW (Existing) */
-                            <>
-
-                                <div className={`flex-1 md:overflow-hidden p-0 transition-colors duration-300
-                    ${isDistributeMode ? 'bg-[#1e293b]/20' : ''}
-                `}>
-                                    <div className="h-auto md:h-full flex flex-col">
-                                        {/* TOOLBAR: Status - CC Filters - View Options */}
-                                        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2 mt-2 md:mt-6 overflow-x-auto pb-1 shrink-0 scrollbar-hide">
-
-                                            {/* Status Filters */}
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => setFilterStatus('all')}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'all'
-                                                        ? 'bg-blue-600 text-white border-blue-500'
-                                                        : 'bg-[#1e293b] text-slate-400 border-white/5 hover:border-white/10'
-                                                        }`}
-                                                >
-                                                    Todos
-                                                </button>
-                                                <button
-                                                    onClick={() => setFilterStatus('available')}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'available'
-                                                        ? 'bg-emerald-600 text-white border-emerald-500'
-                                                        : 'bg-[#1e293b] text-emerald-400 border-white/5 hover:border-white/10'
-                                                        }`}
-                                                >
-                                                    Disponíveis ({motoristas.filter(m => m.status === 'disponivel').length})
-                                                </button>
-                                                <button
-                                                    onClick={() => setFilterStatus('busy')}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${filterStatus === 'busy'
-                                                        ? 'bg-amber-600 text-white border-amber-500'
-                                                        : 'bg-[#1e293b] text-amber-400 border-white/5 hover:border-white/10'
-                                                        }`}
-                                                >
-                                                    Em Serviço ({motoristas.filter(m => m.status === 'ocupado').length})
-                                                </button>
-                                            </div>
-
-                                            <div className="h-6 w-px bg-white/10 hidden md:block"></div>
-
-
-
-                                            {/* Layout Controls */}
-                                            <div className="ml-auto flex items-center gap-3">
-                                                <div className="flex items-center gap-2 bg-[#1e293b] border border-white/10 px-3 py-1 rounded-lg">
-                                                    <span className="text-[10px] uppercase font-bold text-slate-500">Colunas</span>
-                                                    <input
-                                                        type="range"
-                                                        min="1"
-                                                        max="6"
-                                                        value={layoutCols}
-                                                        onChange={(e) => setLayoutCols(parseInt(e.target.value))}
-                                                        className="w-20 accent-blue-500 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                                                    />
-                                                    <span className="text-xs text-white px-2 py-0.5 bg-slate-800 rounded">{layoutCols}</span>
-                                                </div>
-                                            </div>
-
-                                        </div>
-
-                                        {/* Drivers Grid View (With DND) */}
-                                        <DndContext
-                                            sensors={sensors}
-                                            collisionDetection={closestCenter}
-                                            onDragEnd={handleDragDriverEnd}
-                                        >
-                                            <SortableContext
-                                                items={processedMotoristas.map(m => m.id)}
-                                                strategy={rectSortingStrategy}
-                                            >
-                                                <div
-                                                    className="flex-1 min-h-0 grid gap-4 overflow-y-auto pb-24 md:pb-6 custom-scrollbar"
-                                                    style={{
-                                                        gridTemplateColumns: `repeat(${layoutCols}, minmax(0, 1fr))`
-                                                    }}
-                                                >
-                                                    {processedMotoristas.map(driver => {
-                                                        // Calculate Driver Stats
-                                                        const driverServices = assigned.filter(s => s.motoristaId === driver.id).sort((a, b) => a.hora.localeCompare(b.hora));
-
-                                                        return (
-                                                            <SortableDriverCard
-                                                                key={driver.id}
-                                                                driver={driver}
-                                                                isDistributeMode={isDistributeMode}
-                                                                activeDriverId={activeDriverId}
-                                                                activeDriverMenuId={activeDriverMenuId}
-                                                                onClick={() => isDistributeMode && setActiveDriverId(driver.id)}
-                                                                onDragOver={(e: any) => {
-                                                                    e.preventDefault();
-                                                                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-                                                                }}
-                                                                onDragLeave={(e: any) => {
-                                                                    e.preventDefault();
-                                                                    e.currentTarget.style.borderColor = '';
-                                                                    e.currentTarget.style.backgroundColor = '';
-                                                                }}
-                                                            >
-                                                                {/* Card Header (Handle) */}
-                                                                <div className="p-3 bg-slate-900/50 border-b border-white/5 flex items-center justify-between rounded-t-2xl cursor-grab active:cursor-grabbing">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="relative">
-                                                                            {driver.foto ? (
-                                                                                <img src={driver.foto} alt={driver.nome} className="w-9 h-9 rounded-full object-cover border-2 border-slate-700" />
-                                                                            ) : (
-                                                                                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border-2 border-slate-600">
-                                                                                    {driver.nome.charAt(0)}
-                                                                                </div>
-                                                                            )}
-                                                                            <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-[#1e293b] rounded-full shadow-sm
-                                                                        ${driver.status === 'disponivel' ? 'bg-emerald-500' :
-                                                                                    driver.status === 'ocupado' ? 'bg-amber-500' : 'bg-red-500'}
-                                                                    `}></div>
-                                                                        </div>
-                                                                        <div>
-                                                                            <h3 className="font-bold text-white text-sm md:text-base leading-tight">{driver.nome}</h3>
-                                                                            <div className="flex items-center gap-3 mt-0.5 text-[10px] md:text-xs text-slate-400">
-                                                                                <span className="flex items-center gap-1.5">
-                                                                                    <MapPin className="w-2.5 h-2.5 text-blue-400" />
-                                                                                    {driverServices.length} {t('schedule.trips')}
-                                                                                </span>
-                                                                                {driver.currentVehicle && (
-                                                                                    <span className="flex items-center gap-1.5 ml-2 text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20" title="Viatura atual">
-                                                                                        <Car className="w-2.5 h-2.5" />
-                                                                                        {driver.currentVehicle}
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="relative">
-                                                                        <button
-                                                                            onMouseDown={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setActiveDriverMenuId(activeDriverMenuId === driver.id ? null : driver.id);
-                                                                            }}
-                                                                            className={`p-2 rounded-lg transition-colors ${activeDriverMenuId === driver.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
-                                                                        >
-                                                                            <MoreVertical className="w-5 h-5" />
-                                                                        </button>
-
-                                                                        {activeDriverMenuId === driver.id && (
-                                                                            <>
-                                                                                <div
-                                                                                    className="fixed inset-0 z-40"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        setActiveDriverMenuId(null);
-                                                                                    }}
-                                                                                />
-                                                                                <div className="absolute right-0 top-full mt-2 w-32 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
-                                                                                    <div className="p-1">
-                                                                                        <button
-                                                                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
-                                                                                            onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                handleEditDriver(driver);
-                                                                                            }}
-                                                                                        >
-                                                                                            <Edit className="w-4 h-4" />
-                                                                                            <span>Editar</span>
-                                                                                        </button>
-                                                                                        <div className="h-px bg-white/10 my-1" />
-                                                                                        <button
-                                                                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-left"
-                                                                                            onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                handleDeleteDriver(driver.id, driver.nome);
-                                                                                            }}
-                                                                                        >
-                                                                                            <Trash2 className="w-4 h-4" />
-                                                                                            <span>Eliminar</span>
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Timeline */}
-                                                                <div className="p-2 md:p-3 flex-1 bg-[#0b1120]/30 min-h-[150px] overflow-y-auto custom-scrollbar relative">
-                                                                    <div className="space-y-3 relative">
-                                                                        {/* Vertical Timeline Line */}
-                                                                        {driverServices.length > 1 && (
-                                                                            <div className="absolute left-[2.35rem] top-4 bottom-4 w-px bg-slate-800/80 z-0"></div>
-                                                                        )}
-
-                                                                        {driverServices.length === 0 ? (
-                                                                            <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-500/50 text-xs text-center">
-                                                                                <div className="p-4 bg-slate-800/30 rounded-full mb-3 shadow-inner">
-                                                                                    <Clock className="w-8 h-8 opacity-40" />
-                                                                                </div>
-                                                                                <span className="font-medium">Motorista Disponível</span>
-                                                                                <span className="text-[10px] opacity-60 mt-1">Arraste serviços para aqui</span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            /* GROUPING LOGIC */
-                                                                            (() => {
-                                                                                // Group services
-                                                                                const groupedServices: { [key: string]: typeof driverServices } = {};
-                                                                                driverServices.forEach(s => {
-                                                                                    const key = `${s.hora}|${s.origem}`;
-                                                                                    if (!groupedServices[key]) groupedServices[key] = [];
-                                                                                    groupedServices[key].push(s);
-                                                                                });
-
-                                                                                // Convert to array and sort
-                                                                                const groups = Object.values(groupedServices).sort((a, b) => a[0].hora.localeCompare(b[0].hora));
-
-                                                                                return groups.map((group) => {
-                                                                                    const isGroup = group.length > 1;
-                                                                                    const firstService = group[0];
-                                                                                    const groupKey = `${driver.id}-${firstService.hora}-${firstService.origem}`;
-                                                                                    const isExpanded = expandedGroups[groupKey];
-
-                                                                                    if (!isGroup) {
-                                                                                        // RENDER SINGLE SERVICE (Legacy)
-                                                                                        const service = firstService;
-                                                                                        const compliance = complianceStats?.[service.id];
-                                                                                        const isUrgent = isUrgentService(service);
-                                                                                        const complianceColor = compliance?.status === 'success'
-                                                                                            ? 'border-emerald-500 bg-emerald-500/10'
-                                                                                            : compliance?.status === 'failed'
-                                                                                                ? 'border-red-500 bg-red-500/10'
-                                                                                                : isUrgent
-                                                                                                    ? 'border-red-500/60 bg-red-500/10 hover:border-red-500/80'
-                                                                                                    : 'border-white/5 hover:border-blue-500/30';
-
-                                                                                        return (
-                                                                                            <div key={service.id} className="relative z-10 flex gap-2 md:gap-4 group/item">
-                                                                                                {/* Time Column */}
-                                                                                                <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
-                                                                                                    <span className={`text-[11px] md:text-sm font-bold text-white font-mono px-1.5 md:px-2 py-0.5 md:py-1 rounded border shadow-sm ${compliance?.status === 'success' ? 'bg-emerald-600 border-emerald-400' : compliance?.status === 'failed' ? 'bg-red-600 border-red-400' : 'bg-slate-800/80 border-white/5'}`}>
-                                                                                                        {service.hora}
-                                                                                                    </span>
-                                                                                                    {service.voo && (
-                                                                                                        <span className="px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/20 rounded border border-indigo-500/30 max-w-full truncate">
-                                                                                                            {service.voo}
-                                                                                                        </span>
-                                                                                                    )}
-                                                                                                </div>
-
-                                                                                                {/* Content Card */}
-                                                                                                <div className={`flex-1 ${complianceColor} hover:bg-slate-800/60 border rounded-lg p-2 flex flex-col gap-1.5 transition-all relative overflow-hidden`}>
-                                                                                                    <button
-                                                                                                        onClick={(e) => {
-                                                                                                            e.stopPropagation();
-                                                                                                            unassignService(service.id);
-                                                                                                        }}
-                                                                                                        className="absolute top-1 right-1 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/item:opacity-100 z-20"
-                                                                                                        title={t('schedule.remove_assignment')}
-                                                                                                    >
-                                                                                                        <Trash2 className="w-3 h-3" />
-                                                                                                    </button>
-
-                                                                                                    <div className="flex items-start justify-between pr-8 md:pr-10">
-                                                                                                        <div className="flex flex-col">
-                                                                                                            <span className="text-xs font-bold text-slate-200 line-clamp-1" title={service.passageiro}>
-                                                                                                                {service.passageiro}
-                                                                                                            </span>
-                                                                                                            {isUrgent && (
-                                                                                                                <span className="mt-1 inline-flex w-fit items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
-                                                                                                            )}
-                                                                                                            {service.obs && service.obs !== 'Entrada' && service.obs !== 'Saída' && (
-                                                                                                                <span className="text-[9px] text-slate-500 italic line-clamp-1">{service.obs}</span>
-                                                                                                            )}
-                                                                                                            {/* COMPLIANCE MESSAGE */}
-                                                                                                            {compliance && (
-                                                                                                                <div className={`flex items-center gap-1 text-[10px] font-bold mt-0.5 ${compliance.status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                                                                                    {compliance.status === 'success' ? <CheckSquare className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-                                                                                                                    <span>{compliance.message}</span>
-                                                                                                                </div>
-                                                                                                            )}
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-
-                                                                                                {/* Validation POIs Indicator */}
-                                                                                                {service.validationPoints && service.validationPoints.length > 0 && (
-                                                                                                    <button
-                                                                                                        onClick={async (e) => {
-                                                                                                            e.stopPropagation();
-                                                                                                            const res = await checkRouteValidation(service.id);
-                                                                                                            const passed = Object.values(res).every(r => r.status === 'success');
-                                                                                                            const details = Object.entries(res).map(([pid, r]) => {
-                                                                                                                const loc = locais.find(l => l.id === pid);
-                                                                                                                return `${loc?.nome || 'POI'}: ${r.status === 'success' ? '✅' : '❌'} (${Math.round(r.distance || 0)}m)`;
-                                                                                                            }).join('\n');
-                                                                                                            alert(`Validação de Rota:\n\n${details}\n\nResultado Final: ${passed ? 'APROVADO' : 'FALHOU'}`);
-                                                                                                        }}
-                                                                                                        className="flex items-center gap-1.5 text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/30 p-1.5 rounded hover:bg-purple-500/20 transition-colors mt-1"
-                                                                                                    >
-                                                                                                        <MapPin className="w-3 h-3" />
-                                                                                                        <span className="font-bold">{service.validationPoints.length} POIs de Controlo</span>
-                                                                                                    </button>
-                                                                                                )}
-                                                                                                <div className="flex items-center gap-1.5 text-[10px] bg-[#0f172a]/40 p-1.5 rounded border border-white/5">
-                                                                                                    <div className="w-1 h-1 rounded-full bg-slate-500 shrink-0"></div>
-                                                                                                    <span className="text-slate-400 truncate flex-1" title={service.origem}>{service.origem}</span>
-                                                                                                    <ArrowRight className="w-2.5 h-2.5 text-slate-600 shrink-0" />
-                                                                                                    <div className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></div>
-                                                                                                    <span className="text-slate-300 truncate flex-1 font-medium" title={service.destino}>{service.destino}</span>
-                                                                                                </div>
-                                                                                                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                                                                                                    <div className="rounded border border-white/5 bg-slate-900/40 px-2 py-1.5">
-                                                                                                        <div className="text-slate-500 font-bold uppercase">Origem</div>
-                                                                                                        <div className={`${(service.originConfirmed || service.originArrivalTime) ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                                                                                            {(service.originConfirmed || service.originArrivalTime) ? '✔ Confirmado' : 'Pendente'}
-                                                                                                        </div>
-                                                                                                        <div className="text-slate-400">Hora: {formatCheckpointTime(service.originArrivalTime)}</div>
-                                                                                                    </div>
-                                                                                                    <div className="rounded border border-white/5 bg-slate-900/40 px-2 py-1.5">
-                                                                                                        <div className="text-slate-500 font-bold uppercase">Destino</div>
-                                                                                                        <div className={`${(service.destinationConfirmed || service.destinationArrivalTime) ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                                                                                            {(service.destinationConfirmed || service.destinationArrivalTime) ? '✔ Confirmado' : 'Pendente'}
-                                                                                                        </div>
-                                                                                                        <div className="text-slate-400">Hora: {formatCheckpointTime(service.destinationArrivalTime)}</div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </div>
-
-                                                                                        );
-                                                                                    } else {
-                                                                                        // RENDER GROUP CARD
-                                                                                        const hasUrgentInGroup = group.some(s => isUrgentService(s));
-                                                                                        return (
-                                                                                            <div key={groupKey} className="relative z-10 flex gap-2 md:gap-4">
-                                                                                                {/* Time Column */}
-                                                                                                <div className="flex flex-col items-center gap-1 min-w-[3.5rem] md:min-w-[4.5rem] pt-0.5">
-                                                                                                    <span className="text-[11px] md:text-sm font-bold text-white font-mono bg-blue-600 px-1.5 md:px-2 py-0.5 md:py-1 rounded border border-blue-400/30 shadow-lg shadow-blue-900/20">
-                                                                                                        {firstService.hora}
-                                                                                                    </span>
-                                                                                                    <div className="w-px h-full bg-blue-500/20 mx-auto my-1"></div>
-                                                                                                </div>
-
-                                                                                                {/* Group Container */}
-                                                                                                <div
-                                                                                                    className={`flex-1 rounded-xl border transition-all duration-300 overflow-hidden
-                                                                                    ${isExpanded
-                                                                                                            ? hasUrgentInGroup ? 'bg-red-900/30 border-red-500/50' : 'bg-slate-800/80 border-blue-500/50'
-                                                                                                            : hasUrgentInGroup
-                                                                                                                ? 'bg-gradient-to-br from-red-900/20 to-slate-900/50 border-red-500/30 hover:border-red-500/50 cursor-pointer'
-                                                                                                                : 'bg-gradient-to-br from-blue-900/20 to-slate-900/50 border-blue-500/20 hover:border-blue-500/40 cursor-pointer'
-                                                                                                        }
-                                                                                `}
-                                                                                                    onClick={() => {
-                                                                                                        setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
-                                                                                                    }}
-                                                                                                >
-                                                                                                    {/* Group Header */}
-                                                                                                    <div className="p-3">
-                                                                                                        <div className="flex items-center justify-between mb-2">
-                                                                                                            <div className="flex items-center gap-2">
-                                                                                                                <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold text-white">
-                                                                                                                    {group.length}
-                                                                                                                </div>
-                                                                                                                <span className="font-bold text-blue-100 text-sm">Passageiros</span>
-                                                                                                                {hasUrgentInGroup && (
-                                                                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
-                                                                                                                )}
-                                                                                                            </div>
-                                                                                                            <div className={`p-1 rounded-lg transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-white/10' : ''}`}>
-                                                                                                                <LayoutList className="w-4 h-4 text-blue-400" />
-                                                                                                            </div>
-                                                                                                        </div>
-
-                                                                                                        <div className="flex items-center gap-2 text-xs bg-[#0f172a]/40 p-2 rounded-lg border border-white/5">
-                                                                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></div>
-                                                                                                            <span className="text-slate-300 truncate flex-1 font-medium">{firstService.origem}</span>
-                                                                                                            {isExpanded && (
-                                                                                                                <>
-                                                                                                                    <ArrowRight className="w-3 h-3 text-slate-600 shrink-0" />
-                                                                                                                    <span className="text-slate-500 text-[10px] italic shrink-0">Vários Destinos</span>
-                                                                                                                </>
-                                                                                                            )}
-                                                                                                        </div>
-
-                                                                                                        {!isExpanded && (
-                                                                                                            <div className="mt-2 text-xs text-slate-500 pl-1">
-                                                                                                                <span className="truncate block opacity-70">
-                                                                                                                    {group.map(s => s.passageiro).join(', ')}
-                                                                                                                </span>
-                                                                                                            </div>
-                                                                                                        )}
-                                                                                                    </div>
-
-                                                                                                    {/* Expanded Content */}
-                                                                                                    {isExpanded && (
-                                                                                                        <div className="border-t border-white/5 bg-[#0b1120]/30 divide-y divide-white/5">
-                                                                                                            {group.map(service => (
-                                                                                                                <div key={service.id} className={`p-3 hover:bg-white/5 transition-colors relative group/subitem ${isUrgentService(service) ? 'bg-red-500/5 border-l-2 border-red-500/50' : ''}`}>
-                                                                                                                    <button
-                                                                                                                        onClick={(e) => {
-                                                                                                                            e.stopPropagation();
-                                                                                                                            unassignService(service.id);
-                                                                                                                        }}
-                                                                                                                        className="absolute top-3 right-3 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover/subitem:opacity-100"
-                                                                                                                        title={t('schedule.remove_assignment')}
-                                                                                                                    >
-                                                                                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                                                                                    </button>
-
-                                                                                                                    <div className="pr-8">
-                                                                                                                        <div className="font-medium text-slate-200 text-sm mb-1 flex items-center gap-2">
-                                                                                                                            <span>{service.passageiro}</span>
-                                                                                                                            {isUrgentService(service) && (
-                                                                                                                                <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
-                                                                                                                            )}
-                                                                                                                        </div>
-                                                                                                                        <div className="flex items-center gap-2 text-xs">
-                                                                                                                            <ArrowRight className="w-3 h-3 text-slate-600" />
-                                                                                                                            <span className="text-slate-400 truncate">{service.destino}</span>
-                                                                                                                        </div>
-                                                                                                                        <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px]">
-                                                                                                                            <div className="rounded border border-white/5 bg-slate-900/40 px-2 py-1.5">
-                                                                                                                                <div className="text-slate-500 font-bold uppercase">Origem</div>
-                                                                                                                                <div className={`${(service.originConfirmed || service.originArrivalTime) ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                                                                                                                    {(service.originConfirmed || service.originArrivalTime) ? '✔ Confirmado' : 'Pendente'}
-                                                                                                                                </div>
-                                                                                                                                <div className="text-slate-400">Hora: {formatCheckpointTime(service.originArrivalTime)}</div>
-                                                                                                                            </div>
-                                                                                                                            <div className="rounded border border-white/5 bg-slate-900/40 px-2 py-1.5">
-                                                                                                                                <div className="text-slate-500 font-bold uppercase">Destino</div>
-                                                                                                                                <div className={`${(service.destinationConfirmed || service.destinationArrivalTime) ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                                                                                                                    {(service.destinationConfirmed || service.destinationArrivalTime) ? '✔ Confirmado' : 'Pendente'}
-                                                                                                                                </div>
-                                                                                                                                <div className="text-slate-400">Hora: {formatCheckpointTime(service.destinationArrivalTime)}</div>
-                                                                                                                            </div>
-                                                                                                                        </div>
-                                                                                                                        <div className="text-[10px] text-slate-500 italic mt-1 pl-5">"{service.obs}"</div>
-
-                                                                                                                        {service.validationPoints && service.validationPoints.length > 0 && (
-                                                                                                                            <div className="mt-1 pl-5">
-                                                                                                                                <button
-                                                                                                                                    onClick={async (e) => {
-                                                                                                                                        e.stopPropagation();
-                                                                                                                                        const res = await checkRouteValidation(service.id);
-                                                                                                                                        const passed = Object.values(res).every(r => r.status === 'success');
-                                                                                                                                        const details = Object.entries(res).map(([pid, r]) => {
-                                                                                                                                            const loc = locais.find(l => l.id === pid);
-                                                                                                                                            return `${loc?.nome || 'POI'}: ${r.status === 'success' ? '✅' : '❌'} (${Math.round(r.distance || 0)}m)`;
-                                                                                                                                        }).join('\n');
-                                                                                                                                        alert(`Validação de Rota:\n\n${details}\n\nResultado Final: ${passed ? 'APROVADO' : 'FALHOU'}`);
-                                                                                                                                    }}
-                                                                                                                                    className="flex items-center gap-1 text-[9px] text-purple-400 bg-purple-500/5 px-2 py-1 rounded border border-purple-500/20 hover:bg-purple-500/10 transition-colors"
-                                                                                                                                >
-                                                                                                                                    <MapPin className="w-2.5 h-2.5" />
-                                                                                                                                    <span>Validar {service.validationPoints.length} POIs</span>
-                                                                                                                                </button>
-                                                                                                                            </div>
-                                                                                                                        )}
-                                                                                                                    </div>
-                                                                                                                </div>
-                                                                                                            ))}
-                                                                                                        </div>
-                                                                                                    )}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        );
-                                                                                    }
-                                                                                });
-                                                                            })()
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* DRIVER FOOTER ACTIONS */}
-                                                                <div className="px-4 py-3 bg-slate-900/50 border-t border-white/5 flex justify-end gap-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider rounded-b-2xl">
-                                                                    <button className="hover:text-blue-400 transition-colors">Ver Perfil</button>
-                                                                    <span>•</span>
-                                                                    <button className="hover:text-blue-400 transition-colors">Enviar Msg</button>
-                                                                </div>
-                                                            </SortableDriverCard>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </SortableContext>
-                                        </DndContext>
-
-                                        {/* URGENT REQUEST SECTION (Supervisor/Admin View Only) */}
-                                        {(userRole === 'admin' || userRole === 'supervisor') && notifications.some(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned')) && (
-                                            <div className="mt-8 pt-8 border-t border-white/10">
-                                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                                    <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                                                        <Siren className="w-5 h-5 text-red-500" />
-                                                    </div>
-                                                    {t('schedule.my_urgent_requests')}
-                                                </h3>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                    {notifications
-                                                        .filter(n => n.type === 'urgent_transport_request' && (n.status === 'pending' || n.status === 'assigned'))
-                                                        .map(req => (
-                                                            <div key={req.id} className={`bg-[#182338]/80 backdrop-blur-md border ${req.status === 'assigned' ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.05)]'} rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300`}>
-                                                                {/* Status Badge */}
-                                                                <div className="flex justify-between items-start z-10">
-                                                                    {req.status === 'pending' ? (
-                                                                        <span className="bg-red-500/20 text-red-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-red-500/20 flex items-center gap-1.5 animate-pulse">
-                                                                            <Clock className="w-3 h-3" />
-                                                                            {t('schedule.status.pending')}
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-blue-500/20 flex items-center gap-1.5">
-                                                                            <CheckSquare className="w-3 h-3" />
-                                                                            {t('schedule.status.assigned')}
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="text-slate-400 font-mono text-xs bg-black/20 px-2 py-1 rounded">{req.data.time}</span>
-                                                                </div>
-
-                                                                <div className="z-10 bg-black/20 p-3 rounded-xl border border-white/5">
-                                                                    <div className="font-bold text-white text-base mb-1">{req.data.passenger}</div>
-                                                                    <div className="flex flex-col gap-1.5 text-xs text-slate-400">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
-                                                                            <span className="truncate">{req.data.origin}</span>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-                                                                            <span className="text-slate-200 truncate font-medium">{req.data.destination}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                {req.data.obs && (
-                                                                    <div className="text-xs text-slate-500 italic px-2">
-                                                                        "{req.data.obs}"
-                                                                    </div>
-                                                                )}
-
-                                                                <button
-                                                                    onClick={() => handleSupervisorCancel(req)}
-                                                                    className="mt-auto z-10 w-full py-2.5 bg-slate-800/50 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
-                                                                >
-                                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                                    {t('schedule.actions.cancel')}
-                                                                </button>
-                                                            </div>
-                                                        ))
-                                                    }
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Sidebar moved to independent widget */}
-                            </>
+                            <div className="flex-1 min-h-0 p-3 md:p-4 overflow-hidden">
+                                <DispatchBoard
+                                    motoristas={processedMotoristas}
+                                    pendentes={pendentes}
+                                    assigned={assigned}
+                                    onMoveService={async (service, targetDriverId) => {
+                                        await updateServico({ ...service, motoristaId: targetDriverId });
+                                        if (targetDriverId && isUrgentService(service)) {
+                                            await notifyUrgentAssignment(service, targetDriverId);
+                                        }
+                                    }}
+                                    isUrgentService={isUrgentService}
+                                />
+                            </div>
                         )}
 
                         {viewMode === 'table' && (
@@ -2039,7 +1627,7 @@ export default function Escalas() {
                     </div >
                 </div >
                 {
-                    hasAccess(userRole, 'escalas_view_pending') && (
+                    hasAccess(userRole, 'escalas_view_pending') && viewMode === 'table' && (
                         <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-[#0f172a] border-t md:border-t-0 md:border-l border-white/5">
                             <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
                                 <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
@@ -2091,6 +1679,43 @@ export default function Escalas() {
                                         </div>
                                     </div>
                                 )}
+
+                                <div className="p-4 border-b border-white/5 bg-slate-900/30">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Pendentes Rápidos</h3>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300">Arrastar para motorista</span>
+                                    </div>
+                                    <div className="max-h-56 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                                        {pendentes.slice(0, 12).map(service => {
+                                            const visual = getServiceVisualStyles(service);
+                                            const passengerCount = Number(service.passengerCount || 1);
+                                            const vehicleCapacity = Number(viaturaById.get(service.vehicleId || '')?.vehicleCapacity || 8);
+                                            return (
+                                                <div
+                                                    key={`quick-${service.id}`}
+                                                    draggable
+                                                    onDragStart={handlePendingDragStart(service.id)}
+                                                    className={`rounded-xl border ${visual.border} bg-[#0f172a] p-3 cursor-grab active:cursor-grabbing hover:border-blue-400/40`}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-[11px] font-mono font-bold text-blue-300">{service.hora}</span>
+                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${visual.badge}`}>{visual.label}</span>
+                                                    </div>
+                                                    <div className="mt-2 text-[11px] text-slate-300 truncate" title={service.origem}>{service.origem}</div>
+                                                    <div className="flex items-center gap-1 text-[10px] text-slate-500 my-1">
+                                                        <ArrowRight className="w-3 h-3" />
+                                                        <span className="truncate" title={service.destino}>{service.destino}</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                                                        <span className="inline-flex items-center gap-1"><Users className="w-3 h-3" /> {passengerCount} passageiros</span>
+                                                        <span>{passengerCount} / {vehicleCapacity} lugares</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {pendentes.length === 0 && <div className="text-xs text-slate-500 py-2">Sem pendentes para arrastar.</div>}
+                                    </div>
+                                </div>
 
                                 {/* List */}
                                 <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-[#0b1120]">
@@ -2385,8 +2010,8 @@ export default function Escalas() {
                                     <CloudLightning className="w-8 h-8 text-emerald-500" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white">Pré-visualização da Escala</h2>
-                                    <p className="text-slate-400 text-sm">Verifique e organize os serviços antes de confirmar.</p>
+                                    <h2 className="text-2xl font-bold text-white">{automationMode === 'auto-dispatch' ? 'Pré-visualização do Auto Dispatch' : 'Pré-visualização da Escala'}</h2>
+                                    <p className="text-slate-400 text-sm">Verifique, edite e remova propostas antes de confirmar.</p>
                                 </div>
                             </div>
 
@@ -2408,11 +2033,16 @@ export default function Escalas() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                            {automationTrips.map((trip, idx) => (
-                                <div key={trip.id} className="bg-slate-900/50 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center group">
-                                    <div className="flex items-center gap-3 min-w-[100px]">
-                                        <span className="bg-emerald-500/20 text-emerald-400 font-mono font-bold px-2 py-1 rounded border border-emerald-500/20">{trip.hora}</span>
-                                    </div>
+                            {automationTrips.map((trip, idx) => {
+                                const computedPassengers = Number(trip.passengerCount || trip.servicos.length || 1);
+                                const computedCapacity = Number(trip.vehicleCapacity || viaturaById.get(trip.vehicleId || '')?.vehicleCapacity || 8);
+                                const computedOccupancy = Number((((computedPassengers / Math.max(computedCapacity, 1)) * 100)).toFixed(2));
+
+                                return (
+                                    <div key={trip.id} className="bg-slate-900/50 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center group">
+                                        <div className="flex items-center gap-3 min-w-[100px]">
+                                            <span className="bg-emerald-500/20 text-emerald-400 font-mono font-bold px-2 py-1 rounded border border-emerald-500/20">{trip.hora}</span>
+                                        </div>
 
                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1">
@@ -2434,8 +2064,35 @@ export default function Escalas() {
                                     <div className="flex items-center gap-4">
                                         <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[40px]">
                                             <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Pass.</div>
-                                            <div className="text-white font-bold leading-none">{trip.servicos.length}</div>
+                                            <div className="text-white font-bold leading-none">{computedPassengers}</div>
                                         </div>
+
+                                        <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[72px]">
+                                            <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Ocupação</div>
+                                            <div className="text-emerald-300 font-bold leading-none">{computedOccupancy.toFixed(0)}%</div>
+                                        </div>
+
+                                        <select
+                                            className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
+                                            value={trip.vehicleId || ''}
+                                            onChange={(e) => {
+                                                const vehicleId = e.target.value;
+                                                const vehicle = viaturaById.get(vehicleId);
+                                                const capacity = Number(vehicle?.vehicleCapacity || 8);
+                                                const passengerCount = Number(computedPassengers);
+                                                const occupancyRate = Number(((passengerCount / Math.max(capacity, 1)) * 100).toFixed(2));
+                                                const newTrips = [...automationTrips];
+                                                newTrips[idx].vehicleId = vehicleId || undefined;
+                                                newTrips[idx].vehicleCapacity = capacity;
+                                                newTrips[idx].occupancyRate = occupancyRate;
+                                                setAutomationTrips(newTrips);
+                                            }}
+                                        >
+                                            <option value="">🚗 Sem viatura</option>
+                                            {viaturas.map(v => (
+                                                <option key={v.id} value={v.id}>{v.matricula} ({v.vehicleCapacity || 8} lugares)</option>
+                                            ))}
+                                        </select>
 
                                         <select
                                             className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
@@ -2451,14 +2108,22 @@ export default function Escalas() {
                                                 <option key={m.id} value={m.id}>{m.nome}</option>
                                             ))}
                                         </select>
+
+                                        <button
+                                            onClick={() => setAutomationTrips(prev => prev.filter((_, tripIndex) => tripIndex !== idx))}
+                                            className="bg-red-500/15 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-500/25"
+                                        >
+                                            Remover
+                                        </button>
                                     </div>
-                                </div>
-                            ))}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         <div className="mt-6 pt-6 border-t border-white/10 flex justify-between items-center">
                             <div className="text-slate-400 text-sm">
-                                <span className="text-white font-bold">{automationTrips.length}</span> viagens detetadas. PRONTO PARA IMPORTAR.
+                                <span className="text-white font-bold">{automationTrips.length}</span> serviços propostos. PRONTO PARA CONFIRMAR.
                             </div>
                             <div className="flex gap-4">
                                 <button

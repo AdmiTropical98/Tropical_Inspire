@@ -63,7 +63,7 @@ export default function ActivityFeed({ items, title = "Timeline de Atividade" }:
                                 <div key={item.id} className="relative pl-12 group">
                                     {/* Timeline Dot */}
                                     <div className={`absolute left-0 top-1 w-10 h-10 rounded-2xl border-4 border-slate-950 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-xl
-                                        ${item.status === 'completed'
+                                        ${String(item.status || '').toUpperCase() === 'COMPLETED'
                                             ? 'bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/20'
                                             : `bg-${color}-500/20 text-${color}-400 ring-2 ring-${color}-500/20`
                                         }
@@ -85,7 +85,7 @@ export default function ActivityFeed({ items, title = "Timeline de Atividade" }:
                                         <p className="text-sm text-slate-400 leading-relaxed mb-3">{item.subtitle}</p>
 
                                         <div className="flex items-center gap-2">
-                                            {item.status === 'completed' ? (
+                                            {String(item.status || '').toUpperCase() === 'COMPLETED' ? (
                                                 <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                                                     <CheckCircle2 className="w-3 h-3" /> Concluído
                                                 </span>

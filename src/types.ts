@@ -24,6 +24,7 @@ export interface Viatura {
     manutencoes?: Manutencao[];
     precoDiario?: number; // Daily rental rate
     centro_custo_id?: string; // Cost Center Association
+    vehicleCapacity?: number;
 }
 
 
@@ -231,10 +232,28 @@ export interface Servico {
     validationPoints?: string[]; // IDs of required POIs to visit
     tipo?: 'entrada' | 'saida' | 'outro';
     departamento?: string;
-    status?: 'scheduled' | 'active' | 'completed' | 'pending' | 'started' | 'failed' | 'URGENTE';
+    status?:
+        | 'SCHEDULED'
+        | 'DRIVER_ASSIGNED'
+        | 'EN_ROUTE_ORIGIN'
+        | 'ARRIVED_ORIGIN'
+        | 'BOARDING'
+        | 'EN_ROUTE_DESTINATION'
+        | 'COMPLETED'
+        | 'scheduled'
+        | 'active'
+        | 'delayed'
+        | 'completed'
+        | 'pending'
+        | 'started'
+        | 'failed'
+        | 'URGENTE';
     failureReason?: string;
     batchId?: string; // Link to ScaleBatch
     isUrgent?: boolean;
+    vehicleId?: string | null;
+    passengerCount?: number;
+    occupancyRate?: number | null;
     originLocationId?: string | null;
     destinationLocationId?: string | null;
     originArrivalTime?: string | null;

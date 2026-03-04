@@ -204,7 +204,7 @@ export default function CentralMotorista() {
                                                 </div>
                                                 <span className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full uppercase tracking-tighter">Total</span>
                                             </div>
-                                            <h3 className="text-4xl font-black text-white mb-1">{driverServices.filter((s: Servico) => s.status === 'completed').length}</h3>
+                                            <h3 className="text-4xl font-black text-white mb-1">{driverServices.filter((s: Servico) => String(s.status || '').toUpperCase() === 'COMPLETED').length}</h3>
                                             <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Serviços Concluídos</p>
                                         </div>
 

@@ -4,6 +4,7 @@ import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGe
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import { usePermissions } from './PermissionsContext';
+import { updateServiceStatus, coerceServiceStatus, parseServiceDateTime } from '../services/serviceStatus';
 
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371e3; // metres
@@ -35,46 +36,31 @@ const isServiceUrgent = (serviceDate?: string, serviceHour?: string) => {
     return diffMinutes >= 0 && diffMinutes < 60;
 };
 
-const parseServiceDateTime = (serviceDate?: string, serviceHour?: string): Date | null => {
-    if (!serviceHour) return null;
-
-    if (serviceHour.includes('T') || serviceHour.includes('-')) {
-        const parsed = new Date(serviceHour);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    if (!serviceHour.includes(':')) return null;
-
-    const dateBase = serviceDate || new Date().toISOString().split('T')[0];
-    const parsed = new Date(`${dateBase}T${serviceHour}:00`);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
 const deriveServiceLifecycleStatus = ({
-    rawStatus,
+    motoristaId,
     serviceDate,
     serviceHour,
-    isCompleted,
+    originConfirmed,
+    originDepartureTime,
+    destinationConfirmed,
     nowTs = Date.now()
 }: {
-    rawStatus?: string | null;
+    motoristaId?: string | null;
     serviceDate?: string;
     serviceHour?: string;
-    isCompleted: boolean;
+    originConfirmed?: boolean;
+    originDepartureTime?: string | null;
+    destinationConfirmed?: boolean;
     nowTs?: number;
 }) => {
-    if (isCompleted) return 'completed';
-
-    const normalized = String(rawStatus || '').trim().toLowerCase();
-
-    if (normalized === 'completed') return 'completed';
-    if (normalized === 'failed') return 'failed';
-    if (normalized === 'active' || normalized === 'started') return 'active';
-
-    const serviceDateTime = parseServiceDateTime(serviceDate, serviceHour);
-    if (serviceDateTime && serviceDateTime.getTime() <= nowTs) return 'active';
-
-    return 'scheduled';
+    return updateServiceStatus({
+        data: serviceDate,
+        hora: serviceHour,
+        motoristaId,
+        originConfirmed,
+        originDepartureTime,
+        destinationConfirmed
+    }, nowTs);
 };
 
 const isMissingUrgentColumnError = (error: any) => {
@@ -101,6 +87,22 @@ const isMissingServiceGeofencingColumnError = (error: any) => {
         message.includes('destination_departure_time');
 
     return missingGeofenceColumn &&
+        (
+            message.includes('schema cache') ||
+            message.includes('column') ||
+            message.includes('does not exist') ||
+            message.includes('could not find')
+        );
+};
+
+const isMissingServiceAutoDispatchColumnError = (error: any) => {
+    const message = String(error?.message || error?.details || '').toLowerCase();
+    const missingAutoDispatchColumn =
+        message.includes('vehicle_id') ||
+        message.includes('passenger_count') ||
+        message.includes('occupancy_rate');
+
+    return missingAutoDispatchColumn &&
         (
             message.includes('schema cache') ||
             message.includes('column') ||
@@ -361,9 +363,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const stockItemsTableRef = useRef<'stock_items' | 'workshop_items'>('stock_items');
     const supportsUrgentColumnRef = useRef(true);
     const supportsServiceGeofencingColumnsRef = useRef(true);
+    const supportsServiceAutoDispatchColumnsRef = useRef(true);
     const supportsServiceEventsTableRef = useRef(true);
     const supportsDriverVehicleSessionsTableRef = useRef(true);
     const autoGeofenceSyncRunningRef = useRef(false);
+    const prevVehiclePositionsRef = useRef<Record<string, { latitude: number; longitude: number; timestamp: string }>>({});
+    const lowSpeedStartByServiceRef = useRef<Record<string, number>>({});
 
     // Helper: Haversine Distance (km)
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -411,6 +416,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             destination_confirmed,
             origin_departure_time,
             destination_departure_time,
+            ...rest
+        } = payload;
+        return rest;
+    };
+
+    const stripAutoDispatchColumnsFromPayload = (payload: any) => {
+        const {
+            vehicle_id,
+            passenger_count,
+            occupancy_rate,
             ...rest
         } = payload;
         return rest;
@@ -801,7 +816,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 if (error) throw error;
                 if (v) {
                     loadedViaturas = v;
-                    setViaturas(v.map((item: any) => ({ ...item, precoDiario: item.preco_diario })));
+                    setViaturas(v.map((item: any) => ({
+                        ...item,
+                        precoDiario: item.preco_diario,
+                        vehicleCapacity: Number(item.vehicle_capacity || 8)
+                    })));
                 }
             } catch (e: any) {
                 console.error('Error fetching viaturas:', e);
@@ -1318,23 +1337,28 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     const destinationConfirmed = Boolean(s.destination_confirmed);
                     const completed = Boolean(s.concluido) || destinationConfirmed || Boolean(s.destination_arrival_time);
                     const lifecycleStatus = deriveServiceLifecycleStatus({
-                        rawStatus: s.status,
+                        motoristaId: s.motorista_id,
                         serviceDate: s.data,
                         serviceHour: s.hora,
-                        isCompleted: completed
+                        originConfirmed: Boolean(s.origin_confirmed || s.origin_arrival_time),
+                        originDepartureTime: s.origin_departure_time,
+                        destinationConfirmed
                     });
 
                     return {
                         ...s,
                         motoristaId: s.motorista_id,
                         centroCustoId: s.centro_custo_id,
-                        status: lifecycleStatus,
+                        status: coerceServiceStatus(s.status) || lifecycleStatus,
                         concluido: completed,
                         failureReason: s.failure_reason,
                         batchId: s.batch_id,
                         tipo: s.tipo,
                         departamento: s.departamento,
                         isUrgent: Boolean(s.is_urgent) || s.status === 'URGENTE',
+                        vehicleId: s.vehicle_id || null,
+                        passengerCount: Number(s.passenger_count || 1),
+                        occupancyRate: s.occupancy_rate !== null && s.occupancy_rate !== undefined ? Number(s.occupancy_rate) : null,
                         originLocationId: s.origem_location_id,
                         destinationLocationId: s.destino_location_id,
                         originArrivalTime: s.origin_arrival_time,
@@ -1529,10 +1553,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const urgent = s.isUrgent ?? isServiceUrgent(s.data, s.hora);
             const completedToPersist = Boolean(s.concluido || s.destinationConfirmed || s.destinationArrivalTime);
             const statusToPersist = deriveServiceLifecycleStatus({
-                rawStatus: s.status,
+                motoristaId: s.motoristaId,
                 serviceDate: s.data,
                 serviceHour: s.hora,
-                isCompleted: completedToPersist
+                originConfirmed: Boolean(s.originConfirmed || s.originArrivalTime),
+                originDepartureTime: s.originDepartureTime,
+                destinationConfirmed: Boolean(s.destinationConfirmed || s.destinationArrivalTime)
             });
             const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
             const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
@@ -1550,6 +1576,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 status: statusToPersist,
                 failure_reason: s.failureReason
             };
+
+            if (supportsServiceAutoDispatchColumnsRef.current) {
+                basePayload.vehicle_id = s.vehicleId || null;
+                basePayload.passenger_count = Number(s.passengerCount || 1);
+                basePayload.occupancy_rate = s.occupancyRate ?? null;
+            }
 
             if (supportsServiceGeofencingColumnsRef.current) {
                 basePayload.origem_location_id = origemLocation?.id || null;
@@ -1596,6 +1628,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     .single());
             }
 
+                    if (error && supportsServiceAutoDispatchColumnsRef.current && isMissingServiceAutoDispatchColumnError(error)) {
+                    supportsServiceAutoDispatchColumnsRef.current = false;
+                    const fallbackPayload = stripAutoDispatchColumnsFromPayload(payloadToPersist);
+                    payloadToPersist = fallbackPayload;
+                    ({ data, error } = await supabase
+                        .from('servicos')
+                        .insert(fallbackPayload)
+                        .select()
+                        .single());
+                    }
+
             if (error) throw error;
 
             const confirmedService: Servico = {
@@ -1603,13 +1646,20 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 motoristaId: data.motorista_id,
                 centroCustoId: data.centro_custo_id,
                 status: deriveServiceLifecycleStatus({
-                    rawStatus: data.status,
+                    motoristaId: data.motorista_id ?? s.motoristaId,
                     serviceDate: data.data,
                     serviceHour: data.hora,
-                    isCompleted: Boolean(data.concluido || data.destination_confirmed || data.destination_arrival_time)
+                    originConfirmed: Boolean(data.origin_confirmed || data.origin_arrival_time || s.originConfirmed || s.originArrivalTime),
+                    originDepartureTime: data.origin_departure_time || s.originDepartureTime,
+                    destinationConfirmed: Boolean(data.destination_confirmed || data.destination_arrival_time || s.destinationConfirmed || s.destinationArrivalTime)
                 }),
                 concluido: Boolean(data.concluido || data.destination_confirmed || data.destination_arrival_time),
                 isUrgent: supportsUrgentColumnRef.current ? Boolean(data.is_urgent) : urgent,
+                vehicleId: supportsServiceAutoDispatchColumnsRef.current ? (data.vehicle_id || s.vehicleId || null) : (s.vehicleId || null),
+                passengerCount: supportsServiceAutoDispatchColumnsRef.current ? Number(data.passenger_count || s.passengerCount || 1) : Number(s.passengerCount || 1),
+                occupancyRate: supportsServiceAutoDispatchColumnsRef.current
+                    ? (data.occupancy_rate !== null && data.occupancy_rate !== undefined ? Number(data.occupancy_rate) : (s.occupancyRate ?? null))
+                    : (s.occupancyRate ?? null),
                 originLocationId: supportsServiceGeofencingColumnsRef.current ? (data.origem_location_id || origemLocation?.id || null) : (s.originLocationId || null),
                 destinationLocationId: supportsServiceGeofencingColumnsRef.current ? (data.destino_location_id || destinoLocation?.id || null) : (s.destinationLocationId || null),
                 originArrivalTime: supportsServiceGeofencingColumnsRef.current ? (data.origin_arrival_time || null) : (s.originArrivalTime || null),
@@ -1647,10 +1697,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const urgent = s.isUrgent ?? isServiceUrgent(s.data, s.hora);
             const completedToPersist = Boolean(s.concluido || s.destinationConfirmed || s.destinationArrivalTime);
             const statusToPersist = deriveServiceLifecycleStatus({
-                rawStatus: s.status,
+                motoristaId: s.motoristaId,
                 serviceDate: s.data,
                 serviceHour: s.hora,
-                isCompleted: completedToPersist
+                originConfirmed: Boolean(s.originConfirmed || s.originArrivalTime),
+                originDepartureTime: s.originDepartureTime,
+                destinationConfirmed: Boolean(s.destinationConfirmed || s.destinationArrivalTime)
             });
             const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
             const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
@@ -1667,6 +1719,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 status: statusToPersist,
                 failure_reason: s.failureReason
             };
+
+            if (supportsServiceAutoDispatchColumnsRef.current) {
+                updatePayload.vehicle_id = s.vehicleId || null;
+                updatePayload.passenger_count = Number(s.passengerCount || 1);
+                updatePayload.occupancy_rate = s.occupancyRate ?? null;
+            }
 
             if (supportsServiceGeofencingColumnsRef.current) {
                 updatePayload.origem_location_id = origemLocation?.id || null;
@@ -1701,6 +1759,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 ({ data, error } = await supabase.from('servicos').update(fallbackPayload).eq('id', s.id).select());
             }
 
+            if (error && supportsServiceAutoDispatchColumnsRef.current && isMissingServiceAutoDispatchColumnError(error)) {
+                supportsServiceAutoDispatchColumnsRef.current = false;
+                const fallbackPayload = stripAutoDispatchColumnsFromPayload(payloadToPersist);
+                payloadToPersist = fallbackPayload;
+                ({ data, error } = await supabase.from('servicos').update(fallbackPayload).eq('id', s.id).select());
+            }
+
             if (error) throw error;
 
             if (!data || data.length === 0) {
@@ -1721,13 +1786,24 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const updatedService: Servico = {
                 ...s,
                 status: deriveServiceLifecycleStatus({
-                    rawStatus: persistedRow.status ?? statusToPersist,
+                    motoristaId: persistedRow.motorista_id ?? s.motoristaId,
                     serviceDate: persistedRow.data ?? s.data,
                     serviceHour: persistedRow.hora ?? s.hora,
-                    isCompleted: completedAfterPersist
+                    originConfirmed: Boolean(persistedRow.origin_confirmed ?? persistedRow.origin_arrival_time ?? s.originConfirmed ?? s.originArrivalTime),
+                    originDepartureTime: persistedRow.origin_departure_time ?? s.originDepartureTime,
+                    destinationConfirmed: Boolean(persistedRow.destination_confirmed ?? persistedRow.destination_arrival_time ?? s.destinationConfirmed ?? s.destinationArrivalTime)
                 }),
                 concluido: completedAfterPersist,
                 isUrgent: urgent,
+                vehicleId: supportsServiceAutoDispatchColumnsRef.current
+                    ? (persistedRow.vehicle_id ?? s.vehicleId ?? null)
+                    : (s.vehicleId ?? null),
+                passengerCount: supportsServiceAutoDispatchColumnsRef.current
+                    ? Number(persistedRow.passenger_count ?? s.passengerCount ?? 1)
+                    : Number(s.passengerCount ?? 1),
+                occupancyRate: supportsServiceAutoDispatchColumnsRef.current
+                    ? (persistedRow.occupancy_rate !== null && persistedRow.occupancy_rate !== undefined ? Number(persistedRow.occupancy_rate) : (s.occupancyRate ?? null))
+                    : (s.occupancyRate ?? null),
                 originLocationId: supportsServiceGeofencingColumnsRef.current
                     ? (persistedRow.origem_location_id ?? origemLocation?.id ?? null)
                     : (s.originLocationId ?? null),
@@ -2321,6 +2397,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             ano: v.ano,
             obs: v.obs,
             preco_diario: v.precoDiario,
+            vehicle_capacity: v.vehicleCapacity ?? 8,
             centro_custo_id: v.centro_custo_id // Fix: Persist Cost Center
         });
         if (!error) setViaturas(prev => [...prev, v]);
@@ -2333,6 +2410,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             ano: v.ano,
             obs: v.obs,
             preco_diario: v.precoDiario,
+            vehicle_capacity: v.vehicleCapacity ?? 8,
             centro_custo_id: v.centro_custo_id // Fix: Persist Cost Center
         }).eq('id', v.id);
         if (!error) setViaturas(prev => prev.map(curr => curr.id === v.id ? v : curr));
@@ -3572,8 +3650,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!supportsServiceGeofencingColumnsRef.current) return;
         if (autoGeofenceSyncRunningRef.current) return;
 
+        const MIN_GEOFENCE_RADIUS_METERS = 80;
+        const MIN_HOTEL_GEOFENCE_RADIUS_METERS = 100;
+        const SCHEDULED_MONITOR_LEAD_MINUTES = 10;
+        const STOP_SPEED_THRESHOLD_KMH = 5;
+        const MIN_STOP_DURATION_SECONDS = 30;
+
         const pendingServices = servicos.filter((s: Servico) =>
-            !!s.motoristaId && (s.status !== 'completed' || !s.concluido)
+            !!s.motoristaId && (String(s.status || '').toUpperCase() !== 'COMPLETED' || !s.concluido)
         );
 
         if (pendingServices.length === 0 || locais.length === 0) return;
@@ -3585,11 +3669,64 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const nowIso = new Date().toISOString();
             const nowTs = new Date(nowIso).getTime();
 
-            const isInsideLocation = (vehicle: import('../services/cartrack').CartrackVehicle, location: Local | null) => {
-                if (!location) return { inside: false, distance: Infinity, radius: 0 };
+            const isInsideLocation = (
+                vehicle: import('../services/cartrack').CartrackVehicle,
+                location: Local | null,
+                previous?: { latitude: number; longitude: number } | null
+            ) => {
+                if (!location) return { inside: false, crossed: false, distance: Infinity, radius: 0 };
+
+                const segmentIntersectsCircle = (
+                    prevLat: number,
+                    prevLng: number,
+                    currLat: number,
+                    currLng: number,
+                    centerLat: number,
+                    centerLng: number,
+                    radiusMeters: number
+                ) => {
+                    const meanLatRad = ((centerLat + currLat + prevLat) / 3) * Math.PI / 180;
+                    const metersPerDegLat = 111320;
+                    const metersPerDegLng = 111320 * Math.cos(meanLatRad);
+
+                    const px = (prevLng - centerLng) * metersPerDegLng;
+                    const py = (prevLat - centerLat) * metersPerDegLat;
+                    const qx = (currLng - centerLng) * metersPerDegLng;
+                    const qy = (currLat - centerLat) * metersPerDegLat;
+
+                    const dx = qx - px;
+                    const dy = qy - py;
+                    const denom = (dx * dx) + (dy * dy);
+
+                    if (denom === 0) {
+                        return (px * px + py * py) <= (radiusMeters * radiusMeters);
+                    }
+
+                    const t = Math.max(0, Math.min(1, -((px * dx) + (py * dy)) / denom));
+                    const cx = px + t * dx;
+                    const cy = py + t * dy;
+                    return (cx * cx + cy * cy) <= (radiusMeters * radiusMeters);
+                };
+
                 const distance = getDistance(vehicle.latitude, vehicle.longitude, location.latitude, location.longitude);
-                const radius = location.raio || 50;
-                return { inside: distance <= radius, distance, radius };
+                const minRadius = location.tipo === 'hotel'
+                    ? MIN_HOTEL_GEOFENCE_RADIUS_METERS
+                    : MIN_GEOFENCE_RADIUS_METERS;
+                const radius = Math.max(Number(location.raio || 0), minRadius);
+                const inside = distance <= radius;
+                const crossed = Boolean(
+                    previous && segmentIntersectsCircle(
+                        previous.latitude,
+                        previous.longitude,
+                        vehicle.latitude,
+                        vehicle.longitude,
+                        location.latitude,
+                        location.longitude,
+                        radius
+                    )
+                );
+
+                return { inside, crossed, distance, radius };
             };
 
             const currentEventsByService = serviceEvents.reduce((acc, event) => {
@@ -3611,6 +3748,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             const vehicles = (vehicleSnapshot && vehicleSnapshot.length > 0)
                 ? vehicleSnapshot
                 : await CartrackService.getVehicles();
+
+            const prevPositions = prevVehiclePositionsRef.current;
 
             const activeSessionsByDriver = driverVehicleSessions.reduce((acc, session) => {
                 if (session.active && session.driverId && session.vehicleId && !acc.has(session.driverId)) {
@@ -3692,6 +3831,13 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 if (!vehicle || !vehicle.latitude || !vehicle.longitude) continue;
 
+                const previousPosition = prevPositions[String(vehicle.id)]
+                    ? {
+                        latitude: prevPositions[String(vehicle.id)].latitude,
+                        longitude: prevPositions[String(vehicle.id)].longitude
+                    }
+                    : null;
+
                 const originLocation = resolveLocationByName(service.origem, service.originLocationId);
                 const destinationLocation = resolveLocationByName(service.destino, service.destinationLocationId);
 
@@ -3702,10 +3848,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 const destinationConfirmed = Boolean(service.destinationConfirmed || service.destinationArrivalTime);
                 const serviceDateTime = parseServiceDateTime(service.data, service.hora);
                 const lifecycleStatus = deriveServiceLifecycleStatus({
-                    rawStatus: service.status,
+                    motoristaId: service.motoristaId,
                     serviceDate: service.data,
                     serviceHour: service.hora,
-                    isCompleted: Boolean(service.concluido || destinationConfirmed || service.destinationArrivalTime),
+                    originConfirmed,
+                    originDepartureTime: service.originDepartureTime,
+                    destinationConfirmed,
                     nowTs
                 });
 
@@ -3714,28 +3862,42 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     partial.status = lifecycleStatus;
                 }
 
-                if (lifecycleStatus === 'completed' && !service.concluido) {
+                if (lifecycleStatus === 'COMPLETED' && !service.concluido) {
                     payload.concluido = true;
                     partial.concluido = true;
                 }
 
-                if (lifecycleStatus !== 'active') {
+                const shouldMonitorScheduled = Boolean(
+                    lifecycleStatus === 'SCHEDULED' &&
+                    serviceDateTime &&
+                    nowTs >= (serviceDateTime.getTime() - (SCHEDULED_MONITOR_LEAD_MINUTES * 60 * 1000))
+                );
+
+                if (!['DRIVER_ASSIGNED', 'EN_ROUTE_ORIGIN', 'ARRIVED_ORIGIN', 'BOARDING', 'EN_ROUTE_DESTINATION'].includes(lifecycleStatus) && !shouldMonitorScheduled) {
                     if (Object.keys(payload).length > 0) {
                         updates.push({ serviceId: service.id, payload, partial });
                     }
                     continue;
                 }
 
-                const originState = isInsideLocation(vehicle, originLocation);
-                const destinationState = isInsideLocation(vehicle, destinationLocation);
+                const originState = isInsideLocation(vehicle, originLocation, previousPosition);
+                const destinationState = isInsideLocation(vehicle, destinationLocation, previousPosition);
                 const positionTimestamp = vehicle.last_position_update && !Number.isNaN(new Date(vehicle.last_position_update).getTime())
                     ? new Date(vehicle.last_position_update).toISOString()
                     : nowIso;
+                const currentSpeed = Number(vehicle.speed || 0);
                 const baseGpsMetadata = {
                     latitude: vehicle.latitude,
                     longitude: vehicle.longitude,
-                    gps_timestamp: positionTimestamp
+                    gps_timestamp: positionTimestamp,
+                    speed_kmh: currentSpeed
                 };
+
+                let nextOperationalStatus = lifecycleStatus;
+
+                if (service.motoristaId && nextOperationalStatus === 'DRIVER_ASSIGNED' && currentSpeed > 0 && originState.distance > 150) {
+                    nextOperationalStatus = 'EN_ROUTE_ORIGIN';
+                }
 
                 if (originLocation && !service.originLocationId) {
                     payload.origem_location_id = originLocation.id;
@@ -3754,17 +3916,44 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     });
                 }
 
-                if (originLocation && !originConfirmed && originState.inside) {
+                if (originLocation && !originConfirmed && (originState.inside || originState.crossed)) {
                     if (!service.originArrivalTime) {
-                        payload.origin_arrival_time = nowIso;
-                        partial.originArrivalTime = nowIso;
+                        payload.origin_arrival_time = positionTimestamp;
+                        partial.originArrivalTime = positionTimestamp;
                     }
                     payload.origin_confirmed = true;
                     partial.originConfirmed = true;
                     queueEvent(service.id, String(vehicle.id), 'entered_origin', positionTimestamp, originLocation.id, {
                         ...baseGpsMetadata,
-                        distance_meters: Math.round(originState.distance)
+                        distance_meters: Math.round(originState.distance),
+                        crossed_by_path: Boolean(originState.crossed && !originState.inside)
                     });
+                    nextOperationalStatus = 'ARRIVED_ORIGIN';
+                }
+
+                const isInsideOriginNow = originState.inside || originState.crossed;
+                const lowSpeedKey = service.id;
+
+                if (originLocation && (originConfirmed || partial.originConfirmed) && isInsideOriginNow) {
+                    if (currentSpeed < STOP_SPEED_THRESHOLD_KMH) {
+                        if (!lowSpeedStartByServiceRef.current[lowSpeedKey]) {
+                            lowSpeedStartByServiceRef.current[lowSpeedKey] = nowTs;
+                        } else {
+                            const stoppedSeconds = Math.max(0, Math.round((nowTs - lowSpeedStartByServiceRef.current[lowSpeedKey]) / 1000));
+                            if (stoppedSeconds >= MIN_STOP_DURATION_SECONDS) {
+                                partial.originStopDurationSeconds = stoppedSeconds;
+                            }
+                            if (currentSpeed < 3 && stoppedSeconds >= 20) {
+                                nextOperationalStatus = 'BOARDING';
+                            }
+                        }
+                    } else {
+                        delete lowSpeedStartByServiceRef.current[lowSpeedKey];
+                    }
+
+                    if (nextOperationalStatus !== 'BOARDING') {
+                        nextOperationalStatus = 'ARRIVED_ORIGIN';
+                    }
                 }
 
                 if (originLocation && originConfirmed && !service.originDepartureTime && !originState.inside) {
@@ -3776,43 +3965,58 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     });
 
                     if (service.originArrivalTime) {
-                        const stopDurationSeconds = Math.max(0, Math.round((nowTs - new Date(service.originArrivalTime).getTime()) / 1000));
+                        const trackedLowSpeedStart = lowSpeedStartByServiceRef.current[lowSpeedKey];
+                        const stopDurationSeconds = trackedLowSpeedStart
+                            ? Math.max(0, Math.round((nowTs - trackedLowSpeedStart) / 1000))
+                            : Math.max(0, Math.round((nowTs - new Date(service.originArrivalTime).getTime()) / 1000));
                         partial.originStopDurationSeconds = stopDurationSeconds;
-                        if (stopDurationSeconds < 30) {
+                        if (stopDurationSeconds < MIN_STOP_DURATION_SECONDS) {
                             queueAlert(
                                 service,
                                 'short_origin_stop',
-                                'Veículo não parou na origem',
+                                'Paragem demasiado curta',
                                 `Serviço ${service.hora} • ${service.origem}: tempo parado inferior a 30s.`
                             );
                         }
                     }
+                    delete lowSpeedStartByServiceRef.current[lowSpeedKey];
+
+                    if (currentSpeed > 10) {
+                        nextOperationalStatus = 'EN_ROUTE_DESTINATION';
+                    }
                 }
 
-                if (destinationLocation && !destinationConfirmed && destinationState.inside) {
+                if (destinationLocation && !destinationConfirmed && (destinationState.inside || destinationState.crossed)) {
                     if (!service.destinationArrivalTime) {
-                        payload.destination_arrival_time = nowIso;
-                        partial.destinationArrivalTime = nowIso;
+                        payload.destination_arrival_time = positionTimestamp;
+                        partial.destinationArrivalTime = positionTimestamp;
                     }
                     payload.destination_confirmed = true;
                     partial.destinationConfirmed = true;
-                    payload.status = 'completed';
+                    payload.status = 'COMPLETED';
                     payload.concluido = true;
-                    partial.status = 'completed';
+                    partial.status = 'COMPLETED';
                     partial.concluido = true;
+                    nextOperationalStatus = 'COMPLETED';
                     queueEvent(service.id, String(vehicle.id), 'entered_destination', positionTimestamp, destinationLocation.id, {
                         ...baseGpsMetadata,
-                        distance_meters: Math.round(destinationState.distance)
+                        distance_meters: Math.round(destinationState.distance),
+                        crossed_by_path: Boolean(destinationState.crossed && !destinationState.inside)
                     });
 
                     if (!originConfirmed && !partial.originConfirmed) {
                         queueAlert(
                             service,
                             'destination_without_origin',
-                            'Serviço executado sem passar na origem',
+                            'Serviço executado sem passar pela origem',
                             `O serviço ${service.hora} chegou ao destino (${service.destino}) sem confirmação de origem.`
                         );
                     }
+                }
+
+                if (nextOperationalStatus !== (payload.status || lifecycleStatus)) {
+                    payload.status = nextOperationalStatus;
+                    partial.status = nextOperationalStatus;
                 }
 
                 if (destinationLocation && destinationConfirmed && !service.destinationDepartureTime && !destinationState.inside) {
@@ -3839,7 +4043,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         queueAlert(
                             service,
                             'origin_not_visited',
-                            'Motorista não passou pela origem',
+                            'Origem não confirmada',
                             `Serviço ${service.hora} concluído/expirado sem confirmação de passagem na origem.`
                         );
                     }
@@ -3849,6 +4053,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     updates.push({ serviceId: service.id, payload, partial });
                 }
             }
+
+            const nextVehiclePositions: Record<string, { latitude: number; longitude: number; timestamp: string }> = { ...prevPositions };
+            vehicles.forEach(vehicle => {
+                if (!vehicle?.id || !vehicle?.latitude || !vehicle?.longitude) return;
+                nextVehiclePositions[String(vehicle.id)] = {
+                    latitude: Number(vehicle.latitude),
+                    longitude: Number(vehicle.longitude),
+                    timestamp: vehicle.last_position_update || nowIso
+                };
+            });
+            prevVehiclePositionsRef.current = nextVehiclePositions;
 
             if (eventsToInsert.length > 0 && supportsServiceEventsTableRef.current) {
                 const { data: insertedEvents, error: eventsError } = await supabase
@@ -4274,10 +4489,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         batch_id: batch.id,
                         departamento: s.departamento,
                         status: deriveServiceLifecycleStatus({
-                            rawStatus: s.status,
+                            motoristaId: s.motoristaId,
                             serviceDate: s.data || batchData.referenceDate,
                             serviceHour: s.hora,
-                            isCompleted
+                            originConfirmed: Boolean(s.originConfirmed || s.originArrivalTime),
+                            originDepartureTime: s.originDepartureTime,
+                            destinationConfirmed: Boolean(s.destinationConfirmed || s.destinationArrivalTime)
                         })
                     };
 
@@ -4290,6 +4507,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             serviceRow.destination_confirmed = Boolean(s.destinationConfirmed);
                             serviceRow.origin_departure_time = s.originDepartureTime || null;
                             serviceRow.destination_departure_time = s.destinationDepartureTime || null;
+                        }
+
+                        if (supportsServiceAutoDispatchColumnsRef.current) {
+                            serviceRow.vehicle_id = s.vehicleId || null;
+                            serviceRow.passenger_count = Number(s.passengerCount || 1);
+                            serviceRow.occupancy_rate = s.occupancyRate ?? null;
                         }
 
                         if (supportsUrgentColumnRef.current) {
@@ -4323,6 +4546,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             .from('servicos')
                             .insert(fallbackInsertRows));
                     }
+
+                            if (servicesError && supportsServiceAutoDispatchColumnsRef.current && isMissingServiceAutoDispatchColumnError(servicesError)) {
+                            supportsServiceAutoDispatchColumnsRef.current = false;
+                            const fallbackInsertRows = servicesToInsert.map(row => stripAutoDispatchColumnsFromPayload(row));
+
+                            ({ error: servicesError } = await supabase
+                                .from('servicos')
+                                .insert(fallbackInsertRows));
+                            }
 
                     if (servicesError) {
                         return { success: false, error: servicesError.message };

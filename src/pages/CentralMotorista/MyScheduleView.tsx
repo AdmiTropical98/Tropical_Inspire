@@ -101,7 +101,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
 
     const handleSuccess = (service: Servico) => {
         if (window.confirm('Confirma que recolheu o passageiro?')) {
-            onUpdateStatus?.({ ...service, status: 'completed', concluido: true });
+            onUpdateStatus?.({ ...service, status: 'COMPLETED', concluido: true });
         }
     };
 

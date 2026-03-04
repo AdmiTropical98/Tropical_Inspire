@@ -1,4 +1,5 @@
-import type { Servico, Motorista } from '../../types';
+import type { Servico, Motorista, Viatura } from '../../types';
+import type { CartrackVehicle } from '../../services/cartrack';
 import * as XLSX from 'xlsx';
 
 export interface GroupedTrip {
@@ -10,8 +11,43 @@ export interface GroupedTrip {
     areaDestino?: string;
     servicos: Servico[];
     motoristaId?: string;
+    vehicleId?: string;
+    vehicleCapacity?: number;
+    passengerCount?: number;
+    occupancyRate?: number;
     conflict?: string;
 }
+
+const toMinutes = (value: string) => {
+    const [h, m] = String(value || '00:00').split(':').map(Number);
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+};
+
+const fromMinutes = (totalMinutes: number) => {
+    const normalized = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+    const hours = Math.floor(normalized / 60);
+    const minutes = normalized % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const addMinutesToTime = (value: string, delta: number) => fromMinutes(toMinutes(value) + delta);
+
+const normalizeText = (value?: string | null) => String(value || '').trim().toLowerCase();
+
+const normalizePlate = (value?: string | null) => String(value || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+const haversineMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3;
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
 
 export const AUTO_CONFIG = {
     ALBUFEIRA_SHEET_URL: localStorage.getItem('auto_sheet_albufeira') || '',
@@ -353,4 +389,152 @@ export function suggestDrivers(
 function timeToMinutes(time: string): number {
     const [h, m] = time.split(':').map(Number);
     return h * 60 + m;
+}
+
+export function generateAutoDispatchTrips(params: {
+    services: Servico[];
+    motoristas: Motorista[];
+    viaturas: Viatura[];
+    existingServicos: Servico[];
+    locais: { nome: string; latitude: number; longitude: number }[];
+    cartrackVehicles: CartrackVehicle[];
+    selectedDate: string;
+    selectedCentroCusto: string;
+}): GroupedTrip[] {
+    const {
+        services,
+        motoristas,
+        viaturas,
+        existingServicos,
+        locais,
+        cartrackVehicles,
+        selectedDate,
+        selectedCentroCusto
+    } = params;
+
+    const rawGroups = new Map<string, Servico[]>();
+
+    services
+        .filter(s => !s.motoristaId)
+        .forEach(service => {
+            const originKey = service.originLocationId || `origin:${normalizeText(service.origem)}`;
+            const destinationKey = service.destinationLocationId || `destination:${normalizeText(service.destino)}`;
+            const key = `${service.hora}::${originKey}::${destinationKey}`;
+            const current = rawGroups.get(key) || [];
+            current.push(service);
+            rawGroups.set(key, current);
+        });
+
+    const trips: GroupedTrip[] = [];
+
+    const vehicleByPlate = new Map<string, Viatura>(viaturas.map(v => [normalizePlate(v.matricula), v]));
+    const locationByName = new Map<string, { latitude: number; longitude: number }>(
+        locais.map(l => [normalizeText(l.nome), { latitude: l.latitude, longitude: l.longitude }])
+    );
+
+    const reservedByTime = new Map<string, { driverIds: Set<string>; vehicleIds: Set<string> }>();
+
+    const reserveSlot = (hora: string, driverId?: string, vehicleId?: string) => {
+        const entry = reservedByTime.get(hora) || { driverIds: new Set<string>(), vehicleIds: new Set<string>() };
+        if (driverId) entry.driverIds.add(driverId);
+        if (vehicleId) entry.vehicleIds.add(vehicleId);
+        reservedByTime.set(hora, entry);
+    };
+
+    existingServicos
+        .filter(s => (s.data || selectedDate) === selectedDate)
+        .forEach(s => reserveSlot(s.hora, s.motoristaId || undefined, s.vehicleId || undefined));
+
+    const getAvailableCandidates = (hora: string, origem: string) => {
+        const slot = reservedByTime.get(hora) || { driverIds: new Set<string>(), vehicleIds: new Set<string>() };
+        const originLoc = locationByName.get(normalizeText(origem));
+
+        return motoristas
+            .filter(driver => {
+                if (!driver.id || slot.driverIds.has(driver.id)) return false;
+                if (selectedCentroCusto !== 'all' && driver.centroCustoId !== selectedCentroCusto) return false;
+                return true;
+            })
+            .map(driver => {
+                const preferredVehicle = vehicleByPlate.get(normalizePlate(driver.currentVehicle || ''));
+
+                let chosenVehicle = preferredVehicle && !slot.vehicleIds.has(preferredVehicle.id)
+                    ? preferredVehicle
+                    : viaturas.find(v => !slot.vehicleIds.has(v.id) && (selectedCentroCusto === 'all' || v.centro_custo_id === selectedCentroCusto));
+
+                if (!chosenVehicle && preferredVehicle) chosenVehicle = preferredVehicle;
+
+                if (!chosenVehicle) return null;
+
+                const liveVehicle = cartrackVehicles.find(v =>
+                    String(v.id) === String(chosenVehicle?.id) ||
+                    normalizePlate(v.registration) === normalizePlate(chosenVehicle?.matricula)
+                );
+
+                let distance = Number.MAX_SAFE_INTEGER;
+                if (originLoc && liveVehicle && Number.isFinite(liveVehicle.latitude) && Number.isFinite(liveVehicle.longitude)) {
+                    distance = haversineMeters(originLoc.latitude, originLoc.longitude, liveVehicle.latitude, liveVehicle.longitude);
+                }
+
+                return {
+                    driver,
+                    vehicle: chosenVehicle,
+                    distance
+                };
+            })
+            .filter(Boolean)
+            .sort((a: any, b: any) => {
+                if (a.distance !== b.distance) return a.distance - b.distance;
+                return (b.vehicle?.vehicleCapacity || 8) - (a.vehicle?.vehicleCapacity || 8);
+            }) as Array<{ driver: Motorista; vehicle: Viatura; distance: number }>;
+    };
+
+    Array.from(rawGroups.entries())
+        .sort(([keyA], [keyB]) => {
+            const [horaA] = keyA.split('::');
+            const [horaB] = keyB.split('::');
+            return toMinutes(horaA) - toMinutes(horaB);
+        })
+        .forEach(([_, groupedServices]) => {
+            const sample = groupedServices[0];
+            const baseHour = sample.hora;
+            const origem = sample.origem;
+            const destino = sample.destino;
+            const roundSpacingMinutes = 10;
+            let roundIndex = 0;
+
+            let remainingPassengers = [...groupedServices];
+
+            while (remainingPassengers.length > 0) {
+                const scheduledHour = addMinutesToTime(baseHour, roundIndex * roundSpacingMinutes);
+                const candidates = getAvailableCandidates(scheduledHour, origem);
+                const best = candidates[0];
+
+                const vehicleCapacity = Math.max(1, Number(best?.vehicle?.vehicleCapacity || 8));
+                const chunk = remainingPassengers.slice(0, vehicleCapacity);
+                remainingPassengers = remainingPassengers.slice(vehicleCapacity);
+
+                const passengerCount = chunk.length;
+                const occupancyRate = Number(((passengerCount / vehicleCapacity) * 100).toFixed(2));
+
+                trips.push({
+                    id: crypto.randomUUID(),
+                    hora: scheduledHour,
+                    origem,
+                    destino,
+                    servicos: chunk,
+                    motoristaId: best?.driver?.id,
+                    vehicleId: best?.vehicle?.id,
+                    vehicleCapacity,
+                    passengerCount,
+                    occupancyRate,
+                    conflict: best ? undefined : 'Sem motorista/viatura disponível neste horário.'
+                });
+
+                reserveSlot(scheduledHour, best?.driver?.id, best?.vehicle?.id);
+                roundIndex += 1;
+            }
+        });
+
+    return trips;
 }
