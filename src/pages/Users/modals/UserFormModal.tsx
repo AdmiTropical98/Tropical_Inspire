@@ -67,7 +67,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
         turnoFim: '18:00',
         folgas: [] as string[],
         blockedPermissions: [] as string[],
-        centroCustoId: ''
+        centroCustoId: '',
+        tipoUtilizador: 'motorista' as 'motorista' | 'supervisor' | 'oficina'
     });
 
     useEffect(() => {
@@ -78,7 +79,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                 // Ensure array existence
                 blockedPermissions: user.blockedPermissions || [],
                 folgas: user.folgas || [],
-                centroCustoId: user.centroCustoId || ''
+                centroCustoId: user.centroCustoId || '',
+                tipoUtilizador: user.tipoUtilizador || 'motorista'
             });
         } else {
             // Reset
@@ -97,7 +99,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                 turnoFim: '18:00',
                 folgas: [],
                 blockedPermissions: [],
-                centroCustoId: ''
+                centroCustoId: '',
+                tipoUtilizador: 'motorista'
             });
             setRole(initialRole);
         }
@@ -144,7 +147,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     blockedPermissions: baseData.blockedPermissions,
                     status: (baseData.status === 'active' ? 'disponivel' : 'indisponivel') as any, // Cast to satisfy type
                     obs: baseData.obs || '',
-                    centroCustoId: baseData.centroCustoId || null
+                    centroCustoId: baseData.centroCustoId || null,
+                    tipoUtilizador: baseData.tipoUtilizador || 'motorista'
                 };
                 if (user) await updateMotorista(driverData);
                 else await addMotorista(driverData);
@@ -353,6 +357,18 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     <DollarSign className="w-4 h-4" /> Dados Profissionais
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1">Função</label>
+                                        <select
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={formData.tipoUtilizador || 'motorista'}
+                                            onChange={e => setFormData({ ...formData, tipoUtilizador: e.target.value })}
+                                        >
+                                            <option value="motorista">Motorista</option>
+                                            <option value="supervisor">Supervisor</option>
+                                            <option value="oficina">Oficina</option>
+                                        </select>
+                                    </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Vencimento Base</label>
                                         <input

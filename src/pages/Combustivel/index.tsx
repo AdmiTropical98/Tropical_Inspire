@@ -1053,16 +1053,16 @@ export default function Combustivel() {
                         <form onSubmit={handleInitiateRefuel} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('fuel.form.driver')}</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Utilizador</label>
                                     <select
                                         required
                                         value={refuelForm.driverId}
                                         onChange={(e) => setRefuelForm({ ...refuelForm, driverId: e.target.value })}
                                         className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all font-medium text-lg"
                                     >
-                                        <option value="">Selecione Condutor</option>
+                                        <option value="">Selecione Utilizador</option>
                                         {motoristas.map(m => (
-                                            <option key={m.id} value={m.id}>{m.nome} ({m.cartaConducao})</option>
+                                            <option key={m.id} value={m.id}>{m.nome} - {(m.tipoUtilizador || (m as any).tipo_utilizador || 'motorista')}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -2289,14 +2289,14 @@ export default function Combustivel() {
                                             </select>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Motorista</label>
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Utilizador</label>
                                             <select
                                                 value={editingTransaction.driverId}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, driverId: e.target.value })}
                                                 className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
                                             >
                                                 <option value="">Não Atribuído (BP)</option>
-                                                {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                                {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome} - {(m.tipoUtilizador || (m as any).tipo_utilizador || 'motorista')}</option>)}
                                             </select>
                                         </div>
                                         <div className="space-y-2">

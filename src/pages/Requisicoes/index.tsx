@@ -18,7 +18,7 @@ import { ClipboardCheck } from 'lucide-react';
 
 export default function Requisicoes() {
     const navigate = useNavigate();
-    const { requisicoes, fornecedores, viaturas, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
+    const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
     const { supplierInvoices } = useFinancial();
     const { currentUser, userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -26,6 +26,7 @@ export default function Requisicoes() {
     const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [isSyncingStock, setIsSyncingStock] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
     // Edit Request State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,6 +54,14 @@ export default function Requisicoes() {
         } catch {
             return dateStr;
         }
+    };
+
+    const toDateInputValue = (dateValue?: string) => {
+        if (!dateValue) return '';
+        // Supabase often returns timestamp strings; date inputs require YYYY-MM-DD.
+        const raw = String(dateValue);
+        if (raw.includes('T')) return raw.split('T')[0];
+        return raw;
     };
 
     const formatCurrency = (value: number) => new Intl.NumberFormat('pt-PT', {
@@ -104,6 +113,7 @@ export default function Requisicoes() {
         return 'Pendente';
     };
     const [tipo, setTipo] = useState<Requisicao['tipo']>('Oficina');
+    const [clienteId, setClienteId] = useState('');
     const [fornecedorId, setFornecedorId] = useState('');
     const [viaturaId, setViaturaId] = useState('');
     const [centroCustoId, setCentroCustoId] = useState<string | undefined>(undefined);
@@ -222,8 +232,9 @@ export default function Requisicoes() {
 
     const handleEdit = (req: Requisicao) => {
         setEditingId(req.id);
-        setData(req.data);
+        setData(toDateInputValue(req.data));
         setTipo(req.tipo);
+        setClienteId(req.clienteId || '');
         setFornecedorId(req.fornecedorId);
         setViaturaId(req.viaturaId || '');
         setCentroCustoId(req.centroCustoId);
@@ -232,10 +243,30 @@ export default function Requisicoes() {
         setActiveTab('create');
     };
 
+    const handleReopen = (id: string) => {
+        // In this project, reopening means moving back to pending/open workflow.
+        toggleRequisicaoStatus(id);
+        setOpenMenuId(null);
+    };
+
+    const handleEditById = (id: string) => {
+        const req = requisicoes.find(r => r.id === id);
+        if (!req) return;
+        handleEdit(req);
+        setOpenMenuId(null);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Tem a certeza que deseja apagar esta requisição?')) return;
+        await deleteRequisicao(id);
+        setOpenMenuId(null);
+    };
+
     const cancelEdit = () => {
         setEditingId(null);
         setData(new Date().toISOString().split('T')[0]);
         setTipo('Oficina');
+        setClienteId('');
         setFornecedorId('');
         setViaturaId('');
         setCentroCustoId(undefined);
@@ -336,6 +367,7 @@ export default function Requisicoes() {
                 ...requisicoes.find(r => r.id === editingId)!,
                 data,
                 tipo,
+                clienteId: clienteId || undefined,
                 fornecedorId,
                 viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
                 centroCustoId: centroCustoId,
@@ -366,6 +398,7 @@ export default function Requisicoes() {
                 numero: `${prefix}${(maxSeq + 1).toString().padStart(4, '0')}`,
                 data,
                 tipo,
+                clienteId: clienteId || undefined,
                 fornecedorId,
                 viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
                 centroCustoId: centroCustoId,
@@ -382,6 +415,7 @@ export default function Requisicoes() {
         // Reset Form
         setData(new Date().toISOString().split('T')[0]);
         setTipo('Oficina');
+        setClienteId('');
         setFornecedorId('');
         setViaturaId('');
         setCentroCustoId(undefined);
@@ -1127,7 +1161,7 @@ export default function Requisicoes() {
                                 const erpBadge = getErpBadge(erpStatus);
 
                                 return (
-                                    <div key={req.id} className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/70 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-hidden">
+                                    <div key={req.id} className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/70 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-visible">
                                         {/* decorative blob */}
                                         <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors pointer-events-none"></div>
                                         <div className={`absolute left-0 top-0 h-full w-1.5 ${req.status === 'concluida' ? 'bg-emerald-500/70' : 'bg-amber-500/70'}`} />
@@ -1273,61 +1307,78 @@ export default function Requisicoes() {
                                                                     Concluir
                                                                 </button>
                                                             ) : (
-                                                                <div className="relative group/actions">
-                                                                    <button className="p-3 text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700">
+                                                                <div className="relative overflow-visible">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setOpenMenuId(prev => prev === req.id ? null : req.id)}
+                                                                        className="p-3 text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700"
+                                                                    >
                                                                         <Clock className="w-5 h-5" />
                                                                     </button>
-                                                                    <div className="absolute right-0 bottom-full mb-2 w-48 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 hidden group-hover/actions:block z-50">
+                                                                    {openMenuId === req.id && (
+                                                                    <div className="absolute bottom-full mb-2 right-0 z-[9999] w-44 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-lg p-2">
                                                                         <button
-                                                                            onClick={() => toggleRequisicaoStatus(req.id)}
-                                                                            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-amber-500 hover:bg-slate-800 rounded-xl transition-colors"
+                                                                            type="button"
+                                                                            onClick={() => handleReopen(req.id)}
+                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-amber-500 hover:bg-slate-800 rounded-md transition-colors"
                                                                         >
                                                                             <RotateCcw className="w-4 h-4" />
                                                                             Reabrir
                                                                         </button>
                                                                         <button
-                                                                            onClick={() => handleEdit(req)}
-                                                                            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-blue-400 hover:bg-slate-800 rounded-xl transition-colors"
+                                                                            type="button"
+                                                                            onClick={() => handleEditById(req.id)}
+                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:bg-slate-800 rounded-md transition-colors"
                                                                         >
                                                                             <Pencil className="w-4 h-4" />
                                                                             Editar
                                                                         </button>
                                                                         {hasAccess(userRole, 'requisicoes_delete') && (
                                                                             <button
-                                                                                onClick={() => deleteRequisicao(req.id)}
-                                                                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-xl transition-colors"
+                                                                                type="button"
+                                                                                onClick={() => handleDelete(req.id)}
+                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-md transition-colors"
                                                                             >
                                                                                 <Trash2 className="w-4 h-4" />
                                                                                 Apagar
                                                                             </button>
                                                                         )}
                                                                     </div>
+                                                                    )}
                                                                 </div>
                                                             )}
 
                                                             {req.status !== 'concluida' && (
-                                                                <div className="relative group/actions">
-                                                                    <button className="p-3 text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700">
+                                                                <div className="relative overflow-visible">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setOpenMenuId(prev => prev === req.id ? null : req.id)}
+                                                                        className="p-3 text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700"
+                                                                    >
                                                                         <Settings2 className="w-5 h-5" />
                                                                     </button>
-                                                                    <div className="absolute right-0 bottom-full mb-2 w-48 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 hidden group-hover/actions:block z-50">
+                                                                    {openMenuId === req.id && (
+                                                                    <div className="absolute bottom-full mb-2 right-0 z-[9999] w-44 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-lg p-2">
                                                                         <button
-                                                                            onClick={() => handleEdit(req)}
-                                                                            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-blue-400 hover:bg-slate-800 rounded-xl transition-colors"
+                                                                            type="button"
+                                                                            onClick={() => handleEditById(req.id)}
+                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:bg-slate-800 rounded-md transition-colors"
                                                                         >
                                                                             <Pencil className="w-4 h-4" />
                                                                             Editar
                                                                         </button>
                                                                         {hasAccess(userRole, 'requisicoes_delete') && (
                                                                             <button
-                                                                                onClick={() => deleteRequisicao(req.id)}
-                                                                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-xl transition-colors"
+                                                                                type="button"
+                                                                                onClick={() => handleDelete(req.id)}
+                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-md transition-colors"
                                                                             >
                                                                                 <Trash2 className="w-4 h-4" />
                                                                                 Apagar
                                                                             </button>
                                                                         )}
                                                                     </div>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1444,6 +1495,34 @@ export default function Requisicoes() {
                                             </div>
                                         </div>
                                     )}
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Cliente (Opcional)</label>
+                                        <div className="relative group">
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                            <select
+                                                value={clienteId}
+                                                onChange={(e) => setClienteId(e.target.value)}
+                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all appearance-none font-medium shadow-sm"
+                                            >
+                                                <option value="">Nenhum / Custo interno</option>
+                                                {(() => {
+                                                    const sorted = [...clientes].sort((a, b) => {
+                                                        const rank = (name: string) => {
+                                                            const n = name.toLowerCase();
+                                                            if (n.includes('algartempo')) return 0;
+                                                            if (n.includes('stratego')) return 1;
+                                                            return 2;
+                                                        };
+                                                        return rank(a.nome) - rank(b.nome) || a.nome.localeCompare(b.nome, 'pt');
+                                                    });
+                                                    return sorted.map(c => (
+                                                        <option key={c.id} value={c.id}>{c.nome}</option>
+                                                    ));
+                                                })()}
+                                            </select>
+                                        </div>
+                                    </div>
 
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Centro de Custos</label>

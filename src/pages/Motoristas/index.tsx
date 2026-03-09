@@ -18,12 +18,15 @@ export default function Motoristas() {
     const [permissionUser, setPermissionUser] = useState<Motorista | null>(null);
     const [contractType, setContractType] = useState<'monthly' | 'hourly' | null>(null);
 
+    const getTipoUtilizador = (m: Motorista) => m.tipoUtilizador || (m as any).tipo_utilizador || 'motorista';
+
     const [formData, setFormData] = useState<Omit<Motorista, 'id' | 'pin'>>({
         nome: '',
         contacto: '',
         cartaConducao: '',
         email: '',
         centroCustoId: '',
+        tipoUtilizador: 'motorista',
         vencimentoBase: 0,
         valorHora: 0,
         obs: '',
@@ -50,7 +53,7 @@ export default function Motoristas() {
         };
 
         addMotorista(newMotorista);
-        setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', cartrackKey: '', centroCustoId: '' });
+        setFormData({ nome: '', contacto: '', cartaConducao: '', email: '', vencimentoBase: 0, valorHora: 0, obs: '', cartrackKey: '', centroCustoId: '', tipoUtilizador: 'motorista' });
         setContractType(null);
 
         alert(`${t('drivers.success_msg')}: ${newPin} `);
@@ -305,6 +308,19 @@ export default function Motoristas() {
                                 placeholder="motorista@algartempo.com"
                             />
                         </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase ml-1">Função</label>
+                            <select
+                                value={formData.tipoUtilizador || 'motorista'}
+                                onChange={e => setFormData({ ...formData, tipoUtilizador: e.target.value as Motorista['tipoUtilizador'] })}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                            >
+                                <option value="motorista">Motorista</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="oficina">Oficina</option>
+                            </select>
+                        </div>
                         {/* CENTRO DE CUSTOS */}
                         <div className="w-full">
                             <label className="text-xs font-bold text-slate-500 uppercase ml-1">
@@ -544,6 +560,9 @@ export default function Motoristas() {
                                                                 {motorista.cartaConducao}
                                                             </span>
                                                         )}
+                                                        <span className="flex items-center gap-1 border-l border-slate-700 pl-3 shrink-0 uppercase text-[10px] font-bold text-blue-300">
+                                                            {getTipoUtilizador(motorista)}
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>

@@ -120,6 +120,16 @@ const isMissingDriverVehicleSessionsTableError = (error: any) => {
     );
 };
 
+const isMissingTipoUtilizadorColumnError = (error: any) => {
+    const message = String(error?.message || error?.details || '').toLowerCase();
+    return message.includes('tipo_utilizador') && (
+        message.includes('schema cache') ||
+        message.includes('column') ||
+        message.includes('does not exist') ||
+        message.includes('could not find')
+    );
+};
+
 interface WorkshopContextType {
     fornecedores: Fornecedor[];
     setFornecedores: React.Dispatch<React.SetStateAction<Fornecedor[]>>;
@@ -865,6 +875,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             ...item,
                             itens: item.itens || [],
                             numero: String(item.numero),
+                            clienteId: item.cliente_id,
                             fornecedorId: item.fornecedor_id,
                             viaturaId: item.viatura_id || resolveVehicleIdFromLegacyRef(item.vehicle_id) || resolveVehicleIdFromLegacyRef(item.license_plate) || resolveVehicleIdFromLegacyRef(item.matricula),
                             centroCustoId: item.centro_custo_id,
@@ -1043,7 +1054,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     zones: m.zones || ['albufeira', 'quarteira'],
                     blockedPeriods: m.blocked_periods || [],
                     maxDailyServices: m.max_daily_services,
-                    minIntervalMinutes: m.min_interval_minutes || 30
+                    minIntervalMinutes: m.min_interval_minutes || 30,
+                    tipoUtilizador: m.tipo_utilizador || 'motorista',
+                    estadoOperacional: m.estado_operacional || 'disponivel'
                 }));
 
                 // Attempt Cartrack Enrichment (Safe Mode)
@@ -2842,6 +2855,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             numero: r.numero,
             data: r.data,
             tipo: r.tipo,
+            cliente_id: r.clienteId || null,
             fornecedor_id: r.fornecedorId,
             viatura_id: r.viaturaId,
             centro_custo_id: r.centroCustoId,
@@ -2934,6 +2948,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase.from('requisicoes').update({
             data: r.data,
             tipo: r.tipo,
+            cliente_id: r.clienteId || null,
             fornecedor_id: r.fornecedorId,
             viatura_id: r.viaturaId,
             centro_custo_id: r.centroCustoId,
@@ -3149,7 +3164,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     // Motoristas and others remain local for now as per plan focus
     const addMotorista = async (m: Motorista) => {
-        const { error } = await supabase.from('motoristas').insert({
+        const resolvedTipoUtilizador = m.tipoUtilizador || (m as any).tipo_utilizador || 'motorista';
+        const payloadWithRole = {
             id: m.id,
             nome: m.nome,
             foto: m.foto,
@@ -3170,12 +3186,27 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             zones: m.zones,
             blocked_periods: m.blockedPeriods,
             max_daily_services: m.maxDailyServices,
-            min_interval_minutes: m.minIntervalMinutes
-        });
+            min_interval_minutes: m.minIntervalMinutes,
+            tipo_utilizador: resolvedTipoUtilizador,
+            estado_operacional: m.estadoOperacional || 'disponivel'
+        };
+
+        let { error } = await supabase.from('motoristas').insert(payloadWithRole);
+
+        if (error && isMissingTipoUtilizadorColumnError(error)) {
+            if (resolvedTipoUtilizador !== 'motorista') {
+                alert('A coluna tipo_utilizador ainda não existe na base de dados. Execute a migration para usar Supervisor/Oficina.');
+                throw error;
+            }
+            const { tipo_utilizador, ...payloadWithoutRole } = payloadWithRole as any;
+            ({ error } = await supabase.from('motoristas').insert(payloadWithoutRole));
+        }
+
         if (!error) setMotoristas(prev => [...prev, m]);
     };
     const updateMotorista = async (m: Motorista) => {
-        const { error } = await supabase.from('motoristas').update({
+        const resolvedTipoUtilizador = m.tipoUtilizador || (m as any).tipo_utilizador;
+        const payloadWithRole = {
             nome: m.nome,
             foto: m.foto,
             contacto: m.contacto,
@@ -3195,8 +3226,21 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             zones: m.zones,
             blocked_periods: m.blockedPeriods,
             max_daily_services: m.maxDailyServices,
-            min_interval_minutes: m.minIntervalMinutes
-        }).eq('id', m.id);
+            min_interval_minutes: m.minIntervalMinutes,
+            estado_operacional: m.estadoOperacional || 'disponivel',
+            ...(resolvedTipoUtilizador ? { tipo_utilizador: resolvedTipoUtilizador } : {})
+        };
+
+        let { error } = await supabase.from('motoristas').update(payloadWithRole).eq('id', m.id);
+
+        if (error && isMissingTipoUtilizadorColumnError(error)) {
+            if ((resolvedTipoUtilizador || 'motorista') !== 'motorista') {
+                alert('A coluna tipo_utilizador ainda não existe na base de dados. Execute a migration para alterar a função.');
+                throw error;
+            }
+            const { tipo_utilizador, ...payloadWithoutRole } = payloadWithRole as any;
+            ({ error } = await supabase.from('motoristas').update(payloadWithoutRole).eq('id', m.id));
+        }
 
         if (error) {
             console.error("Erro ao atualizar motorista:", error);

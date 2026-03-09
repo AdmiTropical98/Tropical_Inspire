@@ -42,7 +42,8 @@ export default function UsersPage() {
             folgas: u.folgas,
             pin: u.pin,
             blockedPermissions: u.blockedPermissions,
-            centroCustoId: u.centroCustoId // FIX: Mapped correctly now
+            centroCustoId: u.centroCustoId,
+            tipoUtilizador: u.tipoUtilizador || 'motorista' // Preserve role type for driver-table users
         }));
 
         const mechanics = oficinaUsers.map(u => ({

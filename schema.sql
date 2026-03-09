@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS public.motoristas (
     cartrack_key TEXT,
     cartrack_id TEXT,
     current_vehicle TEXT,
+    tipo_utilizador TEXT NOT NULL DEFAULT 'motorista' CHECK (tipo_utilizador IN ('motorista', 'supervisor', 'oficina')),
     data_registo TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.motoristas ENABLE ROW LEVEL SECURITY;
@@ -150,6 +151,7 @@ CREATE TABLE IF NOT EXISTS public.requisicoes (
     numero SERIAL, -- Auto increment number
     data TIMESTAMP WITH TIME ZONE DEFAULT now(),
     tipo TEXT,
+    cliente_id UUID REFERENCES public.clientes(id) ON DELETE SET NULL,
     viatura_id UUID REFERENCES public.viaturas(id) ON DELETE SET NULL,
     centro_custo_id UUID REFERENCES public.centros_custos(id) ON DELETE SET NULL,
     fornecedor_id UUID REFERENCES public.fornecedores(id) ON DELETE SET NULL,

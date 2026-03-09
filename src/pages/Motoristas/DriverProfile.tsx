@@ -14,6 +14,7 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
 
     // Get live data to ensure updates are reflected
     const motorista = motoristas.find(m => m.id === initialMotorista.id) || initialMotorista;
+    const tipoUtilizador = motorista.tipoUtilizador || (motorista as any).tipo_utilizador || 'motorista';
 
     // Temp state for folgas confirmation
     const [tempFolgas, setTempFolgas] = useState<string[]>(motorista.folgas || []);
@@ -146,7 +147,7 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
                             <div>
                                 <h2 className="text-2xl font-bold text-white mb-1">{motorista.nome}</h2>
                                 <div className="flex items-center gap-4 text-sm text-slate-400">
-                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Motorista Ativo</span>
+                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> {tipoUtilizador.charAt(0).toUpperCase() + tipoUtilizador.slice(1)} Ativo</span>
                                     <span>|</span>
                                     <span>{motorista.contacto}</span>
                                 </div>
@@ -228,6 +229,18 @@ export default function DriverProfile({ motorista: initialMotorista, onClose }: 
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Função</h4>
+                                    <select
+                                        className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm w-full outline-none focus:border-blue-500"
+                                        value={tipoUtilizador}
+                                        onChange={e => updateMotorista({ ...motorista, tipoUtilizador: e.target.value as Motorista['tipoUtilizador'] })}
+                                    >
+                                        <option value="motorista">Motorista</option>
+                                        <option value="supervisor">Supervisor</option>
+                                        <option value="oficina">Oficina</option>
+                                    </select>
+                                </div>
                                 <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                                     <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Carta de Condução</h4>
                                     <p className="text-white font-mono">{motorista.cartaConducao || 'Não registada'}</p>

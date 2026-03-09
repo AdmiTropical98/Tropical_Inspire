@@ -73,6 +73,7 @@ export interface Requisicao {
     numero: string;
     data: string;
     tipo: 'Oficina' | 'Stock' | 'Viatura' | 'CentroCusto';
+    clienteId?: string;
     viaturaId?: string;
     centroCustoId?: string;
     fornecedorId: string;
@@ -184,6 +185,8 @@ export interface Motorista {
     cartrackKey?: string;
     cartrackId?: string;
     currentVehicle?: string;
+    tipoUtilizador?: 'motorista' | 'supervisor' | 'oficina';
+    estadoOperacional?: 'disponivel' | 'em_servico' | 'a_abastecer' | 'em_oficina' | 'indisponivel';
 }
 
 export interface Local {
