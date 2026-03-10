@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
 
 use PHPMailer\PHPMailer\Exception;
@@ -12,6 +12,86 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+
+set_exception_handler(static function (Throwable $exception): void {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Unhandled server exception',
+        'details' => $exception->getMessage(),
+    ]);
+    exit;
+});
+
+register_shutdown_function(static function (): void {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        echo json_encode([
+            'success' => false,
+            'error' => 'Fatal server error',
+            'details' => $error['message'] ?? 'Unknown fatal error',
+        ]);
+    }
+});
+
+function get_env_value(string $key): ?string
+{
+    $value = getenv($key);
+    if (is_string($value) && trim($value) !== '') {
+        return trim($value);
+    }
+
+    if (isset($_ENV[$key]) && trim((string)$_ENV[$key]) !== '') {
+        return trim((string)$_ENV[$key]);
+    }
+
+    if (isset($_SERVER[$key]) && trim((string)$_SERVER[$key]) !== '') {
+        return trim((string)$_SERVER[$key]);
+    }
+
+    return null;
+}
+
+function load_env_file_if_present(string $path): void
+{
+    if (!is_file($path) || !is_readable($path)) {
+        return;
+    }
+
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines)) {
+        return;
+    }
+
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        if ($trimmed === '' || str_starts_with($trimmed, '#') || strpos($trimmed, '=') === false) {
+            continue;
+        }
+
+        [$name, $value] = explode('=', $trimmed, 2);
+        $name = trim($name);
+        $value = trim($value);
+
+        if ($name === '') {
+            continue;
+        }
+
+        if ((str_starts_with($value, '"') && str_ends_with($value, '"')) || (str_starts_with($value, "'") && str_ends_with($value, "'"))) {
+            $value = substr($value, 1, -1);
+        }
+
+        if (get_env_value($name) === null) {
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+            putenv($name . '=' . $value);
+        }
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -71,15 +151,29 @@ if ($to === '' || $subject === '' || $message === '') {
     exit;
 }
 
-$smtpHost = 'smtp.hostinger.com';
-$smtpPort = 465;
-$smtpUsername = 'frota@tropicalinspire.pt';
-$smtpPassword = getenv('SMTP_PASS') ?: 'EMAIL_PASSWORD';
+load_env_file_if_present(dirname(__DIR__, 2) . '/.env');
+load_env_file_if_present(dirname(__DIR__) . '/.env');
+
+$smtpHost = get_env_value('SMTP_HOST') ?? 'smtp.hostinger.com';
+$smtpPort = (int)(get_env_value('SMTP_PORT') ?? '465');
+$smtpUsername = get_env_value('SMTP_USER') ?? 'frota@tropicalinspire.pt';
+$smtpPassword = get_env_value('SMTP_PASS') ?? '';
+$smtpSecure = strtolower(get_env_value('SMTP_SECURE') ?? 'true') === 'true' ? 'ssl' : 'tls';
+
+if ($smtpPassword === '' || $smtpPassword === 'EMAIL_PASSWORD') {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'SMTP not configured',
+        'details' => 'Define SMTP_PASS no ambiente do servidor.',
+    ]);
+    exit;
+}
 
 try {
     $smtpDebugLog = [];
     $mail = new PHPMailer(true);
-    $mail->SMTPDebug = 2;
+    $mail->SMTPDebug = 0;
     $mail->Debugoutput = function ($str, $level) use (&$smtpDebugLog): void {
         $line = "SMTP DEBUG [{$level}]: {$str}";
         $smtpDebugLog[] = $line;
@@ -90,7 +184,7 @@ try {
     $mail->Host = $smtpHost;
     $mail->Port = $smtpPort;
     $mail->SMTPAuth = true;
-    $mail->SMTPSecure = 'ssl';
+    $mail->SMTPSecure = $smtpSecure;
     $mail->Username = $smtpUsername;
     $mail->Password = $smtpPassword;
     $mail->CharSet = 'UTF-8';

@@ -375,7 +375,8 @@ export default function Requisicoes() {
             alert('Email enviado com sucesso.');
             closeEmailModal();
         } catch (error: unknown) {
-            alert('Erro ao enviar email.');
+            const message = error instanceof Error ? error.message : 'Falha inesperada';
+            alert(`Erro ao enviar email: ${message}`);
         } finally {
             setSendingEmailReqId(null);
         }
