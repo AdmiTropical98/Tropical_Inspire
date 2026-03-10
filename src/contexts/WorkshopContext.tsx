@@ -229,6 +229,7 @@ interface WorkshopContextType {
     assignWorkshopAsset: (assetId: string, technicianId: string | null) => Promise<void>;
 
     addFornecedor: (f: Fornecedor) => void;
+    updateFornecedor: (f: Fornecedor) => Promise<void>;
     deleteFornecedor: (id: string) => void;
     addCliente: (c: Cliente) => void;
     updateCliente: (c: Cliente) => void;
@@ -2382,6 +2383,43 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         if (!error) setFornecedores(prev => [...prev, f]);
     };
 
+    const updateFornecedor = async (f: Fornecedor) => {
+        const supplierPayload = {
+            name: f.nome,
+            nif: f.nif,
+            phone: f.contacto,
+            email: f.email,
+            address: f.morada,
+            notes: f.obs
+        };
+
+        const { error: suppliersError } = await supabase
+            .from('suppliers')
+            .update(supplierPayload)
+            .eq('id', f.id);
+
+        if (suppliersError) {
+            const { error: fornecedoresError } = await supabase.from('fornecedores').update({
+                nome: f.nome,
+                nif: f.nif,
+                contacto: f.contacto,
+                email: f.email,
+                morada: f.morada,
+                obs: f.obs,
+                foto: f.foto
+            }).eq('id', f.id);
+
+            if (fornecedoresError) return;
+        }
+
+        if (!suppliersError) {
+            setFornecedores(prev => prev.map(curr => curr.id === f.id ? f : curr));
+            return;
+        }
+
+        setFornecedores(prev => prev.map(curr => curr.id === f.id ? f : curr));
+    };
+
     const deleteFornecedor = async (id: string) => {
         const { error } = await supabase.from('fornecedores').delete().eq('id', id);
         if (!error) setFornecedores(prev => prev.filter(f => f.id !== id));
@@ -4406,6 +4444,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addManualHourRecord,
             deleteManualHourRecord,
             addFornecedor,
+            updateFornecedor,
             deleteFornecedor,
             addCliente,
             updateCliente,
