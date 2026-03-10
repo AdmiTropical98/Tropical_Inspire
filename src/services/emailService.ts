@@ -116,6 +116,9 @@ class EmailService {
                 to: payload.to,
                 subject: payload.subject,
                 message: payload.message,
+                numero: payload.numero,
+                pdfBase64: payload.pdfBase64,
+                pdfFileName: payload.pdfFileName,
             }),
         });
 

@@ -84,6 +84,19 @@ export default function Requisicoes() {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     };
 
+    const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode(...chunk);
+        }
+
+        return btoa(binary);
+    };
+
     const toDateInputValue = (dateValue?: string) => {
         if (!dateValue) return '';
         // Supabase often returns timestamp strings; date inputs require YYYY-MM-DD.
@@ -342,10 +355,22 @@ export default function Requisicoes() {
 
         setSendingEmailReqId(emailModalReqId);
         try {
+            const req = requisicoes.find(r => r.id === emailModalReqId);
+            if (!req) {
+                throw new Error('Requisição não encontrada para anexar PDF.');
+            }
+
+            const pdfDoc = await buildRequisitionPdfDocument(req);
+            const pdfArrayBuffer = pdfDoc.output('arraybuffer');
+            const pdfBase64 = arrayBufferToBase64(pdfArrayBuffer);
+
             await emailService.sendPlainEmail({
                 to: emailTo.trim(),
                 subject: emailSubject.trim(),
                 message: emailMessage,
+                numero: req.numero,
+                pdfBase64,
+                pdfFileName: `requisicao-${req.numero}.pdf`,
             });
             alert('Email enviado com sucesso.');
             closeEmailModal();
