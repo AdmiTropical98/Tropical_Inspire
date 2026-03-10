@@ -1,13 +1,15 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
+RewriteEngine On
 
-  # Never rewrite API routes to the SPA entrypoint.
-  RewriteRule ^api(/|$) - [L,NC]
+# Executar ficheiros reais primeiro (PHP, imagens, etc)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
 
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_URI} !^/api(/|$) [NC]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
-</IfModule>
+# Executar pastas reais
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Nunca redirecionar API para React
+RewriteRule ^api/ - [L]
+
+# SPA fallback para React
+RewriteRule ^ index.html [L]
