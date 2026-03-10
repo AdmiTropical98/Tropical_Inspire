@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -21,24 +25,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$autoloadCandidates = [
-    __DIR__ . '/vendor/autoload.php',
-    dirname(__DIR__) . '/vendor/autoload.php',
-    dirname(__DIR__, 2) . '/vendor/autoload.php',
-];
-
-$autoloadLoaded = false;
-foreach ($autoloadCandidates as $autoloadPath) {
-    if (is_file($autoloadPath)) {
-        require_once $autoloadPath;
-        $autoloadLoaded = true;
-        break;
-    }
+if (
+    !is_file(__DIR__ . '/PHPMailer/src/PHPMailer.php') ||
+    !is_file(__DIR__ . '/PHPMailer/src/SMTP.php') ||
+    !is_file(__DIR__ . '/PHPMailer/src/Exception.php')
+) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'PHPMailer files not found in /api/PHPMailer/src',
+    ]);
+    exit;
 }
 
-if (!$autoloadLoaded || !class_exists(PHPMailer::class)) {
+require __DIR__ . '/PHPMailer/src/PHPMailer.php';
+require __DIR__ . '/PHPMailer/src/SMTP.php';
+require __DIR__ . '/PHPMailer/src/Exception.php';
+
+if (!class_exists(PHPMailer::class)) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'PHPMailer not installed']);
+    echo json_encode(['success' => false, 'error' => 'Unable to load PHPMailer class']);
     exit;
 }
 
@@ -67,22 +73,24 @@ if ($to === '' || $subject === '' || $message === '') {
 
 $smtpHost = 'smtp.hostinger.com';
 $smtpPort = 465;
-$smtpUsername = getenv('SMTP_USER') ?: 'frota@tropicalinspire.pt';
-$smtpPassword = getenv('SMTP_PASS') ?: '';
-
-if ($smtpPassword === '') {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'SMTP_PASS is not configured']);
-    exit;
-}
+$smtpUsername = 'frota@tropicalinspire.pt';
+$smtpPassword = getenv('SMTP_PASS') ?: 'EMAIL_PASSWORD';
 
 try {
+    $smtpDebugLog = [];
     $mail = new PHPMailer(true);
+    $mail->SMTPDebug = 2;
+    $mail->Debugoutput = function ($str, $level) use (&$smtpDebugLog): void {
+        $line = "SMTP DEBUG [{$level}]: {$str}";
+        $smtpDebugLog[] = $line;
+        error_log($line);
+    };
+
     $mail->isSMTP();
     $mail->Host = $smtpHost;
     $mail->Port = $smtpPort;
     $mail->SMTPAuth = true;
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+    $mail->SMTPSecure = 'ssl';
     $mail->Username = $smtpUsername;
     $mail->Password = $smtpPassword;
     $mail->CharSet = 'UTF-8';
@@ -109,6 +117,10 @@ try {
     exit;
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $mail->ErrorInfo ?: $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'error' => isset($mail) && $mail->ErrorInfo !== '' ? $mail->ErrorInfo : $e->getMessage(),
+        'smtpDebug' => $smtpDebugLog ?? [],
+    ]);
     exit;
 }
