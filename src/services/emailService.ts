@@ -109,7 +109,7 @@ class EmailService {
     }
 
     async sendPlainEmail(payload: PlainEmailPayload) {
-        const response = await fetch('/api/send-email.php', {
+        const response = await fetch("https://algartempo-frota.com/api/send-email.php", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
