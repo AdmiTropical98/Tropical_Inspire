@@ -171,10 +171,63 @@ function sf_extract_requisition_record(array $response): ?array
     return $response['data'][0];
 }
 
+function sf_extract_missing_column_name(array $response): ?string
+{
+    $messageParts = [];
+
+    if (isset($response['data']) && is_array($response['data'])) {
+        $messageParts[] = (string)($response['data']['message'] ?? '');
+        $messageParts[] = (string)($response['data']['details'] ?? '');
+        $messageParts[] = (string)($response['data']['hint'] ?? '');
+    }
+
+    $messageParts[] = (string)($response['raw'] ?? '');
+    $combined = implode("\n", array_filter($messageParts));
+
+    if ($combined === '') {
+        return null;
+    }
+
+    if (preg_match("/Could not find the '([^']+)' column/i", $combined, $m) === 1) {
+        return trim((string)$m[1]);
+    }
+
+    if (preg_match('/column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i', $combined, $m) === 1) {
+        return trim((string)$m[1]);
+    }
+
+    return null;
+}
+
+function sf_patch_requisicoes_with_fallback(string $path, array $updates): array
+{
+    $payload = $updates;
+
+    for ($i = 0; $i < 10; $i++) {
+        $response = sf_supabase_request('PATCH', $path, $payload, ['Prefer: return=representation']);
+        if (($response['ok'] ?? false) === true) {
+            return $response;
+        }
+
+        $missingColumn = sf_extract_missing_column_name($response);
+        if ($missingColumn === null || !array_key_exists($missingColumn, $payload)) {
+            return $response;
+        }
+
+        unset($payload[$missingColumn]);
+    }
+
+    return [
+        'ok' => false,
+        'status' => 500,
+        'error' => 'Unable to patch requisicoes after schema fallback retries',
+    ];
+}
+
 function sf_update_requisition(string $identifier, array $updates): array
 {
     $byIdPath = 'requisicoes?id=eq.' . rawurlencode($identifier) . '&select=id,numero';
-    $byIdResponse = sf_supabase_request('PATCH', $byIdPath, $updates, ['Prefer: return=representation']);
+    $byIdResponse = sf_patch_requisicoes_with_fallback($byIdPath, $updates);
 
     if (($byIdResponse['ok'] ?? false) !== true) {
         return $byIdResponse;
@@ -185,7 +238,7 @@ function sf_update_requisition(string $identifier, array $updates): array
     }
 
     $byNumeroPath = 'requisicoes?numero=eq.' . rawurlencode($identifier) . '&select=id,numero';
-    return sf_supabase_request('PATCH', $byNumeroPath, $updates, ['Prefer: return=representation']);
+    return sf_patch_requisicoes_with_fallback($byNumeroPath, $updates);
 }
 
 function sf_insert_system_alert(string $message, ?string $requestId = null): void
