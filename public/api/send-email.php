@@ -105,26 +105,41 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (
-    !is_file(__DIR__ . '/PHPMailer/src/PHPMailer.php') ||
-    !is_file(__DIR__ . '/PHPMailer/src/SMTP.php') ||
-    !is_file(__DIR__ . '/PHPMailer/src/Exception.php')
-) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'PHPMailer files not found in /api/PHPMailer/src',
-    ]);
-    exit;
+// Prefer Composer autoload (typical in production), then fallback to bundled PHPMailer files.
+$autoloadCandidates = [
+    __DIR__ . '/vendor/autoload.php',
+    dirname(__DIR__) . '/vendor/autoload.php',
+    dirname(__DIR__, 2) . '/vendor/autoload.php',
+];
+
+$autoloadLoaded = false;
+foreach ($autoloadCandidates as $autoloadPath) {
+    if (is_file($autoloadPath)) {
+        require_once $autoloadPath;
+        $autoloadLoaded = true;
+        break;
+    }
 }
 
-require __DIR__ . '/PHPMailer/src/PHPMailer.php';
-require __DIR__ . '/PHPMailer/src/SMTP.php';
-require __DIR__ . '/PHPMailer/src/Exception.php';
+if (!$autoloadLoaded) {
+    if (
+        is_file(__DIR__ . '/PHPMailer/src/PHPMailer.php') &&
+        is_file(__DIR__ . '/PHPMailer/src/SMTP.php') &&
+        is_file(__DIR__ . '/PHPMailer/src/Exception.php')
+    ) {
+        require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
+        require_once __DIR__ . '/PHPMailer/src/SMTP.php';
+        require_once __DIR__ . '/PHPMailer/src/Exception.php';
+    }
+}
 
 if (!class_exists(PHPMailer::class)) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Unable to load PHPMailer class']);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Unable to load PHPMailer class',
+        'details' => 'Execute composer install em public/api (ou envie vendor/) para o servidor.',
+    ]);
     exit;
 }
 
