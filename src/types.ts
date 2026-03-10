@@ -94,6 +94,10 @@ export interface Requisicao {
         valor_total: number;
     }[]; // Multiple invoices support
     criadoPor?: string; // Name of the user who created it
+    supplier_confirmed?: boolean;
+    supplier_rejected?: boolean;
+    supplier_comment?: string;
+    supplier_response_date?: string;
 }
 
 export interface Acidente {

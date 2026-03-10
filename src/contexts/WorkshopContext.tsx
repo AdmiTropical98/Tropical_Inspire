@@ -886,7 +886,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             total_invoiced_amount: item.total_invoiced_amount,
                             approved_value: item.approved_value,
                             custo: item.custo,
-                            faturas_dados: parsedFaturas
+                            faturas_dados: parsedFaturas,
+                            supplier_confirmed: item.supplier_confirmed,
+                            supplier_rejected: item.supplier_rejected,
+                            supplier_comment: item.supplier_comment,
+                            supplier_response_date: item.supplier_response_date
                         };
                     })
                 );
@@ -2902,6 +2906,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             erp_status: r.erp_status || 'pending',
             approved_value: r.approved_value ?? null,
             criado_por: r.criadoPor,
+            supplier_confirmed: r.supplier_confirmed ?? false,
+            supplier_rejected: r.supplier_rejected ?? false,
+            supplier_comment: r.supplier_comment ?? null,
+            supplier_response_date: r.supplier_response_date ?? null,
             itens: r.itens
         });
         if (error) {
@@ -2995,6 +3003,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             erp_status: r.erp_status,
             approved_value: r.approved_value ?? null,
             criado_por: r.criadoPor,
+            supplier_confirmed: r.supplier_confirmed ?? false,
+            supplier_rejected: r.supplier_rejected ?? false,
+            supplier_comment: r.supplier_comment ?? null,
+            supplier_response_date: r.supplier_response_date ?? null,
             itens: r.itens
         }).eq('id', r.id);
         if (!error) setRequisicoes(prev => prev.map(curr => curr.id === r.id ? r : curr));

@@ -65,7 +65,12 @@ export default function Requisicoes() {
         }
     };
 
-    const buildSupplierEmailMessage = (numero: string, matricula: string, dateStr: string) => {
+    const buildSupplierEmailMessage = (requisitionId: string, numero: string, matricula: string, dateStr: string) => {
+        const encodedId = encodeURIComponent(requisitionId);
+        const confirmUrl = `https://algartempo-frota.com/api/confirmar-requisicao.php?id=${encodedId}`;
+        const rejectUrl = `https://algartempo-frota.com/api/recusar-requisicao.php?id=${encodedId}`;
+        const commentUrl = `https://algartempo-frota.com/api/comentario-requisicao.php?id=${encodedId}`;
+
         return [
             '<p>Boa tarde,</p>',
             '<p>Venho por este meio informar que foi criada uma nova requisição de serviço.</p>',
@@ -75,9 +80,36 @@ export default function Requisicoes() {
             `<li>Viatura: ${matricula || 'N/A'}</li>`,
             `<li>Data: ${formatSmallDate(dateStr)}</li>`,
             '</ul>',
+            '<p><strong>Ação do fornecedor:</strong></p>',
+            '<p style="margin: 14px 0;">',
+            `<a href="${confirmUrl}" style="background:#28a745;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;display:inline-block;margin-right:8px;">Confirmar Rececao</a>`,
+            `<a href="${rejectUrl}" style="background:#dc3545;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;display:inline-block;margin-right:8px;">Recusar Requisicao</a>`,
+            `<a href="${commentUrl}" style="background:#007bff;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Enviar Comentario</a>`,
+            '</p>',
             '<p>Se necessitar de mais informações, por favor responda a este email.</p>',
             '<p>Com os melhores cumprimentos,<br>Miguel Madeira<br>Tropical Inspire</p>'
         ].join('\n');
+    };
+
+    const getSupplierResponseBadge = (req: Requisicao) => {
+        if (req.supplier_confirmed) {
+            return {
+                label: 'Confirmado pelo fornecedor',
+                className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+            };
+        }
+
+        if (req.supplier_rejected) {
+            return {
+                label: 'Recusado pelo fornecedor',
+                className: 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+            };
+        }
+
+        return {
+            label: 'Pendente de confirmacao',
+            className: 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+        };
     };
 
     const isValidEmail = (value: string) => {
@@ -323,7 +355,7 @@ export default function Requisicoes() {
         setEmailModalReqId(req.id);
         setEmailTo(supplier.email);
         setEmailSubject(`Requisição nº ${req.numero}`);
-        setEmailMessage(buildSupplierEmailMessage(req.numero, vehicle?.matricula || '', req.data));
+        setEmailMessage(buildSupplierEmailMessage(req.id, req.numero, vehicle?.matricula || '', req.data));
         setShowEmailPreview(false);
         setShowEmailModal(true);
     };
@@ -1290,6 +1322,7 @@ export default function Requisicoes() {
                                 }, 0);
                                 const erpStatus = req.erp_status || getErpStatus(req, totalInvoicedAmount);
                                 const erpBadge = getErpBadge(erpStatus);
+                                const supplierBadge = getSupplierResponseBadge(req);
 
                                 return (
                                     <div key={req.id} className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/70 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-visible">
@@ -1358,7 +1391,23 @@ export default function Requisicoes() {
                                                         <TrendingUp className="w-4 h-4" />
                                                         <span className="font-semibold">{erpBadge.label}</span>
                                                     </span>
+                                                    <span className={`h-9 flex items-center gap-2 px-3 py-1.5 rounded-lg border ${supplierBadge.className}`}>
+                                                        <ClipboardCheck className="w-4 h-4" />
+                                                        <span className="font-semibold">{supplierBadge.label}</span>
+                                                    </span>
                                                 </div>
+
+                                                {req.supplier_response_date && (
+                                                    <p className="text-xs text-slate-400">
+                                                        Resposta do fornecedor em {formatSmallDate(req.supplier_response_date)}
+                                                    </p>
+                                                )}
+
+                                                {req.supplier_comment && (
+                                                    <p className="text-sm text-slate-300 bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-2">
+                                                        Comentario fornecedor: {req.supplier_comment}
+                                                    </p>
+                                                )}
 
                                                 <div className="mt-2 bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4">
                                                     <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
