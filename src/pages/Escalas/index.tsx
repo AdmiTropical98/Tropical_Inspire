@@ -36,6 +36,7 @@ import { usePermissions } from '../../contexts/PermissionsContext';
 import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, generateAutoDispatchTrips, type GroupedTrip } from './EscalaAutomation';
+import { emailService } from '../../services/emailService';
 
 interface NewServiceState {
     hora: string;
@@ -103,6 +104,7 @@ export default function Escalas() {
     const { hasAccess } = usePermissions();
 
     const { t } = useTranslation();
+    const autoEmailEnabled = String(import.meta.env.VITE_EMAIL_AUTO_SEND ?? 'false') === 'true';
 
 
     // ... (lines skipped)
@@ -173,6 +175,7 @@ export default function Escalas() {
     const [isAutoLoading, setIsAutoLoading] = useState(false);
     const [automationTrips, setAutomationTrips] = useState<GroupedTrip[]>([]);
     const [automationMode, setAutomationMode] = useState<'import' | 'auto-dispatch'>('import');
+    const [sendingScheduleServiceId, setSendingScheduleServiceId] = useState<string | null>(null);
     const [autoSettings, setAutoSettings] = useState({
         albufeiraUrl: localStorage.getItem('auto_sheet_albufeira') || '',
         quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || ''
@@ -905,6 +908,19 @@ export default function Escalas() {
                 .map(s => notifyUrgentAssignment(s, selectedMotoristaForAssign))
         );
 
+        if (autoEmailEnabled) {
+            const driver = motoristas.find(m => m.id === selectedMotoristaForAssign);
+            if (driver?.email) {
+                await Promise.all(
+                    servicesToUpdate.map(service =>
+                        emailService.sendDriverScheduleEmail(
+                            emailService.mapDriverSchedulePayload(service, driver.nome, driver.email!, selectedDate)
+                        )
+                    )
+                );
+            }
+        }
+
         setSelectedPendentes([]);
         setSelectedMotoristaForAssign('');
     };
@@ -953,6 +969,32 @@ export default function Escalas() {
                 status: 'pending',
                 timestamp: new Date().toISOString()
             });
+        }
+    };
+
+    const handleSendScheduleEmail = async (service: Servico) => {
+        if (!service.motoristaId) {
+            alert('Atribua um motorista antes de enviar a escala por email.');
+            return;
+        }
+
+        const driver = motoristas.find(m => m.id === service.motoristaId);
+        if (!driver?.email) {
+            alert('Motorista sem email configurado.');
+            return;
+        }
+
+        setSendingScheduleServiceId(service.id);
+        try {
+            await emailService.sendDriverScheduleEmail(
+                emailService.mapDriverSchedulePayload(service, driver.nome, driver.email, selectedDate)
+            );
+            alert('Email enviado com sucesso.');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Falha inesperada';
+            alert(`Erro ao enviar email: ${message}`);
+        } finally {
+            setSendingScheduleServiceId(null);
         }
     };
 
@@ -1431,6 +1473,15 @@ export default function Escalas() {
                                                     {/* Ações */}
                                                     <div className="flex justify-end items-center gap-2" onClick={e => e.stopPropagation()}>
                                                         <button
+                                                            onClick={() => handleSendScheduleEmail(service)}
+                                                            disabled={sendingScheduleServiceId === service.id}
+                                                            className="px-2 py-1.5 text-slate-500 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors disabled:opacity-60 flex items-center gap-1"
+                                                            title="Enviar Escala"
+                                                        >
+                                                            <Send className="w-4 h-4" />
+                                                            <span className="text-[11px] font-semibold">Enviar</span>
+                                                        </button>
+                                                        <button
                                                             onClick={(e) => handleDeleteService(service.id, e)}
                                                             className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                                             title="Eliminar"
@@ -1776,6 +1827,14 @@ export default function Escalas() {
                                                                             </div>
                                                                             <div className="flex gap-2">
                                                                                 <button
+                                                                                    onClick={() => handleSendScheduleEmail(service)}
+                                                                                    disabled={sendingScheduleServiceId === service.id}
+                                                                                    className="text-slate-600 hover:text-cyan-400 p-1 disabled:opacity-60"
+                                                                                    title="Enviar Escala"
+                                                                                >
+                                                                                    <Send className="w-3 h-3" />
+                                                                                </button>
+                                                                                <button
                                                                                     onClick={(e) => handleDeleteService(service.id, e)}
                                                                                     className="text-slate-600 hover:text-red-400 p-1"
                                                                                     title="Eliminar"
@@ -1888,6 +1947,14 @@ export default function Escalas() {
                                                                                     title="Eliminar"
                                                                                 >
                                                                                     <Trash2 className="w-3 h-3" />
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => handleSendScheduleEmail(service)}
+                                                                                    disabled={sendingScheduleServiceId === service.id}
+                                                                                    className="text-slate-600 hover:text-cyan-400 p-1 disabled:opacity-60"
+                                                                                    title="Enviar Escala"
+                                                                                >
+                                                                                    <Send className="w-3 h-3" />
                                                                                 </button>
                                                                             </div>
 

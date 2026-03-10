@@ -1,11 +1,12 @@
 import { useState, Fragment } from 'react';
-import { Plus, Search, Car, Printer, Trash2, Download, X, Edit, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'; // Added ChevronDown, ChevronUp, RefreshCw
+import { Plus, Search, Car, Printer, Trash2, Download, X, Edit, ChevronDown, ChevronUp, RefreshCw, Mail } from 'lucide-react'; // Added ChevronDown, ChevronUp, RefreshCw
 import type { Fatura } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import VehicleSelectionModal from './VehicleSelectionModal';
+import { emailService } from '../../services/emailService';
 
 interface AlugueresProps {
     invoices: Fatura[];
@@ -145,6 +146,26 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
     // Grouping State
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
     const [isSyncing, setIsSyncing] = useState<string | null>(null);
+    const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
+
+    const handleSendInvoiceEmail = async (invoice: Fatura) => {
+        const clientEmail = invoice.cliente?.email || clientes.find(c => c.id === invoice.clienteId)?.email;
+        if (!clientEmail) {
+            alert('Cliente sem email configurado.');
+            return;
+        }
+
+        setSendingInvoiceId(invoice.id);
+        try {
+            await emailService.sendInvoiceEmail(emailService.mapInvoicePayload(invoice, clientEmail));
+            alert('Email enviado com sucesso.');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Falha inesperada';
+            alert(`Erro ao enviar email: ${message}`);
+        } finally {
+            setSendingInvoiceId(null);
+        }
+    };
 
     const handleSyncGPS = async (lineId: string) => {
         setIsSyncing(lineId);
@@ -1887,6 +1908,14 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                                                     className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
                                                                                 >
                                                                                     <Printer className="w-4 h-4" />
+                                                                                </button>
+                                                                                <button
+                                                                                    title="Enviar Fatura"
+                                                                                    onClick={() => handleSendInvoiceEmail(inv)}
+                                                                                    disabled={sendingInvoiceId === inv.id}
+                                                                                    className="p-2 bg-slate-800 hover:bg-cyan-900/30 rounded-lg text-slate-400 hover:text-cyan-400 transition-colors disabled:opacity-60"
+                                                                                >
+                                                                                    <Mail className="w-4 h-4" />
                                                                                 </button>
                                                                                 <button
                                                                                     title="Apagar"

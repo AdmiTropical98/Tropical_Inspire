@@ -37,6 +37,10 @@ export default defineConfig({
   base: '/',
   server: {
     proxy: {
+      '/api/email': {
+        target: 'http://localhost:4001',
+        changeOrigin: true,
+      },
       '/api/cartrack': {
         target: 'https://fleetapi-pt.cartrack.com/rest',
         changeOrigin: true,

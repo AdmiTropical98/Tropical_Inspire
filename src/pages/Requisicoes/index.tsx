@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Plus, Search, FileText, Trash2, Printer, Package, CheckCircle, RotateCcw,
     LayoutTemplate, List, PlusCircle, TrendingUp, Clock, AlertCircle, Calendar,
-    ArrowRight, Box, User, Building, Truck, X, Pencil, Settings2
+    ArrowRight, Box, User, Building, Truck, X, Pencil, Settings2, Mail
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +15,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageHeader from '../../components/common/PageHeader';
 import { ClipboardCheck } from 'lucide-react';
+import { emailService } from '../../services/emailService';
 
 export default function Requisicoes() {
     const navigate = useNavigate();
@@ -23,10 +24,12 @@ export default function Requisicoes() {
     const { currentUser, userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
+    const autoEmailEnabled = String(import.meta.env.VITE_EMAIL_AUTO_SEND ?? 'false') === 'true';
     const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [isSyncingStock, setIsSyncingStock] = useState(false);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [sendingEmailReqId, setSendingEmailReqId] = useState<string | null>(null);
 
     // Edit Request State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -262,6 +265,28 @@ export default function Requisicoes() {
         setOpenMenuId(null);
     };
 
+    const handleSendSupplierEmail = async (req: Requisicao) => {
+        const supplier = fornecedores.find(f => f.id === req.fornecedorId);
+        if (!supplier?.email) {
+            alert('Fornecedor sem email configurado.');
+            return;
+        }
+
+        const vehicle = viaturas.find(v => v.id === req.viaturaId);
+        setSendingEmailReqId(req.id);
+        try {
+            await emailService.sendSupplierRequestEmail(
+                emailService.mapSupplierRequestPayload(req, supplier.email, vehicle?.matricula)
+            );
+            alert('Email enviado com sucesso.');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Falha inesperada';
+            alert(`Erro ao enviar email: ${message}`);
+        } finally {
+            setSendingEmailReqId(null);
+        }
+    };
+
     const cancelEdit = () => {
         setEditingId(null);
         setData(new Date().toISOString().split('T')[0]);
@@ -408,6 +433,17 @@ export default function Requisicoes() {
             };
 
             addRequisicao(newReq);
+
+            if (autoEmailEnabled) {
+                const supplier = fornecedores.find(f => f.id === newReq.fornecedorId);
+                if (supplier?.email) {
+                    const vehicle = viaturas.find(v => v.id === newReq.viaturaId);
+                    void emailService.sendSupplierRequestEmail(
+                        emailService.mapSupplierRequestPayload(newReq, supplier.email, vehicle?.matricula)
+                    );
+                }
+            }
+
             setActiveTab('list');
             setListFilter('pendentes');
         }
@@ -1294,6 +1330,16 @@ export default function Requisicoes() {
                                                         title="Imprimir PDF"
                                                     >
                                                         <Printer className="w-5 h-5" />
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => handleSendSupplierEmail(req)}
+                                                        disabled={sendingEmailReqId === req.id}
+                                                        className="flex items-center gap-2 px-3 py-3 text-cyan-300 bg-cyan-900/20 hover:bg-cyan-800/40 hover:text-white border border-cyan-500/20 rounded-xl transition-colors disabled:opacity-60"
+                                                        title="Enviar por Email"
+                                                    >
+                                                        <Mail className="w-5 h-5" />
+                                                        <span className="text-sm font-medium">Enviar Email</span>
                                                     </button>
 
                                                     {hasAccess(userRole, 'requisicoes_edit') && (

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus, Search, FileText, Download, Eye, Trash2, Pencil } from 'lucide-react';
+import { Plus, Search, FileText, Download, Eye, Trash2, Pencil, Mail } from 'lucide-react';
 import type { Fatura } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 
 import { useWorkshop } from '../../contexts/WorkshopContext';
+import { emailService } from '../../services/emailService';
 
 interface FaturasProps {
     invoices: Fatura[];
@@ -18,6 +19,26 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
     const [searchTerm, setSearchTerm] = useState('');
     const { clientes } = useWorkshop();
     const { t } = useTranslation();
+    const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
+
+    const handleSendInvoiceEmail = async (invoice: Fatura) => {
+        const clientEmail = invoice.cliente?.email || clientes.find(c => c.id === invoice.clienteId)?.email;
+        if (!clientEmail) {
+            alert('Cliente sem email configurado.');
+            return;
+        }
+
+        setSendingInvoiceId(invoice.id);
+        try {
+            await emailService.sendInvoiceEmail(emailService.mapInvoicePayload(invoice, clientEmail));
+            alert('Email enviado com sucesso.');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Falha inesperada';
+            alert(`Erro ao enviar email: ${message}`);
+        } finally {
+            setSendingInvoiceId(null);
+        }
+    };
 
     const getStatusColor = (status: Fatura['status']) => {
         switch (status) {
@@ -121,6 +142,15 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
                                             className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
                                         >
                                             <Download className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleSendInvoiceEmail(invoice)}
+                                            disabled={sendingInvoiceId === invoice.id}
+                                            title="Enviar Fatura"
+                                            className="px-2.5 py-2 hover:bg-cyan-500/10 rounded-lg text-slate-400 hover:text-cyan-300 transition-colors disabled:opacity-60 flex items-center gap-1"
+                                        >
+                                            <Mail className="w-4 h-4" />
+                                            <span className="text-xs font-medium">Enviar</span>
                                         </button>
                                         <button
                                             onClick={() => onDelete(invoice.id)}
