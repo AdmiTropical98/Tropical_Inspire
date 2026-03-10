@@ -199,6 +199,42 @@ function sf_extract_missing_column_name(array $response): ?string
     return null;
 }
 
+function sf_format_response_error_details(array $response): string
+{
+    $status = (int)($response['status'] ?? 0);
+    $parts = [];
+
+    if ($status > 0) {
+        $parts[] = 'HTTP ' . $status;
+    }
+
+    if (isset($response['error']) && is_string($response['error']) && trim($response['error']) !== '') {
+        $parts[] = trim($response['error']);
+    }
+
+    if (isset($response['data']) && is_array($response['data'])) {
+        $msg = trim((string)($response['data']['message'] ?? ''));
+        $details = trim((string)($response['data']['details'] ?? ''));
+        $hint = trim((string)($response['data']['hint'] ?? ''));
+
+        if ($msg !== '') {
+            $parts[] = $msg;
+        }
+        if ($details !== '') {
+            $parts[] = $details;
+        }
+        if ($hint !== '') {
+            $parts[] = 'Hint: ' . $hint;
+        }
+    }
+
+    if (count($parts) === 0) {
+        return 'Unknown backend error';
+    }
+
+    return implode(' | ', $parts);
+}
+
 function sf_patch_requisicoes_with_fallback(string $path, array $updates): array
 {
     $payload = $updates;

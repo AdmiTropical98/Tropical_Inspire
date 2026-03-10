@@ -27,8 +27,10 @@ $update = sf_update_requisition($identifier, [
 ]);
 
 if (($update['ok'] ?? false) !== true) {
+    $details = sf_format_response_error_details($update);
+    error_log('salvar-comentario-requisicao failed: ' . $details);
     http_response_code(500);
-    sf_render_html_page('Falha ao guardar', 'Nao foi possivel guardar o comentario.', '#dc3545');
+    sf_render_html_page('Falha ao guardar', 'Nao foi possivel guardar o comentario.' . "\n" . $details, '#dc3545');
 }
 
 $record = sf_extract_requisition_record($update);
