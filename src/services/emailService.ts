@@ -27,6 +27,9 @@ type PlainEmailPayload = {
     to: string;
     subject: string;
     message: string;
+    numero?: string;
+    pdfBase64?: string;
+    pdfFileName?: string;
 };
 
 type EmailType = 'supplier_request' | 'invoice' | 'driver_schedule';

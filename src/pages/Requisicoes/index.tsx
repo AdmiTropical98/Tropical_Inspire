@@ -85,6 +85,19 @@ export default function Requisicoes() {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     };
 
+    const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode(...chunk);
+        }
+
+        return btoa(binary);
+    };
+
     const toDateInputValue = (dateValue?: string) => {
         if (!dateValue) return '';
         // Supabase often returns timestamp strings; date inputs require YYYY-MM-DD.
@@ -343,10 +356,22 @@ export default function Requisicoes() {
 
         setSendingEmailReqId(emailModalReqId);
         try {
+            const req = requisicoes.find(r => r.id === emailModalReqId);
+            if (!req) {
+                throw new Error('Requisição não encontrada para anexar PDF.');
+            }
+
+            const pdfDoc = await buildRequisitionPdfDocument(req);
+            const pdfArrayBuffer = pdfDoc.output('arraybuffer');
+            const pdfBase64 = arrayBufferToBase64(pdfArrayBuffer);
+
             await emailService.sendPlainEmail({
                 to: emailTo.trim(),
                 subject: emailSubject.trim(),
                 message: emailMessage,
+                numero: req.numero,
+                pdfBase64,
+                pdfFileName: `requisicao-${req.numero}.pdf`,
             });
             alert('Email enviado com sucesso.');
             closeEmailModal();
@@ -529,7 +554,7 @@ export default function Requisicoes() {
         setItems([]);
     };
 
-    const generatePDF = async (req: Requisicao) => {
+    const buildRequisitionPdfDocument = async (req: Requisicao) => {
 
         console.log("REQ COMPLETO PARA PDF:", req);
         console.log("FATURAS_DADOS:", req.faturas_dados);
@@ -940,10 +965,20 @@ export default function Requisicoes() {
 
             doc.line(130, signY, pageWidth - 10, signY);
             doc.text('A Gerência', 130, signY + 5);
-            doc.save(`Requisicao_${req.numero}.pdf`);
+
+            return doc;
 
         } catch (error) {
             console.error('Erro ao gerar PDF:', error);
+            throw error;
+        }
+    };
+
+    const generatePDF = async (req: Requisicao) => {
+        try {
+            const doc = await buildRequisitionPdfDocument(req);
+            doc.save(`Requisicao_${req.numero}.pdf`);
+        } catch (error) {
             alert('Erro ao gerar PDF.');
         }
     };
@@ -1997,6 +2032,10 @@ export default function Requisicoes() {
                                                 rows={12}
                                                 className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all font-mono text-sm"
                                             />
+                                        </div>
+
+                                        <div className="rounded-xl border border-cyan-500/20 bg-cyan-900/10 px-4 py-3 text-sm text-cyan-200">
+                                            Um PDF da requisição será anexado automaticamente ao email.
                                         </div>
                                     </div>
                                 ) : (

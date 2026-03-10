@@ -24,9 +24,17 @@ export class EmailService {
         return this.transporter.verify();
     }
 
-    async sendPlainEmail({ to, subject, message }) {
+    async sendPlainEmail({ to, subject, message, numero, pdfBase64, pdfFileName }) {
         console.log('Sending email to:', to);
         console.log('Subject:', subject);
+
+        const attachments = [];
+        if (pdfBase64) {
+            attachments.push({
+                filename: pdfFileName || `requisicao-${numero || 'anexo'}.pdf`,
+                content: Buffer.from(pdfBase64, 'base64'),
+            });
+        }
 
         try {
             await this.transporter.verify();
@@ -42,6 +50,7 @@ export class EmailService {
                 to,
                 subject,
                 html: message,
+                attachments,
             });
             console.log('Email sent successfully');
             return result;

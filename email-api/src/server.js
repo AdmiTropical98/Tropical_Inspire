@@ -18,13 +18,13 @@ const emailService = new EmailService();
 
 const sendPlainEmail = async (req, res) => {
     try {
-        const { to, subject, message } = req.body || {};
+        const { to, subject, message, numero, pdfBase64, pdfFileName } = req.body || {};
 
         if (!to || !subject || !message) {
             return res.status(400).json({ error: 'Missing to, subject or message' });
         }
 
-        await emailService.sendPlainEmail({ to, subject, message });
+        await emailService.sendPlainEmail({ to, subject, message, numero, pdfBase64, pdfFileName });
         return res.json({ ok: true, message: 'Email sent' });
     } catch (error) {
         return res.status(500).json({ error: 'Failed to send email', details: error.message });
