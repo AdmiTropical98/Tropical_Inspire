@@ -1,9 +1,50 @@
-const CARTRACK_USER = 'ALGA00012';
-const CARTRACK_PASS = 'd395112ab45cf4a2cfa734a478e699b6964b4281fa47aebc069ce0793cfd1b45';
-
 const BASE_URL = import.meta.env.DEV
     ? '/api/cartrack'
     : '/proxy.php?endpoint=';
+
+const CARTRACK_USER = import.meta.env.VITE_CARTRACK_USER;
+const CARTRACK_PASS = import.meta.env.VITE_CARTRACK_PASS;
+const USE_PROXY_AUTH = String(import.meta.env.VITE_CARTRACK_USE_PROXY_AUTH ?? 'true') !== 'false';
+
+const CACHE_TTL = {
+    vehicles: 30_000,
+    geofences: 5 * 60_000,
+    drivers: 10 * 60_000,
+    geofenceVisits: 60_000,
+    routeHistory: 60_000,
+};
+
+const MAX_PAGES = 10;
+const VEHICLES_MIN_REQUEST_INTERVAL_MS = 30_000;
+
+type CacheEntry<T> = {
+    value: T;
+    expiresAt: number;
+};
+
+const cacheStore = new Map<string, CacheEntry<unknown>>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
+let preferredVehicleEndpoint: '/vehicles/status' | '/vehicles' = '/vehicles/status';
+let lastVehiclesFetchAt = 0;
+
+type JsonObject = Record<string, unknown>;
+
+interface CartrackListResponse<T> {
+    data?: T[];
+    rows?: T[];
+    geofences?: T[];
+    drivers?: T[];
+    personnel?: T[];
+    identification_tags?: T[];
+    visits?: T[];
+    positions?: T[];
+    meta?: {
+        pagination?: {
+            total_pages?: number;
+        };
+    };
+}
 
 export interface CartrackGeofence {
     id: string;
@@ -63,6 +104,94 @@ export interface CartrackGeofenceVisit {
     exitTime: string | null;
     durationSeconds: number | null;
 }
+
+const getAuthHeaders = (): HeadersInit => {
+    // Preferred mode: credentials stay in backend/proxy/edge function.
+    if (USE_PROXY_AUTH) {
+        return {};
+    }
+
+    if (CARTRACK_USER && CARTRACK_PASS) {
+        const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+        return { Authorization: `Basic ${auth}` };
+    }
+
+    return {};
+};
+
+const buildCartrackUrl = (endpoint: string, queryParams?: Record<string, string | number | undefined>): string => {
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    let url = `${BASE_URL}${normalizedEndpoint}`;
+
+    if (queryParams) {
+        const params = new URLSearchParams();
+        Object.entries(queryParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                params.append(key, String(value));
+            }
+        });
+
+        const queryString = params.toString();
+        if (queryString) {
+            url += `${url.includes('?') ? '&' : '?'}${queryString}`;
+        }
+    }
+
+    return url;
+};
+
+const createCartrackRequest = async <T extends JsonObject | CartrackListResponse<unknown>>(
+    endpoint: string,
+    queryParams?: Record<string, string | number | undefined>,
+): Promise<T> => {
+    const url = buildCartrackUrl(endpoint, queryParams);
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Cartrack request failed (${response.status}) for ${endpoint}`);
+    }
+
+    return response.json() as Promise<T>;
+};
+
+const getCache = <T>(key: string): T | null => {
+    const entry = cacheStore.get(key) as CacheEntry<T> | undefined;
+    if (!entry) return null;
+    if (entry.expiresAt <= Date.now()) {
+        cacheStore.delete(key);
+        return null;
+    }
+    return entry.value;
+};
+
+const setCache = <T>(key: string, value: T, ttlMs: number): T => {
+    cacheStore.set(key, {
+        value,
+        expiresAt: Date.now() + ttlMs,
+    });
+    return value;
+};
+
+const getListItems = <T>(result: CartrackListResponse<T> | T[] | unknown): T[] => {
+    if (Array.isArray(result)) return result;
+    if (!result || typeof result !== 'object') return [];
+
+    const typed = result as CartrackListResponse<T>;
+    return typed.data || typed.rows || typed.geofences || typed.drivers || typed.personnel || typed.identification_tags || typed.visits || typed.positions || [];
+};
+
+const dedupeByTagId = (items: any[]): any[] => {
+    const seen = new Set<string>();
+    return items.filter(item => {
+        const key = String(item.tag_id || item.identification_tag_id || item.id || Math.random());
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+};
 
 /**
  * Returns an array of possible variants for a Tag ID to ensure high matching recall
@@ -203,37 +332,24 @@ export let debugLastResponse: any = null;
 export const CartrackService = {
     getGeofences: async (): Promise<CartrackGeofence[]> => {
         try {
-            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+            const cached = getCache<CartrackGeofence[]>('cartrack:geofences');
+            if (cached) return cached;
+
             let allGeofences: any[] = [];
-            let page = 1;
-            let hasMore = true;
-
-            while (hasMore) {
-                let url = `${BASE_URL}/geofences`;
-                const separator = url.includes('?') ? '&' : '?';
-                url += `${separator}per_page=100&page=${page}`;
-
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Basic ${auth}` },
+            for (let page = 1; page <= MAX_PAGES; page++) {
+                const result = await createCartrackRequest<CartrackListResponse<any>>('/geofences', {
+                    per_page: 100,
+                    page,
                 });
 
-                if (!response.ok) throw new Error('Falha ao obter geofences da Cartrack');
+                const items = getListItems(result);
+                if (items.length === 0) break;
 
-                const result = await response.json();
-                const items = result.data || result.rows || result.geofences || [];
-
-                if (items.length === 0) {
-                    hasMore = false;
-                } else {
-                    allGeofences = [...allGeofences, ...items];
-                    page++;
-                    // Safety limit to prevent infinite loops (e.g. 50 pages / 5000 geofences)
-                    if (page > 50) hasMore = false;
-                }
+                allGeofences = [...allGeofences, ...items];
+                if (items.length < 100) break;
             }
 
-            return allGeofences.map((item: any) => ({
+            const mapped = allGeofences.map((item: any) => ({
                 id: String(item.id),
                 name: item.name,
                 radius: item.radius,
@@ -243,6 +359,8 @@ export const CartrackService = {
                 points: item.polygon_wkt ? parseWKT(item.polygon_wkt) : undefined,
                 group_name: item.group_name || 'Geral' // Expose Group Name
             }));
+
+            return setCache('cartrack:geofences', mapped, CACHE_TTL.geofences);
         } catch (error) {
             console.error('Failed to fetch geofences:', error);
             throw error;
@@ -251,60 +369,63 @@ export const CartrackService = {
 
     getVehicles: async (): Promise<CartrackVehicle[]> => {
         try {
-            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            // FIXED: Prioritize /vehicles/status which contains 'location' object with coords
-            const endpoints = ['/vehicles/status', '/vehicles', '/vehicles/activity', '/stats'];
+            const cached = getCache<CartrackVehicle[]>('cartrack:vehicles');
+            if (cached) return cached;
+
+            const elapsedSinceLastRequest = Date.now() - lastVehiclesFetchAt;
+            if (elapsedSinceLastRequest < VEHICLES_MIN_REQUEST_INTERVAL_MS) {
+                const inFlight = inFlightRequests.get('cartrack:vehicles');
+                if (inFlight) return inFlight as Promise<CartrackVehicle[]>;
+            }
+
+            const endpoints: Array<'/vehicles/status' | '/vehicles'> = preferredVehicleEndpoint === '/vehicles/status'
+                ? ['/vehicles/status', '/vehicles']
+                : ['/vehicles', '/vehicles/status'];
+
             let data = null;
 
             console.log('Fetching Cartrack Vehicles...');
 
-            for (const ep of endpoints) {
-                try {
-                    // Force higher limit to get all vehicles
-                    const separator = ep.includes('?') ? '&' : '?';
-                    const url = `${BASE_URL}${ep}${separator}per_page=100`;
-                    console.log(`Trying endpoint: ${url}`);
+            const fetchPromise = (async () => {
+                for (const ep of endpoints) {
+                    try {
+                        const result = await createCartrackRequest<CartrackListResponse<any>>(ep, { per_page: 100 });
+                        data = result;
+                        debugLastResponse = { endpoint: ep, status: 200, data };
 
-                    const response = await fetch(url, {
-                        headers: { 'Authorization': `Basic ${auth}` }
-                    });
+                        const items = getListItems<any>(result);
+                        if (items.length === 0) continue;
 
-                    if (response.ok) {
-                        data = await response.json();
-                        debugLastResponse = { endpoint: ep, status: response.status, data: data };
-                        // Validate if this endpoint actually returned useful data (e.g. has list)
-                        if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
-                            // Check if it has location data (heuristic)
-                            const firstItem = data.data[0];
-                            if (firstItem.location || firstItem.last_pos || firstItem.latitude) {
-                                console.log(`Endpoint ${ep} returned valid vehicle data with location candidates.`);
-                                break;
-                            } else {
-                                console.log(`Endpoint ${ep} returned data but missing location fields, trying next...`);
-                                // Don't break, try to find a better endpoint unless this is the only one
-                                // Specifically, /vehicles has no location, so we want to skip it if possible if /vehicles/status fails
-                            }
+                        const firstItem = items[0];
+                        if (firstItem.location || firstItem.last_pos || firstItem.latitude) {
+                            preferredVehicleEndpoint = ep;
+                            break;
                         }
-                    } else {
-                        debugLastResponse = { endpoint: ep, status: response.status, error: 'Not OK' };
-                        console.warn(`Endpoint ${ep} failed: ${response.status}`);
+                    } catch (e) {
+                        debugLastResponse = { endpoint: ep, error: String(e) };
+                        console.warn(`Error fetching ${ep}`, e);
                     }
-                } catch (e) {
-                    console.warn(`Error fetching ${ep}`, e);
                 }
-            }
 
-            if (!data) {
-                console.warn('Cartrack vehicles endpoint returned no data.');
-                return [];
-            }
+                if (!data) {
+                    console.warn('Cartrack vehicles endpoint returned no data.');
+                    return [];
+                }
 
-            const mapped = mapCartrackDataToVehicles(data);
-            console.log(`Mapped ${mapped.length} vehicles.`);
+                const mapped = mapCartrackDataToVehicles(data);
+                lastVehiclesFetchAt = Date.now();
+                console.log(`Mapped ${mapped.length} vehicles.`);
 
+                return setCache('cartrack:vehicles', mapped, CACHE_TTL.vehicles);
+            })();
 
-            return mapped;
+            inFlightRequests.set('cartrack:vehicles', fetchPromise);
+            const result = await fetchPromise;
+            inFlightRequests.delete('cartrack:vehicles');
+
+            return result;
         } catch (error) {
+            inFlightRequests.delete('cartrack:vehicles');
             console.warn('Failed to fetch vehicles:', error);
 
             // DEMO MODE FALLBACK ON ERROR (401/Network)
@@ -331,7 +452,8 @@ export const CartrackService = {
      */
     getDrivers: async (): Promise<CartrackDriver[]> => {
         try {
-            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+            const cached = getCache<CartrackDriver[]>('cartrack:drivers');
+            if (cached) return cached;
 
             // 1. Known Tags Safety List (User Provided) - 100% official fallback
             const knownIds = [
@@ -374,55 +496,52 @@ export const CartrackService = {
                 tag_id: id
             }));
 
-            // 2. Fetch Drivers (Safety limit: 50 pages)
-            let page = 1;
+            // 2. Fetch Drivers (Safety limit: 10 pages)
             let totalPages = 1;
-            do {
+            for (let page = 1; page <= MAX_PAGES && page <= totalPages; page++) {
                 try {
-                    const response = await fetch(`${BASE_URL}/drivers?per_page=100&page=${page}`, {
-                        method: 'GET', headers: { 'Authorization': `Basic ${auth}` },
+                    const result = await createCartrackRequest<CartrackListResponse<any>>('/drivers', {
+                        per_page: 100,
+                        page,
                     });
-                    if (response.ok) {
-                        const result = await response.json();
-                        const items = result.data || result.rows || result.drivers || result || [];
-                        if (Array.isArray(items)) {
-                            allItems = [...allItems, ...items];
-                            if (result.meta?.pagination?.total_pages) totalPages = result.meta.pagination.total_pages;
-                            else if (items.length === 100) totalPages = page + 1;
-                        }
-                    } else break;
-                } catch (e) { break; }
-                page++;
-            } while (page <= totalPages && page < 50);
+
+                    const items = getListItems(result);
+                    if (!Array.isArray(items) || items.length === 0) break;
+
+                    allItems = [...allItems, ...items];
+                    const apiTotalPages = result.meta?.pagination?.total_pages;
+                    if (apiTotalPages) {
+                        totalPages = Math.min(apiTotalPages, MAX_PAGES);
+                    } else if (items.length < 100) {
+                        break;
+                    }
+                } catch {
+                    break;
+                }
+            }
 
             // 3. Try Personnel
             try {
-                const pRes = await fetch(`${BASE_URL}/personnel?per_page=100`, { headers: { 'Authorization': `Basic ${auth}` } });
-                if (pRes.ok) {
-                    const pData = await pRes.json();
-                    const pItems = pData.data || pData.rows || pData.personnel || pData || [];
-                    if (Array.isArray(pItems)) allItems = [...allItems, ...pItems];
-                }
+                const pData = await createCartrackRequest<CartrackListResponse<any>>('/personnel', { per_page: 100 });
+                const pItems = getListItems(pData);
+                if (Array.isArray(pItems)) allItems = [...allItems, ...pItems];
             } catch { }
 
             // 4. Try Identification Tags directly
             try {
-                const tRes = await fetch(`${BASE_URL}/identification_tags?per_page=100`, { headers: { 'Authorization': `Basic ${auth}` } });
-                if (tRes.ok) {
-                    const tData = await tRes.json();
-                    const tItems = tData.data || tData.rows || tData.identification_tags || tData || [];
-                    if (Array.isArray(tItems)) {
-                        tItems.forEach((tg: any) => {
-                            const tid = String(tg.tag_id || tg.id || (typeof tg === 'string' ? tg : ''));
-                            if (tid && !allItems.some(ex => (ex.tag_id || ex.identification_tag_id) === tid)) {
-                                allItems.push({ id: `tag-${tid}`, full_name: `Tag Oficial (${tid.slice(-4)})`, tag_id: tid });
-                            }
-                        });
-                    }
+                const tData = await createCartrackRequest<CartrackListResponse<any>>('/identification_tags', { per_page: 100 });
+                const tItems = getListItems(tData);
+                if (Array.isArray(tItems)) {
+                    tItems.forEach((tg: any) => {
+                        const tid = String(tg.tag_id || tg.id || (typeof tg === 'string' ? tg : ''));
+                        if (tid && !allItems.some(ex => (ex.tag_id || ex.identification_tag_id) === tid)) {
+                            allItems.push({ id: `tag-${tid}`, full_name: `Tag Oficial (${tid.slice(-4)})`, tag_id: tid });
+                        }
+                    });
                 }
             } catch { }
 
-            return allItems.map((item: any) => {
+            const mapped = dedupeByTagId(allItems).map((item: any) => {
                 const rawTag = item.tag_id ||
                     item.identification_tag_id ||
                     item.identification_tag?.tag_id ||
@@ -441,6 +560,8 @@ export const CartrackService = {
                     customFields: item.custom_fields
                 };
             }).filter(d => d.fullName !== 'Motorista S/ Nome' || d.tagId);
+
+            return setCache('cartrack:drivers', mapped, CACHE_TTL.drivers);
         } catch (error) {
             console.warn('Failed to fetch drivers (returning empty):', error);
             return [];
@@ -449,31 +570,23 @@ export const CartrackService = {
 
     getGeofenceVisits: async (startDate: string, endDate: string, vehicleId?: string): Promise<CartrackGeofenceVisit[]> => {
         try {
-            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
+            const cacheKey = `cartrack:geofence-visits:${vehicleId || 'all'}:${startDate}:${endDate}`;
+            const cached = getCache<CartrackGeofenceVisit[]>(cacheKey);
+            if (cached) return cached;
+
             // Note: Cartrack API param names might vary. Common possibilities: start_date, from, since.
             // Using standard guess based on previous logic attempt or reverting to 'last_position' if this is a stateless fetch.
             // If the user context was sending specific dates, let's pass them.
 
-            let url = `${BASE_URL}/geofence_visits?per_page=100`;
-            if (vehicleId) url += `&vehicle_id=${vehicleId}`;
-            // Adding date filters if API supports them (usually event_ts or similar, but let's try standard REST filters)
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: { 'Authorization': `Basic ${auth}` },
+            const result = await createCartrackRequest<CartrackListResponse<any>>('/geofence_visits', {
+                per_page: 100,
+                vehicle_id: vehicleId,
+                start_date: startDate,
+                end_date: endDate,
             });
 
-            if (!response.ok) {
-                // Try fallback without date filters if 400, or just throw
-                throw new Error(`Falha API (${response.status}): ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            const items = result.data || result.rows || result.visits || [];
-
-            return items.map((item: any) => ({
+            const items = getListItems(result);
+            const mapped = items.map((item: any) => ({
                 id: String(item.id),
                 vehicleId: String(item.vehicle_id),
                 registration: item.registration,
@@ -483,6 +596,8 @@ export const CartrackService = {
                 exitTime: item.exit_time,
                 durationSeconds: item.duration_seconds
             }));
+
+            return setCache(cacheKey, mapped, CACHE_TTL.geofenceVisits);
         } catch (error) {
             console.error('Failed to fetch geofence visits:', error);
             throw error;
@@ -491,32 +606,37 @@ export const CartrackService = {
 
     getRouteHistory: async (vehicleId: string, startDate: string, endDate: string): Promise<{ lat: number, lng: number, time: string }[]> => {
         try {
-            const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-            // Common Cartrack endpoint for history/positions
-            const url = `${BASE_URL}/positions?vehicle_ids[]=${vehicleId}&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&per_page=2000`;
+            const cacheKey = `cartrack:route-history:${vehicleId}:${startDate}:${endDate}`;
+            const cached = getCache<{ lat: number, lng: number, time: string }[]>(cacheKey);
+            if (cached) return cached;
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: { 'Authorization': `Basic ${auth}` },
-            });
+            const allItems: any[] = [];
+            for (let page = 1; page <= MAX_PAGES; page++) {
+                const result = await createCartrackRequest<CartrackListResponse<any>>('/positions', {
+                    'vehicle_ids[]': vehicleId,
+                    start_date: startDate,
+                    end_date: endDate,
+                    per_page: 200,
+                    page,
+                });
 
-            if (!response.ok) {
-                console.warn(`History fetch failed: ${response.status}`);
-                return [];
+                const items = getListItems(result);
+                if (items.length === 0) break;
+
+                allItems.push(...items);
+                if (items.length < 200) break;
             }
 
-            const result = await response.json();
-            const items = result.data || result.rows || result.positions || [];
-
-            return items.map((item: any) => ({
+            const mapped = allItems.map((item: any) => ({
                 lat: Number(item.latitude),
                 lng: Number(item.longitude),
                 time: item.event_ts || item.timestamp
             })).filter((p: any) => !isNaN(p.lat) && !isNaN(p.lng) && p.lat !== 0 && p.lng !== 0);
 
+            return setCache(cacheKey, mapped, CACHE_TTL.routeHistory);
+
         } catch (error) {
             console.error('Failed to fetch route history:', error);
-            // Mock data for demo if failed
             return [];
         }
     }
