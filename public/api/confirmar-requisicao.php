@@ -38,4 +38,4 @@ $reqId = (string)($record['id'] ?? $identifier);
 sf_insert_system_alert('Supplier confirmed requisition ' . $numero, $reqId);
 
 http_response_code(200);
-sf_render_html_page('✔ Rececao confirmada', "A requisicao foi confirmada com sucesso.\nObrigado.", '#16a34a');
+sf_render_html_page('✔ Requisicao Confirmada', "A rececao da requisicao foi confirmada com sucesso.\n\nPode fechar esta pagina.", '#16a34a');

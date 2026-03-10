@@ -38,4 +38,4 @@ $reqId = (string)($record['id'] ?? $identifier);
 sf_insert_system_alert('Supplier rejected requisition ' . $numero, $reqId);
 
 http_response_code(200);
-sf_render_html_page('✖ Requisicao recusada', 'O sistema foi atualizado.', '#b91c1c');
+sf_render_html_page('✖ Requisicao Recusada', "A requisicao foi recusada.\nO sistema foi atualizado.", '#b91c1c');

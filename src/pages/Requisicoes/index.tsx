@@ -69,7 +69,7 @@ export default function Requisicoes() {
         const encodedId = encodeURIComponent(requisitionIdentifier);
         const confirmUrl = `https://algartempo-frota.com/api/confirmar-requisicao.php?id=${encodedId}`;
         const rejectUrl = `https://algartempo-frota.com/api/recusar-requisicao.php?id=${encodedId}`;
-        const commentUrl = `https://algartempo-frota.com/api/comentario-requisicao.php?id=${encodedId}`;
+        const commentUrl = `https://algartempo-frota.com/api/salvar-comentario-requisicao.php?id=${encodedId}`;
 
         return [
             '<p>Boa tarde,</p>',
