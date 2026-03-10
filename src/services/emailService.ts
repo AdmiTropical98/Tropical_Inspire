@@ -109,10 +109,14 @@ class EmailService {
     }
 
     async sendPlainEmail(payload: PlainEmailPayload) {
-        const response = await fetch('/api/send-email', {
+        const response = await fetch('/api/send-email.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+                to: payload.to,
+                subject: payload.subject,
+                message: payload.message,
+            }),
         });
 
         if (!response.ok) {
