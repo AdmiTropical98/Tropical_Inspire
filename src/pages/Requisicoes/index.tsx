@@ -25,7 +25,6 @@ export default function Requisicoes() {
     const { currentUser, userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
-    const autoEmailEnabled = String(import.meta.env.VITE_EMAIL_AUTO_SEND ?? 'false') === 'true';
     const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [isSyncingStock, setIsSyncingStock] = useState(false);
@@ -528,16 +527,6 @@ export default function Requisicoes() {
             };
 
             addRequisicao(newReq);
-
-            if (autoEmailEnabled) {
-                const supplier = fornecedores.find(f => f.id === newReq.fornecedorId);
-                if (supplier?.email) {
-                    const vehicle = viaturas.find(v => v.id === newReq.viaturaId);
-                    void emailService.sendSupplierRequestEmail(
-                        emailService.mapSupplierRequestPayload(newReq, supplier.email, vehicle?.matricula)
-                    );
-                }
-            }
 
             setActiveTab('list');
             setListFilter('pendentes');
