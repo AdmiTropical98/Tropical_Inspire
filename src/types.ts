@@ -95,6 +95,9 @@ export interface Requisicao {
     }[]; // Multiple invoices support
     criadoPor?: string; // Name of the user who created it
     supplier_confirmed?: boolean;
+    supplier_confirmed_at?: string;
+    supplier_refused?: boolean;
+    supplier_refused_at?: string;
     supplier_rejected?: boolean;
     supplier_comment?: string;
     supplier_response_date?: string;

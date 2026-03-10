@@ -8,16 +8,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     sf_render_html_page('Metodo nao permitido', 'Utilize o link de confirmacao recebido no email.', '#dc3545');
 }
 
-$requisitionId = trim((string)($_GET['id'] ?? ''));
-if ($requisitionId === '') {
+$identifier = trim((string)($_GET['id'] ?? ''));
+if ($identifier === '') {
     http_response_code(400);
     sf_render_html_page('Pedido invalido', 'ID da requisicao em falta.', '#dc3545');
 }
 
-$update = sf_update_requisition($requisitionId, [
+$now = gmdate('c');
+$update = sf_update_requisition($identifier, [
     'supplier_confirmed' => true,
+    'supplier_confirmed_at' => $now,
+    'supplier_refused' => false,
+    'supplier_refused_at' => null,
     'supplier_rejected' => false,
-    'supplier_response_date' => gmdate('c'),
+    'supplier_response_date' => $now,
 ]);
 
 if (($update['ok'] ?? false) !== true) {
@@ -25,13 +29,11 @@ if (($update['ok'] ?? false) !== true) {
     sf_render_html_page('Falha ao confirmar', 'Nao foi possivel atualizar a requisicao neste momento.', '#dc3545');
 }
 
-$record = null;
-if (isset($update['data']) && is_array($update['data']) && isset($update['data'][0]) && is_array($update['data'][0])) {
-    $record = $update['data'][0];
-}
+$record = sf_extract_requisition_record($update);
 
-$numero = (string)($record['numero'] ?? $requisitionId);
-sf_insert_system_alert('Supplier confirmed requisition ' . $numero, $requisitionId);
+$numero = (string)($record['numero'] ?? $identifier);
+$reqId = (string)($record['id'] ?? $identifier);
+sf_insert_system_alert('Supplier confirmed requisition ' . $numero, $reqId);
 
 http_response_code(200);
-sf_render_html_page('Rececao confirmada', 'Rececao confirmada com sucesso.', '#16a34a');
+sf_render_html_page('✔ Rececao confirmada', "A requisicao foi confirmada com sucesso.\nObrigado.", '#16a34a');

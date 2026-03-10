@@ -8,16 +8,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     sf_render_html_page('Metodo nao permitido', 'Utilize o link de recusa recebido no email.', '#dc3545');
 }
 
-$requisitionId = trim((string)($_GET['id'] ?? ''));
-if ($requisitionId === '') {
+$identifier = trim((string)($_GET['id'] ?? ''));
+if ($identifier === '') {
     http_response_code(400);
     sf_render_html_page('Pedido invalido', 'ID da requisicao em falta.', '#dc3545');
 }
 
-$update = sf_update_requisition($requisitionId, [
+$now = gmdate('c');
+$update = sf_update_requisition($identifier, [
     'supplier_confirmed' => false,
+    'supplier_confirmed_at' => null,
+    'supplier_refused' => true,
+    'supplier_refused_at' => $now,
     'supplier_rejected' => true,
-    'supplier_response_date' => gmdate('c'),
+    'supplier_response_date' => $now,
 ]);
 
 if (($update['ok'] ?? false) !== true) {
@@ -25,13 +29,11 @@ if (($update['ok'] ?? false) !== true) {
     sf_render_html_page('Falha ao recusar', 'Nao foi possivel atualizar a requisicao neste momento.', '#dc3545');
 }
 
-$record = null;
-if (isset($update['data']) && is_array($update['data']) && isset($update['data'][0]) && is_array($update['data'][0])) {
-    $record = $update['data'][0];
-}
+$record = sf_extract_requisition_record($update);
 
-$numero = (string)($record['numero'] ?? $requisitionId);
-sf_insert_system_alert('Supplier rejected requisition ' . $numero, $requisitionId);
+$numero = (string)($record['numero'] ?? $identifier);
+$reqId = (string)($record['id'] ?? $identifier);
+sf_insert_system_alert('Supplier rejected requisition ' . $numero, $reqId);
 
 http_response_code(200);
-sf_render_html_page('Requisicao recusada', 'Requisicao recusada.', '#b91c1c');
+sf_render_html_page('✖ Requisicao recusada', 'O sistema foi atualizado.', '#b91c1c');

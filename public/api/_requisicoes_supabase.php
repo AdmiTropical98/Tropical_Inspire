@@ -67,14 +67,12 @@ function sf_supabase_credentials(): array
     sf_bootstrap_env();
 
     $supabaseUrl = sf_get_env_value('SUPABASE_URL') ?? sf_get_env_value('VITE_SUPABASE_URL');
-    $supabaseKey = sf_get_env_value('SUPABASE_SERVICE_ROLE_KEY')
-        ?? sf_get_env_value('SUPABASE_ANON_KEY')
-        ?? sf_get_env_value('VITE_SUPABASE_ANON_KEY');
+    $supabaseKey = sf_get_env_value('SUPABASE_SERVICE_ROLE_KEY');
 
     if ($supabaseUrl === null || $supabaseKey === null) {
         return [
             'ok' => false,
-            'error' => 'Missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY/SUPABASE_ANON_KEY',
+            'error' => 'Missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY',
         ];
     }
 
@@ -151,10 +149,34 @@ function sf_supabase_request(string $method, string $path, ?array $payload = nul
     ];
 }
 
-function sf_update_requisition(string $requisitionId, array $updates): array
+function sf_extract_requisition_record(array $response): ?array
 {
-    $path = 'requisicoes?id=eq.' . rawurlencode($requisitionId) . '&select=id,numero';
-    return sf_supabase_request('PATCH', $path, $updates, ['Prefer: return=representation']);
+    if (!isset($response['data']) || !is_array($response['data'])) {
+        return null;
+    }
+
+    if (!isset($response['data'][0]) || !is_array($response['data'][0])) {
+        return null;
+    }
+
+    return $response['data'][0];
+}
+
+function sf_update_requisition(string $identifier, array $updates): array
+{
+    $byIdPath = 'requisicoes?id=eq.' . rawurlencode($identifier) . '&select=id,numero';
+    $byIdResponse = sf_supabase_request('PATCH', $byIdPath, $updates, ['Prefer: return=representation']);
+
+    if (($byIdResponse['ok'] ?? false) !== true) {
+        return $byIdResponse;
+    }
+
+    if (sf_extract_requisition_record($byIdResponse) !== null) {
+        return $byIdResponse;
+    }
+
+    $byNumeroPath = 'requisicoes?numero=eq.' . rawurlencode($identifier) . '&select=id,numero';
+    return sf_supabase_request('PATCH', $byNumeroPath, $updates, ['Prefer: return=representation']);
 }
 
 function sf_insert_system_alert(string $message, ?string $requestId = null): void
@@ -184,11 +206,11 @@ function sf_render_html_page(string $title, string $message, string $accentColor
     echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
     echo '<title>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</title>';
     echo '<style>';
-    echo 'body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px;}';
-    echo '.card{max-width:620px;width:100%;background:#111827;border:1px solid #1f2937;border-radius:16px;padding:28px;box-shadow:0 20px 50px rgba(0,0,0,.35);}';
+    echo 'body{margin:0;font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px;}';
+    echo '.card{max-width:500px;width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:40px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);}';
     echo '.badge{display:inline-block;background:' . htmlspecialchars($accentColor, ENT_QUOTES, 'UTF-8') . ';color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;letter-spacing:.03em;margin-bottom:14px;}';
-    echo 'h1{margin:0 0 10px;font-size:24px;line-height:1.2;}';
-    echo 'p{margin:0;color:#cbd5e1;line-height:1.6;}';
+    echo 'h1{margin:0 0 12px;font-size:28px;line-height:1.2;}';
+    echo 'p{margin:0;color:#dbe7ff;line-height:1.6;font-size:16px;}';
     echo '</style>';
     echo '</head>';
     echo '<body>';

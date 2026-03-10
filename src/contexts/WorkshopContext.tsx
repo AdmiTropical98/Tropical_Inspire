@@ -888,7 +888,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             custo: item.custo,
                             faturas_dados: parsedFaturas,
                             supplier_confirmed: item.supplier_confirmed,
-                            supplier_rejected: item.supplier_rejected,
+                            supplier_confirmed_at: item.supplier_confirmed_at || (item.supplier_confirmed ? item.supplier_response_date : null),
+                            supplier_refused: item.supplier_refused ?? item.supplier_rejected,
+                            supplier_refused_at: item.supplier_refused_at || ((item.supplier_refused ?? item.supplier_rejected) ? item.supplier_response_date : null),
+                            supplier_rejected: item.supplier_rejected ?? item.supplier_refused,
                             supplier_comment: item.supplier_comment,
                             supplier_response_date: item.supplier_response_date
                         };
@@ -2907,7 +2910,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             approved_value: r.approved_value ?? null,
             criado_por: r.criadoPor,
             supplier_confirmed: r.supplier_confirmed ?? false,
-            supplier_rejected: r.supplier_rejected ?? false,
+            supplier_confirmed_at: r.supplier_confirmed_at ?? null,
+            supplier_refused: r.supplier_refused ?? r.supplier_rejected ?? false,
+            supplier_refused_at: r.supplier_refused_at ?? null,
+            supplier_rejected: r.supplier_rejected ?? r.supplier_refused ?? false,
             supplier_comment: r.supplier_comment ?? null,
             supplier_response_date: r.supplier_response_date ?? null,
             itens: r.itens
@@ -2990,6 +2996,62 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         void runStockRequisitionsSync('auto');
     }, [requisicoes]);
+
+    useEffect(() => {
+        const channel = supabase
+            .channel('requisicoes_supplier_updates')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'requisicoes'
+                },
+                (payload) => {
+                    const next = (payload.new || {}) as Record<string, any>;
+                    const requisicaoId = String(next.id || '');
+                    if (!requisicaoId) return;
+
+                    setRequisicoes(prev => prev.map(req => {
+                        if (req.id !== requisicaoId) return req;
+
+                        const supplierConfirmed = next.supplier_confirmed === null || next.supplier_confirmed === undefined
+                            ? req.supplier_confirmed
+                            : Boolean(next.supplier_confirmed);
+
+                        const supplierRefusedRaw = next.supplier_refused ?? next.supplier_rejected;
+                        const supplierRefused = supplierRefusedRaw === null || supplierRefusedRaw === undefined
+                            ? (req.supplier_refused ?? req.supplier_rejected)
+                            : Boolean(supplierRefusedRaw);
+
+                        const supplierComment = typeof next.supplier_comment === 'string'
+                            ? next.supplier_comment
+                            : req.supplier_comment;
+
+                        const supplierConfirmedAt = next.supplier_confirmed_at ?? req.supplier_confirmed_at;
+                        const supplierRefusedAt = next.supplier_refused_at ?? req.supplier_refused_at;
+                        const supplierResponseDate = next.supplier_response_date ?? req.supplier_response_date;
+
+                        return {
+                            ...req,
+                            supplier_confirmed: supplierConfirmed,
+                            supplier_refused: supplierRefused,
+                            supplier_rejected: supplierRefused,
+                            supplier_comment: supplierComment,
+                            supplier_confirmed_at: supplierConfirmedAt,
+                            supplier_refused_at: supplierRefusedAt,
+                            supplier_response_date: supplierResponseDate
+                        };
+                    }));
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
     const updateRequisicao = async (r: Requisicao) => {
         const { error } = await supabase.from('requisicoes').update({
             data: r.data,
@@ -3004,7 +3066,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             approved_value: r.approved_value ?? null,
             criado_por: r.criadoPor,
             supplier_confirmed: r.supplier_confirmed ?? false,
-            supplier_rejected: r.supplier_rejected ?? false,
+            supplier_confirmed_at: r.supplier_confirmed_at ?? null,
+            supplier_refused: r.supplier_refused ?? r.supplier_rejected ?? false,
+            supplier_refused_at: r.supplier_refused_at ?? null,
+            supplier_rejected: r.supplier_rejected ?? r.supplier_refused ?? false,
             supplier_comment: r.supplier_comment ?? null,
             supplier_response_date: r.supplier_response_date ?? null,
             itens: r.itens

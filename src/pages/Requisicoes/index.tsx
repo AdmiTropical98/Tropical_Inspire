@@ -65,8 +65,8 @@ export default function Requisicoes() {
         }
     };
 
-    const buildSupplierEmailMessage = (requisitionId: string, numero: string, matricula: string, dateStr: string) => {
-        const encodedId = encodeURIComponent(requisitionId);
+    const buildSupplierEmailMessage = (requisitionIdentifier: string, numero: string, matricula: string, dateStr: string) => {
+        const encodedId = encodeURIComponent(requisitionIdentifier);
         const confirmUrl = `https://algartempo-frota.com/api/confirmar-requisicao.php?id=${encodedId}`;
         const rejectUrl = `https://algartempo-frota.com/api/recusar-requisicao.php?id=${encodedId}`;
         const commentUrl = `https://algartempo-frota.com/api/comentario-requisicao.php?id=${encodedId}`;
@@ -99,7 +99,7 @@ export default function Requisicoes() {
             };
         }
 
-        if (req.supplier_rejected) {
+        if (req.supplier_refused || req.supplier_rejected) {
             return {
                 label: 'Recusado pelo fornecedor',
                 className: 'bg-rose-500/10 text-rose-300 border-rose-500/30'
@@ -107,7 +107,7 @@ export default function Requisicoes() {
         }
 
         return {
-            label: 'Pendente de confirmacao',
+            label: 'Pendente confirmacao fornecedor',
             className: 'bg-amber-500/10 text-amber-300 border-amber-500/30'
         };
     };
@@ -355,7 +355,7 @@ export default function Requisicoes() {
         setEmailModalReqId(req.id);
         setEmailTo(supplier.email);
         setEmailSubject(`Requisição nº ${req.numero}`);
-        setEmailMessage(buildSupplierEmailMessage(req.id, req.numero, vehicle?.matricula || '', req.data));
+        setEmailMessage(buildSupplierEmailMessage(req.numero, req.numero, vehicle?.matricula || '', req.data));
         setShowEmailPreview(false);
         setShowEmailModal(true);
     };
@@ -1397,9 +1397,9 @@ export default function Requisicoes() {
                                                     </span>
                                                 </div>
 
-                                                {req.supplier_response_date && (
+                                                {(req.supplier_confirmed_at || req.supplier_refused_at || req.supplier_response_date) && (
                                                     <p className="text-xs text-slate-400">
-                                                        Resposta do fornecedor em {formatSmallDate(req.supplier_response_date)}
+                                                        Resposta do fornecedor em {formatSmallDate(req.supplier_confirmed_at || req.supplier_refused_at || req.supplier_response_date || '')}
                                                     </p>
                                                 )}
 
