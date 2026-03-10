@@ -68,16 +68,16 @@ export default function Requisicoes() {
 
     const buildSupplierEmailMessage = (numero: string, matricula: string, dateStr: string) => {
         return [
-            'Boa tarde,',
-            '',
-            'Foi criada uma nova requisição.',
-            '',
-            `Número: ${numero}`,
-            `Viatura: ${matricula || 'N/A'}`,
-            `Data: ${formatSmallDate(dateStr)}`,
-            '',
-            'Cumprimentos',
-            'SmartFleet'
+            '<p>Boa tarde,</p>',
+            '<p>Venho por este meio informar que foi criada uma nova requisição de serviço.</p>',
+            '<p><strong>Detalhes da Requisição:</strong></p>',
+            '<ul>',
+            `<li>Número: ${numero}</li>`,
+            `<li>Viatura: ${matricula || 'N/A'}</li>`,
+            `<li>Data: ${formatSmallDate(dateStr)}</li>`,
+            '</ul>',
+            '<p>Se necessitar de mais informações, por favor responda a este email.</p>',
+            '<p>Com os melhores cumprimentos,<br>Miguel Madeira<br>Tropical Inspire</p>'
         ].join('\n');
     };
 
@@ -1990,7 +1990,7 @@ export default function Requisicoes() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Mensagem</label>
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Mensagem (HTML)</label>
                                             <textarea
                                                 value={emailMessage}
                                                 onChange={e => setEmailMessage(e.target.value)}
@@ -2005,7 +2005,7 @@ export default function Requisicoes() {
                                             <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">De:</span> {SENDER_EMAIL}</p>
                                             <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">Para:</span> {emailTo}</p>
                                             <p className="text-sm text-slate-300 mb-4"><span className="text-slate-500">Assunto:</span> {emailSubject}</p>
-                                            <pre className="whitespace-pre-wrap text-sm text-slate-200 font-sans leading-6">{emailMessage}</pre>
+                                            <div className="text-sm text-slate-200 leading-6" dangerouslySetInnerHTML={{ __html: emailMessage }} />
                                         </div>
                                     </div>
                                 )}

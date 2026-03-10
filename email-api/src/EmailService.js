@@ -5,10 +5,10 @@ export class EmailService {
         const host = process.env.SMTP_HOST || 'smtp.office365.com';
         const port = Number(process.env.SMTP_PORT || 587);
         const secure = String(process.env.SMTP_SECURE ?? 'false') === 'true';
-        const smtpUser = process.env.SMTP_USER || 'frota@tropicalinspire.pt';
-        const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD;
+        const smtpUser = process.env.SMTP_USER;
+        const smtpPass = process.env.SMTP_PASS;
 
-        this.from = process.env.SMTP_FROM || smtpUser;
+        this.from = '"Miguel Madeira - Tropical Inspire" <frota@tropicalinspire.pt>';
         this.transporter = nodemailer.createTransport({
             host,
             port,
@@ -25,12 +25,30 @@ export class EmailService {
     }
 
     async sendPlainEmail({ to, subject, message }) {
-        return this.transporter.sendMail({
-            from: this.from,
-            to,
-            subject,
-            text: message,
-        });
+        console.log('Sending email to:', to);
+        console.log('Subject:', subject);
+
+        try {
+            await this.transporter.verify();
+            console.log('SMTP connection OK');
+        } catch (error) {
+            console.error('SMTP connection failed', error);
+            throw error;
+        }
+
+        try {
+            const result = await this.transporter.sendMail({
+                from: this.from,
+                to,
+                subject,
+                html: message,
+            });
+            console.log('Email sent successfully');
+            return result;
+        } catch (error) {
+            console.error('Email sending failed', error);
+            throw error;
+        }
     }
 
     async sendSupplierRequestEmail({ to, numeroRequisicao, matricula, descricao, data }) {
