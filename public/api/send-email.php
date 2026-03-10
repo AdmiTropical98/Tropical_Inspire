@@ -93,6 +93,77 @@ function load_env_file_if_present(string $path): void
     }
 }
 
+function sanitize_header_value(string $value): string
+{
+    return trim(str_replace(["\r", "\n"], '', $value));
+}
+
+function send_via_native_mail(
+    string $to,
+    string $subject,
+    string $htmlMessage,
+    string $fromEmail,
+    string $fromName,
+    string $numero,
+    string $pdfBase64,
+    string $pdfFileName,
+    string $pdfPath
+): array {
+    if (!function_exists('mail')) {
+        return ['ok' => false, 'error' => 'mail() function is not available in this PHP runtime'];
+    }
+
+    $safeTo = sanitize_header_value($to);
+    $safeFromEmail = sanitize_header_value($fromEmail);
+    $safeFromName = sanitize_header_value($fromName);
+    $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+
+    $headers = [];
+    $headers[] = 'MIME-Version: 1.0';
+    $headers[] = "From: {$safeFromName} <{$safeFromEmail}>";
+    $headers[] = "Reply-To: {$safeFromEmail}";
+
+    $attachmentBinary = null;
+    $attachmentName = '';
+
+    if ($pdfPath !== '' && is_file($pdfPath)) {
+        $attachmentBinary = file_get_contents($pdfPath);
+        $attachmentName = $pdfFileName !== '' ? $pdfFileName : ('requisicao-' . ($numero !== '' ? $numero : 'anexo') . '.pdf');
+    } elseif ($pdfBase64 !== '') {
+        $decoded = base64_decode($pdfBase64, true);
+        if ($decoded !== false) {
+            $attachmentBinary = $decoded;
+            $attachmentName = $pdfFileName !== '' ? $pdfFileName : ('requisicao-' . ($numero !== '' ? $numero : 'anexo') . '.pdf');
+        }
+    }
+
+    if ($attachmentBinary !== null) {
+        $boundary = '=_Part_' . bin2hex(random_bytes(12));
+        $headers[] = "Content-Type: multipart/mixed; boundary=\"{$boundary}\"";
+
+        $body = "--{$boundary}\r\n";
+        $body .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+        $body .= $htmlMessage . "\r\n\r\n";
+        $body .= "--{$boundary}\r\n";
+        $body .= "Content-Type: application/pdf; name=\"{$attachmentName}\"\r\n";
+        $body .= "Content-Transfer-Encoding: base64\r\n";
+        $body .= "Content-Disposition: attachment; filename=\"{$attachmentName}\"\r\n\r\n";
+        $body .= chunk_split(base64_encode($attachmentBinary));
+        $body .= "\r\n--{$boundary}--\r\n";
+    } else {
+        $headers[] = 'Content-Type: text/html; charset=UTF-8';
+        $headers[] = 'Content-Transfer-Encoding: 8bit';
+        $body = $htmlMessage;
+    }
+
+    $ok = mail($safeTo, $encodedSubject, $body, implode("\r\n", $headers));
+
+    return $ok
+        ? ['ok' => true]
+        : ['ok' => false, 'error' => 'mail() returned false. Verify server mail configuration.'];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     echo json_encode(['success' => true]);
@@ -133,15 +204,7 @@ if (!$autoloadLoaded) {
     }
 }
 
-if (!class_exists(PHPMailer::class)) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Unable to load PHPMailer class',
-        'details' => 'Execute composer install em public/api (ou envie vendor/) para o servidor.',
-    ]);
-    exit;
-}
+$phpMailerAvailable = class_exists(PHPMailer::class);
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw ?: '', true);
@@ -168,6 +231,27 @@ if ($to === '' || $subject === '' || $message === '') {
 
 load_env_file_if_present(dirname(__DIR__, 2) . '/.env');
 load_env_file_if_present(dirname(__DIR__) . '/.env');
+
+$fromEmail = get_env_value('SMTP_FROM_EMAIL') ?? 'frota@tropicalinspire.pt';
+$fromName = get_env_value('SMTP_FROM_NAME') ?? 'Miguel Madeira - Tropical Inspire';
+
+if (!$phpMailerAvailable) {
+    $nativeResult = send_via_native_mail($to, $subject, $message, $fromEmail, $fromName, $numero, $pdfBase64, $pdfFileName, $pdfPath);
+
+    if ($nativeResult['ok'] === true) {
+        http_response_code(200);
+        echo json_encode(['success' => true, 'transport' => 'php-mail']);
+        exit;
+    }
+
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Unable to send email without PHPMailer',
+        'details' => $nativeResult['error'] ?? 'Unknown native mail error',
+    ]);
+    exit;
+}
 
 $smtpHost = get_env_value('SMTP_HOST') ?? 'smtp.hostinger.com';
 $smtpPort = (int)(get_env_value('SMTP_PORT') ?? '465');
@@ -204,7 +288,7 @@ try {
     $mail->Password = $smtpPassword;
     $mail->CharSet = 'UTF-8';
 
-    $mail->setFrom('frota@tropicalinspire.pt', 'Miguel Madeira - Tropical Inspire');
+    $mail->setFrom($fromEmail, $fromName);
     $mail->addAddress($to);
     $mail->isHTML(true);
     $mail->Subject = $subject;
