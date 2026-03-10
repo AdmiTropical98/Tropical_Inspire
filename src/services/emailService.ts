@@ -23,6 +23,12 @@ type DriverSchedulePayload = {
     horario: string;
 };
 
+type PlainEmailPayload = {
+    to: string;
+    subject: string;
+    message: string;
+};
+
 type EmailType = 'supplier_request' | 'invoice' | 'driver_schedule';
 type EmailPayload = SupplierRequestPayload | InvoicePayload | DriverSchedulePayload;
 type EmailLogStatus = 'sent' | 'failed';
@@ -97,6 +103,25 @@ class EmailService {
 
     async sendDriverScheduleEmail(payload: DriverSchedulePayload) {
         await this.send('driver_schedule', payload);
+    }
+
+    async sendPlainEmail(payload: PlainEmailPayload) {
+        const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            let message = 'Erro ao enviar email';
+            try {
+                const data = await response.json();
+                message = data?.details || data?.error || message;
+            } catch {
+                // Keep default message if response body is not JSON.
+            }
+            throw new Error(message);
+        }
     }
 
     mapSupplierRequestPayload(req: Requisicao, supplierEmail: string, vehiclePlate?: string): SupplierRequestPayload {

@@ -16,6 +16,21 @@ app.use(express.json());
 
 const emailService = new EmailService();
 
+const sendPlainEmail = async (req, res) => {
+    try {
+        const { to, subject, message } = req.body || {};
+
+        if (!to || !subject || !message) {
+            return res.status(400).json({ error: 'Missing to, subject or message' });
+        }
+
+        await emailService.sendPlainEmail({ to, subject, message });
+        return res.json({ ok: true, message: 'Email sent' });
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to send email', details: error.message });
+    }
+};
+
 app.get('/health', async (_req, res) => {
     try {
         await emailService.verifyConnection();
@@ -65,6 +80,8 @@ app.post('/api/email/send', async (req, res) => {
         return res.status(500).json({ error: 'Failed to send email', details: error.message });
     }
 });
+
+app.post('/api/send-email', sendPlainEmail);
 
 app.listen(port, () => {
     console.log(`Email API listening on port ${port}`);

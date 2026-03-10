@@ -37,6 +37,10 @@ export default defineConfig({
   base: '/',
   server: {
     proxy: {
+      '/api/send-email': {
+        target: 'http://localhost:4001',
+        changeOrigin: true,
+      },
       '/api/email': {
         target: 'http://localhost:4001',
         changeOrigin: true,

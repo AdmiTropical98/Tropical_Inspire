@@ -18,6 +18,7 @@ import { ClipboardCheck } from 'lucide-react';
 import { emailService } from '../../services/emailService';
 
 export default function Requisicoes() {
+    const SENDER_EMAIL = 'frota@tropicalinspire.pt';
     const navigate = useNavigate();
     const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
     const { supplierInvoices } = useFinancial();
@@ -30,6 +31,12 @@ export default function Requisicoes() {
     const [isSyncingStock, setIsSyncingStock] = useState(false);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [sendingEmailReqId, setSendingEmailReqId] = useState<string | null>(null);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [showEmailPreview, setShowEmailPreview] = useState(false);
+    const [emailModalReqId, setEmailModalReqId] = useState<string | null>(null);
+    const [emailTo, setEmailTo] = useState('');
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailMessage, setEmailMessage] = useState('');
 
     // Edit Request State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,6 +64,25 @@ export default function Requisicoes() {
         } catch {
             return dateStr;
         }
+    };
+
+    const buildSupplierEmailMessage = (numero: string, matricula: string, dateStr: string) => {
+        return [
+            'Boa tarde,',
+            '',
+            'Foi criada uma nova requisição.',
+            '',
+            `Número: ${numero}`,
+            `Viatura: ${matricula || 'N/A'}`,
+            `Data: ${formatSmallDate(dateStr)}`,
+            '',
+            'Cumprimentos',
+            'SmartFleet'
+        ].join('\n');
+    };
+
+    const isValidEmail = (value: string) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     };
 
     const toDateInputValue = (dateValue?: string) => {
@@ -265,7 +291,16 @@ export default function Requisicoes() {
         setOpenMenuId(null);
     };
 
-    const handleSendSupplierEmail = async (req: Requisicao) => {
+    const closeEmailModal = () => {
+        setShowEmailModal(false);
+        setShowEmailPreview(false);
+        setEmailModalReqId(null);
+        setEmailTo('');
+        setEmailSubject('');
+        setEmailMessage('');
+    };
+
+    const handleSendSupplierEmail = (req: Requisicao) => {
         const supplier = fornecedores.find(f => f.id === req.fornecedorId);
         if (!supplier?.email) {
             alert('Fornecedor sem email configurado.');
@@ -273,15 +308,50 @@ export default function Requisicoes() {
         }
 
         const vehicle = viaturas.find(v => v.id === req.viaturaId);
-        setSendingEmailReqId(req.id);
+        setEmailModalReqId(req.id);
+        setEmailTo(supplier.email);
+        setEmailSubject(`Requisição nº ${req.numero}`);
+        setEmailMessage(buildSupplierEmailMessage(req.numero, vehicle?.matricula || '', req.data));
+        setShowEmailPreview(false);
+        setShowEmailModal(true);
+    };
+
+    const handlePreviewSupplierEmail = () => {
+        const recipient = emailTo.trim();
+        if (!recipient) {
+            alert('Indique o email do destinatário.');
+            return;
+        }
+        if (!isValidEmail(recipient)) {
+            alert('Indique um email válido no campo destinatário.');
+            return;
+        }
+        if (!emailSubject.trim()) {
+            alert('Indique o assunto.');
+            return;
+        }
+        if (!emailMessage.trim()) {
+            alert('Indique a mensagem.');
+            return;
+        }
+
+        setShowEmailPreview(true);
+    };
+
+    const handleConfirmSendSupplierEmail = async () => {
+        if (!emailModalReqId) return;
+
+        setSendingEmailReqId(emailModalReqId);
         try {
-            await emailService.sendSupplierRequestEmail(
-                emailService.mapSupplierRequestPayload(req, supplier.email, vehicle?.matricula)
-            );
+            await emailService.sendPlainEmail({
+                to: emailTo.trim(),
+                subject: emailSubject.trim(),
+                message: emailMessage,
+            });
             alert('Email enviado com sucesso.');
+            closeEmailModal();
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Falha inesperada';
-            alert(`Erro ao enviar email: ${message}`);
+            alert('Erro ao enviar email.');
         } finally {
             setSendingEmailReqId(null);
         }
@@ -1886,7 +1956,110 @@ export default function Requisicoes() {
 
 
 
-                {/* Confirmation Modal */}
+                {/* Email Modal */}
+                {
+                    showEmailModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-2xl w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+                                <div className="relative z-10 shrink-0 mb-6">
+                                    <h3 className="text-2xl font-bold text-white mb-2">Enviar Email</h3>
+                                    <p className="text-slate-400">Edite o email antes de enviar para o fornecedor.</p>
+                                </div>
+
+                                {!showEmailPreview ? (
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 relative z-10 min-h-0 space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Para</label>
+                                            <input
+                                                type="email"
+                                                value={emailTo}
+                                                onChange={e => setEmailTo(e.target.value)}
+                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all"
+                                                placeholder="fornecedor@email.com"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Assunto</label>
+                                            <input
+                                                type="text"
+                                                value={emailSubject}
+                                                onChange={e => setEmailSubject(e.target.value)}
+                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Mensagem</label>
+                                            <textarea
+                                                value={emailMessage}
+                                                onChange={e => setEmailMessage(e.target.value)}
+                                                rows={12}
+                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all font-mono text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 relative z-10 min-h-0">
+                                        <div className="p-5 bg-slate-950/70 border border-slate-800 rounded-2xl">
+                                            <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">De:</span> {SENDER_EMAIL}</p>
+                                            <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">Para:</span> {emailTo}</p>
+                                            <p className="text-sm text-slate-300 mb-4"><span className="text-slate-500">Assunto:</span> {emailSubject}</p>
+                                            <pre className="whitespace-pre-wrap text-sm text-slate-200 font-sans leading-6">{emailMessage}</pre>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3 pt-2 shrink-0 relative z-10">
+                                    {!showEmailPreview ? (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={closeEmailModal}
+                                                className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handlePreviewSupplierEmail}
+                                                className="flex-1 py-3 px-4 bg-cyan-700 hover:bg-cyan-600 text-white rounded-xl font-bold transition-all"
+                                            >
+                                                Preview
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEmailPreview(false)}
+                                                className="flex-1 py-3 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-all"
+                                            >
+                                                Voltar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={closeEmailModal}
+                                                className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleConfirmSendSupplierEmail}
+                                                disabled={sendingEmailReqId === emailModalReqId}
+                                                className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20 disabled:opacity-60"
+                                            >
+                                                Enviar Email
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
                 {/* Confirmation Modal */}
                 {
                     showConfirmModal && (

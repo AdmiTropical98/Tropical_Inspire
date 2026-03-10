@@ -2,24 +2,35 @@ import nodemailer from 'nodemailer';
 
 export class EmailService {
     constructor() {
-        const host = process.env.SMTP_HOST || 'smtp.hostinger.com';
-        const port = Number(process.env.SMTP_PORT || 465);
-        const secure = String(process.env.SMTP_SECURE ?? 'true') !== 'false';
+        const host = process.env.SMTP_HOST || 'smtp.office365.com';
+        const port = Number(process.env.SMTP_PORT || 587);
+        const secure = String(process.env.SMTP_SECURE ?? 'false') === 'true';
+        const smtpUser = process.env.SMTP_USER || 'frota@tropicalinspire.pt';
+        const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD;
 
-        this.from = process.env.SMTP_FROM || process.env.SMTP_USER;
+        this.from = process.env.SMTP_FROM || smtpUser;
         this.transporter = nodemailer.createTransport({
             host,
             port,
             secure,
             auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
+                user: smtpUser,
+                pass: smtpPass,
             },
         });
     }
 
     async verifyConnection() {
         return this.transporter.verify();
+    }
+
+    async sendPlainEmail({ to, subject, message }) {
+        return this.transporter.sendMail({
+            from: this.from,
+            to,
+            subject,
+            text: message,
+        });
     }
 
     async sendSupplierRequestEmail({ to, numeroRequisicao, matricula, descricao, data }) {
