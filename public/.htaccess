@@ -1,7 +1,12 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # Never rewrite API routes to the SPA entrypoint.
+  RewriteRule ^api(/|$) - [L,NC]
+
   RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_URI} !^/api(/|$) [NC]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]

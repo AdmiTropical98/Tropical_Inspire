@@ -66,8 +66,17 @@ function sf_supabase_credentials(): array
 {
     sf_bootstrap_env();
 
-    $supabaseUrl = sf_get_env_value('SUPABASE_URL') ?? sf_get_env_value('VITE_SUPABASE_URL');
-    $supabaseKey = sf_get_env_value('SUPABASE_SERVICE_ROLE_KEY');
+    $configPath = __DIR__ . '/config.php';
+    if (is_file($configPath) && is_readable($configPath)) {
+        require_once $configPath;
+    }
+
+    $supabaseUrl = sf_get_env_value('SUPABASE_URL')
+        ?? sf_get_env_value('VITE_SUPABASE_URL')
+        ?? (defined('SUPABASE_URL') ? trim((string)constant('SUPABASE_URL')) : null);
+
+    $supabaseKey = sf_get_env_value('SUPABASE_SERVICE_ROLE_KEY')
+        ?? (defined('SUPABASE_SERVICE_ROLE_KEY') ? trim((string)constant('SUPABASE_SERVICE_ROLE_KEY')) : null);
 
     if ($supabaseUrl === null || $supabaseKey === null) {
         return [
