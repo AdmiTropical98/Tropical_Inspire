@@ -4,9 +4,10 @@ import DashboardView from './DashboardView';
 import PresetReportsView from './PresetReportsView';
 import CustomReportBuilder from './CustomReportBuilder';
 import TransportReportsView from './TransportReportsView';
+import MonthlyReportsView from './MonthlyReportsView';
 
 export default function Relatorios() {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'presets' | 'custom' | 'transport'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'presets' | 'custom' | 'transport' | 'monthly'>('dashboard');
 
     return (
         <div className="flex flex-col space-y-8">
@@ -67,6 +68,16 @@ export default function Relatorios() {
                             <BusFront className="w-4 h-4" />
                             Transporte
                         </button>
+                        <button
+                            onClick={() => setActiveTab('monthly')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'monthly'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                }`}
+                        >
+                            <FileText className="w-4 h-4" />
+                            Mensal
+                        </button>
                     </div>
                 </div>
             </div>
@@ -78,6 +89,7 @@ export default function Relatorios() {
                     {activeTab === 'presets' && <PresetReportsView />}
                     {activeTab === 'custom' && <CustomReportBuilder />}
                     {activeTab === 'transport' && <TransportReportsView />}
+                    {activeTab === 'monthly' && <MonthlyReportsView />}
                 </div>
             </main>
         </div>

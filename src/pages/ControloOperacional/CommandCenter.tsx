@@ -52,20 +52,21 @@ export default function CommandCenter() {
 
   useEffect(() => {
     const sync = async () => {
-      await upsertServicePrimaryPassenger(servicos as Servico[]);
+      const today = new Date().toISOString().split('T')[0];
+      const todayServices = (servicos as Servico[]).filter((service) => !service.data || service.data === today);
+      await upsertServicePrimaryPassenger(todayServices);
       const [h, e] = await Promise.all([fetchHotelMonthlyStats(monthStartIso()), fetchEmployeeMonthlyStats(monthStartIso())]);
       setHotelStats(h.slice(0, 4));
       setEmployeeStats(e.slice(0, 4));
     };
     sync();
-    const id = setInterval(sync, 30000);
+    const id = setInterval(sync, 180000);
     return () => clearInterval(id);
   }, [servicos]);
 
   useEffect(() => {
     refreshData();
-    const id = setInterval(refreshData, 20000);
-    return () => clearInterval(id);
+    return () => undefined;
   }, [refreshData]);
 
   useEffect(() => {

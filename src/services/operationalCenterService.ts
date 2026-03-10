@@ -98,9 +98,10 @@ export const upsertServicePrimaryPassenger = async (services: Servico[]) => {
 export const fetchHotelMonthlyStats = async (monthIso: string): Promise<HotelMonthlyStats[]> => {
     const { data, error } = await supabase
         .from('vw_transport_stats_by_hotel_monthly')
-        .select('*')
+        .select('month, hotel, total_transportes, funcionarios_transportados, viagens_realizadas')
         .eq('month', monthIso)
-        .order('viagens_realizadas', { ascending: false });
+        .order('viagens_realizadas', { ascending: false })
+        .limit(20);
 
     if (error || !data) return [];
 
@@ -116,9 +117,10 @@ export const fetchHotelMonthlyStats = async (monthIso: string): Promise<HotelMon
 export const fetchEmployeeMonthlyStats = async (monthIso: string): Promise<EmployeeMonthlyStats[]> => {
     const { data, error } = await supabase
         .from('vw_employee_transport_monthly')
-        .select('*')
+        .select('month, employee_id, employee_name, transport_days, total_cost')
         .eq('month', monthIso)
-        .order('total_cost', { ascending: false });
+        .order('total_cost', { ascending: false })
+        .limit(40);
 
     if (error || !data) return [];
 

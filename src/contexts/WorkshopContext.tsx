@@ -4203,6 +4203,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         const pollCartrackAndConfirm = async () => {
             try {
+                if (typeof document !== 'undefined' && document.hidden) return;
                 const vehicles = await CartrackService.getVehicles();
                 if (vehicles.length > 0) {
                     setCartrackVehicles(vehicles);
@@ -4214,7 +4215,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         };
 
         pollCartrackAndConfirm();
-        const interval = setInterval(pollCartrackAndConfirm, 10 * 1000);
+        const interval = setInterval(pollCartrackAndConfirm, 20 * 1000);
         return () => clearInterval(interval);
     }, [servicos, motoristas, locais]);
 

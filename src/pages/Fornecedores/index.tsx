@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Search, Trash2, MapPin, Phone, Mail, Building2 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -220,6 +221,15 @@ export default function Fornecedores() {
                                         <MapPin className="h-4 w-4 text-slate-500 mt-0.5" />
                                         <span className="flex-1 leading-tight">{fornecedor.morada || 'Sem morada'}</span>
                                     </div>
+                                </div>
+
+                                <div className="mt-4 pt-4 border-t border-slate-700/60">
+                                    <Link
+                                        to={`/fornecedores/${fornecedor.id}`}
+                                        className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/20"
+                                    >
+                                        Ver perfil financeiro
+                                    </Link>
                                 </div>
                             </div>
                         ))}

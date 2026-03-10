@@ -20,7 +20,7 @@ export default function Geofences() {
     const [debugInfo, setDebugInfo] = useState<unknown>(null); // DEBUG STATE
     const refreshInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const fetchData = async (isRefresh = false) => {
+    const fetchData = async (isRefresh = false, includeSupabaseRefresh = true) => {
         if (isRefresh) setRefreshing(true);
         else setLoading(true);
 
@@ -35,7 +35,9 @@ export default function Geofences() {
                 setGeofences(geoData.value);
             }
 
-            await refreshData();
+            if (includeSupabaseRefresh) {
+                await refreshData();
+            }
 
         } catch (err) {
             console.error(err);
@@ -49,7 +51,7 @@ export default function Geofences() {
 
     useEffect(() => {
         fetchData();
-        refreshInterval.current = setInterval(() => fetchData(true), 30000);
+        refreshInterval.current = setInterval(() => fetchData(true, false), 120000);
         return () => {
             if (refreshInterval.current) clearInterval(refreshInterval.current);
         };

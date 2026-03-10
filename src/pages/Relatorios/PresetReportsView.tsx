@@ -69,9 +69,9 @@ export default function PresetReportsView() {
                 ] = await Promise.all([
                     supabase.from('motoristas').select('id, nome, status, servicos(count)'),
                     supabase.from('viaturas').select('id, matricula, marca, modelo, estado, manutencoes(count)'),
-                    supabase.from('fuel_transactions').select('*').order('timestamp', { ascending: false }),
-                    supabase.from('faturas').select('*').order('data', { ascending: false }).limit(10),
-                    supabase.from('eva_transport_days').select('*, eva_transports(route)').eq('has_issue', true).order('date', { ascending: false }).limit(10)
+                    supabase.from('fuel_transactions').select('vehicle_id, liters, total_cost, timestamp').order('timestamp', { ascending: false }).limit(1000),
+                    supabase.from('faturas').select('id, numero, cliente_id, total, status, data').order('data', { ascending: false }).limit(10),
+                    supabase.from('eva_transport_days').select('id, date, issue_type, issue_description, eva_transports(route)').eq('has_issue', true).order('date', { ascending: false }).limit(10)
                 ]);
 
                 // Process Drivers

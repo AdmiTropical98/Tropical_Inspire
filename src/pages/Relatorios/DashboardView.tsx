@@ -39,23 +39,23 @@ export default function DashboardView() {
             try {
                 // Parallel fetching for performance
                 const [
-                    { count: totalDrivers } = await supabase.from('motoristas').select('*', { count: 'exact', head: true }),
-                    { count: activeDrivers } = await supabase.from('motoristas').select('*', { count: 'exact', head: true }).eq('status', 'ocupado'),
-                    { count: totalVehicles } = await supabase.from('viaturas').select('*', { count: 'exact', head: true }),
-                    { count: vehiclesInMaintenance } = await supabase.from('viaturas').select('*', { count: 'exact', head: true }).eq('estado', 'em_manutencao'),
-                    { count: totalServicesToday } = await supabase.from('servicos').select('*', { count: 'exact', head: true }).eq('concluido', false),
-                    { count: pendingMaintenance } = await supabase.from('manutencoes').select('*', { count: 'exact', head: true }).eq('tipo', 'preventiva'),
-                    { data: services } = await supabase.from('servicos').select('created_at').order('created_at', { ascending: true }),
-                    { data: vehicles } = await supabase.from('viaturas').select('estado')
+                    { count: totalDrivers },
+                    { count: activeDrivers },
+                    { count: totalVehicles },
+                    { count: vehiclesInMaintenance },
+                    { count: totalServicesToday },
+                    { count: pendingMaintenance },
+                    { data: services },
+                    { data: vehicles }
                 ] = await Promise.all([
-                    supabase.from('motoristas').select('*', { count: 'exact', head: true }),
-                    supabase.from('motoristas').select('*', { count: 'exact', head: true }).eq('status', 'ocupado'),
-                    supabase.from('viaturas').select('*', { count: 'exact', head: true }),
-                    supabase.from('viaturas').select('*', { count: 'exact', head: true }).eq('estado', 'em_manutencao'),
-                    supabase.from('servicos').select('*', { count: 'exact', head: true }).eq('concluido', false),
-                    supabase.from('manutencoes').select('*', { count: 'exact', head: true }).eq('tipo', 'preventiva'),
-                    supabase.from('servicos').select('created_at').order('created_at', { ascending: true }),
-                    supabase.from('viaturas').select('estado')
+                    supabase.from('motoristas').select('id', { count: 'exact', head: true }),
+                    supabase.from('motoristas').select('id', { count: 'exact', head: true }).eq('status', 'ocupado'),
+                    supabase.from('viaturas').select('id', { count: 'exact', head: true }),
+                    supabase.from('viaturas').select('id', { count: 'exact', head: true }).eq('estado', 'em_manutencao'),
+                    supabase.from('servicos').select('id', { count: 'exact', head: true }).eq('concluido', false),
+                    supabase.from('manutencoes').select('id', { count: 'exact', head: true }).eq('tipo', 'preventiva'),
+                    supabase.from('servicos').select('created_at').order('created_at', { ascending: false }).limit(1000),
+                    supabase.from('viaturas').select('estado').limit(500)
                 ]);
 
                 // Process Service History for Chart

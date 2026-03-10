@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, Building2, Phone, Mail, MapPin, BarChart3, ClipboardList, Car } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -363,6 +364,15 @@ export default function Clientes() {
                                     {cliente.morada}
                                 </div>
                             )}
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t border-slate-700/60">
+                            <Link
+                                to={`/clientes/${cliente.id}`}
+                                className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/20"
+                            >
+                                Ver perfil financeiro
+                            </Link>
                         </div>
                     </div>
                 ))}

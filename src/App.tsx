@@ -38,13 +38,16 @@ import AvaliacaoDriversTab from './pages/Avaliacao';
 import ContabilidadeTab from './pages/Contabilidade';
 import SupplierInvoiceDocumentPage from './pages/Contabilidade/SupplierInvoiceDocumentPage';
 import ProcessamentoSalarios from './pages/Contabilidade/ProcessamentoSalarios';
+import SalariosPage from './pages/Salarios';
 import NovaFaturaPage from './pages/Finance/NovaFaturaPage';
 import LancarEscalaTab from './pages/LancarEscala';
 import ControloOperacionalTab from './pages/ControloOperacional';
 import Fornecedores from './pages/Fornecedores';
+import SupplierProfile from './pages/Fornecedores/SupplierProfile';
 import ViaVerde from './pages/ViaVerde';
 import Carregamentos from './pages/Carregamentos';
 import EficienciaFrota from './pages/EficienciaFrota';
+import ClientProfile from './pages/Clientes/ClientProfile';
 import StockParts from './pages/Workshop/StockParts';
 import StockMovements from './pages/Workshop/StockMovements';
 import StockAlerts from './pages/Workshop/StockAlerts';
@@ -352,6 +355,7 @@ function App() {
           <SidebarGroup title="Finance" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Processamento de Salários" active={activeTab === 'processamento-salarios'} onClick={() => handleNavigate('processamento-salarios')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Salários" active={activeTab === 'salarios'} onClick={() => handleNavigate('salarios')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'fornecedores') && <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'clientes') && <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />}
@@ -398,11 +402,13 @@ function App() {
                 <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
                 <Route path="/contabilidade" element={<ContabilidadeTab />} />
                 <Route path="/processamento-salarios" element={<ProcessamentoSalarios />} />
+                <Route path="/salarios" element={<SalariosPage />} />
                 <Route path="/finance/faturas/nova" element={<NovaFaturaPage />} />
                 <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
                 <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
                 <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
                 <Route path="/fornecedores" element={<Fornecedores />} />
+                <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
                 <Route path="/via-verde" element={<ViaVerde />} />
                 <Route path="/carregamentos" element={<Carregamentos />} />
                 <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
@@ -411,6 +417,7 @@ function App() {
                 <Route path="/supervisores" element={<Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>} />
                 <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
                 <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
+                <Route path="/clientes/:clientId" element={<ClientProfile />} />
                 <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
                 <Route path="/workshop-stock" element={<StockParts />} />
                 <Route path="/workshop-movements" element={<StockMovements />} />

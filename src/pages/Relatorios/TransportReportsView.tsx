@@ -46,9 +46,10 @@ export default function TransportReportsView() {
             try {
                 const { data: hotelData } = await supabase
                     .from('vw_transport_stats_by_hotel_monthly')
-                    .select('*')
+                    .select('month, hotel, total_transportes, funcionarios_transportados, viagens_realizadas')
                     .eq('month', monthStart)
-                    .order('viagens_realizadas', { ascending: false });
+                    .order('viagens_realizadas', { ascending: false })
+                    .limit(50);
 
                 setHotels((hotelData || []) as HotelRow[]);
 
@@ -57,7 +58,8 @@ export default function TransportReportsView() {
                     .select('employee_id, hotel_name, trip_date, transport_price_per_day, service_passengers(employee_name)')
                     .gte('trip_date', monthStart)
                     .lte('trip_date', monthEnd)
-                    .order('trip_date', { ascending: false });
+                    .order('trip_date', { ascending: false })
+                    .limit(5000);
 
                 if (selectedHotel !== 'all') {
                     tripQuery = tripQuery.eq('hotel_name', selectedHotel);
