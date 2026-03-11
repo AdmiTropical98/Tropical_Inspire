@@ -110,6 +110,7 @@ class EmailService {
 
     async sendPlainEmail(payload: PlainEmailPayload) {
         const endpoints = [
+            '/api/send-email.php',
             'https://api.algartempo-frota.com/send-email.php',
             'https://algartempo-frota.com/api/send-email.php',
         ];
