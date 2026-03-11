@@ -64,6 +64,19 @@ const Relatorios = lazy(() => import('./pages/Relatorios'));
 const Mensagens = lazy(() => import('./pages/Chat'));
 const Profile = lazy(() => import('./pages/Profile/MyProfile'));
 
+const LegacySupplierActionRedirect: React.FC = () => {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const redirectUrl = `https://algartempo-frota.com/api/action.php${location.search || ''}`;
+    window.location.replace(redirectUrl);
+  }, [location.search]);
+
+  return (
+    <div className="p-6 text-slate-300">A redirecionar para a confirmação da requisição...</div>
+  );
+};
+
 // TAB_LABELS removed (unused)
 
 interface SidebarItemProps {
@@ -380,6 +393,8 @@ function App() {
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
+                <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
+                <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
                 <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
                 <Route path="/viaturas" element={<Viaturas />} />
