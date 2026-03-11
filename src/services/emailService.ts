@@ -109,29 +109,47 @@ class EmailService {
     }
 
     async sendPlainEmail(payload: PlainEmailPayload) {
-        const response = await fetch("https://api.algartempo-frota.com/send-email.php", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                to: payload.to,
-                subject: payload.subject,
-                message: payload.message,
-                numero: payload.numero,
-                pdfBase64: payload.pdfBase64,
-                pdfFileName: payload.pdfFileName,
-            }),
-        });
+        const endpoints = [
+            'https://api.algartempo-frota.com/send-email.php',
+            'https://algartempo-frota.com/api/send-email.php',
+        ];
 
-        if (!response.ok) {
-            let message = 'Erro ao enviar email';
+        let lastError: Error | null = null;
+
+        for (const endpoint of endpoints) {
             try {
-                const data = await response.json();
-                message = data?.details || data?.error || message;
-            } catch {
-                // Keep default message if response body is not JSON.
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: payload.to,
+                        subject: payload.subject,
+                        message: payload.message,
+                        numero: payload.numero,
+                        pdfBase64: payload.pdfBase64,
+                        pdfFileName: payload.pdfFileName,
+                    }),
+                });
+
+                if (response.ok) {
+                    return;
+                }
+
+                let message = 'Erro ao enviar email';
+                try {
+                    const data = await response.json();
+                    message = data?.details || data?.error || message;
+                } catch {
+                    // Keep default message if response body is not JSON.
+                }
+
+                lastError = new Error(message);
+            } catch (error) {
+                lastError = error instanceof Error ? error : new Error('Erro ao enviar email');
             }
-            throw new Error(message);
         }
+
+        throw lastError ?? new Error('Erro ao enviar email');
     }
 
     mapSupplierRequestPayload(req: Requisicao, supplierEmail: string, vehiclePlate?: string): SupplierRequestPayload {
