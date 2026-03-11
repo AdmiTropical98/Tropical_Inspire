@@ -19,6 +19,7 @@ import { emailService } from '../../services/emailService';
 
 export default function Requisicoes() {
     const SENDER_EMAIL = 'frota@tropicalinspire.pt';
+    const SUPPLIER_ACTION_BASE_URL = (import.meta.env.VITE_SUPPLIER_ACTION_BASE_URL || 'https://algartempo-frota.com/api').replace(/\/$/, '');
     const navigate = useNavigate();
     const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
     const { supplierInvoices } = useFinancial();
@@ -67,9 +68,9 @@ export default function Requisicoes() {
 
     const buildSupplierEmailMessage = (requisitionIdentifier: string, numero: string, matricula: string, dateStr: string) => {
         const encodedId = encodeURIComponent(requisitionIdentifier);
-        const confirmUrl = `https://api.algartempo-frota.com/confirmar-requisicao.php?id=${encodedId}`;
-        const rejectUrl = `https://api.algartempo-frota.com/recusar-requisicao.php?id=${encodedId}`;
-        const commentUrl = `https://api.algartempo-frota.com/salvar-comentario-requisicao.php?id=${encodedId}`;
+        const confirmUrl = `${SUPPLIER_ACTION_BASE_URL}/confirmar-requisicao.php?id=${encodedId}`;
+        const rejectUrl = `${SUPPLIER_ACTION_BASE_URL}/recusar-requisicao.php?id=${encodedId}`;
+        const commentUrl = `${SUPPLIER_ACTION_BASE_URL}/salvar-comentario-requisicao.php?id=${encodedId}`;
 
         return [
             '<p>Boa tarde,</p>',
