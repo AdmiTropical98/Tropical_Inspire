@@ -358,7 +358,7 @@ export default function Requisicoes() {
         setEmailModalReqId(req.id);
         setEmailTo(supplier.email);
         setEmailSubject(`Requisição nº ${req.numero}`);
-        setEmailMessage(buildSupplierEmailMessage(req.numero, req.numero, vehicle?.matricula || '', req.data));
+        setEmailMessage(buildSupplierEmailMessage(req.id, req.numero, vehicle?.matricula || '', req.data));
         setShowEmailPreview(false);
         setShowEmailModal(true);
     };
