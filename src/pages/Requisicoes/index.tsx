@@ -68,9 +68,9 @@ export default function Requisicoes() {
 
     const buildSupplierEmailMessage = (requisitionIdentifier: string, numero: string, matricula: string, dateStr: string) => {
         const encodedId = encodeURIComponent(requisitionIdentifier);
-        const confirmUrl = `${SUPPLIER_ACTION_BASE_URL}/confirmar-requisicao.php?id=${encodedId}`;
-        const rejectUrl = `${SUPPLIER_ACTION_BASE_URL}/recusar-requisicao.php?id=${encodedId}`;
-        const commentUrl = `${SUPPLIER_ACTION_BASE_URL}/salvar-comentario-requisicao.php?id=${encodedId}`;
+        const confirmUrl = `${SUPPLIER_ACTION_BASE_URL}/action.php?action=confirm&id=${encodedId}`;
+        const rejectUrl = `${SUPPLIER_ACTION_BASE_URL}/action.php?action=reject&id=${encodedId}`;
+        const commentUrl = `${SUPPLIER_ACTION_BASE_URL}/action.php?action=comment&id=${encodedId}`;
 
         return [
             '<p>Boa tarde,</p>',

@@ -64,6 +64,29 @@ When enabled:
 - Faturas: "Enviar Fatura"
 - Escalas: "Enviar Escala"
 
-## 4) Security note
+## 4) Supplier actions endpoint
+
+Supplier links now point to a single PHP endpoint:
+
+- `/api/action.php?action=confirm&id=26/0040`
+- `/api/action.php?action=reject&id=26/0040`
+- `/api/action.php?action=comment&id=26/0040`
+
+`action=confirm`
+
+- Updates requisition in Supabase with `supplier_confirmed = true` and `supplier_confirmed_at = now()`.
+- Returns a simple confirmation page.
+
+`action=reject`
+
+- Updates requisition in Supabase with `supplier_rejected = true` and `supplier_rejected_at = now()`.
+- Returns a simple rejection page.
+
+`action=comment`
+
+- GET: renders a simple comment form.
+- POST: saves the supplier comment in Supabase and returns a success page.
+
+## 5) Security note
 
 SMTP credentials are never exposed in frontend code. Only the backend API holds and uses SMTP secrets.
