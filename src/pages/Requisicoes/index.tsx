@@ -67,9 +67,9 @@ export default function Requisicoes() {
 
     const buildSupplierEmailMessage = (requisitionIdentifier: string, numero: string, matricula: string, dateStr: string) => {
         const encodedId = encodeURIComponent(requisitionIdentifier);
-        const confirmUrl = `https://algartempo-frota.com/api/confirmar-requisicao.php?id=${encodedId}`;
-        const rejectUrl = `https://algartempo-frota.com/api/recusar-requisicao.php?id=${encodedId}`;
-        const commentUrl = `https://algartempo-frota.com/api/salvar-comentario-requisicao.php?id=${encodedId}`;
+        const confirmUrl = `https://api.algartempo-frota.com/confirmar-requisicao.php?id=${encodedId}`;
+        const rejectUrl = `https://api.algartempo-frota.com/recusar-requisicao.php?id=${encodedId}`;
+        const commentUrl = `https://api.algartempo-frota.com/salvar-comentario-requisicao.php?id=${encodedId}`;
 
         return [
             '<p>Boa tarde,</p>',

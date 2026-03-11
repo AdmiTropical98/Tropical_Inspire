@@ -76,7 +76,7 @@ header('Content-Type: text/html; charset=utf-8');
 <section class="card">
     <h1>Enviar Comentario</h1>
     <p>Partilhe uma observacao sobre a requisicao.</p>
-    <form method="post" action="/api/salvar-comentario-requisicao.php">
+    <form method="post" action="salvar-comentario-requisicao.php">
         <input type="hidden" name="id" value="<?= htmlspecialchars($requisitionId, ENT_QUOTES, 'UTF-8') ?>">
         <textarea name="comment" required placeholder="Escreva o seu comentario..."></textarea>
         <button type="submit">Enviar Comentario</button>
