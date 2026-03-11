@@ -3,6 +3,27 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/_requisicoes_supabase.php';
 
+function render_simple_notice(string $message, string $accentColor): void
+{
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html>';
+    echo '<html lang="pt">';
+    echo '<head>';
+    echo '<meta charset="utf-8">';
+    echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
+    echo '<title>Confirmacao</title>';
+    echo '<style>';
+    echo 'body{background:#0f172a;color:white;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:20px;}';
+    echo '.msg{max-width:620px;text-align:center;font-size:20px;line-height:1.5;font-weight:700;color:' . htmlspecialchars($accentColor, ENT_QUOTES, 'UTF-8') . ';}';
+    echo '</style>';
+    echo '</head>';
+    echo '<body>';
+    echo '<p class="msg">' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>';
+    echo '</body>';
+    echo '</html>';
+    exit;
+}
+
 function render_comment_form(string $identifier): void
 {
     header('Content-Type: text/html; charset=utf-8');
@@ -87,7 +108,7 @@ if ($action === 'comment') {
     sf_insert_system_alert('Supplier sent comment for requisition ' . $numero, $reqId);
 
     http_response_code(200);
-    sf_render_html_page('Comentario enviado', 'Obrigado pelo seu comentario.', '#2563eb');
+    render_simple_notice('Comentario enviado com sucesso.', '#2563eb');
 }
 
 if ($method !== 'GET') {
@@ -146,4 +167,4 @@ $reqId = (string)($record['id'] ?? $identifier);
 sf_insert_system_alert('Supplier rejected requisition ' . $numero, $reqId);
 
 http_response_code(200);
-sf_render_html_page('Requisicao recusada', 'A requisicao foi recusada.', '#b91c1c');
+render_simple_notice('Recusa confirmada com sucesso.', '#b91c1c');
