@@ -20,12 +20,12 @@ import { emailService } from '../../services/emailService';
 export default function Requisicoes() {
     const SENDER_EMAIL = 'frota@tropicalinspire.pt';
     const supplierActionBaseFromEnv = (import.meta.env.VITE_SUPPLIER_ACTION_BASE_URL || '').trim();
-    const normalizedSupplierActionBase = (supplierActionBaseFromEnv || 'https://api.algartempo-frota.com')
+    const normalizedSupplierActionBase = (supplierActionBaseFromEnv || 'https://algartempo-frota.com/api')
         .replace(/\/$/, '')
-        .replace(/\/public_html_api$/i, '');
+        .replace(/\/public_html_api$/i, '/api');
     const SUPPLIER_ACTION_BASE_URL = /(^https?:\/\/)(www\.)?algartempo-frota\.com$/i.test(normalizedSupplierActionBase)
-        ? 'https://api.algartempo-frota.com'
-        : normalizedSupplierActionBase;
+        ? 'https://algartempo-frota.com/api'
+        : normalizedSupplierActionBase.replace(/^https:\/\/api\.algartempo-frota\.com$/i, 'https://algartempo-frota.com/api');
     const navigate = useNavigate();
     const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
     const { supplierInvoices } = useFinancial();
