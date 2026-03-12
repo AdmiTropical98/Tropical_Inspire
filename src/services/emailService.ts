@@ -25,6 +25,7 @@ type DriverSchedulePayload = {
 
 type PlainEmailPayload = {
     to: string;
+    cc?: string[];
     subject: string;
     message: string;
     numero?: string;
@@ -125,6 +126,7 @@ class EmailService {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         to: payload.to,
+                        cc: payload.cc,
                         subject: payload.subject,
                         message: payload.message,
                         numero: payload.numero,

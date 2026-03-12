@@ -98,6 +98,30 @@ function sanitize_header_value(string $value): string
     return trim(str_replace(["\r", "\n"], '', $value));
 }
 
+function parse_cc_recipients($rawCc): array
+{
+    $recipients = [];
+
+    if (is_string($rawCc)) {
+        $parts = preg_split('/[;,\s]+/', $rawCc) ?: [];
+        foreach ($parts as $part) {
+            $email = trim((string)$part);
+            if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $recipients[] = strtolower($email);
+            }
+        }
+    } elseif (is_array($rawCc)) {
+        foreach ($rawCc as $entry) {
+            $email = trim((string)$entry);
+            if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $recipients[] = strtolower($email);
+            }
+        }
+    }
+
+    return array_values(array_unique($recipients));
+}
+
 function sanitize_download_filename(string $fileName): string
 {
     $safe = preg_replace('/[^A-Za-z0-9._-]/', '-', $fileName) ?? '';
@@ -176,6 +200,7 @@ function build_download_base_url(): string
 
 function send_via_native_mail(
     string $to,
+    array $ccRecipients,
     string $subject,
     string $htmlMessage,
     string $fromEmail,
@@ -198,6 +223,9 @@ function send_via_native_mail(
     $headers[] = 'MIME-Version: 1.0';
     $headers[] = "From: {$safeFromName} <{$safeFromEmail}>";
     $headers[] = "Reply-To: {$safeFromEmail}";
+    if (count($ccRecipients) > 0) {
+        $headers[] = 'Cc: ' . implode(', ', array_map('sanitize_header_value', $ccRecipients));
+    }
 
     $attachmentBinary = null;
     $attachmentName = '';
@@ -292,6 +320,7 @@ if (!is_array($data)) {
 }
 
 $to = trim((string)($data['to'] ?? ''));
+$ccRecipients = parse_cc_recipients($data['cc'] ?? []);
 $subject = trim((string)($data['subject'] ?? ''));
 $message = (string)($data['message'] ?? '');
 $numero = trim((string)($data['numero'] ?? ''));
@@ -334,7 +363,7 @@ $fromEmail = get_env_value('SMTP_FROM_EMAIL') ?? 'frota@tropicalinspire.pt';
 $fromName = get_env_value('SMTP_FROM_NAME') ?? 'Miguel Madeira - Tropical Inspire';
 
 if (!$phpMailerAvailable) {
-    $nativeResult = send_via_native_mail($to, $subject, $message, $fromEmail, $fromName, $numero, $pdfBase64, $pdfFileName, $pdfPath);
+    $nativeResult = send_via_native_mail($to, $ccRecipients, $subject, $message, $fromEmail, $fromName, $numero, $pdfBase64, $pdfFileName, $pdfPath);
 
     if ($nativeResult['ok'] === true) {
         http_response_code(200);
@@ -388,6 +417,9 @@ try {
 
     $mail->setFrom($fromEmail, $fromName);
     $mail->addAddress($to);
+    foreach ($ccRecipients as $ccEmail) {
+        $mail->addCC($ccEmail);
+    }
     $mail->isHTML(true);
     $mail->Subject = $subject;
     $mail->Body = $message;

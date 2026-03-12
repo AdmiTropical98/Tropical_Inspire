@@ -39,6 +39,7 @@ export default function Requisicoes() {
     const [showEmailPreview, setShowEmailPreview] = useState(false);
     const [emailModalReqId, setEmailModalReqId] = useState<string | null>(null);
     const [emailTo, setEmailTo] = useState('');
+    const [emailCc, setEmailCc] = useState('');
     const [emailSubject, setEmailSubject] = useState('');
     const [emailMessage, setEmailMessage] = useState('');
 
@@ -78,12 +79,30 @@ export default function Requisicoes() {
                         .replace(/"/g, '&quot;')
                         .replace(/'/g, '&#39;');
 
-    const buildSupplierEmailMessage = (numero: string, matricula: string, dateStr: string) => {
-        const safeNumero = escapeEmailHtml(numero);
+    const buildSupplierEmailMessage = (req: Requisicao, supplierName: string, matricula: string) => {
+        const safeNumero = escapeEmailHtml(req.numero);
         const safeMatricula = escapeEmailHtml(matricula || 'N/A');
-        const safeDate = escapeEmailHtml(formatSmallDate(dateStr));
+        const safeDate = escapeEmailHtml(formatSmallDate(req.data));
+        const safeSupplier = escapeEmailHtml(supplierName || 'N/A');
+        const safeType = escapeEmailHtml(req.tipo || 'N/A');
+        const safeObs = escapeEmailHtml(req.obs?.trim() || 'Sem observações adicionais.');
+        const totalItems = Array.isArray(req.itens) ? req.itens.length : 0;
+        const totalQtd = (req.itens || []).reduce((sum, item) => sum + Number(item?.quantidade || 0), 0);
+        const safeTotalItems = escapeEmailHtml(String(totalItems));
+        const safeTotalQtd = escapeEmailHtml(String(totalQtd));
         const safeLogoUrl = escapeEmailHtml(EMAIL_LOGO_URL);
         const safeDownloadPlaceholder = escapeEmailHtml(DOWNLOAD_LINK_PLACEHOLDER);
+        const itemsRows = (req.itens || []).slice(0, 6).map((item, index) => {
+            const itemDesc = escapeEmailHtml(item.descricao || `Item ${index + 1}`);
+            const itemQty = escapeEmailHtml(String(item.quantidade || 0));
+
+            return `
+                <tr>
+                    <td style="padding:10px 0;font-size:14px;line-height:1.5;color:#0f172a;${index > 0 ? 'border-top:1px solid #e2e8f0;' : ''}">${itemDesc}</td>
+                    <td style="padding:10px 0;font-size:14px;line-height:1.5;color:#0f172a;text-align:right;font-weight:700;${index > 0 ? 'border-top:1px solid #e2e8f0;' : ''}">${itemQty}</td>
+                </tr>
+            `;
+        }).join('');
 
         return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef2f7;margin:0;padding:0;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;color:#111827;">
@@ -110,7 +129,23 @@ export default function Requisicoes() {
                 <tr>
                     <td style="padding:30px 40px 8px 40px;">
                         <p style="margin:0 0 12px 0;font-size:17px;line-height:1.6;color:#0f172a;">Boa tarde,</p>
-                        <p style="margin:0;font-size:16px;line-height:1.7;color:#334155;">Foi criada uma nova requisição de serviço para a sua equipa. Seguem os dados principais para acompanhamento imediato.</p>
+                        <p style="margin:0 0 14px 0;font-size:16px;line-height:1.7;color:#334155;">Foi criada uma nova requisição de serviço para a sua equipa. Seguem os dados para acompanhamento imediato.</p>
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:12px;">
+                            <tr>
+                                <td style="padding:14px 16px;">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.6px;">Fornecedor</td>
+                                            <td style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.6px;text-align:right;">Tipo</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-top:6px;font-size:16px;color:#0f172a;font-weight:700;">${safeSupplier}</td>
+                                            <td style="padding-top:6px;font-size:16px;color:#0f172a;font-weight:700;text-align:right;">${safeType}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
                 <tr>
@@ -134,6 +169,34 @@ export default function Requisicoes() {
                                             <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:14px;color:#5f728c;">Data</td>
                                             <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:15px;color:#0f172a;font-weight:700;">${safeDate}</td>
                                         </tr>
+                                        <tr>
+                                            <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:14px;color:#5f728c;">Total de Itens</td>
+                                            <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:15px;color:#0f172a;font-weight:700;">${safeTotalItems}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:14px;color:#5f728c;">Quantidade Total</td>
+                                            <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:15px;color:#0f172a;font-weight:700;">${safeTotalQtd}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 40px 12px 40px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #dbe4ee;border-radius:12px;">
+                            <tr>
+                                <td style="padding:14px 16px;border-bottom:1px solid #dbe4ee;font-size:13px;line-height:1.4;color:#476180;text-transform:uppercase;letter-spacing:.8px;font-weight:700;">Itens da Requisição</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px 16px 8px 16px;">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td style="padding:0 0 8px 0;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.6px;">Descrição</td>
+                                            <td style="padding:0 0 8px 0;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.6px;text-align:right;">Qtd</td>
+                                        </tr>
+                                        ${itemsRows || '<tr><td style="padding:10px 0;font-size:14px;color:#64748b;" colspan="2">Sem itens registados.</td></tr>'}
                                     </table>
                                 </td>
                             </tr>
@@ -153,7 +216,15 @@ export default function Requisicoes() {
                 </tr>
                 <tr>
                     <td style="padding:16px 40px 4px 40px;">
-                        <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">Se necessitar de mais informações, basta responder a este email.</p>
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                            <tr>
+                                <td style="padding:12px 14px 6px 14px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.6px;">Observações</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:0 14px 12px 14px;font-size:14px;line-height:1.7;color:#334155;">${safeObs}</td>
+                            </tr>
+                        </table>
+                        <p style="margin:14px 0 0 0;font-size:15px;line-height:1.7;color:#334155;">Se necessitar de mais informações, basta responder a este email.</p>
                     </td>
                 </tr>
                 <tr>
@@ -196,6 +267,13 @@ export default function Requisicoes() {
 
     const isValidEmail = (value: string) => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    };
+
+    const parseCcEmails = (value: string): string[] => {
+        return value
+            .split(/[;,\s]+/)
+            .map(email => email.trim())
+            .filter(Boolean);
     };
 
     const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
@@ -422,6 +500,7 @@ export default function Requisicoes() {
         setShowEmailPreview(false);
         setEmailModalReqId(null);
         setEmailTo('');
+        setEmailCc('');
         setEmailSubject('');
         setEmailMessage('');
     };
@@ -436,8 +515,9 @@ export default function Requisicoes() {
         const vehicle = viaturas.find(v => v.id === req.viaturaId);
         setEmailModalReqId(req.id);
         setEmailTo(supplier.email);
+        setEmailCc('');
         setEmailSubject(`Requisição nº ${req.numero}`);
-        setEmailMessage(buildSupplierEmailMessage(req.numero, vehicle?.matricula || '', req.data));
+        setEmailMessage(buildSupplierEmailMessage(req, supplier.nome || '', vehicle?.matricula || ''));
         setShowEmailPreview(false);
         setShowEmailModal(true);
     };
@@ -450,6 +530,11 @@ export default function Requisicoes() {
         }
         if (!isValidEmail(recipient)) {
             alert('Indique um email válido no campo destinatário.');
+            return;
+        }
+        const ccRecipients = parseCcEmails(emailCc);
+        if (ccRecipients.some(ccEmail => !isValidEmail(ccEmail))) {
+            alert('Existe pelo menos um email inválido no campo CC.');
             return;
         }
         if (!emailSubject.trim()) {
@@ -480,6 +565,7 @@ export default function Requisicoes() {
 
             await emailService.sendPlainEmail({
                 to: emailTo.trim(),
+                cc: parseCcEmails(emailCc),
                 subject: emailSubject.trim(),
                 message: emailMessage,
                 numero: req.numero,
@@ -2147,6 +2233,18 @@ export default function Requisicoes() {
                                         </div>
 
                                         <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">CC (com conhecimento)</label>
+                                            <input
+                                                type="text"
+                                                value={emailCc}
+                                                onChange={e => setEmailCc(e.target.value)}
+                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all"
+                                                placeholder="email1@empresa.pt; email2@empresa.pt"
+                                            />
+                                            <p className="text-xs text-slate-500">Pode separar vários emails com ponto e vírgula, vírgula ou espaço.</p>
+                                        </div>
+
+                                        <div className="space-y-2">
                                             <label className="text-xs font-bold text-slate-500 uppercase">Mensagem (HTML)</label>
                                             <textarea
                                                 value={emailMessage}
@@ -2165,6 +2263,7 @@ export default function Requisicoes() {
                                         <div className="p-5 bg-slate-950/70 border border-slate-800 rounded-2xl">
                                             <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">De:</span> {SENDER_EMAIL}</p>
                                             <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">Para:</span> {emailTo}</p>
+                                            <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">CC:</span> {emailCc || '—'}</p>
                                             <p className="text-sm text-slate-300 mb-4"><span className="text-slate-500">Assunto:</span> {emailSubject}</p>
                                             <div className="text-sm text-slate-200 leading-6" dangerouslySetInnerHTML={{ __html: emailMessage }} />
                                         </div>
