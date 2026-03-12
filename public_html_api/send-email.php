@@ -160,8 +160,8 @@ function build_download_base_url(): string
         return rtrim($envBaseUrl, '/');
     }
 
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    if ($host !== '') {
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    if ($host !== '' && (str_contains($host, 'localhost') || str_contains($host, '127.0.0.1'))) {
         $isHttps =
             (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
             strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
