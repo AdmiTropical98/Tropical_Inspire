@@ -19,13 +19,6 @@ import { emailService } from '../../services/emailService';
 
 export default function Requisicoes() {
     const SENDER_EMAIL = 'frota@tropicalinspire.pt';
-    const supplierActionBaseFromEnv = (import.meta.env.VITE_SUPPLIER_ACTION_BASE_URL || '').trim();
-    const normalizedSupplierActionBase = (supplierActionBaseFromEnv || 'https://algartempo-frota.com/api')
-        .replace(/\/$/, '')
-        .replace(/\/public_html_api$/i, '/api');
-    const SUPPLIER_ACTION_BASE_URL = /(^https?:\/\/)(www\.)?algartempo-frota\.com$/i.test(normalizedSupplierActionBase)
-        ? 'https://algartempo-frota.com/api'
-        : normalizedSupplierActionBase.replace(/^https:\/\/api\.algartempo-frota\.com$/i, 'https://algartempo-frota.com/api');
     const navigate = useNavigate();
     const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
     const { supplierInvoices } = useFinancial();
@@ -72,30 +65,77 @@ export default function Requisicoes() {
         }
     };
 
-    const buildSupplierEmailMessage = (requisitionIdentifier: string, numero: string, matricula: string, dateStr: string) => {
-        const encodedId = encodeURIComponent(requisitionIdentifier);
-        const confirmUrl = `${SUPPLIER_ACTION_BASE_URL}/action.php?action=confirm&id=${encodedId}`;
-        const rejectUrl = `${SUPPLIER_ACTION_BASE_URL}/action.php?action=reject&id=${encodedId}`;
-        const commentUrl = `${SUPPLIER_ACTION_BASE_URL}/action.php?action=comment&id=${encodedId}`;
+        const escapeEmailHtml = (value: string) =>
+                value
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
 
-        return [
-            '<p>Boa tarde,</p>',
-            '<p>Venho por este meio informar que foi criada uma nova requisição de serviço.</p>',
-            '<p><strong>Detalhes da Requisição:</strong></p>',
-            '<ul>',
-            `<li>Número: ${numero}</li>`,
-            `<li>Viatura: ${matricula || 'N/A'}</li>`,
-            `<li>Data: ${formatSmallDate(dateStr)}</li>`,
-            '</ul>',
-            '<p><strong>Ação do fornecedor:</strong></p>',
-            '<p style="margin: 14px 0;">',
-            `<a href="${confirmUrl}" style="background:#28a745;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;display:inline-block;margin-right:8px;">Confirmar Rececao</a>`,
-            `<a href="${rejectUrl}" style="background:#dc3545;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;display:inline-block;margin-right:8px;">Recusar Requisicao</a>`,
-            `<a href="${commentUrl}" style="background:#007bff;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Enviar Comentario</a>`,
-            '</p>',
-            '<p>Se necessitar de mais informações, por favor responda a este email.</p>',
-            '<p>Com os melhores cumprimentos,<br>Miguel Madeira<br>Tropical Inspire</p>'
-        ].join('\n');
+    const buildSupplierEmailMessage = (numero: string, matricula: string, dateStr: string) => {
+                const safeNumero = escapeEmailHtml(numero);
+                const safeMatricula = escapeEmailHtml(matricula || 'N/A');
+                const safeDate = escapeEmailHtml(formatSmallDate(dateStr));
+
+                return `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f4f6;margin:0;padding:24px 0;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;color:#111827;">
+    <tr>
+        <td align="center" style="padding:0 12px;">
+            <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+                <tr>
+                    <td style="background:#0f172a;padding:26px 30px;">
+                        <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#93c5fd;font-weight:700;">Nova Requisição de Serviço</p>
+                        <h1 style="margin:0;font-size:28px;line-height:1.2;color:#ffffff;font-weight:800;">Requisição nº ${safeNumero}</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:28px 30px 12px 30px;">
+                        <p style="margin:0 0 14px 0;font-size:16px;line-height:1.6;color:#1f2937;">Boa tarde,</p>
+                        <p style="margin:0;font-size:16px;line-height:1.6;color:#374151;">Foi criada uma nova requisição de serviço para a sua equipa.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 30px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                            <tr>
+                                <td style="padding:16px 18px;border-bottom:1px solid #e2e8f0;font-size:13px;line-height:1.4;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Detalhes da Requisição</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:6px 18px 4px 18px;">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td style="padding:10px 0;font-size:14px;color:#64748b;width:34%;">Número</td>
+                                            <td style="padding:10px 0;font-size:15px;color:#0f172a;font-weight:700;">${safeNumero}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:10px 0;border-top:1px solid #e2e8f0;font-size:14px;color:#64748b;">Viatura</td>
+                                            <td style="padding:10px 0;border-top:1px solid #e2e8f0;font-size:15px;color:#0f172a;font-weight:700;">${safeMatricula}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:10px 0;border-top:1px solid #e2e8f0;font-size:14px;color:#64748b;">Data</td>
+                                            <td style="padding:10px 0;border-top:1px solid #e2e8f0;font-size:15px;color:#0f172a;font-weight:700;">${safeDate}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 30px 4px 30px;">
+                        <p style="margin:0;font-size:15px;line-height:1.6;color:#374151;">Se necessitar de mais informações, responda a este email.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:22px 30px 30px 30px;">
+                        <p style="margin:0;font-size:15px;line-height:1.7;color:#111827;">Com os melhores cumprimentos,<br><strong>Miguel Madeira</strong><br><span style="color:#64748b;">Tropical Inspire</span></p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>`.trim();
     };
 
     const getSupplierResponseBadge = (req: Requisicao) => {
@@ -362,7 +402,7 @@ export default function Requisicoes() {
         setEmailModalReqId(req.id);
         setEmailTo(supplier.email);
         setEmailSubject(`Requisição nº ${req.numero}`);
-        setEmailMessage(buildSupplierEmailMessage(req.id, req.numero, vehicle?.matricula || '', req.data));
+        setEmailMessage(buildSupplierEmailMessage(req.numero, vehicle?.matricula || '', req.data));
         setShowEmailPreview(false);
         setShowEmailModal(true);
     };
