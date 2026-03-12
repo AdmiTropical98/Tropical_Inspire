@@ -19,6 +19,10 @@ import { emailService } from '../../services/emailService';
 
 export default function Requisicoes() {
     const SENDER_EMAIL = 'frota@tropicalinspire.pt';
+    const EMAIL_LOGO_URL =
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'https://algartempo-frota.com/logo-new.png'
+            : `${window.location.origin}/logo-new.png`;
     const navigate = useNavigate();
     const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
     const { supplierInvoices } = useFinancial();
@@ -77,44 +81,56 @@ export default function Requisicoes() {
                 const safeNumero = escapeEmailHtml(numero);
                 const safeMatricula = escapeEmailHtml(matricula || 'N/A');
                 const safeDate = escapeEmailHtml(formatSmallDate(dateStr));
+                const safeLogoUrl = escapeEmailHtml(EMAIL_LOGO_URL);
 
                 return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f4f6;margin:0;padding:24px 0;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;color:#111827;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef2f7;margin:0;padding:34px 0;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;color:#111827;">
     <tr>
         <td align="center" style="padding:0 12px;">
-            <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+            <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;overflow:hidden;box-shadow:0 14px 34px rgba(15,23,42,0.12);">
                 <tr>
-                    <td style="background:#0f172a;padding:26px 30px;">
-                        <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#93c5fd;font-weight:700;">Nova Requisição de Serviço</p>
-                        <h1 style="margin:0;font-size:28px;line-height:1.2;color:#ffffff;font-weight:800;">Requisição nº ${safeNumero}</h1>
+                    <td style="background:#08152f;padding:22px 30px 20px 30px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td align="left" style="padding:0 0 18px 0;">
+                                    <img src="${safeLogoUrl}" width="172" alt="Tropical Inspire" style="display:block;width:172px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border-top:1px solid rgba(147,197,253,0.22);padding-top:14px;">
+                                    <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#93c5fd;font-weight:700;">Nova Requisição de Serviço</p>
+                                    <h1 style="margin:0;font-size:32px;line-height:1.18;color:#ffffff;font-weight:800;">Requisição nº ${safeNumero}</h1>
+                                </td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:28px 30px 12px 30px;">
-                        <p style="margin:0 0 14px 0;font-size:16px;line-height:1.6;color:#1f2937;">Boa tarde,</p>
-                        <p style="margin:0;font-size:16px;line-height:1.6;color:#374151;">Foi criada uma nova requisição de serviço para a sua equipa.</p>
+                    <td style="padding:30px 30px 8px 30px;">
+                        <p style="margin:0 0 12px 0;font-size:17px;line-height:1.6;color:#0f172a;">Boa tarde,</p>
+                        <p style="margin:0;font-size:16px;line-height:1.7;color:#334155;">Foi criada uma nova requisição de serviço para a sua equipa. Seguem os dados principais para acompanhamento imediato.</p>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:14px 30px;">
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fbff;border:1px solid #d5e1ef;border-radius:14px;">
                             <tr>
-                                <td style="padding:16px 18px;border-bottom:1px solid #e2e8f0;font-size:13px;line-height:1.4;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Detalhes da Requisição</td>
+                                <td style="padding:16px 18px;border-bottom:1px solid #d5e1ef;font-size:13px;line-height:1.4;color:#476180;text-transform:uppercase;letter-spacing:.8px;font-weight:700;">Detalhes da Requisição</td>
                             </tr>
                             <tr>
                                 <td style="padding:6px 18px 4px 18px;">
                                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                         <tr>
-                                            <td style="padding:10px 0;font-size:14px;color:#64748b;width:34%;">Número</td>
-                                            <td style="padding:10px 0;font-size:15px;color:#0f172a;font-weight:700;">${safeNumero}</td>
+                                            <td style="padding:12px 0;font-size:14px;color:#5f728c;width:34%;">Número</td>
+                                            <td style="padding:12px 0;font-size:15px;color:#0f172a;font-weight:700;">${safeNumero}</td>
                                         </tr>
                                         <tr>
-                                            <td style="padding:10px 0;border-top:1px solid #e2e8f0;font-size:14px;color:#64748b;">Viatura</td>
-                                            <td style="padding:10px 0;border-top:1px solid #e2e8f0;font-size:15px;color:#0f172a;font-weight:700;">${safeMatricula}</td>
+                                            <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:14px;color:#5f728c;">Viatura</td>
+                                            <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:15px;color:#0f172a;font-weight:700;">${safeMatricula}</td>
                                         </tr>
                                         <tr>
-                                            <td style="padding:10px 0;border-top:1px solid #e2e8f0;font-size:14px;color:#64748b;">Data</td>
-                                            <td style="padding:10px 0;border-top:1px solid #e2e8f0;font-size:15px;color:#0f172a;font-weight:700;">${safeDate}</td>
+                                            <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:14px;color:#5f728c;">Data</td>
+                                            <td style="padding:12px 0;border-top:1px solid #dbe6f3;font-size:15px;color:#0f172a;font-weight:700;">${safeDate}</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -123,13 +139,19 @@ export default function Requisicoes() {
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 30px 4px 30px;">
-                        <p style="margin:0;font-size:15px;line-height:1.6;color:#374151;">Se necessitar de mais informações, responda a este email.</p>
+                    <td style="padding:16px 30px 4px 30px;">
+                        <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">Se necessitar de mais informações, basta responder a este email.</p>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:22px 30px 30px 30px;">
-                        <p style="margin:0;font-size:15px;line-height:1.7;color:#111827;">Com os melhores cumprimentos,<br><strong>Miguel Madeira</strong><br><span style="color:#64748b;">Tropical Inspire</span></p>
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e2e8f0;padding-top:14px;">
+                            <tr>
+                                <td style="padding-top:14px;">
+                                    <p style="margin:0;font-size:15px;line-height:1.72;color:#0f172a;">Com os melhores cumprimentos,<br><strong>Miguel Madeira</strong><br><span style="color:#5f728c;">Tropical Inspire</span></p>
+                                </td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
             </table>
