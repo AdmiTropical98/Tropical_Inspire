@@ -30,6 +30,7 @@ type PlainEmailPayload = {
     numero?: string;
     pdfBase64?: string;
     pdfFileName?: string;
+    pdfDownloadOnly?: boolean;
 };
 
 type EmailType = 'supplier_request' | 'invoice' | 'driver_schedule';
@@ -129,6 +130,7 @@ class EmailService {
                         numero: payload.numero,
                         pdfBase64: payload.pdfBase64,
                         pdfFileName: payload.pdfFileName,
+                        pdfDownloadOnly: payload.pdfDownloadOnly,
                     }),
                 });
 

@@ -98,6 +98,82 @@ function sanitize_header_value(string $value): string
     return trim(str_replace(["\r", "\n"], '', $value));
 }
 
+function sanitize_download_filename(string $fileName): string
+{
+    $safe = preg_replace('/[^A-Za-z0-9._-]/', '-', $fileName) ?? '';
+    $safe = trim($safe, '.- ');
+
+    if ($safe === '') {
+        return 'requisicao.pdf';
+    }
+
+    if (!str_ends_with(strtolower($safe), '.pdf')) {
+        $safe .= '.pdf';
+    }
+
+    return $safe;
+}
+
+function store_pdf_for_download(string $pdfBase64, string $fileName): ?array
+{
+    if ($pdfBase64 === '') {
+        return null;
+    }
+
+    $pdfBinary = base64_decode($pdfBase64, true);
+    if ($pdfBinary === false) {
+        return null;
+    }
+
+    $storageDir = __DIR__ . '/tmp-requisicoes';
+    if (!is_dir($storageDir) && !mkdir($storageDir, 0775, true) && !is_dir($storageDir)) {
+        return null;
+    }
+
+    $token = bin2hex(random_bytes(24));
+    $pdfPath = $storageDir . '/' . $token . '.pdf';
+    $metaPath = $storageDir . '/' . $token . '.json';
+    $safeName = sanitize_download_filename($fileName);
+
+    if (file_put_contents($pdfPath, $pdfBinary) === false) {
+        return null;
+    }
+
+    $meta = [
+        'filename' => $safeName,
+        'created_at' => time(),
+        'expires_at' => time() + (7 * 24 * 60 * 60),
+    ];
+
+    file_put_contents($metaPath, json_encode($meta, JSON_UNESCAPED_SLASHES));
+
+    return [
+        'token' => $token,
+        'filename' => $safeName,
+    ];
+}
+
+function build_download_base_url(): string
+{
+    $envBaseUrl = get_env_value('REQUISICAO_DOWNLOAD_BASE_URL');
+    if ($envBaseUrl !== null) {
+        return rtrim($envBaseUrl, '/');
+    }
+
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    if ($host !== '') {
+        $isHttps =
+            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+            strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        $scheme = $isHttps ? 'https' : 'http';
+        $scriptDir = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
+
+        return $scheme . '://' . $host . $scriptDir;
+    }
+
+    return 'https://api.algartempo-frota.com/api';
+}
+
 function send_via_native_mail(
     string $to,
     string $subject,
@@ -222,11 +298,33 @@ $numero = trim((string)($data['numero'] ?? ''));
 $pdfBase64 = (string)($data['pdfBase64'] ?? '');
 $pdfFileName = trim((string)($data['pdfFileName'] ?? ''));
 $pdfPath = trim((string)($data['pdfPath'] ?? ''));
+$pdfDownloadOnly = (bool)($data['pdfDownloadOnly'] ?? false);
 
 if ($to === '' || $subject === '' || $message === '') {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Missing to, subject or message']);
     exit;
+}
+
+if ($pdfDownloadOnly) {
+    $resolvedPdfName = $pdfFileName !== '' ? $pdfFileName : ('requisicao-' . ($numero !== '' ? $numero : 'anexo') . '.pdf');
+    $downloadEntry = store_pdf_for_download($pdfBase64, $resolvedPdfName);
+
+    if ($downloadEntry === null) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Falha ao gerar link de download da requisicao',
+        ]);
+        exit;
+    }
+
+    $downloadUrl = build_download_base_url() . '/download-requisicao.php?token=' . rawurlencode((string)$downloadEntry['token']);
+    $message = str_replace('__REQUISICAO_DOWNLOAD_URL__', $downloadUrl, $message);
+
+    // In download-only mode we keep the PDF accessible by link and do not attach it to the email.
+    $pdfBase64 = '';
+    $pdfPath = '';
 }
 
 load_env_file_if_present(dirname(__DIR__, 2) . '/.env');

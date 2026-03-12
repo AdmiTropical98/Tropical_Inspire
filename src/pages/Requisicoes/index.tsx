@@ -19,6 +19,7 @@ import { emailService } from '../../services/emailService';
 
 export default function Requisicoes() {
     const SENDER_EMAIL = 'frota@tropicalinspire.pt';
+    const DOWNLOAD_LINK_PLACEHOLDER = '__REQUISICAO_DOWNLOAD_URL__';
     const EMAIL_LOGO_URL =
         window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'https://algartempo-frota.com/logo-new.png'
@@ -78,18 +79,19 @@ export default function Requisicoes() {
                         .replace(/'/g, '&#39;');
 
     const buildSupplierEmailMessage = (numero: string, matricula: string, dateStr: string) => {
-                const safeNumero = escapeEmailHtml(numero);
-                const safeMatricula = escapeEmailHtml(matricula || 'N/A');
-                const safeDate = escapeEmailHtml(formatSmallDate(dateStr));
-                const safeLogoUrl = escapeEmailHtml(EMAIL_LOGO_URL);
+        const safeNumero = escapeEmailHtml(numero);
+        const safeMatricula = escapeEmailHtml(matricula || 'N/A');
+        const safeDate = escapeEmailHtml(formatSmallDate(dateStr));
+        const safeLogoUrl = escapeEmailHtml(EMAIL_LOGO_URL);
+        const safeDownloadPlaceholder = escapeEmailHtml(DOWNLOAD_LINK_PLACEHOLDER);
 
-                return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef2f7;margin:0;padding:34px 0;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;color:#111827;">
+        return `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef2f7;margin:0;padding:0;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;color:#111827;">
     <tr>
-        <td align="center" style="padding:0 12px;">
-            <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;overflow:hidden;box-shadow:0 14px 34px rgba(15,23,42,0.12);">
+        <td style="padding:0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#ffffff;">
                 <tr>
-                    <td style="background:#08152f;padding:22px 30px 20px 30px;">
+                    <td style="background:#08152f;padding:28px 40px 24px 40px;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td align="left" style="padding:0 0 18px 0;">
@@ -106,13 +108,13 @@ export default function Requisicoes() {
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:30px 30px 8px 30px;">
+                    <td style="padding:30px 40px 8px 40px;">
                         <p style="margin:0 0 12px 0;font-size:17px;line-height:1.6;color:#0f172a;">Boa tarde,</p>
                         <p style="margin:0;font-size:16px;line-height:1.7;color:#334155;">Foi criada uma nova requisição de serviço para a sua equipa. Seguem os dados principais para acompanhamento imediato.</p>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 30px;">
+                    <td style="padding:14px 40px;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fbff;border:1px solid #d5e1ef;border-radius:14px;">
                             <tr>
                                 <td style="padding:16px 18px;border-bottom:1px solid #d5e1ef;font-size:13px;line-height:1.4;color:#476180;text-transform:uppercase;letter-spacing:.8px;font-weight:700;">Detalhes da Requisição</td>
@@ -139,12 +141,23 @@ export default function Requisicoes() {
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:16px 30px 4px 30px;">
+                    <td style="padding:10px 40px 4px 40px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td align="center" style="border-radius:10px;background:#1d4ed8;">
+                                    <a href="${safeDownloadPlaceholder}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none;">Baixar Requisição (PDF)</a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:16px 40px 4px 40px;">
                         <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">Se necessitar de mais informações, basta responder a este email.</p>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:22px 30px 30px 30px;">
+                    <td style="padding:22px 40px 30px 40px;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e2e8f0;padding-top:14px;">
                             <tr>
                                 <td style="padding-top:14px;">
@@ -458,7 +471,7 @@ export default function Requisicoes() {
         try {
             const req = requisicoes.find(r => r.id === emailModalReqId);
             if (!req) {
-                throw new Error('Requisição não encontrada para anexar PDF.');
+                throw new Error('Requisição não encontrada para gerar PDF.');
             }
 
             const pdfDoc = await buildRequisitionPdfDocument(req);
@@ -472,6 +485,7 @@ export default function Requisicoes() {
                 numero: req.numero,
                 pdfBase64,
                 pdfFileName: `requisicao-${req.numero}.pdf`,
+                pdfDownloadOnly: true,
             });
             alert('Email enviado com sucesso.');
             closeEmailModal();
@@ -2143,7 +2157,7 @@ export default function Requisicoes() {
                                         </div>
 
                                         <div className="rounded-xl border border-cyan-500/20 bg-cyan-900/10 px-4 py-3 text-sm text-cyan-200">
-                                            Um PDF da requisição será anexado automaticamente ao email.
+                                            O email será enviado com botão de download da requisição (PDF), sem anexo.
                                         </div>
                                     </div>
                                 ) : (
