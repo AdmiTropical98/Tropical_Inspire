@@ -409,7 +409,6 @@ function App() {
                 <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
                 <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
                 <Route path="/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
-                <Route path="/public_html_api/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
                 <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
                 <Route path="/viaturas" element={<Viaturas />} />
