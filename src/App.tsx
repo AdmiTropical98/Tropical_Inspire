@@ -77,6 +77,19 @@ const LegacySupplierActionRedirect: React.FC = () => {
   );
 };
 
+const LegacySupplierDownloadRedirect: React.FC = () => {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const redirectUrl = `https://algartempo-frota.com/api/download-requisicao.php${location.search || ''}`;
+    window.location.replace(redirectUrl);
+  }, [location.search]);
+
+  return (
+    <div className="p-6 text-slate-300">A redirecionar para o download da requisição...</div>
+  );
+};
+
 // TAB_LABELS removed (unused)
 
 interface SidebarItemProps {
@@ -395,6 +408,8 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
                 <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
                 <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
+                <Route path="/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
+                <Route path="/public_html_api/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
                 <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
                 <Route path="/viaturas" element={<Viaturas />} />
