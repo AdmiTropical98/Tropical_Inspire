@@ -54,8 +54,11 @@ if ($expiresAt > 0 && time() > $expiresAt) {
 
 $size = filesize($pdfPath);
 
-header('Content-Type: application/pdf');
-header('Content-Disposition: attachment; filename="' . $fileName . '"');
+header('Content-Type: application/octet-stream');
+header('Content-Disposition: attachment; filename="' . $fileName . '"; filename*=UTF-8\'\'' . rawurlencode($fileName));
+header('Content-Transfer-Encoding: binary');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
 if ($size !== false) {
     header('Content-Length: ' . (string)$size);
