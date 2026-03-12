@@ -31,6 +31,11 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024, // 20MB to handle large chunks and assets
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/public_html_api\//,
+          /\/download-requisicao\.php/,
+        ],
       }
     })
   ],
