@@ -145,7 +145,7 @@ export default function Requisicoes() {
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                                 <td align="center" style="border-radius:10px;background:#1d4ed8;">
-                                    <a href="${safeDownloadPlaceholder}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none;">Baixar Requisição (PDF)</a>
+                                    <a href="${safeDownloadPlaceholder}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none;">Baixar Requisição (PDF)</a>
                                 </td>
                             </tr>
                         </table>

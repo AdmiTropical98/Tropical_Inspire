@@ -171,7 +171,7 @@ function build_download_base_url(): string
         return $scheme . '://' . $host . $scriptDir;
     }
 
-    return 'https://api.algartempo-frota.com';
+    return 'https://algartempo-frota.com/api';
 }
 
 function send_via_native_mail(
