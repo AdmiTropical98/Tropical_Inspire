@@ -81,7 +81,7 @@ const LegacySupplierDownloadRedirect: React.FC = () => {
   const location = useLocation();
 
   React.useEffect(() => {
-    const redirectUrl = `https://algartempo-frota.com/api/download-requisicao.php${location.search || ''}`;
+    const redirectUrl = `https://algartempo-frota.com/public_html_api/download-requisicao.php${location.search || ''}`;
     window.location.replace(redirectUrl);
   }, [location.search]);
 
