@@ -66,6 +66,7 @@ const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
 const CARD_HEADER_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*\d+/i;
 const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL)/i;
 const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
+const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,12})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
 
 /** Parse European-format number string → JS number */
 const parseEU = (val: string): number => {
@@ -594,9 +595,69 @@ function normalizeLineText(tokens: string[]): string {
 function shouldIgnoreTransactionLine(tokens: string[]): boolean {
     const line = normalizeLineText(tokens);
     if (!line) return true;
+    if (CARD_HEADER_RE.test(line)) return true;
     if (TOTAL_LINE_RE.test(line)) return true;
     if (TRANSACTION_HEADER_RE.test(line)) return true;
     return false;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseByRegexPerLine(lines: string[][], invoiceRef: string): any[] {
+    const parsed: any[] = [];
+
+    const parseCandidate = (candidateTokens: string[]): void => {
+        if (shouldIgnoreTransactionLine(candidateTokens)) return;
+        const line = normalizeLineText(candidateTokens);
+        const m = line.match(BP_TRANSACTION_LINE_RE);
+        if (!m) return;
+
+        const date = bpDateToISO(m[1]);
+        const receipt = m[2];
+        const vehicle = formatPlate(m[3]);
+        const location = m[4].trim().replace(/\s{2,}/g, ' ');
+        const km = parseEU(m[5]);
+        const product = normalizeFuelToken(m[6]);
+        const liters = parseEU(m[7]);
+        const price = parseEU(m[8]);
+        const discount = parseEU(m[9]);
+        const effectivePrice = parseEU(m[10]);
+        const vatPercent = parseEU(m[11]);
+        const baseVat = parseEU(m[12]);
+        const vatValue = parseEU(m[13]);
+        const total = parseEU(m[14]);
+
+        if (liters <= 0 || total <= 0) return;
+
+        parsed.push({
+            _manualDate: date,
+            'Hora': '',
+            'Matrícula': vehicle,
+            'Km': km,
+            'Posto': location,
+            'Produto': product,
+            'Litros': liters,
+            'Preço Unitário': effectivePrice > 0 ? effectivePrice : (price + discount),
+            'Total': total,
+            '_talao': receipt,
+            '_ivaPercent': vatPercent,
+            '_valorLiquido': baseVat,
+            '_ivaValue': vatValue,
+            '_invoiceRef': invoiceRef,
+            _selectedCC: '',
+        });
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const current = normalizeLineTokens(lines[i]);
+        parseCandidate(current);
+
+        if (i + 1 < lines.length) {
+            const merged2 = [...current, ...normalizeLineTokens(lines[i + 1])];
+            parseCandidate(merged2);
+        }
+    }
+
+    return parsed;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -905,17 +966,20 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
         if (m) invoiceRef = m[0];
     }
 
-    // 1. Card-block line parser (strictly inside "CARTÃO Nº" blocks)
+    // 1. Strict regex parser per transaction line (requested extraction model)
+    const regexRows = parseByRegexPerLine(lines, invoiceRef);
+
+    // 2. Card-block line parser (strictly inside "CARTÃO Nº" blocks)
     const cardBlockRows = parseFromCardBlocks(lines, invoiceRef);
 
-    // 2. Product-centric (most robust – anchor on fuel keyword)
+    // 3. Product-centric (most robust – anchor on fuel keyword)
     const productRows = parseProductCentric(compact, invoiceRef);
 
-    // 3. Chunk-based (anchor on date+talão+plate)
+    // 4. Chunk-based (anchor on date+talão+plate)
     const chunkRows = parseFromTransactionChunks(compact, invoiceRef);
     const dateTalaoRows = parseFromDateTalaoChunks(compact, invoiceRef);
 
-    // 4. Column-line based (per-visual-line approach, handles 1–3 joined lines)
+    // 5. Column-line based (per-visual-line approach, handles 1–3 joined lines)
     const lineRows: any[] = [];
     for (let i = 0; i < lines.length; i++) {
         const tokens = lines[i];
@@ -928,11 +992,11 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
         if (tx) lineRows.push(toPreviewRow(tx));
     }
 
-    // 5. Regex-compact (original simplest method)
+    // 6. Regex-compact (original simplest method)
     const compactRows = parseFromCompactText(compact, invoiceRef);
 
     // Combine all results; order defines precedence for dedupe-by-talão.
-    const all = dedupePreviewRows([...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]);
+    const all = dedupePreviewRows([...regexRows, ...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]);
 
     // Sort by date + plate so preview is human-readable
     all.sort((a, b) => {
