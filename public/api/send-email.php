@@ -309,6 +309,7 @@ if (!$autoloadLoaded) {
 }
 
 $phpMailerAvailable = class_exists(PHPMailer::class);
+$allowNativeMailFallback = strtolower((string)(get_env_value('ALLOW_NATIVE_MAIL_FALLBACK') ?? 'false')) === 'true';
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw ?: '', true);
@@ -363,19 +364,29 @@ $fromEmail = get_env_value('SMTP_FROM_EMAIL') ?? 'frota@tropicalinspire.pt';
 $fromName = get_env_value('SMTP_FROM_NAME') ?? 'Miguel Madeira - Tropical Inspire';
 
 if (!$phpMailerAvailable) {
-    $nativeResult = send_via_native_mail($to, $ccRecipients, $subject, $message, $fromEmail, $fromName, $numero, $pdfBase64, $pdfFileName, $pdfPath);
+    if ($allowNativeMailFallback) {
+        $nativeResult = send_via_native_mail($to, $ccRecipients, $subject, $message, $fromEmail, $fromName, $numero, $pdfBase64, $pdfFileName, $pdfPath);
 
-    if ($nativeResult['ok'] === true) {
-        http_response_code(200);
-        echo json_encode(['success' => true, 'transport' => 'php-mail']);
+        if ($nativeResult['ok'] === true) {
+            http_response_code(200);
+            echo json_encode(['success' => true, 'transport' => 'php-mail']);
+            exit;
+        }
+
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Unable to send email without PHPMailer',
+            'details' => $nativeResult['error'] ?? 'Unknown native mail error',
+        ]);
         exit;
     }
 
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Unable to send email without PHPMailer',
-        'details' => $nativeResult['error'] ?? 'Unknown native mail error',
+        'error' => 'SMTP transport required',
+        'details' => 'PHPMailer indisponivel no servidor. Instale PHPMailer ou ative ALLOW_NATIVE_MAIL_FALLBACK=true (nao recomendado).',
     ]);
     exit;
 }
