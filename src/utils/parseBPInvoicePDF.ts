@@ -64,9 +64,9 @@ const PLATE_COMPACT_RE = /^[A-Z0-9]{6}$/i;
 const DATE_TOKEN_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})$/;
 const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
 const CARD_HEADER_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*\d+/i;
-const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL)/i;
+const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
 const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
-const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,12})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
+const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,12})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(.*)$/i;
 
 /** Parse European-format number string → JS number */
 const parseEU = (val: string): number => {
@@ -618,13 +618,17 @@ function parseByRegexPerLine(lines: string[][], invoiceRef: string): any[] {
         const km = parseEU(m[5]);
         const product = normalizeFuelToken(m[6]);
         const liters = parseEU(m[7]);
-        const price = parseEU(m[8]);
-        const discount = parseEU(m[9]);
-        const effectivePrice = parseEU(m[10]);
-        const vatPercent = parseEU(m[11]);
-        const baseVat = parseEU(m[12]);
-        const vatValue = parseEU(m[13]);
-        const total = parseEU(m[14]);
+        const remainder = m[8] ?? '';
+        const remainderNums = [...remainder.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
+        if (remainderNums.length === 0) return;
+
+        const total = parseEU(remainderNums[remainderNums.length - 1]);
+        const price = parseEU(remainderNums[0] ?? '0');
+        const discount = parseEU(remainderNums[1] ?? '0');
+        const effectivePrice = parseEU(remainderNums[2] ?? '0');
+        const vatPercent = parseEU(remainderNums[3] ?? '0');
+        const baseVat = parseEU(remainderNums[4] ?? '0');
+        const vatValue = parseEU(remainderNums[5] ?? '0');
 
         if (liters <= 0 || total <= 0) return;
 
@@ -654,6 +658,11 @@ function parseByRegexPerLine(lines: string[][], invoiceRef: string): any[] {
         if (i + 1 < lines.length) {
             const merged2 = [...current, ...normalizeLineTokens(lines[i + 1])];
             parseCandidate(merged2);
+        }
+
+        if (i + 2 < lines.length) {
+            const merged3 = [...current, ...normalizeLineTokens(lines[i + 1]), ...normalizeLineTokens(lines[i + 2])];
+            parseCandidate(merged3);
         }
     }
 
