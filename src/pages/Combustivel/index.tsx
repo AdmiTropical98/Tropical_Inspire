@@ -383,6 +383,7 @@ export default function Combustivel() {
                     return;
                 }
                 setBpTransactions(rows);
+                setSelectedRows([]);
             } catch (err: any) {
                 console.error('Erro ao processar PDF BP:', err);
                 alert(`Erro ao processar o PDF: ${err?.message ?? 'Erro desconhecido'}`);
@@ -443,21 +444,25 @@ export default function Combustivel() {
             });
 
             setBpTransactions(enrichedData);
+            setSelectedRows([]);
         };
         reader.readAsBinaryString(file);
     };
 
     const handleConfirmBPImport = async () => {
-        const rowsToImport = selectedRows.length > 0
-            ? selectedRows.map((idx: number) => bpTransactions[idx]).filter(Boolean)
-            : bpTransactions;
+        if (selectedRows.length === 0) {
+            alert('Selecione pelo menos um registo para importar.');
+            return;
+        }
+
+        const rowsToImport = selectedRows.map((idx: number) => bpTransactions[idx]).filter(Boolean);
 
         if (rowsToImport.length === 0) {
             alert('Não existem linhas para importar.');
             return;
         }
 
-        if (!confirm(`Confirma a importação de ${rowsToImport.length} registos?`)) return;
+        if (!confirm(`Confirma a importação de ${rowsToImport.length} registos selecionados?`)) return;
 
         let successCount = 0;
         let errorCount = 0;
@@ -1478,10 +1483,11 @@ export default function Combustivel() {
                                 {bpTransactions.length > 0 && (
                                     <button
                                         onClick={handleConfirmBPImport}
-                                        className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in"
+                                        disabled={selectedRows.length === 0}
+                                        className="px-6 py-3 bg-green-600 hover:bg-green-500 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in"
                                     >
                                         <Check className="w-4 h-4" />
-                                        Confirmar ({selectedRows.length > 0 ? selectedRows.length : bpTransactions.length})
+                                        Importar Selecionados ({selectedRows.length})
                                     </button>
                                 )}
                                 <button
@@ -1531,7 +1537,7 @@ export default function Combustivel() {
                                     <div className="flex items-center gap-4">
                                         <div>
                                             <h3 className="font-bold text-white text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
-                                            <p className="text-[11px] text-slate-500">Se selecionar linhas, o botão Confirmar importa apenas as selecionadas.</p>
+                                            <p className="text-[11px] text-slate-500">Registos encontrados: {bpTransactions.length}</p>
                                         </div>
                                         {selectedRows.length > 0 && (
                                             <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30 animate-in fade-in slide-in-from-left-2">
@@ -1567,6 +1573,18 @@ export default function Combustivel() {
                                     </div>
                                     <div className="flex gap-2">
                                         <button
+                                            onClick={() => setSelectedRows(bpTransactions.map((_: any, i: number) => i))}
+                                            className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg text-sm font-bold"
+                                        >
+                                            Selecionar Todos
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedRows([])}
+                                            className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg text-sm font-bold"
+                                        >
+                                            Limpar Seleção
+                                        </button>
+                                        <button
                                             onClick={() => {
                                                 setBpTransactions([]);
                                                 setSelectedRows([]);
@@ -1596,6 +1614,7 @@ export default function Combustivel() {
                                                     />
                                                 </th>
                                                 <th className="px-3 py-4">Data/Hora</th>
+                                                <th className="px-3 py-4">Talão</th>
                                                 <th className="px-3 py-4 font-black text-white">Viatura</th>
                                                 <th className="px-3 py-4 text-center">KM</th>
                                                 <th className="px-3 py-4">Posto</th>
@@ -1653,6 +1672,7 @@ export default function Combustivel() {
                                                             />
                                                         </td>
                                                         <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
+                                                        <td className="px-3 py-3 text-slate-400 font-mono text-[12px] whitespace-nowrap">{row._talao || '-'}</td>
                                                         <td className="px-3 py-3 text-white font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
                                                         <td className="px-3 py-3 text-slate-400 font-mono text-[12px] text-center">{row['Km'] || '0'}</td>
                                                         <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[150px]">{row['Posto'] || '-'}</td>

@@ -63,6 +63,9 @@ const PLATE_COMPACT_RE = /^[A-Z0-9]{6}$/i;
 
 const DATE_TOKEN_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})$/;
 const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
+const CARD_HEADER_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*\d+/i;
+const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL)/i;
+const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
 
 /** Parse European-format number string → JS number */
 const parseEU = (val: string): number => {
@@ -584,6 +587,64 @@ function mergeNegatives(tokens: string[]): string[] {
     return out;
 }
 
+function normalizeLineText(tokens: string[]): string {
+    return tokens.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function shouldIgnoreTransactionLine(tokens: string[]): boolean {
+    const line = normalizeLineText(tokens);
+    if (!line) return true;
+    if (TOTAL_LINE_RE.test(line)) return true;
+    if (TRANSACTION_HEADER_RE.test(line)) return true;
+    return false;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseFromCardBlocks(lines: string[][], invoiceRef: string): any[] {
+    const rows: any[] = [];
+    let inCardBlock = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = normalizeLineTokens(lines[i]);
+        const lineText = normalizeLineText(line);
+
+        if (!lineText) continue;
+
+        if (CARD_HEADER_RE.test(lineText)) {
+            inCardBlock = true;
+            continue;
+        }
+
+        if (!inCardBlock) continue;
+
+        if (/RESUMO\s+DO\s+IVA|TOTAL\s+FATURA/i.test(lineText)) {
+            inCardBlock = false;
+            continue;
+        }
+
+        if (shouldIgnoreTransactionLine(line)) continue;
+
+        let tx = parseTransactionLine(line, invoiceRef);
+        if (!tx && i + 1 < lines.length) {
+            const next = normalizeLineTokens(lines[i + 1]);
+            if (!CARD_HEADER_RE.test(normalizeLineText(next))) {
+                tx = parseTransactionLine([...line, ...next], invoiceRef);
+            }
+        }
+        if (!tx && i + 2 < lines.length) {
+            const next = normalizeLineTokens(lines[i + 1]);
+            const next2 = normalizeLineTokens(lines[i + 2]);
+            if (!CARD_HEADER_RE.test(normalizeLineText(next)) && !CARD_HEADER_RE.test(normalizeLineText(next2))) {
+                tx = parseTransactionLine([...line, ...next, ...next2], invoiceRef);
+            }
+        }
+
+        if (tx) rows.push(toPreviewRow(tx));
+    }
+
+    return rows;
+}
+
 /**
  * Try to parse a line token array as a BP transaction row.
  * Returns null if the line doesn't look like a transaction.
@@ -844,17 +905,21 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
         if (m) invoiceRef = m[0];
     }
 
-    // 1. Product-centric (most robust – anchor on fuel keyword)
+    // 1. Card-block line parser (strictly inside "CARTÃO Nº" blocks)
+    const cardBlockRows = parseFromCardBlocks(lines, invoiceRef);
+
+    // 2. Product-centric (most robust – anchor on fuel keyword)
     const productRows = parseProductCentric(compact, invoiceRef);
 
-    // 2. Chunk-based (anchor on date+talão+plate)
+    // 3. Chunk-based (anchor on date+talão+plate)
     const chunkRows = parseFromTransactionChunks(compact, invoiceRef);
     const dateTalaoRows = parseFromDateTalaoChunks(compact, invoiceRef);
 
-    // 3. Column-line based (per-visual-line approach, handles 1–3 joined lines)
+    // 4. Column-line based (per-visual-line approach, handles 1–3 joined lines)
     const lineRows: any[] = [];
     for (let i = 0; i < lines.length; i++) {
         const tokens = lines[i];
+        if (shouldIgnoreTransactionLine(tokens)) continue;
         let tx = parseTransactionLine(tokens, invoiceRef);
         if (!tx && i + 1 < lines.length)
             tx = parseTransactionLine([...tokens, ...lines[i + 1]], invoiceRef);
@@ -863,11 +928,11 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
         if (tx) lineRows.push(toPreviewRow(tx));
     }
 
-    // 4. Regex-compact (original simplest method)
+    // 5. Regex-compact (original simplest method)
     const compactRows = parseFromCompactText(compact, invoiceRef);
 
     // Combine all results; order defines precedence for dedupe-by-talão.
-    const all = dedupePreviewRows([...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]);
+    const all = dedupePreviewRows([...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]);
 
     // Sort by date + plate so preview is human-readable
     all.sort((a, b) => {
