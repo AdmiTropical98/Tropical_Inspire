@@ -135,6 +135,69 @@ const formatPlate = (val: string): string => {
     return `${raw.slice(0, 2)}-${raw.slice(2, 4)}-${raw.slice(4, 6)}`;
 };
 
+const normalizeLineTokens = (tokens: string[]): string[] => {
+    const normalized: string[] = [];
+
+    for (let i = 0; i < tokens.length; i++) {
+        const current = tokens[i]?.trim();
+        const next = tokens[i + 1]?.trim();
+        if (!current) continue;
+
+        const joined = `${current}${next || ''}`.toUpperCase();
+        if (next && ['GASOLEO', 'GASOIL', 'GASOLINA', 'ADBLUE'].includes(joined)) {
+            normalized.push(joined);
+            i += 1;
+            continue;
+        }
+
+        normalized.push(current);
+    }
+
+    return mergeNegatives(normalized);
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const toPreviewRow = (tx: BPInvoiceTransaction): any => ({
+    _manualDate: tx.date,
+    'Hora': '',
+    'Matrícula': tx.matricula,
+    'Km': tx.km,
+    'Posto': tx.posto,
+    'Produto': tx.produto,
+    'Litros': tx.litros,
+    'Preço Unitário': tx.precoUnitario,
+    'Total': tx.total,
+    '_talao': tx.talaoCupao,
+    '_ivaPercent': tx.ivaPercent,
+    '_ivaValue': tx.ivaValue,
+    '_valorLiquido': tx.valorLiquido,
+    '_invoiceRef': tx.invoiceRef,
+    _selectedCC: '',
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const dedupePreviewRows = (rows: any[]): any[] => {
+    const seen = new Set<string>();
+    const deduped: any[] = [];
+
+    for (const row of rows) {
+        const key = [
+            row._manualDate || '',
+            row._talao || '',
+            String(row['Matrícula'] || '').toUpperCase(),
+            String(row['Km'] || ''),
+            Number(row['Litros'] || 0).toFixed(2),
+            Number(row['Total'] || 0).toFixed(2)
+        ].join('|');
+
+        if (seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(row);
+    }
+
+    return deduped;
+};
+
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -386,7 +449,7 @@ function parseTransactionLine(
     rawTokens: string[],
     invoiceRef: string
 ): BPInvoiceTransaction | null {
-    const tokens = mergeNegatives(rawTokens);
+    const tokens = normalizeLineTokens(rawTokens);
 
     if (tokens.length < 6) return null;
 
@@ -534,37 +597,20 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
             if (tx) i += 1;
         }
 
+        // Some PDFs split one transaction across three visual lines.
+        if (!tx && i + 2 < lines.length) {
+            tx = parseTransactionLine([...tokens, ...lines[i + 1], ...lines[i + 2]], invoiceRef);
+            if (tx) i += 2;
+        }
+
         if (!tx) continue;
 
-        // Shape into the format expected by the existing bpTransactions preview
-        transactions.push({
-            // Date stored in _manualDate so the existing date-parsing path works
-            _manualDate: tx.date,
-            'Hora': '',
-            'Matrícula': tx.matricula,
-            'Km': tx.km,
-            'Posto': tx.posto,
-            'Produto': tx.produto,
-            'Litros': tx.litros,
-            'Preço Unitário': tx.precoUnitario,
-            'Total': tx.total,
-            // Extra fields for information (not used by import logic, but visible in debug)
-            '_talao': tx.talaoCupao,
-            '_ivaPercent': tx.ivaPercent,
-            '_ivaValue': tx.ivaValue,
-            '_valorLiquido': tx.valorLiquido,
-            '_invoiceRef': tx.invoiceRef,
-            // Cost centre – empty by default, user selects in preview
-            _selectedCC: '',
-        });
+        transactions.push(toPreviewRow(tx));
     }
 
-    if (transactions.length > 0) return transactions;
-
-    // Last-resort fallback for PDFs with broken column extraction
     const compact = await extractCompactText(file);
     const compactRows = parseFromCompactText(compact, invoiceRef);
-    if (compactRows.length > 0) return compactRows;
+    const chunkRows = parseFromTransactionChunks(compact, invoiceRef);
 
-    return parseFromTransactionChunks(compact, invoiceRef);
+    return dedupePreviewRows([...transactions, ...compactRows, ...chunkRows]);
 };
