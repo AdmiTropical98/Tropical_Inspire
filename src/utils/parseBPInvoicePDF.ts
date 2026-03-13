@@ -99,6 +99,15 @@ const bpDateToISO = (raw: string): string => {
     return raw;
 };
 
+/** Validate that a 6-digit token is a plausible DDMMYY date (not a KM or other number) */
+const isValidBPDate = (token: string): boolean => {
+    if (!/^\d{6}$/.test(token)) return false;
+    const dd = parseInt(token.slice(0, 2), 10);
+    const mm = parseInt(token.slice(2, 4), 10);
+    const yy = parseInt(token.slice(4, 6), 10);
+    return dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12 && yy >= 20 && yy <= 35;
+};
+
 const cleanNumberToken = (val: string): string => {
     const trimmed = val.trim().replace(/%/g, '');
     if (trimmed === '-') return '0';
@@ -181,14 +190,17 @@ const dedupePreviewRows = (rows: any[]): any[] => {
     const deduped: any[] = [];
 
     for (const row of rows) {
-        const key = [
-            row._manualDate || '',
-            row._talao || '',
-            String(row['Matrícula'] || '').toUpperCase(),
-            String(row['Km'] || ''),
-            Number(row['Litros'] || 0).toFixed(2),
-            Number(row['Total'] || 0).toFixed(2)
-        ].join('|');
+        const talao = String(row._talao || '').trim();
+        // Talão is a unique transaction identifier — use it as primary key.
+        // When talão is missing fall back to composite key.
+        const key = talao
+            ? `talao:${talao}`
+            : [
+                row._manualDate || '',
+                String(row['Matrícula'] || '').toUpperCase(),
+                Number(row['Litros'] || 0).toFixed(2),
+                Number(row['Total'] || 0).toFixed(2)
+              ].join('|');
 
         if (seen.has(key)) continue;
         seen.add(key);
@@ -594,14 +606,18 @@ function parseProductCentric(compact: string, invoiceRef: string): any[] {
         // Scan forwards up to 250 chars for numeric values
         const after = norm.slice(productPos + productWord.length, productPos + productWord.length + 250);
 
-        // Date: last DDMMYY token in the before-context
-        const allDates = [...before.matchAll(/\b(\d{6})\b/g)];
-        const dateToken = allDates.at(-1)?.[1];
-        if (!dateToken) continue;
+        // Date: last VALID DDMMYY token in the before-context.
+        // IMPORTANT: KM values are often 6 digits too (e.g. 312333).
+        // We validate DD/MM/YY ranges so we don't confuse KM with date.
+        const allSixDigits = [...before.matchAll(/\b(\d{6})\b/g)];
+        const validDateMatches = allSixDigits.filter(m => isValidBPDate(m[1]));
+        const dateMatch = validDateMatches.at(-1);
+        if (!dateMatch) continue;
+        const dateToken = dateMatch[1];
         const date = bpDateToISO(dateToken);
 
-        // Talão: long digit sequence after the date
-        const afterDate = before.slice((allDates.at(-1)?.index ?? 0) + 6);
+        // Talão: first long digit sequence immediately after the validated date
+        const afterDate = before.slice(dateMatch.index! + 6);
         const talaoMatch = afterDate.match(/\b(\d{7,14})\b/);
         const talao = talaoMatch?.[1] ?? '';
 
@@ -611,15 +627,17 @@ function parseProductCentric(compact: string, invoiceRef: string): any[] {
         if (!plateToken) continue;
         const plate = formatPlate(plateToken);
 
-        // KM: last 4–8 digit integer immediately before the product (within 80 chars)
-        const nearProduct = before.slice(-80);
-        const allKm = [...nearProduct.matchAll(/\b(\d{4,8})\b/g)];
+        // KM: last 4–8 digit integer immediately before the product (within 100 chars)
+        // Exclude the 6-digit date token itself from KM candidates.
+        const nearProduct = before.slice(-100);
+        const allKm = [...nearProduct.matchAll(/\b(\d{4,8})\b/g)]
+            .filter(m => !isValidBPDate(m[1]));  // skip date-like numbers
         const kmToken = allKm.at(-1)?.[1] ?? '0';
         const km = parseEU(kmToken);
 
         // Station: text between the plate and the KM in before-context
         const platePos = before.lastIndexOf(plateToken);
-        const kmPosInBefore = before.lastIndexOf(kmToken);
+        const kmPosInBefore = kmToken !== '0' ? before.lastIndexOf(kmToken) : -1;
         const postoRaw = platePos >= 0 && kmPosInBefore > platePos
             ? before.slice(platePos + plateToken.length, kmPosInBefore).trim()
             : '';
