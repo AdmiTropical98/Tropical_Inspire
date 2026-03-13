@@ -56,10 +56,13 @@ export interface BPInvoiceTransaction {
 
 /** Known BP fuel product keywords */
 const FUEL_PRODUCT_RE =
-    /^(GASOLEO|GASOLINA|DIESEL|GNV|G\.N\.V\.?|BIODIESEL|ADBLUE|GPL|SUPER|GAS(OIL)?)/i;
+    /^(GASOLEO|GASOLEO\+|GASÓLEO|GASOLINA|DIESEL|GNV|G\.N\.V\.?|BIODIESEL|ADBLUE|GPL|SUPER|GAS(OIL)?)/i;
 
 /** Portuguese plate formats: XX-XX-XX (letters or digits in each segment) */
-const PLATE_RE = /^\d{2}-[A-Z0-9]{2}-\d{2}$/i;
+const PLATE_RE = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i;
+
+const DATE_TOKEN_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})$/;
+const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
 
 /** Parse European-format number string → JS number */
 const parseEU = (val: string): number => {
@@ -75,7 +78,7 @@ const parseEU = (val: string): number => {
     return isNaN(n) ? 0 : n;
 };
 
-/** Convert BP date DDMMYY → ISO YYYY-MM-DD */
+/** Convert BP date to ISO YYYY-MM-DD */
 const bpDateToISO = (raw: string): string => {
     if (/^\d{6}$/.test(raw)) {
         const day   = raw.slice(0, 2);
@@ -83,8 +86,23 @@ const bpDateToISO = (raw: string): string => {
         const year  = '20' + raw.slice(4, 6);
         return `${year}-${month}-${day}`;
     }
-    // Already something else – return as-is
+
+    const slashMatch = raw.match(/^(\d{2})[\/.-](\d{2})[\/.-](\d{2,4})$/);
+    if (slashMatch) {
+        const day = slashMatch[1];
+        const month = slashMatch[2];
+        const yy = slashMatch[3];
+        const year = yy.length === 2 ? `20${yy}` : yy;
+        return `${year}-${month}-${day}`;
+    }
+
     return raw;
+};
+
+const cleanNumberToken = (val: string): string => {
+    const trimmed = val.trim().replace(/%/g, '');
+    if (trimmed === '-') return '0';
+    return trimmed;
 };
 
 // ─── main ─────────────────────────────────────────────────────────────────────
@@ -173,18 +191,20 @@ function parseTransactionLine(
 ): BPInvoiceTransaction | null {
     const tokens = mergeNegatives(rawTokens);
 
-    // Must start with a 6-digit date
-    if (tokens.length < 6 || !/^\d{6}$/.test(tokens[0])) return null;
+    if (tokens.length < 6) return null;
 
-    // Token[2] must be a plate
-    if (tokens.length < 3 || !PLATE_RE.test(tokens[2])) return null;
+    const dateIdx = tokens.findIndex(t => DATE_TOKEN_RE.test(t));
+    if (dateIdx < 0) return null;
 
-    // Token[1] must be the talão (digits)
-    if (!/^\d+$/.test(tokens[1])) return null;
+    const talaoIdx = tokens.findIndex((t, i) => i > dateIdx && /^\d{6,14}$/.test(t));
+    if (talaoIdx < 0) return null;
+
+    const plateIdx = tokens.findIndex((t, i) => i > talaoIdx && PLATE_RE.test(t));
+    if (plateIdx < 0) return null;
 
     // Find the product token (anchor)
     let productIdx = -1;
-    for (let i = 3; i < tokens.length; i++) {
+    for (let i = plateIdx + 1; i < tokens.length; i++) {
         if (FUEL_PRODUCT_RE.test(tokens[i])) {
             productIdx = i;
             break;
@@ -192,15 +212,24 @@ function parseTransactionLine(
     }
     if (productIdx < 0) return null;
 
-    // The token immediately before the product is the KM reading
-    const kmIdx = productIdx - 1;
-    if (kmIdx < 3) return null;
+    // KM is typically the closest integer token before product
+    let kmIdx = -1;
+    for (let i = productIdx - 1; i > plateIdx; i--) {
+        if (/^\d{4,8}$/.test(tokens[i])) {
+            kmIdx = i;
+            break;
+        }
+    }
+    if (kmIdx < 0) return null;
 
     // Station name: tokens between plate and KM
-    const posto = tokens.slice(3, kmIdx).join(' ');
+    const posto = tokens.slice(plateIdx + 1, kmIdx).join(' ').trim();
+    if (!posto) return null;
 
     // Numeric tokens after product
-    const afterProduct = tokens.slice(productIdx + 1);
+    const afterProduct = tokens
+        .slice(productIdx + 1)
+        .filter(t => NUMERIC_TOKEN_RE.test(cleanNumberToken(t)));
     if (afterProduct.length < 2) return null; // Need at least litros + total
 
     // Map to named columns (8 columns expected; be lenient if fewer)
@@ -222,32 +251,36 @@ function parseTransactionLine(
         ivaValue: number, total: number;
 
     if (afterProduct.length >= 8) {
-        litros        = parseEU(qtyStr);
-        precoLista    = parseEU(listPriceStr);
-        desconto       = parseEU(discountStr);
-        precoUnitario = parseEU(unitPriceStr);
-        ivaPercent    = parseEU(ivaPercentStr);
-        valorLiquido  = parseEU(netStr);
-        ivaValue      = parseEU(ivaAmtStr);
-        total         = parseEU(totalStr);
+        litros        = parseEU(cleanNumberToken(qtyStr));
+        precoLista    = parseEU(cleanNumberToken(listPriceStr));
+        desconto      = parseEU(cleanNumberToken(discountStr));
+        precoUnitario = parseEU(cleanNumberToken(unitPriceStr));
+        ivaPercent    = parseEU(cleanNumberToken(ivaPercentStr));
+        valorLiquido  = parseEU(cleanNumberToken(netStr));
+        ivaValue      = parseEU(cleanNumberToken(ivaAmtStr));
+        total         = parseEU(cleanNumberToken(totalStr));
     } else {
         // 7-column variant (no explicit discount column)
-        litros        = parseEU(afterProduct[0] ?? '0');
-        precoLista    = parseEU(afterProduct[1] ?? '0');
-        desconto       = 0;
-        precoUnitario = parseEU(afterProduct[2] ?? '0');
-        ivaPercent    = parseEU(afterProduct[3] ?? '0');
-        valorLiquido  = parseEU(afterProduct[4] ?? '0');
-        ivaValue      = parseEU(afterProduct[5] ?? '0');
-        total         = parseEU(afterProduct[6] ?? '0');
+        litros        = parseEU(cleanNumberToken(afterProduct[0] ?? '0'));
+        precoLista    = parseEU(cleanNumberToken(afterProduct[1] ?? '0'));
+        desconto      = 0;
+        precoUnitario = parseEU(cleanNumberToken(afterProduct[2] ?? '0'));
+        ivaPercent    = parseEU(cleanNumberToken(afterProduct[3] ?? '0'));
+        valorLiquido  = parseEU(cleanNumberToken(afterProduct[4] ?? '0'));
+        ivaValue      = parseEU(cleanNumberToken(afterProduct[5] ?? '0'));
+        total         = parseEU(cleanNumberToken(afterProduct[6] ?? '0'));
     }
 
+    // Final safety checks to skip accidental header/footer captures
+    if (!Number.isFinite(litros) || litros <= 0) return null;
+    if (!Number.isFinite(total) || total <= 0) return null;
+
     return {
-        date:         bpDateToISO(tokens[0]),
-        talaoCupao:   tokens[1],
-        matricula:    tokens[2].toUpperCase(),
+        date:         bpDateToISO(tokens[dateIdx]),
+        talaoCupao:   tokens[talaoIdx],
+        matricula:    tokens[plateIdx].toUpperCase(),
         posto,
-        km:           parseEU(tokens[kmIdx]),
+        km:           parseEU(cleanNumberToken(tokens[kmIdx])),
         produto:      tokens[productIdx].toUpperCase(),
         litros,
         precoLista,
@@ -277,7 +310,8 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transactions: any[] = [];
 
-    for (const tokens of lines) {
+    for (let i = 0; i < lines.length; i++) {
+        const tokens = lines[i];
         const lineText = tokens.join(' ');
 
         // Capture invoice reference from header (e.g. "PT011/937408")
@@ -286,7 +320,15 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
             if (refMatch) invoiceRef = refMatch[0];
         }
 
-        const tx = parseTransactionLine(tokens, invoiceRef);
+        let tx = parseTransactionLine(tokens, invoiceRef);
+
+        // Some Summary Statement PDFs split one transaction in two visual lines.
+        // Fallback: try current + next line as a single record.
+        if (!tx && i + 1 < lines.length) {
+            tx = parseTransactionLine([...tokens, ...lines[i + 1]], invoiceRef);
+            if (tx) i += 1;
+        }
+
         if (!tx) continue;
 
         // Shape into the format expected by the existing bpTransactions preview
