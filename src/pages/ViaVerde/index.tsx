@@ -6,6 +6,8 @@ import {
     Trash2, TrendingUp, Building,
     ParkingCircle, Download, Calendar
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { supabase } from '../../lib/supabase';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import type { TollRecord } from '../../types';
@@ -548,7 +550,7 @@ export default function ViaVerde() {
         [monthlyRows]
     );
 
-    const exportMonthlyReport = () => {
+    const exportMonthlyReportExcel = () => {
         if (monthlyRows.length === 0) {
             toast.error('Sem dados para o mês selecionado');
             return;
@@ -574,6 +576,57 @@ export default function ViaVerde() {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reportData), 'Por Centro Custo');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'Resumo');
         XLSX.writeFile(wb, `ViaVerde_Relatorio_Mensal_CC_${reportMonth}.xlsx`);
+    };
+
+    const exportMonthlyReportPdf = () => {
+        if (monthlyRows.length === 0) {
+            toast.error('Sem dados para o mês selecionado');
+            return;
+        }
+
+        const doc = new jsPDF();
+        const [year, month] = reportMonth.split('-').map(Number);
+        const monthLabel = new Date(year, (month || 1) - 1, 1).toLocaleDateString('pt-PT', {
+            month: 'long',
+            year: 'numeric'
+        });
+
+        doc.setFillColor(15, 23, 42);
+        doc.rect(0, 0, 210, 36, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(17);
+        doc.text('Via Verde - Relatorio Mensal por Centro de Custo', 14, 17);
+        doc.setFontSize(10);
+        doc.setTextColor(203, 213, 225);
+        doc.text(`Mes: ${monthLabel}`, 14, 25);
+        doc.text(`Total mensal: ${monthlyTotal.toFixed(2)} EUR`, 14, 31);
+
+        autoTable(doc, {
+            startY: 42,
+            head: [['Centro de Custo', 'Registos', 'Portagens', 'Estacion.', 'Total (EUR)', 'Peso']],
+            body: monthlyRows.map((row) => [
+                row.ccName,
+                String(row.records),
+                String(row.tolls),
+                String(row.parking),
+                row.total.toFixed(2),
+                `${((row.total / (monthlyTotal || 1)) * 100).toFixed(2)}%`
+            ]),
+            foot: [[
+                'TOTAL',
+                String(monthlyRows.reduce((a, r) => a + r.records, 0)),
+                String(monthlyRows.reduce((a, r) => a + r.tolls, 0)),
+                String(monthlyRows.reduce((a, r) => a + r.parking, 0)),
+                monthlyTotal.toFixed(2),
+                '100.00%'
+            ]],
+            theme: 'striped',
+            headStyles: { fillColor: [16, 185, 129] },
+            footStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+            styles: { fontSize: 9, cellPadding: 2 }
+        });
+
+        doc.save(`ViaVerde_Relatorio_Mensal_CC_${reportMonth}.pdf`);
     };
 
     return (
@@ -759,12 +812,20 @@ export default function ViaVerde() {
                                 ))}
                             </select>
                             <button
-                                onClick={exportMonthlyReport}
+                                onClick={exportMonthlyReportExcel}
                                 disabled={monthlyRows.length === 0}
                                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-medium transition-all"
                             >
                                 <Download className="w-4 h-4" />
-                                Exportar Mensal
+                                Excel
+                            </button>
+                            <button
+                                onClick={exportMonthlyReportPdf}
+                                disabled={monthlyRows.length === 0}
+                                className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-medium transition-all"
+                            >
+                                <Download className="w-4 h-4" />
+                                PDF
                             </button>
                         </div>
                     </div>
