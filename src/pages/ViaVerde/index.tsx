@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Ticket, Plus, Search,
     MapPin, DollarSign, Truck, User,
     Trash2, TrendingUp, Building,
-    ParkingCircle
+    ParkingCircle, Download, Calendar
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -44,6 +44,7 @@ export default function ViaVerde() {
     });
     const [importing, setImporting] = useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [reportMonth, setReportMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
     useEffect(() => {
         fetchTolls();
@@ -484,6 +485,97 @@ export default function ViaVerde() {
     const totalCost = filteredTolls.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     const totalDistance = filteredTolls.reduce((sum, t) => sum + (Number(t.distance) || 0), 0);
 
+    const costCenterById = useMemo(() => {
+        const map = new Map<string, string>();
+        centrosCustos.forEach(cc => map.set(cc.id, cc.nome));
+        return map;
+    }, [centrosCustos]);
+
+    const vehicleCostCenterById = useMemo(() => {
+        const map = new Map<string, string>();
+        viaturas.forEach(v => {
+            const ccId = (v as any).centro_custo_id || (v as any).centroCustoId;
+            if (ccId) map.set(v.id, ccId);
+        });
+        return map;
+    }, [viaturas]);
+
+    const availableMonths = useMemo(() => {
+        const months = new Set<string>();
+        tolls.forEach(t => {
+            const month = new Date(t.entry_time).toISOString().slice(0, 7);
+            months.add(month);
+        });
+        months.add(reportMonth);
+        return Array.from(months).sort((a, b) => b.localeCompare(a));
+    }, [tolls, reportMonth]);
+
+    const monthlyRows = useMemo(() => {
+        const [year, month] = reportMonth.split('-').map(Number);
+        if (!year || !month) return [];
+
+        const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        const end = new Date(year, month, 1, 0, 0, 0, 0);
+        const grouped = new Map<string, { ccName: string; total: number; records: number; tolls: number; parking: number }>();
+
+        tolls.forEach(t => {
+            const entry = new Date(t.entry_time);
+            if (entry < start || entry >= end) return;
+
+            const ccId = t.cost_center_id || vehicleCostCenterById.get(t.vehicle_id) || 'sem_cc';
+            const ccName = ccId === 'sem_cc'
+                ? 'Sem Centro de Custo'
+                : (costCenterById.get(ccId) || 'Centro de Custo Removido');
+
+            if (!grouped.has(ccId)) {
+                grouped.set(ccId, { ccName, total: 0, records: 0, tolls: 0, parking: 0 });
+            }
+
+            const row = grouped.get(ccId)!;
+            row.total += Number(t.amount) || 0;
+            row.records += 1;
+            if (t.type === 'parking') row.parking += 1;
+            else row.tolls += 1;
+        });
+
+        return Array.from(grouped.entries())
+            .map(([ccId, row]) => ({ ccId, ...row }))
+            .sort((a, b) => b.total - a.total);
+    }, [tolls, reportMonth, costCenterById, vehicleCostCenterById]);
+
+    const monthlyTotal = useMemo(
+        () => monthlyRows.reduce((sum, r) => sum + r.total, 0),
+        [monthlyRows]
+    );
+
+    const exportMonthlyReport = () => {
+        if (monthlyRows.length === 0) {
+            toast.error('Sem dados para o mês selecionado');
+            return;
+        }
+
+        const reportData = monthlyRows.map(r => ({
+            'Centro de Custo': r.ccName,
+            'Nº Registos': r.records,
+            'Portagens': r.tolls,
+            'Estacionamentos': r.parking,
+            'Valor Total (€)': Number(r.total.toFixed(2)),
+            '% do Mês': `${((r.total / (monthlyTotal || 1)) * 100).toFixed(2)}%`
+        }));
+
+        const summaryData = [
+            { Indicador: 'Mês', Valor: reportMonth },
+            { Indicador: 'Total de Centros de Custo', Valor: monthlyRows.length },
+            { Indicador: 'Total de Registos', Valor: monthlyRows.reduce((a, r) => a + r.records, 0) },
+            { Indicador: 'Custo Total do Mês (€)', Valor: Number(monthlyTotal.toFixed(2)) }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reportData), 'Por Centro Custo');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'Resumo');
+        XLSX.writeFile(wb, `ViaVerde_Relatorio_Mensal_CC_${reportMonth}.xlsx`);
+    };
+
     return (
         <div className="animate-in fade-in duration-500">
             <PageHeader
@@ -640,6 +732,91 @@ export default function ViaVerde() {
                                 <TrendingUp className="w-6 h-6 text-purple-500" />
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Monthly Report by Cost Center */}
+                <div className="bg-slate-900/50 rounded-2xl border border-white/5 p-5 md:p-6 backdrop-blur-sm shadow-xl space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <h3 className="text-white text-lg font-semibold flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-emerald-400" />
+                                Relatório Mensal por Centro de Custo
+                            </h3>
+                            <p className="text-slate-400 text-sm mt-1">
+                                Gastos da Via Verde agrupados por centro de custo no mês selecionado.
+                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <select
+                                value={reportMonth}
+                                onChange={(e) => setReportMonth(e.target.value)}
+                                className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                            >
+                                {availableMonths.map(month => (
+                                    <option key={month} value={month}>{month}</option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={exportMonthlyReport}
+                                disabled={monthlyRows.length === 0}
+                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-medium transition-all"
+                            >
+                                <Download className="w-4 h-4" />
+                                Exportar Mensal
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="bg-slate-950/60 border border-white/5 rounded-xl p-4">
+                            <p className="text-xs uppercase tracking-wider text-slate-500">Custo Total do Mês</p>
+                            <p className="text-xl font-bold text-emerald-400 mt-1">{monthlyTotal.toFixed(2)} €</p>
+                        </div>
+                        <div className="bg-slate-950/60 border border-white/5 rounded-xl p-4">
+                            <p className="text-xs uppercase tracking-wider text-slate-500">Centros de Custo</p>
+                            <p className="text-xl font-bold text-white mt-1">{monthlyRows.length}</p>
+                        </div>
+                        <div className="bg-slate-950/60 border border-white/5 rounded-xl p-4">
+                            <p className="text-xs uppercase tracking-wider text-slate-500">Registos no Mês</p>
+                            <p className="text-xl font-bold text-white mt-1">{monthlyRows.reduce((a, r) => a + r.records, 0)}</p>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-white/5">
+                        <table className="w-full text-sm" style={{ minWidth: '680px' }}>
+                            <thead className="bg-slate-950/60 text-slate-400 uppercase text-xs">
+                                <tr>
+                                    <th className="px-4 py-3 text-left">Centro de Custo</th>
+                                    <th className="px-4 py-3 text-center">Registos</th>
+                                    <th className="px-4 py-3 text-center">Portagens</th>
+                                    <th className="px-4 py-3 text-center">Estacion.</th>
+                                    <th className="px-4 py-3 text-right">Total</th>
+                                    <th className="px-4 py-3 text-right">Peso</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {monthlyRows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                                            Sem movimentos de Via Verde para o mês selecionado.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    monthlyRows.map(row => (
+                                        <tr key={row.ccId} className="hover:bg-slate-800/40 transition-colors">
+                                            <td className="px-4 py-3 text-white font-medium">{row.ccName}</td>
+                                            <td className="px-4 py-3 text-center text-slate-300">{row.records}</td>
+                                            <td className="px-4 py-3 text-center text-slate-300">{row.tolls}</td>
+                                            <td className="px-4 py-3 text-center text-slate-300">{row.parking}</td>
+                                            <td className="px-4 py-3 text-right text-emerald-400 font-semibold">{row.total.toFixed(2)} €</td>
+                                            <td className="px-4 py-3 text-right text-slate-300">{((row.total / (monthlyTotal || 1)) * 100).toFixed(2)}%</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
