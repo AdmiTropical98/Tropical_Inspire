@@ -241,6 +241,91 @@ function parseFromCompactText(compact: string, invoiceRef: string): any[] {
     return out;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] {
+    const out: any[] = [];
+
+    const normalized = compact
+        .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // Row start: 020226 010712664 56-VD-25 ...
+    const rowStart = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,10})\s+/gi;
+    const starts = [...normalized.matchAll(rowStart)];
+    if (starts.length === 0) return out;
+
+    for (let i = 0; i < starts.length; i++) {
+        const m = starts[i];
+        const start = m.index ?? 0;
+        const end = i + 1 < starts.length ? (starts[i + 1].index ?? normalized.length) : normalized.length;
+        const chunk = normalized.slice(start, end).trim();
+
+        const dateRaw = m[1];
+        const talao = m[2];
+        const plateRaw = m[3];
+
+        const productMatch = chunk.match(/\b(GASOLEO\+?|GASÓLEO|GASOLEO|GASOLINA|DIESEL|ADBLUE|GPL|GNV|GASOIL)\b/i);
+        if (!productMatch) continue;
+
+        const product = normalizeFuelToken(productMatch[1]);
+        const productIdx = chunk.indexOf(productMatch[0]);
+        if (productIdx < 0) continue;
+
+        const beforeProduct = chunk.slice(0, productIdx).trim();
+        const afterProduct = chunk.slice(productIdx + productMatch[0].length).trim();
+
+        // From prefix, capture km as the last large integer before product.
+        const prefixTokens = beforeProduct.split(/\s+/).filter(Boolean);
+        let km = 0;
+        let kmPos = -1;
+        for (let j = prefixTokens.length - 1; j >= 0; j--) {
+            if (/^\d{4,8}$/.test(prefixTokens[j])) {
+                km = parseEU(prefixTokens[j]);
+                kmPos = j;
+                break;
+            }
+        }
+        if (kmPos < 0) continue;
+
+        // Remove date/talao/plate from head; station sits between plate and km.
+        const stationTokens = prefixTokens.slice(3, kmPos);
+        const posto = stationTokens.join(' ').trim();
+        if (!posto) continue;
+
+        // Numeric values after product. Typical order includes liters then ... then total.
+        const numericTokens = (afterProduct.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+|-?\d+/g) || [])
+            .map(cleanNumberToken);
+
+        if (numericTokens.length < 2) continue;
+
+        const decimalTokens = numericTokens.filter(t => t.includes(','));
+        if (decimalTokens.length < 2) continue;
+
+        // First decimal after product is usually liters; last decimal is total.
+        const litros = parseEU(decimalTokens[0]);
+        const total = parseEU(decimalTokens[decimalTokens.length - 1]);
+        if (litros <= 0 || total <= 0) continue;
+
+        out.push({
+            _manualDate: bpDateToISO(dateRaw),
+            'Hora': '',
+            'Matrícula': formatPlate(plateRaw),
+            'Km': km,
+            'Posto': posto,
+            'Produto': product,
+            'Litros': litros,
+            'Preço Unitário': total / litros,
+            'Total': total,
+            '_talao': talao,
+            '_invoiceRef': invoiceRef,
+            _selectedCC: '',
+        });
+    }
+
+    return out;
+}
+
 /**
  * Merge any standalone "-" token that precedes a number token so that
  * e.g. ["-", "0,120"] becomes ["-0,120"].
@@ -453,5 +538,8 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
 
     // Last-resort fallback for PDFs with broken column extraction
     const compact = await extractCompactText(file);
-    return parseFromCompactText(compact, invoiceRef);
+    const compactRows = parseFromCompactText(compact, invoiceRef);
+    if (compactRows.length > 0) return compactRows;
+
+    return parseFromTransactionChunks(compact, invoiceRef);
 };
