@@ -426,6 +426,99 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
     return out;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseFromDateTalaoChunks(compact: string, invoiceRef: string): any[] {
+    const out: any[] = [];
+
+    const normalized = compact
+        .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, '-')
+        .replace(/\bGAS\s+OLEO\b/gi, 'GASOLEO')
+        .replace(/\bGAS\s+OIL\b/gi, 'GASOIL')
+        .replace(/\bGASÓ\s*LEO\b/gi, 'GASOLEO')
+        .replace(/\bGASO\s+LEO\b/gi, 'GASOLEO')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // Looser anchor than parseFromTransactionChunks: only date + talao.
+    const anchorRe = /(\d{6})\s+(\d{6,14})\s+/g;
+    const anchors = [...normalized.matchAll(anchorRe)].filter(m => isValidBPDate(m[1]));
+    if (anchors.length === 0) return out;
+
+    for (let i = 0; i < anchors.length; i++) {
+        const m = anchors[i];
+        const start = m.index ?? 0;
+        const end = i + 1 < anchors.length ? (anchors[i + 1].index ?? normalized.length) : normalized.length;
+        const chunk = normalized.slice(start, end).trim();
+
+        const date = bpDateToISO(m[1]);
+        const talao = m[2];
+
+        const productMatch = chunk.match(/\b(GASOLEO\+?|GASÓLEO|GASOLEO|GASOLINA|DIESEL|ADBLUE|GPL|GNV|GASOIL)\b/i);
+        if (!productMatch) continue;
+        const produto = normalizeFuelToken(productMatch[1]);
+
+        const plateMatch = chunk.match(/\b([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\b/i);
+        const matricula = plateMatch ? formatPlate(plateMatch[1]) : 'N/D';
+
+        const productIdx = chunk.indexOf(productMatch[0]);
+        if (productIdx < 0) continue;
+        const beforeProduct = chunk.slice(0, productIdx).trim();
+        const afterProduct = chunk.slice(productIdx + productMatch[0].length).trim();
+
+        const kmCandidates = [...beforeProduct.matchAll(/\b(\d{4,8})\b/g)]
+            .map(v => v[1])
+            .filter(v => !isValidBPDate(v) && v !== talao);
+        const kmToken = kmCandidates.at(-1) ?? '0';
+        const km = parseEU(kmToken);
+
+        let posto = 'N/D';
+        if (plateMatch && kmToken !== '0') {
+            const platePos = beforeProduct.lastIndexOf(plateMatch[1]);
+            const kmPos = beforeProduct.lastIndexOf(kmToken);
+            if (platePos >= 0 && kmPos > platePos) {
+                const p = beforeProduct.slice(platePos + plateMatch[1].length, kmPos).trim();
+                if (p) posto = p.replace(/\s{2,}/g, ' ');
+            }
+        }
+
+        const decimalTokens = (afterProduct.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
+            .map(cleanNumberToken);
+        if (decimalTokens.length < 2) continue;
+
+        const total = parseEU(decimalTokens[decimalTokens.length - 1]);
+        if (total <= 0) continue;
+
+        let litros = 0;
+        for (const t of decimalTokens.slice(0, -1)) {
+            const v = parseEU(t);
+            if (v <= 0 || v > 600) continue;
+            const unit = total / v;
+            if (unit >= 0.5 && unit <= 5) {
+                litros = v;
+                break;
+            }
+        }
+        if (litros <= 0) continue;
+
+        out.push({
+            _manualDate: date,
+            'Hora': '',
+            'Matrícula': matricula,
+            'Km': km,
+            'Posto': posto,
+            'Produto': produto,
+            'Litros': litros,
+            'Preço Unitário': total / litros,
+            'Total': total,
+            '_talao': talao,
+            '_invoiceRef': invoiceRef,
+            _selectedCC: '',
+        });
+    }
+
+    return out;
+}
+
 /**
  * Merge any standalone "-" token that precedes a number token so that
  * e.g. ["-", "0,120"] becomes ["-0,120"].
@@ -618,7 +711,7 @@ function parseProductCentric(compact: string, invoiceRef: string): any[] {
 
         // Talão: first long digit sequence immediately after the validated date
         const afterDate = before.slice(dateMatch.index! + 6);
-        const talaoMatch = afterDate.match(/\b(\d{7,14})\b/);
+        const talaoMatch = afterDate.match(/\b(\d{6,14})\b/);
         const talao = talaoMatch?.[1] ?? '';
 
         // Plate: last XX-XX-XX pattern in before-context
@@ -641,8 +734,7 @@ function parseProductCentric(compact: string, invoiceRef: string): any[] {
         const postoRaw = platePos >= 0 && kmPosInBefore > platePos
             ? before.slice(platePos + plateToken.length, kmPosInBefore).trim()
             : '';
-        const posto = postoRaw.replace(/\s{2,}/g, ' ').trim();
-        if (!posto) continue;
+        const posto = postoRaw.replace(/\s{2,}/g, ' ').trim() || 'N/D';
 
         // Numeric values after product keyword
         const decNums = (after.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
@@ -705,6 +797,7 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
 
     // 2. Chunk-based (anchor on date+talão+plate)
     const chunkRows = parseFromTransactionChunks(compact, invoiceRef);
+    const dateTalaoRows = parseFromDateTalaoChunks(compact, invoiceRef);
 
     // 3. Column-line based (per-visual-line approach, handles 1–3 joined lines)
     const lineRows: any[] = [];
@@ -722,7 +815,7 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
     const compactRows = parseFromCompactText(compact, invoiceRef);
 
     // Combine all results; deduplication removes any overlaps
-    const all = dedupePreviewRows([...productRows, ...chunkRows, ...lineRows, ...compactRows]);
+    const all = dedupePreviewRows([...productRows, ...chunkRows, ...dateTalaoRows, ...lineRows, ...compactRows]);
 
     // Sort by date + plate so preview is human-readable
     all.sort((a, b) => {
