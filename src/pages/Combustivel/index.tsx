@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
     Fuel, Droplets, History, Check, Truck,
     Gauge, Trash2, LayoutTemplate, BarChart3, Edit, X,
-    Upload, Download, FileSpreadsheet,
+    Upload, Download, FileSpreadsheet, FileText,
     AlertCircle, Plus, TrendingUp, Zap, Car, Filter
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { parseBPInvoicePDF } from '../../utils/parseBPInvoicePDF';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
@@ -369,10 +370,27 @@ export default function Combustivel() {
         XLSX.writeFile(wb, "template_importacao_bp.xlsx");
     };
 
-    const handleImportBP = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImportBP = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // ── PDF import (BP Mobility invoice) ───────────────────────────
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+            try {
+                const rows = await parseBPInvoicePDF(file);
+                if (rows.length === 0) {
+                    alert('Nenhuma transação encontrada no PDF. Verifique se é uma fatura BP válida.');
+                    return;
+                }
+                setBpTransactions(rows);
+            } catch (err: any) {
+                console.error('Erro ao processar PDF BP:', err);
+                alert(`Erro ao processar o PDF: ${err?.message ?? 'Erro desconhecido'}`);
+            }
+            return;
+        }
+
+        // ── Excel import (existing behaviour) ──────────────────────────
         const reader = new FileReader();
         reader.onload = (evt) => {
             const bstr = evt.target?.result;
@@ -1477,13 +1495,24 @@ export default function Combustivel() {
                             <input
                                 type="file"
                                 ref={fileInputRef}
-                                accept=".xlsx, .xls"
+                                accept=".xlsx,.xls,.pdf"
                                 className="absolute inset-0 opacity-0 cursor-pointer"
                                 onChange={handleImportBP}
                             />
-                            <Upload className="w-16 h-16 text-slate-600 group-hover:text-blue-500 transition-colors mb-4" />
+                            <div className="flex gap-4 mb-4">
+                                <Upload className="w-12 h-12 text-slate-600 group-hover:text-blue-500 transition-colors" />
+                            </div>
                             <p className="text-xl font-bold text-slate-300 group-hover:text-white transition-colors">Arraste um ficheiro ou clique para upload</p>
-                            <p className="text-slate-500 text-sm mt-2">Suporta ficheiros Excel (.xlsx)</p>
+                            <div className="flex gap-4 mt-3">
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-800 px-3 py-1 rounded-full">
+                                    <FileText className="w-3.5 h-3.5 text-red-400" />
+                                    Fatura BP (.pdf)
+                                </span>
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-800 px-3 py-1 rounded-full">
+                                    <FileSpreadsheet className="w-3.5 h-3.5 text-green-400" />
+                                    Excel (.xlsx)
+                                </span>
+                            </div>
                         </div>
 
                         {bpTransactions.length > 0 && (
