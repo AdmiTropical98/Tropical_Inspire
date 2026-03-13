@@ -55,11 +55,11 @@ export interface BPInvoiceTransaction {
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 /** Known BP fuel product keywords */
-const FUEL_PRODUCT_RE =
-    /^(GASOLEO|GASOLEO\+|GASÓLEO|GASOLINA|DIESEL|GNV|G\.N\.V\.?|BIODIESEL|ADBLUE|GPL|SUPER|GAS(OIL)?)/i;
+const FUEL_PRODUCT_RE = /(GASOLEO|GASÓLEO|GASOLINA|DIESEL|GNV|G\.N\.V\.?|BIODIESEL|ADBLUE|GPL|SUPER|GASOIL)/i;
 
-/** Portuguese plate formats: XX-XX-XX (letters or digits in each segment) */
+/** Portuguese plate formats: XX-XX-XX or compact XXYYZZ */
 const PLATE_RE = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i;
+const PLATE_COMPACT_RE = /^[A-Z0-9]{6}$/i;
 
 const DATE_TOKEN_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})$/;
 const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
@@ -103,6 +103,36 @@ const cleanNumberToken = (val: string): string => {
     const trimmed = val.trim().replace(/%/g, '');
     if (trimmed === '-') return '0';
     return trimmed;
+};
+
+const normalizeFuelToken = (val: string): string => {
+    return val
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Za-z0-9]/g, '')
+        .toUpperCase();
+};
+
+const isFuelToken = (val: string): boolean => {
+    const direct = FUEL_PRODUCT_RE.test(val);
+    if (direct) return true;
+
+    const n = normalizeFuelToken(val);
+    return (
+        n.includes('GASOLEO')
+        || n.includes('GASOLINA')
+        || n.includes('DIESEL')
+        || n.includes('ADBLUE')
+        || n.includes('GPL')
+        || n.includes('GNV')
+        || n.includes('GASOIL')
+    );
+};
+
+const formatPlate = (val: string): string => {
+    const raw = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (raw.length !== 6) return val.toUpperCase();
+    return `${raw.slice(0, 2)}-${raw.slice(2, 4)}-${raw.slice(4, 6)}`;
 };
 
 // ─── main ─────────────────────────────────────────────────────────────────────
@@ -154,6 +184,63 @@ async function extractLines(file: File): Promise<string[][]> {
     return allLines;
 }
 
+async function extractCompactText(file: File): Promise<string> {
+    const data = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
+    const chunks: string[] = [];
+
+    for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const textContent = await page.getTextContent();
+        const pageText = (textContent.items as Array<{ str: string }>)
+            .map(item => item.str?.trim())
+            .filter(Boolean)
+            .join(' ');
+        chunks.push(pageText);
+    }
+
+    return chunks.join(' ');
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseFromCompactText(compact: string, invoiceRef: string): any[] {
+    const out: any[] = [];
+
+    // Example tolerant pattern:
+    // 020226 010712664 56-VD-25 PORTIMAO - RAMINHA 312333 GASOLEO 67,18 ... 107,36
+    const rowRegex = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,8})\s+(.{3,80}?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLINA|DIESEL|ADBLUE|GPL|GNV)[\s\S]{0,40}?(\d{1,3}(?:\.\d{3})?,\d{2})[\s\S]{0,40}?(\d{1,3}(?:\.\d{3})?,\d{2})/gi;
+
+    for (const m of compact.matchAll(rowRegex)) {
+        const date = bpDateToISO(m[1]);
+        const talao = m[2];
+        const plate = formatPlate(m[3]);
+        const posto = (m[4] || '').trim().replace(/\s{2,}/g, ' ');
+        const km = parseEU(m[5]);
+        const produto = normalizeFuelToken(m[6]);
+        const litros = parseEU(m[7]);
+        const total = parseEU(m[8]);
+
+        if (!posto || litros <= 0 || total <= 0) continue;
+
+        out.push({
+            _manualDate: date,
+            'Hora': '',
+            'Matrícula': plate,
+            'Km': km,
+            'Posto': posto,
+            'Produto': produto,
+            'Litros': litros,
+            'Preço Unitário': litros > 0 ? total / litros : 0,
+            'Total': total,
+            '_talao': talao,
+            '_invoiceRef': invoiceRef,
+            _selectedCC: '',
+        });
+    }
+
+    return out;
+}
+
 /**
  * Merge any standalone "-" token that precedes a number token so that
  * e.g. ["-", "0,120"] becomes ["-0,120"].
@@ -199,13 +286,13 @@ function parseTransactionLine(
     const talaoIdx = tokens.findIndex((t, i) => i > dateIdx && /^\d{6,14}$/.test(t));
     if (talaoIdx < 0) return null;
 
-    const plateIdx = tokens.findIndex((t, i) => i > talaoIdx && PLATE_RE.test(t));
+    const plateIdx = tokens.findIndex((t, i) => i > talaoIdx && (PLATE_RE.test(t) || PLATE_COMPACT_RE.test(t)));
     if (plateIdx < 0) return null;
 
     // Find the product token (anchor)
     let productIdx = -1;
     for (let i = plateIdx + 1; i < tokens.length; i++) {
-        if (FUEL_PRODUCT_RE.test(tokens[i])) {
+        if (isFuelToken(tokens[i])) {
             productIdx = i;
             break;
         }
@@ -227,8 +314,8 @@ function parseTransactionLine(
     if (!posto) return null;
 
     // Numeric tokens after product
-    const afterProduct = tokens
-        .slice(productIdx + 1)
+    const afterProductRaw = tokens.slice(productIdx + 1);
+    const afterProduct = afterProductRaw
         .filter(t => NUMERIC_TOKEN_RE.test(cleanNumberToken(t)));
     if (afterProduct.length < 2) return null; // Need at least litros + total
 
@@ -271,6 +358,14 @@ function parseTransactionLine(
         total         = parseEU(cleanNumberToken(afterProduct[6] ?? '0'));
     }
 
+    // Fallback when columns are partially missing/misaligned
+    if ((!Number.isFinite(total) || total <= 0) && afterProduct.length >= 1) {
+        total = parseEU(cleanNumberToken(afterProduct[afterProduct.length - 1] ?? '0'));
+    }
+    if ((!Number.isFinite(precoUnitario) || precoUnitario <= 0) && litros > 0 && total > 0) {
+        precoUnitario = total / litros;
+    }
+
     // Final safety checks to skip accidental header/footer captures
     if (!Number.isFinite(litros) || litros <= 0) return null;
     if (!Number.isFinite(total) || total <= 0) return null;
@@ -278,10 +373,10 @@ function parseTransactionLine(
     return {
         date:         bpDateToISO(tokens[dateIdx]),
         talaoCupao:   tokens[talaoIdx],
-        matricula:    tokens[plateIdx].toUpperCase(),
+        matricula:    formatPlate(tokens[plateIdx]),
         posto,
         km:           parseEU(cleanNumberToken(tokens[kmIdx])),
-        produto:      tokens[productIdx].toUpperCase(),
+        produto:      normalizeFuelToken(tokens[productIdx]) || tokens[productIdx].toUpperCase(),
         litros,
         precoLista,
         desconto,
@@ -354,5 +449,9 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
         });
     }
 
-    return transactions;
+    if (transactions.length > 0) return transactions;
+
+    // Last-resort fallback for PDFs with broken column extraction
+    const compact = await extractCompactText(file);
+    return parseFromCompactText(compact, invoiceRef);
 };
