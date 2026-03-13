@@ -381,28 +381,27 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
 
         // Numeric values after product. We search for realistic liters and total.
         // All decimal numbers after the product keyword
-        const decimalTokens = (afterProduct.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
+        const decimalTokens = (afterProduct.slice(0, 120).match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
             .map(cleanNumberToken)
             .filter(t => t.includes(','));
         if (decimalTokens.length < 2) continue;
 
-        // The FIRST decimal is typically the quantity (litros); last is total.
-        // But we validate with a plausible unit-price range (0.6–4.5 €/L).
-        // This prevents using e.g. a list-price (1,7xx) as the liters value.
-        let litros = 0;
-        let total = 0;
+        // BP structure is stable: first decimal is quantity, last is total.
+        // Fallback search is limited to first 3 decimals to avoid net/IVA columns.
+        const total = parseEU(decimalTokens[decimalTokens.length - 1]);
+        let litros = parseEU(decimalTokens[0]);
+        let unitPrice = litros > 0 ? total / litros : 0;
 
-        // Try every candidate for litros; match with the last number as total.
-        for (let di = 0; di < decimalTokens.length - 1; di++) {
-            const litrosCandidate = parseEU(decimalTokens[di]);
-            const totalCandidate  = parseEU(decimalTokens[decimalTokens.length - 1]);
-            if (litrosCandidate <= 0 || litrosCandidate > 600) continue;
-            if (totalCandidate  <= 0) continue;
-            const unitPrice = totalCandidate / litrosCandidate;
-            if (unitPrice >= 0.6 && unitPrice <= 4.5) {
-                litros = litrosCandidate;
-                total  = totalCandidate;
-                break;
+        if (!(litros > 0 && litros <= 200 && total > 0 && unitPrice >= 0.6 && unitPrice <= 4.5)) {
+            litros = 0;
+            for (const t of decimalTokens.slice(0, Math.min(3, decimalTokens.length - 1))) {
+                const v = parseEU(t);
+                if (v <= 0 || v > 200) continue;
+                unitPrice = total / v;
+                if (total > 0 && unitPrice >= 0.6 && unitPrice <= 4.5) {
+                    litros = v;
+                    break;
+                }
             }
         }
         if (litros <= 0 || total <= 0) continue;
@@ -481,21 +480,25 @@ function parseFromDateTalaoChunks(compact: string, invoiceRef: string): any[] {
             }
         }
 
-        const decimalTokens = (afterProduct.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
+        const decimalTokens = (afterProduct.slice(0, 120).match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
             .map(cleanNumberToken);
         if (decimalTokens.length < 2) continue;
 
         const total = parseEU(decimalTokens[decimalTokens.length - 1]);
         if (total <= 0) continue;
 
-        let litros = 0;
-        for (const t of decimalTokens.slice(0, -1)) {
-            const v = parseEU(t);
-            if (v <= 0 || v > 600) continue;
-            const unit = total / v;
-            if (unit >= 0.5 && unit <= 5) {
-                litros = v;
-                break;
+        let litros = parseEU(decimalTokens[0]);
+        let unit = litros > 0 ? total / litros : 0;
+        if (!(litros > 0 && litros <= 200 && unit >= 0.6 && unit <= 4.5)) {
+            litros = 0;
+            for (const t of decimalTokens.slice(0, Math.min(3, decimalTokens.length - 1))) {
+                const v = parseEU(t);
+                if (v <= 0 || v > 200) continue;
+                unit = total / v;
+                if (unit >= 0.6 && unit <= 4.5) {
+                    litros = v;
+                    break;
+                }
             }
         }
         if (litros <= 0) continue;
@@ -696,8 +699,8 @@ function parseProductCentric(compact: string, invoiceRef: string): any[] {
 
         // Scan backwards up to 300 chars for transaction header fields
         const before = norm.slice(Math.max(0, productPos - 300), productPos);
-        // Scan forwards up to 250 chars for numeric values
-        const after = norm.slice(productPos + productWord.length, productPos + productWord.length + 250);
+        // Short window avoids pulling totals from the next transaction
+        const after = norm.slice(productPos + productWord.length, productPos + productWord.length + 120);
 
         // Date: last VALID DDMMYY token in the before-context.
         // IMPORTANT: KM values are often 6 digits too (e.g. 312333).
@@ -741,16 +744,20 @@ function parseProductCentric(compact: string, invoiceRef: string): any[] {
             .map(cleanNumberToken);
         if (decNums.length < 2) continue;
 
-        // Last decimal = total; find litros using unit-price heuristic
+        // First decimal is quantity; last is total. Fallback only on first 3 decimals.
         const total = parseEU(decNums.at(-1)!);
         if (total <= 0) continue;
 
-        let litros = 0;
-        for (const t of decNums.slice(0, -1)) {
-            const v = parseEU(t);
-            if (v <= 0 || v > 600) continue;
-            const unit = total / v;
-            if (unit >= 0.6 && unit <= 4.5) { litros = v; break; }
+        let litros = parseEU(decNums[0]);
+        let unit = litros > 0 ? total / litros : 0;
+        if (!(litros > 0 && litros <= 200 && unit >= 0.6 && unit <= 4.5)) {
+            litros = 0;
+            for (const t of decNums.slice(0, Math.min(3, decNums.length - 1))) {
+                const v = parseEU(t);
+                if (v <= 0 || v > 200) continue;
+                unit = total / v;
+                if (unit >= 0.6 && unit <= 4.5) { litros = v; break; }
+            }
         }
         if (litros <= 0) continue;
 
@@ -814,8 +821,8 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
     // 4. Regex-compact (original simplest method)
     const compactRows = parseFromCompactText(compact, invoiceRef);
 
-    // Combine all results; deduplication removes any overlaps
-    const all = dedupePreviewRows([...productRows, ...chunkRows, ...dateTalaoRows, ...lineRows, ...compactRows]);
+    // Combine all results; order defines precedence for dedupe-by-talão.
+    const all = dedupePreviewRows([...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]);
 
     // Sort by date + plate so preview is human-readable
     all.sort((a, b) => {
