@@ -448,12 +448,21 @@ export default function Combustivel() {
     };
 
     const handleConfirmBPImport = async () => {
-        if (!confirm(`Confirma a importação de ${bpTransactions.length} registos?`)) return;
+        const rowsToImport = selectedRows.length > 0
+            ? selectedRows.map((idx: number) => bpTransactions[idx]).filter(Boolean)
+            : bpTransactions;
+
+        if (rowsToImport.length === 0) {
+            alert('Não existem linhas para importar.');
+            return;
+        }
+
+        if (!confirm(`Confirma a importação de ${rowsToImport.length} registos?`)) return;
 
         let successCount = 0;
         let errorCount = 0;
 
-        for (const row of bpTransactions as any[]) {
+        for (const row of rowsToImport as any[]) {
             try {
                 // Find Vehicle (Fuzzy Match: Remove spaces, dashes, case insensitive)
                 const normalizePlate = (p: string) => p?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -526,6 +535,7 @@ export default function Combustivel() {
 
         if (successCount > 0) {
             setBpTransactions([]);
+            setSelectedRows([]);
             if (fileInputRef.current) fileInputRef.current.value = '';
 
             // Switch to history tab so user sees the new records immediately
@@ -1471,7 +1481,7 @@ export default function Combustivel() {
                                         className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in"
                                     >
                                         <Check className="w-4 h-4" />
-                                        Confirmar ({bpTransactions.length})
+                                        Confirmar ({selectedRows.length > 0 ? selectedRows.length : bpTransactions.length})
                                     </button>
                                 )}
                                 <button
@@ -1519,7 +1529,10 @@ export default function Combustivel() {
                             <div className="space-y-4">
                                 <div className="flex flex-wrap justify-between items-center gap-4">
                                     <div className="flex items-center gap-4">
-                                        <h3 className="font-bold text-white text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                        <div>
+                                            <h3 className="font-bold text-white text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                            <p className="text-[11px] text-slate-500">Se selecionar linhas, o botão Confirmar importa apenas as selecionadas.</p>
+                                        </div>
                                         {selectedRows.length > 0 && (
                                             <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30 animate-in fade-in slide-in-from-left-2">
                                                 <span className="text-blue-400 text-sm font-bold">{selectedRows.length} selecionados</span>

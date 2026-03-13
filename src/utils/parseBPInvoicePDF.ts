@@ -250,8 +250,8 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
         .replace(/\s+/g, ' ')
         .trim();
 
-    // Row start: 020226 010712664 56-VD-25 ...
-    const rowStart = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,10})\s+/gi;
+    // Row start in summary statements: date + talao + card/identifier
+    const rowStart = /(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{6,14})\s+([A-Z0-9-]{4,14})\s+/gi;
     const starts = [...normalized.matchAll(rowStart)];
     if (starts.length === 0) return out;
 
@@ -263,7 +263,6 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
 
         const dateRaw = m[1];
         const talao = m[2];
-        const plateRaw = m[3];
 
         const productMatch = chunk.match(/\b(GASOLEO\+?|GASÓLEO|GASOLEO|GASOLINA|DIESEL|ADBLUE|GPL|GNV|GASOIL)\b/i);
         if (!productMatch) continue;
@@ -275,7 +274,12 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
         const beforeProduct = chunk.slice(0, productIdx).trim();
         const afterProduct = chunk.slice(productIdx + productMatch[0].length).trim();
 
-        // From prefix, capture km as the last large integer before product.
+        // Prefer explicit plate present in chunk (e.g. 46-PG-04). If missing, fallback to identifier token.
+        const plateMatch = beforeProduct.match(/\b[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}\b/i);
+        const fallbackId = m[3] || '';
+        const plateRaw = plateMatch?.[0] || fallbackId;
+
+        // From prefix, capture KM as last 4-8 digit integer before product.
         const prefixTokens = beforeProduct.split(/\s+/).filter(Boolean);
         let km = 0;
         let kmPos = -1;
@@ -288,24 +292,42 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
         }
         if (kmPos < 0) continue;
 
-        // Remove date/talao/plate from head; station sits between plate and km.
+        // Station text is between start fields and KM; remove any plate token if present.
         const stationTokens = prefixTokens.slice(3, kmPos);
-        const posto = stationTokens.join(' ').trim();
+        const posto = stationTokens
+            .join(' ')
+            .replace(/\b[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}\b/gi, '')
+            .trim();
         if (!posto) continue;
 
-        // Numeric values after product. Typical order includes liters then ... then total.
+        // Numeric values after product. We search for realistic liters and total.
         const numericTokens = (afterProduct.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+|-?\d+/g) || [])
             .map(cleanNumberToken);
-
-        if (numericTokens.length < 2) continue;
-
         const decimalTokens = numericTokens.filter(t => t.includes(','));
         if (decimalTokens.length < 2) continue;
 
-        // First decimal after product is usually liters; last decimal is total.
-        const litros = parseEU(decimalTokens[0]);
         const total = parseEU(decimalTokens[decimalTokens.length - 1]);
-        if (litros <= 0 || total <= 0) continue;
+        if (total <= 0) continue;
+
+        // Pick liters candidate that yields plausible unit price.
+        let litros = 0;
+        for (const token of decimalTokens.slice(0, -1)) {
+            const candidate = parseEU(token);
+            if (candidate <= 0 || candidate > 600) continue;
+            const unit = total / candidate;
+            if (unit >= 0.6 && unit <= 4.5) {
+                litros = candidate;
+                break;
+            }
+        }
+        if (litros <= 0) {
+            const firstReasonable = decimalTokens
+                .slice(0, -1)
+                .map(parseEU)
+                .find(v => v > 0 && v <= 600);
+            litros = firstReasonable || 0;
+        }
+        if (litros <= 0) continue;
 
         out.push({
             _manualDate: bpDateToISO(dateRaw),
