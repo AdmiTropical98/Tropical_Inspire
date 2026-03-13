@@ -77,7 +77,8 @@ const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
 const CARD_HEADER_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*\d+/i;
 const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
 const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
-const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,12})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(.*)$/i;
+const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
+const BP_TRANSACTION_LINE_RE_7COL = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
 
 /** Parse European-format number string → JS number */
 const parseEU = (val: string): number => {
@@ -635,13 +636,32 @@ function shouldIgnoreTransactionLine(tokens: string[]): boolean {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isValidParsedRow(row: any): boolean {
+    const talao = String(row._talao || '').trim();
+    const plate = String(row['Matrícula'] || '').trim();
+    const liters = Number(row['Litros'] || 0);
+    const total = Number(row['Total'] || 0);
+    const km = Number(row['Km'] || 0);
+    const unit = liters > 0 ? total / liters : 0;
+
+    if (!/^\d{6,14}$/.test(talao)) return false;
+    if (!(PLATE_RE.test(plate) || PLATE_COMPACT_RE.test(plate.replace(/-/g, '')))) return false;
+    if (!(liters > 0 && liters <= 250)) return false;
+    if (!(total > 0 && total <= 2000)) return false;
+    if (!(km >= 0 && km <= 5000000)) return false;
+    if (!(unit >= 0.5 && unit <= 4.5)) return false;
+
+    return true;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseByRegexPerLine(lines: string[][], invoiceRef: string): any[] {
     const parsed: any[] = [];
 
     const parseCandidate = (candidateTokens: string[]): void => {
         if (shouldIgnoreTransactionLine(candidateTokens)) return;
         const line = normalizeLineText(candidateTokens);
-        const m = line.match(BP_TRANSACTION_LINE_RE);
+        const m = line.match(BP_TRANSACTION_LINE_RE) || line.match(BP_TRANSACTION_LINE_RE_7COL);
         if (!m) return;
 
         const date = bpDateToISO(m[1]);
@@ -651,21 +671,18 @@ function parseByRegexPerLine(lines: string[][], invoiceRef: string): any[] {
         const km = parseEU(m[5]);
         const product = normalizeFuelToken(m[6]);
         const liters = parseEU(m[7]);
-        const remainder = m[8] ?? '';
-        const remainderNums = [...remainder.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
-        if (remainderNums.length === 0) return;
-
-        const total = parseEU(remainderNums[remainderNums.length - 1]);
-        const price = parseEU(remainderNums[0] ?? '0');
-        const discount = parseEU(remainderNums[1] ?? '0');
-        const effectivePrice = parseEU(remainderNums[2] ?? '0');
-        const vatPercent = parseEU(remainderNums[3] ?? '0');
-        const baseVat = parseEU(remainderNums[4] ?? '0');
-        const vatValue = parseEU(remainderNums[5] ?? '0');
+        const tail = m.slice(7).map(v => parseEU(v ?? '0'));
+        const total = tail[tail.length - 1] ?? 0;
+        const price = tail[1] ?? 0;
+        const discount = tail.length >= 8 ? (tail[2] ?? 0) : 0;
+        const effectivePrice = tail.length >= 8 ? (tail[3] ?? 0) : (tail[2] ?? 0);
+        const vatPercent = tail.length >= 8 ? (tail[4] ?? 0) : (tail[3] ?? 0);
+        const baseVat = tail.length >= 8 ? (tail[5] ?? 0) : (tail[4] ?? 0);
+        const vatValue = tail.length >= 8 ? (tail[6] ?? 0) : (tail[5] ?? 0);
 
         if (liters <= 0 || total <= 0) return;
 
-        parsed.push({
+        const row = {
             _manualDate: date,
             'Hora': '',
             'Matrícula': vehicle,
@@ -682,7 +699,10 @@ function parseByRegexPerLine(lines: string[][], invoiceRef: string): any[] {
             '_invoiceRef': invoiceRef,
             '_source': 'regex',
             _selectedCC: '',
-        });
+        };
+
+        if (!isValidParsedRow(row)) return;
+        parsed.push(row);
     };
 
     for (let i = 0; i < lines.length; i++) {
@@ -1039,7 +1059,9 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
     const compactRows = parseFromCompactText(compact, invoiceRef);
 
     // Combine all results; order defines precedence for dedupe-by-talão.
-    const all = dedupePreviewRows([...regexRows, ...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]);
+    const allCandidates = [...regexRows, ...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]
+        .filter(isValidParsedRow);
+    const all = dedupePreviewRows(allCandidates);
 
     // Sort by date + plate so preview is human-readable
     all.sort((a, b) => {
@@ -1062,21 +1084,20 @@ export function parseBPFuelReport(text: string): FuelTransaction[] {
     const transactions: FuelTransaction[] = [];
     const lines = text.split(/\r?\n/);
 
-    const transactionRegex = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,12})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(.*)$/i;
+    const transactionRegex = BP_TRANSACTION_LINE_RE;
+    const transactionRegex7 = BP_TRANSACTION_LINE_RE_7COL;
 
     for (const rawLine of lines) {
         const line = rawLine.replace(/\s+/g, ' ').trim();
         if (!line) continue;
         if (CARD_HEADER_RE.test(line) || TOTAL_LINE_RE.test(line) || TRANSACTION_HEADER_RE.test(line)) continue;
 
-        const m = line.match(transactionRegex);
+        const m = line.match(transactionRegex) || line.match(transactionRegex7);
         if (!m) continue;
 
-        const decimals = [...(m[8] ?? '').matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
-        if (decimals.length === 0) continue;
-
+        const tail = m.slice(7).map(v => parseEU(v ?? '0'));
         const liters = parseEU(m[7]);
-        const total = parseEU(decimals[decimals.length - 1]);
+        const total = tail[tail.length - 1] ?? 0;
         if (liters <= 0 || total <= 0) continue;
 
         transactions.push({
