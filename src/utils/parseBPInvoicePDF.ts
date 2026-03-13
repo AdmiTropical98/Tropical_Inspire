@@ -186,28 +186,73 @@ const toPreviewRow = (tx: BPInvoiceTransaction): any => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const dedupePreviewRows = (rows: any[]): any[] => {
-    const seen = new Set<string>();
-    const deduped: any[] = [];
+    const grouped = new Map<string, any[]>();
+
+    const isIsoDate = (v: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const isPlateLike = (v: string): boolean => /^([A-Z0-9]{1,3}-){2}[A-Z0-9]{1,3}$/.test(v);
+
+    const scoreRow = (row: any): number => {
+        const litros = Number(row['Litros'] || 0);
+        const total = Number(row['Total'] || 0);
+        const unit = litros > 0 ? total / litros : 0;
+        const date = String(row._manualDate || '');
+        const plate = String(row['Matrícula'] || '').toUpperCase();
+        const posto = String(row['Posto'] || '').trim().toUpperCase();
+        const km = Number(row['Km'] || 0);
+
+        let s = 0;
+        if (isIsoDate(date)) s += 8;
+        if (isPlateLike(plate)) s += 5;
+        if (posto && posto !== 'N/D') s += 3;
+        if (km > 0 && km <= 3000000) s += 2;
+
+        if (litros > 0 && litros <= 120) s += 12;
+        else if (litros > 120 && litros <= 200) s += 4;
+        else s -= 20;
+
+        if (unit >= 0.75 && unit <= 3.2) s += 12;
+        else if (unit >= 0.6 && unit <= 4.5) s += 4;
+        else s -= 20;
+
+        if (total > 0 && total <= 1000) s += 5;
+        else if (total <= 0) s -= 20;
+
+        const talao = String(row._talao || '').trim();
+        if (/^\d{6,14}$/.test(talao)) s += 5;
+
+        return s;
+    };
 
     for (const row of rows) {
         const talao = String(row._talao || '').trim();
-        // Talão is a unique transaction identifier — use it as primary key.
-        // When talão is missing fall back to composite key.
         const key = talao
             ? `talao:${talao}`
             : [
                 row._manualDate || '',
                 String(row['Matrícula'] || '').toUpperCase(),
                 Number(row['Litros'] || 0).toFixed(2),
-                Number(row['Total'] || 0).toFixed(2)
-              ].join('|');
+                Number(row['Total'] || 0).toFixed(2),
+            ].join('|');
 
-        if (seen.has(key)) continue;
-        seen.add(key);
-        deduped.push(row);
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key)!.push(row);
     }
 
-    return deduped;
+    const resolved: any[] = [];
+    for (const candidates of grouped.values()) {
+        let best = candidates[0];
+        let bestScore = scoreRow(best);
+        for (let i = 1; i < candidates.length; i++) {
+            const s = scoreRow(candidates[i]);
+            if (s > bestScore) {
+                best = candidates[i];
+                bestScore = s;
+            }
+        }
+        resolved.push(best);
+    }
+
+    return resolved;
 };
 
 // ─── main ─────────────────────────────────────────────────────────────────────
@@ -335,7 +380,7 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
 
     // Row anchor: DDMMYY + талão (long number) + plate XX-XX-XX
     // Using explicit plate format avoids false positives on non-transaction lines.
-    const rowStart = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,2}-[A-Z0-9]{1,2}-[A-Z0-9]{1,2})\s+/gi;
+    const rowStart = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3})\s+/gi;
     const starts = [...normalized.matchAll(rowStart)];
     if (starts.length === 0) return out;
 
