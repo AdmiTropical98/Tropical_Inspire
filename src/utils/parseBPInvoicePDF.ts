@@ -57,8 +57,8 @@ export interface BPInvoiceTransaction {
 /** Known BP fuel product keywords */
 const FUEL_PRODUCT_RE = /(GASOLEO|GASÓLEO|GASOLINA|DIESEL|GNV|G\.N\.V\.?|BIODIESEL|ADBLUE|GPL|SUPER|GASOIL)/i;
 
-/** Portuguese plate formats: XX-XX-XX or compact XXYYZZ */
-const PLATE_RE = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i;
+/** BP PDFs may include non-standard segmented identifiers like 4U-R-60 */
+const PLATE_RE = /^[A-Z0-9]{1,2}-[A-Z0-9]{1,2}-[A-Z0-9]{1,2}$/i;
 const PLATE_COMPACT_RE = /^[A-Z0-9]{6}$/i;
 
 const DATE_TOKEN_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})$/;
@@ -208,7 +208,7 @@ function parseFromCompactText(compact: string, invoiceRef: string): any[] {
 
     // Example tolerant pattern:
     // 020226 010712664 56-VD-25 PORTIMAO - RAMINHA 312333 GASOLEO 67,18 ... 107,36
-    const rowRegex = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,8})\s+(.{3,80}?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLINA|DIESEL|ADBLUE|GPL|GNV)[\s\S]{0,40}?(\d{1,3}(?:\.\d{3})?,\d{2})[\s\S]{0,40}?(\d{1,3}(?:\.\d{3})?,\d{2})/gi;
+    const rowRegex = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,2}-[A-Z0-9]{1,2}-[A-Z0-9]{1,2}|[A-Z0-9-]{6,8})\s+(.{3,80}?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLINA|DIESEL|ADBLUE|GPL|GNV)[\s\S]{0,40}?(\d{1,3}(?:\.\d{3})?,\d{2})[\s\S]{0,40}?(\d{1,3}(?:\.\d{3})?,\d{2})/gi;
 
     for (const m of compact.matchAll(rowRegex)) {
         const date = bpDateToISO(m[1]);
@@ -260,7 +260,7 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
 
     // Row anchor: DDMMYY + талão (long number) + plate XX-XX-XX
     // Using explicit plate format avoids false positives on non-transaction lines.
-    const rowStart = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2})\s+/gi;
+    const rowStart = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,2}-[A-Z0-9]{1,2}-[A-Z0-9]{1,2})\s+/gi;
     const starts = [...normalized.matchAll(rowStart)];
     if (starts.length === 0) return out;
 
