@@ -562,55 +562,163 @@ function parseTransactionLine(
     };
 }
 
+/**
+ * Product-centric parser: anchors on every GASOLEO/DIESEL occurrence and
+ * reconstructs the full transaction by scanning context before/after.
+ * This is the most robust approach and handles all line-breaking variants.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseProductCentric(compact: string, invoiceRef: string): any[] {
+    const out: any[] = [];
+
+    const norm = compact
+        .replace(/[\u2010-\u2014]/g, '-')
+        .replace(/\bGAS\s+OLEO\b/gi, 'GASOLEO')
+        .replace(/\bGAS\s+OIL\b/gi, 'GASOIL')
+        .replace(/\bGASO\s+LEO\b/gi, 'GASOLEO')
+        .replace(/\bGASÓ\s*LEO\b/gi, 'GASOLEO')
+        .replace(/\bGAS\s+OLINA\b/gi, 'GASOLINA')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // Match every fuel product occurrence in the entire text
+    const productRe = /\b(GASOLEO\+?|GASOLINA|DIESEL|ADBLUE|GPL|GNV|GASOIL)\b/gi;
+
+    for (const productMatch of norm.matchAll(productRe)) {
+        const productPos = productMatch.index!;
+        const productWord = productMatch[0];
+        const product = normalizeFuelToken(productWord);
+
+        // Scan backwards up to 300 chars for transaction header fields
+        const before = norm.slice(Math.max(0, productPos - 300), productPos);
+        // Scan forwards up to 250 chars for numeric values
+        const after = norm.slice(productPos + productWord.length, productPos + productWord.length + 250);
+
+        // Date: last DDMMYY token in the before-context
+        const allDates = [...before.matchAll(/\b(\d{6})\b/g)];
+        const dateToken = allDates.at(-1)?.[1];
+        if (!dateToken) continue;
+        const date = bpDateToISO(dateToken);
+
+        // Talão: long digit sequence after the date
+        const afterDate = before.slice((allDates.at(-1)?.index ?? 0) + 6);
+        const talaoMatch = afterDate.match(/\b(\d{7,14})\b/);
+        const talao = talaoMatch?.[1] ?? '';
+
+        // Plate: last XX-XX-XX pattern in before-context
+        const allPlates = [...before.matchAll(/\b([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3})\b/gi)];
+        const plateToken = allPlates.at(-1)?.[1];
+        if (!plateToken) continue;
+        const plate = formatPlate(plateToken);
+
+        // KM: last 4–8 digit integer immediately before the product (within 80 chars)
+        const nearProduct = before.slice(-80);
+        const allKm = [...nearProduct.matchAll(/\b(\d{4,8})\b/g)];
+        const kmToken = allKm.at(-1)?.[1] ?? '0';
+        const km = parseEU(kmToken);
+
+        // Station: text between the plate and the KM in before-context
+        const platePos = before.lastIndexOf(plateToken);
+        const kmPosInBefore = before.lastIndexOf(kmToken);
+        const postoRaw = platePos >= 0 && kmPosInBefore > platePos
+            ? before.slice(platePos + plateToken.length, kmPosInBefore).trim()
+            : '';
+        const posto = postoRaw.replace(/\s{2,}/g, ' ').trim();
+        if (!posto) continue;
+
+        // Numeric values after product keyword
+        const decNums = (after.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
+            .map(cleanNumberToken);
+        if (decNums.length < 2) continue;
+
+        // Last decimal = total; find litros using unit-price heuristic
+        const total = parseEU(decNums.at(-1)!);
+        if (total <= 0) continue;
+
+        let litros = 0;
+        for (const t of decNums.slice(0, -1)) {
+            const v = parseEU(t);
+            if (v <= 0 || v > 600) continue;
+            const unit = total / v;
+            if (unit >= 0.6 && unit <= 4.5) { litros = v; break; }
+        }
+        if (litros <= 0) continue;
+
+        out.push({
+            _manualDate: date,
+            'Hora': '',
+            'Matrícula': plate,
+            'Km': km,
+            'Posto': posto,
+            'Produto': product,
+            'Litros': litros,
+            'Preço Unitário': total / litros,
+            'Total': total,
+            '_talao': talao,
+            '_invoiceRef': invoiceRef,
+            _selectedCC: '',
+        });
+    }
+
+    return out;
+}
+
 // ─── public API ───────────────────────────────────────────────────────────────
 
-/**
- * Parse a BP Mobility invoice PDF and return the list of fuel transactions.
- * Returns the transactions shaped as the `bpTransactions` row format used
- * by the Combustivel page, so they can be fed directly into the existing
- * preview table and confirmation flow without extra mapping.
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
     const lines = await extractLines(file);
+    const compact = await extractCompactText(file);
 
+    // Grab invoice ref from any method
     let invoiceRef = '';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const transactions: any[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-        const tokens = lines[i];
-        const lineText = tokens.join(' ');
-
-        // Capture invoice reference from header (e.g. "PT011/937408")
-        if (!invoiceRef) {
-            const refMatch = lineText.match(/\bPT\d{3}\/\d+\b/i);
-            if (refMatch) invoiceRef = refMatch[0];
-        }
-
-        let tx = parseTransactionLine(tokens, invoiceRef);
-
-        // Some Summary Statement PDFs split one transaction in two visual lines.
-        // Fallback: try current + next line as a single record.
-        if (!tx && i + 1 < lines.length) {
-            tx = parseTransactionLine([...tokens, ...lines[i + 1]], invoiceRef);
-            if (tx) i += 1;
-        }
-
-        // Some PDFs split one transaction across three visual lines.
-        if (!tx && i + 2 < lines.length) {
-            tx = parseTransactionLine([...tokens, ...lines[i + 1], ...lines[i + 2]], invoiceRef);
-            if (tx) i += 2;
-        }
-
-        if (!tx) continue;
-
-        transactions.push(toPreviewRow(tx));
+    for (const tokens of lines) {
+        const t = tokens.join(' ');
+        const m = t.match(/\bPT\d{3}\/\d+\b/i);
+        if (m) { invoiceRef = m[0]; break; }
+    }
+    if (!invoiceRef) {
+        const m = compact.match(/\bPT\d{3}\/\d+\b/i);
+        if (m) invoiceRef = m[0];
     }
 
-    const compact = await extractCompactText(file);
-    const compactRows = parseFromCompactText(compact, invoiceRef);
+    // 1. Product-centric (most robust – anchor on fuel keyword)
+    const productRows = parseProductCentric(compact, invoiceRef);
+
+    // 2. Chunk-based (anchor on date+talão+plate)
     const chunkRows = parseFromTransactionChunks(compact, invoiceRef);
 
-    return dedupePreviewRows([...transactions, ...compactRows, ...chunkRows]);
+    // 3. Column-line based (per-visual-line approach, handles 1–3 joined lines)
+    const lineRows: any[] = [];
+    for (let i = 0; i < lines.length; i++) {
+        const tokens = lines[i];
+        let tx = parseTransactionLine(tokens, invoiceRef);
+        if (!tx && i + 1 < lines.length)
+            tx = parseTransactionLine([...tokens, ...lines[i + 1]], invoiceRef);
+        if (!tx && i + 2 < lines.length)
+            tx = parseTransactionLine([...tokens, ...lines[i + 1], ...lines[i + 2]], invoiceRef);
+        if (tx) lineRows.push(toPreviewRow(tx));
+    }
+
+    // 4. Regex-compact (original simplest method)
+    const compactRows = parseFromCompactText(compact, invoiceRef);
+
+    // Combine all results; deduplication removes any overlaps
+    const all = dedupePreviewRows([...productRows, ...chunkRows, ...lineRows, ...compactRows]);
+
+    // Sort by date + plate so preview is human-readable
+    all.sort((a, b) => {
+        const da = a._manualDate || '';
+        const db = b._manualDate || '';
+        if (da !== db) return da.localeCompare(db);
+        return String(a['Matrícula'] || '').localeCompare(String(b['Matrícula'] || ''));
+    });
+
+    if (all.length === 0) {
+        // Log raw text to console so developer can inspect actual PDF content
+        console.warn('[BP Parser] Nenhuma transação encontrada. Texto bruto do PDF:');
+        console.warn(compact.slice(0, 3000));
+    }
+
+    return all;
 };
