@@ -550,6 +550,50 @@ export default function ViaVerde() {
         [monthlyRows]
     );
 
+    const monthlyDetailedRecords = useMemo(() => {
+        const [year, month] = reportMonth.split('-').map(Number);
+        if (!year || !month) return [] as Array<{
+            id: string;
+            entryTime: string;
+            vehicle: string;
+            ccName: string;
+            type: 'Portagem' | 'Estacionamento';
+            route: string;
+            amount: number;
+        }>;
+
+        const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        const end = new Date(year, month, 1, 0, 0, 0, 0);
+
+        return tolls
+            .filter(t => {
+                const entry = new Date(t.entry_time);
+                return entry >= start && entry < end;
+            })
+            .map(t => {
+                const ccId = t.cost_center_id || vehicleCostCenterById.get(t.vehicle_id) || 'sem_cc';
+                const ccName = ccId === 'sem_cc'
+                    ? 'Sem Centro de Custo'
+                    : (costCenterById.get(ccId) || 'Centro de Custo Removido');
+
+                const typeLabel = t.type === 'parking' ? 'Estacionamento' : 'Portagem';
+                const route = t.type === 'parking'
+                    ? (t.entry_point || 'N/A')
+                    : `${t.entry_point || 'N/A'} -> ${t.exit_point || 'N/A'}`;
+
+                return {
+                    id: t.id,
+                    entryTime: t.entry_time,
+                    vehicle: t.vehicle?.matricula || 'N/A',
+                    ccName,
+                    type: typeLabel,
+                    route,
+                    amount: Number(t.amount) || 0
+                };
+            })
+            .sort((a, b) => new Date(a.entryTime).getTime() - new Date(b.entryTime).getTime());
+    }, [tolls, reportMonth, costCenterById, vehicleCostCenterById]);
+
     const exportMonthlyReportExcel = () => {
         if (monthlyRows.length === 0) {
             toast.error('Sem dados para o mês selecionado');
@@ -601,8 +645,32 @@ export default function ViaVerde() {
         doc.text(`Mes: ${monthLabel}`, 14, 25);
         doc.text(`Total mensal: ${monthlyTotal.toFixed(2)} EUR`, 14, 31);
 
+        const monthlyRecordsCount = monthlyDetailedRecords.length;
+        const monthlyTollsCount = monthlyRows.reduce((a, r) => a + r.tolls, 0);
+        const monthlyParkingCount = monthlyRows.reduce((a, r) => a + r.parking, 0);
+
         autoTable(doc, {
             startY: 42,
+            head: [['Indicador', 'Valor']],
+            body: [
+                ['Total de Centros de Custo', String(monthlyRows.length)],
+                ['Total de Registos', String(monthlyRecordsCount)],
+                ['Total de Portagens', String(monthlyTollsCount)],
+                ['Total de Estacionamentos', String(monthlyParkingCount)],
+                ['Custo Total do Mes (EUR)', monthlyTotal.toFixed(2)]
+            ],
+            theme: 'striped',
+            headStyles: { fillColor: [30, 41, 59] },
+            styles: { fontSize: 9, cellPadding: 2 }
+        });
+
+        const summaryStartY = (doc as any).lastAutoTable.finalY + 8;
+        doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
+        doc.text('Resumo por Centro de Custo', 14, summaryStartY - 2);
+
+        autoTable(doc, {
+            startY: summaryStartY,
             head: [['Centro de Custo', 'Registos', 'Portagens', 'Estacion.', 'Total (EUR)', 'Peso']],
             body: monthlyRows.map((row) => [
                 row.ccName,
@@ -624,6 +692,41 @@ export default function ViaVerde() {
             headStyles: { fillColor: [16, 185, 129] },
             footStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
             styles: { fontSize: 9, cellPadding: 2 }
+        });
+
+        const detailStartY = (doc as any).lastAutoTable.finalY + 8;
+        doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
+        doc.text('Detalhe de Registos do Mes', 14, detailStartY - 2);
+
+        autoTable(doc, {
+            startY: detailStartY,
+            head: [['Data/Hora', 'Viatura', 'Centro de Custo', 'Tipo', 'Trajeto', 'Valor (EUR)']],
+            body: monthlyDetailedRecords.map((record) => [
+                new Date(record.entryTime).toLocaleString('pt-PT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                record.vehicle,
+                record.ccName,
+                record.type,
+                record.route,
+                record.amount.toFixed(2)
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [51, 65, 85] },
+            styles: { fontSize: 8, cellPadding: 2 },
+            columnStyles: {
+                0: { cellWidth: 28 },
+                1: { cellWidth: 20 },
+                2: { cellWidth: 34 },
+                3: { cellWidth: 24 },
+                4: { cellWidth: 56 },
+                5: { cellWidth: 22, halign: 'right' }
+            }
         });
 
         doc.save(`ViaVerde_Relatorio_Mensal_CC_${reportMonth}.pdf`);
