@@ -52,6 +52,17 @@ export interface BPInvoiceTransaction {
     invoiceRef: string;
 }
 
+export type FuelTransaction = {
+    date: string;
+    receipt: string;
+    vehicle: string;
+    location: string;
+    km: number;
+    product: string;
+    liters: number;
+    total: number;
+};
+
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 /** Known BP fuel product keywords */
@@ -224,6 +235,10 @@ const dedupePreviewRows = (rows: any[]): any[] => {
         const talao = String(row._talao || '').trim();
         if (/^\d{6,14}$/.test(talao)) s += 5;
 
+        const source = String(row._source || '');
+        if (source === 'regex') s += 30;
+        else if (source === 'card') s += 10;
+
         return s;
     };
 
@@ -324,6 +339,24 @@ async function extractCompactText(file: File): Promise<string> {
     }
 
     return chunks.join(' ');
+}
+
+export async function extractTextFromPDF(file: File): Promise<string> {
+    const data = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
+    const pages: string[] = [];
+
+    for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const textContent = await page.getTextContent();
+        const pageText = (textContent.items as Array<{ str: string }>)
+            .map(item => item.str?.trim())
+            .filter(Boolean)
+            .join(' ');
+        pages.push(pageText);
+    }
+
+    return pages.join('\n');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -647,6 +680,7 @@ function parseByRegexPerLine(lines: string[][], invoiceRef: string): any[] {
             '_valorLiquido': baseVat,
             '_ivaValue': vatValue,
             '_invoiceRef': invoiceRef,
+            '_source': 'regex',
             _selectedCC: '',
         });
     };
@@ -709,7 +743,7 @@ function parseFromCardBlocks(lines: string[][], invoiceRef: string): any[] {
             }
         }
 
-        if (tx) rows.push(toPreviewRow(tx));
+        if (tx) rows.push({ ...toPreviewRow(tx), _source: 'card' });
     }
 
     return rows;
@@ -1023,3 +1057,39 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
 
     return all;
 };
+
+export function parseBPFuelReport(text: string): FuelTransaction[] {
+    const transactions: FuelTransaction[] = [];
+    const lines = text.split(/\r?\n/);
+
+    const transactionRegex = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9-]{6,12})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(\d{1,3}(?:\.\d{3})?,\d+)\s+(.*)$/i;
+
+    for (const rawLine of lines) {
+        const line = rawLine.replace(/\s+/g, ' ').trim();
+        if (!line) continue;
+        if (CARD_HEADER_RE.test(line) || TOTAL_LINE_RE.test(line) || TRANSACTION_HEADER_RE.test(line)) continue;
+
+        const m = line.match(transactionRegex);
+        if (!m) continue;
+
+        const decimals = [...(m[8] ?? '').matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
+        if (decimals.length === 0) continue;
+
+        const liters = parseEU(m[7]);
+        const total = parseEU(decimals[decimals.length - 1]);
+        if (liters <= 0 || total <= 0) continue;
+
+        transactions.push({
+            date: bpDateToISO(m[1]),
+            receipt: m[2],
+            vehicle: formatPlate(m[3]),
+            location: m[4].trim(),
+            km: parseEU(m[5]),
+            product: normalizeFuelToken(m[6]),
+            liters,
+            total,
+        });
+    }
+
+    return transactions;
+}
