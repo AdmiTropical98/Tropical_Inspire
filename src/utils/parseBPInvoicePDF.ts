@@ -245,13 +245,22 @@ function parseFromCompactText(compact: string, invoiceRef: string): any[] {
 function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] {
     const out: any[] = [];
 
+    // Normalise extracted PDF text before parsing:
+    // - unify dash variants
+    // - collapse whitespace
+    // - fix split product tokens ("GAS OLEO" → "GASOLEO", "GAS OIL" → "GASOIL")
     const normalized = compact
         .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, '-')
+        .replace(/\bGAS\s+OLEO\b/gi, 'GASOLEO')
+        .replace(/\bGAS\s+OIL\b/gi, 'GASOIL')
+        .replace(/\bGASÓ\s*LEO\b/gi, 'GASOLEO')
+        .replace(/\bGASO\s+LEO\b/gi, 'GASOLEO')
         .replace(/\s+/g, ' ')
         .trim();
 
-    // Row start in summary statements: date + talao + card/identifier
-    const rowStart = /(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{6,14})\s+([A-Z0-9-]{4,14})\s+/gi;
+    // Row anchor: DDMMYY + талão (long number) + plate XX-XX-XX
+    // Using explicit plate format avoids false positives on non-transaction lines.
+    const rowStart = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2})\s+/gi;
     const starts = [...normalized.matchAll(rowStart)];
     if (starts.length === 0) return out;
 
@@ -263,6 +272,7 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
 
         const dateRaw = m[1];
         const talao = m[2];
+        const plateRaw = m[3]; // plate is captured directly from anchor, no ambiguity
 
         const productMatch = chunk.match(/\b(GASOLEO\+?|GASÓLEO|GASOLEO|GASOLINA|DIESEL|ADBLUE|GPL|GNV|GASOIL)\b/i);
         if (!productMatch) continue;
@@ -273,11 +283,6 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
 
         const beforeProduct = chunk.slice(0, productIdx).trim();
         const afterProduct = chunk.slice(productIdx + productMatch[0].length).trim();
-
-        // Prefer explicit plate present in chunk (e.g. 46-PG-04). If missing, fallback to identifier token.
-        const plateMatch = beforeProduct.match(/\b[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}\b/i);
-        const fallbackId = m[3] || '';
-        const plateRaw = plateMatch?.[0] || fallbackId;
 
         // From prefix, capture KM as last 4-8 digit integer before product.
         const prefixTokens = beforeProduct.split(/\s+/).filter(Boolean);
@@ -292,42 +297,40 @@ function parseFromTransactionChunks(compact: string, invoiceRef: string): any[] 
         }
         if (kmPos < 0) continue;
 
-        // Station text is between start fields and KM; remove any plate token if present.
+        // Station text: everything between the fixed header tokens (date, talão, plate)
+        // and the KM value. The header is exactly 3 tokens (already consumed by anchor).
+        // prefixTokens[0] = date, [1] = talão, [2] = plate — skip those.
         const stationTokens = prefixTokens.slice(3, kmPos);
-        const posto = stationTokens
-            .join(' ')
-            .replace(/\b[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}\b/gi, '')
-            .trim();
+        const posto = stationTokens.join(' ').trim();
         if (!posto) continue;
 
         // Numeric values after product. We search for realistic liters and total.
-        const numericTokens = (afterProduct.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+|-?\d+/g) || [])
-            .map(cleanNumberToken);
-        const decimalTokens = numericTokens.filter(t => t.includes(','));
+        // All decimal numbers after the product keyword
+        const decimalTokens = (afterProduct.match(/-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+/g) || [])
+            .map(cleanNumberToken)
+            .filter(t => t.includes(','));
         if (decimalTokens.length < 2) continue;
 
-        const total = parseEU(decimalTokens[decimalTokens.length - 1]);
-        if (total <= 0) continue;
-
-        // Pick liters candidate that yields plausible unit price.
+        // The FIRST decimal is typically the quantity (litros); last is total.
+        // But we validate with a plausible unit-price range (0.6–4.5 €/L).
+        // This prevents using e.g. a list-price (1,7xx) as the liters value.
         let litros = 0;
-        for (const token of decimalTokens.slice(0, -1)) {
-            const candidate = parseEU(token);
-            if (candidate <= 0 || candidate > 600) continue;
-            const unit = total / candidate;
-            if (unit >= 0.6 && unit <= 4.5) {
-                litros = candidate;
+        let total = 0;
+
+        // Try every candidate for litros; match with the last number as total.
+        for (let di = 0; di < decimalTokens.length - 1; di++) {
+            const litrosCandidate = parseEU(decimalTokens[di]);
+            const totalCandidate  = parseEU(decimalTokens[decimalTokens.length - 1]);
+            if (litrosCandidate <= 0 || litrosCandidate > 600) continue;
+            if (totalCandidate  <= 0) continue;
+            const unitPrice = totalCandidate / litrosCandidate;
+            if (unitPrice >= 0.6 && unitPrice <= 4.5) {
+                litros = litrosCandidate;
+                total  = totalCandidate;
                 break;
             }
         }
-        if (litros <= 0) {
-            const firstReasonable = decimalTokens
-                .slice(0, -1)
-                .map(parseEU)
-                .find(v => v > 0 && v <= 600);
-            litros = firstReasonable || 0;
-        }
-        if (litros <= 0) continue;
+        if (litros <= 0 || total <= 0) continue;
 
         out.push({
             _manualDate: bpDateToISO(dateRaw),
