@@ -79,6 +79,7 @@ const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA
 const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
 const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
 const BP_TRANSACTION_LINE_RE_7COL = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
+const BP_ROW_ANCHOR_RE = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+/gi;
 
 /** Parse European-format number string → JS number */
 const parseEU = (val: string): number => {
@@ -238,6 +239,7 @@ const dedupePreviewRows = (rows: any[]): any[] => {
 
         const source = String(row._source || '');
         if (source === 'regex') s += 30;
+        else if (source === 'anchor') s += 20;
         else if (source === 'card') s += 10;
 
         return s;
@@ -724,6 +726,80 @@ function parseByRegexPerLine(lines: string[][], invoiceRef: string): any[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseByAnchoredSegments(compact: string, invoiceRef: string): any[] {
+    const parsed: any[] = [];
+
+    const normalized = compact
+        .replace(/[\u2010-\u2014]/g, '-')
+        .replace(/\bGAS\s+OLEO\b/gi, 'GASOLEO')
+        .replace(/\bGAS\s+OIL\b/gi, 'GASOIL')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const anchors = [...normalized.matchAll(BP_ROW_ANCHOR_RE)].filter(m => isValidBPDate(m[1]));
+    if (anchors.length === 0) return parsed;
+
+    const productRe = /\b(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\b/i;
+
+    for (let i = 0; i < anchors.length; i++) {
+        const anchor = anchors[i];
+        const start = anchor.index ?? 0;
+        const end = i + 1 < anchors.length ? (anchors[i + 1].index ?? normalized.length) : normalized.length;
+        const chunk = normalized.slice(start, end).trim();
+
+        const date = bpDateToISO(anchor[1]);
+        const receipt = anchor[2];
+        const vehicle = formatPlate(anchor[3]);
+
+        const productMatch = chunk.match(productRe);
+        if (!productMatch || productMatch.index == null) continue;
+
+        const product = normalizeFuelToken(productMatch[1]);
+        const beforeProduct = chunk.slice(0, productMatch.index).trim();
+        const afterProduct = chunk.slice(productMatch.index + productMatch[0].length).trim();
+
+        const kmCandidates = [...beforeProduct.matchAll(/\b(\d{4,8})\b/g)].map(v => v[1]).filter(v => !isValidBPDate(v));
+        const kmToken = kmCandidates.at(-1);
+        if (!kmToken) continue;
+
+        const km = parseEU(kmToken);
+        const posKm = beforeProduct.lastIndexOf(kmToken);
+        const posPlate = Math.max(beforeProduct.lastIndexOf(anchor[3]), beforeProduct.lastIndexOf(vehicle));
+        const location = (posKm > -1 ? beforeProduct.slice((posPlate > -1 ? posPlate + anchor[3].length : 0), posKm) : '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        const decimals = [...afterProduct.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
+        if (decimals.length < 2) continue;
+
+        const liters = parseEU(decimals[0]);
+        const total = parseEU(decimals[decimals.length - 1]);
+        const unit = liters > 0 ? total / liters : 0;
+
+        const row = {
+            _manualDate: date,
+            'Hora': '',
+            'Matrícula': vehicle,
+            'Km': km,
+            'Posto': location || 'N/D',
+            'Produto': product,
+            'Litros': liters,
+            'Preço Unitário': unit,
+            'Total': total,
+            '_talao': receipt,
+            '_invoiceRef': invoiceRef,
+            '_source': 'anchor',
+            _selectedCC: '',
+        };
+
+        if (!isValidParsedRow(row)) continue;
+        parsed.push(row);
+    }
+
+    return parsed;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseFromCardBlocks(lines: string[][], invoiceRef: string): any[] {
     const rows: any[] = [];
     let inCardBlock = false;
@@ -1032,6 +1108,9 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
     // 1. Strict regex parser per transaction line (requested extraction model)
     const regexRows = parseByRegexPerLine(lines, invoiceRef);
 
+    // 1.1 Anchor parser over compact text to recover broken visual lines
+    const anchorRows = parseByAnchoredSegments(compact, invoiceRef);
+
     // 2. Card-block line parser (strictly inside "CARTÃO Nº" blocks)
     const cardBlockRows = parseFromCardBlocks(lines, invoiceRef);
 
@@ -1059,7 +1138,7 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
     const compactRows = parseFromCompactText(compact, invoiceRef);
 
     // Combine all results; order defines precedence for dedupe-by-talão.
-    const allCandidates = [...regexRows, ...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]
+    const allCandidates = [...regexRows, ...anchorRows, ...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]
         .filter(isValidParsedRow);
     const all = dedupePreviewRows(allCandidates);
 
