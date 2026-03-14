@@ -77,7 +77,7 @@ const NUMERIC_TOKEN_RE = /^-?\d{1,3}(?:\.\d{3})*(?:,\d+)?$|^-?\d+(?:,\d+)?$/;
 const CARD_HEADER_RE = /CART[ÃA]O\s*(?:N[.ºO]?|N\.)?\s*\d+/i;
 const TOTAL_LINE_RE = /(TOTAL\s+DO\s+CART[ÃA]O|RESUMO\s+DO\s+IVA|TOTAL\s+FATURA|TOTAL\s+A\s+TRANSPORTAR|SUBTOTAL|TOTAL\s+GERAL|RESUMO\s+DE\s+PRODUTOS|P[ÁA]GINA)/i;
 const TRANSACTION_HEADER_RE = /\bDATA\b.*\bTAL[ÃA]O\b|\bDATA\b.*\bKM\b.*\bPRODUTO\b/i;
-const BP_TRANSACTION_PREFIX_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(.+)$/i;
+const BP_TRANSACTION_PREFIX_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})\s+(\d{5,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(?:(\d{4,8})\s+)?(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(.+)$/i;
 const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
 const BP_TRANSACTION_LINE_RE_7COL = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
 const BP_ROW_ANCHOR_RE = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+/gi;
@@ -741,7 +741,7 @@ function parseCanonicalFromLines(lines: string[][], invoiceRef: string): any[] {
         const receipt = m[2];
         const vehicle = formatPlate(m[3]);
         const location = m[4].trim().replace(/\s{2,}/g, ' ');
-        const km = parseEU(m[5]);
+        const km = parseEU(m[5] ?? '0');
         const product = normalizeFuelToken(m[6]);
         const tail = m[7] ?? '';
 
@@ -817,14 +817,12 @@ function parseByAnchoredSegments(compact: string, invoiceRef: string): any[] {
 
         const kmCandidates = [...beforeProduct.matchAll(/\b(\d{4,8})\b/g)].map(v => v[1]).filter(v => !isValidBPDate(v));
         const kmToken = kmCandidates.at(-1);
-        if (!kmToken) continue;
-
-        const km = parseEU(kmToken);
-        const posKm = beforeProduct.lastIndexOf(kmToken);
+        const km = kmToken ? parseEU(kmToken) : 0;
+        const posKm = kmToken ? beforeProduct.lastIndexOf(kmToken) : -1;
         const posPlate = Math.max(beforeProduct.lastIndexOf(anchor[3]), beforeProduct.lastIndexOf(vehicle));
-        const location = (posKm > -1 ? beforeProduct.slice((posPlate > -1 ? posPlate + anchor[3].length : 0), posKm) : '')
-            .replace(/\s+/g, ' ')
-            .trim();
+        const startPos = posPlate > -1 ? posPlate + anchor[3].length : 0;
+        const locationRaw = posKm > startPos ? beforeProduct.slice(startPos, posKm) : beforeProduct.slice(startPos);
+        const location = locationRaw.replace(/\s+/g, ' ').trim();
 
         const decimals = [...afterProduct.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
         if (decimals.length < 2) continue;
@@ -1206,20 +1204,22 @@ export function parseBPFuelReport(text: string): FuelTransaction[] {
     const transactions: FuelTransaction[] = [];
     const lines = text.split(/\r?\n/);
 
-    const transactionRegex = BP_TRANSACTION_LINE_RE;
-    const transactionRegex7 = BP_TRANSACTION_LINE_RE_7COL;
+    const transactionRegex = BP_TRANSACTION_PREFIX_RE;
 
     for (const rawLine of lines) {
         const line = rawLine.replace(/\s+/g, ' ').trim();
         if (!line) continue;
         if (CARD_HEADER_RE.test(line) || TOTAL_LINE_RE.test(line) || TRANSACTION_HEADER_RE.test(line)) continue;
 
-        const m = line.match(transactionRegex) || line.match(transactionRegex7);
+        const m = line.match(transactionRegex);
         if (!m) continue;
 
-        const tail = m.slice(7).map(v => parseEU(v ?? '0'));
-        const liters = parseEU(m[7]);
-        const total = tail[tail.length - 1] ?? 0;
+        const tail = m[7] ?? '';
+        const decimals = [...tail.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
+        if (decimals.length < 2) continue;
+
+        const liters = parseEU(decimals[0]);
+        const total = parseEU(decimals[decimals.length - 1]);
         if (liters <= 0 || total <= 0) continue;
 
         transactions.push({
@@ -1227,7 +1227,7 @@ export function parseBPFuelReport(text: string): FuelTransaction[] {
             receipt: m[2],
             vehicle: formatPlate(m[3]),
             location: m[4].trim(),
-            km: parseEU(m[5]),
+            km: parseEU(m[5] ?? '0'),
             product: normalizeFuelToken(m[6]),
             liters,
             total,
