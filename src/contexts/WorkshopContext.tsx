@@ -380,6 +380,33 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const prevVehiclePositionsRef = useRef<Record<string, { latitude: number; longitude: number; timestamp: string }>>({});
     const lowSpeedStartByServiceRef = useRef<Record<string, number>>({});
 
+    const isMissingStockTableError = (error: any, table: 'stock_items' | 'workshop_items') => {
+        if (!error) return false;
+        const message = String(error.message || '').toLowerCase();
+        return message.includes(`public.${table}`) || message.includes(`relation \"public.${table}\"`);
+    };
+
+    const resolveStockItemsTable = async (): Promise<'stock_items' | 'workshop_items'> => {
+        let table = stockItemsTableRef.current;
+        const probe = await supabase.from(table).select('id').limit(1);
+
+        if (!probe.error) return table;
+
+        if (table === 'stock_items' && isMissingStockTableError(probe.error, 'stock_items')) {
+            table = 'workshop_items';
+            stockItemsTableRef.current = table;
+            return table;
+        }
+
+        if (table === 'workshop_items' && isMissingStockTableError(probe.error, 'workshop_items')) {
+            table = 'stock_items';
+            stockItemsTableRef.current = table;
+            return table;
+        }
+
+        return table;
+    };
+
     // Helper: Haversine Distance (km)
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
         const R = 6371; // Radius of the earth in km
@@ -973,11 +1000,24 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
             // Workshop Stock
             try {
-                const { data: items } = await supabase.from('stock_items').select('*, supplier:fornecedores(*)');
-                if (items) setStockItems(items);
+                const stockTable = await resolveStockItemsTable();
+                const { data: items } = await supabase.from(stockTable).select('*, supplier:fornecedores(*)');
+                const normalizedItems = (items || []) as import('../types').StockItem[];
+                setStockItems(normalizedItems);
 
-                const { data: movements } = await supabase.from('stock_movements').select('*, item:stock_items(*)').order('created_at', { ascending: false });
-                if (movements) setStockMovements(movements);
+                const { data: movements } = await supabase
+                    .from('stock_movements')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (movements) {
+                    const itemById = new Map(normalizedItems.map(item => [String(item.id), item]));
+                    const enriched = movements.map((movement: any) => ({
+                        ...movement,
+                        item: itemById.get(String(movement.item_id))
+                    }));
+                    setStockMovements(enriched);
+                }
 
                 const { data: assets } = await supabase.from('workshop_assets').select('*');
                 if (assets) setWorkshopAssets(assets);
@@ -3129,7 +3169,24 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addStockItem = async (item: Omit<import('../types').StockItem, 'id' | 'created_at' | 'updated_at'>) => {
-        const { data, error } = await supabase.from('stock_items').insert(item).select().single();
+        const stockTable = await resolveStockItemsTable();
+        let { data, error } = await supabase
+            .from(stockTable)
+            .insert(item)
+            .select('*, supplier:fornecedores(*)')
+            .single();
+
+        if (error && stockTable === 'stock_items' && isMissingStockTableError(error, 'stock_items')) {
+            stockItemsTableRef.current = 'workshop_items';
+            const fallback = await supabase
+                .from('workshop_items')
+                .insert(item)
+                .select('*, supplier:fornecedores(*)')
+                .single();
+            data = fallback.data;
+            error = fallback.error;
+        }
+
         if (!error && data) {
             setStockItems(prev => [...prev, data as import('../types').StockItem]);
         } else if (error) {
@@ -3139,7 +3196,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const updateStockItem = async (item: import('../types').StockItem) => {
-        const { error } = await supabase.from('stock_items').update({
+        const stockTable = await resolveStockItemsTable();
+        let { error } = await supabase.from(stockTable).update({
             name: item.name,
             sku: item.sku,
             category: item.category,
@@ -3150,6 +3208,21 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             supplier_id: item.supplier_id
         }).eq('id', item.id);
 
+        if (error && stockTable === 'stock_items' && isMissingStockTableError(error, 'stock_items')) {
+            stockItemsTableRef.current = 'workshop_items';
+            const fallback = await supabase.from('workshop_items').update({
+                name: item.name,
+                sku: item.sku,
+                category: item.category,
+                stock_quantity: item.stock_quantity,
+                minimum_stock: item.minimum_stock,
+                average_cost: item.average_cost,
+                location: item.location,
+                supplier_id: item.supplier_id
+            }).eq('id', item.id);
+            error = fallback.error;
+        }
+
         if (!error) {
             setStockItems(prev => prev.map(wi => wi.id === item.id ? item : wi));
         } else {
@@ -3159,7 +3232,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const deleteStockItem = async (id: string) => {
-        const { error } = await supabase.from('stock_items').delete().eq('id', id);
+        const stockTable = await resolveStockItemsTable();
+        let { error } = await supabase.from(stockTable).delete().eq('id', id);
+
+        if (error && stockTable === 'stock_items' && isMissingStockTableError(error, 'stock_items')) {
+            stockItemsTableRef.current = 'workshop_items';
+            const fallback = await supabase.from('workshop_items').delete().eq('id', id);
+            error = fallback.error;
+        }
+
         if (!error) {
             setStockItems(prev => prev.filter(wi => wi.id !== id));
         } else {
@@ -3177,15 +3258,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             source_document: movement.source_document,
             document_id: movement.document_id,
             notes: movement.notes
-        }).select('*, item:stock_items(*)').single();
+        }).select('*').single();
 
         if (!error && data) {
-            setStockMovements(prev => [data as import('../types').StockMovement, ...prev]);
-            // Refresh the specific item to get updated stock_quantity from DB
-            const { data: updatedItem } = await supabase.from('stock_items').select('*, supplier:fornecedores(*)').eq('id', movement.item_id).single();
-            if (updatedItem) {
-                setStockItems(prev => prev.map(wi => wi.id === updatedItem.id ? updatedItem : wi));
-            }
+            await refreshInventoryData();
         } else if (error) {
             console.error('Error creating stock movement:', error);
             alert('Erro ao registar movimento: ' + error.message);
@@ -3194,11 +3270,24 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const refreshInventoryData = async () => {
         try {
-            const { data: items } = await supabase.from('stock_items').select('*, supplier:fornecedores(*)');
-            if (items) setStockItems(items);
+            const stockTable = await resolveStockItemsTable();
+            const { data: items } = await supabase.from(stockTable).select('*, supplier:fornecedores(*)');
+            const normalizedItems = (items || []) as import('../types').StockItem[];
+            setStockItems(normalizedItems);
 
-            const { data: movements } = await supabase.from('stock_movements').select('*, item:stock_items(*)').order('created_at', { ascending: false });
-            if (movements) setStockMovements(movements);
+            const { data: movements } = await supabase
+                .from('stock_movements')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (movements) {
+                const itemById = new Map(normalizedItems.map(item => [String(item.id), item]));
+                const enriched = movements.map((movement: any) => ({
+                    ...movement,
+                    item: itemById.get(String(movement.item_id))
+                }));
+                setStockMovements(enriched);
+            }
 
             const { data: assets } = await supabase.from('workshop_assets').select('*');
             if (assets) setWorkshopAssets(assets);

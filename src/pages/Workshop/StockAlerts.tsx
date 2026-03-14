@@ -134,7 +134,7 @@ export default function StockAlerts() {
                                 <div className="flex items-baseline gap-1">
                                     <span className={`text-2xl font-black ${item.stock_quantity === 0 ? 'text-red-500' : 'text-orange-500'
                                         }`}>{item.stock_quantity}</span>
-                                    <span className="text-slate-500 text-sm font-bold">/ {item.minimum_stock} un</span>
+                                    <span className="text-slate-500 text-sm font-bold">/ {item.minimum_stock}</span>
                                 </div>
                             </div>
 

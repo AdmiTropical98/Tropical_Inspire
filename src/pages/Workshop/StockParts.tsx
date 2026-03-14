@@ -223,7 +223,7 @@ export default function StockParts() {
                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Stock Atual</span>
                                         <span className={`text-sm font-black ${item.stock_quantity <= item.minimum_stock ? 'text-orange-500' : 'text-blue-400'
                                             }`}>
-                                            {item.stock_quantity} un
+                                            {item.stock_quantity}
                                         </span>
                                     </div>
                                     <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -318,10 +318,11 @@ export default function StockParts() {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Qtd Inicial</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Qtd Inicial (L/UN)</label>
                                     <input
                                         type="number"
                                         min="0"
+                                        step="0.01"
                                         value={newPart.stock_quantity}
                                         onChange={(e) => setNewPart(prev => ({ ...prev, stock_quantity: Number(e.target.value) || 0 }))}
                                         className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
@@ -329,10 +330,11 @@ export default function StockParts() {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stock Mínimo</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stock Mínimo (L/UN)</label>
                                     <input
                                         type="number"
                                         min="0"
+                                        step="0.01"
                                         value={newPart.minimum_stock}
                                         onChange={(e) => setNewPart(prev => ({ ...prev, minimum_stock: Number(e.target.value) || 0 }))}
                                         className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"

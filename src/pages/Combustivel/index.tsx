@@ -30,7 +30,7 @@ export default function Combustivel() {
     const [bpTransactions, setBpTransactions] = useState<any[]>([]); // Temp state for BP imports
     const [selectedRows, setSelectedRows] = useState<number[]>([]); // For bulk actions
     const [bulkCC, setBulkCC] = useState('');
-    const [bypassDriverPin, setBypassDriverPin] = useState(false); // Admin override for PIN
+    const [manualRefuelEntry, setManualRefuelEntry] = useState(false);
     const [selectedViaturaId, setSelectedViaturaId] = useState<string>('');
     const [filters, setFilters] = useState({
         vehicleId: '',
@@ -131,15 +131,6 @@ export default function Combustivel() {
         alert('Dados do tanque atualizados com sucesso!');
     };
 
-    // Dual Authentication State
-    const [authModal, setAuthModal] = useState({
-        isOpen: false,
-        step: 1, // 1: Admin/Staff Auth, 2: Driver Auth
-        adminPassword: '',
-        driverPin: '',
-        error: ''
-    });
-
     // Manual BP Entry State
     const [manualBPForm, setManualBPForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -188,52 +179,7 @@ export default function Combustivel() {
 
     const handleInitiateRefuel = (e: React.FormEvent) => {
         e.preventDefault();
-        setAuthModal({
-            isOpen: true,
-            step: 1,
-            adminPassword: '',
-            driverPin: '',
-            error: ''
-        });
-    };
-
-    const handleDualAuth = async () => {
-        setAuthModal(prev => ({ ...prev, error: '' }));
-
-        if (authModal.step === 1) {
-            if (!authModal.adminPassword) {
-                setAuthModal(prev => ({ ...prev, error: 'Palavra-passe obrigatória' }));
-                return;
-            }
-
-            if (userRole !== 'admin' && userRole !== 'oficina') {
-                setAuthModal(prev => ({ ...prev, error: 'Sem permissão para autorizar' }));
-                return;
-            }
-
-            if (userRole === 'admin' && bypassDriverPin) {
-                setAuthModal(prev => ({ ...prev, isOpen: false }));
-                await confirmRefuel();
-                return;
-            }
-
-            setAuthModal(prev => ({ ...prev, step: 2 }));
-
-        } else {
-            const driver = motoristas.find(m => m.id === refuelForm.driverId);
-            if (!driver) {
-                setAuthModal(prev => ({ ...prev, error: 'Condutor não encontrado' }));
-                return;
-            }
-
-            if (driver.pin !== authModal.driverPin) {
-                setAuthModal(prev => ({ ...prev, error: 'PIN do condutor incorreto' }));
-                return;
-            }
-
-            setAuthModal(prev => ({ ...prev, isOpen: false }));
-            await confirmRefuel();
-        }
+        void confirmRefuel();
     };
 
 
@@ -258,7 +204,7 @@ export default function Combustivel() {
         }
 
         try {
-            const isConfirmed = userRole === 'admin' && bypassDriverPin;
+            const isConfirmed = true;
 
             await registerRefuel({
                 id: crypto.randomUUID(),
@@ -268,7 +214,7 @@ export default function Combustivel() {
                 km: Number(refuelForm.km),
                 centroCustoId: refuelForm.centroCustoId || undefined,
                 status: isConfirmed ? 'confirmed' : 'pending',
-                timestamp: (isConfirmed && refuelForm.manualDate && refuelForm.manualTime)
+                timestamp: (manualRefuelEntry && refuelForm.manualDate && refuelForm.manualTime)
                     ? new Date(`${refuelForm.manualDate}T${refuelForm.manualTime}`).toISOString()
                     : new Date().toISOString(),
                 staffId: currentUser?.id || 'admin',
@@ -276,7 +222,7 @@ export default function Combustivel() {
             });
 
             setRefuelForm({ driverId: '', vehicleId: '', liters: '', km: '', centroCustoId: '', manualDate: '', manualTime: '' });
-            alert(isConfirmed ? 'Abastecimento registado e confirmado com sucesso!' : 'Abastecimento registado! A aguardar confirmação do motorista.');
+            alert('Abastecimento registado com sucesso!');
             setActiveTab('overview');
         } catch (error: any) {
             console.error(error);
@@ -1297,17 +1243,17 @@ export default function Combustivel() {
                                     <div className="flex items-center gap-3">
                                         <input
                                             type="checkbox"
-                                            id="bypassPin"
-                                            checked={bypassDriverPin}
-                                            onChange={(e) => setBypassDriverPin(e.target.checked)}
+                                            id="manualRefuelEntry"
+                                            checked={manualRefuelEntry}
+                                            onChange={(e) => setManualRefuelEntry(e.target.checked)}
                                             className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-yellow-500 focus:ring-yellow-500/50 cursor-pointer"
                                         />
-                                        <label htmlFor="bypassPin" className="text-sm font-bold text-slate-300 cursor-pointer select-none">
-                                            Registo Manual (Sem PIN Condutor)
+                                        <label htmlFor="manualRefuelEntry" className="text-sm font-bold text-slate-300 cursor-pointer select-none">
+                                            Definir Data/Hora Manual
                                         </label>
                                     </div>
 
-                                    {bypassDriverPin && (
+                                    {manualRefuelEntry && (
                                         <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2">
                                             <div className="space-y-2">
                                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data</label>
@@ -2281,71 +2227,6 @@ export default function Combustivel() {
                     </div>
                 )}
 
-
-                {/* DUAL AUTH MODAL */}
-                {
-                    authModal.isOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
-                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
-                                <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                                    {authModal.step === 1 ? 'Autenticação Responsável' : 'Autenticação Condutor'}
-                                </h3>
-                                {authModal.error && (
-                                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm font-bold">
-                                        <AlertCircle className="w-5 h-5" />
-                                        {authModal.error}
-                                    </div>
-                                )}
-
-                                <div className="space-y-6">
-                                    {authModal.step === 1 ? (
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase block text-center">
-                                                {userRole === 'oficina' ? 'PIN Oficina' : 'Password Admin'}
-                                            </label>
-                                            <input
-                                                type="password"
-                                                autoFocus
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                                value={authModal.adminPassword}
-                                                onChange={e => setAuthModal({ ...authModal, adminPassword: e.target.value })}
-                                                onKeyDown={e => e.key === 'Enter' && handleDualAuth()}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase block text-center">PIN Condutor</label>
-                                            <input
-                                                type="password"
-                                                autoFocus
-                                                maxLength={6}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-white focus:ring-2 focus:ring-yellow-500 outline-none"
-                                                value={authModal.driverPin}
-                                                onChange={e => setAuthModal({ ...authModal, driverPin: e.target.value })}
-                                                onKeyDown={e => e.key === 'Enter' && handleDualAuth()}
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div className="flex gap-4">
-                                        <button
-                                            onClick={() => setAuthModal({ ...authModal, isOpen: false, step: 1, adminPassword: '', driverPin: '' })}
-                                            className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            onClick={handleDualAuth}
-                                            className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all"
-                                        >
-                                            {authModal.step === 1 ? 'Seguinte' : 'Confirmar'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
 
                 {/* EDIT TANK MODAL */}
                 {
