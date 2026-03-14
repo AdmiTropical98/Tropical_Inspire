@@ -3,11 +3,12 @@ import {
     Plus, Search, AlertTriangle, Box,
     ArrowUpRight, MoreHorizontal,
     Settings, History, Package,
-    Tag, DollarSign, Layers, X, Trash2, Pencil
+    Tag, DollarSign, Layers, X, Trash2, Pencil, FileText
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { formatCurrency } from '../../utils/format';
 import type { StockItem } from '../../types';
+import { generateStockPartsPDF } from '../../utils/workshopInventoryPdf';
 
 type NewPartRow = {
     id: number;
@@ -167,9 +168,17 @@ export default function StockParts() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={refreshInventoryData}
+                        title="Atualizar dados"
                         className="h-11 w-11 inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-700"
                     >
                         <History className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => generateStockPartsPDF(filteredItems)}
+                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-all border border-slate-700"
+                    >
+                        <FileText className="w-5 h-5" />
+                        <span className="hidden sm:inline">Exportar Relatório</span>
                     </button>
                     <button
                         onClick={() => setShowCreateModal(true)}
