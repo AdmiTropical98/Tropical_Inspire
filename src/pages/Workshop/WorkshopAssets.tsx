@@ -7,9 +7,12 @@ import {
     Info, ExternalLink, X
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { generateInventoryPDF, generateMaterialIssueFormPDF } from '../../utils/workshopInventoryPdf';
 
 export default function WorkshopAssets() {
     const { workshopAssets, refreshInventoryData, motoristas, addWorkshopAsset } = useWorkshop();
+    const { currentUser } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -86,6 +89,28 @@ export default function WorkshopAssets() {
         }
     };
 
+    const handleExportInventoryPDF = () => {
+        const currentUserRecord = (currentUser as Record<string, unknown> | null) || null;
+        const generatedBy =
+            (typeof currentUserRecord?.nome === 'string' && currentUserRecord.nome) ||
+            (typeof currentUserRecord?.name === 'string' && currentUserRecord.name) ||
+            (typeof currentUserRecord?.email === 'string' && currentUserRecord.email) ||
+            'Sistema';
+
+        generateInventoryPDF(
+            workshopAssets.map(asset => ({
+                name: asset.name,
+                category: asset.category,
+                serial_number: asset.serial_number,
+                quantity: 1,
+                status: asset.status,
+                location: asset.location,
+                notes: asset.notes
+            })),
+            generatedBy
+        );
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header Panel */}
@@ -104,6 +129,18 @@ export default function WorkshopAssets() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportInventoryPDF}
+                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-all border border-slate-700"
+                    >
+                        Exportar Inventário PDF
+                    </button>
+                    <button
+                        onClick={generateMaterialIssueFormPDF}
+                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-all border border-slate-700"
+                    >
+                        Imprimir Folha de Saída de Material
+                    </button>
                     <button
                         onClick={refreshInventoryData}
                         className="h-11 w-11 inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-700"
