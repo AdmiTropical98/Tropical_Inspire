@@ -16,6 +16,15 @@ import { supabase } from '../../lib/supabase';
 /* ─── helpers ─── */
 const eur = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
 const pct = (n: number) => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+const formatDateTime = (value?: string | null) => {
+    if (!value) return { date: '-', time: '--:--' };
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return { date: '-', time: '--:--' };
+    return {
+        date: parsed.toLocaleDateString('pt-PT'),
+        time: parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+    };
+};
 
 type Period = '1m' | '3m' | '6m' | '1y' | 'all';
 const PERIODS: { id: Period; label: string }[] = [
@@ -537,21 +546,28 @@ export default function CentrosCustos() {
                                             <table className="w-full text-xs text-left">
                                                 <thead className="bg-[#020617] text-slate-500 font-bold">
                                                     <tr>
-                                                        <th className="px-4 py-3">Data</th>
+                                                        <th className="px-4 py-3">Data/Hora</th>
                                                         <th className="px-4 py-3">Viatura</th>
                                                         <th className="px-4 py-3">Litros</th>
                                                         <th className="px-4 py-3 text-right">Custo</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5">
-                                                    {selectedEnriched.cur.fuel.slice(0, 8).map((t, i) => (
+                                                    {selectedEnriched.cur.fuel.slice(0, 8).map((t, i) => {
+                                                        const { date, time } = formatDateTime(t.timestamp);
+                                                        return (
                                                         <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                            <td className="px-4 py-2.5 text-slate-400">{new Date(t.timestamp).toLocaleDateString('pt-PT')}</td>
+                                                            <td className="px-4 py-2.5 text-slate-400">
+                                                                <div className="flex flex-col">
+                                                                    <span>{date}</span>
+                                                                    <span className="text-[10px] text-slate-600">{time}</span>
+                                                                </div>
+                                                            </td>
                                                             <td className="px-4 py-2.5 text-white font-bold">{viaturas.find(v => v.id === t.vehicleId)?.matricula || '---'}</td>
                                                             <td className="px-4 py-2.5 text-slate-300">{(t.liters || 0).toFixed(1)}L</td>
                                                             <td className="px-4 py-2.5 text-right text-blue-400 font-mono font-bold">{(t.totalCost || 0).toFixed(2)}€</td>
                                                         </tr>
-                                                    ))}
+                                                    )})}
                                                     {selectedEnriched.cur.fuel.length === 0 && (
                                                         <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-600">Sem registos no período</td></tr>
                                                     )}

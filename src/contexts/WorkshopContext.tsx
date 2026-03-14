@@ -368,6 +368,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     // COMPLIANCE LOGIC
     const [complianceStats, setComplianceStats] = useState<Record<string, { status: 'success' | 'failed' | 'pending'; message?: string }>>({});
     const [geofenceMappings, setGeofenceMappings] = useState<Record<string, string>>({});
+    const STOCK_REQUISITION_SYNC_ENABLED = false;
     const stockSyncInProgressReqIdsRef = useRef<Set<string>>(new Set());
     const stockBackfillRunningRef = useRef(false);
     const stockItemsTableRef = useRef<'stock_items' | 'workshop_items'>('stock_items');
@@ -2965,6 +2966,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const runStockRequisitionsSync = async (): Promise<{ processed: number; failed: number }> => {
+        if (!STOCK_REQUISITION_SYNC_ENABLED) {
+            return { processed: 0, failed: 0 };
+        }
+
         if (stockBackfillRunningRef.current) {
             return { processed: 0, failed: 0 };
         }

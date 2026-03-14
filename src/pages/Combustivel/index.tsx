@@ -43,6 +43,22 @@ export default function Combustivel() {
     const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const formatDateTime = (value?: string | null) => {
+        if (!value) {
+            return { date: '-', time: '--:--' };
+        }
+
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            return { date: '-', time: '--:--' };
+        }
+
+        return {
+            date: parsed.toLocaleDateString('pt-PT'),
+            time: parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+        };
+    };
+
     // Fuel Form State
     const [refuelForm, setRefuelForm] = useState({
         driverId: '',
@@ -805,7 +821,9 @@ export default function Combustivel() {
 
             doc.setFillColor(241, 245, 249);
             doc.rect(margin, startY, contentWidth, tableHeaderHeight, 'F');
-            doc.setDrawColor(203, 213, 225);
+            // Keep table borders high-contrast for printed copies.
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.25);
             doc.rect(margin, startY, contentWidth, tableHeaderHeight);
 
             doc.setFont('helvetica', 'bold');
@@ -831,6 +849,9 @@ export default function Combustivel() {
                     rowX += column.width;
                 });
             }
+
+            // Restore default line width for non-table shapes.
+            doc.setLineWidth(0.2);
         };
 
         const drawFooter = () => {
@@ -1100,6 +1121,7 @@ export default function Combustivel() {
 
                                             return anomalies.map(tx => {
                                                 const v = viaturas.find(vi => vi.id === tx.vehicleId);
+                                                const { date, time } = formatDateTime(tx.timestamp);
                                                 return (
                                                     <div key={tx.id} className="bg-red-500/5 border border-red-500/10 p-4 rounded-2xl flex gap-4">
                                                         <div className="p-2 bg-red-500/20 rounded-xl self-start">
@@ -1107,7 +1129,7 @@ export default function Combustivel() {
                                                         </div>
                                                         <div>
                                                             <p className="text-white font-bold text-sm">Consumo Elevado: {tx.consumoCalculado}L/100km</p>
-                                                            <p className="text-slate-500 text-xs mt-1">{v?.matricula} • {new Date(tx.timestamp).toLocaleDateString()}</p>
+                                                            <p className="text-slate-500 text-xs mt-1">{v?.matricula} • {date} {time}</p>
                                                         </div>
                                                     </div>
                                                 );
@@ -1450,7 +1472,7 @@ export default function Combustivel() {
                             <table className="w-full text-left text-sm" style={{ minWidth: '750px' }}>
                                 <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
                                     <tr>
-                                        <th className="px-3 md:px-6 py-4">Data</th>
+                                        <th className="px-3 md:px-6 py-4">Data/Hora</th>
                                         <th className="px-3 md:px-6 py-4">Viatura</th>
                                         <th className="px-3 md:px-6 py-4">Condutor</th>
                                         <th className="px-3 md:px-6 py-4">C. Custo</th>
@@ -1464,17 +1486,18 @@ export default function Combustivel() {
                                         .filter(tx => {
                                             const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
                                             const matchesCC = !filters.centroCustoId || tx.centroCustoId === filters.centroCustoId;
-                                            const matchesDate = !filters.startDate || tx.timestamp.startsWith(filters.startDate);
+                                            const matchesDate = !filters.startDate || (tx.timestamp || '').startsWith(filters.startDate);
                                             return matchesVehicle && matchesCC && matchesDate;
                                         })
                                         .map(tx => {
                                             const driver = motoristas.find(m => m.id === tx.driverId);
                                             const vehicle = viaturas.find(v => v.id === tx.vehicleId);
+                                            const { date, time } = formatDateTime(tx.timestamp);
                                             return (
                                                 <tr key={tx.id} className={`hover:bg-slate-800/50 transition-colors ${tx.isAnormal ? 'bg-red-500/5' : ''}`}>
                                                     <td className="px-6 py-4 text-slate-300 font-mono">
-                                                        {new Date(tx.timestamp).toLocaleDateString()}
-                                                        <span className="text-slate-600 ml-2 text-xs">{new Date(tx.timestamp).toLocaleTimeString()}</span>
+                                                        {date}
+                                                        <span className="text-slate-500 ml-2 text-xs">{time}</span>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-col">

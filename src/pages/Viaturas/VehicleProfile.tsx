@@ -20,6 +20,15 @@ import type { Requisicao, FuelTransaction, Manutencao } from '../../types';
 
 const normalizePlate = (value?: string | null) => (value || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 const isLikelyUUID = (value?: string | null) => !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+const formatDateTime = (value?: string | null) => {
+    if (!value) return { date: '-', time: '--:--' };
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return { date: '-', time: '--:--' };
+    return {
+        date: parsed.toLocaleDateString('pt-PT'),
+        time: parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+    };
+};
 
 interface VehicleProfileSummaryRow {
     vehicle_id: string;
@@ -466,7 +475,7 @@ export default function VehicleProfile() {
                         <table className="min-w-full text-sm">
                             <thead>
                                 <tr className="text-slate-500 border-b border-slate-800">
-                                    <th className="text-left py-2">Data</th>
+                                    <th className="text-left py-2">Data/Hora</th>
                                     <th className="text-left py-2">Litros</th>
                                     <th className="text-left py-2">€/L</th>
                                     <th className="text-left py-2">Custo</th>
@@ -477,9 +486,15 @@ export default function VehicleProfile() {
                             <tbody>
                                 {vehicleFuelTransactions.map(tx => {
                                     const motorista = motoristas.find(m => m.id === tx.driverId);
+                                    const { date, time } = formatDateTime(tx.timestamp);
                                     return (
                                         <tr key={tx.id} className="border-b border-slate-800/60 text-slate-300">
-                                            <td className="py-2">{new Date(tx.timestamp).toLocaleDateString('pt-PT')}</td>
+                                            <td className="py-2">
+                                                <div className="flex flex-col leading-tight">
+                                                    <span>{date}</span>
+                                                    <span className="text-[10px] text-slate-500">{time}</span>
+                                                </div>
+                                            </td>
                                             <td className="py-2">{Number(tx.liters || 0).toFixed(2)}</td>
                                             <td className="py-2">{Number(tx.pricePerLiter || tx.price_per_liter || 0).toFixed(3)}</td>
                                             <td className="py-2">{Number(tx.totalCost || tx.total_cost || 0).toFixed(2)}€</td>

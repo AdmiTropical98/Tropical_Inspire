@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Plus, Search, FileText, Trash2, Printer, Package, CheckCircle, RotateCcw,
+    Plus, Search, FileText, Trash2, Printer, Package, CheckCircle,
     LayoutTemplate, List, PlusCircle, TrendingUp, Clock, AlertCircle, Calendar,
     ArrowRight, Box, User, Building, Truck, X, Pencil, Settings2, Mail
 } from 'lucide-react';
@@ -25,14 +25,13 @@ export default function Requisicoes() {
             ? 'https://algartempo-frota.com/logo-new.png'
             : `${window.location.origin}/logo-new.png`;
     const navigate = useNavigate();
-    const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos, syncStockRequisitionsToInventory } = useWorkshop();
+    const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos } = useWorkshop();
     const { supplierInvoices } = useFinancial();
     const { currentUser, userRole } = useAuth();
     const { hasAccess } = usePermissions();
     const { t } = useTranslation();
     const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [isSyncingStock, setIsSyncingStock] = useState(false);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [sendingEmailReqId, setSendingEmailReqId] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
@@ -594,31 +593,6 @@ export default function Requisicoes() {
         setObs('');
         setItems([]);
         setActiveTab('list');
-    };
-
-    const handleManualStockSync = async () => {
-        if (isSyncingStock) return;
-
-        setIsSyncingStock(true);
-        try {
-            const result = await syncStockRequisitionsToInventory();
-            if (result.failed > 0) {
-                alert(`Sincronização concluída com alertas. Processadas: ${result.processed}, falhadas: ${result.failed}.`);
-                return;
-            }
-
-            if (result.processed === 0) {
-                alert('Não existem requisições Stock pendentes de sincronização.');
-                return;
-            }
-
-            alert(`Sincronização concluída. Requisições Stock processadas: ${result.processed}.`);
-        } catch (error) {
-            console.error('Erro ao sincronizar requisições Stock:', error);
-            alert('Ocorreu um erro ao sincronizar requisições Stock.');
-        } finally {
-            setIsSyncingStock(false);
-        }
     };
 
     const totalRequisicao = items.reduce((sum, item) => sum + (item.valor_total || 0), 0);
@@ -1233,19 +1207,6 @@ export default function Requisicoes() {
                             </button>
                         ))}
                     </div>
-
-                    {hasAccess(userRole, 'requisicoes_edit') && (
-                        <button
-                            type="button"
-                            onClick={handleManualStockSync}
-                            disabled={isSyncingStock}
-                            className="px-4 py-2.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 hover:text-indigo-200 text-sm font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 w-fit"
-                            title="Sincronizar requisições Stock para Stock de Peças"
-                        >
-                            <RotateCcw className={`w-4 h-4 ${isSyncingStock ? 'animate-spin' : ''}`} />
-                            {isSyncingStock ? 'A sincronizar...' : 'Sincronizar Stock'}
-                        </button>
-                    )}
                 </div>
             </PageHeader>
 
