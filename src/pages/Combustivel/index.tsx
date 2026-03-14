@@ -789,22 +789,24 @@ export default function Combustivel() {
         const margin = 12;
         const contentWidth = pageWidth - margin * 2;
         const generatedAt = new Date();
-        const rowsPerPage = 12;
-        const bodyStartY = 62;
-        const rowHeight = 12;
-        const footerY = pageHeight - 12;
+        const headerBoxY = 28;
+        const headerBoxHeight = 28;
+        const tableStartY = 62;
+        const rowHeight = 11;
+        const rowsPerPage = 10;
+        const tableHeaderHeight = 10;
+        const footerY = pageHeight - 18;
         const columns = [
             { header: 'Data', width: 18 },
-            { header: 'Hora', width: 16 },
-            { header: 'Motorista', width: 45 },
-            { header: 'Oficina', width: 36 },
-            { header: 'Viatura', width: 20 },
-            { header: 'KM', width: 19 },
-            { header: 'Litros', width: 19 },
-            { header: 'Centro Custo', width: 28 },
-            { header: 'Bomba', width: 18 },
-            { header: 'Ass. Motorista', width: 32 },
-            { header: 'Ass. Oficina', width: 32 }
+            { header: 'Hora', width: 14 },
+            { header: 'Motorista', width: 40 },
+            { header: 'Oficina', width: 28 },
+            { header: 'Viatura', width: 18 },
+            { header: 'KM', width: 18 },
+            { header: 'Litros', width: 18 },
+            { header: 'Centro Custo', width: 27 },
+            { header: 'Ass. Motorista', width: 46 },
+            { header: 'Ass. Oficina', width: 46 }
         ];
 
         const drawHeader = (pageNumber: number) => {
@@ -828,37 +830,45 @@ export default function Combustivel() {
             doc.setTextColor(15, 23, 42);
             doc.setDrawColor(226, 232, 240);
             doc.setFillColor(248, 250, 252);
-            doc.roundedRect(margin, 28, contentWidth, 20, 2, 2, 'FD');
+            doc.roundedRect(margin, headerBoxY, contentWidth, headerBoxHeight, 2, 2, 'FD');
+
+            const blockGap = 6;
+            const blockWidth = (contentWidth - blockGap * 2 - 12) / 3;
+            const blockX1 = margin + 4;
+            const blockX2 = blockX1 + blockWidth + blockGap;
+            const blockX3 = blockX2 + blockWidth + blockGap;
+            const titleY = headerBoxY + 7;
+            const textY = headerBoxY + 13;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(9);
-            doc.text('Objetivo', margin + 4, 35);
-            doc.text('Validação', margin + 70, 35);
-            doc.text('Notas', margin + 136, 35);
+            doc.text('Objetivo', blockX1, titleY);
+            doc.text('Validação', blockX2, titleY);
+            doc.text('Notas', blockX3, titleY);
 
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(8);
             doc.setTextColor(71, 85, 105);
-            doc.text('Registo manual dos abastecimentos efetuados no tanque da oficina.', margin + 4, 40);
-            doc.text('Assinatura do motorista e do colaborador da oficina em cada linha.', margin + 70, 40);
-            doc.text('Usar uma folha por período ou por viatura, conforme necessário.', margin + 136, 40);
+            doc.text(doc.splitTextToSize('Registo manual dos abastecimentos efetuados no tanque da oficina.', blockWidth), blockX1, textY);
+            doc.text(doc.splitTextToSize('Cada linha deve ser validada pelo motorista e pelo colaborador da oficina.', blockWidth), blockX2, textY);
+            doc.text(doc.splitTextToSize('Use uma folha por período, por viatura ou por turno, conforme o controlo interno.', blockWidth), blockX3, textY);
         };
 
         const drawTable = (startY: number) => {
             let x = margin;
 
             doc.setFillColor(241, 245, 249);
-            doc.rect(margin, startY, contentWidth, 10, 'F');
+            doc.rect(margin, startY, contentWidth, tableHeaderHeight, 'F');
             doc.setDrawColor(203, 213, 225);
-            doc.rect(margin, startY, contentWidth, 10);
+            doc.rect(margin, startY, contentWidth, tableHeaderHeight);
 
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(8);
+            doc.setFontSize(7.5);
             doc.setTextColor(15, 23, 42);
 
             columns.forEach((column) => {
-                doc.rect(x, startY, column.width, 10);
-                doc.text(column.header, x + column.width / 2, startY + 6.5, { align: 'center' });
+                doc.rect(x, startY, column.width, tableHeaderHeight);
+                doc.text(doc.splitTextToSize(column.header, column.width - 3), x + column.width / 2, startY + 6, { align: 'center' });
                 x += column.width;
             });
 
@@ -867,7 +877,7 @@ export default function Combustivel() {
             doc.setTextColor(51, 65, 85);
 
             for (let row = 0; row < rowsPerPage; row++) {
-                const y = startY + 10 + row * rowHeight;
+                const y = startY + tableHeaderHeight + row * rowHeight;
                 let rowX = margin;
 
                 columns.forEach((column) => {
@@ -885,19 +895,19 @@ export default function Combustivel() {
             doc.setFontSize(8);
             doc.setTextColor(71, 85, 105);
             doc.text('Resumo do período:', margin, footerY - 2);
-            doc.text('Responsável da oficina:', 100, footerY - 2);
-            doc.text('Observações:', 180, footerY - 2);
+            doc.text('Responsável da oficina:', 104, footerY - 2);
+            doc.text('Observações:', 182, footerY - 2);
 
             doc.setDrawColor(148, 163, 184);
-            doc.line(margin + 28, footerY - 2, 92, footerY - 2);
-            doc.line(130, footerY - 2, 172, footerY - 2);
-            doc.line(202, footerY - 2, pageWidth - margin, footerY - 2);
+            doc.line(margin + 30, footerY - 2, 96, footerY - 2);
+            doc.line(136, footerY - 2, 176, footerY - 2);
+            doc.line(204, footerY - 2, pageWidth - margin, footerY - 2);
         };
 
         for (let page = 1; page <= 2; page++) {
             if (page > 1) doc.addPage();
             drawHeader(page);
-            drawTable(bodyStartY);
+            drawTable(tableStartY);
             drawFooter();
         }
 

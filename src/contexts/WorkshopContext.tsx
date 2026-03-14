@@ -370,7 +370,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [geofenceMappings, setGeofenceMappings] = useState<Record<string, string>>({});
     const stockSyncInProgressReqIdsRef = useRef<Set<string>>(new Set());
     const stockBackfillRunningRef = useRef(false);
-    const stockAutoAttemptedReqIdsRef = useRef<Set<string>>(new Set());
     const stockItemsTableRef = useRef<'stock_items' | 'workshop_items'>('stock_items');
     const supportsUrgentColumnRef = useRef(true);
     const supportsServiceGeofencingColumnsRef = useRef(true);
@@ -2923,18 +2922,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             return;
         }
         setRequisicoes(prev => [{ ...r, status: r.status || 'pendente' }, ...prev]);
-
-        if (r.tipo === 'Stock') {
-            stockSyncInProgressReqIdsRef.current.add(r.id);
-            try {
-                await syncStockFromRequisition(r, { notifyOnFailure: true });
-            } finally {
-                stockSyncInProgressReqIdsRef.current.delete(r.id);
-            }
-        }
     };
 
-    const runStockRequisitionsSync = async (mode: 'auto' | 'manual'): Promise<{ processed: number; failed: number }> => {
+    const runStockRequisitionsSync = async (): Promise<{ processed: number; failed: number }> => {
         if (stockBackfillRunningRef.current) {
             return { processed: 0, failed: 0 };
         }
@@ -2951,7 +2941,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         try {
             const candidateRequisitions = stockRequisitions.filter(req => {
                 if (stockSyncInProgressReqIdsRef.current.has(req.id)) return false;
-                if (mode === 'auto' && stockAutoAttemptedReqIdsRef.current.has(req.id)) return false;
                 return true;
             });
             if (candidateRequisitions.length === 0) return { processed: 0, failed: 0 };
@@ -2960,7 +2949,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 stockSyncInProgressReqIdsRef.current.add(requisicao.id);
                 try {
                     const result = await syncStockFromRequisition(requisicao, {
-                        notifyOnFailure: mode === 'manual'
+                        notifyOnFailure: true
                     });
                     if (result.failedItems.length > 0) {
                         failed += 1;
@@ -2972,9 +2961,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     console.error('Error syncing requisition to stock:', requisicao.id, syncError);
                 } finally {
                     stockSyncInProgressReqIdsRef.current.delete(requisicao.id);
-                    if (mode === 'auto') {
-                        stockAutoAttemptedReqIdsRef.current.add(requisicao.id);
-                    }
                 }
             }
 
@@ -2985,17 +2971,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const syncStockRequisitionsToInventory = async (): Promise<{ processed: number; failed: number }> => {
-        return runStockRequisitionsSync('manual');
+        return runStockRequisitionsSync();
     };
-
-    useEffect(() => {
-        const stockRequisitions = requisicoes.filter(req => req.tipo === 'Stock');
-        if (stockRequisitions.length === 0 || stockBackfillRunningRef.current) {
-            return;
-        }
-
-        void runStockRequisitionsSync('auto');
-    }, [requisicoes]);
 
     useEffect(() => {
         const channel = supabase
