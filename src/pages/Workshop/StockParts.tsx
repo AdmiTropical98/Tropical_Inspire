@@ -1,20 +1,25 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
     Plus, Search, AlertTriangle, Box,
     ArrowUpRight, MoreHorizontal,
     Settings, History, Package,
-    Tag, DollarSign, Layers, X
+    Tag, DollarSign, Layers, X, Trash2, Pencil
 } from 'lucide-react';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { formatCurrency } from '../../utils/format';
+import type { StockItem } from '../../types';
 
 export default function StockParts() {
-    const { stockItems, refreshInventoryData, addStockItem } = useWorkshop();
+    const { stockItems, refreshInventoryData, addStockItem, updateStockItem, deleteStockItem } = useWorkshop();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [showLowStockOnly, setShowLowStockOnly] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+    const [isEditSaving, setIsEditSaving] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
     const [newPart, setNewPart] = useState({
         name: '',
         sku: '',
@@ -24,6 +29,17 @@ export default function StockParts() {
         average_cost: 0,
         location: ''
     });
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     const categories = Array.from(new Set(stockItems.map(item => item.category).filter(Boolean)));
 
@@ -65,6 +81,33 @@ export default function StockParts() {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleEditPart = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingItem || !editingItem.name.trim()) return;
+        setIsEditSaving(true);
+        try {
+            await updateStockItem({
+                ...editingItem,
+                name: editingItem.name.trim(),
+                sku: editingItem.sku?.trim() || undefined,
+                category: editingItem.category?.trim() || undefined,
+                location: editingItem.location?.trim() || undefined,
+                stock_quantity: Math.max(0, Number(editingItem.stock_quantity) || 0),
+                minimum_stock: Math.max(0, Number(editingItem.minimum_stock) || 0),
+                average_cost: Math.max(0, Number(editingItem.average_cost) || 0),
+            });
+            setEditingItem(null);
+        } finally {
+            setIsEditSaving(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Tem a certeza que quer apagar esta peça?')) return;
+        setOpenMenuId(null);
+        await deleteStockItem(id);
     };
 
     return (
@@ -202,9 +245,32 @@ export default function StockParts() {
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-800/50 px-2 py-1 rounded-md">
                                         {item.sku || 'Sem SKU'}
                                     </span>
-                                    <button className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 transition-colors">
-                                        <MoreHorizontal className="w-5 h-5" />
-                                    </button>
+                                    <div className="relative" ref={openMenuId === item.id ? menuRef : null}>
+                                        <button
+                                            onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                                            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+                                        >
+                                            <MoreHorizontal className="w-5 h-5" />
+                                        </button>
+                                        {openMenuId === item.id && (
+                                            <div className="absolute right-0 top-8 z-20 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                                                <button
+                                                    onClick={() => { setEditingItem(item); setOpenMenuId(null); }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors"
+                                                >
+                                                    <Pencil className="w-4 h-4 text-blue-400" />
+                                                    Editar
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(item.id)}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-800 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                    Apagar
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -249,11 +315,17 @@ export default function StockParts() {
 
                                 {/* Quick Actions Hidden by default, show on hover */}
                                 <div className="flex items-center gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
-                                    <button className="flex-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold py-2 rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2">
+                                    <button
+                                        onClick={() => setEditingItem(item)}
+                                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold py-2 rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2"
+                                    >
                                         <Settings className="w-3.5 h-3.5" />
                                         Editar
                                     </button>
-                                    <button className="bg-blue-600 hover:bg-blue-500 p-2 rounded-xl transition-all shadow-lg shadow-blue-600/20">
+                                    <button
+                                        onClick={() => setEditingItem(item)}
+                                        className="bg-blue-600 hover:bg-blue-500 p-2 rounded-xl transition-all shadow-lg shadow-blue-600/20"
+                                    >
                                         <ArrowUpRight className="w-4 h-4 text-white" />
                                     </button>
                                 </div>
@@ -377,6 +449,118 @@ export default function StockParts() {
                                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-bold transition-colors"
                                 >
                                     {isSaving ? 'A guardar...' : 'Guardar peça'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {editingItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
+                            <h3 className="text-xl font-black text-white">Editar Peça</h3>
+                            <button
+                                type="button"
+                                onClick={() => setEditingItem(null)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditPart} className="p-6 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome</label>
+                                    <input
+                                        required
+                                        value={editingItem.name}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">SKU</label>
+                                    <input
+                                        value={editingItem.sku ?? ''}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, sku: e.target.value } : null)}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                                    <input
+                                        value={editingItem.category ?? ''}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, category: e.target.value } : null)}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stock Atual (L/UN)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={editingItem.stock_quantity}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, stock_quantity: Number(e.target.value) || 0 } : null)}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stock Mínimo (L/UN)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={editingItem.minimum_stock}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, minimum_stock: Number(e.target.value) || 0 } : null)}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Custo Médio (€)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={editingItem.average_cost}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, average_cost: Number(e.target.value) || 0 } : null)}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Localização</label>
+                                    <input
+                                        value={editingItem.location ?? ''}
+                                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, location: e.target.value } : null)}
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingItem(null)}
+                                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isEditSaving}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-bold transition-colors"
+                                >
+                                    {isEditSaving ? 'A guardar...' : 'Guardar alterações'}
                                 </button>
                             </div>
                         </form>
