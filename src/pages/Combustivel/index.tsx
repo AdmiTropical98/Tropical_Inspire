@@ -30,7 +30,6 @@ export default function Combustivel() {
     const [bpTransactions, setBpTransactions] = useState<any[]>([]); // Temp state for BP imports
     const [selectedRows, setSelectedRows] = useState<number[]>([]); // For bulk actions
     const [bulkCC, setBulkCC] = useState('');
-    const [manualRefuelEntry, setManualRefuelEntry] = useState(false);
     const [selectedViaturaId, setSelectedViaturaId] = useState<string>('');
     const [filters, setFilters] = useState({
         vehicleId: '',
@@ -66,8 +65,8 @@ export default function Combustivel() {
         liters: '',
         km: '',
         centroCustoId: '',
-        manualDate: '',
-        manualTime: ''
+        manualDate: new Date().toISOString().split('T')[0],
+        manualTime: new Date().toTimeString().split(' ')[0].slice(0, 5)
     });
 
     // Tank Supply Form State
@@ -201,9 +200,16 @@ export default function Combustivel() {
 
     const confirmRefuel = async () => {
         const liters = Number(refuelForm.liters);
-        const refuelDate = (refuelForm.manualDate && refuelForm.manualTime)
-            ? new Date(`${refuelForm.manualDate}T${refuelForm.manualTime}`)
-            : new Date();
+        if (!refuelForm.manualDate || !refuelForm.manualTime) {
+            alert('Indique Data e Hora do abastecimento.');
+            return;
+        }
+
+        const refuelDate = new Date(`${refuelForm.manualDate}T${refuelForm.manualTime}`);
+        if (Number.isNaN(refuelDate.getTime())) {
+            alert('Data/Hora inválidas.');
+            return;
+        }
 
         const isAfterBaseline = !fuelTank.baselineDate || refuelDate >= new Date(fuelTank.baselineDate);
 
@@ -230,14 +236,20 @@ export default function Combustivel() {
                 km: Number(refuelForm.km),
                 centroCustoId: refuelForm.centroCustoId || undefined,
                 status: isConfirmed ? 'confirmed' : 'pending',
-                timestamp: (manualRefuelEntry && refuelForm.manualDate && refuelForm.manualTime)
-                    ? new Date(`${refuelForm.manualDate}T${refuelForm.manualTime}`).toISOString()
-                    : new Date().toISOString(),
+                timestamp: refuelDate.toISOString(),
                 staffId: currentUser?.id || 'admin',
                 staffName: currentUser?.nome || 'Admin'
             });
 
-            setRefuelForm({ driverId: '', vehicleId: '', liters: '', km: '', centroCustoId: '', manualDate: '', manualTime: '' });
+            setRefuelForm({
+                driverId: '',
+                vehicleId: '',
+                liters: '',
+                km: '',
+                centroCustoId: '',
+                manualDate: new Date().toISOString().split('T')[0],
+                manualTime: new Date().toTimeString().split(' ')[0].slice(0, 5)
+            });
             alert('Abastecimento registado com sucesso!');
             setActiveTab('overview');
         } catch (error: any) {
@@ -1260,47 +1272,31 @@ export default function Combustivel() {
                                 </select>
                             </div>
 
-                            {userRole === 'admin' && (
-                                <div className="space-y-4 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
-                                    <div className="flex items-center gap-3">
+                            <div className="space-y-4 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
+                                <p className="text-sm font-bold text-slate-300">Data e Hora do Abastecimento</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data</label>
                                         <input
-                                            type="checkbox"
-                                            id="manualRefuelEntry"
-                                            checked={manualRefuelEntry}
-                                            onChange={(e) => setManualRefuelEntry(e.target.checked)}
-                                            className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-yellow-500 focus:ring-yellow-500/50 cursor-pointer"
+                                            type="date"
+                                            required
+                                            value={refuelForm.manualDate}
+                                            onChange={(e) => setRefuelForm({ ...refuelForm, manualDate: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
                                         />
-                                        <label htmlFor="manualRefuelEntry" className="text-sm font-bold text-slate-300 cursor-pointer select-none">
-                                            Definir Data/Hora Manual
-                                        </label>
                                     </div>
-
-                                    {manualRefuelEntry && (
-                                        <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Data</label>
-                                                <input
-                                                    type="date"
-                                                    required
-                                                    value={refuelForm.manualDate}
-                                                    onChange={(e) => setRefuelForm({ ...refuelForm, manualDate: e.target.value })}
-                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Hora</label>
-                                                <input
-                                                    type="time"
-                                                    required
-                                                    value={refuelForm.manualTime}
-                                                    onChange={(e) => setRefuelForm({ ...refuelForm, manualTime: e.target.value })}
-                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Hora</label>
+                                        <input
+                                            type="time"
+                                            required
+                                            value={refuelForm.manualTime}
+                                            onChange={(e) => setRefuelForm({ ...refuelForm, manualTime: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-yellow-500/50 outline-none text-white transition-all"
+                                        />
+                                    </div>
                                 </div>
-                            )}
+                            </div>
 
                             <div className="flex gap-4 pt-4 border-t border-slate-800">
                                 <button

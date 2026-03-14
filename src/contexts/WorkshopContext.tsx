@@ -387,6 +387,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         return message.includes(`public.${table}`) || message.includes(`relation \"public.${table}\"`);
     };
 
+    const normalizeStockCategory = (value?: string | null) => String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+
+    const isRequisitionCategory = (value?: string | null) => normalizeStockCategory(value) === 'requisicao';
+
     const resolveStockItemsTable = async (): Promise<'stock_items' | 'workshop_items'> => {
         let table = stockItemsTableRef.current;
         const probe = await supabase.from(table).select('id').limit(1);
@@ -1003,17 +1011,36 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             try {
                 const stockTable = await resolveStockItemsTable();
                 const { data: items } = await supabase.from(stockTable).select('*, supplier:fornecedores(*)');
-                const normalizedItems = (items || []) as import('../types').StockItem[];
-                setStockItems(normalizedItems);
+                const normalizedItemsRaw = (items || []) as import('../types').StockItem[];
 
                 const { data: movements } = await supabase
                     .from('stock_movements')
                     .select('*')
                     .order('created_at', { ascending: false });
 
+                const requisitionItemIds = new Set(
+                    (movements || [])
+                        .filter((movement: any) => movement.source_document === 'requisition')
+                        .map((movement: any) => String(movement.item_id))
+                );
+
+                const normalizedItems = normalizedItemsRaw.filter(item => {
+                    if (isRequisitionCategory(item.category)) return false;
+                    if (requisitionItemIds.has(String(item.id))) return false;
+                    return true;
+                });
+
+                setStockItems(normalizedItems);
+
                 if (movements) {
                     const itemById = new Map(normalizedItems.map(item => [String(item.id), item]));
-                    const enriched = movements.map((movement: any) => ({
+                    const visibleMovements = movements.filter((movement: any) => {
+                        if (movement.source_document === 'requisition') return false;
+                        if (requisitionItemIds.has(String(movement.item_id))) return false;
+                        return true;
+                    });
+
+                    const enriched = visibleMovements.map((movement: any) => ({
                         ...movement,
                         item: itemById.get(String(movement.item_id))
                     }));
@@ -3277,17 +3304,36 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         try {
             const stockTable = await resolveStockItemsTable();
             const { data: items } = await supabase.from(stockTable).select('*, supplier:fornecedores(*)');
-            const normalizedItems = (items || []) as import('../types').StockItem[];
-            setStockItems(normalizedItems);
+            const normalizedItemsRaw = (items || []) as import('../types').StockItem[];
 
             const { data: movements } = await supabase
                 .from('stock_movements')
                 .select('*')
                 .order('created_at', { ascending: false });
 
+            const requisitionItemIds = new Set(
+                (movements || [])
+                    .filter((movement: any) => movement.source_document === 'requisition')
+                    .map((movement: any) => String(movement.item_id))
+            );
+
+            const normalizedItems = normalizedItemsRaw.filter(item => {
+                if (isRequisitionCategory(item.category)) return false;
+                if (requisitionItemIds.has(String(item.id))) return false;
+                return true;
+            });
+
+            setStockItems(normalizedItems);
+
             if (movements) {
                 const itemById = new Map(normalizedItems.map(item => [String(item.id), item]));
-                const enriched = movements.map((movement: any) => ({
+                const visibleMovements = movements.filter((movement: any) => {
+                    if (movement.source_document === 'requisition') return false;
+                    if (requisitionItemIds.has(String(movement.item_id))) return false;
+                    return true;
+                });
+
+                const enriched = visibleMovements.map((movement: any) => ({
                     ...movement,
                     item: itemById.get(String(movement.item_id))
                 }));
