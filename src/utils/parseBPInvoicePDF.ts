@@ -69,7 +69,7 @@ export type FuelTransaction = {
 const FUEL_PRODUCT_RE = /(GASOLEO|GASÓLEO|GASOLINA|DIESEL|GNV|G\.N\.V\.?|BIODIESEL|ADBLUE|GPL|SUPER|GASOIL)/i;
 
 /** BP PDFs may include non-standard segmented identifiers like 4U-R-60 */
-const PLATE_RE = /^[A-Z0-9]{1,2}-[A-Z0-9]{1,2}-[A-Z0-9]{1,2}$/i;
+const PLATE_RE = /^[A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}$/i;
 const PLATE_COMPACT_RE = /^[A-Z0-9]{6}$/i;
 
 const DATE_TOKEN_RE = /^(\d{6}|\d{2}[\/.-]\d{2}[\/.-]\d{2,4})$/;
@@ -287,7 +287,7 @@ async function extractLines(file: File): Promise<string[][]> {
     const data = await file.arrayBuffer();
     const pdf  = await pdfjsLib.getDocument({ data }).promise;
 
-    const Y_BUCKET = 2; // pt tolerance for same-line grouping
+    const Y_BUCKET = 1; // tighter tolerance to avoid merging adjacent transaction rows
     const allLines: string[][] = [];
 
     for (let p = 1; p <= pdf.numPages; p++) {
@@ -648,10 +648,10 @@ function isValidParsedRow(row: any): boolean {
 
     if (!/^\d{6,14}$/.test(talao)) return false;
     if (!(PLATE_RE.test(plate) || PLATE_COMPACT_RE.test(plate.replace(/-/g, '')))) return false;
-    if (!(liters > 0 && liters <= 250)) return false;
-    if (!(total > 0 && total <= 2000)) return false;
-    if (!(km >= 0 && km <= 5000000)) return false;
-    if (!(unit >= 0.5 && unit <= 4.5)) return false;
+    if (!(liters > 0 && liters <= 400)) return false;
+    if (!(total > 0 && total <= 5000)) return false;
+    if (!(km >= 0 && km <= 10000000)) return false;
+    if (!(unit >= 0.4 && unit <= 6.5)) return false;
 
     return true;
 }
@@ -1138,9 +1138,23 @@ export const parseBPInvoicePDF = async (file: File): Promise<any[]> => {
     const compactRows = parseFromCompactText(compact, invoiceRef);
 
     // Combine all results; order defines precedence for dedupe-by-talão.
-    const allCandidates = [...regexRows, ...anchorRows, ...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows]
-        .filter(isValidParsedRow);
+    const rawCandidates = [...regexRows, ...anchorRows, ...cardBlockRows, ...chunkRows, ...lineRows, ...dateTalaoRows, ...compactRows, ...productRows];
+    const allCandidates = rawCandidates.filter(isValidParsedRow);
     const all = dedupePreviewRows(allCandidates);
+
+    console.info('[BP Parser] strategy counts', {
+        regexRows: regexRows.length,
+        anchorRows: anchorRows.length,
+        cardBlockRows: cardBlockRows.length,
+        chunkRows: chunkRows.length,
+        lineRows: lineRows.length,
+        dateTalaoRows: dateTalaoRows.length,
+        compactRows: compactRows.length,
+        productRows: productRows.length,
+        rawCandidates: rawCandidates.length,
+        validCandidates: allCandidates.length,
+        deduped: all.length,
+    });
 
     // Sort by date + plate so preview is human-readable
     all.sort((a, b) => {
