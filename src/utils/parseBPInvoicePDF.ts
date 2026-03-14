@@ -82,13 +82,20 @@ const BP_TRANSACTION_LINE_RE = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{
 const BP_TRANSACTION_LINE_RE_7COL = /^(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+(.+?)\s+(\d{4,8})\s+(GASOLEO\+?|GASÓLEO|GASOLEO|DIESEL|ULTIMATE|ULT\s+DIESEL|ULT\s*DIESEL|ULT|GASOLINA|ADBLUE|GPL|GNV|GASOIL)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s+(-?\d{1,3}(?:\.\d{3})?,\d+)\s*$/i;
 const BP_ROW_ANCHOR_RE = /(\d{6})\s+(\d{6,14})\s+([A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}|[A-Z0-9]{6})\s+/gi;
 
+const normalizeDashes = (val: string): string => {
+    return val
+        .replace(/[\u2212\u2010\u2011\u2012\u2013\u2014]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
 /** Parse European-format number string → JS number */
 const parseEU = (val: string): number => {
     if (!val) return 0;
     // "1.719" (thousands dot) or "1,719" (decimal comma)?
     // In BP invoices: dot is thousands separator, comma is decimal.
     // Strategy: if comma exists treat dots as thousands and comma as decimal.
-    let s = val.trim();
+    let s = normalizeDashes(val);
     if (s.includes(',')) {
         s = s.replace(/\./g, '').replace(',', '.');
     }
@@ -249,14 +256,14 @@ const dedupePreviewRows = (rows: any[]): any[] => {
 
     for (const row of rows) {
         const talao = String(row._talao || '').trim();
-        const key = talao
-            ? `talao:${talao}`
-            : [
-                row._manualDate || '',
-                String(row['Matrícula'] || '').toUpperCase(),
-                Number(row['Litros'] || 0).toFixed(2),
-                Number(row['Total'] || 0).toFixed(2),
-            ].join('|');
+        const key = [
+            talao || '',
+            row._manualDate || '',
+            String(row['Matrícula'] || '').toUpperCase(),
+            Number(row['Km'] || 0).toFixed(0),
+            Number(row['Litros'] || 0).toFixed(2),
+            Number(row['Total'] || 0).toFixed(2),
+        ].join('|');
 
         if (!grouped.has(key)) grouped.set(key, []);
         grouped.get(key)!.push(row);
@@ -627,7 +634,7 @@ function mergeNegatives(tokens: string[]): string[] {
 }
 
 function normalizeLineText(tokens: string[]): string {
-    return tokens.join(' ').replace(/\s+/g, ' ').trim();
+    return normalizeDashes(tokens.join(' '));
 }
 
 function shouldIgnoreTransactionLine(tokens: string[]): boolean {
@@ -734,42 +741,55 @@ function parseCanonicalFromLines(lines: string[][], invoiceRef: string): any[] {
     const parseCandidate = (tokens: string[]) => {
         if (shouldIgnoreTransactionLine(tokens)) return;
         const line = normalizeLineText(tokens);
-        const m = line.match(BP_TRANSACTION_PREFIX_RE);
-        if (!m) return;
 
-        const date = bpDateToISO(m[1]);
-        const receipt = m[2];
-        const vehicle = formatPlate(m[3]);
-        const location = m[4].trim().replace(/\s{2,}/g, ' ');
-        const km = parseEU(m[5] ?? '0');
-        const product = normalizeFuelToken(m[6]);
-        const tail = m[7] ?? '';
+        const anchors = [...line.matchAll(BP_ROW_ANCHOR_RE)].filter(m => isValidBPDate(m[1]));
+        if (anchors.length === 0) return;
 
-        const decimals = [...tail.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
-        if (decimals.length < 2) return;
+        const parseChunk = (chunk: string) => {
+            const m = chunk.match(BP_TRANSACTION_PREFIX_RE);
+            if (!m) return;
 
-        const liters = parseEU(decimals[0]);
-        const total = parseEU(decimals[decimals.length - 1]);
-        const unit = liters > 0 ? total / liters : 0;
+            const date = bpDateToISO(m[1]);
+            const receipt = m[2];
+            const vehicle = formatPlate(m[3]);
+            const location = m[4].trim().replace(/\s{2,}/g, ' ');
+            const km = parseEU(m[5] ?? '0');
+            const product = normalizeFuelToken(m[6]);
+            const tail = m[7] ?? '';
 
-        const row = {
-            _manualDate: date,
-            'Hora': '',
-            'Matrícula': vehicle,
-            'Km': km,
-            'Posto': location,
-            'Produto': product,
-            'Litros': liters,
-            'Preço Unitário': unit,
-            'Total': total,
-            '_talao': receipt,
-            '_invoiceRef': invoiceRef,
-            '_source': 'canonical',
-            _selectedCC: '',
+            const decimals = [...tail.matchAll(/-?\d{1,3}(?:\.\d{3})?,\d+/g)].map(v => v[0]);
+            if (decimals.length < 2) return;
+
+            const liters = parseEU(decimals[0]);
+            const total = parseEU(decimals[decimals.length - 1]);
+            const unit = liters > 0 ? total / liters : 0;
+
+            const row = {
+                _manualDate: date,
+                'Hora': '',
+                'Matrícula': vehicle,
+                'Km': km,
+                'Posto': location,
+                'Produto': product,
+                'Litros': liters,
+                'Preço Unitário': unit,
+                'Total': total,
+                '_talao': receipt,
+                '_invoiceRef': invoiceRef,
+                '_source': 'canonical',
+                _selectedCC: '',
+            };
+
+            if (!isValidParsedRow(row)) return;
+            parsed.push(row);
         };
 
-        if (!isValidParsedRow(row)) return;
-        parsed.push(row);
+        for (let i = 0; i < anchors.length; i++) {
+            const start = anchors[i].index ?? 0;
+            const end = i + 1 < anchors.length ? (anchors[i + 1].index ?? line.length) : line.length;
+            const chunk = line.slice(start, end).trim();
+            parseChunk(chunk);
+        }
     };
 
     for (let i = 0; i < lines.length; i++) {
