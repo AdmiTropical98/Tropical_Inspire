@@ -9,6 +9,28 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { formatCurrency } from '../../utils/format';
 import type { StockItem } from '../../types';
 
+type NewPartRow = {
+    id: number;
+    name: string;
+    sku: string;
+    category: string;
+    stock_quantity: number;
+    minimum_stock: number;
+    average_cost: number;
+    location: string;
+};
+
+const blankRow = (id: number): NewPartRow => ({
+    id,
+    name: '',
+    sku: '',
+    category: '',
+    stock_quantity: 0,
+    minimum_stock: 0,
+    average_cost: 0,
+    location: ''
+});
+
 export default function StockParts() {
     const { stockItems, refreshInventoryData, addStockItem, updateStockItem, deleteStockItem } = useWorkshop();
     const [searchTerm, setSearchTerm] = useState('');
@@ -20,15 +42,8 @@ export default function StockParts() {
     const [isEditSaving, setIsEditSaving] = useState(false);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
-    const [newPart, setNewPart] = useState({
-        name: '',
-        sku: '',
-        category: '',
-        stock_quantity: 0,
-        minimum_stock: 0,
-        average_cost: 0,
-        location: ''
-    });
+    const [rowCounter, setRowCounter] = useState(1);
+    const [newParts, setNewParts] = useState<NewPartRow[]>([blankRow(0)]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -52,35 +67,44 @@ export default function StockParts() {
         return matchesSearch && matchesCategory && matchesLowStock;
     });
 
-    const handleCreatePart = async (e: React.FormEvent) => {
+    const handleCreateParts = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newPart.name.trim()) return;
+        const validRows = newParts.filter(r => r.name.trim());
+        if (validRows.length === 0) return;
 
         setIsSaving(true);
         try {
-            await addStockItem({
-                name: newPart.name.trim(),
-                sku: newPart.sku.trim() || undefined,
-                category: newPart.category.trim() || undefined,
-                stock_quantity: Math.max(0, Number(newPart.stock_quantity) || 0),
-                minimum_stock: Math.max(0, Number(newPart.minimum_stock) || 0),
-                average_cost: Math.max(0, Number(newPart.average_cost) || 0),
-                location: newPart.location.trim() || undefined,
-                supplier_id: undefined
-            });
+            for (const row of validRows) {
+                await addStockItem({
+                    name: row.name.trim(),
+                    sku: row.sku.trim() || undefined,
+                    category: row.category.trim() || undefined,
+                    stock_quantity: Math.max(0, Number(row.stock_quantity) || 0),
+                    minimum_stock: Math.max(0, Number(row.minimum_stock) || 0),
+                    average_cost: Math.max(0, Number(row.average_cost) || 0),
+                    location: row.location.trim() || undefined,
+                    supplier_id: undefined
+                });
+            }
             setShowCreateModal(false);
-            setNewPart({
-                name: '',
-                sku: '',
-                category: '',
-                stock_quantity: 0,
-                minimum_stock: 0,
-                average_cost: 0,
-                location: ''
-            });
+            setNewParts([blankRow(0)]);
+            setRowCounter(1);
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const updateRow = (id: number, field: keyof Omit<NewPartRow, 'id'>, value: string | number) => {
+        setNewParts(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    };
+
+    const addRow = () => {
+        setNewParts(prev => [...prev, blankRow(rowCounter)]);
+        setRowCounter(c => c + 1);
+    };
+
+    const removeRow = (id: number) => {
+        setNewParts(prev => prev.length > 1 ? prev.filter(r => r.id !== id) : prev);
     };
 
     const handleEditPart = async (e: React.FormEvent) => {
@@ -345,110 +369,138 @@ export default function StockParts() {
                 )}
             </div>
 
+            {/* Datalists for autocomplete */}
+            <datalist id="dl-categories">
+                {categories.map(c => <option key={c} value={c as string} />)}
+            </datalist>
+            <datalist id="dl-locations">
+                {Array.from(new Set(stockItems.map(i => i.location).filter(Boolean))).map(l => <option key={l} value={l as string} />)}
+            </datalist>
+
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-                            <h3 className="text-xl font-black text-white">Nova Peça</h3>
+                    <div className="w-full max-w-4xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 shrink-0">
+                            <div>
+                                <h3 className="text-xl font-black text-white">Adicionar Peças</h3>
+                                <p className="text-slate-500 text-xs mt-0.5">{newParts.length} {newParts.length === 1 ? 'peça' : 'peças'} para adicionar</p>
+                            </div>
                             <button
                                 type="button"
-                                onClick={() => setShowCreateModal(false)}
+                                onClick={() => { setShowCreateModal(false); setNewParts([blankRow(0)]); setRowCounter(1); }}
                                 className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreatePart} className="p-6 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome</label>
-                                    <input
-                                        required
-                                        value={newPart.name}
-                                        onChange={(e) => setNewPart(prev => ({ ...prev, name: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
-                                    />
-                                </div>
+                        <form onSubmit={handleCreateParts} className="flex flex-col flex-1 overflow-hidden">
+                            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+                                {newParts.map((row, idx) => (
+                                    <div key={row.id} className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 relative">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Peça #{idx + 1}</span>
+                                            {newParts.length > 1 && (
+                                                <button type="button" onClick={() => removeRow(row.id)} className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            <div className="space-y-1 col-span-2">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Nome *</label>
+                                                <input
+                                                    required
+                                                    placeholder="Ex: Filtro de óleo"
+                                                    value={row.name}
+                                                    onChange={e => updateRow(row.id, 'name', e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">SKU</label>
+                                                <input
+                                                    placeholder="Ex: FO-001"
+                                                    value={row.sku}
+                                                    onChange={e => updateRow(row.id, 'sku', e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                                                <input
+                                                    list="dl-categories"
+                                                    placeholder="Ex: Filtros"
+                                                    value={row.category}
+                                                    onChange={e => updateRow(row.id, 'category', e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Qtd Inicial</label>
+                                                <input
+                                                    type="number" min="0" step="0.01"
+                                                    value={row.stock_quantity}
+                                                    onChange={e => updateRow(row.id, 'stock_quantity', Number(e.target.value) || 0)}
+                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Stock Mín.</label>
+                                                <input
+                                                    type="number" min="0" step="0.01"
+                                                    value={row.minimum_stock}
+                                                    onChange={e => updateRow(row.id, 'minimum_stock', Number(e.target.value) || 0)}
+                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Custo Médio (€)</label>
+                                                <input
+                                                    type="number" min="0" step="0.01"
+                                                    value={row.average_cost}
+                                                    onChange={e => updateRow(row.id, 'average_cost', Number(e.target.value) || 0)}
+                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Localização</label>
+                                                <input
+                                                    list="dl-locations"
+                                                    placeholder="Ex: Prateleira A1"
+                                                    value={row.location}
+                                                    onChange={e => updateRow(row.id, 'location', e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">SKU</label>
-                                    <input
-                                        value={newPart.sku}
-                                        onChange={(e) => setNewPart(prev => ({ ...prev, sku: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
-                                    <input
-                                        value={newPart.category}
-                                        onChange={(e) => setNewPart(prev => ({ ...prev, category: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Qtd Inicial (L/UN)</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={newPart.stock_quantity}
-                                        onChange={(e) => setNewPart(prev => ({ ...prev, stock_quantity: Number(e.target.value) || 0 }))}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stock Mínimo (L/UN)</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={newPart.minimum_stock}
-                                        onChange={(e) => setNewPart(prev => ({ ...prev, minimum_stock: Number(e.target.value) || 0 }))}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Custo Médio (€)</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={newPart.average_cost}
-                                        onChange={(e) => setNewPart(prev => ({ ...prev, average_cost: Number(e.target.value) || 0 }))}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Localização</label>
-                                    <input
-                                        value={newPart.location}
-                                        onChange={(e) => setNewPart(prev => ({ ...prev, location: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => setShowCreateModal(false)}
+                                    onClick={addRow}
+                                    className="w-full py-3 border-2 border-dashed border-slate-700 hover:border-blue-600/50 hover:bg-blue-600/5 text-slate-500 hover:text-blue-400 rounded-2xl transition-all text-sm font-bold flex items-center justify-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Adicionar outra peça
+                                </button>
+                            </div>
+
+                            <div className="px-6 py-4 border-t border-slate-800 shrink-0 flex items-center justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowCreateModal(false); setNewParts([blankRow(0)]); setRowCounter(1); }}
                                     className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={isSaving}
-                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-bold transition-colors"
+                                    disabled={isSaving || newParts.every(r => !r.name.trim())}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-bold transition-colors flex items-center gap-2"
                                 >
-                                    {isSaving ? 'A guardar...' : 'Guardar peça'}
+                                    {isSaving ? 'A guardar...' : `Guardar ${newParts.filter(r => r.name.trim()).length > 1 ? `${newParts.filter(r => r.name.trim()).length} peças` : 'peça'}`}
                                 </button>
                             </div>
                         </form>
@@ -495,6 +547,7 @@ export default function StockParts() {
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
                                     <input
+                                        list="dl-categories"
                                         value={editingItem.category ?? ''}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, category: e.target.value } : null)}
                                         className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
@@ -540,6 +593,7 @@ export default function StockParts() {
                                 <div className="space-y-1.5 md:col-span-2">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Localização</label>
                                     <input
+                                        list="dl-locations"
                                         value={editingItem.location ?? ''}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, location: e.target.value } : null)}
                                         className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
