@@ -696,6 +696,7 @@ export default function Combustivel() {
                 vehicleId: editingTransaction.vehicleId,
                 driverId: editingTransaction.driverId,
                 liters: Number(editingTransaction.liters),
+                km: Number(editingTransaction.km),
                 totalCost: Number(editingTransaction.totalCost),
                 timestamp: editingTransaction.timestamp,
                 centroCustoId: editingTransaction.centroCustoId
@@ -2412,6 +2413,15 @@ export default function Combustivel() {
                                                 step="0.01"
                                                 value={editingTransaction.liters}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, liters: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Km</label>
+                                            <input
+                                                type="number"
+                                                value={editingTransaction.km || ''}
+                                                onChange={e => setEditingTransaction({ ...editingTransaction, km: e.target.value })}
                                                 className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
                                             />
                                         </div>
