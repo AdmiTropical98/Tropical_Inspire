@@ -1716,16 +1716,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     .single());
             }
 
-                    if (error && supportsServiceAutoDispatchColumnsRef.current && isMissingServiceAutoDispatchColumnError(error)) {
-                    supportsServiceAutoDispatchColumnsRef.current = false;
-                    const fallbackPayload = stripAutoDispatchColumnsFromPayload(payloadToPersist);
-                    payloadToPersist = fallbackPayload;
-                    ({ data, error } = await supabase
-                        .from('servicos')
-                        .insert(fallbackPayload)
-                        .select()
-                        .single());
-                    }
+            if (error && supportsServiceAutoDispatchColumnsRef.current && isMissingServiceAutoDispatchColumnError(error)) {
+                supportsServiceAutoDispatchColumnsRef.current = false;
+                const fallbackPayload = stripAutoDispatchColumnsFromPayload(payloadToPersist);
+                payloadToPersist = fallbackPayload;
+                ({ data, error } = await supabase
+                    .from('servicos')
+                    .insert(fallbackPayload)
+                    .select()
+                    .single());
+            }
 
             if (error) throw error;
 
@@ -3229,39 +3229,43 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const updateStockItem = async (item: import('../types').StockItem) => {
         const stockTable = await resolveStockItemsTable();
-        let { error } = await supabase.from(stockTable).update({
+
+        let { data, error } = await supabase.from(stockTable).update({
             name: item.name,
-            sku: item.sku,
-            category: item.category,
+            sku: item.sku || null,
+            category: item.category || null,
             stock_quantity: item.stock_quantity,
             minimum_stock: item.minimum_stock,
             average_cost: item.average_cost,
-            location: item.location,
-            supplier_id: item.supplier_id
-        }).eq('id', item.id);
+            location: item.location || null,
+            supplier_id: item.supplier_id || null
+        }).eq('id', item.id).select('*, supplier:fornecedores(*)').single();
 
         if (error && stockTable === 'stock_items' && isMissingStockTableError(error, 'stock_items')) {
             stockItemsTableRef.current = 'workshop_items';
             const fallback = await supabase.from('workshop_items').update({
                 name: item.name,
-                sku: item.sku,
-                category: item.category,
+                sku: item.sku || null,
+                category: item.category || null,
                 stock_quantity: item.stock_quantity,
                 minimum_stock: item.minimum_stock,
                 average_cost: item.average_cost,
-                location: item.location,
-                supplier_id: item.supplier_id
-            }).eq('id', item.id);
+                location: item.location || null,
+                supplier_id: item.supplier_id || null
+            }).eq('id', item.id).select('*, supplier:fornecedores(*)').single();
             error = fallback.error;
+            data = fallback.data;
         }
 
-        if (!error) {
-            setStockItems(prev => prev.map(wi => wi.id === item.id ? item : wi));
+        if (!error && data) {
+            setStockItems(prev => prev.map(wi => wi.id === item.id ? (data as import('../types').StockItem) : wi));
         } else {
             console.error('Error updating stock item:', error);
-            alert('Erro ao atualizar item: ' + error.message);
+            alert('Erro ao atualizar peça. Verifique as permissões ou se o item existe. ' + (error?.message || ''));
+            // Optionally reload to revert UI state
         }
     };
+
 
     const deleteStockItem = async (id: string) => {
         const stockTable = await resolveStockItemsTable();
@@ -4753,28 +4757,28 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
 
                         const serviceRow: any = {
-                        id: s.id,
-                        motorista_id: s.motoristaId,
-                        passageiro: s.passageiro,
-                        hora: s.hora,
-                        origem: s.origem,
-                        destino: s.destino,
-                        voo: s.voo,
-                        obs: s.obs,
-                        tipo: s.tipo || 'outro',
-                        concluido: isCompleted,
-                        centro_custo_id: batchData.centroCustoId,
-                        batch_id: batch.id,
-                        departamento: s.departamento,
-                        status: deriveServiceLifecycleStatus({
-                            motoristaId: s.motoristaId,
-                            serviceDate: s.data || batchData.referenceDate,
-                            serviceHour: s.hora,
-                            originConfirmed: Boolean(s.originConfirmed || s.originArrivalTime),
-                            originDepartureTime: s.originDepartureTime,
-                            destinationConfirmed: Boolean(s.destinationConfirmed || s.destinationArrivalTime)
-                        })
-                    };
+                            id: s.id,
+                            motorista_id: s.motoristaId,
+                            passageiro: s.passageiro,
+                            hora: s.hora,
+                            origem: s.origem,
+                            destino: s.destino,
+                            voo: s.voo,
+                            obs: s.obs,
+                            tipo: s.tipo || 'outro',
+                            concluido: isCompleted,
+                            centro_custo_id: batchData.centroCustoId,
+                            batch_id: batch.id,
+                            departamento: s.departamento,
+                            status: deriveServiceLifecycleStatus({
+                                motoristaId: s.motoristaId,
+                                serviceDate: s.data || batchData.referenceDate,
+                                serviceHour: s.hora,
+                                originConfirmed: Boolean(s.originConfirmed || s.originArrivalTime),
+                                originDepartureTime: s.originDepartureTime,
+                                destinationConfirmed: Boolean(s.destinationConfirmed || s.destinationArrivalTime)
+                            })
+                        };
 
                         if (supportsServiceGeofencingColumnsRef.current) {
                             serviceRow.origem_location_id = origemLocation?.id || null;
@@ -4825,14 +4829,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             .insert(fallbackInsertRows));
                     }
 
-                            if (servicesError && supportsServiceAutoDispatchColumnsRef.current && isMissingServiceAutoDispatchColumnError(servicesError)) {
-                            supportsServiceAutoDispatchColumnsRef.current = false;
-                            const fallbackInsertRows = servicesToInsert.map(row => stripAutoDispatchColumnsFromPayload(row));
+                    if (servicesError && supportsServiceAutoDispatchColumnsRef.current && isMissingServiceAutoDispatchColumnError(servicesError)) {
+                        supportsServiceAutoDispatchColumnsRef.current = false;
+                        const fallbackInsertRows = servicesToInsert.map(row => stripAutoDispatchColumnsFromPayload(row));
 
-                            ({ error: servicesError } = await supabase
-                                .from('servicos')
-                                .insert(fallbackInsertRows));
-                            }
+                        ({ error: servicesError } = await supabase
+                            .from('servicos')
+                            .insert(fallbackInsertRows));
+                    }
 
                     if (servicesError) {
                         return { success: false, error: servicesError.message };
