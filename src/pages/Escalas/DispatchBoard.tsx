@@ -1,6 +1,6 @@
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, useDraggable, useDroppable, type DragEndEvent } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowRight, Car, Clock3, MapPin, Users } from 'lucide-react';
+import { ArrowRight, Car, Clock3, MapPin, Users, CheckCircle } from 'lucide-react';
 import type { Motorista, Servico } from '../../types';
 import { coerceServiceStatus, toDispatchStageLabel, updateServiceStatus } from '../../services/serviceStatus';
 
@@ -88,13 +88,29 @@ function ServiceCard({ service, isUrgentService }: { service: Servico; isUrgentS
             </div>
 
             <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-200">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="truncate" title={service.origem}>{service.origem}</span>
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-200">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="truncate" title={service.origem}>{service.origem}</span>
+                    </div>
+                    {service.originConfirmed && (
+                        <div className="flex items-center gap-1 text-[9px] text-emerald-400 mt-0.5 ml-5" title="Chegada à Origem Confirmada (Geofence)">
+                            <CheckCircle className="w-2.5 h-2.5" />
+                            <span>{service.originArrivalTime ? new Date(service.originArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Confirmado'}</span>
+                        </div>
+                    )}
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="truncate" title={service.destino}>{service.destino}</span>
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+                        <span className="truncate" title={service.destino}>{service.destino}</span>
+                    </div>
+                    {service.destinationConfirmed && (
+                        <div className="flex items-center gap-1 text-[9px] text-emerald-400 mt-0.5 ml-5" title="Chegada ao Destino Confirmada (Geofence)">
+                            <CheckCircle className="w-2.5 h-2.5" />
+                            <span>{service.destinationArrivalTime ? new Date(service.destinationArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Confirmado'}</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

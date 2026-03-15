@@ -4,7 +4,7 @@ import {
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, Car,
     Search, LayoutList, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid, CloudLightning, FileText, Settings
+    Table as TableIcon, LayoutGrid, CloudLightning, FileText, Settings, CheckCircle
 } from 'lucide-react';
 
 import {
@@ -1428,13 +1428,25 @@ export default function Escalas() {
                                                     </div>
 
                                                     {/* Origem */}
-                                                    <div className="text-sm text-slate-400 truncate" title={service.origem}>
-                                                        {service.origem}
+                                                    <div className="text-sm text-slate-400 flex flex-col justify-center" title={service.origem}>
+                                                        <span className="truncate">{service.origem}</span>
+                                                        {service.originConfirmed && (
+                                                            <div className="flex items-center gap-1 text-[10px] text-emerald-400 mt-0.5" title="Chegada à Origem Confirmada (Geofence)">
+                                                                <CheckCircle className="w-3 h-3" />
+                                                                <span>{service.originArrivalTime ? new Date(service.originArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Confirmado'}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     {/* Destino */}
-                                                    <div className="text-sm text-slate-400 truncate" title={service.destino}>
-                                                        {service.destino}
+                                                    <div className="text-sm text-slate-400 flex flex-col justify-center" title={service.destino}>
+                                                        <span className="truncate">{service.destino}</span>
+                                                        {service.destinationConfirmed && (
+                                                            <div className="flex items-center gap-1 text-[10px] text-emerald-400 mt-0.5" title="Chegada ao Destino Confirmada (Geofence)">
+                                                                <CheckCircle className="w-3 h-3" />
+                                                                <span>{service.destinationArrivalTime ? new Date(service.destinationArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Confirmado'}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     {/* Ref */}
@@ -1821,9 +1833,9 @@ export default function Escalas() {
                                                                             <div className="flex items-center gap-2">
                                                                                 <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
                                                                                 <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]" title={service.passageiro}>{service.passageiro}</span>
-                                                                                    {isUrgentService(service) && (
-                                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
-                                                                                    )}
+                                                                                {isUrgentService(service) && (
+                                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300">⚠ URGENTE</span>
+                                                                                )}
                                                                             </div>
                                                                             <div className="flex gap-2">
                                                                                 <button
@@ -2111,78 +2123,78 @@ export default function Escalas() {
                                             <span className="bg-emerald-500/20 text-emerald-400 font-mono font-bold px-2 py-1 rounded border border-emerald-500/20">{trip.hora}</span>
                                         </div>
 
-                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
-                                                <MapPin className="w-3 h-3" /> Origem
-                                                {trip.areaOrigem && <span className="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded ml-1">{trip.areaOrigem}</span>}
+                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
+                                                    <MapPin className="w-3 h-3" /> Origem
+                                                    {trip.areaOrigem && <span className="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded ml-1">{trip.areaOrigem}</span>}
+                                                </div>
+                                                <div className="text-white font-medium">{trip.origem}</div>
                                             </div>
-                                            <div className="text-white font-medium">{trip.origem}</div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
-                                                <ArrowRight className="w-3 h-3" /> Destino
-                                                {trip.areaDestino && <span className="bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded ml-1">{trip.areaDestino}</span>}
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
+                                                    <ArrowRight className="w-3 h-3" /> Destino
+                                                    {trip.areaDestino && <span className="bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded ml-1">{trip.areaDestino}</span>}
+                                                </div>
+                                                <div className="text-white font-medium">{trip.destino}</div>
                                             </div>
-                                            <div className="text-white font-medium">{trip.destino}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[40px]">
-                                            <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Pass.</div>
-                                            <div className="text-white font-bold leading-none">{computedPassengers}</div>
                                         </div>
 
-                                        <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[72px]">
-                                            <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Ocupação</div>
-                                            <div className="text-emerald-300 font-bold leading-none">{computedOccupancy.toFixed(0)}%</div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[40px]">
+                                                <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Pass.</div>
+                                                <div className="text-white font-bold leading-none">{computedPassengers}</div>
+                                            </div>
+
+                                            <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[72px]">
+                                                <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Ocupação</div>
+                                                <div className="text-emerald-300 font-bold leading-none">{computedOccupancy.toFixed(0)}%</div>
+                                            </div>
+
+                                            <select
+                                                className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
+                                                value={trip.vehicleId || ''}
+                                                onChange={(e) => {
+                                                    const vehicleId = e.target.value;
+                                                    const vehicle = viaturaById.get(vehicleId);
+                                                    const capacity = Number(vehicle?.vehicleCapacity || 8);
+                                                    const passengerCount = Number(computedPassengers);
+                                                    const occupancyRate = Number(((passengerCount / Math.max(capacity, 1)) * 100).toFixed(2));
+                                                    const newTrips = [...automationTrips];
+                                                    newTrips[idx].vehicleId = vehicleId || undefined;
+                                                    newTrips[idx].vehicleCapacity = capacity;
+                                                    newTrips[idx].occupancyRate = occupancyRate;
+                                                    setAutomationTrips(newTrips);
+                                                }}
+                                            >
+                                                <option value="">🚗 Sem viatura</option>
+                                                {viaturas.map(v => (
+                                                    <option key={v.id} value={v.id}>{v.matricula} ({v.vehicleCapacity || 8} lugares)</option>
+                                                ))}
+                                            </select>
+
+                                            <select
+                                                className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
+                                                value={trip.motoristaId || ''}
+                                                onChange={(e) => {
+                                                    const newTrips = [...automationTrips];
+                                                    newTrips[idx].motoristaId = e.target.value;
+                                                    setAutomationTrips(newTrips);
+                                                }}
+                                            >
+                                                <option value="">🚫 Sem motorista</option>
+                                                {motoristas.map(m => (
+                                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                                ))}
+                                            </select>
+
+                                            <button
+                                                onClick={() => setAutomationTrips(prev => prev.filter((_, tripIndex) => tripIndex !== idx))}
+                                                className="bg-red-500/15 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-500/25"
+                                            >
+                                                Remover
+                                            </button>
                                         </div>
-
-                                        <select
-                                            className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
-                                            value={trip.vehicleId || ''}
-                                            onChange={(e) => {
-                                                const vehicleId = e.target.value;
-                                                const vehicle = viaturaById.get(vehicleId);
-                                                const capacity = Number(vehicle?.vehicleCapacity || 8);
-                                                const passengerCount = Number(computedPassengers);
-                                                const occupancyRate = Number(((passengerCount / Math.max(capacity, 1)) * 100).toFixed(2));
-                                                const newTrips = [...automationTrips];
-                                                newTrips[idx].vehicleId = vehicleId || undefined;
-                                                newTrips[idx].vehicleCapacity = capacity;
-                                                newTrips[idx].occupancyRate = occupancyRate;
-                                                setAutomationTrips(newTrips);
-                                            }}
-                                        >
-                                            <option value="">🚗 Sem viatura</option>
-                                            {viaturas.map(v => (
-                                                <option key={v.id} value={v.id}>{v.matricula} ({v.vehicleCapacity || 8} lugares)</option>
-                                            ))}
-                                        </select>
-
-                                        <select
-                                            className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
-                                            value={trip.motoristaId || ''}
-                                            onChange={(e) => {
-                                                const newTrips = [...automationTrips];
-                                                newTrips[idx].motoristaId = e.target.value;
-                                                setAutomationTrips(newTrips);
-                                            }}
-                                        >
-                                            <option value="">🚫 Sem motorista</option>
-                                            {motoristas.map(m => (
-                                                <option key={m.id} value={m.id}>{m.nome}</option>
-                                            ))}
-                                        </select>
-
-                                        <button
-                                            onClick={() => setAutomationTrips(prev => prev.filter((_, tripIndex) => tripIndex !== idx))}
-                                            className="bg-red-500/15 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-500/25"
-                                        >
-                                            Remover
-                                        </button>
-                                    </div>
                                     </div>
                                 );
                             })}
