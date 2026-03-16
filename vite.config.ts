@@ -41,6 +41,9 @@ export default defineConfig({
   ],
   base: '/',
   server: {
+    host: '0.0.0.0',
+    port: 5000,
+    allowedHosts: true,
     proxy: {
       '/api/send-email': {
         target: 'http://localhost:4001',
