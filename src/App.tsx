@@ -272,7 +272,7 @@ function App() {
             />
           )}
 
-          <div className="mt-8">
+          <div className="mt-4 mb-6">
             <SidebarItem
               icon={LayoutDashboard}
               label="Dashboard"
@@ -282,8 +282,8 @@ function App() {
             />
           </div>
 
-          {/* COMMAND GROUP */}
-          <SidebarGroup title="Command" collapsed={isSidebarCollapsed}>
+          {/* OPERAÇÕES GROUP */}
+          <SidebarGroup title="Operações" collapsed={isSidebarCollapsed}>
             <SidebarItem
               icon={Activity}
               label="Centro Operacional"
@@ -296,24 +296,29 @@ function App() {
               label="Alertas"
               active={activeTab === 'alerts'}
               onClick={() => handleNavigate('alerts')}
-              badge={2}
               collapsed={isSidebarCollapsed}
             />
-          </SidebarGroup>
-
-          {/* OPERATIONS GROUP */}
-          <SidebarGroup title="Operations" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'escalas') && (
               <>
                 <SidebarItem icon={Calendar} label="Escalas" active={activeTab === 'escalas'} onClick={() => handleNavigate('escalas')} collapsed={isSidebarCollapsed} />
                 <SidebarItem icon={LayoutTemplate} label="Planear Escala" active={activeTab === 'lancar-escalas'} onClick={() => handleNavigate('lancar-escalas')} collapsed={isSidebarCollapsed} />
               </>
             )}
+            {hasAccess(userRole, 'requisicoes') && (
+              <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => handleNavigate('requisicoes')} collapsed={isSidebarCollapsed} />
+            )}
+          </SidebarGroup>
+
+          {/* FROTA GROUP */}
+          <SidebarGroup title="Frota" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'viaturas') && (
-              <SidebarItem icon={Car} label="Frota" active={isFleetRoute} onClick={() => handleNavigate('viaturas')} collapsed={isSidebarCollapsed} />
+              <SidebarItem icon={Car} label="Viaturas" active={isFleetRoute} onClick={() => handleNavigate('viaturas')} collapsed={isSidebarCollapsed} />
             )}
             {hasAccess(userRole, 'motoristas') && (
-              <SidebarItem icon={UserCogIcon} label="Equipa" active={activeTab === 'motoristas'} onClick={() => handleNavigate('motoristas')} collapsed={isSidebarCollapsed} />
+              <SidebarItem icon={UserCogIcon} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => handleNavigate('motoristas')} collapsed={isSidebarCollapsed} />
+            )}
+            {hasAccess(userRole, 'avaliacao_drivers') && (
+              <SidebarItem icon={Award} label="Performance" active={activeTab === 'avaliacao-drivers'} onClick={() => handleNavigate('avaliacao-drivers')} collapsed={isSidebarCollapsed} />
             )}
             {hasAccess(userRole, 'roteirizacao') && (
               <SidebarItem icon={Navigation} label="Roteirização" active={activeTab === 'roteirizacao'} onClick={() => handleNavigate('roteirizacao')} collapsed={isSidebarCollapsed} />
@@ -324,37 +329,31 @@ function App() {
             {hasAccess(userRole, 'locais') && (
               <SidebarItem icon={MapPin} label="Pontos de Interesse" active={activeTab === 'locais'} onClick={() => handleNavigate('locais')} collapsed={isSidebarCollapsed} />
             )}
-            {hasAccess(userRole, 'avaliacao_drivers') && (
-              <SidebarItem icon={Award} label="Performance Motoristas" active={activeTab === 'avaliacao-drivers'} onClick={() => handleNavigate('avaliacao-drivers')} collapsed={isSidebarCollapsed} />
-            )}
-            {hasAccess(userRole, 'requisicoes') && (
-              <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => handleNavigate('requisicoes')} collapsed={isSidebarCollapsed} />
-            )}
           </SidebarGroup>
 
-          {/* WORKSHOP GROUP */}
-          <SidebarGroup title="Workshop" collapsed={isSidebarCollapsed}>
+          {/* OFICINA GROUP */}
+          <SidebarGroup title="Oficina" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'oficina') && (
               <>
-                <SidebarItem icon={Box} label="Stock Peças" active={activeTab === 'workshop-stock'} onClick={() => handleNavigate('workshop-stock')} collapsed={isSidebarCollapsed} />
-                <SidebarItem icon={History} label="Movimentos Stock" active={activeTab === 'workshop-movements'} onClick={() => handleNavigate('workshop-movements')} collapsed={isSidebarCollapsed} />
-                <SidebarItem icon={Wrench} label="Inventário Oficina" active={activeTab === 'workshop-assets'} onClick={() => handleNavigate('workshop-assets')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={Box} label="Stock de Peças" active={activeTab === 'workshop-stock'} onClick={() => handleNavigate('workshop-stock')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={History} label="Movimentos de Stock" active={activeTab === 'workshop-movements'} onClick={() => handleNavigate('workshop-movements')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={Wrench} label="Inventário" active={activeTab === 'workshop-assets'} onClick={() => handleNavigate('workshop-assets')} collapsed={isSidebarCollapsed} />
                 <SidebarItem icon={UserPlus} label="Ferramentas Atribuídas" active={activeTab === 'assigned-tools'} onClick={() => handleNavigate('assigned-tools')} collapsed={isSidebarCollapsed} />
-                <SidebarItem icon={BellRing} label="Alertas" active={activeTab === 'workshop-alerts'} onClick={() => handleNavigate('workshop-alerts')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={BellRing} label="Alertas de Stock" active={activeTab === 'workshop-alerts'} onClick={() => handleNavigate('workshop-alerts')} collapsed={isSidebarCollapsed} />
               </>
             )}
           </SidebarGroup>
 
-          {/* MONITORING GROUP */}
-          <SidebarGroup title="Monitoring" collapsed={isSidebarCollapsed}>
+          {/* MONITORIZAÇÃO GROUP */}
+          <SidebarGroup title="Monitorização" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'horas') && (
               <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => handleNavigate('horas')} collapsed={isSidebarCollapsed} />
             )}
             {hasAccess(userRole, 'combustivel') && (
               <>
                 <SidebarItem icon={Fuel} label="Abastecimentos" active={activeTab === 'combustivel'} onClick={() => handleNavigate('combustivel')} collapsed={isSidebarCollapsed} />
-                <SidebarItem icon={Gauge} label="Eficiência" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} collapsed={isSidebarCollapsed} />
                 <SidebarItem icon={BatteryCharging} label="Carregamentos" active={activeTab === 'carregamentos'} onClick={() => handleNavigate('carregamentos')} collapsed={isSidebarCollapsed} />
+                <SidebarItem icon={Gauge} label="Eficiência" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} collapsed={isSidebarCollapsed} />
               </>
             )}
             {hasAccess(userRole, 'relatorios') && (
@@ -362,8 +361,19 @@ function App() {
             )}
           </SidebarGroup>
 
-          {/* ADMINISTRATION GROUP */}
-          <SidebarGroup title="Administration" collapsed={isSidebarCollapsed}>
+          {/* FINANCEIRO GROUP */}
+          <SidebarGroup title="Financeiro" collapsed={isSidebarCollapsed}>
+            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Proc. de Salários" active={activeTab === 'processamento-salarios'} onClick={() => handleNavigate('processamento-salarios')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Salários" active={activeTab === 'salarios'} onClick={() => handleNavigate('salarios')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'fornecedores') && <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'clientes') && <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'via_verde') && <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />}
+          </SidebarGroup>
+
+          {/* ADMINISTRAÇÃO GROUP */}
+          <SidebarGroup title="Administração" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'utilizadores') && <SidebarItem icon={UserCheck} label="Perfis" active={activeTab === 'utilizadores'} onClick={() => handleNavigate('utilizadores')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'gestores') && <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => handleNavigate('gestores')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'equipa-oficina') && <SidebarItem icon={Hammer} label="Técnicos Oficina" active={activeTab === 'equipa-oficina'} onClick={() => handleNavigate('equipa-oficina')} collapsed={isSidebarCollapsed} />}
@@ -375,17 +385,6 @@ function App() {
               badge={unreadCount}
               collapsed={isSidebarCollapsed}
             />
-          </SidebarGroup>
-
-          {/* FINANCE GROUP */}
-          <SidebarGroup title="Finance" collapsed={isSidebarCollapsed}>
-            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Processamento de Salários" active={activeTab === 'processamento-salarios'} onClick={() => handleNavigate('processamento-salarios')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Salários" active={activeTab === 'salarios'} onClick={() => handleNavigate('salarios')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'fornecedores') && <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'clientes') && <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'via_verde') && <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} collapsed={isSidebarCollapsed} />}
           </SidebarGroup>
         </div>
 
