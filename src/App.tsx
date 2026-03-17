@@ -62,6 +62,7 @@ const Relatorios = lazy(() => import('./pages/Relatorios'));
 const Mensagens = lazy(() => import('./pages/Chat'));
 const Profile = lazy(() => import('./pages/Profile/MyProfile'));
 const LinhaTransportes = lazy(() => import('./pages/LinhaTransportes'));
+const ColaboradorApp = lazy(() => import('./pages/Colaborador'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -213,6 +214,23 @@ function App() {
     setIsMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (location.pathname.startsWith('/colaborador')) {
+    return (
+      <div className="app-root min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
+            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A iniciar Sessão Colaborador...</p>
+          </div>
+        }>
+          <Routes>
+            <Route path="/colaborador/*" element={<ColaboradorApp />} />
+          </Routes>
+        </Suspense>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     if (location.pathname === '/reset-password') return <ResetPassword />;

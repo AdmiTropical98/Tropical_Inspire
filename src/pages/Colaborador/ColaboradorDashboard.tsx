@@ -1,0 +1,230 @@
+import React, { useState, useEffect } from 'react';
+import { LogOut, CheckCircle2, MapPin, History, RefreshCcw, Hand } from 'lucide-react';
+import { ColaboradorService } from '../../services/colaboradorService';
+import type { Colaborador, PresencaTransporte } from '../../services/colaboradorService';
+
+interface ColaboradorDashboardProps {
+  colaborador: Colaborador;
+  onLogout: () => void;
+}
+
+const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador, onLogout }) => {
+  const [presencas, setPresencas] = useState<PresencaTransporte[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(true);
+  const [feedback, setFeedback] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
+  const carregarHistorico = async () => {
+    setIsFetchingHistory(true);
+    const historico = await ColaboradorService.obterPresencasRecentes(colaborador.id);
+    setPresencas(historico);
+    setIsFetchingHistory(false);
+  };
+
+  useEffect(() => {
+    carregarHistorico();
+  }, [colaborador.id]);
+
+  const registarPonto = async (tipo: 'entrada' | 'saida') => {
+    if (isLoading) return;
+    setIsLoading(true);
+    setFeedback(null);
+
+    // Try to get GPS Location (Optional, don't block if denied)
+    let lat: number | undefined;
+    let lng: number | undefined;
+
+    try {
+      if (navigator.geolocation) {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        });
+        lat = position.coords.latitude;
+        lng = position.coords.longitude;
+      }
+    } catch (e) {
+      console.warn('GPS location not available or denied.');
+    }
+
+    const sucesso = await ColaboradorService.registarPresenca(colaborador.id, tipo, {
+      latitude: lat,
+      longitude: lng,
+    });
+
+    if (sucesso) {
+      setFeedback({ message: `Registo de ${tipo} efetuado com sucesso!`, type: 'success' });
+      // Clear feedback after 4 seconds
+      setTimeout(() => setFeedback(null), 4000);
+      carregarHistorico();
+    } else {
+      setFeedback({ message: `Erro ao registar ${tipo}. Tente de novo.`, type: 'error' });
+      setIsLoading(false); // Let them try again fast
+    }
+  };
+
+  // If the last status is 'entrada', the user is likely on the bus, so we highlight 'saida'.
+  const getLastStatus = () => {
+    if (presencas.length === 0) return 'nenhum';
+    return presencas[0].tipo; // List is ordered DESC by data_hora
+  };
+
+  const isCheckedIn = getLastStatus() === 'entrada';
+
+  return (
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans flex flex-col">
+      {/* Header */}
+      <header className="bg-slate-900 border-b border-slate-800 p-6 shadow-sm z-10">
+        <div className="flex justify-between items-center max-w-md mx-auto">
+          <div>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+              Colaborador #{colaborador.numero}
+            </p>
+            <h1 className="text-xl font-black text-white">{colaborador.nome}</h1>
+          </div>
+          <button 
+            onClick={onLogout}
+            className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
+            title="Terminar Sessão"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 w-full max-w-md mx-auto p-6 flex flex-col gap-6">
+
+        {/* Feedback Banner */}
+        {feedback && (
+          <div className={`p-4 rounded-xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${
+            feedback.type === 'success' 
+              ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+              : 'bg-red-500/10 border-red-500/30 text-red-400'
+          }`}>
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
+            <p className="font-medium text-sm">{feedback.message}</p>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 gap-4 mt-2">
+          <button
+            onClick={() => {
+              registarPonto('entrada');
+              setTimeout(() => setIsLoading(false), 2000); // Visual cooldown
+            }}
+            disabled={isLoading || isCheckedIn}
+            className={`relative overflow-hidden group rounded-3xl p-6 border-2 transition-all active:scale-[0.98] ${
+              isCheckedIn 
+                ? 'bg-slate-900 border-slate-800 opacity-50' 
+                : 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400/50 shadow-lg shadow-green-900/20'
+            }`}
+          >
+            <div className="flex flex-col items-center gap-4 relative z-10">
+               <div className={`p-4 rounded-full ${isCheckedIn ? 'bg-slate-800 text-slate-500' : 'bg-white/20 text-white'}`}>
+                 <MapPin className="w-8 h-8" />
+               </div>
+               <span className={`font-black tracking-wide text-xl ${isCheckedIn ? 'text-slate-500' : 'text-white'}`}>
+                 Entrar no Transporte
+               </span>
+            </div>
+            
+            {!isCheckedIn && (
+              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors pointer-events-none" />
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              registarPonto('saida');
+              setTimeout(() => setIsLoading(false), 2000); // Visual cooldown
+            }}
+            disabled={isLoading || !isCheckedIn}
+            className={`relative overflow-hidden group rounded-3xl p-6 border-2 transition-all active:scale-[0.98] ${
+              !isCheckedIn 
+                ? 'bg-slate-900 border-slate-800 opacity-50' 
+                : 'bg-gradient-to-br from-orange-500 to-red-600 border-red-400/50 shadow-lg shadow-red-900/20'
+            }`}
+          >
+            <div className="flex flex-col items-center gap-4 relative z-10">
+               <div className={`p-4 rounded-full ${!isCheckedIn ? 'bg-slate-800 text-slate-500' : 'bg-white/20 text-white'}`}>
+                 <Hand className="w-8 h-8" />
+               </div>
+               <span className={`font-black tracking-wide text-xl ${!isCheckedIn ? 'text-slate-500' : 'text-white'}`}>
+                 Sair do Transporte
+               </span>
+            </div>
+            
+            {isCheckedIn && (
+               <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors pointer-events-none" />
+            )}
+          </button>
+        </div>
+
+        {/* History Area */}
+        <div className="bg-slate-900 rounded-3xl border border-slate-800 p-6 flex-1 mt-4">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <History className="w-4 h-4" />
+              Histórico de Hoje
+            </h3>
+            <button 
+               onClick={carregarHistorico}
+               disabled={isFetchingHistory}
+               className={`text-slate-500 hover:text-white transition-colors ${isFetchingHistory ? 'animate-spin' : ''}`}
+            >
+              <RefreshCcw className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {isFetchingHistory ? (
+              <div className="text-center text-slate-500 py-4 text-sm animate-pulse">
+                A carregar os seus registos...
+              </div>
+            ) : presencas.length === 0 ? (
+              <div className="text-center text-slate-500 py-8 text-sm">
+                Ainda não tem registos efetuados.
+              </div>
+            ) : (
+              presencas.map((p) => {
+                const date = new Date(p.data_hora);
+                const isEntrada = p.tipo === 'entrada';
+                return (
+                  <div key={p.id} className="flex flex-row items-center justify-between border-b border-slate-800 pb-3 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center ${
+                        isEntrada 
+                          ? 'bg-green-500/20 text-green-500 border border-green-500/20' 
+                          : 'bg-red-500/20 text-red-500 border border-red-500/20'
+                        }`}>
+                        {isEntrada ? <MapPin className="w-4 h-4" /> : <Hand className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-bold ${isEntrada ? 'text-green-400' : 'text-red-400'}`}>
+                          {isEntrada ? 'Entrada' : 'Saída'}
+                        </p>
+                        <p className="text-xs text-slate-500">Transporte da Frota</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-300">
+                        {date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        {date.toLocaleDateString('pt-PT')}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
+};
+
+export default ColaboradorDashboard;
