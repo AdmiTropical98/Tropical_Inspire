@@ -61,6 +61,7 @@ const Clientes = lazy(() => import('./pages/Clientes'));
 const Relatorios = lazy(() => import('./pages/Relatorios'));
 const Mensagens = lazy(() => import('./pages/Chat'));
 const Profile = lazy(() => import('./pages/Profile/MyProfile'));
+const LinhaTransportes = lazy(() => import('./pages/LinhaTransportes'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -321,6 +322,7 @@ function App() {
             {hasAccess(userRole, 'roteirizacao') && (
               <SidebarItem icon={Navigation} label="Roteirização" active={activeTab === 'roteirizacao'} onClick={() => handleNavigate('roteirizacao')} collapsed={isSidebarCollapsed} />
             )}
+            <SidebarItem icon={Navigation} label="Linha Transportes" active={activeTab === 'linha-transportes'} onClick={() => handleNavigate('linha-transportes')} collapsed={isSidebarCollapsed} />
             {hasAccess(userRole, 'geofences') && (
               <SidebarItem icon={MapPin} label="Cercas Geográficas" active={activeTab === 'geofences'} onClick={() => handleNavigate('geofences')} collapsed={isSidebarCollapsed} />
             )}
@@ -430,6 +432,7 @@ function App() {
                 <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
                 <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
                 <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
+                <Route path="/linha-transportes" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar Linha de Transportes...</div>}><LinhaTransportes /></Suspense>} />
                 <Route path="/fornecedores" element={<Fornecedores />} />
                 <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
                 <Route path="/via-verde" element={<ViaVerde />} />
