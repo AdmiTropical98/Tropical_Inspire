@@ -284,8 +284,11 @@ export interface ScaleBatch {
     reference_date: string;
     notes?: string;
     created_at: string;
-    created_by_role?: string; // NEW
-    status?: 'active' | 'cancelled'; // NEW: Soft delete status
+    created_by_role?: string;
+    status?: 'active' | 'cancelled';
+    is_published?: boolean;
+    published_at?: string;
+    published_by?: string;
 }
 
 export interface Supervisor {

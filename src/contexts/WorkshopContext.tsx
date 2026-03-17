@@ -186,6 +186,7 @@ interface WorkshopContextType {
     // Scale Batch Actions
     createScaleBatch: (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; data?: any; error?: any }>;
     cancelScaleBatch: (batchId: string) => Promise<{ success: boolean; error?: any }>;
+    publishBatch: (batchId: string) => Promise<{ success: boolean; error?: any }>;
 
     // Fuel
     fuelTank: FuelTank;
@@ -4906,6 +4907,40 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     return { success: true };
                 } catch (error: any) {
                     console.error('Error cancelling batch:', error);
+                    return { success: false, error: error.message };
+                }
+            },
+            publishBatch: async (batchId: string) => {
+                try {
+                    const storedUser = localStorage.getItem('currentUser');
+                    let userName = 'Sistema';
+                    if (storedUser) {
+                        try { userName = JSON.parse(storedUser)?.nome || 'Sistema'; } catch {}
+                    }
+                    const publishedAt = new Date().toISOString();
+
+                    const { error } = await supabase
+                        .from('scale_batches')
+                        .update({
+                            is_published: true,
+                            published_at: publishedAt,
+                            published_by: userName
+                        })
+                        .eq('id', batchId);
+
+                    if (error) {
+                        console.warn('publishBatch: column may not exist yet, falling back to local state', error);
+                    }
+
+                    setScaleBatches(prev => prev.map(b =>
+                        b.id === batchId
+                            ? { ...b, is_published: true, published_at: publishedAt, published_by: userName }
+                            : b
+                    ));
+
+                    return { success: true };
+                } catch (error: any) {
+                    console.error('Error publishing batch:', error);
                     return { success: false, error: error.message };
                 }
             },

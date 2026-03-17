@@ -27,6 +27,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import PageHeader from '../../components/common/PageHeader';
 import DispatchBoard from './DispatchBoard';
+import EscalaTimelineModal from './EscalaTimelineModal';
 import { coerceServiceStatus, updateServiceStatus } from '../../services/serviceStatus';
 
 import * as XLSX from 'xlsx';
@@ -98,7 +99,8 @@ export default function Escalas() {
         updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
         complianceStats, locais, checkRouteValidation, scaleBatches, createScaleBatch,
         zonasOperacionais, refreshData, viaturas, cartrackVehicles,
-        escalaTemplates, escalaTemplateItems, addEscalaTemplate, deleteEscalaTemplate, addTemplateItem, deleteTemplateItem
+        escalaTemplates, escalaTemplateItems, addEscalaTemplate, deleteEscalaTemplate, addTemplateItem, deleteTemplateItem,
+        publishBatch
     } = useWorkshop();
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
@@ -151,7 +153,9 @@ export default function Escalas() {
 
     // New Manual Service State
     const [showNewServiceModal, setShowNewServiceModal] = useState(false);
-    const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null); // NEW
+    const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
+    const [timelineBatchId, setTimelineBatchId] = useState<string | null>(null);
+    const [publishingBatchId, setPublishingBatchId] = useState<string | null>(null);
     const [newService, setNewService] = useState<NewServiceState>({
         hora: '09:00',
         passageiro: '',
@@ -969,6 +973,21 @@ export default function Escalas() {
                 status: 'pending',
                 timestamp: new Date().toISOString()
             });
+        }
+    };
+
+    const handlePublishBatch = async (batchId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setPublishingBatchId(batchId);
+        try {
+            const result = await publishBatch(batchId);
+            if (result.success) {
+                setTimelineBatchId(batchId);
+            } else {
+                alert('Erro ao publicar escala: ' + result.error);
+            }
+        } finally {
+            setPublishingBatchId(null);
         }
     };
 
@@ -1930,11 +1949,36 @@ export default function Escalas() {
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{batchServices.length}</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">{batchServices.length}</span>
+                                                                        {batch?.is_published ? (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); setTimelineBatchId(batchId); }}
+                                                                                className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25 transition-colors whitespace-nowrap"
+                                                                                title="Ver linha cronológica"
+                                                                            >
+                                                                                Ver Linha
+                                                                            </button>
+                                                                        ) : batch && (
+                                                                            <button
+                                                                                onClick={(e) => handlePublishBatch(batchId, e)}
+                                                                                disabled={publishingBatchId === batchId}
+                                                                                className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-600/20 text-blue-300 border-blue-500/40 hover:bg-blue-600/40 disabled:opacity-50 transition-colors whitespace-nowrap"
+                                                                                title="Publicar escala e gerar linha cronológica"
+                                                                            >
+                                                                                {publishingBatchId === batchId ? '...' : 'Publicar'}
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                                 <div className="flex items-center gap-2 text-xs text-slate-400">
                                                                     <Calendar className="w-3.5 h-3.5" />
                                                                     <span className="font-mono">{batch?.reference_date || selectedDate}</span>
+                                                                    {batch?.is_published && (
+                                                                        <span className="ml-auto text-[10px] text-emerald-400 flex items-center gap-1">
+                                                                            <CheckCircle className="w-3 h-3" /> Publicada
+                                                                        </span>
+                                                                    )}
                                                                     {!batch && <span className="text-red-400 text-[10px] ml-auto italic">Erro de Sincronização</span>}
                                                                 </div>
 
@@ -2703,6 +2747,23 @@ export default function Escalas() {
                     <option key={geo.id} value={geo.name} />
                 ))}
             </datalist>
+
+            {/* Timeline Modal */}
+            {timelineBatchId && (() => {
+                const timelineBatch = scaleBatches.find(b => b.id === timelineBatchId);
+                const timelineServices = servicos.filter(s => s.batchId === timelineBatchId);
+                if (!timelineBatch) return null;
+                return (
+                    <EscalaTimelineModal
+                        batch={timelineBatch}
+                        services={timelineServices}
+                        motoristas={motoristas}
+                        viaturas={viaturas}
+                        centrosCustos={centrosCustos}
+                        onClose={() => setTimelineBatchId(null)}
+                    />
+                );
+            })()}
         </div>
 
 
