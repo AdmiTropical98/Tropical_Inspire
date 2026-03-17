@@ -364,8 +364,6 @@ function App() {
           {/* FINANCEIRO GROUP */}
           <SidebarGroup title="Financeiro" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Proc. de Salários" active={activeTab === 'processamento-salarios'} onClick={() => handleNavigate('processamento-salarios')} collapsed={isSidebarCollapsed} />}
-            {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Salários" active={activeTab === 'salarios'} onClick={() => handleNavigate('salarios')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'fornecedores') && <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'fornecedores'} onClick={() => handleNavigate('fornecedores')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'clientes') && <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} collapsed={isSidebarCollapsed} />}
