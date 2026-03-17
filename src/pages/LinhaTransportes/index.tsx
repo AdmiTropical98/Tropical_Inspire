@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { RefreshCcw, Navigation2, AlertCircle } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
-import { CartrackProxyService } from '../../services/cartrackProxy';
-import type { CartrackProxyVehicle } from '../../services/cartrackProxy';
+import { CartrackService } from '../../services/cartrack';
+import type { CartrackVehicle } from '../../services/cartrack';
 import MetroLine from '../../components/TransportLine/MetroLine';
 import { calculateRouteProgress } from '../../utils/geoUtils';
 import type { RouteStop, GeoCoord } from '../../utils/geoUtils';
@@ -17,7 +17,7 @@ const MOCK_ROUTE: RouteStop[] = [
 ];
 
 export default function LinhaTransportes() {
-  const [vehicles, setVehicles] = useState<CartrackProxyVehicle[]>([]);
+  const [vehicles, setVehicles] = useState<CartrackVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -32,12 +32,12 @@ export default function LinhaTransportes() {
     try {
       setLoading(true);
       setError(null);
-      const data = await CartrackProxyService.getVehicles();
+      const data = await CartrackService.getVehicles();
       setVehicles(data || []);
       
       // Auto-select first vehicle if none selected
       if (!selectedVehicleId && data && data.length > 0) {
-        setSelectedVehicleId(data[0].name);
+        setSelectedVehicleId(data[0].registration || data[0].label);
       }
       
       setLastUpdate(new Date());
@@ -61,16 +61,16 @@ export default function LinhaTransportes() {
   }, []); // Run on mount
 
   // Find the currently tracked vehicle's position
-  const selectedVehicle = vehicles.find(v => v.name === selectedVehicleId);
+  const selectedVehicle = vehicles.find(v => (v.registration || v.label) === selectedVehicleId);
   
   let currentSegmentIndex = 0;
   let progressInSegment = 0;
   let currentPos: GeoCoord | null = null;
   
-  if (selectedVehicle && selectedVehicle.lat && selectedVehicle.lng) {
+  if (selectedVehicle && selectedVehicle.latitude && selectedVehicle.longitude) {
     currentPos = { 
-      lat: selectedVehicle.lat, 
-      lng: selectedVehicle.lng 
+      lat: selectedVehicle.latitude, 
+      lng: selectedVehicle.longitude 
     };
     
     const progress = calculateRouteProgress(currentPos, stops);
@@ -126,11 +126,14 @@ export default function LinhaTransportes() {
                     className="w-full bg-slate-800 border-slate-700 text-white rounded-xl focus:ring-blue-500"
                   >
                     <option value="">Selecione uma viatura...</option>
-                    {vehicles.map(v => (
-                      <option key={v.name} value={v.name}>
-                        {v.name}
-                      </option>
-                    ))}
+                    {vehicles.map(v => {
+                      const id = v.registration || v.label;
+                      return (
+                        <option key={id} value={id}>
+                          {v.label || v.registration}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 
@@ -188,8 +191,8 @@ export default function LinhaTransportes() {
                     
                     {selectedVehicle && (
                       <div className="mt-8 text-center text-sm text-slate-400">
-                        Veículo: <strong className="text-white">{selectedVehicle.name}</strong> | 
-                        Posição Bússola/GPS: <span className="text-slate-300">{selectedVehicle.lat?.toFixed(4)}, {selectedVehicle.lng?.toFixed(4)}</span>
+                        Veículo: <strong className="text-white">{selectedVehicle.label || selectedVehicle.registration}</strong> | 
+                        Posição Bússola/GPS: <span className="text-slate-300">{selectedVehicle.latitude?.toFixed(4)}, {selectedVehicle.longitude?.toFixed(4)}</span>
                       </div>
                     )}
                  </div>
