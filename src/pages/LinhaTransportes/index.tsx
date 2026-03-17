@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { RefreshCcw, Navigation2, AlertCircle } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
-import { CartrackService } from '../../services/cartrack';
-import type { CartrackVehicle } from '../../services/cartrack';
+import { CartrackProxyService } from '../../services/cartrackProxy';
+import type { CartrackProxyVehicle } from '../../services/cartrackProxy';
 import MetroLine from '../../components/TransportLine/MetroLine';
 import { calculateRouteProgress } from '../../utils/geoUtils';
 import type { RouteStop, GeoCoord } from '../../utils/geoUtils';
@@ -17,7 +17,7 @@ const MOCK_ROUTE: RouteStop[] = [
 ];
 
 export default function LinhaTransportes() {
-  const [vehicles, setVehicles] = useState<CartrackVehicle[]>([]);
+  const [vehicles, setVehicles] = useState<CartrackProxyVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -32,12 +32,12 @@ export default function LinhaTransportes() {
     try {
       setLoading(true);
       setError(null);
-      const data = await CartrackService.getVehicles();
+      const data = await CartrackProxyService.getVehicles();
       setVehicles(data || []);
       
       // Auto-select first vehicle if none selected
       if (!selectedVehicleId && data && data.length > 0) {
-        setSelectedVehicleId(data[0].id || '');
+        setSelectedVehicleId(data[0].name);
       }
       
       setLastUpdate(new Date());
@@ -61,16 +61,16 @@ export default function LinhaTransportes() {
   }, []); // Run on mount
 
   // Find the currently tracked vehicle's position
-  const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+  const selectedVehicle = vehicles.find(v => v.name === selectedVehicleId);
   
   let currentSegmentIndex = 0;
   let progressInSegment = 0;
   let currentPos: GeoCoord | null = null;
   
-  if (selectedVehicle && selectedVehicle.latitude && selectedVehicle.longitude) {
+  if (selectedVehicle && selectedVehicle.lat && selectedVehicle.lng) {
     currentPos = { 
-      lat: selectedVehicle.latitude, 
-      lng: selectedVehicle.longitude 
+      lat: selectedVehicle.lat, 
+      lng: selectedVehicle.lng 
     };
     
     const progress = calculateRouteProgress(currentPos, stops);
@@ -127,8 +127,8 @@ export default function LinhaTransportes() {
                   >
                     <option value="">Selecione uma viatura...</option>
                     {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>
-                        {v.registration} {v.make ? `- ${v.make}` : ''}
+                      <option key={v.name} value={v.name}>
+                        {v.name}
                       </option>
                     ))}
                   </select>
@@ -188,8 +188,8 @@ export default function LinhaTransportes() {
                     
                     {selectedVehicle && (
                       <div className="mt-8 text-center text-sm text-slate-400">
-                        Matrícula: <strong className="text-white">{selectedVehicle.registration}</strong> | 
-                        Posição lida de GPS: <span className="text-slate-300">{selectedVehicle.latitude?.toFixed(4)}, {selectedVehicle.longitude?.toFixed(4)}</span>
+                        Veículo: <strong className="text-white">{selectedVehicle.name}</strong> | 
+                        Posição Bússola/GPS: <span className="text-slate-300">{selectedVehicle.lat?.toFixed(4)}, {selectedVehicle.lng?.toFixed(4)}</span>
                       </div>
                     )}
                  </div>
