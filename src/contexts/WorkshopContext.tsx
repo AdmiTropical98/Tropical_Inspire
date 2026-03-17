@@ -63,6 +63,15 @@ const deriveServiceLifecycleStatus = ({
     }, nowTs);
 };
 
+// Maps the granular lifecycle status to the simplified values the DB constraint accepts.
+// If the DB constraint has been updated to accept the full set, this is a no-op.
+const normalizeStatusForDb = (status: string): string => {
+    if (status === 'COMPLETED') return 'completed';
+    if (['EN_ROUTE_ORIGIN', 'ARRIVED_ORIGIN', 'BOARDING', 'EN_ROUTE_DESTINATION'].includes(status)) return 'active';
+    // SCHEDULED and DRIVER_ASSIGNED both map to 'scheduled'
+    return 'scheduled';
+};
+
 const isMissingUrgentColumnError = (error: any) => {
     const message = String(error?.message || error?.details || '').toLowerCase();
     return message.includes('is_urgent') &&
@@ -1641,14 +1650,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             console.log('Adding service to DB:', s);
             const urgent = s.isUrgent ?? isServiceUrgent(s.data, s.hora);
             const completedToPersist = Boolean(s.concluido || s.destinationConfirmed || s.destinationArrivalTime);
-            const statusToPersist = deriveServiceLifecycleStatus({
+            const statusToPersist = normalizeStatusForDb(deriveServiceLifecycleStatus({
                 motoristaId: s.motoristaId,
                 serviceDate: s.data,
                 serviceHour: s.hora,
                 originConfirmed: Boolean(s.originConfirmed || s.originArrivalTime),
                 originDepartureTime: s.originDepartureTime,
                 destinationConfirmed: Boolean(s.destinationConfirmed || s.destinationArrivalTime)
-            });
+            }));
             const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
             const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
             const basePayload: any = {
@@ -1785,14 +1794,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             console.log('Updating service:', s.id, s);
             const urgent = s.isUrgent ?? isServiceUrgent(s.data, s.hora);
             const completedToPersist = Boolean(s.concluido || s.destinationConfirmed || s.destinationArrivalTime);
-            const statusToPersist = deriveServiceLifecycleStatus({
+            const statusToPersist = normalizeStatusForDb(deriveServiceLifecycleStatus({
                 motoristaId: s.motoristaId,
                 serviceDate: s.data,
                 serviceHour: s.hora,
                 originConfirmed: Boolean(s.originConfirmed || s.originArrivalTime),
                 originDepartureTime: s.originDepartureTime,
                 destinationConfirmed: Boolean(s.destinationConfirmed || s.destinationArrivalTime)
-            });
+            }));
             const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
             const destinoLocation = resolveLocationByName(s.destino, s.destinationLocationId);
             const updatePayload: any = {
@@ -4771,14 +4780,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             centro_custo_id: batchData.centroCustoId,
                             batch_id: batch.id,
                             departamento: s.departamento,
-                            status: deriveServiceLifecycleStatus({
+                            status: normalizeStatusForDb(deriveServiceLifecycleStatus({
                                 motoristaId: s.motoristaId,
                                 serviceDate: s.data || batchData.referenceDate,
                                 serviceHour: s.hora,
                                 originConfirmed: Boolean(s.originConfirmed || s.originArrivalTime),
                                 originDepartureTime: s.originDepartureTime,
                                 destinationConfirmed: Boolean(s.destinationConfirmed || s.destinationArrivalTime)
-                            })
+                            }))
                         };
 
                         if (supportsServiceGeofencingColumnsRef.current) {
