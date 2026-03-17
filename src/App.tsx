@@ -37,8 +37,6 @@ import LocaisTab from './pages/Locais';
 import AvaliacaoDriversTab from './pages/Avaliacao';
 import ContabilidadeTab from './pages/Contabilidade';
 import SupplierInvoiceDocumentPage from './pages/Contabilidade/SupplierInvoiceDocumentPage';
-import ProcessamentoSalarios from './pages/Contabilidade/ProcessamentoSalarios';
-import SalariosPage from './pages/Salarios';
 import NovaFaturaPage from './pages/Finance/NovaFaturaPage';
 import LancarEscalaTab from './pages/LancarEscala';
 import ControloOperacionalTab from './pages/ControloOperacional';
@@ -428,8 +426,6 @@ function App() {
                 <Route path="/locais" element={<LocaisTab />} />
                 <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
                 <Route path="/contabilidade" element={<ContabilidadeTab />} />
-                <Route path="/processamento-salarios" element={<ProcessamentoSalarios />} />
-                <Route path="/salarios" element={<SalariosPage />} />
                 <Route path="/finance/faturas/nova" element={<NovaFaturaPage />} />
                 <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
                 <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
