@@ -55,6 +55,8 @@ const getAuthHeaders = (): HeadersInit => {
 
     const credentials = btoa(`${CARTRACK_USERNAME}:${CARTRACK_PASSWORD}`);
 
+    console.log("🔐 Username:", CARTRACK_USERNAME);
+
     return {
         Authorization: `Basic ${credentials}`,
         'Content-Type': 'application/json',
@@ -62,7 +64,7 @@ const getAuthHeaders = (): HeadersInit => {
 };
 
 // ==============================
-// 🔹 REQUEST
+// 🔹 DEBUG
 // ==============================
 
 let lastCartrackResponse: any = null;
@@ -75,6 +77,10 @@ export const debugLastResponse = () => {
     console.log("📦 Última resposta Cartrack:", lastCartrackResponse);
     return lastCartrackResponse;
 };
+
+// ==============================
+// 🔹 REQUEST
+// ==============================
 
 const buildCartrackUrl = (
     endpoint: string,
@@ -113,7 +119,7 @@ const createCartrackRequest = async <T>(
 
     const url = buildCartrackUrl(endpoint, queryParams);
 
-    console.log("🚀 Request Cartrack:", url);
+    console.log("🚀 Request:", url);
 
     const response = await fetch(url, {
         method: 'GET',
@@ -124,13 +130,17 @@ const createCartrackRequest = async <T>(
 
     if (!response.ok) {
         const text = await response.text();
-        console.error("❌ Erro API:", text);
+
+        console.error("❌ ERRO COMPLETO CARTRACK:");
+        console.error("Status:", response.status);
+        console.error("Resposta:", text);
+
         throw new Error(`Cartrack request failed (${response.status})`);
     }
 
     const data = await response.json();
 
-    setLastResponse(data); // 👈 debug
+    setLastResponse(data);
 
     console.log("✅ Resposta:", data);
 
@@ -143,6 +153,9 @@ const createCartrackRequest = async <T>(
 
 const getListItems = (result: any): any[] => {
     if (!result) return [];
+
+    if (Array.isArray(result)) return result;
+
     return result.data || result.rows || result.positions || [];
 };
 
@@ -199,11 +212,15 @@ export const CartrackService = {
 
             let data = null;
 
-            const endpoints = ['/vehicles', '/positions', '/vehicles/status'];
+            const endpoints = [
+                '/position',
+                '/lastposition',
+                '/vehicle',
+            ];
 
             for (const ep of endpoints) {
                 try {
-                    const result = await createCartrackRequest<any>(ep, { per_page: 100 });
+                    const result = await createCartrackRequest<any>(ep);
 
                     const items = getListItems(result);
 
@@ -219,24 +236,38 @@ export const CartrackService = {
             }
 
             if (!data) {
-                throw new Error("❌ Nenhum endpoint retornou dados");
+                console.error("⚠️ A usar dados mock (fallback)");
+
+                return [
+                    {
+                        id: "demo",
+                        registration: "00-XX-00",
+                        label: "Viatura Demo",
+                        latitude: 37.089,
+                        longitude: -8.247,
+                        speed: 0,
+                        bearing: 0,
+                        last_activity: new Date().toISOString(),
+                    }
+                ];
             }
 
             const mapped = mapCartrackDataToVehicles(data);
 
-            console.log("🚗 Veículos encontrados:", mapped.length);
+            console.log("🚗 Veículos:", mapped.length);
 
             return setCache('cartrack:vehicles', mapped, CACHE_TTL.vehicles);
 
         } catch (error) {
-            console.error("🔥 ERRO REAL CARTRACK:", error);
-            throw error;
+            console.error("🔥 ERRO FINAL CARTRACK:", error);
+
+            return [];
         }
     }
 };
 
 // ==============================
-// 🔹 COMPATIBILIDADE (IMPORTS ANTIGOS)
+// 🔹 COMPATIBILIDADE
 // ==============================
 
 export const cleanTagId = (tag?: string): string => {
