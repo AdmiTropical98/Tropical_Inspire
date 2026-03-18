@@ -11,6 +11,7 @@ import { read, utils, write } from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CartrackService } from '../services/cartrack';
+import { ColaboradorService, type Colaborador } from '../services/colaboradorService';
 
 
 
@@ -77,6 +78,15 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     });
     const [selectedCentroCusto, setSelectedCentroCusto] = useState('');
     const [notes, setNotes] = useState('');
+    const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+
+    useEffect(() => {
+        const loadColabs = async () => {
+            const list = await ColaboradorService.listarTodos();
+            setColaboradores(list);
+        };
+        loadColabs();
+    }, []);
 
     // State for Import Modal
     const [showImportModal, setShowImportModal] = useState(false);
@@ -579,6 +589,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                 tipo: r.tipo,
                 concluido: false,
                 centroCustoId: selectedCentroCusto,
+                colaboradorId: colaboradores.find(c => c.nome === r.passageiro)?.id,
                 departamento: r.departamento || '' // New Field
             }));
 
@@ -616,6 +627,12 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             <datalist id="geofence-list">
                 {geofenceSuggestions.map((name, i) => (
                     <option key={i} value={name} />
+                ))}
+            </datalist>
+
+            <datalist id="colaboradores-list">
+                {colaboradores.map(c => (
+                    <option key={c.id} value={c.nome}>{c.numero}</option>
                 ))}
             </datalist>
 
@@ -835,12 +852,13 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     {/* Inputs */}
                                     <div className="relative">
                                         <input
-                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all placeholder:text-slate-700"
-                                            placeholder="Nome do Passageiro..."
+                                            type="text"
+                                            className="w-full bg-transparent border-none text-white px-4 py-3 placeholder:text-slate-600 outline-none text-sm"
+                                            placeholder="..."
                                             value={row.passageiro}
-                                            maxLength={18}
                                             onChange={e => updateRow(row.tempId, 'passageiro', e.target.value)}
                                             onKeyDown={e => handleKeyDown(e, idx)}
+                                            list="colaboradores-list"
                                         />
                                     </div>
 

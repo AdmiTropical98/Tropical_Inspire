@@ -42,8 +42,9 @@ export default function LinhaTransportes() {
       
       setLastUpdate(new Date());
     } catch (err) {
-      console.error('Error fetching Cartrack vehicles:', err);
-      setError('Não foi possível carregar os dados das viaturas (Cartrack).');
+      console.error('Error fetching Cartrack vehicles in Component:', err);
+      // We don't necessarily set error blocking state if we have fallback data
+      setError('Aviso: Falha ao obter dados reais Cartrack, a usar dados locais.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ export default function LinhaTransportes() {
         icon={Navigation2}
       />
 
-      {error ? (
+      {error && vehicles.length === 0 ? (
         <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl flex items-center gap-3">
           <AlertCircle className="w-5 h-5" />
           <p>{error}</p>

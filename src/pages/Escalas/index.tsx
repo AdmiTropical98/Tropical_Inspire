@@ -38,6 +38,8 @@ import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, generateAutoDispatchTrips, type GroupedTrip } from './EscalaAutomation';
 import { emailService } from '../../services/emailService';
+import { ColaboradorService } from '../../services/colaboradorService';
+import type { Colaborador as ColaboradorType } from '../../services/colaboradorService';
 
 interface NewServiceState {
     hora: string;
@@ -50,6 +52,7 @@ interface NewServiceState {
     horaRegresso: string;
     destinoRegresso: string;
     centroCustoId?: string;
+    colaboradorId?: string;
     validationPoints: string[];
 }
 
@@ -139,6 +142,15 @@ export default function Escalas() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'busy'>('all');
+    const [colaboradores, setColaboradores] = useState<ColaboradorType[]>([]);
+
+    useEffect(() => {
+        const loadColaboradores = async () => {
+            const list = await ColaboradorService.listarTodos();
+            setColaboradores(list);
+        };
+        loadColaboradores();
+    }, []);
 
 
 
@@ -167,6 +179,7 @@ export default function Escalas() {
         horaRegresso: '18:00',
         destinoRegresso: '',
         centroCustoId: '',
+        colaboradorId: '',
         validationPoints: []
     });
 
@@ -823,6 +836,10 @@ export default function Escalas() {
     const handleCreateService = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        // Try to find colaboradorId by name
+        const associatedColab = colaboradores.find(c => c.nome === newService.passageiro);
+        const colabId = associatedColab?.id || newService.colaboradorId;
+
         const entryService: Servico = {
             id: crypto.randomUUID(),
             data: selectedDate, // Use currently selected date
@@ -834,6 +851,7 @@ export default function Escalas() {
             obs: 'Entrada',
             concluido: false,
             centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
+            colaboradorId: colabId,
             validationPoints: newService.validationPoints
         };
         entryService.isUrgent = isUrgentService(entryService);
@@ -854,6 +872,7 @@ export default function Escalas() {
                 obs: 'Saída',
                 concluido: false,
                 centroCustoId: newService.centroCustoId || (selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined),
+                colaboradorId: colabId,
                 validationPoints: newService.validationPoints
             };
 
@@ -1563,7 +1582,13 @@ export default function Escalas() {
                                                             className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                                             value={newService.passageiro}
                                                             onChange={e => setNewService({ ...newService, passageiro: e.target.value })}
+                                                            list="colaboradores-list"
                                                         />
+                                                        <datalist id="colaboradores-list">
+                                                            {colaboradores.map(c => (
+                                                                <option key={c.id} value={c.nome}>{c.numero}</option>
+                                                            ))}
+                                                        </datalist>
                                                     </div>
                                                 </div>
                                             </div>

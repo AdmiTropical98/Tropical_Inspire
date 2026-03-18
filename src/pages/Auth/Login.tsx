@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { Lock, Mail, ChevronRight, AlertCircle, Eye, EyeOff, User, ShieldCheck, UserCog, Send, CheckCircle, X, Wrench, UserCheck } from 'lucide-react';
+import { Lock, Mail, ChevronRight, AlertCircle, Eye, EyeOff, User, Users, ShieldCheck, UserCog, Send, CheckCircle, X, Wrench, UserCheck } from 'lucide-react';
 import type { Notification } from '../../types';
 
 export default function Login() {
@@ -129,7 +129,8 @@ export default function Login() {
                         telemovel: notification.data.telemovel || '',
                         password: notification.data.password || '',
                         pin: notification.response?.pin || '', // Use Activation PIN as Login PIN
-                        status: 'active'
+                        status: 'active',
+                        role: 'SUPERVISOR'
                     });
                 } else if (role === 'gestor') {
                     await addGestor({
@@ -325,6 +326,18 @@ export default function Login() {
                     </form>
 
 
+
+                    <div className="mt-6 pt-6 border-t border-slate-800/50">
+                        <button
+                            type="button"
+                            onClick={() => window.location.href = '/colaborador'}
+                            className="w-full text-slate-300 hover:text-white font-bold py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Users className="w-4 h-4" />
+                            É um colaborador? Aceder à Área
+                            <ChevronRight className="w-4 h-4 opacity-50" />
+                        </button>
+                    </div>
 
                     <div className="mt-8 text-center space-y-2">
                         <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">

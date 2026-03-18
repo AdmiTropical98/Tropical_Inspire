@@ -408,8 +408,8 @@ export const CartrackService = {
                 }
 
                 if (!data) {
-                    console.warn('Cartrack vehicles endpoint returned no data.');
-                    return [];
+                    console.warn('Cartrack vehicles endpoints returned no data. Rejecting to trigger mock fallback.');
+                    throw new Error('No data returned from Cartrack endpoints.');
                 }
 
                 const mapped = mapCartrackDataToVehicles(data);

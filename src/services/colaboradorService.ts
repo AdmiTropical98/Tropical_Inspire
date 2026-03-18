@@ -97,5 +97,28 @@ export const ColaboradorService = {
       console.error('Erro de rede ao obter presenças:', e);
       return [];
     }
+  },
+
+  /**
+   * Obtém todos os colaboradores ativos
+   */
+  async listarTodos(): Promise<Colaborador[]> {
+    try {
+      const { data, error } = await supabase
+        .from('colaboradores')
+        .select('*')
+        .eq('status', 'active')
+        .order('nome');
+
+      if (error) {
+        console.error('Erro ao listar colaboradores:', error);
+        return [];
+      }
+
+      return data as Colaborador[];
+    } catch (e) {
+      console.error('Erro de rede ao listar colaboradores:', e);
+      return [];
+    }
   }
 };

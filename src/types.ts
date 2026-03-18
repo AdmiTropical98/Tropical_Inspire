@@ -232,6 +232,7 @@ export interface Servico {
     data?: string; // YYYY-MM-DD - Data da escala operacional
     motoristaId?: string | null; // Pode ser nulo se não atribuído
     passageiro: string;
+    colaboradorId?: string;
     hora: string;
     origem: string;
     destino: string;
