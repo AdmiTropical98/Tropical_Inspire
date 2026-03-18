@@ -135,7 +135,7 @@ const createCartrackRequest = async <T>(
         console.error("Status:", response.status);
         console.error("Resposta:", text);
 
-        throw new Error(`Cartrack request failed (${response.status})`);
+       return null as unknown as T;
     }
 
     const data = await response.json();
