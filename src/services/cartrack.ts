@@ -182,3 +182,35 @@ export const CartrackService = {
         }
     }
 };
+// ==============================
+// 🔹 FUNÇÕES AUXILIARES (RESTAURADAS)
+// ==============================
+
+/**
+ * Limpa o ID da tag (normalização)
+ */
+export const cleanTagId = (tag?: string): string => {
+    if (!tag) return '';
+
+    return tag
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '')
+        .replace(/-/g, '');
+};
+
+/**
+ * Gera variantes possíveis de uma tag
+ * (usado para comparação flexível)
+ */
+export const getTagVariants = (tag?: string): string[] => {
+    if (!tag) return [];
+
+    const cleaned = cleanTagId(tag);
+
+    return [
+        cleaned,
+        cleaned.replace(/-/g, ''),
+        cleaned.replace(/\s/g, ''),
+    ];
+};
