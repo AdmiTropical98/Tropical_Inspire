@@ -2,7 +2,7 @@ import { MapPin, RefreshCw, AlertCircle, Car, Layers, History, Search, X } from 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import GeofenceMap, { type VehicleServiceTracking } from './GeofenceMap';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { CartrackService, debugLastResponse, type CartrackGeofence, type CartrackVehicle } from '../../services/cartrack';
+import { CartrackService, type CartrackGeofence, type CartrackVehicle } from '../../services/cartrack';
 import type { Local, Servico } from '../../types';
 
 export default function Geofences() {
@@ -45,7 +45,7 @@ export default function Geofences() {
         } finally {
             setLoading(false);
             setRefreshing(false);
-            setDebugInfo(debugLastResponse);
+            setDebugInfo(null);
         }
     };
 
