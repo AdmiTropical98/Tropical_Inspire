@@ -2,7 +2,7 @@
 // 🔹 CONFIG
 // ==============================
 
-const BASE_URL = 'https://fleetapi-pt.cartrack.com/rest';
+const BASE_URL = 'https://fleetapi-pt.cartrack.com/rest/alerts?limit=10';
 
 const CARTRACK_USERNAME = import.meta.env.VITE_CARTRACK_USERNAME;
 const CARTRACK_PASSWORD = import.meta.env.VITE_CARTRACK_PASSWORD;
