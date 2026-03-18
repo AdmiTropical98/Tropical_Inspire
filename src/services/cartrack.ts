@@ -23,7 +23,7 @@ type CacheEntry<T> = {
 const cacheStore = new Map<string, CacheEntry<unknown>>();
 
 const getCache = <T>(key: string): T | null => {
-    const entry = cacheStore.get(key) as CacheEntry<T> | undefined;
+    const entry = cacheStore.get(key) as CacheEntry<T>;
     if (!entry) return null;
 
     if (entry.expiresAt <= Date.now()) {
@@ -39,7 +39,6 @@ const setCache = <T>(key: string, value: T, ttlMs: number): T => {
         value,
         expiresAt: Date.now() + ttlMs,
     });
-
     return value;
 };
 
@@ -55,71 +54,29 @@ const getAuthHeaders = (): HeadersInit => {
 
     const credentials = btoa(`${CARTRACK_USERNAME}:${CARTRACK_PASSWORD}`);
 
-    console.log("🔐 Username:", CARTRACK_USERNAME);
-
     return {
         Authorization: `Basic ${credentials}`,
         'Content-Type': 'application/json',
+
+        // 🔥 IMPORTANTE PARA AEMP
+        'Accept': 'application/iso15143-snapshot+json'
     };
-};
-
-// ==============================
-// 🔹 DEBUG
-// ==============================
-
-let lastCartrackResponse: any = null;
-
-export const setLastResponse = (data: any) => {
-    lastCartrackResponse = data;
-};
-
-export const debugLastResponse = () => {
-    console.log("📦 Última resposta Cartrack:", lastCartrackResponse);
-    return lastCartrackResponse;
 };
 
 // ==============================
 // 🔹 REQUEST
 // ==============================
 
-const buildCartrackUrl = (
-    endpoint: string,
-    queryParams?: Record<string, string | number | undefined>
-): string => {
-
-    const normalizedEndpoint = endpoint.startsWith('/')
-        ? endpoint
-        : `/${endpoint}`;
-
-    let url = `${BASE_URL}${normalizedEndpoint}`;
-
-    if (queryParams) {
-        const params = new URLSearchParams();
-
-        Object.entries(queryParams).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== '') {
-                params.append(key, String(value));
-            }
-        });
-
-        const queryString = params.toString();
-
-        if (queryString) {
-            url += `?${queryString}`;
-        }
-    }
-
-    return url;
+const buildUrl = (endpoint: string) => {
+    return endpoint.startsWith('/')
+        ? `${BASE_URL}${endpoint}`
+        : `${BASE_URL}/${endpoint}`;
 };
 
-const createCartrackRequest = async <T>(
-    endpoint: string,
-    queryParams?: Record<string, string | number | undefined>,
-): Promise<T> => {
+const request = async <T>(endpoint: string): Promise<T> => {
+    const url = buildUrl(endpoint);
 
-    const url = buildCartrackUrl(endpoint, queryParams);
-
-    console.log("🚀 Request:", url);
+    console.log("🚀 Cartrack Request:", url);
 
     const response = await fetch(url, {
         method: 'GET',
@@ -130,33 +87,11 @@ const createCartrackRequest = async <T>(
 
     if (!response.ok) {
         const text = await response.text();
-
-        console.error("❌ ERRO COMPLETO CARTRACK:");
-        console.error("Status:", response.status);
-        console.error("Resposta:", text);
-
-       return null as unknown as T;
+        console.error("❌ Cartrack Error:", text);
+        throw new Error(`Cartrack error ${response.status}`);
     }
 
-    const data = await response.json();
-
-    setLastResponse(data);
-
-    console.log("✅ Resposta:", data);
-
-    return data as T;
-};
-
-// ==============================
-// 🔹 HELPERS
-// ==============================
-
-const getListItems = (result: any): any[] => {
-    if (!result) return [];
-
-    if (Array.isArray(result)) return result;
-
-    return result.data || result.rows || result.positions || [];
+    return response.json();
 };
 
 // ==============================
@@ -170,33 +105,28 @@ export interface CartrackVehicle {
     latitude: number;
     longitude: number;
     speed: number;
-    bearing: number;
     last_activity: string;
 }
 
 // ==============================
-// 🔹 MAPPER
+// 🔹 MAPPER AEMP (REAL)
 // ==============================
 
-const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
-    if (!data) return [];
+const mapAEMP = (data: any): CartrackVehicle[] => {
+    if (!data?.data) return [];
 
-    const items = getListItems(data);
+    return data.data.map((item: any) => ({
+        id: item.equipment_header?.equipment_id || '',
+        registration: item.equipment_header?.serial_number || 'Sem Matrícula',
+        label: item.equipment_header?.equipment_id || 'Sem Nome',
 
-    return items.map((item: any) => {
-        const loc = item.location || item.last_pos || item;
+        latitude: Number(item.location?.latitude || 0),
+        longitude: Number(item.location?.longitude || 0),
 
-        return {
-            id: String(item.vehicle_id || item.id),
-            registration: item.registration || 'Sem Matrícula',
-            label: item.vehicle_name || item.registration || 'Sem Nome',
-            latitude: Number(loc.latitude || loc.lat || 0),
-            longitude: Number(loc.longitude || loc.lng || 0),
-            speed: Number(item.speed || 0),
-            bearing: Number(item.bearing || 0),
-            last_activity: item.event_ts || new Date().toISOString(),
-        };
-    });
+        speed: Number(item.location?.speed || 0),
+
+        last_activity: item.location?.timestamp || new Date().toISOString(),
+    }));
 };
 
 // ==============================
@@ -207,67 +137,33 @@ export const CartrackService = {
 
     getVehicles: async (): Promise<CartrackVehicle[]> => {
         try {
-            const cached = getCache<CartrackVehicle[]>('cartrack:vehicles');
+            const cached = getCache<CartrackVehicle[]>('vehicles');
             if (cached) return cached;
 
-            let data = null;
+            // 🔥 ENDPOINT CERTO (GPS REAL)
+            const data = await request<any>('/aemp/iso15143-3/beta/fleet');
 
-            const endpoints = [
-                '/position',
-                '/lastposition',
-                '/vehicle',
-            ];
+            const vehicles = mapAEMP(data);
 
-            for (const ep of endpoints) {
-                try {
-                    const result = await createCartrackRequest<any>(ep);
+            console.log("🚗 Veículos reais:", vehicles.length);
 
-                    const items = getListItems(result);
-
-                    if (items.length > 0) {
-                        data = result;
-                        console.log("✅ Endpoint válido:", ep);
-                        break;
-                    }
-
-                } catch (err) {
-                    console.warn("❌ Falhou endpoint:", ep);
-                }
+            if (vehicles.length === 0) {
+                console.warn("⚠️ Sem dados GPS disponíveis");
             }
 
-            if (!data) {
-                console.error("⚠️ A usar dados mock (fallback)");
-
-                return [
-                    {
-                        id: "demo",
-                        registration: "00-XX-00",
-                        label: "Viatura Demo",
-                        latitude: 37.089,
-                        longitude: -8.247,
-                        speed: 0,
-                        bearing: 0,
-                        last_activity: new Date().toISOString(),
-                    }
-                ];
-            }
-
-            const mapped = mapCartrackDataToVehicles(data);
-
-            console.log("🚗 Veículos:", mapped.length);
-
-            return setCache('cartrack:vehicles', mapped, CACHE_TTL.vehicles);
+            return setCache('vehicles', vehicles, CACHE_TTL.vehicles);
 
         } catch (error) {
-            console.error("🔥 ERRO FINAL CARTRACK:", error);
+            console.error("🔥 ERRO FINAL:", error);
 
+            // ❌ NADA DE DEMO
             return [];
         }
     }
 };
 
 // ==============================
-// 🔹 COMPATIBILIDADE
+// 🔹 HELPERS
 // ==============================
 
 export const cleanTagId = (tag?: string): string => {
