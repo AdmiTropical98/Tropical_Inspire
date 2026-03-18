@@ -1,10 +1,19 @@
-const BASE_URL = 'https://api.cartrack.com/rest';
+// ==============================
+// 🔹 CONFIG
+// ==============================
 
-const CARTRACK_TOKEN = process.env.CARTRACK_TOKEN;
+const BASE_URL = 'https://fleetapi-pt.cartrack.com/rest';
+
+const CARTRACK_USERNAME = import.meta.env.VITE_CARTRACK_USERNAME;
+const CARTRACK_PASSWORD = import.meta.env.VITE_CARTRACK_PASSWORD;
 
 const CACHE_TTL = {
     vehicles: 30_000,
 };
+
+// ==============================
+// 🔹 CACHE
+// ==============================
 
 type CacheEntry<T> = {
     value: T;
@@ -16,10 +25,12 @@ const cacheStore = new Map<string, CacheEntry<unknown>>();
 const getCache = <T>(key: string): T | null => {
     const entry = cacheStore.get(key) as CacheEntry<T> | undefined;
     if (!entry) return null;
+
     if (entry.expiresAt <= Date.now()) {
         cacheStore.delete(key);
         return null;
     }
+
     return entry.value;
 };
 
@@ -28,19 +39,41 @@ const setCache = <T>(key: string, value: T, ttlMs: number): T => {
         value,
         expiresAt: Date.now() + ttlMs,
     });
+
     return value;
 };
 
+// ==============================
+// 🔹 AUTH
+// ==============================
+
 const getAuthHeaders = (): HeadersInit => {
-    if (!CARTRACK_TOKEN) {
-        console.error("❌ CARTRACK_TOKEN não definido");
+    if (!CARTRACK_USERNAME || !CARTRACK_PASSWORD) {
+        console.error("❌ Credenciais Cartrack não definidas");
         return {};
     }
 
+    const credentials = btoa(`${CARTRACK_USERNAME}:${CARTRACK_PASSWORD}`);
+
     return {
-        Authorization: `Bearer ${CARTRACK_TOKEN}`,
-        'Content-Type': 'application/json'
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/json',
     };
+};
+
+// ==============================
+// 🔹 REQUEST
+// ==============================
+
+let lastCartrackResponse: any = null;
+
+export const setLastResponse = (data: any) => {
+    lastCartrackResponse = data;
+};
+
+export const debugLastResponse = () => {
+    console.log("📦 Última resposta Cartrack:", lastCartrackResponse);
+    return lastCartrackResponse;
 };
 
 const buildCartrackUrl = (
@@ -64,6 +97,7 @@ const buildCartrackUrl = (
         });
 
         const queryString = params.toString();
+
         if (queryString) {
             url += `?${queryString}`;
         }
@@ -96,15 +130,25 @@ const createCartrackRequest = async <T>(
 
     const data = await response.json();
 
+    setLastResponse(data); // 👈 debug
+
     console.log("✅ Resposta:", data);
 
     return data as T;
 };
 
+// ==============================
+// 🔹 HELPERS
+// ==============================
+
 const getListItems = (result: any): any[] => {
     if (!result) return [];
     return result.data || result.rows || result.positions || [];
 };
+
+// ==============================
+// 🔹 TYPES
+// ==============================
 
 export interface CartrackVehicle {
     id: string;
@@ -116,6 +160,10 @@ export interface CartrackVehicle {
     bearing: number;
     last_activity: string;
 }
+
+// ==============================
+// 🔹 MAPPER
+// ==============================
 
 const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
     if (!data) return [];
@@ -138,6 +186,10 @@ const mapCartrackDataToVehicles = (data: any): CartrackVehicle[] => {
     });
 };
 
+// ==============================
+// 🔹 SERVICE
+// ==============================
+
 export const CartrackService = {
 
     getVehicles: async (): Promise<CartrackVehicle[]> => {
@@ -147,7 +199,7 @@ export const CartrackService = {
 
             let data = null;
 
-            const endpoints = ['/vehicles/status', '/vehicles'];
+            const endpoints = ['/vehicles', '/positions', '/vehicles/status'];
 
             for (const ep of endpoints) {
                 try {
@@ -182,13 +234,11 @@ export const CartrackService = {
         }
     }
 };
+
 // ==============================
-// 🔹 FUNÇÕES AUXILIARES (RESTAURADAS)
+// 🔹 COMPATIBILIDADE (IMPORTS ANTIGOS)
 // ==============================
 
-/**
- * Limpa o ID da tag (normalização)
- */
 export const cleanTagId = (tag?: string): string => {
     if (!tag) return '';
 
@@ -199,10 +249,6 @@ export const cleanTagId = (tag?: string): string => {
         .replace(/-/g, '');
 };
 
-/**
- * Gera variantes possíveis de uma tag
- * (usado para comparação flexível)
- */
 export const getTagVariants = (tag?: string): string[] => {
     if (!tag) return [];
 
@@ -210,7 +256,6 @@ export const getTagVariants = (tag?: string): string[] => {
 
     return [
         cleaned,
-        cleaned.replace(/-/g, ''),
         cleaned.replace(/\s/g, ''),
     ];
 };
