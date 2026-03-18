@@ -1,4 +1,4 @@
-import LinhaAnimada from "../components/LinhaAnimada";
+import LinhaAnimada from "../../components/TransportLine/LinhaAnimada";
 import { useState, useEffect } from 'react';
 import { RefreshCcw, Navigation2, AlertCircle } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
