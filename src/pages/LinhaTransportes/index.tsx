@@ -8,16 +8,15 @@ import type { VehicleMarker } from '../../components/TransportLine/MetroLine';
 import { calculateRouteProgress } from '../../utils/geoUtils';
 import type { RouteStop } from '../../utils/geoUtils';
 
-// MOCK ROUTE
-const MOCK_ROUTE: RouteStop[] = [
-  { id: '1', name: 'Aeroporto Faro', coord: { lat: 37.0182, lng: -7.9696 } },
-  { id: '2', name: 'Hotel Vilamoura', coord: { lat: 37.0784, lng: -8.1147 } },
-  { id: '3', name: 'Albufeira Centro', coord: { lat: 37.0891, lng: -8.2503 } },
-  { id: '4', name: 'Portimão Arena', coord: { lat: 37.1420, lng: -8.5376 } },
-  { id: '5', name: 'Lagos Marina', coord: { lat: 37.1089, lng: -8.6757 } }
+import { useWorkshop } from '../../contexts/WorkshopContext';
+
+// MOCK ROUTE (Fallback for development only)
+const FALLBACK_ROUTE: RouteStop[] = [
+  { id: 'f1', name: 'A aguardar POIs reais...', coord: { lat: 37.0182, lng: -7.9696 } },
 ];
 
 export default function LinhaTransportes() {
+  const { geofences: contextGeofences } = useWorkshop();
   const [vehicles, setVehicles] = useState<CartrackVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,35 +24,38 @@ export default function LinhaTransportes() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   
   // Stops for the route
-  const [stops, setStops] = useState<RouteStop[]>(MOCK_ROUTE);
+  const [stops, setStops] = useState<RouteStop[]>(FALLBACK_ROUTE);
 
   const fetchVehicles = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [vData, gData] = await Promise.all([
-        CartrackService.getVehicles(),
-        CartrackService.getGeofences()
-      ]);
+      const vData = await CartrackService.getVehicles();
       
       // Filter active vehicles
       const activeVehicles = (vData || []).filter(v => v.latitude && v.longitude);
       setVehicles(activeVehicles);
 
-      // Map real geofences to stops if available
-      if (gData && gData.length > 0) {
-        // Simple heuristic for Faro-Lagos route: East to West (Longitude descending)
-        // Adjust sorting logic as needed for specific routes
-        const sortedGeofences = [...gData]
+      // Use context geofences if available
+      const geofenceSource = contextGeofences.length > 0 ? contextGeofences : await CartrackService.getGeofences();
+
+      if (geofenceSource && geofenceSource.length > 0) {
+        // Auto-sorting heuristic: East to West (Longitude descending) for Algarve region
+        const sortedGeofences = [...geofenceSource]
           .filter(g => g.latitude && g.longitude)
-          .sort((a, b) => (b.longitude || 0) - (a.longitude || 0))
-          .slice(0, 10); // Limit to top 10 for visualization clarity
+          .sort((a, b) => (b.longitude || 0) - (a.longitude || 0));
 
         setStops(sortedGeofences.map(g => ({
           id: g.id,
           name: g.name,
           coord: { lat: g.latitude!, lng: g.longitude! }
         })));
+      } else if (stops === FALLBACK_ROUTE) {
+        // Fallback to a broader mock if absolutely no POIs are found
+        setStops([
+          { id: 'm1', name: 'Sem POIs no Cartrack', coord: { lat: 37.0175, lng: -7.9308 } },
+          { id: 'm2', name: 'Verifique definições', coord: { lat: 37.0175, lng: -8.0000 } }
+        ]);
       }
 
       setLastUpdate(new Date());

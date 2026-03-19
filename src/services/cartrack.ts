@@ -264,31 +264,62 @@ export const CartrackService = {
         if (cached) return cached;
 
         return fetchWithDeduplication(cacheKey, async () => {
-            const endpoints = ['/geofences', '/points_of_interest'];
+            // Expanded list of common Cartrack POI/Geofence endpoints
+            const endpoints = [
+                '/geofences', 
+                '/points_of_interest', 
+                '/pois', 
+                '/circle_geofences',
+                '/geofence_groups'
+            ];
             
             for (const endpoint of endpoints) {
                 try {
+                    console.log(`[CartrackService] Attempting geofence discovery on ${endpoint}...`);
                     const response = await createCartrackRequest<any>(endpoint);
-                    const items = response.geofences || response.points_of_interest || response.data || response.rows || (Array.isArray(response) ? response : []);
+                    
+                    // Diagnostic log for developer console
+                    if (response) {
+                        console.log(`[CartrackService] Response keys for ${endpoint}:`, Object.keys(response));
+                    }
+
+                    // Flexible extraction logic
+                    const items = response.geofences || 
+                                 response.points_of_interest || 
+                                 response.pois ||
+                                 response.data || 
+                                 response.rows || 
+                                 response.items ||
+                                 response.list ||
+                                 (Array.isArray(response) ? response : []);
 
                     if (items.length > 0) {
-                        const geofences: CartrackGeofence[] = items.map((item: any) => ({
-                            id: String(item.id || item.poi_id || item.geofence_id),
-                            name: item.name || item.label || item.description || `POI ${item.id}`,
-                            area_id: item.area_id,
-                            latitude: Number(item.latitude || item.lat || item.center?.lat || 0),
-                            longitude: Number(item.longitude || item.lng || item.center?.lng || 0),
-                            radius: item.radius || item.center?.radius || 0,
-                        })).filter((g: CartrackGeofence) => g.latitude !== 0 && g.longitude !== 0);
+                        console.log(`[CartrackService] Found ${items.length} items at ${endpoint}`);
+                        const geofences: CartrackGeofence[] = items.map((item: any) => {
+                            const lat = Number(item.latitude || item.lat || item.center?.lat || item.y || (item.points && item.points[0]?.lat) || 0);
+                            const lng = Number(item.longitude || item.lng || item.center?.lng || item.x || (item.points && item.points[0]?.lng) || 0);
+                            
+                            return {
+                                id: String(item.id || item.poi_id || item.geofence_id || item.uuid || Math.random()),
+                                name: item.name || item.label || item.description || item.text || `POI ${item.id}`,
+                                area_id: item.area_id,
+                                latitude: lat,
+                                longitude: lng,
+                                radius: item.radius || item.center?.radius || item.range || 0,
+                                points: item.points || [{ lat, lng }]
+                            };
+                        }).filter((g: CartrackGeofence) => g.latitude !== 0 && g.longitude !== 0);
 
                         if (geofences.length > 0) {
+                            console.log(`[CartrackService] Successfully mapped ${geofences.length} geofences from ${endpoint}`);
                             return setCache(cacheKey, geofences, CACHE_TTL.geofences);
                         }
                     }
                 } catch (error) {
-                    console.error(`Error fetching geofences from ${endpoint}:`, error);
+                    console.warn(`[CartrackService] Discovery failed for ${endpoint}:`, error);
                 }
             }
+            console.warn('[CartrackService] No geofences discovered across all tried endpoints.');
             return [];
         });
     },
