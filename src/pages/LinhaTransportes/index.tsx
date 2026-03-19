@@ -22,23 +22,44 @@ export default function LinhaTransportes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   
   // Stops for the route
-  const [stops] = useState<RouteStop[]>(MOCK_ROUTE);
+  const [stops, setStops] = useState<RouteStop[]>(MOCK_ROUTE);
 
   const fetchVehicles = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await CartrackService.getVehicles();
+      const [vData, gData] = await Promise.all([
+        CartrackService.getVehicles(),
+        CartrackService.getGeofences()
+      ]);
       
-      // Filter out vehicles that don't have GPS data or are not relevant if needed
-      const activeVehicles = (data || []).filter(v => v.latitude && v.longitude);
+      // Filter active vehicles
+      const activeVehicles = (vData || []).filter(v => v.latitude && v.longitude);
       setVehicles(activeVehicles);
+
+      // Map real geofences to stops if available
+      if (gData && gData.length > 0) {
+        // Simple heuristic for Faro-Lagos route: East to West (Longitude descending)
+        // Adjust sorting logic as needed for specific routes
+        const sortedGeofences = [...gData]
+          .filter(g => g.latitude && g.longitude)
+          .sort((a, b) => (b.longitude || 0) - (a.longitude || 0))
+          .slice(0, 10); // Limit to top 10 for visualization clarity
+
+        setStops(sortedGeofences.map(g => ({
+          id: g.id,
+          name: g.name,
+          coord: { lat: g.latitude!, lng: g.longitude! }
+        })));
+      }
+
       setLastUpdate(new Date());
     } catch (err) {
-      console.error('Error fetching Cartrack vehicles in Component:', err);
-      setError('Aviso: Falha ao obter dados reais Cartrack.');
+      console.error('Error fetching Cartrack data in Component:', err);
+      setError('Aviso: Falha ao sincronizar com Cartrack.');
     } finally {
       setLoading(false);
     }
@@ -57,7 +78,12 @@ export default function LinhaTransportes() {
 
   // Compute vehicle markers for the MetroLine
   const vehicleMarkers = useMemo(() => {
-    return vehicles.map(v => {
+    // If a vehicle is selected, only show that one
+    const displayList = selectedVehicleId 
+      ? vehicles.filter(v => v.id === selectedVehicleId)
+      : vehicles;
+
+    return displayList.map(v => {
       const progress = calculateRouteProgress({ lat: v.latitude, lng: v.longitude }, stops);
       return {
         id: v.id,
@@ -67,7 +93,11 @@ export default function LinhaTransportes() {
         status: v.status
       } as VehicleMarker;
     });
-  }, [vehicles, stops]);
+  }, [vehicles, stops, selectedVehicleId]);
+
+  const selectedVehicle = useMemo(() => 
+    vehicles.find(v => v.id === selectedVehicleId), 
+  [vehicles, selectedVehicleId]);
 
   return (
     <div className="space-y-6">
@@ -102,10 +132,22 @@ export default function LinhaTransportes() {
               </div>
             )}
 
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
                 <Activity className="w-5 h-5 text-blue-500" />
-                <h3 className="text-lg font-bold text-white">Monitorização em Tempo Real</h3>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    {selectedVehicle ? `Acompanhamento: ${selectedVehicle.label || selectedVehicle.registration}` : 'Monitorização Global'}
+                  </h3>
+                  {selectedVehicle && (
+                    <button 
+                      onClick={() => setSelectedVehicleId(null)}
+                      className="text-xs text-blue-500 hover:underline"
+                    >
+                      Voltar para visão global
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <p className="text-xs text-slate-500 flex items-center gap-2">
@@ -128,23 +170,35 @@ export default function LinhaTransportes() {
             />
           </div>
 
+          {/* Selection Instruction if nothing selected and many vehicles */}
+          {!selectedVehicleId && vehicles.length > 1 && (
+            <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-3 text-center">
+              <p className="text-xs text-blue-400">Dica: Selecione uma viatura no catálogo abaixo para ver o seu percurso individual.</p>
+            </div>
+          )}
+
           {/* Vehicles Status Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {vehicles.map((v) => {
               const progress = calculateRouteProgress({ lat: v.latitude, lng: v.longitude }, stops);
               const nextStop = stops[progress.currentSegmentIndex + 1]?.name || 'Destino Final';
               const lastStop = stops[progress.currentSegmentIndex]?.name || 'Origem';
+              const isSelected = selectedVehicleId === v.id;
               
               return (
-                <div key={v.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-colors">
+                <div 
+                  key={v.id} 
+                  onClick={() => setSelectedVehicleId(isSelected ? null : v.id)}
+                  className={`bg-slate-900 border ${isSelected ? 'border-blue-500 shadow-lg shadow-blue-500/10' : 'border-slate-800'} rounded-xl p-4 cursor-pointer hover:border-blue-500/50 transition-all`}
+                >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${v.status === 'moving' ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-800 text-slate-400'}`}>
+                      <div className={`p-2 rounded-lg ${v.status === 'moving' ? (isSelected ? 'bg-blue-500 text-white' : 'bg-blue-500/10 text-blue-500') : 'bg-slate-800 text-slate-400'}`}>
                         <TruckIcon className="w-4 h-4" />
                       </div>
                       <div>
                         <h4 className="font-bold text-white leading-none">{v.label || v.registration}</h4>
-                        <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">{v.status || 'Desconhecido'}</p>
+                        <p className={`text-[10px] ${isSelected ? 'text-blue-400' : 'text-slate-500'} mt-1 uppercase tracking-wider`}>{v.status || 'Desconhecido'}</p>
                       </div>
                     </div>
                     <span className={`w-2 h-2 rounded-full ${new Date(v.last_activity).getTime() > Date.now() - 300000 ? 'bg-green-500' : 'bg-red-500'}`} title={new Date(v.last_activity).toLocaleString()} />
@@ -173,6 +227,13 @@ export default function LinhaTransportes() {
                       <p className="text-[10px] text-slate-400 truncate">{v.latitude.toFixed(4)}, {v.longitude.toFixed(4)}</p>
                     </div>
                   </div>
+
+                  {isSelected && (
+                    <div className="mt-3 flex items-center justify-center gap-1 text-blue-500 text-[10px] font-bold uppercase tracking-tighter">
+                      <Activity size={10} className="animate-pulse" />
+                      A monitorizar individualmente
+                    </div>
+                  )}
                 </div>
               );
             })}
