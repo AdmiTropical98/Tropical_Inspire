@@ -350,15 +350,32 @@ export const CartrackService = {
         });
     },
 
-    getGeofenceVisits: async (vehicleId: string, daysBack = 1): Promise<CartrackGeofenceVisit[]> => {
+    getGeofenceVisits: async (arg1: string | { vehicleId?: string, startTime?: string, endTime?: string }, arg2?: number | string, arg3?: string): Promise<CartrackGeofenceVisit[]> => {
         try {
-            const date = new Date();
-            date.setDate(date.getDate() - daysBack);
-            const startTime = date.toISOString();
+            let vehicleId: string | undefined;
+            let startTime: string | undefined;
+            let endTime: string | undefined;
+
+            if (typeof arg1 === 'object') {
+                vehicleId = arg1.vehicleId;
+                startTime = arg1.startTime;
+                endTime = arg1.endTime;
+            } else if (typeof arg1 === 'string' && typeof arg2 === 'string') {
+                // Handle legacy (startTime, endTime, vehicleId) call
+                startTime = arg1;
+                endTime = arg2;
+                vehicleId = arg3;
+            } else {
+                vehicleId = arg1;
+                const date = new Date();
+                date.setDate(date.getDate() - (typeof arg2 === 'number' ? arg2 : 1));
+                startTime = date.toISOString();
+            }
 
             const response = await createCartrackRequest<CartrackListResponse<any>>('/geofence_visits', {
                 vehicle_id: vehicleId,
                 start_time: startTime,
+                end_time: endTime
             });
 
             const items = response.visits || response.data || [];
@@ -375,6 +392,20 @@ export const CartrackService = {
             }));
         } catch (error) {
             console.error('Error fetching geofence visits:', error);
+            return [];
+        }
+    },
+
+    getRouteHistory: async (vehicleId: string, startTime: string, endTime: string): Promise<any[]> => {
+        try {
+            const response = await createCartrackRequest<CartrackListResponse<any>>('/positions', {
+                vehicle_id: vehicleId,
+                start_time: startTime,
+                end_time: endTime
+            });
+            return response.positions || response.data || [];
+        } catch (error) {
+            console.error('Error fetching route history:', error);
             return [];
         }
     }

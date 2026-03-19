@@ -54,8 +54,8 @@ const deriveServiceLifecycleStatus = ({
     nowTs?: number;
 }) => {
     return updateServiceStatus({
-        data: serviceDate,
-        hora: serviceHour,
+        data: serviceDate || '',
+        hora: serviceHour || '00:00',
         motoristaId,
         originConfirmed,
         originDepartureTime,
@@ -699,7 +699,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 const now = new Date();
                 const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString();
                 const endOfDay = new Date(now.setHours(23, 59, 59, 999)).toISOString();
-                const visits = await CartrackService.getGeofenceVisits(startOfDay, endOfDay, vehicleId);
+                const visits = await CartrackService.getGeofenceVisits({ 
+                    vehicleId, 
+                    startTime: startOfDay, 
+                    endTime: endOfDay 
+                });
 
                 // DATA DE HOJE (Filtering visits for today in UTC/Local approximation)
                 // Visits usually come in UTC or API time. Just string matching YYYY-MM-DD for simplicity first.
@@ -1146,9 +1150,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                 // Attempt Cartrack Enrichment (Safe Mode)
                 try {
-                    const [driversResult, vehiclesResult] = await Promise.allSettled([
+                    const [driversResult, vehiclesResult, geofencesResult] = await Promise.allSettled([
                         CartrackService.getDrivers(),
-                        CartrackService.getVehicles()
+                        CartrackService.getVehicles(),
+                        CartrackService.getGeofences()
                     ]);
 
                     if (driversResult.status === 'fulfilled') cDrivers = driversResult.value;
@@ -1158,6 +1163,12 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     else {
                         console.warn('Cartrack Vehicles fetch failed:', vehiclesResult.reason);
                         setCartrackError(`Falha na Cartrack: ${vehiclesResult.reason?.message || 'Erro de conexão'}`);
+                    }
+
+                    if (geofencesResult.status === 'fulfilled') {
+                        setGeofences(geofencesResult.value);
+                    } else {
+                        console.warn('Cartrack Geofences fetch failed:', geofencesResult.reason);
                     }
 
                     // If Cartrack succeeded, perform enrichment
