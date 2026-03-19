@@ -264,24 +264,32 @@ export const CartrackService = {
         if (cached) return cached;
 
         return fetchWithDeduplication(cacheKey, async () => {
-            try {
-                const response = await createCartrackRequest<CartrackListResponse<any>>('/geofences');
-                const items = response.geofences || response.data || [];
+            const endpoints = ['/geofences', '/points_of_interest'];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await createCartrackRequest<any>(endpoint);
+                    const items = response.geofences || response.points_of_interest || response.data || response.rows || (Array.isArray(response) ? response : []);
 
-                const geofences: CartrackGeofence[] = items.map((item: any) => ({
-                    id: String(item.id),
-                    name: item.name,
-                    area_id: item.area_id,
-                    latitude: item.latitude,
-                    longitude: item.longitude,
-                    radius: item.radius,
-                }));
+                    if (items.length > 0) {
+                        const geofences: CartrackGeofence[] = items.map((item: any) => ({
+                            id: String(item.id || item.poi_id || item.geofence_id),
+                            name: item.name || item.label || item.description || `POI ${item.id}`,
+                            area_id: item.area_id,
+                            latitude: Number(item.latitude || item.lat || item.center?.lat || 0),
+                            longitude: Number(item.longitude || item.lng || item.center?.lng || 0),
+                            radius: item.radius || item.center?.radius || 0,
+                        })).filter((g: CartrackGeofence) => g.latitude !== 0 && g.longitude !== 0);
 
-                return setCache(cacheKey, geofences, CACHE_TTL.geofences);
-            } catch (error) {
-                console.error('Error fetching geofences:', error);
-                return [];
+                        if (geofences.length > 0) {
+                            return setCache(cacheKey, geofences, CACHE_TTL.geofences);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error fetching geofences from ${endpoint}:`, error);
+                }
             }
+            return [];
         });
     },
 
