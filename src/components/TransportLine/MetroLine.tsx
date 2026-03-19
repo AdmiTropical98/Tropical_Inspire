@@ -31,9 +31,9 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
   const segmentWidth = numStops > 1 ? usableWidth / (numStops - 1) : 0;
 
   return (
-    <div className="w-full overflow-x-auto bg-slate-900 rounded-2xl border border-slate-800 p-4">
-      <div className="min-w-[800px] flex justify-center">
-        <svg width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="text-slate-300">
+    <div className="w-full overflow-x-auto bg-slate-900 rounded-2xl border border-slate-800 p-4 scrollbar-hide">
+      <div className="inline-block min-w-full">
+        <svg width={svgWidth} height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="text-slate-300 mx-auto">
           {/* Background Line */}
           {numStops > 1 && (
             <line 

@@ -92,7 +92,16 @@ export default function LinhaTransportes() {
         <div className="space-y-6">
           
           {/* Main Visualization */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 overflow-hidden relative">
+            {loading && vehicles.length === 0 && (
+              <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-10 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <RefreshCcw className="w-8 h-8 text-blue-500 animate-spin" />
+                  <p className="text-slate-400 text-sm animate-pulse">A obter dados em tempo real...</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <Activity className="w-5 h-5 text-blue-500" />
@@ -101,7 +110,7 @@ export default function LinhaTransportes() {
               <div className="flex items-center gap-4">
                 <p className="text-xs text-slate-500 flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${loading ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
-                  Última att: {lastUpdate.toLocaleTimeString()}
+                  {loading ? 'A atualizar...' : `Última att: ${lastUpdate.toLocaleTimeString()}`}
                 </p>
                 <button 
                   onClick={fetchVehicles}
@@ -172,7 +181,7 @@ export default function LinhaTransportes() {
           {vehicles.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center py-12 bg-slate-900 border border-slate-800 rounded-2xl text-slate-500">
                <TruckIcon className="w-12 h-12 mb-4 opacity-20" />
-               <p>Nenhuma viatura Cartrack ativa no momento.</p>
+               <p>{error ? error : 'Nenhuma viatura Cartrack ativa no momento.'}</p>
             </div>
           )}
           

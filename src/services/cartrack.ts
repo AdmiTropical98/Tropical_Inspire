@@ -4,10 +4,11 @@
 
 const BASE_URL = import.meta.env.VITE_CARTRACK_API_URL || 'https://fleetapi-pt.cartrack.com/rest';
 
-const CARTRACK_USER = import.meta.env.VITE_CARTRACK_USER;
-const CARTRACK_PASS = import.meta.env.VITE_CARTRACK_PASS;
+const CARTRACK_USERNAME = import.meta.env.VITE_CARTRACK_USERNAME;
+const CARTRACK_PASSWORD = import.meta.env.VITE_CARTRACK_PASSWORD;
 const CARTRACK_API_KEY = import.meta.env.VITE_CARTRACK_API_KEY;
-const USE_PROXY_AUTH = String(import.meta.env.VITE_CARTRACK_USE_PROXY_AUTH || 'true') !== 'false';
+// DEFAULT TO FALSE if username is present to ensure local testing works
+const USE_PROXY_AUTH = String(import.meta.env.VITE_CARTRACK_USE_PROXY_AUTH || (CARTRACK_USERNAME ? 'false' : 'true')) !== 'false';
 
 const CACHE_TTL = {
     vehicles: 30_000,
@@ -119,9 +120,12 @@ const getAuthHeaders = (): HeadersInit => {
         return {};
     }
 
-    if (CARTRACK_USER && CARTRACK_PASS) {
-        const auth = btoa(`${CARTRACK_USER}:${CARTRACK_PASS}`);
-        return { Authorization: `Basic ${auth}` };
+    if (CARTRACK_USERNAME && CARTRACK_PASSWORD) {
+        const auth = btoa(`${CARTRACK_USERNAME}:${CARTRACK_PASSWORD}`);
+        return { 
+            Authorization: `Basic ${auth}`,
+            'Accept': 'application/iso15143-snapshot+json' // Added for AEMP support
+        };
     }
 
     return {};
@@ -205,35 +209,52 @@ export const CartrackService = {
         if (cached) return cached;
 
         return fetchWithDeduplication(cacheKey, async () => {
-            try {
-                // Try /vehicles/status first as it usually has all we need
-                const response = await createCartrackRequest<CartrackListResponse<any>>(preferredVehicleEndpoint);
-                const items = response.data || response.rows || [];
+            const endpoints: string[] = [preferredVehicleEndpoint, '/vehicles', '/aemp/iso15143-3/beta/fleet'];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await createCartrackRequest<any>(endpoint);
+                    const items = response.data || response.rows || [];
 
-                const vehicles: CartrackVehicle[] = items.map((item: any) => ({
-                    id: String(item.id || item.vehicle_id),
-                    registration: item.registration || item.serial_number || 'Sem Matrícula',
-                    label: item.label || item.equipment_id || item.registration || 'Sem Nome',
-                    make: item.make,
-                    model: item.model,
-                    latitude: Number(item.latitude || item.location?.latitude || 0),
-                    longitude: Number(item.longitude || item.location?.longitude || 0),
-                    speed: Number(item.speed || item.location?.speed || 0),
-                    bearing: Number(item.bearing || 0),
-                    last_activity: item.last_activity || item.location?.timestamp || new Date().toISOString(),
-                    ignition: item.ignition ?? false,
-                    status: item.ignition ? 'moving' : (item.idling ? 'idle' : 'stopped'),
-                }));
+                    if (items.length === 0 && endpoint !== '/aemp/iso15143-3/beta/fleet') continue;
 
-                return setCache(cacheKey, vehicles, CACHE_TTL.vehicles);
-            } catch (error) {
-                console.error('Error fetching vehicles:', error);
-                if (preferredVehicleEndpoint === '/vehicles/status') {
-                    preferredVehicleEndpoint = '/vehicles';
-                    return CartrackService.getVehicles();
+                    // Mapping logic
+                    if (endpoint.includes('/aemp')) {
+                        const vehicles: CartrackVehicle[] = items.map((item: any) => ({
+                            id: String(item.equipment_header?.equipment_id || ''),
+                            registration: item.equipment_header?.serial_number || 'Sem Matrícula',
+                            label: item.equipment_header?.equipment_id || 'Sem Nome',
+                            latitude: Number(item.location?.latitude || 0),
+                            longitude: Number(item.location?.longitude || 0),
+                            speed: Number(item.location?.speed || 0),
+                            bearing: 0,
+                            last_activity: item.location?.timestamp || new Date().toISOString(),
+                            status: (Number(item.location?.speed || 0) > 0) ? 'moving' : 'stopped',
+                        }));
+                        if (vehicles.length > 0) return setCache(cacheKey, vehicles, CACHE_TTL.vehicles);
+                    } else {
+                        const vehicles: CartrackVehicle[] = items.map((item: any) => ({
+                            id: String(item.id || item.vehicle_id),
+                            registration: item.registration || item.serial_number || 'Sem Matrícula',
+                            label: item.label || item.equipment_id || item.registration || 'Sem Nome',
+                            latitude: Number(item.latitude || item.location?.latitude || 0),
+                            longitude: Number(item.longitude || item.location?.longitude || 0),
+                            speed: Number(item.speed || item.location?.speed || 0),
+                            bearing: Number(item.bearing || 0),
+                            last_activity: item.last_activity || item.location?.timestamp || new Date().toISOString(),
+                            ignition: item.ignition ?? false,
+                            status: item.ignition ? 'moving' : (item.idling ? 'idle' : 'stopped'),
+                        }));
+                        if (vehicles.length > 0) {
+                            preferredVehicleEndpoint = endpoint as any;
+                            return setCache(cacheKey, vehicles, CACHE_TTL.vehicles);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error fetching from ${endpoint}:`, error);
                 }
-                return [];
             }
+            return [];
         });
     },
 
