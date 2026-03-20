@@ -296,46 +296,49 @@ export default function LinhaTransportes() {
               </div>
             )}
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
                 <Activity className="w-5 h-5 text-blue-500" />
                 <div>
-                  <h3 className="text-lg font-bold text-white">
+                  <h3 className="text-base sm:text-lg font-bold text-white leading-tight">
                     {selectedVehicle ? `Acompanhamento: ${selectedVehicle.label || selectedVehicle.registration}` : 'Monitorização Global'}
                   </h3>
                   {selectedVehicle && (
                     <button 
                       onClick={() => setSelectedVehicleId(null)}
-                      className="text-xs text-blue-500 hover:underline"
+                      className="text-[10px] sm:text-xs text-blue-500 hover:underline"
                     >
                       Voltar para visão global
                     </button>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <p className="text-xs text-slate-500 flex items-center gap-2">
+              <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                <p className="text-[10px] sm:text-xs text-slate-500 flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${loading ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
                   {loading ? 'A atualizar...' : `Última att: ${lastUpdate.toLocaleTimeString()}`}
                 </p>
-                <button 
-                  onClick={() => setIsDemoMode(!isDemoMode)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                    isDemoMode 
-                      ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                  }`}
-                >
-                  <Activity className={`w-3.5 h-3.5 ${isDemoMode ? 'animate-pulse' : ''}`} />
-                  {isDemoMode ? 'Parar Demo' : 'Apresentação Demo'}
-                </button>
-                <button 
-                  onClick={fetchVehicles}
-                  disabled={loading}
-                  className={`p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors ${loading ? 'animate-pulse' : ''}`}
-                >
-                  <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setIsDemoMode(!isDemoMode)}
+                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center gap-2 ${
+                      isDemoMode 
+                        ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                    }`}
+                  >
+                    <Activity className={`w-3.5 h-3.5 ${isDemoMode ? 'animate-pulse' : ''}`} />
+                    <span className="hidden xs:inline">{isDemoMode ? 'Parar Demo' : 'Apresentação Demo'}</span>
+                    <span className="xs:hidden">{isDemoMode ? 'Parar' : 'Demo'}</span>
+                  </button>
+                  <button 
+                    onClick={fetchVehicles}
+                    disabled={loading}
+                    className={`p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors ${loading ? 'animate-pulse' : ''}`}
+                  >
+                    <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -353,7 +356,7 @@ export default function LinhaTransportes() {
           )}
 
           {/* Vehicles Status Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {vehicles.map((v) => {
               const progress = calculateRouteProgress({ lat: v.latitude, lng: v.longitude }, stops);
               const nextStop = stops[progress.currentSegmentIndex + 1]?.name || 'Destino Final';
