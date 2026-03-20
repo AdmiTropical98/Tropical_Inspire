@@ -7,6 +7,7 @@ export interface RouteStop {
   id: string;
   name: string;
   coord: GeoCoord;
+  timeToNext?: string;
 }
 
 /**

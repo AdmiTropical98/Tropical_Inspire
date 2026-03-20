@@ -16,7 +16,7 @@ const FALLBACK_ROUTE: RouteStop[] = [
 ];
 
 export default function LinhaTransportes() {
-  const { geofences: contextGeofences } = useWorkshop();
+  const { geofences: contextGeofences, servicos, viaturas } = useWorkshop();
   const [vehicles, setVehicles] = useState<CartrackVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,32 +26,115 @@ export default function LinhaTransportes() {
   // Stops for the route
   const [stops, setStops] = useState<RouteStop[]>(FALLBACK_ROUTE);
 
+  // Get Today's date in YYYY-MM-DD
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  // Filtered Services for today
+  const todayServices = useMemo(() => 
+    (servicos || []).filter(s => s.data === todayStr), 
+  [servicos, todayStr]);
+
   const fetchVehicles = async () => {
     try {
       setLoading(true);
       setError(null);
       const vData = await CartrackService.getVehicles();
       
-      // Filter active vehicles
-      const activeVehicles = (vData || []).filter(v => v.latitude && v.longitude);
-      setVehicles(activeVehicles);
+      // Match Cartrack registration with Viatura matricula, then filter by those having services today
+      const mappedVehicles = (vData || []).filter(v => {
+        if (!v.latitude || !v.longitude) return false;
+        
+        // Find matching viatura in local database
+        const viatura = viaturas?.find(vi => 
+          vi.matricula.replace(/[^a-zA-Z0-9]/g, '') === v.registration.replace(/[^a-zA-Z0-9]/g, '')
+        );
+
+        if (!viatura) return false;
+
+        // ONLY show if it has a schedule for today
+        return todayServices.some(s => s.vehicleId === viatura.id);
+      });
+
+      setVehicles(mappedVehicles);
 
       // Use context geofences if available
       const geofenceSource = contextGeofences.length > 0 ? contextGeofences : await CartrackService.getGeofences();
 
       if (geofenceSource && geofenceSource.length > 0) {
-        // Auto-sorting heuristic: East to West (Longitude descending) for Algarve region
-        const sortedGeofences = [...geofenceSource]
-          .filter(g => g.latitude && g.longitude)
-          .sort((a, b) => (b.longitude || 0) - (a.longitude || 0));
+        // Build dynamic stops array
+        let finalStops: RouteStop[] = [];
 
-        setStops(sortedGeofences.map(g => ({
-          id: g.id,
-          name: g.name,
-          coord: { lat: g.latitude!, lng: g.longitude! }
-        })));
+        if (selectedVehicleId) {
+          // SPECIFIC VEHICLE ROUTE
+          const v = mappedVehicles.find(v => v.id === selectedVehicleId);
+          const viatura = viaturas?.find(vi => 
+            v && vi.matricula.replace(/[^a-zA-Z0-9]/g, '') === v.registration.replace(/[^a-zA-Z0-9]/g, '')
+          );
+          
+          const vehicleServices = todayServices
+            .filter(s => s.vehicleId === viatura?.id)
+            .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+
+          // Build unique stops from origins and destinations
+          const stopNamesWithTime: { name: string, time: string }[] = [];
+          vehicleServices.forEach(s => {
+            if (!stopNamesWithTime.find(item => item.name === s.origem)) {
+              stopNamesWithTime.push({ name: s.origem, time: s.hora });
+            }
+            if (!stopNamesWithTime.find(item => item.name === s.destino)) {
+              // Add destino, slightly ahead for sorting if needed, but here we preserve arrival order
+              stopNamesWithTime.push({ name: s.destino, time: s.hora });
+            }
+          });
+
+          finalStops = stopNamesWithTime.map((item, idx) => {
+            const gf = geofenceSource.find(g => 
+              g.name.toLowerCase().includes(item.name.toLowerCase()) || 
+              item.name.toLowerCase().includes(g.name.toLowerCase())
+            );
+
+            // Calculate time to next stop
+            let timeToNext: string | undefined;
+            if (idx < stopNamesWithTime.length - 1) {
+              const t1 = item.time;
+              const t2 = stopNamesWithTime[idx+1].time;
+              const [h1, m1] = t1.split(':').map(Number);
+              const [h2, m2] = t2.split(':').map(Number);
+              const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+              if (diff > 0) {
+                timeToNext = diff >= 60 ? `${Math.floor(diff/60)}h ${diff%60}m` : `${diff}min`;
+              }
+            }
+
+            return {
+              id: gf?.id || `vstop-${idx}`,
+              name: item.name,
+              coord: { lat: gf?.latitude || 0, lng: gf?.longitude || 0 },
+              timeToNext
+            };
+          }).filter(s => s.coord.lat !== 0);
+
+        } else {
+          // GLOBAL VIEW ROUTE
+          // Show all geofences that are part of today's active services
+          const activeStopNames = new Set<string>();
+          todayServices.forEach(s => {
+            activeStopNames.add(s.origem);
+            activeStopNames.add(s.destino);
+          });
+
+          finalStops = [...geofenceSource]
+            .filter(g => g.latitude && g.longitude && (activeStopNames.has(g.name) || activeStopNames.has(g.name.split(' (')[0])))
+            .sort((a, b) => (b.longitude || 0) - (a.longitude || 0))
+            .map(g => ({
+              id: g.id,
+              name: g.name,
+              coord: { lat: g.latitude!, lng: g.longitude! }
+            }));
+        }
+
+        setStops(finalStops.length > 0 ? finalStops : FALLBACK_ROUTE);
       } else if (stops === FALLBACK_ROUTE) {
-        // Fallback to a broader mock if absolutely no POIs are found
         setStops([
           { id: 'm1', name: 'Sem POIs no Cartrack', coord: { lat: 37.0175, lng: -7.9308 } },
           { id: 'm2', name: 'Verifique definições', coord: { lat: 37.0175, lng: -8.0000 } }
@@ -76,7 +159,7 @@ export default function LinhaTransportes() {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedVehicleId, todayServices]); // Re-fetch when selection changes or services update
 
   // Compute vehicle markers for the MetroLine
   const vehicleMarkers = useMemo(() => {

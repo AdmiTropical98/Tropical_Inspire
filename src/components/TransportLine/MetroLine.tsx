@@ -54,34 +54,46 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
             const isPassed = vehicles.some(v => v.currentSegmentIndex >= index);
             
             return (
-              <g key={stop.id} transform={`translate(${stopX}, ${lineY})`}>
-                <circle 
-                  cx="0" 
-                  cy="0" 
-                  r="10" 
-                  fill="#0f172a" 
-                  stroke={isPassed ? "#3b82f6" : "#334155"} 
-                  strokeWidth="4" 
-                />
-                <circle 
-                  cx="0" 
-                  cy="0" 
-                  r="4" 
-                  fill={isPassed ? "#3b82f6" : "#334155"} 
-                />
-                
-                <text 
-                  x="0" 
-                  y="35" 
-                  fill={isPassed ? "#f8fafc" : "#94a3b8"}
-                  fontSize="12" 
-                  fontWeight={isPassed ? "bold" : "normal"}
-                  textAnchor="middle"
-                  className="font-sans"
-                >
-                  {stop.name}
-                </text>
-              </g>
+              <React.Fragment key={stop.id}>
+                {/* Time Intervals */}
+                {index < numStops - 1 && stop.timeToNext && (
+                  <g transform={`translate(${stopX + segmentWidth / 2}, ${lineY - 20})`}>
+                    <rect x="-24" y="-10" width="48" height="20" rx="10" fill="#1e293b" stroke="#334155" strokeWidth="1" />
+                    <text x="0" y="4" fill="#3b82f6" fontSize="10" fontWeight="bold" textAnchor="middle">
+                      {stop.timeToNext}
+                    </text>
+                  </g>
+                )}
+
+                <g transform={`translate(${stopX}, ${lineY})`}>
+                  <circle 
+                    cx="0" 
+                    cy="0" 
+                    r="10" 
+                    fill="#0f172a" 
+                    stroke={isPassed ? "#3b82f6" : "#334155"} 
+                    strokeWidth="4" 
+                  />
+                  <circle 
+                    cx="0" 
+                    cy="0" 
+                    r="4" 
+                    fill={isPassed ? "#3b82f6" : "#334155"} 
+                  />
+                  
+                  <text 
+                    x="0" 
+                    y="35" 
+                    fill={isPassed ? "#f8fafc" : "#94a3b8"}
+                    fontSize="12" 
+                    fontWeight={isPassed ? "bold" : "normal"}
+                    textAnchor="middle"
+                    className="font-sans"
+                  >
+                    {stop.name}
+                  </text>
+                </g>
+              </React.Fragment>
             );
           })}
 
