@@ -1185,10 +1185,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                                 }
                             }
 
-                            // 2. Active Vehicle Status
+                            // 2. Active Vehicle Status (Enhanced Matching)
                             const activeVehicle = cVehicles.find(v =>
                                 (currentCartrackId && String(v.driverId) === String(currentCartrackId)) ||
                                 (v.driverName && v.driverName.toLowerCase() === m.nome.toLowerCase()) ||
+                                (v.tagId && m.cartrack_key && v.tagId === m.cartrack_key) || // Direct tag-to-key match
                                 (m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle))
                             );
 

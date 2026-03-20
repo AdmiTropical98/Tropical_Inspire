@@ -16,7 +16,7 @@ const FALLBACK_ROUTE: RouteStop[] = [
 ];
 
 export default function LinhaTransportes() {
-  const { geofences: contextGeofences, servicos, viaturas } = useWorkshop();
+  const { geofences: contextGeofences, servicos, viaturas, motoristas } = useWorkshop();
   const [vehicles, setVehicles] = useState<CartrackVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,15 +44,28 @@ export default function LinhaTransportes() {
       const mappedVehicles = (vData || []).filter(v => {
         if (!v.latitude || !v.longitude) return false;
         
+        const normalize = (p?: string) => (p || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        
         // Find matching viatura in local database
         const viatura = viaturas?.find(vi => 
-          vi.matricula.replace(/[^a-zA-Z0-9]/g, '') === v.registration.replace(/[^a-zA-Z0-9]/g, '')
+          normalize(vi.matricula) === normalize(v.registration)
         );
 
         if (!viatura) return false;
 
-        // ONLY show if it has a schedule for today
-        return todayServices.some(s => s.vehicleId === viatura.id);
+        // Find if any driver is currently associated with this vehicle (via Cartrack Tag or ID)
+        const activeDriver = motoristas?.find(m => 
+          (m.cartrackKey && v.tagId && m.cartrackKey === v.tagId) ||
+          (m.cartrackId && v.driverId && String(m.cartrackId) === String(v.driverId)) ||
+          (m.nome && v.driverName && m.nome.toLowerCase() === v.driverName.toLowerCase()) ||
+          (m.currentVehicle && normalize(m.currentVehicle) === normalize(viatura.matricula))
+        );
+
+        // ONLY show if it has a schedule for today (either explicitly assigned to vehicle OR assigned to the active driver)
+        return todayServices.some(s => 
+          s.vehicleId === viatura.id || 
+          (activeDriver && s.motoristaId === activeDriver.id)
+        );
       });
 
       setVehicles(mappedVehicles);
@@ -72,7 +85,19 @@ export default function LinhaTransportes() {
           );
           
           const vehicleServices = todayServices
-            .filter(s => s.vehicleId === viatura?.id)
+            .filter(s => {
+              // Match by explicit vehicle ID
+              if (s.vehicleId === viatura?.id) return true;
+              
+              // Match by active driver in this vehicle
+              const activeDriver = motoristas?.find(m => 
+                (m.cartrackKey && v?.tagId && m.cartrackKey === v.tagId) ||
+                (m.cartrackId && v?.driverId && String(m.cartrackId) === String(v.driverId)) ||
+                (m.nome && v?.driverName && m.nome.toLowerCase() === v.driverName.toLowerCase())
+              );
+              
+              return activeDriver && s.motoristaId === activeDriver.id;
+            })
             .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
 
           // Build unique stops from origins and destinations
