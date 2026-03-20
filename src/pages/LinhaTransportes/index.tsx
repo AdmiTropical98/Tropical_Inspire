@@ -23,6 +23,10 @@ export default function LinhaTransportes() {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   
+  // Demo Mode State
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoProgress, setDemoProgress] = useState(0); // Linear progress from 0 to stops.length - 1
+  
   // Stops for the route
   const [stops, setStops] = useState<RouteStop[]>(FALLBACK_ROUTE);
 
@@ -186,24 +190,57 @@ export default function LinhaTransportes() {
     return () => clearInterval(interval);
   }, [selectedVehicleId, todayServices]); // Re-fetch when selection changes or services update
 
+  // Demo Animation Effect
+  useEffect(() => {
+    if (!isDemoMode) return;
+    
+    const interval = setInterval(() => {
+      setDemoProgress(prev => {
+        const next = prev + 0.05;
+        if (next >= stops.length - 1) return 0; // Loop
+        return next;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isDemoMode, stops.length]);
+
   // Compute vehicle markers for the MetroLine
   const vehicleMarkers = useMemo(() => {
-    // If a vehicle is selected, only show that one
-    const displayList = selectedVehicleId 
+    const list: VehicleMarker[] = [];
+
+    // 1. Real Vehicles
+    const realDisplayList = selectedVehicleId 
       ? vehicles.filter(v => v.id === selectedVehicleId)
       : vehicles;
 
-    return displayList.map(v => {
+    realDisplayList.forEach(v => {
       const progress = calculateRouteProgress({ lat: v.latitude, lng: v.longitude }, stops);
-      return {
+      list.push({
         id: v.id,
         label: v.registration || v.label,
         currentSegmentIndex: progress.currentSegmentIndex,
         progressInSegment: progress.progressInSegment,
         status: v.status
-      } as VehicleMarker;
+      });
     });
-  }, [vehicles, stops, selectedVehicleId]);
+
+    // 2. Demo Vehicle
+    if (isDemoMode) {
+      const currentIndex = Math.floor(demoProgress);
+      const segmentProgress = demoProgress - currentIndex;
+      
+      list.push({
+        id: 'demo-vehicle',
+        label: 'VIATURA DEMO',
+        currentSegmentIndex: currentIndex,
+        progressInSegment: segmentProgress,
+        status: 'moving'
+      });
+    }
+
+    return list;
+  }, [vehicles, stops, selectedVehicleId, isDemoMode, demoProgress]);
 
   const selectedVehicle = useMemo(() => 
     vehicles.find(v => v.id === selectedVehicleId), 
@@ -264,6 +301,17 @@ export default function LinhaTransportes() {
                   <span className={`w-2 h-2 rounded-full ${loading ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
                   {loading ? 'A atualizar...' : `Última att: ${lastUpdate.toLocaleTimeString()}`}
                 </p>
+                <button 
+                  onClick={() => setIsDemoMode(!isDemoMode)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                    isDemoMode 
+                      ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                  }`}
+                >
+                  <Activity className={`w-3.5 h-3.5 ${isDemoMode ? 'animate-pulse' : ''}`} />
+                  {isDemoMode ? 'Parar Demo' : 'Apresentação Demo'}
+                </button>
                 <button 
                   onClick={fetchVehicles}
                   disabled={loading}
