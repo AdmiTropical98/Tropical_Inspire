@@ -12,7 +12,7 @@ const USE_PROXY_AUTH = String(import.meta.env.VITE_CARTRACK_USE_PROXY_AUTH || (C
 
 const CACHE_TTL = {
     vehicles: 30_000,
-    geofences: 300_000,
+    geofences: 60_000,
     drivers: 300_000,
 };
 
@@ -268,9 +268,12 @@ export const CartrackService = {
             const endpoints = [
                 '/geofences', 
                 '/points_of_interest', 
+                '/point_of_interests', // Plural variant
                 '/pois', 
                 '/circle_geofences',
-                '/geofence_groups'
+                '/circular_geofences', // Variant
+                '/geofence_groups',
+                '/poi' // Singular variant
             ];
             
             const allGeofences: CartrackGeofence[] = [];
@@ -278,12 +281,13 @@ export const CartrackService = {
             for (const endpoint of endpoints) {
                 try {
                     console.log(`[CartrackService] Attempting geofence discovery on ${endpoint}...`);
-                    const response = await createCartrackRequest<any>(endpoint);
+                    const response = await createCartrackRequest<any>(endpoint, { limit: 1000 });
                     
                     if (response) {
                         // Flexible extraction logic
                         const items = response.geofences || 
                                      response.points_of_interest || 
+                                     response.point_of_interests ||
                                      response.pois ||
                                      response.data || 
                                      response.rows || 

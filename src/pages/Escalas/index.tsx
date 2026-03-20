@@ -105,6 +105,13 @@ export default function Escalas() {
         escalaTemplates, escalaTemplateItems, addEscalaTemplate, deleteEscalaTemplate, addTemplateItem, deleteTemplateItem,
         publishBatch
     } = useWorkshop();
+
+    // Combined list of suggestions (Locais + Cartrack Geofences)
+    const locationSuggestions = useMemo(() => {
+        const cartrackNames = geofences.map(g => g.name);
+        const localNames = locais.map(l => l.nome);
+        return Array.from(new Set([...localNames, ...cartrackNames])).sort();
+    }, [geofences, locais]);
     const { userRole } = useAuth();
     const { hasAccess } = usePermissions();
 
@@ -2768,8 +2775,8 @@ export default function Escalas() {
 
             {/* Datalist for geofences suggestions */}
             <datalist id="geofences-list">
-                {geofences.map(geo => (
-                    <option key={geo.id} value={geo.name} />
+                {locationSuggestions.map((name: string, i: number) => (
+                    <option key={i} value={name} />
                 ))}
             </datalist>
 
