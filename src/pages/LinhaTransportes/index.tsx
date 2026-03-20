@@ -1,3 +1,20 @@
+function getActiveService(services: Servico[]) {
+  const now = new Date();
+
+  return services.find(s => {
+    if (!s.hora) return false;
+
+    const [h, m] = s.hora.split(':').map(Number);
+
+    const serviceTime = new Date();
+    serviceTime.setHours(h, m, 0, 0);
+
+    const diff = (now.getTime() - serviceTime.getTime()) / 60000;
+
+    // janela: 20 min antes até 120 min depois
+    return diff >= -20 && diff <= 120;
+  });
+}
 import { useState, useEffect, useMemo } from 'react';
 import { RefreshCcw, Navigation, Clock, MapPin, Truck as TruckIcon, Activity, AlertCircle } from 'lucide-react';
 import { CartrackService } from '../../services/cartrack';
