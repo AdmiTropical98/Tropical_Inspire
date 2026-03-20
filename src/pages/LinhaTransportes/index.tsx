@@ -131,7 +131,7 @@ console.log("ACTIVE:", activeService);
               const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
               if (diff > 0) timeToNext = diff >= 60 ? `${Math.floor(diff/60)}h ${diff%60}m` : `${diff}min`;
             }
-            return { id: gf?.id || `vstop-${idx}`, name: item.name, coord: { lat: gf?.latitude || 0, lng: gf?.longitude || 0 }, timeToNext };
+            return { id: gf?.id || `vstop-${idx}`, name: item.name, coord: { lat: gf?.tude || 0, lng: gf?.longitude || 0 }, timeToNext };
           }).filter(s => s.coord.lat !== 0);
         } else {
           const activeStopNames = new Set<string>();
