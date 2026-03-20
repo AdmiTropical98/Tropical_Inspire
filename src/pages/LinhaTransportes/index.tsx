@@ -1,3 +1,4 @@
+import type { Servico } from '../../types';
 function getActiveService(services: Servico[]) {
   const now = new Date();
 
@@ -17,7 +18,7 @@ function getActiveService(services: Servico[]) {
         diff
       };
     })
-    .filter(item => item && item.diff >= -120 && diff <= 180) as {
+    .filter(item => item && item.diff >= -120 && item.diff <= 180) as {
       service: Servico;
       diff: number;
     }[];
@@ -31,7 +32,7 @@ function getActiveService(services: Servico[]) {
 }
 import { useState, useEffect, useMemo } from 'react';
 import { RefreshCcw, Navigation, Clock, MapPin, Truck as TruckIcon, Activity, AlertCircle } from 'lucide-react';
-import { CartrackService } from '../../services/cartrack';
+import { CartrackService, cleanTagId } from '../../services/cartrack';
 import type { CartrackVehicle } from '../../services/cartrack';
 import MetroLine from '../../components/TransportLine/MetroLine';
 import type { VehicleMarker } from '../../components/TransportLine/MetroLine';
@@ -67,44 +68,36 @@ export default function LinhaTransportes() {
       setLoading(true);
       setError(null);
       const vData = await CartrackService.getVehicles();
+      const mappedVehicles = (vData || []).map(v => {
+        if (!v.latitude || !v.longitude) return null;
+        
+        const normalize = (p?: string) => (p || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        const viatura = viaturas?.find(vi => normalize(vi.matricula) === normalize(v.registration));
+        if (!viatura) return null;
 
-console.log("CARTRACK:", vData);
-const mappedVehicles = (vData || []).map(v => {
-  const normalize = (p?: string) =>
-    (p || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        const driver = motoristas?.find(m => 
+          (m.cartrackKey && v.tagId && cleanTagId(m.cartrackKey) === cleanTagId(v.tagId)) ||
+          (m.cartrackId && v.driverId && String(m.cartrackId) === String(v.driverId)) ||
+          (m.nome && v.driverName && m.nome.toLowerCase() === v.driverName.toLowerCase()) ||
+          (m.currentVehicle && normalize(m.currentVehicle) === normalize(viatura.matricula))
+        );
 
-  const viatura = viaturas?.find(vi =>
-    normalize(vi.matricula) === normalize(v.registration)
-  );
+        if (!driver) return null;
 
-  if (!viatura) return null;
+        const driverServices = todayServices
+          .filter(s => s.motoristaId === driver.id)
+          .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
 
-  const driver = motoristas?.find(m =>
-    (m.cartrackKey && v.tagId && m.cartrackKey === v.tagId) ||
-    (m.cartrackId && v.driverId && String(m.cartrackId) === String(v.driverId)) ||
-    (m.nome && v.driverName && m.nome.toLowerCase() === v.driverName.toLowerCase())
-  );
+        const activeService = getActiveService(driverServices);
+        if (!activeService) return null;
 
-  if (!driver) return null;
-
-  const driverServices = todayServices
-    .filter(s => s.motoristaId === driver.id)
-    .sort((a, b) => a.hora.localeCompare(b.hora));
-
-  const activeService = getActiveService(driverServices);
-
-  if (!activeService) return null;
-  console.log("DRIVER:", driver);
-console.log("SERVICES:", driverServices);
-console.log("ACTIVE:", activeService);
-
-  return {
-    ...v,
-    viatura,
-    driver,
-    activeService
-  };
-}).filter(Boolean);
+        return {
+          ...v,
+          viatura,
+          driver,
+          activeService
+        };
+      }).filter((v): v is any => v !== null);
 
       setVehicles(mappedVehicles);
 
@@ -131,7 +124,7 @@ console.log("ACTIVE:", activeService);
               const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
               if (diff > 0) timeToNext = diff >= 60 ? `${Math.floor(diff/60)}h ${diff%60}m` : `${diff}min`;
             }
-            return { id: gf?.id || `vstop-${idx}`, name: item.name, coord: { lat: gf?.tude || 0, lng: gf?.longitude || 0 }, timeToNext };
+            return { id: gf?.id || `vstop-${idx}`, name: item.name, coord: { lat: gf?.latitude || 0, lng: gf?.longitude || 0 }, timeToNext };
           }).filter(s => s.coord.lat !== 0);
         } else {
           const activeStopNames = new Set<string>();

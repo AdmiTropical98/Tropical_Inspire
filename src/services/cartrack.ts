@@ -230,6 +230,9 @@ export const CartrackService = {
                             bearing: 0,
                             last_activity: item.location?.timestamp || new Date().toISOString(),
                             status: (Number(item.location?.speed || 0) > 0) ? 'moving' : 'stopped',
+                            tagId: item.tag_id || item.equipment_header?.tag_id,
+                            driverId: item.driver_id || item.equipment_header?.driver_id,
+                            driverName: item.driver_name || item.equipment_header?.driver_name,
                         }));
                         if (vehicles.length > 0) return setCache(cacheKey, vehicles, CACHE_TTL.vehicles);
                     } else {
@@ -244,6 +247,9 @@ export const CartrackService = {
                             last_activity: item.last_activity || item.location?.timestamp || new Date().toISOString(),
                             ignition: item.ignition ?? false,
                             status: item.ignition ? 'moving' : (item.idling ? 'idle' : 'stopped'),
+                            tagId: item.tag_id || item.driver_key,
+                            driverId: item.driver_id,
+                            driverName: item.driver_name,
                         }));
                         if (vehicles.length > 0) {
                             preferredVehicleEndpoint = endpoint as any;
