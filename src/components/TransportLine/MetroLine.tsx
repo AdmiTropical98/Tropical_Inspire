@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck } from 'lucide-react';
+import { Truck, Navigation } from 'lucide-react';
 import type { RouteStop } from '../../utils/geoUtils';
 
 export interface VehicleMarker {
@@ -25,20 +25,25 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
   }, []);
 
   if (!stops || stops.length === 0) {
-    return <div className="p-12 text-slate-500 text-center bg-slate-900/20 rounded-2xl border border-slate-800/50 italic">Sem paragens configuradas no roteiro.</div>;
+    return (
+      <div className="p-16 text-slate-500 text-center bg-[#0a0f1d]/40 rounded-3xl border border-slate-800/40 backdrop-blur-md">
+        <Navigation className="w-12 h-12 mx-auto mb-4 opacity-20" />
+        <p className="font-sans tracking-widest uppercase text-xs">Sistema Offline</p>
+        <p className="text-slate-600 text-[10px] mt-2 italic">Sem roteiro ativo para visualização</p>
+      </div>
+    );
   }
 
   const isMobile = windowWidth < 768;
   const numStops = stops.length;
   
-  // Dimensions based on layout
-  const horizontalSvgWidth = Math.max(800, numStops * 180);
-  const horizontalSvgHeight = 180;
-  const verticalSvgWidth = 300;
-  const verticalSvgHeight = numStops * 100 + 40;
+  const horizontalSvgWidth = Math.max(900, numStops * 220);
+  const horizontalSvgHeight = 220;
+  const verticalSvgWidth = 340;
+  const verticalSvgHeight = numStops * 120 + 80;
 
-  const paddingX = isMobile ? 60 : 80;
-  const paddingY = isMobile ? 40 : 90;
+  const paddingX = isMobile ? 80 : 100;
+  const paddingY = isMobile ? 60 : 110;
   
   const usableLength = isMobile 
     ? (verticalSvgHeight - paddingY * 2) 
@@ -47,56 +52,86 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
   const segmentLength = numStops > 1 ? usableLength / (numStops - 1) : 0;
 
   return (
-    <div className={`w-full bg-[#0a0f1d] rounded-xl border border-slate-800/60 custom-scrollbar ${isMobile ? 'overflow-visible' : 'overflow-x-auto p-8'}`}>
-      <div className={`${isMobile ? 'flex justify-center p-4' : 'inline-block min-w-full'}`}>
+    <div className={`w-full bg-[#030712] rounded-3xl border border-white/5 shadow-2xl custom-scrollbar relative overflow-hidden ${isMobile ? '' : 'p-10'}`}>
+      {/* Dynamic Background Noise/Pulsing Layer */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]" />
+      
+      <div className={`${isMobile ? 'flex justify-center py-10' : 'inline-block min-w-full'}`}>
         <svg 
           width={isMobile ? verticalSvgWidth : horizontalSvgWidth} 
           height={isMobile ? verticalSvgHeight : horizontalSvgHeight} 
           viewBox={isMobile ? `0 0 ${verticalSvgWidth} ${verticalSvgHeight}` : `0 0 ${horizontalSvgWidth} ${horizontalSvgHeight}`} 
           className="overflow-visible"
         >
-          {/* Subtle grid guide */}
-          {isMobile ? (
-             <line x1={paddingX} y1={0} x2={paddingX} y2={verticalSvgHeight} stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
-          ) : (
-             <line x1={0} y1={paddingY} x2={horizontalSvgWidth} y2={paddingY} stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
-          )}
+          <defs>
+            {/* Elegant Path Gradient */}
+            <linearGradient id="activeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="50%" stopColor="#818cf8" />
+              <stop offset="100%" stopColor="#3b82f6" />
+            </linearGradient>
 
-          {/* Connection Lines */}
-          {numStops > 1 && (
-            <>
-              {/* Base Path (Grey) */}
-              <line 
-                x1={isMobile ? paddingX : paddingX} 
-                y1={isMobile ? paddingY : paddingY} 
-                x2={isMobile ? paddingX : horizontalSvgWidth - paddingX} 
-                y2={isMobile ? verticalSvgHeight - paddingY : paddingY} 
-                stroke="#1e293b" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-              />
-              
-              {/* Active Progress Path */}
-              {vehicles.map(v => {
-                const headPos = paddingY + (v.currentSegmentIndex * segmentLength) + (v.progressInSegment * segmentLength);
-                return (
-                  <line 
-                    key={`line-${v.id}`}
-                    x1={isMobile ? paddingX : paddingX} 
-                    y1={isMobile ? paddingY : paddingY} 
-                    x2={isMobile ? paddingX : headPos} 
-                    y2={isMobile ? headPos : paddingY} 
-                    stroke="#3b82f6" 
-                    strokeWidth="2" 
-                    strokeLinecap="round"
-                    className="transition-all duration-1000 ease-linear"
-                  />
-                );
-              })}
-            </>
-          )}
+            {/* Depth Effects */}
+            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            
+            <filter id="stopPulse" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0.231 0 0 0 0 0.513 0 0 0 0 0.964 0 0 0 0.4 0" />
+              <feMerge><feMergeNode /><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
 
-          {/* Stops */}
+          {/* Base Static Path (Elegant, dark slate) */}
+          <line 
+            x1={isMobile ? paddingX : paddingX} 
+            y1={isMobile ? paddingY : paddingY} 
+            x2={isMobile ? paddingX : horizontalSvgWidth - paddingX} 
+            y2={isMobile ? verticalSvgHeight - paddingY : paddingY} 
+            stroke="#111827" 
+            strokeWidth="4" 
+            strokeLinecap="round" 
+          />
+
+          {/* Flowing Path Progress */}
+          {vehicles.map(v => {
+            const headPos = paddingY + (v.currentSegmentIndex * segmentLength) + (v.progressInSegment * segmentLength);
+            return (
+              <g key={`progress-${v.id}`}>
+                {/* Glow layer */}
+                <line 
+                  x1={isMobile ? paddingX : paddingX} 
+                  y1={isMobile ? paddingY : paddingY} 
+                  x2={isMobile ? paddingX : headPos} 
+                  y2={isMobile ? headPos : paddingY} 
+                  stroke="#3b82f6" 
+                  strokeWidth="6" 
+                  strokeLinecap="round"
+                  opacity="0.15"
+                  filter="url(#softGlow)"
+                  className="transition-all duration-1000 ease-linear"
+                />
+                {/* Core animated path */}
+                <line 
+                  x1={isMobile ? paddingX : paddingX} 
+                  y1={isMobile ? paddingY : paddingY} 
+                  x2={isMobile ? paddingX : headPos} 
+                  y2={isMobile ? headPos : paddingY} 
+                  stroke="url(#activeGradient)" 
+                  strokeWidth="2" 
+                  strokeLinecap="round"
+                  strokeDasharray="4,6"
+                  className="transition-all duration-1000 ease-linear"
+                >
+                  <animate attributeName="stroke-dashoffset" from="20" to="0" dur="0.8s" repeatCount="indefinite" />
+                </line>
+              </g>
+            );
+          })}
+
+          {/* Stops Rendering */}
           {stops.map((stop, index) => {
             const stopPos = (isMobile ? paddingY : paddingX) + (index * segmentLength);
             const stopX = isMobile ? paddingX : stopPos;
@@ -104,90 +139,118 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
             
             const isPassed = vehicles.some(v => v.currentSegmentIndex >= index);
             const isCurrent = vehicles.some(v => v.currentSegmentIndex === index);
+            const isNext = vehicles.some(v => v.currentSegmentIndex === index - 1);
             
             return (
               <g key={stop.id} transform={`translate(${stopX}, ${stopY})`}>
-                {/* Time Indicator */}
+                {/* Stop Time Indicator (Floating glass style) */}
                 {index < numStops - 1 && stop.timeToNext && (
-                  <text 
-                    x={isMobile ? 20 : segmentLength / 2} 
-                    y={isMobile ? segmentLength / 2 : -15} 
-                    fill="#475569" 
-                    fontSize="10" 
-                    fontWeight="600" 
-                    textAnchor={isMobile ? "start" : "middle"} 
-                    className="font-sans tracking-wide"
-                  >
-                    {stop.timeToNext}
-                  </text>
+                  <g transform={`translate(${isMobile ? 25 : segmentLength / 2}, ${isMobile ? segmentLength / 2 : -25})`}>
+                    <text 
+                      fill="#4b5563" 
+                      fontSize="9" 
+                      fontWeight="bold" 
+                      textAnchor={isMobile ? "start" : "middle"} 
+                      className="font-sans tracking-[0.2em] opacity-80"
+                    >
+                      {stop.timeToNext}
+                    </text>
+                  </g>
                 )}
 
-                {/* Stop Dot */}
+                {/* Stop Visual Node */}
+                {isPassed && (
+                   <circle r="4" fill="#3b82f6" filter="url(#stopPulse)" />
+                )}
+                
                 <circle 
-                  r="6" 
-                  fill={isPassed ? "#3b82f6" : "#0a0f1d"} 
-                  stroke={isPassed ? "#3b82f6" : "#334155"} 
+                  r={isCurrent ? "10" : "6"} 
+                  fill={isCurrent ? "#030712" : (isPassed ? "#3b82f6" : "#030712")} 
+                  stroke={isPassed ? "#3b82f6" : "#1f2937"} 
                   strokeWidth="2" 
+                  className="transition-all duration-500"
                 />
+
                 {isCurrent && (
-                  <circle r="12" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="3 2" className="animate-spin-slow" />
+                   <circle r="12" fill="none" stroke="#3b82f6" strokeWidth="1" opacity="0.4" className="animate-ping" />
                 )}
 
-                {/* Stop Name */}
-                <text 
-                  x={isMobile ? 18 : 0}
-                  y={isMobile ? 4 : 25} 
-                  textAnchor={isMobile ? "start" : "middle"}
-                  fill={isPassed ? "#e2e8f0" : "#64748b"}
-                  fontSize="11" 
-                  fontWeight={isPassed ? "600" : "500"}
-                  className="font-sans uppercase tracking-tighter"
-                >
-                  {stop.name}
-                </text>
+                {/* Stop Label Block */}
+                <g transform={`translate(${isMobile ? 24 : 0}, ${isMobile ? 4 : 32})`}>
+                   <text 
+                    textAnchor={isMobile ? "start" : "middle"}
+                    fill={isPassed || isCurrent ? "#f3f4f6" : "#4b5563"}
+                    fontSize="10" 
+                    fontWeight={isPassed || isCurrent ? "800" : "500"}
+                    className={`font-sans tracking-widest uppercase transition-all duration-500 ${isCurrent ? 'scale-110' : ''}`}
+                  >
+                    {stop.name}
+                  </text>
+                  {isNext && (
+                    <text 
+                      y={isMobile ? 12 : 12} 
+                      textAnchor={isMobile ? "start" : "middle"} 
+                      fill="#3b82f6" 
+                      fontSize="7" 
+                      fontWeight="bold" 
+                      className="animate-pulse tracking-[0.3em]"
+                    >
+                      UPCOMING
+                    </text>
+                  )}
+                </g>
               </g>
             );
           })}
 
-          {/* Vehicles */}
+          {/* Vehicles (Floating Pill Style) */}
           {vehicles.map((v, idx) => {
             const truckPos = (isMobile ? paddingY : paddingX) + (v.currentSegmentIndex * segmentLength) + (v.progressInSegment * segmentLength);
             const truckX = isMobile ? paddingX : truckPos;
             const truckY = isMobile ? truckPos : paddingY;
             
-            const offsetIdx = vehicles.filter((vOther, i) => i < idx && Math.abs(vOther.currentSegmentIndex + vOther.progressInSegment - (v.currentSegmentIndex + v.progressInSegment)) < 0.05).length;
-            const scrollOffset = isMobile ? (idx * 20 - 40) : (isMobile ? 0 : -35); // Horizontal offset on mobile
-            const verticalOffset = isMobile ? 0 : (offsetIdx * 15);
+            const mobileXOffset = isMobile ? (idx * 24 - 42) : 0;
+            const desktopYOffset = isMobile ? 0 : (idx * 24 - 50);
 
             return (
               <g 
                 key={v.id} 
-                transform={`translate(${isMobile ? truckX + scrollOffset : truckX}, ${isMobile ? truckY : truckY - 35 - verticalOffset})`} 
+                transform={`translate(${isMobile ? truckX + mobileXOffset : truckX}, ${isMobile ? truckY : truckY + desktopYOffset})`} 
                 className="transition-all duration-1000 ease-linear"
               >
-                {/* Minimalist Vehicle Card */}
-                <rect x="-35" y="-14" width="70" height="28" rx="4" fill="#1e293b" stroke="#3b82f6" strokeWidth="1" />
-                <rect x="-35" y="-14" width="24" height="28" rx="4" fill="#3b82f6" />
-                <foreignObject x="-31" y="-10" width="16" height="16">
+                {/* Floating Shadow */}
+                <ellipse cx="0" cy="20" rx="10" ry="4" fill="black" opacity="0.3" filter="url(#softGlow)" />
+
+                {/* Premium Pill Background */}
+                <rect 
+                  x="-42" y="-16" width="84" height="32" rx="16" 
+                  fill="#0f172a" 
+                  stroke="rgba(59, 130, 246, 0.4)" 
+                  strokeWidth="1"
+                  className="shadow-2xl"
+                />
+                
+                {/* Icon Circle */}
+                <circle cx="-26" cy="0" r="10" fill="#3b82f6" />
+                <foreignObject x="-31" y="-5" width="10" height="10">
                   <div className="text-white flex items-center justify-center">
-                    <Truck size={14} />
+                    <Truck size={10} className={v.status === 'moving' ? 'animate-bounce' : ''} />
                   </div>
                 </foreignObject>
-                <text x="18" y="4" textAnchor="middle" fill="white" fontSize="10" fontWeight="700" className="font-sans">
+
+                {/* Label (Bold/Technical) */}
+                <text x="12" y="3.5" textAnchor="middle" fill="white" fontSize="9" fontWeight="800" className="font-sans tracking-tight">
                   {v.label}
                 </text>
 
-                {/* Connector */}
-                {!isMobile && (
-                  <>
-                    <line x1="0" y1="14" x2="0" y2="35" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="2 2" />
-                    <circle cx="0" cy="35" r="3" fill="#3b82f6" />
-                  </>
+                {/* Live Activity indicator */}
+                {v.status === 'moving' && (
+                  <circle cx="34" cy="-8" r="2.5" fill="#22c55e" className="animate-pulse" />
                 )}
                 
-                {/* Status Pulse */}
-                {v.status === 'moving' && (
-                  <circle cx="-23" cy="-14" r="4" fill="#22c55e" stroke="#0a0f1d" strokeWidth="2" className="animate-pulse" />
+                {/* Minimalist connector point */}
+                {!isMobile && (
+                  <circle cx="0" cy={-desktopYOffset} r="2" fill="#3b82f6" opacity="0.4" />
                 )}
               </g>
             );
