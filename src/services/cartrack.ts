@@ -273,52 +273,59 @@ export const CartrackService = {
                 '/geofence_groups'
             ];
             
+            const allGeofences: CartrackGeofence[] = [];
+
             for (const endpoint of endpoints) {
                 try {
                     console.log(`[CartrackService] Attempting geofence discovery on ${endpoint}...`);
                     const response = await createCartrackRequest<any>(endpoint);
                     
-                    // Diagnostic log for developer console
                     if (response) {
-                        console.log(`[CartrackService] Response keys for ${endpoint}:`, Object.keys(response));
-                    }
+                        // Flexible extraction logic
+                        const items = response.geofences || 
+                                     response.points_of_interest || 
+                                     response.pois ||
+                                     response.data || 
+                                     response.rows || 
+                                     response.items ||
+                                     response.list ||
+                                     (Array.isArray(response) ? response : []);
 
-                    // Flexible extraction logic
-                    const items = response.geofences || 
-                                 response.points_of_interest || 
-                                 response.pois ||
-                                 response.data || 
-                                 response.rows || 
-                                 response.items ||
-                                 response.list ||
-                                 (Array.isArray(response) ? response : []);
+                        if (items.length > 0) {
+                            console.log(`[CartrackService] Found ${items.length} items at ${endpoint}`);
+                            const mapped = items.map((item: any) => {
+                                const lat = Number(item.latitude || item.lat || item.center?.lat || item.y || (item.points && item.points[0]?.lat) || 0);
+                                const lng = Number(item.longitude || item.lng || item.center?.lng || item.x || (item.points && item.points[0]?.lng) || 0);
+                                
+                                return {
+                                    id: String(item.id || item.poi_id || item.geofence_id || item.uuid || Math.random()),
+                                    name: item.name || item.label || item.description || item.text || `POI ${item.id}`,
+                                    area_id: item.area_id,
+                                    latitude: lat,
+                                    longitude: lng,
+                                    radius: item.radius || item.center?.radius || item.range || 0,
+                                    points: item.points || [{ lat, lng }]
+                                };
+                            }).filter((g: any) => g.latitude !== 0 && g.longitude !== 0);
 
-                    if (items.length > 0) {
-                        console.log(`[CartrackService] Found ${items.length} items at ${endpoint}`);
-                        const geofences: CartrackGeofence[] = items.map((item: any) => {
-                            const lat = Number(item.latitude || item.lat || item.center?.lat || item.y || (item.points && item.points[0]?.lat) || 0);
-                            const lng = Number(item.longitude || item.lng || item.center?.lng || item.x || (item.points && item.points[0]?.lng) || 0);
-                            
-                            return {
-                                id: String(item.id || item.poi_id || item.geofence_id || item.uuid || Math.random()),
-                                name: item.name || item.label || item.description || item.text || `POI ${item.id}`,
-                                area_id: item.area_id,
-                                latitude: lat,
-                                longitude: lng,
-                                radius: item.radius || item.center?.radius || item.range || 0,
-                                points: item.points || [{ lat, lng }]
-                            };
-                        }).filter((g: CartrackGeofence) => g.latitude !== 0 && g.longitude !== 0);
-
-                        if (geofences.length > 0) {
-                            console.log(`[CartrackService] Successfully mapped ${geofences.length} geofences from ${endpoint}`);
-                            return setCache(cacheKey, geofences, CACHE_TTL.geofences);
+                            if (mapped.length > 0) {
+                                console.log(`[CartrackService] Mapping ${mapped.length} items from ${endpoint}`);
+                                allGeofences.push(...mapped);
+                            }
                         }
                     }
                 } catch (error) {
                     console.warn(`[CartrackService] Discovery failed for ${endpoint}:`, error);
                 }
             }
+
+            if (allGeofences.length > 0) {
+                // Remove duplicates by ID (some Cartrack APIs might overlap)
+                const uniqueGeofences = Array.from(new Map(allGeofences.map(g => [g.id, g])).values());
+                console.log(`[CartrackService] Total unique geofences fetched: ${uniqueGeofences.length}`);
+                return setCache(cacheKey, uniqueGeofences, CACHE_TTL.geofences);
+            }
+
             console.warn('[CartrackService] No geofences discovered across all tried endpoints.');
             return [];
         });
