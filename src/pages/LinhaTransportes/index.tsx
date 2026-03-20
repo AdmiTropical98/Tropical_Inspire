@@ -68,19 +68,39 @@ export default function LinhaTransportes() {
       setError(null);
       const vData = await CartrackService.getVehicles();
       
-      const mappedVehicles = (vData || []).filter(v => {
-        if (!v.latitude || !v.longitude) return false;
-        const normalize = (p?: string) => (p || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-        const viatura = viaturas?.find(vi => normalize(vi.matricula) === normalize(v.registration));
-        if (!viatura) return false;
-        const activeDriver = motoristas?.find(m => 
-          (m.cartrackKey && v.tagId && m.cartrackKey === v.tagId) ||
-          (m.cartrackId && v.driverId && String(m.cartrackId) === String(v.driverId)) ||
-          (m.nome && v.driverName && m.nome.toLowerCase() === v.driverName.toLowerCase()) ||
-          (m.currentVehicle && normalize(m.currentVehicle) === normalize(viatura.matricula))
-        );
-        return todayServices.some(s => s.vehicleId === viatura.id || (activeDriver && s.motoristaId === activeDriver.id));
-      });
+const mappedVehicles = (vData || []).map(v => {
+  const normalize = (p?: string) =>
+    (p || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+  const viatura = viaturas?.find(vi =>
+    normalize(vi.matricula) === normalize(v.registration)
+  );
+
+  if (!viatura) return null;
+
+  const driver = motoristas?.find(m =>
+    (m.cartrackKey && v.tagId && m.cartrackKey === v.tagId) ||
+    (m.cartrackId && v.driverId && String(m.cartrackId) === String(v.driverId)) ||
+    (m.nome && v.driverName && m.nome.toLowerCase() === v.driverName.toLowerCase())
+  );
+
+  if (!driver) return null;
+
+  const driverServices = todayServices
+    .filter(s => s.motoristaId === driver.id)
+    .sort((a, b) => a.hora.localeCompare(b.hora));
+
+  const activeService = getActiveService(driverServices);
+
+  if (!activeService) return null;
+
+  return {
+    ...v,
+    viatura,
+    driver,
+    activeService
+  };
+}).filter(Boolean);
 
       setVehicles(mappedVehicles);
 
