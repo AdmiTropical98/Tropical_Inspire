@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useWorkshop } from '../contexts/WorkshopContext';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,26 +36,16 @@ interface LancarEscalaProps {
 export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     // const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout(); // Removed
 
-    const { centrosCustos, createScaleBatch, locais } = useWorkshop();
+    const { centrosCustos, createScaleBatch, locais, geofences } = useWorkshop();
     const { hasAccess } = usePermissions();
     const { userRole } = useAuth();
 
-    // Geofence Autocomplete State
-    const [geofenceSuggestions, setGeofenceSuggestions] = useState<string[]>([]);
-
-    useEffect(() => {
-        const fetchGeofences = async () => {
-            try {
-                const fences = await CartrackService.getGeofences();
-                // Extract unique names and sort
-                const names = Array.from(new Set(fences.map(f => f.name))).sort();
-                setGeofenceSuggestions(names);
-            } catch (e) {
-                console.error('Failed to load geofences for autocomplete:', e);
-            }
-        };
-        fetchGeofences();
-    }, []);
+    // Combined list of suggestions (Locais + Cartrack Geofences)
+    const locationSuggestions = useMemo(() => {
+        const cartrackNames = geofences.map(g => g.name);
+        const localNames = locais.map(l => l.nome);
+        return Array.from(new Set([...localNames, ...cartrackNames])).sort();
+    }, [geofences, locais]);
 
     // Access Control
     if (userRole && !hasAccess(userRole as any, 'escalas_create')) {
@@ -624,8 +614,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     return (
         <div className="flex flex-col text-slate-200 font-sans">
             {/* Datalist for AutoComplete */}
-            <datalist id="geofence-list">
-                {geofenceSuggestions.map((name, i) => (
+            <datalist id="geofences-list">
+                {locationSuggestions.map((name: string, i: number) => (
                     <option key={i} value={name} />
                 ))}
             </datalist>
@@ -866,8 +856,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                         <input
                                             className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
                                             value={row.origem}
-                                            maxLength={28}
-                                            list="geofence-list"
+                                            list="geofences-list"
                                             onChange={e => updateRow(row.tempId, 'origem', e.target.value)}
                                             onKeyDown={e => handleKeyDown(e, idx)}
                                             placeholder="Origem..."
@@ -878,8 +867,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                         <input
                                             className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
                                             value={row.destino}
-                                            maxLength={28}
-                                            list="geofence-list"
+                                            list="geofences-list"
                                             onChange={e => updateRow(row.tempId, 'destino', e.target.value)}
                                             onKeyDown={e => handleKeyDown(e, idx)}
                                             placeholder="Destino..."
