@@ -67,7 +67,8 @@ export default function LinhaTransportes() {
       setLoading(true);
       setError(null);
       const vData = await CartrackService.getVehicles();
-      
+
+console.log("CARTRACK:", vData);
 const mappedVehicles = (vData || []).map(v => {
   const normalize = (p?: string) =>
     (p || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
