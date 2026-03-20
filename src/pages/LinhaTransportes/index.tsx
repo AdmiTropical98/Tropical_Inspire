@@ -17,7 +17,7 @@ function getActiveService(services: Servico[]) {
         diff
       };
     })
-    .filter(item => item && item.diff >= -20 && item.diff <= 120) as {
+    .filter(item => item && item.diff >= -120 && diff <= 180) as {
       service: Servico;
       diff: number;
     }[];
@@ -93,6 +93,9 @@ const mappedVehicles = (vData || []).map(v => {
   const activeService = getActiveService(driverServices);
 
   if (!activeService) return null;
+  console.log("DRIVER:", driver);
+console.log("SERVICES:", driverServices);
+console.log("ACTIVE:", activeService);
 
   return {
     ...v,
