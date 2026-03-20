@@ -15,6 +15,14 @@ const FALLBACK_ROUTE: RouteStop[] = [
   { id: 'f1', name: 'A aguardar POIs reais...', coord: { lat: 37.0182, lng: -7.9696 } },
 ];
 
+const DEMO_ROUTE: RouteStop[] = [
+  { id: 'd1', name: 'Oficina Central', coord: { lat: 37.0175, lng: -7.9308 }, timeToNext: '15min' },
+  { id: 'd2', name: 'Paragem Norte', coord: { lat: 37.0250, lng: -7.9400 }, timeToNext: '10min' },
+  { id: 'd3', name: 'Zona Industrial', coord: { lat: 37.0300, lng: -7.9600 }, timeToNext: '12min' },
+  { id: 'd4', name: 'Aeroporto', coord: { lat: 37.0150, lng: -7.9700 }, timeToNext: '20min' },
+  { id: 'd5', name: 'Terminal Sul', coord: { lat: 37.0050, lng: -7.9500 } },
+];
+
 export default function LinhaTransportes() {
   const { geofences: contextGeofences, servicos, viaturas, motoristas } = useWorkshop();
   const [vehicles, setVehicles] = useState<CartrackVehicle[]>([]);
@@ -164,7 +172,7 @@ export default function LinhaTransportes() {
 
         setStops(finalStops.length > 0 ? finalStops : FALLBACK_ROUTE);
       } else if (stops === FALLBACK_ROUTE) {
-        setStops([
+        setStops(isDemoMode ? DEMO_ROUTE : [
           { id: 'm1', name: 'Sem POIs no Cartrack', coord: { lat: 37.0175, lng: -7.9308 } },
           { id: 'm2', name: 'Verifique definições', coord: { lat: 37.0175, lng: -8.0000 } }
         ]);
@@ -192,12 +200,21 @@ export default function LinhaTransportes() {
 
   // Demo Animation Effect
   useEffect(() => {
-    if (!isDemoMode) return;
+    if (!isDemoMode) {
+      setDemoProgress(0);
+      return;
+    }
+    
+    // If we're in demo mode and have fallback stops, switch to DEMO_ROUTE
+    if (stops.length <= 1 || stops[0].id === 'f1') {
+      setStops(DEMO_ROUTE);
+    }
     
     const interval = setInterval(() => {
       setDemoProgress(prev => {
-        const next = prev + 0.05;
-        if (next >= stops.length - 1) return 0; // Loop
+        const totalSegments = Math.max(1, stops.length - 1);
+        const next = prev + 0.02; // Slower, smoother movement
+        if (next >= totalSegments) return 0; // Loop
         return next;
       });
     }, 100);
