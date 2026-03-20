@@ -31,7 +31,7 @@ function getActiveService(services: Servico[]) {
   return validServices[0].service;
 }
 import { useState, useEffect, useMemo } from 'react';
-import { RefreshCcw, Navigation, Clock, MapPin, Truck as TruckIcon, Activity, AlertCircle } from 'lucide-react';
+import { RefreshCcw, Navigation, MapPin, Truck as TruckIcon, Activity } from 'lucide-react';
 import { CartrackService, cleanTagId } from '../../services/cartrack';
 import type { CartrackVehicle } from '../../services/cartrack';
 import MetroLine from '../../components/TransportLine/MetroLine';
@@ -53,7 +53,6 @@ export default function LinhaTransportes() {
   const { geofences: contextGeofences, servicos, viaturas, motoristas } = useWorkshop();
   const [vehicles, setVehicles] = useState<CartrackVehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -66,7 +65,6 @@ export default function LinhaTransportes() {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      setError(null);
       const vData = await CartrackService.getVehicles();
       const mappedVehicles = (vData || []).map(v => {
         if (!v.latitude || !v.longitude) return null;
@@ -82,20 +80,24 @@ export default function LinhaTransportes() {
           (m.currentVehicle && normalize(m.currentVehicle) === normalize(viatura.matricula))
         );
 
-        if (!driver) return null;
-
-        const driverServices = todayServices
-          .filter(s => s.motoristaId === driver.id)
+        const driverServices = driver 
+          ? todayServices.filter(s => s.motoristaId === driver.id)
+          : [];
+        
+        const vehicleServices = todayServices.filter(s => s.vehicleId === viatura.id);
+        
+        // Combine services from both driver and vehicle
+        const allRelevantServices = [...new Set([...driverServices, ...vehicleServices])]
           .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
 
-        const activeService = getActiveService(driverServices);
-        if (!activeService) return null;
+        const activeService = getActiveService(allRelevantServices);
 
         return {
           ...v,
           viatura,
           driver,
-          activeService
+          activeService,
+          allServices: allRelevantServices
         };
       }).filter((v): v is any => v !== null);
 
@@ -107,10 +109,9 @@ export default function LinhaTransportes() {
         let finalStops: RouteStop[] = [];
         if (selectedVehicleId) {
           const v = mappedVehicles.find(v => v.id === selectedVehicleId);
-          const viatura = viaturas?.find(vi => v && vi.matricula.replace(/[^a-zA-Z0-9]/g, '') === v.registration.replace(/[^a-zA-Z0-9]/g, ''));
-          const vehicleServices = todayServices.filter(s => s.vehicleId === viatura?.id).sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+          const vehicleServices = v?.allServices || [];
           const stopNamesWithTime: { name: string, time: string }[] = [];
-          vehicleServices.forEach(s => {
+          vehicleServices.forEach((s: Servico) => {
             if (!stopNamesWithTime.find(item => item.name === s.origem)) stopNamesWithTime.push({ name: s.origem, time: s.hora });
             if (!stopNamesWithTime.find(item => item.name === s.destino)) stopNamesWithTime.push({ name: s.destino, time: s.hora });
           });
@@ -138,7 +139,7 @@ export default function LinhaTransportes() {
       }
       setLastUpdate(new Date());
     } catch (err) {
-      setError('Aviso: Falha ao sincronizar com Cartrack.');
+      console.warn('Aviso: Falha ao sincronizar com Cartrack.');
     } finally {
       setLoading(false);
     }
