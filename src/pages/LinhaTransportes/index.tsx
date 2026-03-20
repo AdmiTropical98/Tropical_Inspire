@@ -1,19 +1,33 @@
 function getActiveService(services: Servico[]) {
   const now = new Date();
 
-  return services.find(s => {
-    if (!s.hora) return false;
+  const validServices = services
+    .map(s => {
+      if (!s.hora) return null;
 
-    const [h, m] = s.hora.split(':').map(Number);
+      const [h, m] = s.hora.split(':').map(Number);
 
-    const serviceTime = new Date();
-    serviceTime.setHours(h, m, 0, 0);
+      const serviceTime = new Date();
+      serviceTime.setHours(h, m, 0, 0);
 
-    const diff = (now.getTime() - serviceTime.getTime()) / 60000;
+      const diff = (now.getTime() - serviceTime.getTime()) / 60000;
 
-    // janela: 20 min antes até 120 min depois
-    return diff >= -20 && diff <= 120;
-  });
+      return {
+        service: s,
+        diff
+      };
+    })
+    .filter(item => item && item.diff >= -20 && item.diff <= 120) as {
+      service: Servico;
+      diff: number;
+    }[];
+
+  if (validServices.length === 0) return null;
+
+  // 👉 escolher o MAIS próximo da hora atual
+  validServices.sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
+
+  return validServices[0].service;
 }
 import { useState, useEffect, useMemo } from 'react';
 import { RefreshCcw, Navigation, Clock, MapPin, Truck as TruckIcon, Activity, AlertCircle } from 'lucide-react';
