@@ -24,7 +24,8 @@ const normalizeName = (name?: string | null) =>
         .trim()
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, ""); // Also remove non-alphanumeric except spaces
 
 const isNameMatch = (nameA?: string | null, nameB?: string | null) => {
     const a = normalizeName(nameA);
@@ -33,15 +34,24 @@ const isNameMatch = (nameA?: string | null, nameB?: string | null) => {
     if (a === b) return true;
     
     // Check if one contains the other as a significant part
-    // Avoid matching very short names unless they are exact
     if (a.length < 3 || b.length < 3) return a === b;
     
-    // Check for whole-word inclusion to avoid partial name errors
-    const wordsA = a.split(/\s+/);
-    const wordsB = b.split(/\s+/);
+    const wordsA = a.split(/\s+/).filter(w => w.length > 1);
+    const wordsB = b.split(/\s+/).filter(w => w.length > 1);
     
-    // If m.nome is "Julio" and v.driverName is "Julio Bento", we match
-    return wordsB.some(w => w === a) || wordsA.some(w => w === b);
+    if (wordsA.length === 0 || wordsB.length === 0) return a === b;
+
+    // High confidence: At least two significant words match in any order
+    const commonWords = wordsA.filter(w => wordsB.includes(w));
+    if (commonWords.length >= 2) return true;
+
+    // Fallback: One significant word match if it's the ONLY significant word in one of them
+    if ((wordsA.length === 1 || wordsB.length === 1) && commonWords.length >= 1) return true;
+    
+    // Last resort: String inclusion if long enough (e.g., "EDSON RODRIGUES OBRA" and "EDSON RODRIGUES")
+    if (a.length > 8 && b.length > 8 && (a.includes(b) || b.includes(a))) return true;
+
+    return false;
 };
 
 const isServiceUrgent = (serviceDate?: string, serviceHour?: string) => {

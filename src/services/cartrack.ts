@@ -434,7 +434,12 @@ export const CartrackService = {
 
 export const cleanTagId = (tag?: string): string => {
     if (!tag) return '';
-    return tag.trim().toUpperCase().replace(/\s+/g, '').replace(/-/g, '');
+    return tag.trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, '')
+        .replace(/-/g, '');
 };
 
 export const getTagVariants = (tag?: string): string[] => {
