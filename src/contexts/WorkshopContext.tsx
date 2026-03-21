@@ -314,6 +314,7 @@ interface WorkshopContextType {
     addNotification: (n: Notification) => void;
     updateNotification: (n: Notification) => Promise<{ error: any }>;
     refreshData: () => Promise<void>;
+    isRefreshing: boolean; // NEW
     adminUsers: AdminUser[];
     createAdminUser: (email: string, password: string, nome: string) => Promise<{ success: boolean; error?: string }>;
     deleteAdminUser: (id: string) => Promise<void>;
@@ -366,6 +367,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const [cartrackDrivers, setCartrackDrivers] = useState<import('../services/cartrack').CartrackDriver[]>([]);
     const [cartrackError, setCartrackError] = useState<string | null>(null);
     const [dbConnectionError, setDbConnectionError] = useState<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
 
 
@@ -1209,93 +1211,80 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     // If Cartrack succeeded, perform enrichment
                     if (cDrivers && cVehicles) {
                         const enriched = await Promise.all(dbMotoristas.map(async (m: any) => {
-                            // 1. Try to find missing cartrackId by matching cartrackKey OR Name
-                            let currentCartrackId = m.cartrack_id;
-                            if (!currentCartrackId) {
-                                // Match by tag first
-                                const matchedCDriver = cDrivers.find(cd => cd.tagId && m.cartrack_key && cd.tagId === m.cartrack_key);
-                                if (matchedCDriver) {
-                                    currentCartrackId = matchedCDriver.id;
-                                    await supabase.from('motoristas').update({ cartrack_id: matchedCDriver.id }).eq('id', m.id);
-                                } else {
-                                    // Match by fuzzy name if tag failed
-                                    const matchedByName = cDrivers.find(cd => isNameMatch(cd.fullName, m.nome));
-                                    if (matchedByName) {
-                                        currentCartrackId = matchedByName.id;
-                                        // Also update tag if available and missing locally
-                                        const updatePayload: any = { cartrack_id: matchedByName.id };
-                                        if (matchedByName.tagId && !m.cartrack_key) {
-                                            updatePayload.cartrack_key = matchedByName.tagId;
+                            try {
+                                // 1. Try to find missing cartrackId by matching cartrackKey OR Name
+                                let currentCartrackId = m.cartrack_id;
+                                if (!currentCartrackId) {
+                                    // Match by tag first
+                                    const matchedCDriver = cDrivers.find(cd => cd.tagId && m.cartrack_key && cd.tagId === m.cartrack_key);
+                                    if (matchedCDriver) {
+                                        currentCartrackId = matchedCDriver.id;
+                                        await supabase.from('motoristas').update({ cartrack_id: matchedCDriver.id }).eq('id', m.id);
+                                    } else {
+                                        // Match by fuzzy name if tag failed
+                                        const matchedByName = cDrivers.find(cd => isNameMatch(cd.fullName, m.nome));
+                                        if (matchedByName) {
+                                            currentCartrackId = matchedByName.id;
+                                            // Also update tag if available and missing locally
+                                            const updatePayload: any = { cartrack_id: matchedByName.id };
+                                            if (matchedByName.tagId && !m.cartrack_key) {
+                                                updatePayload.cartrack_key = matchedByName.tagId;
+                                            }
+                                            await supabase.from('motoristas').update(updatePayload).eq('id', m.id);
                                         }
-                                        await supabase.from('motoristas').update(updatePayload).eq('id', m.id);
                                     }
                                 }
-                            }
 
-                            // 2. Active Vehicle Status (Enhanced Matching)
-                            const activeVehicle = cVehicles.find(v => {
-                                const vTagClean = cleanTagId(v.tagId);
+                                // 2. Active Vehicle Status (Enhanced Matching)
+                                const activeVehicle = cVehicles.find(v => {
+                                    const vTagClean = cleanTagId(v.tagId);
+                                    const mTagClean = cleanTagId(m.cartrack_key);
+                                    
+                                    const idMatch = currentCartrackId && String(v.driverId) === String(currentCartrackId);
+                                    const nameMatch = isNameMatch(v.driverName, m.nome);
+                                    const tagMatch = vTagClean && mTagClean && vTagClean === mTagClean;
+                                    const plateMatch = m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle);
+                                    
+                                    // NEW: Extra loose matching for "tag with same name" cases
+                                    const nameInTagMatch = v.tagId && isNameMatch(v.tagId, m.nome);
+                                    
+                                    if (idMatch || nameMatch || tagMatch || plateMatch || nameInTagMatch) return true;
+                                    return false;
+                                });
+
+                                // PERSIFTENCE: If we detected a NEW vehicle via Cartrack that differs from DB, save it!
+                                if (activeVehicle && activeVehicle.registration !== m.current_vehicle) {
+                                    console.log(`[Auto-Sync] Updating vehicle for ${m.nome}: ${activeVehicle.registration}`);
+                                    supabase.from('motoristas')
+                                        .update({ current_vehicle: activeVehicle.registration })
+                                        .eq('id', m.id)
+                                        .then(({ error }) => {
+                                            if (error) console.error('Failed to persist auto-detected vehicle:', error);
+                                        });
+                                }
+
+                                const debugLogs: string[] = [];
+                                const vTagClean = activeVehicle ? cleanTagId(activeVehicle.tagId) : null;
                                 const mTagClean = cleanTagId(m.cartrack_key);
                                 
-                                const idMatch = currentCartrackId && String(v.driverId) === String(currentCartrackId);
-                                const nameMatch = isNameMatch(v.driverName, m.nome);
-                                const tagMatch = vTagClean && mTagClean && vTagClean === mTagClean;
-                                const plateMatch = m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle);
-                                
-                                // NEW: Extra loose matching for "tag with same name" cases
-                                const nameInTagMatch = v.tagId && isNameMatch(v.tagId, m.nome);
-                                
-                                if (idMatch || nameMatch || tagMatch || plateMatch || nameInTagMatch) {
-                                    if (m.nome.toLowerCase().includes('marco')) {
-                                        console.log(`[DEBUG] Found match for ${m.nome}: ${v.registration} (ID:${idMatch}, Name:${nameMatch}, Tag:${tagMatch}, Plate:${plateMatch}, NameInTag:${nameInTagMatch})`);
-                                    }
-                                    return true;
+                                debugLogs.push(`T:${mTagClean || '?'}`);
+                                if (currentCartrackId) debugLogs.push(`ID:${String(currentCartrackId).slice(-4)}`);
+                                if (activeVehicle) {
+                                    debugLogs.push(`V:${activeVehicle.registration}`);
+                                    if (vTagClean) debugLogs.push(`VT:${vTagClean}`);
                                 }
-                                
-                                if (m.nome.toLowerCase().includes('marco')) {
-                                   // console.log(`[DEBUG] No match for ${m.nome} against ${v.registration} (Status: ${v.status}, DriverName: ${v.driverName}, TagId: ${v.tagId})`);
-                                }
-                                return false;
-                            });
 
-                            // PERSIFTENCE: If we detected a NEW vehicle via Cartrack that differs from DB, save it!
-                            if (activeVehicle && activeVehicle.registration !== m.current_vehicle) {
-                                console.log(`[Auto-Sync] Updating vehicle for ${m.nome}: ${activeVehicle.registration}`);
-                                // Fire and forget update to avoid blocking UI
-                                supabase.from('motoristas')
-                                    .update({ current_vehicle: activeVehicle.registration })
-                                    .eq('id', m.id)
-                                    .then(({ error }) => {
-                                        if (error) console.error('Failed to persist auto-detected vehicle:', error);
-                                    });
+                                return {
+                                    ...m,
+                                    currentVehicle: activeVehicle?.registration || m.current_vehicle,
+                                    status: activeVehicle ? 'ocupado' : (m.status || 'disponivel'),
+                                    cartrackId: currentCartrackId,
+                                    debugInfo: debugLogs.join('|')
+                                };
+                            } catch (e) {
+                                console.error(`Failed to enrich driver ${m.nome}:`, e);
+                                return { ...m, debugInfo: 'Err: Enrichment' };
                             }
-
-                            const debugLogs: string[] = [];
-                            const vTagClean = activeVehicle ? cleanTagId(activeVehicle.tagId) : null;
-                            const mTagClean = cleanTagId(m.cartrack_key);
-                            
-                            debugLogs.push(`T:${mTagClean || '?'}`);
-                            if (currentCartrackId) debugLogs.push(`ID:${String(currentCartrackId).slice(-4)}`);
-                            if (activeVehicle) {
-                                debugLogs.push(`V:${activeVehicle.registration}`);
-                                if (vTagClean) debugLogs.push(`VT:${vTagClean}`);
-                            }
-
-                            return {
-                                ...m,
-                                vencimentoBase: m.vencimento_base,
-                                valorHora: m.valor_hora,
-                                dataRegisto: m.data_registo,
-                                cartaConducao: m.carta_conducao,
-                                blockedPermissions: m.blocked_permissions,
-                                turnoInicio: m.turno_inicio,
-                                turnoFim: m.turno_fim,
-                                cartrackKey: m.cartrack_key,
-                                cartrackId: currentCartrackId,
-                                currentVehicle: activeVehicle?.registration || m.current_vehicle,
-                                status: activeVehicle ? 'ocupado' : (m.status || 'disponivel'),
-                                debugInfo: debugLogs.join('|')
-                            };
                         }));
                         updatedMotoristas = enriched as Motorista[];
                     }
@@ -1609,15 +1598,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 role: a.role,
                 createdAt: a.created_at
             })));
-
-            if (admins) setAdminUsers(admins.map((a: any) => ({
-                id: a.id,
-                email: a.email,
-                nome: a.nome,
-                role: a.role,
-                createdAt: a.created_at
-            })));
-
             // 7. Manual Hours
             const { data: mh } = await supabase.from('manual_hours').select('*');
             if (mh) setManualHours(mh.map((item: any) => ({
@@ -1663,6 +1643,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
         } catch (error) {
             console.error('Error refreshing data:', error);
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
@@ -4793,6 +4775,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             addNotification,
             updateNotification,
             refreshData,
+            isRefreshing,
             complianceStats,
             runComplianceCheck,
             runComplianceDemo, // Fixed duplicate

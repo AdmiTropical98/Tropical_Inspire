@@ -1,7 +1,8 @@
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, useDraggable, useDroppable, type DragEndEvent } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowRight, Car, Clock3, MapPin, Users, CheckCircle } from 'lucide-react';
+import { ArrowRight, Car, Clock3, MapPin, Users, CheckCircle, RefreshCw } from 'lucide-react';
 import type { Motorista, Servico } from '../../types';
+import { useWorkshop } from '../../contexts/WorkshopContext';
 import { coerceServiceStatus, toDispatchStageLabel, updateServiceStatus } from '../../services/serviceStatus';
 
 interface DispatchBoardProps {
@@ -192,6 +193,7 @@ function BoardColumn({
 }
 
 export default function DispatchBoard({ motoristas, pendentes, assigned, onMoveService, isUrgentService }: DispatchBoardProps) {
+    const { refreshData, isRefreshing } = useWorkshop();
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
     const servicesByDriver = new Map<string, Servico[]>();
@@ -232,9 +234,20 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, onMoveS
 
     return (
         <div className="h-full flex flex-col min-h-0">
-            <div className="mb-2 px-1 flex items-center gap-2 text-xs text-slate-400">
-                <Clock3 className="w-4 h-4" />
-                Dispatch Board • Arrastar entre Pendentes e Motoristas
+            <div className="mb-2 px-1 flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                    <Clock3 className="w-4 h-4" />
+                    Dispatch Board • Arrastar entre Pendentes e Motoristas
+                </div>
+                <button
+                    onClick={() => refreshData()}
+                    disabled={isRefreshing}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-300 transition-all ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    title="Forçar sincronização com Cartrack e Base de Dados"
+                >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? 'Sincronizando...' : 'Sincronizar Agora'}
+                </button>
             </div>
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
