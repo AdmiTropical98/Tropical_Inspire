@@ -132,7 +132,8 @@ function BoardColumn({
     vehicle,
     count,
     services,
-    isUrgentService
+    isUrgentService,
+    debugInfo
 }: {
     id: string;
     title: string;
@@ -141,6 +142,7 @@ function BoardColumn({
     count: number;
     services: Servico[];
     isUrgentService: (service: Partial<Servico>) => boolean;
+    debugInfo?: string;
 }) {
     const { setNodeRef, isOver } = useDroppable({ id });
     const isPendingColumn = id === 'pending';
@@ -162,6 +164,11 @@ function BoardColumn({
                             <p className="text-[11px] text-indigo-300/90 truncate inline-flex items-center gap-1 mt-0.5">
                                 <Car className="w-3 h-3" />
                                 {vehicle || 'Sem viatura associada'}
+                            </p>
+                        )}
+                        {debugInfo && (
+                            <p className="text-[9px] text-slate-500 mt-1 truncate max-w-full opacity-50 font-mono">
+                                DBG: {debugInfo}
                             </p>
                         )}
                     </div>
@@ -254,6 +261,7 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, onMoveS
                                     count={driverServices.length}
                                     services={driverServices}
                                     isUrgentService={isUrgentService}
+                                    debugInfo={(driver as any).debugInfo}
                                 />
                             );
                         })}

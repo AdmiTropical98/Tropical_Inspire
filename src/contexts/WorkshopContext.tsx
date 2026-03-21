@@ -1270,6 +1270,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                                     });
                             }
 
+                            const debugLogs: string[] = [];
+                            const vTagClean = activeVehicle ? cleanTagId(activeVehicle.tagId) : null;
+                            const mTagClean = cleanTagId(m.cartrack_key);
+                            
+                            debugLogs.push(`T:${mTagClean || '?'}`);
+                            if (currentCartrackId) debugLogs.push(`ID:${String(currentCartrackId).slice(-4)}`);
+                            if (activeVehicle) {
+                                debugLogs.push(`V:${activeVehicle.registration}`);
+                                if (vTagClean) debugLogs.push(`VT:${vTagClean}`);
+                            }
+
                             return {
                                 ...m,
                                 vencimentoBase: m.vencimento_base,
@@ -1282,7 +1293,8 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                                 cartrackKey: m.cartrack_key,
                                 cartrackId: currentCartrackId,
                                 currentVehicle: activeVehicle?.registration || m.current_vehicle,
-                                status: activeVehicle ? 'ocupado' : (m.status || 'disponivel')
+                                status: activeVehicle ? 'ocupado' : (m.status || 'disponivel'),
+                                debugInfo: debugLogs.join('|')
                             };
                         }));
                         updatedMotoristas = enriched as Motorista[];
