@@ -19,6 +19,31 @@ const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => 
     return R * c; // in metres
 };
 
+const normalizeName = (name?: string | null) =>
+    String(name || '')
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+const isNameMatch = (nameA?: string | null, nameB?: string | null) => {
+    const a = normalizeName(nameA);
+    const b = normalizeName(nameB);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    
+    // Check if one contains the other as a significant part
+    // Avoid matching very short names unless they are exact
+    if (a.length < 3 || b.length < 3) return a === b;
+    
+    // Check for whole-word inclusion to avoid partial name errors
+    const wordsA = a.split(/\s+/);
+    const wordsB = b.split(/\s+/);
+    
+    // If m.nome is "Julio" and v.driverName is "Julio Bento", we match
+    return wordsB.some(w => w === a) || wordsA.some(w => w === b);
+};
+
 const isServiceUrgent = (serviceDate?: string, serviceHour?: string) => {
     if (!serviceHour) return false;
 
@@ -1174,21 +1199,33 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     // If Cartrack succeeded, perform enrichment
                     if (cDrivers && cVehicles) {
                         const enriched = await Promise.all(dbMotoristas.map(async (m: any) => {
-                            // 1. Try to find missing cartrackId by matching cartrackKey
+                            // 1. Try to find missing cartrackId by matching cartrackKey OR Name
                             let currentCartrackId = m.cartrack_id;
-                            if (!currentCartrackId && m.cartrack_key) {
-                                const matchedCDriver = cDrivers.find(cd => cd.tagId === m.cartrack_key);
+                            if (!currentCartrackId) {
+                                // Match by tag first
+                                const matchedCDriver = cDrivers.find(cd => cd.tagId && m.cartrack_key && cd.tagId === m.cartrack_key);
                                 if (matchedCDriver) {
                                     currentCartrackId = matchedCDriver.id;
-                                    // Silent update to persist relation
                                     await supabase.from('motoristas').update({ cartrack_id: matchedCDriver.id }).eq('id', m.id);
+                                } else {
+                                    // Match by fuzzy name if tag failed
+                                    const matchedByName = cDrivers.find(cd => isNameMatch(cd.fullName, m.nome));
+                                    if (matchedByName) {
+                                        currentCartrackId = matchedByName.id;
+                                        // Also update tag if available and missing locally
+                                        const updatePayload: any = { cartrack_id: matchedByName.id };
+                                        if (matchedByName.tagId && !m.cartrack_key) {
+                                            updatePayload.cartrack_key = matchedByName.tagId;
+                                        }
+                                        await supabase.from('motoristas').update(updatePayload).eq('id', m.id);
+                                    }
                                 }
                             }
 
                             // 2. Active Vehicle Status (Enhanced Matching)
                             const activeVehicle = cVehicles.find(v =>
                                 (currentCartrackId && String(v.driverId) === String(currentCartrackId)) ||
-                                (v.driverName && v.driverName.toLowerCase() === m.nome.toLowerCase()) ||
+                                (isNameMatch(v.driverName, m.nome)) ||
                                 (v.tagId && m.cartrack_key && v.tagId === m.cartrack_key) || // Direct tag-to-key match
                                 (m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle))
                             );
