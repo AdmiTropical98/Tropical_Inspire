@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { Fornecedor, Requisicao, Viatura, Motorista, Supervisor, Gestor, Notification, OficinaUser, FuelTank, FuelTransaction, TankRefillLog, CentroCusto, EvaTransport, Cliente, AdminUser, Servico, Avaliacao, ManualHourRecord, Local, ScaleBatch, VehicleMetrics, RotaPlaneada, LogOperacional, ZonaOperacional, AreaOperacional, EscalaTemplate, EscalaTemplateItem, ServiceEvent, DriverVehicleSession } from '../types';
-import { CartrackService, getTagVariants, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
+import { CartrackService, getTagVariants, cleanTagId, type CartrackGeofence, type CartrackGeofenceVisit } from '../services/cartrack';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import { usePermissions } from './PermissionsContext';
@@ -1223,12 +1223,30 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             }
 
                             // 2. Active Vehicle Status (Enhanced Matching)
-                            const activeVehicle = cVehicles.find(v =>
-                                (currentCartrackId && String(v.driverId) === String(currentCartrackId)) ||
-                                (isNameMatch(v.driverName, m.nome)) ||
-                                (v.tagId && m.cartrack_key && v.tagId === m.cartrack_key) || // Direct tag-to-key match
-                                (m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle))
-                            );
+                            const activeVehicle = cVehicles.find(v => {
+                                const vTagClean = cleanTagId(v.tagId);
+                                const mTagClean = cleanTagId(m.cartrack_key);
+                                
+                                const idMatch = currentCartrackId && String(v.driverId) === String(currentCartrackId);
+                                const nameMatch = isNameMatch(v.driverName, m.nome);
+                                const tagMatch = vTagClean && mTagClean && vTagClean === mTagClean;
+                                const plateMatch = m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle);
+                                
+                                // NEW: Extra loose matching for "tag with same name" cases
+                                const nameInTagMatch = v.tagId && isNameMatch(v.tagId, m.nome);
+                                
+                                if (idMatch || nameMatch || tagMatch || plateMatch || nameInTagMatch) {
+                                    if (m.nome.toLowerCase().includes('marco')) {
+                                        console.log(`[DEBUG] Found match for ${m.nome}: ${v.registration} (ID:${idMatch}, Name:${nameMatch}, Tag:${tagMatch}, Plate:${plateMatch}, NameInTag:${nameInTagMatch})`);
+                                    }
+                                    return true;
+                                }
+                                
+                                if (m.nome.toLowerCase().includes('marco')) {
+                                   // console.log(`[DEBUG] No match for ${m.nome} against ${v.registration} (Status: ${v.status}, DriverName: ${v.driverName}, TagId: ${v.tagId})`);
+                                }
+                                return false;
+                            });
 
                             // PERSIFTENCE: If we detected a NEW vehicle via Cartrack that differs from DB, save it!
                             if (activeVehicle && activeVehicle.registration !== m.current_vehicle) {
