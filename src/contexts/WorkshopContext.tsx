@@ -3068,7 +3068,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
         });
         if (error) {
             console.error('Error adding requisition:', error);
-            return;
+            throw error;
         }
         setRequisicoes(prev => [{ ...r, status: r.status || 'pendente' }, ...prev]);
     };
@@ -3204,7 +3204,11 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             supplier_response_date: r.supplier_response_date ?? null,
             itens: r.itens
         }).eq('id', r.id);
-        if (!error) setRequisicoes(prev => prev.map(curr => curr.id === r.id ? r : curr));
+        if (error) {
+            console.error('Error updating requisition:', error);
+            throw error;
+        }
+        setRequisicoes(prev => prev.map(curr => curr.id === r.id ? r : curr));
     };
     const deleteRequisicao = async (id: string) => {
         const { error } = await supabase.from('requisicoes').delete().eq('id', id);

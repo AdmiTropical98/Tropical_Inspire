@@ -62,6 +62,7 @@ export default function Requisicoes() {
     const [emailCc, setEmailCc] = useState('');
     const [emailSubject, setEmailSubject] = useState('');
     const [emailMessage, setEmailMessage] = useState('');
+    const [isSubmittingRequisition, setIsSubmittingRequisition] = useState(false);
 
     // Edit Request State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -669,75 +670,90 @@ export default function Requisicoes() {
         setItems(items.filter(i => i.id !== id));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmittingRequisition) return;
         if (!fornecedorId) return alert('Selecione um fornecedor');
         if (tipo === 'Viatura' && !viaturaId) return alert('Selecione uma viatura');
         if (items.length === 0) return alert('Adicione pelo menos um item');
 
+        setIsSubmittingRequisition(true);
+
         const currentYear = new Date().getFullYear().toString().slice(-2);
         const prefix = `${currentYear}/`;
 
-        if (editingId) {
-            const updatedReq: Requisicao = {
-                ...requisicoes.find(r => r.id === editingId)!,
-                data,
-                tipo,
-                clienteId: clienteId || undefined,
-                fornecedorId,
-                viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
-                centroCustoId: centroCustoId,
-                itens: items,
-                obs
-            };
-            updateRequisicao(updatedReq);
-            setEditingId(null);
-            setActiveTab('list');
-            setListFilter('pendentes');
-        } else {
-            const yearRequisicoes = requisicoes.filter(r => {
-                const numStr = String(r.numero || '');
-                return numStr.startsWith(prefix);
-            });
-
-            const maxSeq = yearRequisicoes.reduce((max, r) => {
-                const parts = String(r.numero).split('/');
-                if (parts.length === 2) {
-                    const seq = parseInt(parts[1], 10);
-                    return !isNaN(seq) && seq > max ? seq : max;
+        try {
+            if (editingId) {
+                const existingReq = requisicoes.find(r => r.id === editingId);
+                if (!existingReq) {
+                    alert('Não foi possível encontrar a requisição para edição.');
+                    return;
                 }
-                return max;
-            }, 0);
 
-            const newReq: Requisicao = {
-                id: crypto.randomUUID(),
-                numero: `${prefix}${(maxSeq + 1).toString().padStart(4, '0')}`,
-                data,
-                tipo,
-                clienteId: clienteId || undefined,
-                fornecedorId,
-                viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
-                centroCustoId: centroCustoId,
-                itens: items,
-                obs,
-                criadoPor: currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Staff')
-            };
+                const updatedReq: Requisicao = {
+                    ...existingReq,
+                    data,
+                    tipo,
+                    clienteId: clienteId || undefined,
+                    fornecedorId,
+                    viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
+                    centroCustoId: centroCustoId,
+                    itens: items,
+                    obs
+                };
 
-            addRequisicao(newReq);
+                await updateRequisicao(updatedReq);
+                setEditingId(null);
+            } else {
+                const yearRequisicoes = requisicoes.filter(r => {
+                    const numStr = String(r.numero || '');
+                    return numStr.startsWith(prefix);
+                });
+
+                const maxSeq = yearRequisicoes.reduce((max, r) => {
+                    const parts = String(r.numero).split('/');
+                    if (parts.length === 2) {
+                        const seq = parseInt(parts[1], 10);
+                        return !isNaN(seq) && seq > max ? seq : max;
+                    }
+                    return max;
+                }, 0);
+
+                const newReq: Requisicao = {
+                    id: crypto.randomUUID(),
+                    numero: `${prefix}${(maxSeq + 1).toString().padStart(4, '0')}`,
+                    data,
+                    tipo,
+                    clienteId: clienteId || undefined,
+                    fornecedorId,
+                    viaturaId: tipo === 'Viatura' ? viaturaId : undefined,
+                    centroCustoId: centroCustoId,
+                    itens: items,
+                    obs,
+                    criadoPor: currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Staff')
+                };
+
+                await addRequisicao(newReq);
+            }
 
             setActiveTab('list');
             setListFilter('pendentes');
-        }
 
-        // Reset Form
-        setData(new Date().toISOString().split('T')[0]);
-        setTipo('Oficina');
-        setClienteId('');
-        setFornecedorId('');
-        setViaturaId('');
-        setCentroCustoId(undefined);
-        setObs('');
-        setItems([]);
+            // Reset Form
+            setData(new Date().toISOString().split('T')[0]);
+            setTipo('Oficina');
+            setClienteId('');
+            setFornecedorId('');
+            setViaturaId('');
+            setCentroCustoId(undefined);
+            setObs('');
+            setItems([]);
+        } catch (error) {
+            console.error('Erro ao gravar requisição:', error);
+            alert('Ocorreu um erro ao gravar a requisição. Tente novamente.');
+        } finally {
+            setIsSubmittingRequisition(false);
+        }
     };
 
     const buildRequisitionPdfDocument = async (req: Requisicao) => {
@@ -2064,10 +2080,11 @@ export default function Requisicoes() {
                                 <div className="flex justify-end pt-4 border-t border-slate-800">
                                     <button
                                         type="submit"
+                                        disabled={isSubmittingRequisition}
                                         className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-12 rounded-xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all flex items-center gap-3 text-lg"
                                     >
                                         <CheckCircle className="w-6 h-6" />
-                                        {editingId ? 'Guardar Alterações' : 'Finalizar Requisição'}
+                                        {isSubmittingRequisition ? 'A guardar...' : (editingId ? 'Guardar Alterações' : 'Finalizar Requisição')}
                                     </button>
                                 </div>
                             </form>
