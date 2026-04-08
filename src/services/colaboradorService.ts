@@ -4,8 +4,21 @@ export interface Colaborador {
   id: string;
   numero: string;
   nome: string;
+  paragem?: string;
   centro_custo_id?: string;
   status?: 'active' | 'inactive';
+}
+
+export interface TransporteCheckinRequest {
+  id: string;
+  colaborador_id: string;
+  token: string;
+  metodo: 'qr' | 'nfc';
+  status: 'pending' | 'confirmed' | 'expired' | 'cancelled';
+  requested_at: string;
+  expires_at: string;
+  confirmed_at?: string | null;
+  confirmed_by?: string | null;
 }
 
 export interface PresencaTransporte {
@@ -29,6 +42,7 @@ const normalizeColaborador = (row: any): Colaborador => ({
   id: String(row?.id ?? ''),
   numero: String(row?.numero ?? '').trim(),
   nome: String(row?.nome ?? '').trim() || 'Sem nome',
+  paragem: row?.paragem || undefined,
   centro_custo_id: row?.centro_custo_id || undefined,
   status: row?.status === 'inactive' ? 'inactive' : 'active',
 });
@@ -57,6 +71,18 @@ const mapColaboradorErrorMessage = (error: any, fallback: string): string => {
 
   const message = String(error?.message || '').trim();
   return message || fallback;
+};
+
+const mapCheckinErrorMessage = (error: any, fallback: string): string => {
+  const message = String(error?.message || error?.details || '').toLowerCase();
+  if (message.includes("public.transporte_checkins") && message.includes('schema cache')) {
+    return 'Tabela de confirmações QR/NFC em falta. Execute o script supabase/add_paragem_and_checkin_flow.sql.';
+  }
+  return String(error?.message || '').trim() || fallback;
+};
+
+const generateCheckinToken = (): string => {
+  return String(Math.floor(100000 + Math.random() * 900000));
 };
 
 export const ColaboradorService = {
@@ -193,7 +219,7 @@ export const ColaboradorService = {
   async criarColaborador(input: {
     numero: string;
     nome: string;
-    centro_custo_id?: string;
+    paragem?: string;
   }): Promise<{ success: boolean; data?: Colaborador; error?: string }> {
     try {
       const numero = input.numero.trim();
@@ -220,8 +246,8 @@ export const ColaboradorService = {
         nome,
         status: 'active',
       };
-      if (input.centro_custo_id) {
-        insertPayload.centro_custo_id = input.centro_custo_id;
+      if (input.paragem) {
+        insertPayload.paragem = input.paragem;
       }
 
       let { data, error } = await supabase
@@ -263,7 +289,7 @@ export const ColaboradorService = {
     input: {
       numero: string;
       nome: string;
-      centro_custo_id?: string;
+      paragem?: string;
       status?: 'active' | 'inactive';
     }
   ): Promise<{ success: boolean; error?: string }> {
@@ -292,8 +318,8 @@ export const ColaboradorService = {
         nome,
         status: input.status || 'active',
       };
-      if (input.centro_custo_id) {
-        updatePayload.centro_custo_id = input.centro_custo_id;
+      if (input.paragem) {
+        updatePayload.paragem = input.paragem;
       }
 
       let { error } = await supabase
@@ -325,6 +351,136 @@ export const ColaboradorService = {
     } catch (e) {
       console.error('Erro de rede ao atualizar colaborador:', e);
       return { success: false, error: 'Erro de rede ao atualizar colaborador.' };
+    }
+  },
+
+  async solicitarEntradaComToken(
+    colaboradorId: string,
+    metodo: 'qr' | 'nfc'
+  ): Promise<{ success: boolean; token?: string; error?: string }> {
+    try {
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+
+      const { data: active } = await supabase
+        .from('transporte_checkins')
+        .select('id, token, expires_at')
+        .eq('colaborador_id', colaboradorId)
+        .eq('status', 'pending')
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (active && new Date(active.expires_at).getTime() > Date.now()) {
+        return { success: true, token: String(active.token) };
+      }
+
+      const token = generateCheckinToken();
+      const { error } = await supabase.from('transporte_checkins').insert({
+        colaborador_id: colaboradorId,
+        token,
+        metodo,
+        status: 'pending',
+        requested_at: now.toISOString(),
+        expires_at: expiresAt,
+      });
+
+      if (error) {
+        console.error('Erro ao solicitar entrada com token:', error);
+        return { success: false, error: mapCheckinErrorMessage(error, 'Nao foi possivel gerar o token.') };
+      }
+
+      return { success: true, token };
+    } catch (e) {
+      console.error('Erro de rede ao solicitar entrada com token:', e);
+      return { success: false, error: 'Erro de rede ao gerar token.' };
+    }
+  },
+
+  async obterSolicitacaoAtiva(colaboradorId: string): Promise<TransporteCheckinRequest | null> {
+    try {
+      const { data, error } = await supabase
+        .from('transporte_checkins')
+        .select('*')
+        .eq('colaborador_id', colaboradorId)
+        .eq('status', 'pending')
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error || !data) return null;
+
+      if (new Date(data.expires_at).getTime() <= Date.now()) {
+        await supabase
+          .from('transporte_checkins')
+          .update({ status: 'expired' })
+          .eq('id', data.id);
+        return null;
+      }
+
+      return data as TransporteCheckinRequest;
+    } catch {
+      return null;
+    }
+  },
+
+  async confirmarEntradaPorToken(token: string, confirmedBy?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const code = token.trim();
+      if (!code) return { success: false, error: 'Token invalido.' };
+
+      const { data: request, error: requestError } = await supabase
+        .from('transporte_checkins')
+        .select('*')
+        .eq('token', code)
+        .eq('status', 'pending')
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (requestError) {
+        return { success: false, error: mapCheckinErrorMessage(requestError, 'Nao foi possivel validar o token.') };
+      }
+
+      if (!request) {
+        return { success: false, error: 'Token nao encontrado ou ja utilizado.' };
+      }
+
+      if (new Date(request.expires_at).getTime() <= Date.now()) {
+        await supabase
+          .from('transporte_checkins')
+          .update({ status: 'expired' })
+          .eq('id', request.id);
+        return { success: false, error: 'Token expirado. O colaborador deve gerar um novo.' };
+      }
+
+      const { error: presencaError } = await supabase.from('presencas_transporte').insert({
+        colaborador_id: request.colaborador_id,
+        tipo: 'entrada',
+        data_hora: new Date().toISOString(),
+      });
+
+      if (presencaError) {
+        return { success: false, error: 'Nao foi possivel registar a entrada do colaborador.' };
+      }
+
+      const { error: updateError } = await supabase
+        .from('transporte_checkins')
+        .update({
+          status: 'confirmed',
+          confirmed_at: new Date().toISOString(),
+          confirmed_by: confirmedBy || null,
+        })
+        .eq('id', request.id);
+
+      if (updateError) {
+        return { success: false, error: mapCheckinErrorMessage(updateError, 'Entrada registada, mas falhou atualizar confirmacao.') };
+      }
+
+      return { success: true };
+    } catch (e) {
+      console.error('Erro de rede ao confirmar entrada por token:', e);
+      return { success: false, error: 'Erro de rede ao confirmar token.' };
     }
   },
 

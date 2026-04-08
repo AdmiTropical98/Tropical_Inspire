@@ -1,26 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Edit3, IdCard, Plus, RefreshCcw, Search, Trash2, UserRound, XCircle } from 'lucide-react';
-import { useWorkshop } from '../../contexts/WorkshopContext';
 import { ColaboradorService } from '../../services/colaboradorService';
 import type { Colaborador } from '../../services/colaboradorService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ColaboradorForm {
   id?: string;
   numero: string;
   nome: string;
-  centro_custo_id: string;
+  paragem: string;
   status: 'active' | 'inactive';
 }
 
 const EMPTY_FORM: ColaboradorForm = {
   numero: '',
   nome: '',
-  centro_custo_id: '',
+  paragem: '',
   status: 'active',
 };
 
 export default function ColaboradoresPage() {
-  const { centrosCustos } = useWorkshop();
+  const { currentUser } = useAuth();
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -28,6 +28,8 @@ export default function ColaboradoresPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [formData, setFormData] = useState<ColaboradorForm>(EMPTY_FORM);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [tokenInput, setTokenInput] = useState('');
+  const [isConfirmingToken, setIsConfirmingToken] = useState(false);
 
   const carregar = async () => {
     setIsLoading(true);
@@ -80,7 +82,7 @@ export default function ColaboradoresPage() {
       const result = await ColaboradorService.atualizarColaborador(formData.id, {
         numero: formData.numero,
         nome: formData.nome,
-        centro_custo_id: formData.centro_custo_id || undefined,
+        paragem: formData.paragem || undefined,
         status: formData.status,
       });
 
@@ -95,7 +97,7 @@ export default function ColaboradoresPage() {
       const result = await ColaboradorService.criarColaborador({
         numero: formData.numero,
         nome: formData.nome,
-        centro_custo_id: formData.centro_custo_id || undefined,
+        paragem: formData.paragem || undefined,
       });
 
       if (!result.success) {
@@ -117,9 +119,29 @@ export default function ColaboradoresPage() {
       id: colaborador.id,
       numero: String(colaborador.numero || ''),
       nome: String(colaborador.nome || ''),
-      centro_custo_id: colaborador.centro_custo_id || '',
+      paragem: String(colaborador.paragem || ''),
       status: colaborador.status || 'active',
     });
+  };
+
+  const handleConfirmarToken = async () => {
+    if (!tokenInput.trim() || isConfirmingToken) return;
+
+    setIsConfirmingToken(true);
+    const result = await ColaboradorService.confirmarEntradaPorToken(
+      tokenInput.trim(),
+      currentUser?.nome || currentUser?.email || 'Motorista'
+    );
+    setIsConfirmingToken(false);
+
+    if (!result.success) {
+      setFeedback({ type: 'error', message: result.error || 'Nao foi possivel confirmar o token.' });
+      return;
+    }
+
+    setTokenInput('');
+    setFeedback({ type: 'success', message: 'Entrada confirmada com sucesso pelo motorista.' });
+    await carregar();
   };
 
   const handleDesativar = async (colaborador: Colaborador) => {
@@ -188,19 +210,15 @@ export default function ColaboradoresPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Centro de custo</label>
-              <select
-                value={formData.centro_custo_id}
-                onChange={(e) => setFormData((prev) => ({ ...prev, centro_custo_id: e.target.value }))}
+              <label className="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Paragem</label>
+              <input
+                type="text"
+                value={formData.paragem}
+                onChange={(e) => setFormData((prev) => ({ ...prev, paragem: e.target.value }))}
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Sem centro de custo</option>
-                {centrosCustos.map((centro) => (
-                  <option key={centro.id} value={centro.id}>
-                    {centro.codigo ? `${centro.codigo} - ` : ''}{centro.nome}
-                  </option>
-                ))}
-              </select>
+                placeholder="Ex: Rotunda EN125 - Quarteira"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">Campo opcional.</p>
             </div>
 
             {formData.id && (
@@ -246,6 +264,27 @@ export default function ColaboradoresPage() {
               {feedback.message}
             </div>
           )}
+
+          <div className="mt-5 pt-5 border-t border-slate-800">
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Confirmar entrada por QR/NFC</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Token de 6 digitos"
+              />
+              <button
+                type="button"
+                disabled={!tokenInput.trim() || isConfirmingToken}
+                onClick={handleConfirmarToken}
+                className="px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold"
+              >
+                {isConfirmingToken ? 'A confirmar...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-5">
@@ -289,7 +328,7 @@ export default function ColaboradoresPage() {
                 <tr>
                   <th className="px-4 py-3">Colaborador</th>
                   <th className="px-4 py-3">Nº</th>
-                  <th className="px-4 py-3">Centro de Custo</th>
+                  <th className="px-4 py-3">Paragem</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
@@ -306,7 +345,6 @@ export default function ColaboradoresPage() {
                 ) : (
                   colaboradoresFiltrados.map((colaborador) => {
                     const status = colaborador.status || 'active';
-                    const centro = centrosCustos.find((c) => c.id === colaborador.centro_custo_id);
 
                     return (
                       <tr key={colaborador.id} className="hover:bg-slate-800/40">
@@ -322,7 +360,7 @@ export default function ColaboradoresPage() {
                           <span className="font-mono text-blue-300">{String(colaborador.numero || '-')}</span>
                         </td>
                         <td className="px-4 py-3 text-slate-300">
-                          {centro ? `${centro.codigo ? `${centro.codigo} - ` : ''}${centro.nome}` : 'Sem centro'}
+                          {colaborador.paragem || 'Sem paragem definida'}
                         </td>
                         <td className="px-4 py-3">
                           {status === 'active' ? (

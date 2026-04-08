@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, CheckCircle2, MapPin, History, RefreshCcw, Hand, CalendarDays, Bus, Activity } from 'lucide-react';
 import { ColaboradorService } from '../../services/colaboradorService';
-import type { Colaborador, ColaboradorStats, PresencaTransporte } from '../../services/colaboradorService';
+import type { Colaborador, ColaboradorStats, PresencaTransporte, TransporteCheckinRequest } from '../../services/colaboradorService';
 
 interface ColaboradorDashboardProps {
   colaborador: Colaborador;
@@ -19,6 +19,8 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingHistory, setIsFetchingHistory] = useState(true);
   const [feedback, setFeedback] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const [checkinRequest, setCheckinRequest] = useState<TransporteCheckinRequest | null>(null);
+  const [selectedMetodo, setSelectedMetodo] = useState<'qr' | 'nfc'>('qr');
 
   const carregarHistorico = async () => {
     setIsFetchingHistory(true);
@@ -34,6 +36,26 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
 
   useEffect(() => {
     carregarHistorico();
+  }, [colaborador.id]);
+
+  useEffect(() => {
+    let intervalId: number | null = null;
+
+    const poll = async () => {
+      const active = await ColaboradorService.obterSolicitacaoAtiva(colaborador.id);
+      setCheckinRequest(active);
+
+      if (!active) {
+        await carregarHistorico();
+      }
+    };
+
+    poll();
+    intervalId = window.setInterval(poll, 5000);
+
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+    };
   }, [colaborador.id]);
 
   const registarPonto = async (tipo: 'entrada' | 'saida') => {
@@ -72,6 +94,25 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
     } else {
       setFeedback({ message: `Erro ao registar ${tipo}. Tente de novo.`, type: 'error' });
     }
+  };
+
+  const solicitarEntrada = async () => {
+    if (isLoading || isCheckedIn) return;
+
+    setIsLoading(true);
+    setFeedback(null);
+
+    const result = await ColaboradorService.solicitarEntradaComToken(colaborador.id, selectedMetodo);
+    setIsLoading(false);
+
+    if (!result.success) {
+      setFeedback({ message: result.error || 'Nao foi possivel gerar o token QR/NFC.', type: 'error' });
+      return;
+    }
+
+    const active = await ColaboradorService.obterSolicitacaoAtiva(colaborador.id);
+    setCheckinRequest(active);
+    setFeedback({ message: 'Token gerado. Mostre ao motorista para confirmar a entrada.', type: 'success' });
   };
 
   // If the last status is 'entrada', the user is likely on the bus, so we highlight 'saida'.
@@ -120,11 +161,31 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
 
         {/* Action Buttons */}
         <div className="grid grid-cols-1 gap-4 mt-2">
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-3">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-bold mb-2">Metodo de validacao</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedMetodo('qr')}
+                className={`rounded-xl py-2 text-sm font-bold border ${selectedMetodo === 'qr' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-950 text-slate-400 border-slate-700'}`}
+              >
+                QR Code
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedMetodo('nfc')}
+                className={`rounded-xl py-2 text-sm font-bold border ${selectedMetodo === 'nfc' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-950 text-slate-400 border-slate-700'}`}
+              >
+                NFC
+              </button>
+            </div>
+          </div>
+
           <button
-            onClick={() => registarPonto('entrada')}
-            disabled={isLoading || isCheckedIn}
+            onClick={solicitarEntrada}
+            disabled={isLoading || isCheckedIn || !!checkinRequest}
             className={`relative overflow-hidden group rounded-3xl p-6 border-2 transition-all active:scale-[0.98] ${
-              isCheckedIn 
+              isCheckedIn || !!checkinRequest
                 ? 'bg-slate-900 border-slate-800 opacity-50' 
                 : 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400/50 shadow-lg shadow-green-900/20'
             }`}
@@ -133,15 +194,23 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
                <div className={`p-4 rounded-full ${isCheckedIn ? 'bg-slate-800 text-slate-500' : 'bg-white/20 text-white'}`}>
                  <MapPin className="w-8 h-8" />
                </div>
-               <span className={`font-black tracking-wide text-xl ${isCheckedIn ? 'text-slate-500' : 'text-white'}`}>
-                 Entrar no Transporte
+               <span className={`font-black tracking-wide text-xl ${(isCheckedIn || !!checkinRequest) ? 'text-slate-500' : 'text-white'}`}>
+                 Gerar QR/NFC de Entrada
                </span>
             </div>
             
-            {!isCheckedIn && (
+            {!isCheckedIn && !checkinRequest && (
               <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors pointer-events-none" />
             )}
           </button>
+
+          {checkinRequest && (
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+              <p className="text-xs uppercase tracking-widest font-bold text-emerald-300">Token {checkinRequest.metodo.toUpperCase()} ativo</p>
+              <p className="text-4xl font-black text-white mt-2 tracking-widest text-center">{checkinRequest.token}</p>
+              <p className="text-xs text-emerald-200/80 mt-2 text-center">Mostre este token ao motorista para confirmar a entrada.</p>
+            </div>
+          )}
 
           <button
             onClick={() => registarPonto('saida')}
