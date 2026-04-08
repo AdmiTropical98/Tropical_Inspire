@@ -177,17 +177,15 @@ export const ColaboradorService = {
         return { success: false, error: 'Número e nome são obrigatórios.' };
       }
 
+      // Best-effort uniqueness pre-check. If RLS blocks this read, we still try insert
+      // and rely on DB unique constraints for final validation.
       const { data: existente, error: checkError } = await supabase
         .from('colaboradores')
         .select('id')
         .eq('numero', numero)
         .maybeSingle();
 
-      if (checkError) {
-        return { success: false, error: 'Erro ao validar número de colaborador.' };
-      }
-
-      if (existente) {
+      if (!checkError && existente) {
         return { success: false, error: 'Esse número de colaborador já existe.' };
       }
 
@@ -204,6 +202,9 @@ export const ColaboradorService = {
 
       if (error) {
         console.error('Erro ao criar colaborador:', error);
+        if (String(error.code) === '23505' || String(error.message || '').toLowerCase().includes('duplicate')) {
+          return { success: false, error: 'Esse número de colaborador já existe.' };
+        }
         return { success: false, error: 'Não foi possível criar o colaborador.' };
       }
 
@@ -234,6 +235,7 @@ export const ColaboradorService = {
         return { success: false, error: 'Número e nome são obrigatórios.' };
       }
 
+      // Best-effort uniqueness pre-check. If blocked, DB unique constraint still protects updates.
       const { data: existente, error: checkError } = await supabase
         .from('colaboradores')
         .select('id')
@@ -241,11 +243,7 @@ export const ColaboradorService = {
         .neq('id', id)
         .maybeSingle();
 
-      if (checkError) {
-        return { success: false, error: 'Erro ao validar número de colaborador.' };
-      }
-
-      if (existente) {
+      if (!checkError && existente) {
         return { success: false, error: 'Esse número já está atribuído a outro colaborador.' };
       }
 
@@ -261,6 +259,9 @@ export const ColaboradorService = {
 
       if (error) {
         console.error('Erro ao atualizar colaborador:', error);
+        if (String(error.code) === '23505' || String(error.message || '').toLowerCase().includes('duplicate')) {
+          return { success: false, error: 'Esse número já está atribuído a outro colaborador.' };
+        }
         return { success: false, error: 'Não foi possível atualizar o colaborador.' };
       }
 
