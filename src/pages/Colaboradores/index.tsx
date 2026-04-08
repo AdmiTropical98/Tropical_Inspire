@@ -49,9 +49,11 @@ export default function ColaboradoresPage() {
       const status = c.status || 'active';
       const matchesStatus = statusFilter === 'all' || status === statusFilter;
       const term = searchTerm.toLowerCase();
+      const nome = String(c.nome || '').toLowerCase();
+      const numero = String(c.numero || '').toLowerCase();
       const matchesSearch =
-        c.nome.toLowerCase().includes(term) ||
-        c.numero.toLowerCase().includes(term);
+        nome.includes(term) ||
+        numero.includes(term);
 
       return matchesStatus && matchesSearch;
     });
@@ -113,8 +115,8 @@ export default function ColaboradoresPage() {
   const handleEditar = (colaborador: Colaborador) => {
     setFormData({
       id: colaborador.id,
-      numero: colaborador.numero,
-      nome: colaborador.nome,
+      numero: String(colaborador.numero || ''),
+      nome: String(colaborador.nome || ''),
       centro_custo_id: colaborador.centro_custo_id || '',
       status: colaborador.status || 'active',
     });
@@ -317,7 +319,7 @@ export default function ColaboradoresPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-mono text-blue-300">{colaborador.numero}</span>
+                          <span className="font-mono text-blue-300">{String(colaborador.numero || '-')}</span>
                         </td>
                         <td className="px-4 py-3 text-slate-300">
                           {centro ? `${centro.codigo ? `${centro.codigo} - ` : ''}${centro.nome}` : 'Sem centro'}

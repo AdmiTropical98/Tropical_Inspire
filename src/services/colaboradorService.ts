@@ -25,6 +25,14 @@ export interface ColaboradorStats {
   ultimaUtilizacao: string | null;
 }
 
+const normalizeColaborador = (row: any): Colaborador => ({
+  id: String(row?.id ?? ''),
+  numero: String(row?.numero ?? '').trim(),
+  nome: String(row?.nome ?? '').trim() || 'Sem nome',
+  centro_custo_id: row?.centro_custo_id || undefined,
+  status: row?.status === 'inactive' ? 'inactive' : 'active',
+});
+
 export const ColaboradorService = {
   /**
    * Valida o login do colaborador apenas pelo seu número.
@@ -43,7 +51,8 @@ export const ColaboradorService = {
         return null;
       }
 
-      return data as Colaborador;
+      if (!data) return null;
+      return normalizeColaborador(data);
     } catch (e) {
       console.error('Erro de rede ao procurar colaborador:', e);
       return null;
@@ -123,7 +132,7 @@ export const ColaboradorService = {
         return [];
       }
 
-      return data as Colaborador[];
+      return (data || []).map(normalizeColaborador).filter((c) => c.id);
     } catch (e) {
       console.error('Erro de rede ao listar colaboradores:', e);
       return [];
@@ -145,7 +154,7 @@ export const ColaboradorService = {
         return [];
       }
 
-      return data as Colaborador[];
+      return (data || []).map(normalizeColaborador).filter((c) => c.id);
     } catch (e) {
       console.error('Erro de rede ao listar todos os colaboradores:', e);
       return [];
@@ -198,7 +207,7 @@ export const ColaboradorService = {
         return { success: false, error: 'Não foi possível criar o colaborador.' };
       }
 
-      return { success: true, data: data as Colaborador };
+      return { success: true, data: normalizeColaborador(data) };
     } catch (e) {
       console.error('Erro de rede ao criar colaborador:', e);
       return { success: false, error: 'Erro de rede ao criar colaborador.' };
