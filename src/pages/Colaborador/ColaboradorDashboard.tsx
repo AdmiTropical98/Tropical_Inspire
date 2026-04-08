@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LogOut, CheckCircle2, MapPin, History, RefreshCcw, Hand, CalendarDays, Bus, Activity } from 'lucide-react';
 import { ColaboradorService } from '../../services/colaboradorService';
 import type { Colaborador, ColaboradorStats, PresencaTransporte, TransporteCheckinRequest } from '../../services/colaboradorService';
@@ -23,6 +23,8 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
   const [feedback, setFeedback] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [checkinRequest, setCheckinRequest] = useState<TransporteCheckinRequest | null>(null);
   const [selectedMetodo, setSelectedMetodo] = useState<'qr' | 'nfc'>('qr');
+  const [entradaValida, setEntradaValida] = useState(false);
+  const prevPendingRef = useRef<string | null>(null);
 
   const carregarHistorico = async () => {
     setIsFetchingHistory(true);
@@ -49,7 +51,15 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
 
       if (!active) {
         await carregarHistorico();
+
+        if (prevPendingRef.current) {
+          setEntradaValida(true);
+          setFeedback({ message: 'Entrada valida pelo motorista.', type: 'success' });
+          setTimeout(() => setEntradaValida(false), 6000);
+        }
       }
+
+      prevPendingRef.current = active?.id || null;
     };
 
     poll();
@@ -241,17 +251,27 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
           </button>
 
           {checkinRequest && (
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-              <p className="text-xs uppercase tracking-widest font-bold text-emerald-300">Token {checkinRequest.metodo.toUpperCase()} ativo</p>
-              <p className="text-4xl font-black text-white mt-2 tracking-widest text-center">{checkinRequest.token}</p>
-              <p className="text-xs text-emerald-200/80 mt-2 text-center">Mostre este token ao motorista para confirmar a entrada.</p>
+            <div className="rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/20 via-blue-600/10 to-slate-900 p-4 shadow-[0_10px_30px_rgba(8,145,178,0.18)]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-widest font-bold text-cyan-200">Virtual Ride Pass</p>
+                  <p className="text-white font-black text-xl leading-tight mt-1">{colaborador.nome}</p>
+                  <p className="text-cyan-100/80 text-xs">#{colaborador.numero} • {colaborador.paragem || 'Sem paragem definida'}</p>
+                </div>
+                <span className="text-[10px] px-2 py-1 rounded-full border border-cyan-300/30 bg-cyan-300/10 text-cyan-100 font-bold uppercase">
+                  {checkinRequest.metodo.toUpperCase()}
+                </span>
+              </div>
+
+              <p className="text-4xl font-black text-white mt-4 tracking-[0.2em] text-center">{checkinRequest.token}</p>
+              <p className="text-xs text-cyan-100/80 mt-2 text-center">Apresente este passe ao motorista para validar a entrada.</p>
 
               {checkinRequest.metodo === 'qr' && (
                 <div className="mt-4 flex items-center justify-center">
-                  <div className="bg-white rounded-xl p-3 border border-emerald-300/30">
+                  <div className="bg-white rounded-2xl p-3 border border-cyan-300/30 shadow-xl">
                     <QRCodeSVG
                       value={`SMARTFLEET_CHECKIN:${checkinRequest.token}`}
-                      size={192}
+                      size={200}
                       level="M"
                       includeMargin
                     />
@@ -274,6 +294,17 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
                   </p>
                 </div>
               )}
+
+              <p className="text-[11px] text-cyan-100/70 mt-4 text-center">
+                Expira as {new Date(checkinRequest.expires_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          )}
+
+          {!checkinRequest && entradaValida && (
+            <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-center">
+              <p className="text-emerald-300 text-xs uppercase tracking-wider font-bold">Entrada valida</p>
+              <p className="text-white font-black text-lg mt-1">Motorista confirmou o seu embarque</p>
             </div>
           )}
 

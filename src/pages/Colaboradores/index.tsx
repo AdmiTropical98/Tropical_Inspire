@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Edit3, IdCard, Plus, RefreshCcw, Search, Trash2, UserRound, XCircle } from 'lucide-react';
 import { ColaboradorService } from '../../services/colaboradorService';
-import type { Colaborador } from '../../services/colaboradorService';
+import type { Colaborador, TransporteCheckinLookup } from '../../services/colaboradorService';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ColaboradorForm {
@@ -30,6 +30,16 @@ export default function ColaboradoresPage() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [tokenInput, setTokenInput] = useState('');
   const [isConfirmingToken, setIsConfirmingToken] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerMessage, setScannerMessage] = useState<string | null>(null);
+  const [checkinPreview, setCheckinPreview] = useState<TransporteCheckinLookup | null>(null);
+  const [isLookingUpToken, setIsLookingUpToken] = useState(false);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanFrameRef = useRef<number | null>(null);
+  const detectorRef = useRef<any>(null);
+  const isScannerOpenRef = useRef(false);
 
   const carregar = async () => {
     setIsLoading(true);
@@ -40,6 +50,32 @@ export default function ColaboradoresPage() {
 
   useEffect(() => {
     carregar();
+  }, []);
+
+  useEffect(() => {
+    isScannerOpenRef.current = isScannerOpen;
+  }, [isScannerOpen]);
+
+  const stopScanner = () => {
+    if (scanFrameRef.current) {
+      cancelAnimationFrame(scanFrameRef.current);
+      scanFrameRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopScanner();
+    };
   }, []);
 
   const resetForm = () => {
@@ -142,6 +178,88 @@ export default function ColaboradoresPage() {
     setTokenInput('');
     setFeedback({ type: 'success', message: 'Entrada confirmada com sucesso pelo motorista.' });
     await carregar();
+  };
+
+  const extrairToken = (raw: string): string | null => {
+    const text = raw.trim();
+    const prefixed = text.match(/SMARTFLEET_CHECKIN:(\d{6})/i);
+    if (prefixed) return prefixed[1];
+
+    const plain = text.match(/^\d{6}$/);
+    if (plain) return plain[0];
+
+    return null;
+  };
+
+  const consultarToken = async (token: string) => {
+    setIsLookingUpToken(true);
+    const lookup = await ColaboradorService.obterDadosTokenEntrada(token);
+    setIsLookingUpToken(false);
+
+    if (!lookup.success || !lookup.data) {
+      setCheckinPreview(null);
+      setScannerMessage(lookup.error || 'Token invalido.');
+      return;
+    }
+
+    setTokenInput(token);
+    setCheckinPreview(lookup.data);
+    setScannerMessage('QR lido com sucesso. Confirme a entrada do colaborador.');
+  };
+
+  const startScanner = async () => {
+    try {
+      setScannerMessage(null);
+      setIsScannerOpen(true);
+
+      const BarcodeDetectorCtor = (window as any).BarcodeDetector;
+      if (!BarcodeDetectorCtor) {
+        setScannerMessage('Leitura de QR por camera nao suportada neste browser. Use o token manual.');
+        return;
+      }
+
+      detectorRef.current = new BarcodeDetectorCtor({ formats: ['qr_code'] });
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+
+      const scanLoop = async () => {
+        if (!isScannerOpenRef.current || !videoRef.current || !detectorRef.current) return;
+
+        try {
+          const barcodes = await detectorRef.current.detect(videoRef.current);
+          if (Array.isArray(barcodes) && barcodes.length > 0) {
+            const raw = String(barcodes[0].rawValue || '');
+            const token = extrairToken(raw);
+
+            if (token) {
+              stopScanner();
+              setIsScannerOpen(false);
+              await consultarToken(token);
+              return;
+            }
+          }
+        } catch {
+          // Continue scanning silently.
+        }
+
+        scanFrameRef.current = requestAnimationFrame(scanLoop);
+      };
+
+      scanFrameRef.current = requestAnimationFrame(scanLoop);
+    } catch {
+      setScannerMessage('Nao foi possivel iniciar a camera. Verifique as permissoes.');
+      stopScanner();
+      setIsScannerOpen(false);
+    }
   };
 
   const handleDesativar = async (colaborador: Colaborador) => {
@@ -271,7 +389,10 @@ export default function ColaboradoresPage() {
               <input
                 type="text"
                 value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
+                onChange={(e) => {
+                  setTokenInput(e.target.value);
+                  setCheckinPreview(null);
+                }}
                 className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="Token de 6 digitos"
               />
@@ -284,6 +405,44 @@ export default function ColaboradoresPage() {
                 {isConfirmingToken ? 'A confirmar...' : 'Confirmar'}
               </button>
             </div>
+
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={isScannerOpen ? () => { stopScanner(); setIsScannerOpen(false); } : startScanner}
+                className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm font-bold"
+              >
+                {isScannerOpen ? 'Parar Camera' : 'Ler QR pela Camera'}
+              </button>
+              <button
+                type="button"
+                onClick={() => tokenInput.trim() && consultarToken(tokenInput.trim())}
+                disabled={!tokenInput.trim() || isLookingUpToken}
+                className="px-3 py-2 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-300 text-sm font-bold disabled:opacity-50"
+              >
+                {isLookingUpToken ? 'A consultar...' : 'Ver Dados do Token'}
+              </button>
+            </div>
+
+            {isScannerOpen && (
+              <div className="mt-3 rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
+                <video ref={videoRef} className="w-full max-h-56 object-cover" muted playsInline />
+              </div>
+            )}
+
+            {scannerMessage && (
+              <p className="mt-2 text-xs text-slate-400">{scannerMessage}</p>
+            )}
+
+            {checkinPreview && (
+              <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
+                <p className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold">Colaborador lido</p>
+                <p className="text-white font-black text-lg mt-1">{checkinPreview.colaborador.nome}</p>
+                <p className="text-slate-300 text-sm">Nº {checkinPreview.colaborador.numero}</p>
+                <p className="text-slate-300 text-sm">Paragem: {checkinPreview.colaborador.paragem || 'Sem paragem'}</p>
+                <p className="text-slate-400 text-xs mt-1">Metodo: {checkinPreview.request.metodo.toUpperCase()} • Expira: {new Date(checkinPreview.request.expires_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+            )}
           </div>
         </div>
 

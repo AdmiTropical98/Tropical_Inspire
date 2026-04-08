@@ -21,6 +21,11 @@ export interface TransporteCheckinRequest {
   confirmed_by?: string | null;
 }
 
+export interface TransporteCheckinLookup {
+  request: TransporteCheckinRequest;
+  colaborador: Colaborador;
+}
+
 export interface PresencaTransporte {
   id: string;
   colaborador_id: string;
@@ -421,6 +426,59 @@ export const ColaboradorService = {
       return data as TransporteCheckinRequest;
     } catch {
       return null;
+    }
+  },
+
+  async obterDadosTokenEntrada(token: string): Promise<{ success: boolean; data?: TransporteCheckinLookup; error?: string }> {
+    try {
+      const code = token.trim();
+      if (!code) return { success: false, error: 'Token invalido.' };
+
+      const { data: request, error: requestError } = await supabase
+        .from('transporte_checkins')
+        .select('*')
+        .eq('token', code)
+        .eq('status', 'pending')
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (requestError) {
+        return { success: false, error: mapCheckinErrorMessage(requestError, 'Nao foi possivel consultar o token.') };
+      }
+
+      if (!request) {
+        return { success: false, error: 'Token nao encontrado ou ja utilizado.' };
+      }
+
+      if (new Date(request.expires_at).getTime() <= Date.now()) {
+        await supabase
+          .from('transporte_checkins')
+          .update({ status: 'expired' })
+          .eq('id', request.id);
+        return { success: false, error: 'Token expirado.' };
+      }
+
+      const { data: colaboradorData, error: colaboradorError } = await supabase
+        .from('colaboradores')
+        .select('*')
+        .eq('id', request.colaborador_id)
+        .maybeSingle();
+
+      if (colaboradorError || !colaboradorData) {
+        return { success: false, error: 'Colaborador associado ao token nao encontrado.' };
+      }
+
+      return {
+        success: true,
+        data: {
+          request: request as TransporteCheckinRequest,
+          colaborador: normalizeColaborador(colaboradorData),
+        },
+      };
+    } catch (e) {
+      console.error('Erro ao obter dados do token:', e);
+      return { success: false, error: 'Erro de rede ao consultar token.' };
     }
   },
 
