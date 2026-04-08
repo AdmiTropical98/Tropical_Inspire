@@ -43,6 +43,22 @@ const isMissingCentroCustoColumnError = (error: any): boolean => {
   );
 };
 
+const isMissingColaboradoresTableError = (error: any): boolean => {
+  const message = String(error?.message || error?.details || '').toLowerCase();
+  return message.includes("could not find the table 'public.colaboradores'") ||
+    (message.includes('colaboradores') && message.includes('schema cache')) ||
+    (message.includes('relation') && message.includes('colaboradores') && message.includes('does not exist'));
+};
+
+const mapColaboradorErrorMessage = (error: any, fallback: string): string => {
+  if (isMissingColaboradoresTableError(error)) {
+    return 'Tabela de colaboradores em falta na base de dados. Execute o script supabase/create_colaboradores_tables.sql no Supabase.';
+  }
+
+  const message = String(error?.message || '').trim();
+  return message || fallback;
+};
+
 export const ColaboradorService = {
   /**
    * Valida o login do colaborador apenas pelo seu número.
@@ -229,7 +245,7 @@ export const ColaboradorService = {
         if (String(error.code) === '23505' || String(error.message || '').toLowerCase().includes('duplicate')) {
           return { success: false, error: 'Esse número de colaborador já existe.' };
         }
-        return { success: false, error: error.message || 'Não foi possível criar o colaborador.' };
+        return { success: false, error: mapColaboradorErrorMessage(error, 'Não foi possível criar o colaborador.') };
       }
 
       return { success: true, data: normalizeColaborador(data) };
@@ -302,7 +318,7 @@ export const ColaboradorService = {
         if (String(error.code) === '23505' || String(error.message || '').toLowerCase().includes('duplicate')) {
           return { success: false, error: 'Esse número já está atribuído a outro colaborador.' };
         }
-        return { success: false, error: error.message || 'Não foi possível atualizar o colaborador.' };
+        return { success: false, error: mapColaboradorErrorMessage(error, 'Não foi possível atualizar o colaborador.') };
       }
 
       return { success: true };
