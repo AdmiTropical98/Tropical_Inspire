@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, CheckCircle2, MapPin, History, RefreshCcw, Hand, CalendarDays, Bus, Activity } from 'lucide-react';
 import { ColaboradorService } from '../../services/colaboradorService';
 import type { Colaborador, ColaboradorStats, PresencaTransporte, TransporteCheckinRequest } from '../../services/colaboradorService';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface ColaboradorDashboardProps {
   colaborador: Colaborador;
@@ -17,6 +18,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
     ultimaUtilizacao: null,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isWritingNfc, setIsWritingNfc] = useState(false);
   const [isFetchingHistory, setIsFetchingHistory] = useState(true);
   const [feedback, setFeedback] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [checkinRequest, setCheckinRequest] = useState<TransporteCheckinRequest | null>(null);
@@ -113,6 +115,40 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
     const active = await ColaboradorService.obterSolicitacaoAtiva(colaborador.id);
     setCheckinRequest(active);
     setFeedback({ message: 'Token gerado. Mostre ao motorista para confirmar a entrada.', type: 'success' });
+
+    if (selectedMetodo === 'nfc') {
+      await escreverNfc(result.token || active?.token || '');
+    }
+  };
+
+  const escreverNfc = async (token: string) => {
+    if (!token) return;
+
+    const NDEFReaderCtor = (window as any).NDEFReader;
+    if (!NDEFReaderCtor) {
+      setFeedback({
+        message: 'NFC nao suportado neste dispositivo/browser. Use QR code ou introduza o token.',
+        type: 'error'
+      });
+      return;
+    }
+
+    try {
+      setIsWritingNfc(true);
+      const ndef = new NDEFReaderCtor();
+      await ndef.write({
+        records: [{
+          recordType: 'text',
+          data: `SMARTFLEET_CHECKIN:${token}`,
+        }],
+      });
+
+      setFeedback({ message: 'NFC gravado. Encoste o telemovel ao leitor/dispositivo do motorista.', type: 'success' });
+    } catch (error) {
+      setFeedback({ message: 'Falha ao gravar NFC. Confirme permissao NFC e tente novamente.', type: 'error' });
+    } finally {
+      setIsWritingNfc(false);
+    }
   };
 
   // If the last status is 'entrada', the user is likely on the bus, so we highlight 'saida'.
@@ -209,6 +245,35 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
               <p className="text-xs uppercase tracking-widest font-bold text-emerald-300">Token {checkinRequest.metodo.toUpperCase()} ativo</p>
               <p className="text-4xl font-black text-white mt-2 tracking-widest text-center">{checkinRequest.token}</p>
               <p className="text-xs text-emerald-200/80 mt-2 text-center">Mostre este token ao motorista para confirmar a entrada.</p>
+
+              {checkinRequest.metodo === 'qr' && (
+                <div className="mt-4 flex items-center justify-center">
+                  <div className="bg-white rounded-xl p-3 border border-emerald-300/30">
+                    <QRCodeSVG
+                      value={`SMARTFLEET_CHECKIN:${checkinRequest.token}`}
+                      size={192}
+                      level="M"
+                      includeMargin
+                    />
+                  </div>
+                </div>
+              )}
+
+              {checkinRequest.metodo === 'nfc' && (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => escreverNfc(checkinRequest.token)}
+                    disabled={isWritingNfc}
+                    className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold py-2.5"
+                  >
+                    {isWritingNfc ? 'A gravar NFC...' : 'Gravar token no NFC'}
+                  </button>
+                  <p className="text-[11px] text-emerald-100/80 mt-2 text-center">
+                    Requer Android + Chrome com NFC ativo.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
