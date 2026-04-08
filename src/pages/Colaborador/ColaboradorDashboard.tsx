@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, CheckCircle2, MapPin, History, RefreshCcw, Hand } from 'lucide-react';
+import { LogOut, CheckCircle2, MapPin, History, RefreshCcw, Hand, CalendarDays, Bus, Activity } from 'lucide-react';
 import { ColaboradorService } from '../../services/colaboradorService';
-import type { Colaborador, PresencaTransporte } from '../../services/colaboradorService';
+import type { Colaborador, ColaboradorStats, PresencaTransporte } from '../../services/colaboradorService';
 
 interface ColaboradorDashboardProps {
   colaborador: Colaborador;
@@ -10,14 +10,25 @@ interface ColaboradorDashboardProps {
 
 const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador, onLogout }) => {
   const [presencas, setPresencas] = useState<PresencaTransporte[]>([]);
+  const [stats, setStats] = useState<ColaboradorStats>({
+    totalUtilizacoes: 0,
+    utilizacoesMesAtual: 0,
+    diasAtivosMesAtual: 0,
+    ultimaUtilizacao: null,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingHistory, setIsFetchingHistory] = useState(true);
   const [feedback, setFeedback] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   const carregarHistorico = async () => {
     setIsFetchingHistory(true);
-    const historico = await ColaboradorService.obterPresencasRecentes(colaborador.id);
+    const [historico, resumo] = await Promise.all([
+      ColaboradorService.obterPresencasRecentes(colaborador.id, 10),
+      ColaboradorService.obterResumoUtilizacao(colaborador.id),
+    ]);
+
     setPresencas(historico);
+    setStats(resumo);
     setIsFetchingHistory(false);
   };
 
@@ -51,6 +62,8 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
       longitude: lng,
     });
 
+    setIsLoading(false);
+
     if (sucesso) {
       setFeedback({ message: `Registo de ${tipo} efetuado com sucesso!`, type: 'success' });
       // Clear feedback after 4 seconds
@@ -58,7 +71,6 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
       carregarHistorico();
     } else {
       setFeedback({ message: `Erro ao registar ${tipo}. Tente de novo.`, type: 'error' });
-      setIsLoading(false); // Let them try again fast
     }
   };
 
@@ -109,10 +121,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
         {/* Action Buttons */}
         <div className="grid grid-cols-1 gap-4 mt-2">
           <button
-            onClick={() => {
-              registarPonto('entrada');
-              setTimeout(() => setIsLoading(false), 2000); // Visual cooldown
-            }}
+            onClick={() => registarPonto('entrada')}
             disabled={isLoading || isCheckedIn}
             className={`relative overflow-hidden group rounded-3xl p-6 border-2 transition-all active:scale-[0.98] ${
               isCheckedIn 
@@ -135,10 +144,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
           </button>
 
           <button
-            onClick={() => {
-              registarPonto('saida');
-              setTimeout(() => setIsLoading(false), 2000); // Visual cooldown
-            }}
+            onClick={() => registarPonto('saida')}
             disabled={isLoading || !isCheckedIn}
             className={`relative overflow-hidden group rounded-3xl p-6 border-2 transition-all active:scale-[0.98] ${
               !isCheckedIn 
@@ -161,12 +167,33 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
           </button>
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-4">
+            <p className="text-[11px] text-slate-500 uppercase font-bold tracking-widest flex items-center gap-1">
+              <Bus className="w-3.5 h-3.5" /> Total de Utilizações
+            </p>
+            <p className="mt-2 text-2xl font-black text-white">{stats.totalUtilizacoes}</p>
+          </div>
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-4">
+            <p className="text-[11px] text-slate-500 uppercase font-bold tracking-widest flex items-center gap-1">
+              <CalendarDays className="w-3.5 h-3.5" /> Este Mês
+            </p>
+            <p className="mt-2 text-2xl font-black text-white">{stats.utilizacoesMesAtual}</p>
+          </div>
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-4">
+            <p className="text-[11px] text-slate-500 uppercase font-bold tracking-widest flex items-center gap-1">
+              <Activity className="w-3.5 h-3.5" /> Dias Ativos
+            </p>
+            <p className="mt-2 text-2xl font-black text-white">{stats.diasAtivosMesAtual}</p>
+          </div>
+        </div>
+
         {/* History Area */}
         <div className="bg-slate-900 rounded-3xl border border-slate-800 p-6 flex-1 mt-4">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <History className="w-4 h-4" />
-              Histórico de Hoje
+              Histórico Recente
             </h3>
             <button 
                onClick={carregarHistorico}

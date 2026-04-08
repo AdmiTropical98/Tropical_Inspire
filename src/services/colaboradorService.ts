@@ -5,6 +5,7 @@ export interface Colaborador {
   numero: string;
   nome: string;
   centro_custo_id?: string;
+  status?: 'active' | 'inactive';
 }
 
 export interface PresencaTransporte {
@@ -15,6 +16,13 @@ export interface PresencaTransporte {
   data_hora: string;
   latitude?: number;
   longitude?: number;
+}
+
+export interface ColaboradorStats {
+  totalUtilizacoes: number;
+  utilizacoesMesAtual: number;
+  diasAtivosMesAtual: number;
+  ultimaUtilizacao: string | null;
 }
 
 export const ColaboradorService = {
@@ -119,6 +127,212 @@ export const ColaboradorService = {
     } catch (e) {
       console.error('Erro de rede ao listar colaboradores:', e);
       return [];
+    }
+  },
+
+  /**
+   * Obtém todos os colaboradores (ativos e inativos)
+   */
+  async listarTodosIncluindoInativos(): Promise<Colaborador[]> {
+    try {
+      const { data, error } = await supabase
+        .from('colaboradores')
+        .select('*')
+        .order('nome');
+
+      if (error) {
+        console.error('Erro ao listar todos os colaboradores:', error);
+        return [];
+      }
+
+      return data as Colaborador[];
+    } catch (e) {
+      console.error('Erro de rede ao listar todos os colaboradores:', e);
+      return [];
+    }
+  },
+
+  /**
+   * Cria colaborador com número definido pelo utilizador
+   */
+  async criarColaborador(input: {
+    numero: string;
+    nome: string;
+    centro_custo_id?: string;
+  }): Promise<{ success: boolean; data?: Colaborador; error?: string }> {
+    try {
+      const numero = input.numero.trim();
+      const nome = input.nome.trim();
+
+      if (!numero || !nome) {
+        return { success: false, error: 'Número e nome são obrigatórios.' };
+      }
+
+      const { data: existente, error: checkError } = await supabase
+        .from('colaboradores')
+        .select('id')
+        .eq('numero', numero)
+        .maybeSingle();
+
+      if (checkError) {
+        return { success: false, error: 'Erro ao validar número de colaborador.' };
+      }
+
+      if (existente) {
+        return { success: false, error: 'Esse número de colaborador já existe.' };
+      }
+
+      const { data, error } = await supabase
+        .from('colaboradores')
+        .insert({
+          numero,
+          nome,
+          centro_custo_id: input.centro_custo_id || null,
+          status: 'active',
+        })
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('Erro ao criar colaborador:', error);
+        return { success: false, error: 'Não foi possível criar o colaborador.' };
+      }
+
+      return { success: true, data: data as Colaborador };
+    } catch (e) {
+      console.error('Erro de rede ao criar colaborador:', e);
+      return { success: false, error: 'Erro de rede ao criar colaborador.' };
+    }
+  },
+
+  /**
+   * Atualiza dados do colaborador
+   */
+  async atualizarColaborador(
+    id: string,
+    input: {
+      numero: string;
+      nome: string;
+      centro_custo_id?: string;
+      status?: 'active' | 'inactive';
+    }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const numero = input.numero.trim();
+      const nome = input.nome.trim();
+
+      if (!numero || !nome) {
+        return { success: false, error: 'Número e nome são obrigatórios.' };
+      }
+
+      const { data: existente, error: checkError } = await supabase
+        .from('colaboradores')
+        .select('id')
+        .eq('numero', numero)
+        .neq('id', id)
+        .maybeSingle();
+
+      if (checkError) {
+        return { success: false, error: 'Erro ao validar número de colaborador.' };
+      }
+
+      if (existente) {
+        return { success: false, error: 'Esse número já está atribuído a outro colaborador.' };
+      }
+
+      const { error } = await supabase
+        .from('colaboradores')
+        .update({
+          numero,
+          nome,
+          centro_custo_id: input.centro_custo_id || null,
+          status: input.status || 'active',
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erro ao atualizar colaborador:', error);
+        return { success: false, error: 'Não foi possível atualizar o colaborador.' };
+      }
+
+      return { success: true };
+    } catch (e) {
+      console.error('Erro de rede ao atualizar colaborador:', e);
+      return { success: false, error: 'Erro de rede ao atualizar colaborador.' };
+    }
+  },
+
+  /**
+   * Desativa colaborador mantendo histórico
+   */
+  async desativarColaborador(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('colaboradores')
+        .update({ status: 'inactive' })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erro ao desativar colaborador:', error);
+        return { success: false, error: 'Não foi possível desativar o colaborador.' };
+      }
+
+      return { success: true };
+    } catch (e) {
+      console.error('Erro de rede ao desativar colaborador:', e);
+      return { success: false, error: 'Erro de rede ao desativar colaborador.' };
+    }
+  },
+
+  /**
+   * Resumo de utilização de transporte para a área do colaborador
+   */
+  async obterResumoUtilizacao(colaboradorId: string): Promise<ColaboradorStats> {
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    inicioMes.setHours(0, 0, 0, 0);
+
+    try {
+      const [{ count: totalUtilizacoes }, { data: dadosMes }, { data: ultima }] = await Promise.all([
+        supabase
+          .from('presencas_transporte')
+          .select('*', { count: 'exact', head: true })
+          .eq('colaborador_id', colaboradorId)
+          .eq('tipo', 'entrada'),
+        supabase
+          .from('presencas_transporte')
+          .select('data_hora, tipo')
+          .eq('colaborador_id', colaboradorId)
+          .eq('tipo', 'entrada')
+          .gte('data_hora', inicioMes.toISOString()),
+        supabase
+          .from('presencas_transporte')
+          .select('data_hora')
+          .eq('colaborador_id', colaboradorId)
+          .eq('tipo', 'entrada')
+          .order('data_hora', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      const dias = new Set(
+        (dadosMes || []).map((item) => new Date(item.data_hora).toISOString().slice(0, 10))
+      );
+
+      return {
+        totalUtilizacoes: totalUtilizacoes || 0,
+        utilizacoesMesAtual: (dadosMes || []).length,
+        diasAtivosMesAtual: dias.size,
+        ultimaUtilizacao: ultima?.data_hora || null,
+      };
+    } catch (e) {
+      console.error('Erro ao obter resumo de utilização:', e);
+      return {
+        totalUtilizacoes: 0,
+        utilizacoesMesAtual: 0,
+        diasAtivosMesAtual: 0,
+        ultimaUtilizacao: null,
+      };
     }
   }
 };

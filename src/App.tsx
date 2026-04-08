@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronRight, UserCheck, Activity,
   Gauge, Settings2, UserCog as UserCogIcon, User as UserIcon, LogOut,
   Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging, Ticket,
-  Box, History, BellRing, Wrench, UserPlus
+  Box, History, BellRing, Wrench, UserPlus, IdCard
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -63,6 +63,7 @@ const Mensagens = lazy(() => import('./pages/Chat'));
 const Profile = lazy(() => import('./pages/Profile/MyProfile'));
 const LinhaTransportes = lazy(() => import('./pages/LinhaTransportes'));
 const ColaboradorApp = lazy(() => import('./pages/Colaborador'));
+const ColaboradoresPage = lazy(() => import('./pages/Colaboradores'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -391,6 +392,7 @@ function App() {
           {/* ADMINISTRAÇÃO GROUP */}
           <SidebarGroup title="Administração" collapsed={isSidebarCollapsed}>
             {hasAccess(userRole, 'utilizadores') && <SidebarItem icon={UserCheck} label="Perfis" active={activeTab === 'utilizadores'} onClick={() => handleNavigate('utilizadores')} collapsed={isSidebarCollapsed} />}
+            {hasAccess(userRole, 'utilizadores') && <SidebarItem icon={IdCard} label="Colaboradores" active={activeTab === 'colaboradores'} onClick={() => handleNavigate('colaboradores')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'gestores') && <SidebarItem icon={Shield} label="Gestores" active={activeTab === 'gestores'} onClick={() => handleNavigate('gestores')} collapsed={isSidebarCollapsed} />}
             {hasAccess(userRole, 'equipa-oficina') && <SidebarItem icon={Hammer} label="Técnicos Oficina" active={activeTab === 'equipa-oficina'} onClick={() => handleNavigate('equipa-oficina')} collapsed={isSidebarCollapsed} />}
             <SidebarItem
@@ -437,6 +439,7 @@ function App() {
                 <Route path="/horas" element={<Horas />} />
                 <Route path="/combustivel" element={<FuelManager />} />
                 <Route path="/utilizadores" element={<UserManagementTab />} />
+                <Route path="/colaboradores" element={<Suspense fallback={<div>Loading Colaboradores...</div>}><ColaboradoresPage /></Suspense>} />
                 <Route path="/gestores" element={<GestoresTab />} />
                 <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
                 <Route path="/meu-perfil" element={<Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>} />
