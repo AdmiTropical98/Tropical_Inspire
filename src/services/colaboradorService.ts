@@ -33,6 +33,16 @@ const normalizeColaborador = (row: any): Colaborador => ({
   status: row?.status === 'inactive' ? 'inactive' : 'active',
 });
 
+const isMissingCentroCustoColumnError = (error: any): boolean => {
+  const message = String(error?.message || error?.details || '').toLowerCase();
+  return message.includes('centro_custo_id') && (
+    message.includes('does not exist') ||
+    message.includes('schema cache') ||
+    message.includes('could not find') ||
+    message.includes('column')
+  );
+};
+
 export const ColaboradorService = {
   /**
    * Valida o login do colaborador apenas pelo seu número.
@@ -189,23 +199,37 @@ export const ColaboradorService = {
         return { success: false, error: 'Esse número de colaborador já existe.' };
       }
 
-      const { data, error } = await supabase
+      const insertPayload: Record<string, any> = {
+        numero,
+        nome,
+        status: 'active',
+      };
+      if (input.centro_custo_id) {
+        insertPayload.centro_custo_id = input.centro_custo_id;
+      }
+
+      let { data, error } = await supabase
         .from('colaboradores')
-        .insert({
-          numero,
-          nome,
-          centro_custo_id: input.centro_custo_id || null,
-          status: 'active',
-        })
+        .insert(insertPayload)
         .select('*')
         .single();
+
+      if (error && isMissingCentroCustoColumnError(error)) {
+        const { data: retryData, error: retryError } = await supabase
+          .from('colaboradores')
+          .insert({ numero, nome, status: 'active' })
+          .select('*')
+          .single();
+        data = retryData;
+        error = retryError;
+      }
 
       if (error) {
         console.error('Erro ao criar colaborador:', error);
         if (String(error.code) === '23505' || String(error.message || '').toLowerCase().includes('duplicate')) {
           return { success: false, error: 'Esse número de colaborador já existe.' };
         }
-        return { success: false, error: 'Não foi possível criar o colaborador.' };
+        return { success: false, error: error.message || 'Não foi possível criar o colaborador.' };
       }
 
       return { success: true, data: normalizeColaborador(data) };
@@ -247,22 +271,38 @@ export const ColaboradorService = {
         return { success: false, error: 'Esse número já está atribuído a outro colaborador.' };
       }
 
-      const { error } = await supabase
+      const updatePayload: Record<string, any> = {
+        numero,
+        nome,
+        status: input.status || 'active',
+      };
+      if (input.centro_custo_id) {
+        updatePayload.centro_custo_id = input.centro_custo_id;
+      }
+
+      let { error } = await supabase
         .from('colaboradores')
-        .update({
-          numero,
-          nome,
-          centro_custo_id: input.centro_custo_id || null,
-          status: input.status || 'active',
-        })
+        .update(updatePayload)
         .eq('id', id);
+
+      if (error && isMissingCentroCustoColumnError(error)) {
+        const { error: retryError } = await supabase
+          .from('colaboradores')
+          .update({
+            numero,
+            nome,
+            status: input.status || 'active',
+          })
+          .eq('id', id);
+        error = retryError;
+      }
 
       if (error) {
         console.error('Erro ao atualizar colaborador:', error);
         if (String(error.code) === '23505' || String(error.message || '').toLowerCase().includes('duplicate')) {
           return { success: false, error: 'Esse número já está atribuído a outro colaborador.' };
         }
-        return { success: false, error: 'Não foi possível atualizar o colaborador.' };
+        return { success: false, error: error.message || 'Não foi possível atualizar o colaborador.' };
       }
 
       return { success: true };
