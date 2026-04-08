@@ -24,14 +24,6 @@ console.log('--- MAIN.TSX EXECUTING ---');
 
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { BrowserRouter } from 'react-router-dom'
-import App from './App.tsx'
-import { AuthProvider } from './contexts/AuthContext'
-import { PermissionsProvider } from './contexts/PermissionsContext'
-import { WorkshopProvider } from './contexts/WorkshopContext'
-import { ErrorBoundary } from './components/ErrorBoundary'
-import { ChatProvider } from './contexts/ChatContext'
-import { FinancialProvider } from './contexts/FinancialContext'
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations()
@@ -57,21 +49,72 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   }
 }
 
-createRoot(document.getElementById('root')!).render(
-  <ErrorBoundary>
-    <WorkshopProvider>
-      <FinancialProvider>
-        <AuthProvider>
-          <PermissionsProvider>
-            <ChatProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
-            </ChatProvider>
-          </PermissionsProvider>
-        </AuthProvider>
-      </FinancialProvider>
-    </WorkshopProvider>
-  </ErrorBoundary>,
-)
+async function bootstrapApp() {
+  try {
+    const [
+      ReactModule,
+      RouterModule,
+      AppModule,
+      AuthModule,
+      PermissionsModule,
+      WorkshopModule,
+      ErrorBoundaryModule,
+      ChatModule,
+      FinancialModule,
+    ] = await Promise.all([
+      import('react'),
+      import('react-router-dom'),
+      import('./App.tsx'),
+      import('./contexts/AuthContext'),
+      import('./contexts/PermissionsContext'),
+      import('./contexts/WorkshopContext'),
+      import('./components/ErrorBoundary'),
+      import('./contexts/ChatContext'),
+      import('./contexts/FinancialContext'),
+    ]);
+
+    const React = ReactModule.default;
+    const { BrowserRouter } = RouterModule;
+    const App = AppModule.default;
+    const { AuthProvider } = AuthModule;
+    const { PermissionsProvider } = PermissionsModule;
+    const { WorkshopProvider } = WorkshopModule;
+    const { ErrorBoundary } = ErrorBoundaryModule;
+    const { ChatProvider } = ChatModule;
+    const { FinancialProvider } = FinancialModule;
+
+    createRoot(document.getElementById('root')!).render(
+      <ErrorBoundary>
+        <WorkshopProvider>
+          <FinancialProvider>
+            <AuthProvider>
+              <PermissionsProvider>
+                <ChatProvider>
+                  <BrowserRouter>
+                    <App />
+                  </BrowserRouter>
+                </ChatProvider>
+              </PermissionsProvider>
+            </AuthProvider>
+          </FinancialProvider>
+        </WorkshopProvider>
+      </ErrorBoundary>,
+    );
+  } catch (error: any) {
+    console.error('Bootstrap failure:', error);
+    const root = document.getElementById('root');
+    if (root) {
+      root.innerHTML = `
+        <div style="min-height:100vh;background:#0f172a;color:#e2e8f0;padding:24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
+          <h1 style="font-size:22px;font-weight:800;color:#f87171;margin-bottom:12px;">Erro ao iniciar aplicacao</h1>
+          <p style="margin-bottom:12px;">Foi detetado um erro durante o carregamento dos modulos.</p>
+          <pre style="white-space:pre-wrap;background:#020617;border:1px solid #334155;border-radius:8px;padding:12px;overflow:auto;">${String(error?.stack || error || 'Erro desconhecido')}</pre>
+          <button onclick="window.location.reload()" style="margin-top:12px;background:#2563eb;color:white;border:0;border-radius:8px;padding:10px 14px;cursor:pointer;">Recarregar</button>
+        </div>
+      `;
+    }
+  }
+}
+
+bootstrapApp();
 // Force Deploy 2026-02-02 20:50
