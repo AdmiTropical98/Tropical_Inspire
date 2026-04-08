@@ -216,7 +216,11 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (location.pathname.startsWith('/colaborador')) {
+  const isColaboradorArea =
+    location.pathname === '/colaborador' ||
+    location.pathname.startsWith('/colaborador/');
+
+  if (isColaboradorArea) {
     return (
       <div className="app-root min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
         <Suspense fallback={
