@@ -78,6 +78,19 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
         loadColabs();
     }, []);
 
+    const normalizeColaboradorName = (value?: string | null) =>
+        String(value ?? '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toLowerCase();
+
+    const findColaboradorByName = (name: string) => {
+        const normalizedName = normalizeColaboradorName(name);
+        if (!normalizedName) return undefined;
+        return colaboradores.find(c => normalizeColaboradorName(c.nome) === normalizedName);
+    };
+
     // State for Import Modal
     const [showImportModal, setShowImportModal] = useState(false);
     const [pendingImportRows, setPendingImportRows] = useState<GridRow[]>([]);
@@ -335,7 +348,25 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     };
 
     const updateRow = (id: string, field: keyof GridRow, value: any) => {
-        setRows(prev => prev.map(r => r.tempId === id ? { ...r, [field]: value } : r));
+        setRows(prev => prev.map(r => {
+            if (r.tempId !== id) return r;
+
+            const updatedRow = { ...r, [field]: value };
+
+            if (field === 'passageiro') {
+                const matchedColaborador = findColaboradorByName(String(value));
+                const previousParagem = findColaboradorByName(r.passageiro)?.paragem;
+                const shouldAutofillOrigin =
+                    !r.origem.trim() ||
+                    Boolean(previousParagem && normalizeColaboradorName(r.origem) === normalizeColaboradorName(previousParagem));
+
+                if (matchedColaborador?.paragem?.trim() && shouldAutofillOrigin) {
+                    updatedRow.origem = matchedColaborador.paragem.trim();
+                }
+            }
+
+            return updatedRow;
+        }));
     };
 
     const deleteRow = (id: string) => {
@@ -579,7 +610,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                 tipo: r.tipo,
                 concluido: false,
                 centroCustoId: selectedCentroCusto,
-                colaboradorId: colaboradores.find(c => c.nome === r.passageiro)?.id,
+                colaboradorId: findColaboradorByName(r.passageiro)?.id,
                 departamento: r.departamento || '' // New Field
             }));
 

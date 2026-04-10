@@ -54,6 +54,24 @@ const isNameMatch = (nameA?: string | null, nameB?: string | null) => {
     return false;
 };
 
+const formatVehicleTagLabel = (tagId?: string | null) => {
+    const cleaned = cleanTagId(tagId ?? undefined);
+    return cleaned ? `Tag ${cleaned}` : 'Sem Motorista';
+};
+
+const isAnonymousDriverLabel = (value?: string | null, tagId?: string | null) => {
+    const label = String(value || '').trim();
+    if (!label) return true;
+
+    const upper = label.toUpperCase();
+    if (upper === 'N/A' || upper === 'SEM MOTORISTA') return true;
+    if (upper.startsWith('TAG ') || upper.includes('(TAG ')) return true;
+
+    const cleanedLabel = cleanTagId(label);
+    const cleanedTag = cleanTagId(tagId ?? undefined);
+    return Boolean(cleanedTag) && cleanedLabel === cleanedTag;
+};
+
 const isServiceUrgent = (serviceDate?: string, serviceHour?: string) => {
     if (!serviceHour) return false;
 
@@ -1216,7 +1234,9 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                                 let currentCartrackId = m.cartrack_id;
                                 if (!currentCartrackId) {
                                     // Match by tag first
-                                    const matchedCDriver = cDrivers.find(cd => cd.tagId && m.cartrack_key && cd.tagId === m.cartrack_key);
+                                    const matchedCDriver = cDrivers.find(cd =>
+                                        cd.tagId && m.cartrack_key && cleanTagId(cd.tagId) === cleanTagId(m.cartrack_key)
+                                    );
                                     if (matchedCDriver) {
                                         currentCartrackId = matchedCDriver.id;
                                         await supabase.from('motoristas').update({ cartrack_id: matchedCDriver.id }).eq('id', m.id);
@@ -1299,14 +1319,14 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     let resolvedName = v.driverName;
 
                     const isProperName = (name?: string | null) => {
-                        if (!name || name === 'N/A' || name === 'Sem Motorista') return false;
+                        if (isAnonymousDriverLabel(name, v.tagId)) return false;
                         return normalizePlate(name) !== normalizePlate(v.registration);
                     };
 
                     if (!isProperName(resolvedName) && (v.driverId || v.tagId)) {
                         const cd = cDrivers.find(d =>
                             (v.driverId && String(d.id) === String(v.driverId)) ||
-                            (v.tagId && d.tagId === v.tagId)
+                            (v.tagId && cleanTagId(d.tagId) === cleanTagId(v.tagId))
                         );
 
                         if (cd) {
@@ -1314,22 +1334,28 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         }
                     }
 
-                    // 2. Try to find local motorista for better naming/keys
-                    const localM = updatedMotoristas.find(m =>
+                    // 2. Try to find local motorista for stable session association.
+                    // When the live vehicle only reports an anonymous tag, keep showing the tag instead of a stale driver name.
+                    const localMByIdentity = updatedMotoristas.find(m =>
                         (m.cartrackId && String(m.cartrackId) === String(v.driverId)) ||
-                        (m.cartrackKey && v.tagId && m.cartrackKey === v.tagId) ||
-                        (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration))
+                        (m.cartrackKey && v.tagId && cleanTagId(m.cartrackKey) === cleanTagId(v.tagId))
                     );
 
-                    let displayName = 'Sem Motorista';
+                    const localMByPlate = updatedMotoristas.find(m =>
+                        m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration)
+                    );
+
+                    const localM = localMByIdentity || (!v.tagId ? localMByPlate : null);
+
+                    let displayName = v.tagId ? formatVehicleTagLabel(v.tagId) : 'Sem Motorista';
 
                     // Only show Cartrack driver if vehicle is moving/idle OR has an active tag swipe
                     const shouldShowCartrackDriver = v.status !== 'stopped' || !!v.tagId;
 
-                    if (localM) {
-                        displayName = localM.nome;
-                    } else if (shouldShowCartrackDriver && isProperName(resolvedName)) {
+                    if (shouldShowCartrackDriver && isProperName(resolvedName)) {
                         displayName = resolvedName!;
+                    } else if (!v.tagId && localM) {
+                        displayName = localM.nome;
                     }
 
                     if (localM) {
@@ -1382,16 +1408,16 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 // This handles cases where a tag is known to the system (swiped in a car) 
                 // but not explicitly linked to a "Driver" object in the API
                 const finalDrivers = [...cDrivers];
-                const existingDriverTags = new Set(cDrivers.map(d => d.tagId?.toUpperCase()).filter(Boolean));
+                const existingDriverTags = new Set(cDrivers.map(d => cleanTagId(d.tagId)).filter(Boolean));
 
                 cVehicles.forEach(v => {
-                    if (v.tagId && !existingDriverTags.has(v.tagId.toUpperCase())) {
-                        const cleanTag = v.tagId.toUpperCase();
+                    const cleanTag = cleanTagId(v.tagId);
+                    if (cleanTag && !existingDriverTags.has(cleanTag)) {
                         finalDrivers.push({
                             id: `vehicle-tag-${cleanTag}`,
-                            firstName: 'Motorista',
-                            lastName: 'Viatura',
-                            fullName: `Motorista (Tag ${cleanTag.slice(-6)})`,
+                            firstName: 'Tag',
+                            lastName: cleanTag,
+                            fullName: formatVehicleTagLabel(cleanTag),
                             tagId: cleanTag,
                             tagVariants: getTagVariants(cleanTag)
                         } as any);

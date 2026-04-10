@@ -38,6 +38,7 @@ import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, generateAutoDispatchTrips, type GroupedTrip } from './EscalaAutomation';
 import { emailService } from '../../services/emailService';
+import { cleanTagId } from '../../services/cartrack';
 import { ColaboradorService } from '../../services/colaboradorService';
 import type { Colaborador as ColaboradorType } from '../../services/colaboradorService';
 
@@ -159,6 +160,19 @@ export default function Escalas() {
         loadColaboradores();
     }, []);
 
+    const normalizeColaboradorName = (value?: string | null) =>
+        String(value ?? '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toLowerCase();
+
+    const findColaboradorByName = (name: string) => {
+        const normalizedName = normalizeColaboradorName(name);
+        if (!normalizedName) return undefined;
+        return colaboradores.find(c => normalizeColaboradorName(c.nome) === normalizedName);
+    };
+
 
 
     // Quick Distribution Mode State
@@ -194,6 +208,43 @@ export default function Escalas() {
     const [showUrgentModal, setShowUrgentModal] = useState(false);
     const [urgentData, setUrgentData] = useState({ hora: '12:00', passageiro: '', origem: '', destino: '', obs: '' });
 
+    const handleNewServicePassengerChange = (passageiro: string) => {
+        setNewService(prev => {
+            const matchedColaborador = findColaboradorByName(passageiro);
+            const previousParagem = findColaboradorByName(prev.passageiro)?.paragem;
+            const shouldAutofillOrigin =
+                !prev.origem.trim() ||
+                Boolean(previousParagem && normalizeColaboradorName(prev.origem) === normalizeColaboradorName(previousParagem));
+
+            return {
+                ...prev,
+                passageiro,
+                colaboradorId: matchedColaborador?.id || '',
+                origem: matchedColaborador?.paragem?.trim() && shouldAutofillOrigin
+                    ? matchedColaborador.paragem.trim()
+                    : prev.origem
+            };
+        });
+    };
+
+    const handleUrgentPassengerChange = (passageiro: string) => {
+        setUrgentData(prev => {
+            const matchedColaborador = findColaboradorByName(passageiro);
+            const previousParagem = findColaboradorByName(prev.passageiro)?.paragem;
+            const shouldAutofillOrigin =
+                !prev.origem.trim() ||
+                Boolean(previousParagem && normalizeColaboradorName(prev.origem) === normalizeColaboradorName(previousParagem));
+
+            return {
+                ...prev,
+                passageiro,
+                origem: matchedColaborador?.paragem?.trim() && shouldAutofillOrigin
+                    ? matchedColaborador.paragem.trim()
+                    : prev.origem
+            };
+        });
+    };
+
     // Automation States
     const [showAutoModal, setShowAutoModal] = useState(false);
     const [isAutoLoading, setIsAutoLoading] = useState(false);
@@ -205,11 +256,71 @@ export default function Escalas() {
         quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || ''
     });
 
+    const normalizePlate = (value?: string | null) => String(value ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const normalizeDriverName = (value?: string | null) => String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+
     const viaturaById = useMemo(() => {
         const map = new Map<string, any>();
         viaturas.forEach(v => map.set(v.id, v));
         return map;
     }, [viaturas]);
+
+    const viaturaByPlate = useMemo(() => {
+        const map = new Map<string, any>();
+        viaturas.forEach(v => {
+            const plate = normalizePlate(v.matricula);
+            if (plate) map.set(plate, v);
+        });
+        return map;
+    }, [viaturas]);
+
+    const resolveDetectedVehicleForDriver = (driverId?: string | null) => {
+        if (!driverId) return null;
+        const driver = motoristas.find(m => m.id === driverId);
+        if (!driver) return null;
+
+        const currentPlate = normalizePlate(driver.currentVehicle);
+        if (currentPlate && viaturaByPlate.has(currentPlate)) {
+            return viaturaByPlate.get(currentPlate) || null;
+        }
+
+        const liveVehicle = cartrackVehicles.find(v =>
+            (driver.cartrackKey && v.tagId && cleanTagId(driver.cartrackKey) === cleanTagId(v.tagId)) ||
+            (driver.cartrackId && v.driverId && String(driver.cartrackId) === String(v.driverId)) ||
+            (currentPlate && normalizePlate(v.registration || v.label) === currentPlate) ||
+            (driver.nome && v.driverName && normalizeDriverName(driver.nome) === normalizeDriverName(v.driverName))
+        );
+
+        if (!liveVehicle) return null;
+        return viaturaByPlate.get(normalizePlate(liveVehicle.registration || liveVehicle.label)) || null;
+    };
+
+    const getDriverVehicleLabel = (driverId?: string | null) => {
+        if (!driverId) return '';
+        const driver = motoristas.find(m => m.id === driverId);
+        const detectedVehicle = resolveDetectedVehicleForDriver(driverId);
+        return detectedVehicle?.matricula || driver?.currentVehicle || '';
+    };
+
+    const formatDriverOptionLabel = (driver: any) => {
+        const vehicleLabel = getDriverVehicleLabel(driver.id);
+        return vehicleLabel ? `${driver.nome} • ${vehicleLabel}` : driver.nome;
+    };
+
+    const displayMotoristas = useMemo(() => {
+        return motoristas.map(driver => {
+            const detectedVehicle = getDriverVehicleLabel(driver.id);
+            return detectedVehicle && detectedVehicle !== driver.currentVehicle
+                ? { ...driver, currentVehicle: detectedVehicle }
+                : driver;
+        });
+    }, [motoristas, cartrackVehicles, viaturas]);
+
+    const syncVehicleAssignmentInFlight = useRef<Set<string>>(new Set());
 
     const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [showManageTemplates, setShowManageTemplates] = useState(false);
@@ -278,10 +389,7 @@ export default function Escalas() {
         if (!serviceId) return;
         const service = servicos.find(s => s.id === serviceId);
         if (!service) return;
-        await updateServico({ ...service, motoristaId: driverId });
-        if (isUrgentService(service)) {
-            await notifyUrgentAssignment(service, driverId);
-        }
+        await assignDriverToService(service, driverId);
     };
 
     const notifyUrgentAssignment = async (service: Servico, driverId: string) => {
@@ -318,6 +426,73 @@ export default function Escalas() {
             timestamp: new Date().toISOString()
         });
     };
+
+    const assignDriverToService = async (service: Servico, driverId?: string | null) => {
+        const detectedVehicle = driverId ? resolveDetectedVehicleForDriver(driverId) : null;
+        const resolvedVehicleId = driverId ? (detectedVehicle?.id || service.vehicleId || null) : null;
+        const capacity = Number(detectedVehicle?.vehicleCapacity || viaturaById.get(resolvedVehicleId || '')?.vehicleCapacity || 8);
+        const passengerCount = Number(service.passengerCount || 1);
+        const occupancyRate = Number(((passengerCount / Math.max(capacity, 1)) * 100).toFixed(2));
+
+        await updateServico({
+            ...service,
+            motoristaId: driverId || undefined,
+            vehicleId: resolvedVehicleId,
+            passengerCount,
+            occupancyRate
+        });
+
+        if (driverId && isUrgentService(service)) {
+            await notifyUrgentAssignment(service, driverId);
+        }
+    };
+
+    useEffect(() => {
+        const servicesToSync = servicos.filter(service => {
+            if (!service.motoristaId || service.concluido) return false;
+            if ((service.data || selectedDate) !== selectedDate) return false;
+
+            const detectedVehicle = resolveDetectedVehicleForDriver(service.motoristaId);
+            return Boolean(detectedVehicle?.id) && String(service.vehicleId || '') !== String(detectedVehicle?.id || '');
+        });
+
+        if (servicesToSync.length === 0) return;
+
+        let cancelled = false;
+
+        const syncVehicleAssignments = async () => {
+            for (const service of servicesToSync) {
+                if (cancelled || syncVehicleAssignmentInFlight.current.has(service.id)) continue;
+
+                const detectedVehicle = resolveDetectedVehicleForDriver(service.motoristaId);
+                if (!detectedVehicle?.id) continue;
+
+                syncVehicleAssignmentInFlight.current.add(service.id);
+                try {
+                    const passengerCount = Number(service.passengerCount || 1);
+                    const capacity = Number(detectedVehicle.vehicleCapacity || 8);
+                    const occupancyRate = Number(((passengerCount / Math.max(capacity, 1)) * 100).toFixed(2));
+
+                    await updateServico({
+                        ...service,
+                        vehicleId: detectedVehicle.id,
+                        passengerCount,
+                        occupancyRate
+                    });
+                } catch (error) {
+                    console.warn('Falha ao sincronizar viatura detetada na escala:', service.id, error);
+                } finally {
+                    syncVehicleAssignmentInFlight.current.delete(service.id);
+                }
+            }
+        };
+
+        void syncVehicleAssignments();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [servicos, selectedDate, motoristas, cartrackVehicles, viaturas]);
 
     const handleRunAutomation = async () => {
         setIsAutoLoading(true);
@@ -660,7 +835,7 @@ export default function Escalas() {
     const urgentPendingServices = urgentServices.filter(s => !s.motoristaId);
 
     // Logic & Filters
-    const filteredMotoristas = motoristas.filter(m => {
+    const filteredMotoristas = displayMotoristas.filter(m => {
         if (selectedCentroCusto !== 'all' && m.centroCustoId !== selectedCentroCusto) return false;
 
         if (filterStatus === 'all') return true;
@@ -844,7 +1019,7 @@ export default function Escalas() {
         e.preventDefault();
 
         // Try to find colaboradorId by name
-        const associatedColab = colaboradores.find(c => c.nome === newService.passageiro);
+        const associatedColab = findColaboradorByName(newService.passageiro);
         const colabId = associatedColab?.id || newService.colaboradorId;
 
         const entryService: Servico = {
@@ -923,6 +1098,7 @@ export default function Escalas() {
             horaRegresso: '18:00',
             destinoRegresso: '',
             centroCustoId: '',
+            colaboradorId: '',
             validationPoints: []
         });
     };
@@ -931,12 +1107,7 @@ export default function Escalas() {
         if (!selectedMotoristaForAssign || selectedPendentes.length === 0) return;
 
         const servicesToUpdate = servicos.filter(s => selectedPendentes.includes(s.id));
-        await Promise.all(servicesToUpdate.map(s => updateServico({ ...s, motoristaId: selectedMotoristaForAssign })));
-        await Promise.all(
-            servicesToUpdate
-                .filter(s => isUrgentService(s))
-                .map(s => notifyUrgentAssignment(s, selectedMotoristaForAssign))
-        );
+        await Promise.all(servicesToUpdate.map(s => assignDriverToService(s, selectedMotoristaForAssign)));
 
         if (autoEmailEnabled) {
             const driver = motoristas.find(m => m.id === selectedMotoristaForAssign);
@@ -980,7 +1151,7 @@ export default function Escalas() {
     const unassignService = async (id: string) => {
         const service = servicos.find(s => s.id === id);
         if (service) {
-            await updateServico({ ...service, motoristaId: null });
+            await assignDriverToService(service, null);
         }
     };
 
@@ -1337,10 +1508,7 @@ export default function Escalas() {
                                     pendentes={pendentes}
                                     assigned={assigned}
                                     onMoveService={async (service, targetDriverId) => {
-                                        await updateServico({ ...service, motoristaId: targetDriverId });
-                                        if (targetDriverId && isUrgentService(service)) {
-                                            await notifyUrgentAssignment(service, targetDriverId);
-                                        }
+                                        await assignDriverToService(service, targetDriverId);
                                     }}
                                     isUrgentService={isUrgentService}
                                 />
@@ -1375,12 +1543,12 @@ export default function Escalas() {
                                                         onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
                                                     >
                                                         <option value="" className="bg-slate-900">Atribuir a motorista...</option>
-                                                        {motoristas.filter(m => m.status === 'disponivel').map(m => (
-                                                            <option key={m.id} value={m.id} className="bg-slate-900">{m.nome} (Disponível)</option>
+                                                        {displayMotoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                            <option key={m.id} value={m.id} className="bg-slate-900">{formatDriverOptionLabel(m)} (Disponível)</option>
                                                         ))}
                                                         <option disabled>──────────</option>
-                                                        {motoristas.filter(m => m.status !== 'disponivel').map(m => (
-                                                            <option key={m.id} value={m.id} className="bg-slate-900 text-slate-500">{m.nome} ({m.status})</option>
+                                                        {displayMotoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                            <option key={m.id} value={m.id} className="bg-slate-900 text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
                                                         ))}
                                                     </select>
                                                     <button
@@ -1507,22 +1675,19 @@ export default function Escalas() {
                                                             onChange={async (e) => {
                                                                 const newDriverId = e.target.value;
                                                                 if (newDriverId) {
-                                                                    await updateServico({ ...service, motoristaId: newDriverId });
-                                                                    if (isUrgentService(service)) {
-                                                                        await notifyUrgentAssignment(service, newDriverId);
-                                                                    }
+                                                                    await assignDriverToService(service, newDriverId);
                                                                 } else {
-                                                                    await updateServico({ ...service, motoristaId: undefined });
+                                                                    await assignDriverToService(service, null);
                                                                 }
                                                             }}
                                                         >
                                                             <option value="">-- Por atribuir --</option>
-                                                            {motoristas.filter(m => m.status === 'disponivel' || m.id === service.motoristaId).map(m => (
-                                                                <option key={m.id} value={m.id}>{m.nome}</option>
+                                                            {displayMotoristas.filter(m => m.status === 'disponivel' || m.id === service.motoristaId).map(m => (
+                                                                <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
                                                             ))}
                                                             <option disabled>──────────</option>
-                                                            {motoristas.filter(m => m.status !== 'disponivel' && m.id !== service.motoristaId).map(m => (
-                                                                <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
+                                                            {displayMotoristas.filter(m => m.status !== 'disponivel' && m.id !== service.motoristaId).map(m => (
+                                                                <option key={m.id} value={m.id} className="text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
                                                             ))}
                                                         </select>
                                                     </div>
@@ -1588,7 +1753,7 @@ export default function Escalas() {
                                                             placeholder="Nome do passageiro..."
                                                             className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                                             value={newService.passageiro}
-                                                            onChange={e => setNewService({ ...newService, passageiro: e.target.value })}
+                                                            onChange={e => handleNewServicePassengerChange(e.target.value)}
                                                             list="colaboradores-list"
                                                         />
                                                         <datalist id="colaboradores-list">
@@ -1766,8 +1931,8 @@ export default function Escalas() {
                                                 onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
                                             >
                                                 <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
-                                                {motoristas.map(m => (
-                                                    <option key={m.id} value={m.id} className="bg-slate-900">{m.nome}</option>
+                                                {displayMotoristas.map(m => (
+                                                    <option key={m.id} value={m.id} className="bg-slate-900">{formatDriverOptionLabel(m)}</option>
                                                 ))}
                                             </select>
                                             <button
@@ -1917,20 +2082,17 @@ export default function Escalas() {
                                                                                 value=""
                                                                                 onChange={(e) => {
                                                                                     if (e.target.value) {
-                                                                                        updateServico({ ...service, motoristaId: e.target.value });
-                                                                                        if (isUrgentService(service)) {
-                                                                                            notifyUrgentAssignment(service, e.target.value);
-                                                                                        }
+                                                                                        assignDriverToService(service, e.target.value);
                                                                                     }
                                                                                 }}
                                                                             >
                                                                                 <option value="">Atribuir a...</option>
-                                                                                {motoristas.filter(m => m.status === 'disponivel').map(m => (
-                                                                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                                {displayMotoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                                                    <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
                                                                                 ))}
                                                                                 <option disabled>──────────</option>
-                                                                                {motoristas.filter(m => m.status !== 'disponivel').map(m => (
-                                                                                    <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
+                                                                                {displayMotoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                                                    <option key={m.id} value={m.id} className="text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
                                                                                 ))}
                                                                             </select>
                                                                         </div>
@@ -2058,20 +2220,17 @@ export default function Escalas() {
                                                                                     value=""
                                                                                     onChange={(e) => {
                                                                                         if (e.target.value) {
-                                                                                            updateServico({ ...service, motoristaId: e.target.value });
-                                                                                            if (isUrgentService(service)) {
-                                                                                                notifyUrgentAssignment(service, e.target.value);
-                                                                                            }
+                                                                                            assignDriverToService(service, e.target.value);
                                                                                         }
                                                                                     }}
                                                                                 >
                                                                                     <option value="">Atribuir a...</option>
-                                                                                    {motoristas.filter(m => m.status === 'disponivel').map(m => (
-                                                                                        <option key={m.id} value={m.id}>{m.nome}</option>
+                                                                                    {displayMotoristas.filter(m => m.status === 'disponivel').map(m => (
+                                                                                        <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
                                                                                     ))}
                                                                                     <option disabled>──────────</option>
-                                                                                    {motoristas.filter(m => m.status !== 'disponivel').map(m => (
-                                                                                        <option key={m.id} value={m.id} className="text-slate-500">{m.nome} ({m.status})</option>
+                                                                                    {displayMotoristas.filter(m => m.status !== 'disponivel').map(m => (
+                                                                                        <option key={m.id} value={m.id} className="text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
                                                                                     ))}
                                                                                 </select>
                                                                             </div>
@@ -2259,8 +2418,8 @@ export default function Escalas() {
                                                 }}
                                             >
                                                 <option value="">🚫 Sem motorista</option>
-                                                {motoristas.map(m => (
-                                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                                {displayMotoristas.map(m => (
+                                                    <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
                                                 ))}
                                             </select>
 
@@ -2335,7 +2494,7 @@ export default function Escalas() {
                                             placeholder="Nome..."
                                             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
                                             value={urgentData.passageiro}
-                                            onChange={e => setUrgentData({ ...urgentData, passageiro: e.target.value })}
+                                            onChange={e => handleUrgentPassengerChange(e.target.value)}
                                         />
                                     </div>
                                 </div>

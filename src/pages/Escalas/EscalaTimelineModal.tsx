@@ -58,15 +58,17 @@ export default function EscalaTimelineModal({
         const groupMap = new Map<string, TripGroup>();
 
         sorted.forEach(service => {
-            const key = service.motoristaId || '__unassigned__';
+            const motorista = motoristas.find(m => m.id === service.motoristaId);
+            const viatura = viaturas.find(v => v.id === service.vehicleId);
+            const resolvedVehiclePlate = viatura?.matricula || viatura?.plate || motorista?.currentVehicle || '—';
+            const key = `${service.motoristaId || '__unassigned__'}:${service.vehicleId || resolvedVehiclePlate}`;
+
             if (!groupMap.has(key)) {
-                const motorista = motoristas.find(m => m.id === service.motoristaId);
-                const viatura = viaturas.find(v => v.id === service.vehicleId);
                 groupMap.set(key, {
                     motoristaId: service.motoristaId || null,
                     motoristaNome: motorista?.nome || 'Sem Motorista',
                     vehicleId: service.vehicleId || null,
-                    vehiclePlate: viatura?.matricula || viatura?.plate || '—',
+                    vehiclePlate: resolvedVehiclePlate,
                     stops: []
                 });
             }

@@ -25,10 +25,15 @@ export default function CentralMotorista() {
     const [navigationOpen, setNavigationOpen] = useState(false);
     const [tagModalOpen, setTagModalOpen] = useState(false);
 
+    const normalizePlate = (value?: string | null) => String(value ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
     // Get current driver data
     const driver = motoristas.find(m => m.id === currentUser?.id);
     const driverServices = servicos.filter(s => s.motoristaId === currentUser?.id);
-    const assignedVehicle = viaturas.find(v => v.id === (driver as any)?.vehicleId || v.matricula === driver?.currentVehicle);
+    const assignedVehicle = viaturas.find(v =>
+        v.id === (driver as any)?.vehicleId ||
+        normalizePlate(v.matricula) === normalizePlate(driver?.currentVehicle)
+    );
 
     // Weather Simulation
     const getWeatherIcon = () => {
@@ -70,13 +75,17 @@ export default function CentralMotorista() {
         if (!currentUser?.id) return;
         const cleaned = cleanTagId(tagId);
         try {
-            const { error } = await supabase
-                .from('motoristas')
-                .update({ tag_id: cleaned })
-                .eq('id', currentUser.id);
+            if (driver) {
+                await updateMotorista({ ...driver, cartrackKey: cleaned });
+            } else {
+                const { error } = await supabase
+                    .from('motoristas')
+                    .update({ cartrack_key: cleaned })
+                    .eq('id', currentUser.id);
 
-            if (error) throw error;
-            if (driver) updateMotorista({ ...driver, cartrackKey: cleaned });
+                if (error) throw error;
+            }
+
             alert('Tag registada com sucesso!');
         } catch (err) {
             console.error('Error saving tag:', err);

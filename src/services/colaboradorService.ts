@@ -43,6 +43,21 @@ export interface ColaboradorStats {
   ultimaUtilizacao: string | null;
 }
 
+export interface TransporteEscalaDisponivel {
+  id: string;
+  data?: string;
+  hora?: string;
+  origem?: string;
+  destino?: string;
+  passageiro: string;
+}
+
+export interface TransporteQrAccess {
+  allowed: boolean;
+  escalas: TransporteEscalaDisponivel[];
+  message: string;
+}
+
 const normalizeColaborador = (row: any): Colaborador => ({
   id: String(row?.id ?? ''),
   numero: String(row?.numero ?? '').trim(),
@@ -86,8 +101,65 @@ const mapCheckinErrorMessage = (error: any, fallback: string): string => {
   return String(error?.message || '').trim() || fallback;
 };
 
-const generateCheckinToken = (): string => {
-  return String(Math.floor(100000 + Math.random() * 900000));
+const isMissingEscalaAccessDependencyError = (error: any): boolean => {
+  const message = String(error?.message || error?.details || '').toLowerCase();
+  const mentionsKnownField =
+    message.includes('scale_batches') ||
+    message.includes('batch_id') ||
+    message.includes('data') ||
+    message.includes('status');
+
+  return mentionsKnownField && (
+    message.includes('schema cache') ||
+    message.includes('column') ||
+    message.includes('does not exist') ||
+    message.includes('could not find') ||
+    message.includes('relation')
+  );
+};
+
+const normalizeTextForMatch = (value: string): string => {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const matchesColaboradorName = (passageiro: string, colaboradorNome: string): boolean => {
+  const normalizedPassenger = normalizeTextForMatch(passageiro);
+  const normalizedColaborador = normalizeTextForMatch(colaboradorNome);
+
+  if (!normalizedPassenger || !normalizedColaborador) return false;
+  if (normalizedPassenger === normalizedColaborador) return true;
+
+  const tokens = normalizedColaborador.split(' ').filter((token) => token.length > 1);
+  return tokens.length > 1 && tokens.every((token) => normalizedPassenger.includes(token));
+};
+
+const formatLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getEscalaTimeKey = (hora?: string): string => {
+  const digits = String(hora || '').replace(/\D/g, '').slice(0, 4);
+  return digits.length === 4 ? digits : '0000';
+};
+
+const matchesEscalaToRequest = (request: Pick<TransporteCheckinRequest, 'token'>, escala?: Pick<TransporteEscalaDisponivel, 'hora'> | null): boolean => {
+  if (!escala?.hora) return false;
+  return String(request.token || '').startsWith(getEscalaTimeKey(escala.hora));
+};
+
+const generateCheckinToken = (hora?: string): string => {
+  const prefix = getEscalaTimeKey(hora);
+  const suffix = String(Math.floor(1000 + Math.random() * 9000));
+  return `${prefix}${suffix}`;
 };
 
 export const ColaboradorService = {
@@ -129,6 +201,21 @@ export const ColaboradorService = {
     }
   ): Promise<boolean> {
     try {
+      const { data: ultimaPresenca } = await supabase
+        .from('presencas_transporte')
+        .select('tipo, data_hora')
+        .eq('colaborador_id', colaboradorId)
+        .order('data_hora', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ultimaPresenca?.tipo === tipo) {
+        const elapsedMs = Math.abs(Date.now() - new Date(ultimaPresenca.data_hora).getTime());
+        if (elapsedMs < 2 * 60 * 1000) {
+          return true;
+        }
+      }
+
       const { error } = await supabase.from('presencas_transporte').insert({
         colaborador_id: colaboradorId,
         tipo,
@@ -359,28 +446,164 @@ export const ColaboradorService = {
     }
   },
 
-  async solicitarEntradaComToken(
-    colaboradorId: string,
-    metodo: 'qr' | 'nfc'
-  ): Promise<{ success: boolean; token?: string; error?: string }> {
+  async obterAcessoQrTransporte(colaborador: Pick<Colaborador, 'id' | 'nome'>): Promise<TransporteQrAccess> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayKey = formatLocalDateKey(today);
+    const tomorrowKey = formatLocalDateKey(tomorrow);
+
+    const mapEscalas = (rows: any[]): TransporteEscalaDisponivel[] => {
+      return (rows || [])
+        .filter((item: any) => !Boolean(item?.concluido))
+        .filter((item: any) => {
+          const status = String(item?.status || '').toLowerCase();
+          return !status || !['completed', 'cancelled', 'failed'].includes(status);
+        })
+        .filter((item: any) => matchesColaboradorName(item?.passageiro, colaborador.nome))
+        .map((item: any) => ({
+          id: String(item?.id || ''),
+          data: item?.data || todayKey,
+          hora: String(item?.hora || ''),
+          origem: String(item?.origem || ''),
+          destino: String(item?.destino || ''),
+          passageiro: String(item?.passageiro || ''),
+        }))
+        .filter((item: TransporteEscalaDisponivel) => item.id);
+    };
+
     try {
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+      let escalas: TransporteEscalaDisponivel[] = [];
 
-      const { data: active } = await supabase
-        .from('transporte_checkins')
-        .select('id, token, expires_at')
-        .eq('colaborador_id', colaboradorId)
-        .eq('status', 'pending')
-        .order('requested_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: batches, error: batchesError } = await supabase
+        .from('scale_batches')
+        .select('id, reference_date')
+        .eq('reference_date', todayKey);
 
-      if (active && new Date(active.expires_at).getTime() > Date.now()) {
-        return { success: true, token: String(active.token) };
+      if (!batchesError && (batches || []).length > 0) {
+        const batchIds = (batches || []).map((batch: any) => String(batch?.id || '')).filter(Boolean);
+
+        if (batchIds.length > 0) {
+          let batchServices: any[] | null = null;
+          let batchServicesError: any = null;
+
+          ({ data: batchServices, error: batchServicesError } = await supabase
+            .from('servicos')
+            .select('id, batch_id, data, hora, origem, destino, passageiro, concluido, status')
+            .in('batch_id', batchIds)
+            .order('hora', { ascending: true }));
+
+          if (batchServicesError && isMissingEscalaAccessDependencyError(batchServicesError)) {
+            ({ data: batchServices, error: batchServicesError } = await supabase
+              .from('servicos')
+              .select('id, batch_id, hora, origem, destino, passageiro, concluido')
+              .in('batch_id', batchIds)
+              .order('hora', { ascending: true }));
+          }
+
+          if (!batchServicesError) {
+            escalas = mapEscalas(batchServices || []);
+          }
+        }
+      } else if (batchesError && !isMissingEscalaAccessDependencyError(batchesError)) {
+        console.error('Erro ao consultar lotes de escala:', batchesError);
       }
 
-      const token = generateCheckinToken();
+      if (escalas.length === 0) {
+        let data: any[] | null = null;
+        let error: any = null;
+
+        ({ data, error } = await supabase
+          .from('servicos')
+          .select('id, data, hora, origem, destino, passageiro, concluido, status')
+          .gte('data', todayKey)
+          .lt('data', tomorrowKey)
+          .order('hora', { ascending: true }));
+
+        if (error && isMissingEscalaAccessDependencyError(error)) {
+          ({ data, error } = await supabase
+            .from('servicos')
+            .select('id, hora, origem, destino, passageiro, concluido')
+            .eq('concluido', false)
+            .order('hora', { ascending: true }));
+        }
+
+        if (error) {
+          console.error('Erro ao verificar escala do colaborador:', error);
+          return {
+            allowed: false,
+            escalas: [],
+            message: 'Não foi possível confirmar a sua escala de transporte.'
+          };
+        }
+
+        escalas = mapEscalas(data || []);
+      }
+
+      if (escalas.length === 0) {
+        return {
+          allowed: false,
+          escalas: [],
+          message: 'O QR do transporte só fica disponível quando o seu nome constar numa escala ativa.',
+        };
+      }
+
+      return {
+        allowed: true,
+        escalas,
+        message: 'Acesso ao QR do transporte disponível para a sua escala.',
+      };
+    } catch (e) {
+      console.error('Erro de rede ao verificar acesso ao QR:', e);
+      return {
+        allowed: false,
+        escalas: [],
+        message: 'Não foi possível validar o acesso ao transporte agora.',
+      };
+    }
+  },
+
+  async solicitarEntradaComToken(
+    colaboradorId: string,
+    metodo: 'qr' | 'nfc',
+    escala?: TransporteEscalaDisponivel | null
+  ): Promise<{ success: boolean; token?: string; error?: string }> {
+    try {
+      const { data: colaboradorData, error: colaboradorError } = await supabase
+        .from('colaboradores')
+        .select('id, nome')
+        .eq('id', colaboradorId)
+        .maybeSingle();
+
+      if (colaboradorError || !colaboradorData) {
+        return { success: false, error: 'Colaborador não encontrado.' };
+      }
+
+      const acesso = await ColaboradorService.obterAcessoQrTransporte(normalizeColaborador(colaboradorData));
+      if (!acesso.allowed) {
+        return { success: false, error: acesso.message };
+      }
+
+      const escalaSelecionada = escala
+        ? acesso.escalas.find((item) => item.id === escala.id) || acesso.escalas.find((item) => item.hora === escala.hora)
+        : acesso.escalas[0];
+
+      if (!escalaSelecionada) {
+        return { success: false, error: 'Não foi possível identificar o transporte para este QR.' };
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+      const activeRequests = await ColaboradorService.obterSolicitacoesAtivas(colaboradorId);
+      const activeForEscala = activeRequests.find((request) => matchesEscalaToRequest(request, escalaSelecionada));
+
+      if (activeForEscala) {
+        return { success: true, token: String(activeForEscala.token) };
+      }
+
+      const token = generateCheckinToken(escalaSelecionada.hora);
       const { error } = await supabase.from('transporte_checkins').insert({
         colaborador_id: colaboradorId,
         token,
@@ -402,31 +625,45 @@ export const ColaboradorService = {
     }
   },
 
-  async obterSolicitacaoAtiva(colaboradorId: string): Promise<TransporteCheckinRequest | null> {
+  async obterSolicitacoesAtivas(colaboradorId: string): Promise<TransporteCheckinRequest[]> {
     try {
       const { data, error } = await supabase
         .from('transporte_checkins')
         .select('*')
         .eq('colaborador_id', colaboradorId)
         .eq('status', 'pending')
-        .order('requested_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('requested_at', { ascending: false });
 
-      if (error || !data) return null;
+      if (error || !data) return [];
 
-      if (new Date(data.expires_at).getTime() <= Date.now()) {
+      const now = Date.now();
+      const validRequests: TransporteCheckinRequest[] = [];
+      const expiredIds: string[] = [];
+
+      for (const item of data as TransporteCheckinRequest[]) {
+        if (new Date(item.expires_at).getTime() <= now) {
+          expiredIds.push(item.id);
+        } else {
+          validRequests.push(item);
+        }
+      }
+
+      if (expiredIds.length > 0) {
         await supabase
           .from('transporte_checkins')
           .update({ status: 'expired' })
-          .eq('id', data.id);
-        return null;
+          .in('id', expiredIds);
       }
 
-      return data as TransporteCheckinRequest;
+      return validRequests;
     } catch {
-      return null;
+      return [];
     }
+  },
+
+  async obterSolicitacaoAtiva(colaboradorId: string): Promise<TransporteCheckinRequest | null> {
+    const requests = await ColaboradorService.obterSolicitacoesAtivas(colaboradorId);
+    return requests[0] || null;
   },
 
   async obterDadosTokenEntrada(token: string): Promise<{ success: boolean; data?: TransporteCheckinLookup; error?: string }> {
@@ -512,27 +749,44 @@ export const ColaboradorService = {
         return { success: false, error: 'Token expirado. O colaborador deve gerar um novo.' };
       }
 
+      const confirmedAt = new Date().toISOString();
+      const { data: latestPresence } = await supabase
+        .from('presencas_transporte')
+        .select('id, tipo, data_hora')
+        .eq('colaborador_id', request.colaborador_id)
+        .order('data_hora', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const alreadyCheckedIn = latestPresence?.tipo === 'entrada';
+
+      const { data: updatedRequests, error: updateError } = await supabase
+        .from('transporte_checkins')
+        .update({
+          status: 'confirmed',
+          confirmed_at: confirmedAt,
+          confirmed_by: confirmedBy || null,
+        })
+        .eq('id', request.id)
+        .eq('status', 'pending')
+        .select('id');
+
+      if (updateError) {
+        return { success: false, error: mapCheckinErrorMessage(updateError, 'Nao foi possivel finalizar a confirmacao do token.') };
+      }
+
+      if (!updatedRequests || updatedRequests.length === 0 || alreadyCheckedIn) {
+        return { success: true };
+      }
+
       const { error: presencaError } = await supabase.from('presencas_transporte').insert({
         colaborador_id: request.colaborador_id,
         tipo: 'entrada',
-        data_hora: new Date().toISOString(),
+        data_hora: confirmedAt,
       });
 
       if (presencaError) {
         return { success: false, error: 'Nao foi possivel registar a entrada do colaborador.' };
-      }
-
-      const { error: updateError } = await supabase
-        .from('transporte_checkins')
-        .update({
-          status: 'confirmed',
-          confirmed_at: new Date().toISOString(),
-          confirmed_by: confirmedBy || null,
-        })
-        .eq('id', request.id);
-
-      if (updateError) {
-        return { success: false, error: mapCheckinErrorMessage(updateError, 'Entrada registada, mas falhou atualizar confirmacao.') };
       }
 
       return { success: true };
