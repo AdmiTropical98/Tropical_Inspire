@@ -5,7 +5,7 @@ import {
   Truck, Calendar, Clock, Wallet, Building2, Briefcase, Shield,
   BarChart3, MapPin, Hammer, Award, LayoutTemplate,
   ChevronDown, ChevronRight, UserCheck, Activity,
-  Gauge, Settings2, UserCog as UserCogIcon, User as UserIcon, LogOut,
+  Gauge, Settings2, UserCog as UserCogIcon, LogOut,
   Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging, Ticket,
   Box, History, BellRing, Wrench, UserPlus, IdCard
 } from 'lucide-react';
@@ -251,7 +251,7 @@ function App() {
           <img
             src={`${SIDEBAR_LOGO}?v=1`}
             alt="Algartempo Frota"
-            className="h-8 w-auto object-contain"
+            className="h-12 w-auto object-contain"
           />
         </div>
         <button
@@ -273,7 +273,7 @@ function App() {
               <img
                 src={`${SIDEBAR_LOGO}?v=1`}
                 alt="Algartempo Frota"
-                className="w-full max-w-[190px] h-auto object-contain"
+                className="w-full max-w-[220px] h-auto object-contain"
               />
             </div>
           )}
@@ -495,7 +495,7 @@ function App() {
                   <img
                     src={`${SIDEBAR_LOGO}?v=1`}
                     alt="Algartempo Frota"
-                    className="h-10 w-auto object-contain"
+                    className="h-12 w-auto object-contain"
                   />
                 </div>
                 <button
