@@ -199,7 +199,8 @@ const UserProfileMenu: React.FC<{ onNavigate: (tab: string) => void; showName?: 
 
 function App() {
   const BRAND_LOGO = '/LOGO.png';
-  const SIDEBAR_LOGO = '/LOGO_SIDEBAR.png';
+  const SIDEBAR_LOGO = '/logo-algar-frota.png'; // Caminho para o logo branco fornecido
+  const SIDEBAR_LOGO_MOBILE = '/logo-algar-frota.png';
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
