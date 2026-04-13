@@ -198,7 +198,6 @@ const UserProfileMenu: React.FC<{ onNavigate: (tab: string) => void; showName?: 
 };
 
 function App() {
-  const BRAND_LOGO = '/LOGO.png';
   const SIDEBAR_LOGO = '/LOGO_SIDEBAR.png'; // O ficheiro que o utilizador deve carregar
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
@@ -250,11 +249,10 @@ function App() {
         <div className="sidebar-texture" />
         <div className="flex items-center gap-3 relative z-10">
           <img
-            src={BRAND_LOGO}
+            src={`${SIDEBAR_LOGO}?v=1`}
             alt="Algartempo Frota"
-            className="h-8 w-auto object-contain brightness-110"
+            className="h-8 w-auto object-contain"
           />
-          <span className="font-bold text-white tracking-wide text-xs uppercase">Algartempo Frota</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -273,7 +271,7 @@ function App() {
           {!isSidebarCollapsed && (
             <div className="flex-1 min-w-0 pr-3">
               <img
-                src={SIDEBAR_LOGO}
+                src={`${SIDEBAR_LOGO}?v=1`}
                 alt="Algartempo Frota"
                 className="w-full max-w-[190px] h-auto object-contain"
               />
@@ -495,7 +493,7 @@ function App() {
               <div className="relative z-10 p-8 flex items-center justify-between border-b border-white/5">
                 <div className="flex items-center gap-3">
                   <img
-                    src={SIDEBAR_LOGO}
+                    src={`${SIDEBAR_LOGO}?v=1`}
                     alt="Algartempo Frota"
                     className="h-10 w-auto object-contain"
                   />
