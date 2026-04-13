@@ -107,8 +107,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, on
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative ${active
-        ? 'bg-white/10 text-white font-bold shadow-lg shadow-black/20'
-        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+        ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/40'
+        : 'text-white/60 hover:bg-white/5 hover:text-white'
         } ${collapsed ? 'justify-center' : ''}`}
     >
       <Icon className={`w-5 h-5 transition-transform duration-300 ${active ? 'scale-110 text-white' : 'text-slate-400 group-hover:scale-110 group-hover:text-white'}`} />
@@ -146,10 +146,10 @@ const SidebarGroup: React.FC<{ title: string; children: React.ReactNode; default
     <div className="mb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 mb-2 group opacity-60 hover:opacity-100 transition-opacity"
+        className="w-full flex items-center justify-between px-4 mb-2 group opacity-40 hover:opacity-100 transition-opacity"
       >
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{title}</span>
-        {isOpen ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
+        <span className="text-[10px] font-bold text-white uppercase tracking-[0.2em]">{title}</span>
+        {isOpen ? <ChevronDown className="w-3 h-3 text-white/50" /> : <ChevronRight className="w-3 h-3 text-white/50" />}
       </button>
       {isOpen && <div className="space-y-1">{children}</div>}
     </div>
@@ -199,6 +199,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (tab: string) => void; showName?: 
 
 function App() {
   const BRAND_LOGO = '/LOGO.png';
+  const SIDEBAR_LOGO = '/LOGO_SIDEBAR.png';
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
@@ -245,40 +246,42 @@ function App() {
   return (
     <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-[#F5F7FA] text-slate-900 font-sans selection:bg-amber-500/20">
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-6 z-40">
-        <div className="flex items-center gap-3">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 sidebar-dark-bg border-b border-white/5 flex items-center justify-between px-6 z-40">
+        <div className="sidebar-texture" />
+        <div className="flex items-center gap-3 relative z-10">
           <img
             src={BRAND_LOGO}
             alt="Algartempo Frota"
-            className="h-8 w-auto object-contain"
+            className="h-8 w-auto object-contain brightness-110"
           />
-          <span className="font-semibold text-slate-800 tracking-wide text-xs uppercase">Algartempo Frota</span>
+          <span className="font-bold text-white tracking-wide text-xs uppercase">Algartempo Frota</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all border border-slate-200"
+          className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-all border border-white/10 relative z-10"
         >
           <Menu className="w-6 h-6" />
         </button>
       </div>
 
       {/* Sidebar - Desktop */}
-      <aside className={`fixed top-0 left-0 bottom-0 z-50 sidebar-dark-bg transition-all duration-300 flex flex-col ${isSidebarCollapsed ? 'w-20' : 'w-72'} hidden lg:flex shadow-2xl shadow-black/40`}>
+      <aside className={`fixed top-0 left-0 bottom-0 z-50 sidebar-dark-bg transition-all duration-300 flex flex-col ${isSidebarCollapsed ? 'w-20' : 'w-72'} hidden lg:flex shadow-2xl shadow-black/60`}>
+        <div className="sidebar-sheen" />
         <div className="sidebar-texture" />
         
-        <div className="px-5 py-6 flex items-start justify-between border-b border-white/5 relative z-10">
+        <div className="px-5 py-8 flex items-start justify-between border-b border-white/5 relative z-10">
           {!isSidebarCollapsed && (
             <div className="flex-1 min-w-0 pr-3">
               <img
-                src={BRAND_LOGO}
+                src={SIDEBAR_LOGO}
                 alt="Algartempo Frota"
-                className="w-full max-w-[190px] h-auto object-contain brightness-110"
+                className="w-full max-w-[190px] h-auto object-contain"
               />
             </div>
           )}
           <button
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-2 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white transition-all"
+            className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all"
           >
             {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -487,15 +490,15 @@ function App() {
         <div className="lg:hidden fixed inset-0 z-50 flex">
             <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
             <aside className="relative w-80 max-w-[85vw] h-full sidebar-dark-bg shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+              <div className="sidebar-sheen" />
               <div className="sidebar-texture" />
-              <div className="relative z-10 p-6 flex items-center justify-between border-b border-white/5">
+              <div className="relative z-10 p-8 flex items-center justify-between border-b border-white/5">
                 <div className="flex items-center gap-3">
                   <img
-                    src={BRAND_LOGO}
+                    src={SIDEBAR_LOGO}
                     alt="Algartempo Frota"
-                    className="h-8 w-auto object-contain brightness-110"
+                    className="h-10 w-auto object-contain"
                   />
-                  <span className="font-bold text-white uppercase tracking-tight text-xs">Algartempo Frota</span>
                 </div>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
