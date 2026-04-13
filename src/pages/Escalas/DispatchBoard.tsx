@@ -59,6 +59,20 @@ const stateStyles: Record<ServiceVisualState, { label: string; badge: string; bo
     }
 };
 
+const getDriverStateBadge = (status?: string) => {
+    const normalized = String(status || '').toLowerCase();
+    if (normalized === 'ocupado' || normalized === 'em_servico') {
+        return { label: 'Em rota', className: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' };
+    }
+    if (normalized === 'indisponivel' || normalized === 'offline') {
+        return { label: 'Offline', className: 'bg-slate-500/15 text-slate-300 border-slate-500/40' };
+    }
+    if (normalized === 'standby') {
+        return { label: 'Standby', className: 'bg-amber-500/15 text-amber-300 border-amber-500/40' };
+    }
+    return { label: 'Disponivel', className: 'bg-blue-500/15 text-blue-300 border-blue-500/40' };
+};
+
 function ServiceCard({ service, isUrgentService }: { service: Servico; isUrgentService: (service: Partial<Servico>) => boolean }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `service:${service.id}` });
     const status = coerceServiceStatus(service.status) || updateServiceStatus(service);
@@ -151,16 +165,16 @@ function BoardColumn({
     return (
         <section
             ref={setNodeRef}
-            className={`w-[300px] shrink-0 rounded-2xl border bg-[#0f172a] ${isOver ? 'border-blue-500/60 shadow-[0_0_0_1px_rgba(59,130,246,.35)]' : 'border-white/10'} flex flex-col min-h-0`}
+            className={`w-[300px] shrink-0 rounded-2xl border bg-[#111827] ${isOver ? 'border-blue-500/60 shadow-[0_0_0_1px_rgba(59,130,246,.35)]' : 'border-slate-700/60'} flex flex-col min-h-0 transition-all`}
         >
-            <header className="p-3 border-b border-white/10 bg-slate-900/70 rounded-t-2xl">
+            <header className="p-3 border-b border-slate-700/60 bg-slate-900/60 rounded-t-2xl">
                 <div className="flex items-start justify-between gap-2">
                     <div>
                         <h3 className="text-sm font-bold text-white truncate flex items-center gap-1.5">
                             {isPendingColumn ? <Clock3 className="w-4 h-4 text-amber-300" /> : <Car className="w-4 h-4 text-indigo-300" />}
                             {title}
                         </h3>
-                        {subtitle && <p className="text-[11px] text-slate-400 truncate">{subtitle}</p>}
+                        {subtitle && <p className="text-[11px] text-slate-300 truncate">{subtitle}</p>}
                         {!isPendingColumn && (
                             <p className="text-[11px] text-indigo-300/90 truncate inline-flex items-center gap-1 mt-0.5">
                                 <Car className="w-3 h-3" />
@@ -179,7 +193,7 @@ function BoardColumn({
 
             <div className="p-2.5 space-y-2 overflow-y-auto custom-scrollbar min-h-[160px] h-[calc(100vh-320px)]">
                 {services.length === 0 ? (
-                    <div className="h-20 rounded-xl border border-dashed border-white/10 flex items-center justify-center text-xs text-slate-500 bg-slate-900/30">
+                    <div className="h-20 rounded-xl border border-dashed border-slate-700/60 flex items-center justify-center text-xs text-slate-400 bg-slate-900/25">
                         Largar serviço aqui
                     </div>
                 ) : (
@@ -200,6 +214,16 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, onMoveS
     motoristas.forEach(driver => {
         servicesByDriver.set(driver.id, sortByTime(assigned.filter(s => s.motoristaId === driver.id)));
     });
+
+    const withVehicle = motoristas.filter(driver => Boolean(driver.currentVehicle));
+    const withoutVehicle = motoristas.filter(driver => !driver.currentVehicle);
+    const inRoute = withVehicle.filter(driver => String(driver.status || '').toLowerCase() === 'ocupado' || String(driver.status || '').toLowerCase() === 'em_servico');
+    const available = withVehicle.filter(driver => !inRoute.includes(driver));
+    const sections = [
+        { key: 'active', label: 'Motoristas Ativos', drivers: inRoute },
+        { key: 'available', label: 'Motoristas Disponiveis', drivers: available },
+        { key: 'unassigned', label: 'Sem Viatura', drivers: withoutVehicle }
+    ];
 
     const resolveTargetColumn = (overId: string, allServices: Servico[]): string | null => {
         if (overId === 'pending' || overId.startsWith('driver:')) return overId;
@@ -262,22 +286,38 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, onMoveS
                             isUrgentService={isUrgentService}
                         />
 
-                        {motoristas.map(driver => {
-                            const driverServices = servicesByDriver.get(driver.id) || [];
-                            return (
-                                <BoardColumn
-                                    key={driver.id}
-                                    id={`driver:${driver.id}`}
-                                    title={driver.nome}
-                                    subtitle={driver.status ? `Estado: ${driver.status}` : undefined}
-                                    vehicle={driver.currentVehicle || undefined}
-                                    count={driverServices.length}
-                                    services={driverServices}
-                                    isUrgentService={isUrgentService}
-                                    debugInfo={(driver as any).debugInfo}
-                                />
-                            );
-                        })}
+                        {sections.map(section => (
+                            section.drivers.map((driver, index) => {
+                                const driverServices = servicesByDriver.get(driver.id) || [];
+                                const driverState = getDriverStateBadge(driver.status);
+                                return (
+                                    <div key={driver.id} className="space-y-1">
+                                        {index === 0 && (
+                                            <div className="px-1">
+                                                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                                    {section.label}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="px-1">
+                                            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full border ${driverState.className}`}>
+                                                {driverState.label}
+                                            </span>
+                                        </div>
+                                        <BoardColumn
+                                            id={`driver:${driver.id}`}
+                                            title={driver.nome}
+                                            subtitle={driver.status ? `Estado: ${driver.status}` : undefined}
+                                            vehicle={driver.currentVehicle || undefined}
+                                            count={driverServices.length}
+                                            services={driverServices}
+                                            isUrgentService={isUrgentService}
+                                            debugInfo={(driver as any).debugInfo}
+                                        />
+                                    </div>
+                                );
+                            })
+                        ))}
                     </div>
                 </div>
             </DndContext>

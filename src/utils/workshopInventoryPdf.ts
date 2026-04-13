@@ -48,7 +48,7 @@ export function generateInventoryPDF(inventoryItems: InventoryPDFItem[], generat
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text('SmartFleet', 14, 14);
+    doc.text('ALGARTEMPO FROTA', 14, 14);
     doc.setFontSize(13);
     doc.text('Inventário de Oficina', 14, 23);
 
@@ -130,7 +130,7 @@ export function generateMaterialIssueFormPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text('SmartFleet', 14, 14);
+    doc.text('ALGARTEMPO FROTA', 14, 14);
     doc.setFontSize(13);
     doc.text('Registo de Saída de Material - Oficina', 14, 23);
 
@@ -201,7 +201,7 @@ export function generateStockPartsPDF(stockItems: StockItem[], generatedBy = 'Si
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text('SmartFleet', 14, 14);
+    doc.text('ALGARTEMPO FROTA', 14, 14);
     doc.setFontSize(13);
     doc.text('Relatório de Stock de Peças', 14, 23);
 

@@ -58,7 +58,7 @@ export default function SplashScreen({ onComplete, message = "A iniciar aplicaç
             <div className="absolute inset-0 z-0">
                 <img
                     src="/fleet-bg.png"
-                    alt="Algar Tempo Fleet"
+                    alt="Algartempo Frota Fleet"
                     className="w-full h-full object-cover scale-110 animate-slow-zoom brightness-75"
                 />
                 {/* Deeper, more sophisticated gradient overlay */}
@@ -127,7 +127,7 @@ export default function SplashScreen({ onComplete, message = "A iniciar aplicaç
                 <div className="absolute -bottom-24 flex flex-col items-center gap-2 opacity-60">
                     <div className="h-[1px] w-8 bg-white/20" />
                     <div className="text-white text-[11px] font-black tracking-[0.5em] drop-shadow-lg">
-                        ALGARTEMPO
+                        ALGARTEMPO FROTA
                     </div>
                 </div>
             </div>

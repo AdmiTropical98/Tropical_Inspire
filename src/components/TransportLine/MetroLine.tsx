@@ -26,7 +26,7 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
 
   if (!stops || stops.length === 0) {
     return (
-      <div className="p-16 text-slate-500 text-center bg-[#0a0f1d]/40 rounded-3xl border border-slate-800/40 backdrop-blur-md">
+      <div className="p-16 text-slate-400 text-center bg-[#111827]/70 rounded-3xl border border-slate-700/50 backdrop-blur-md">
         <Navigation className="w-12 h-12 mx-auto mb-4 opacity-20" />
         <p className="font-sans tracking-widest uppercase text-xs">Sistema Offline</p>
         <p className="text-slate-600 text-[10px] mt-2 italic">Sem roteiro ativo para visualização</p>
@@ -52,7 +52,7 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
   const segmentLength = numStops > 1 ? usableLength / (numStops - 1) : 0;
 
   return (
-    <div className={`w-full bg-[#030712] rounded-3xl border border-white/5 shadow-2xl custom-scrollbar relative overflow-hidden ${isMobile ? '' : 'p-10'}`}>
+    <div className={`w-full bg-[#111827] rounded-3xl border border-slate-700/50 shadow-2xl custom-scrollbar relative overflow-hidden ${isMobile ? '' : 'p-10'}`}>
       {/* Dynamic Background Noise/Pulsing Layer */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]" />
       
@@ -90,8 +90,8 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
             y1={isMobile ? paddingY : paddingY} 
             x2={isMobile ? paddingX : horizontalSvgWidth - paddingX} 
             y2={isMobile ? verticalSvgHeight - paddingY : paddingY} 
-            stroke="#111827" 
-            strokeWidth="4" 
+            stroke="#374151" 
+            strokeWidth="5" 
             strokeLinecap="round" 
           />
 
@@ -107,7 +107,7 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
                   x2={isMobile ? paddingX : headPos} 
                   y2={isMobile ? headPos : paddingY} 
                   stroke="#3b82f6" 
-                  strokeWidth="6" 
+                  strokeWidth="7" 
                   strokeLinecap="round"
                   opacity="0.15"
                   filter="url(#softGlow)"
@@ -120,7 +120,7 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
                   x2={isMobile ? paddingX : headPos} 
                   y2={isMobile ? headPos : paddingY} 
                   stroke="url(#activeGradient)" 
-                  strokeWidth="2" 
+                  strokeWidth="3" 
                   strokeLinecap="round"
                   strokeDasharray="4,6"
                   className="transition-all duration-1000 ease-linear"
@@ -160,26 +160,26 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
 
                 {/* Stop Visual Node */}
                 {isPassed && (
-                   <circle r="4" fill="#3b82f6" filter="url(#stopPulse)" />
+                   <circle r="5" fill="#3b82f6" filter="url(#stopPulse)" />
                 )}
                 
                 <circle 
-                  r={isCurrent ? "10" : "6"} 
+                  r={isCurrent ? "11" : "7"} 
                   fill={isCurrent ? "#030712" : (isPassed ? "#3b82f6" : "#030712")} 
-                  stroke={isPassed ? "#3b82f6" : "#1f2937"} 
-                  strokeWidth="2" 
+                  stroke={isPassed ? "#3b82f6" : "#475569"} 
+                  strokeWidth="2.5" 
                   className="transition-all duration-500"
                 />
 
                 {isCurrent && (
-                   <circle r="12" fill="none" stroke="#3b82f6" strokeWidth="1" opacity="0.4" className="animate-ping" />
+                   <circle r="15" fill="none" stroke="#60a5fa" strokeWidth="1.5" opacity="0.55" className="animate-ping" />
                 )}
 
                 {/* Stop Label Block */}
                 <g transform={`translate(${isMobile ? 24 : 0}, ${isMobile ? 4 : 32})`}>
                    <text 
                     textAnchor={isMobile ? "start" : "middle"}
-                    fill={isPassed || isCurrent ? "#f3f4f6" : "#4b5563"}
+                    fill={isPassed || isCurrent ? "#f8fafc" : "#94a3b8"}
                     fontSize="10" 
                     fontWeight={isPassed || isCurrent ? "800" : "500"}
                     className={`font-sans tracking-widest uppercase transition-all duration-500 ${isCurrent ? 'scale-110' : ''}`}
@@ -190,7 +190,7 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
                     <text 
                       y={isMobile ? 12 : 12} 
                       textAnchor={isMobile ? "start" : "middle"} 
-                      fill="#3b82f6" 
+                      fill="#60a5fa" 
                       fontSize="7" 
                       fontWeight="bold" 
                       className="animate-pulse tracking-[0.3em]"

@@ -107,11 +107,11 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, on
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative ${active
-        ? 'bg-blue-600/10 text-blue-400 font-bold'
-        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+        ? 'bg-blue-500/15 text-blue-300 font-semibold shadow-[inset_0_0_0_1px_rgba(59,130,246,.35)]'
+        : 'text-slate-300 hover:bg-slate-700/40 hover:text-slate-100'
         } ${collapsed ? 'justify-center' : ''}`}
     >
-      {active && <div className="absolute left-0 w-1 h-8 bg-blue-600 rounded-r-full animate-pulse" />}
+      {active && <div className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full" />}
       <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
       {!collapsed && <span className="text-sm whitespace-nowrap">{label}</span>}
       {!collapsed && badge && badge > 0 && (
@@ -149,7 +149,7 @@ const SidebarGroup: React.FC<{ title: string; children: React.ReactNode; default
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-4 mb-2 group"
       >
-        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{title}</span>
+        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{title}</span>
         {isOpen ? <ChevronDown className="w-3 h-3 text-slate-600 group-hover:text-slate-400" /> : <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-slate-400" />}
       </button>
       {isOpen && <div className="space-y-1">{children}</div>}
@@ -162,7 +162,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (tab: string) => void; showName?: 
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <div className="relative mt-auto border-t border-slate-800/60 p-4">
+    <div className="relative mt-auto border-t border-slate-700/50 p-4 bg-slate-900/30">
       <button
         onClick={() => setShowMenu(!showMenu)}
         className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/50 transition-colors group"
@@ -243,14 +243,16 @@ function App() {
   }
 
   return (
-    <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
+    <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-[#0f172a] text-slate-100 font-sans selection:bg-blue-500/30">
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-800/60 flex items-center justify-between px-6 z-40">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f172a]/85 backdrop-blur-xl border-b border-slate-700/50 flex items-center justify-between px-6 z-40">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <Truck className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-black text-white tracking-widest text-sm uppercase">SmartFleet</span>
+          <img
+            src="/logo-sidebar.png"
+            alt="Algartempo Frota"
+            className="w-8 h-8 rounded-lg object-contain"
+          />
+          <span className="font-semibold text-white tracking-wide text-sm uppercase">Algartempo Frota</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -261,17 +263,19 @@ function App() {
       </div>
 
       {/* Sidebar - Desktop */}
-      <aside className={`fixed top-0 left-0 bottom-0 z-50 bg-[#0f172a] border-r border-slate-800/60 transition-all duration-300 flex flex-col ${isSidebarCollapsed ? 'w-20' : 'w-72'
+      <aside className={`fixed top-0 left-0 bottom-0 z-50 bg-[#111827] border-r border-slate-700/50 transition-all duration-300 flex flex-col shadow-2xl shadow-black/20 ${isSidebarCollapsed ? 'w-20' : 'w-72'
         } hidden lg:flex`}>
         <div className="p-6 flex items-center justify-between">
           {!isSidebarCollapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/20">
-                <Truck className="w-6 h-6 text-white" />
-              </div>
+              <img
+                src="/logo-sidebar.png"
+                alt="Algartempo Frota"
+                className="w-10 h-10 rounded-xl object-contain shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/20"
+              />
               <div className="leading-tight">
-                <span className="font-black text-white tracking-tighter text-lg uppercase block">SmartFleet</span>
-                <span className="text-[9px] font-black text-blue-500 tracking-[0.2em] uppercase opacity-70">Core Engine</span>
+                <span className="font-semibold text-white tracking-tight text-sm uppercase block">Algartempo Frota</span>
+                <span className="text-[9px] font-medium text-blue-300 tracking-[0.18em] uppercase opacity-90">Programa Frota</span>
               </div>
             </div>
           )}
@@ -283,7 +287,7 @@ function App() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
           {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
             <SidebarItem
               icon={Settings2}
@@ -415,8 +419,8 @@ function App() {
 
       {/* Main Content Area */}
       <main className={`flex-1 min-w-0 h-full overflow-hidden flex flex-col transition-all duration-300 pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        <div className="shrink-0 h-16 border-b border-slate-800/60 bg-slate-950/40 px-4 sm:px-6 lg:px-8" />
-        <div className="flex-1 min-h-0 w-full max-w-full min-w-0 overflow-y-auto overflow-x-auto custom-scrollbar bg-slate-950/20">
+        <div className="shrink-0 h-16 border-b border-slate-700/50 bg-slate-900/40 px-4 sm:px-6 lg:px-8" />
+        <div className="flex-1 min-h-0 w-full max-w-full min-w-0 overflow-y-auto overflow-x-auto custom-scrollbar bg-slate-900/30">
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
@@ -486,13 +490,15 @@ function App() {
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <aside className="relative w-80 max-w-[85vw] h-full bg-[#0f172a] shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
-            <div className="p-6 flex items-center justify-between border-b border-slate-800/60">
+          <aside className="relative w-80 max-w-[85vw] h-full bg-[#111827] shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+            <div className="p-6 flex items-center justify-between border-b border-slate-700/50">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-black text-white uppercase tracking-tighter">SmartFleet</span>
+                <img
+                  src="/logo-sidebar.png"
+                  alt="Algartempo Frota"
+                  className="w-8 h-8 rounded-lg object-contain"
+                />
+                <span className="font-semibold text-white uppercase tracking-tight">Algartempo Frota</span>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}

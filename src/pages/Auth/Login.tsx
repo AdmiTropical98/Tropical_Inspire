@@ -27,7 +27,7 @@ export default function Login() {
     const roleConfig = {
         admin: { label: 'Administrador', icon: <ShieldCheck className="w-5 h-5" />, color: 'blue' },
         gestor: { label: 'Gestor', icon: <UserCheck className="w-5 h-5" />, color: 'teal' },
-        supervisor: { label: 'Supervisor', icon: <UserCog className="w-5 h-5" />, color: 'purple' },
+        supervisor: { label: 'Supervisor', icon: <UserCog className="w-5 h-5" />, color: 'blue' },
         oficina: { label: 'Oficina', icon: <Wrench className="w-5 h-5" />, color: 'orange' },
         motorista: { label: 'Motorista', icon: <User className="w-5 h-5" />, color: 'emerald' },
     };
@@ -67,8 +67,9 @@ export default function Login() {
         }
 
         // 1.1 Strict Email Validation
-        // Checking for 'algartempo' presence
-        if (!regData.email.toLowerCase().includes('algartempo')) {
+        // Accept both previous and new company domains during the transition.
+        const normalizedEmail = regData.email.toLowerCase();
+        if (!normalizedEmail.includes('algartempo') && !normalizedEmail.includes('atlusnoc')) {
             setRegError('O email não é autenticado pela empresa. Contacte o administrador.');
             return;
         }
@@ -172,19 +173,20 @@ export default function Login() {
             {/* Background Effects */}
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-900/10 blur-[120px] rounded-full"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
             </div>
 
             <div className="w-full max-w-xl relative z-10 flex flex-col items-center gap-0 -mt-24 mb-8">
                 <img
-                    src="/logo-algar-frota.png?v=4"
-                    alt="Algar Frota"
-                    className="w-96 h-auto object-contain drop-shadow-2xl relative z-20"
+                    src="/logo-new-upload.png"
+                    alt="Algartempo Frota"
+                    className="w-80 h-auto object-contain drop-shadow-2xl relative z-20"
                 />
 
-                <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-32 relative z-10">
+                <div className="w-full bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-20 relative z-10">
                     <div className="text-center mb-6">
-                        <h1 className="text-2xl font-black text-white mb-1 uppercase tracking-tighter">Gestão de Frota</h1>
+                        <h1 className="text-2xl font-semibold text-white mb-1 uppercase tracking-tight">Algartempo Frota</h1>
+                        <p className="text-blue-300/90 text-xs font-medium uppercase tracking-[0.2em]">Programa · Painel de Operacoes</p>
                         <div className="flex items-center justify-center gap-2 mt-2">
                             <span className="text-slate-500 text-sm font-medium">Entrar como:</span>
                             <span className={`text-${roleConfig[role].color}-400 text-sm font-bold bg-${roleConfig[role].color}-500/10 px-3 py-1 rounded-full border border-${roleConfig[role].color}-500/20 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
@@ -227,7 +229,7 @@ export default function Login() {
                                 {role === 'admin' ? (
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                                 ) : role === 'supervisor' ? (
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                                 ) : role === 'gestor' ? (
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-teal-400 transition-colors" />
                                 ) : role === 'oficina' ? (
@@ -262,7 +264,7 @@ export default function Login() {
                             <div className="relative group">
                                 <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 transition-colors
                                     ${role === 'admin' ? 'group-focus-within:text-blue-400' :
-                                        role === 'supervisor' ? 'group-focus-within:text-purple-400' :
+                                        role === 'supervisor' ? 'group-focus-within:text-blue-400' :
                                             role === 'gestor' ? 'group-focus-within:text-teal-400' :
                                                 role === 'oficina' ? 'group-focus-within:text-orange-400' :
                                                     'group-focus-within:text-emerald-400'}
@@ -298,7 +300,7 @@ export default function Login() {
                                 ${role === 'admin'
                                         ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 shadow-blue-900/30'
                                         : role === 'supervisor'
-                                            ? 'bg-gradient-to-br from-purple-600 via-purple-700 to-fuchsia-800 shadow-purple-900/30'
+                                            ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 shadow-blue-900/30'
                                             : role === 'gestor'
                                                 ? 'bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 shadow-teal-900/30'
                                                 : role === 'oficina'
@@ -320,7 +322,7 @@ export default function Login() {
                                 className="w-full text-slate-400 hover:text-white font-medium py-3 rounded-xl hover:bg-slate-800/50 transition-all flex items-center justify-center gap-2 text-sm"
                             >
                                 <UserCog className="w-4 h-4" />
-                                Criar Conta {role === 'supervisor' ? 'Supervisor' : 'Gestor'} (AlgarTempo)
+                                Criar Conta {role === 'supervisor' ? 'Supervisor' : 'Gestor'} (Algartempo)
                             </button>
                         )}
                     </form>
@@ -341,7 +343,7 @@ export default function Login() {
 
                     <div className="mt-8 text-center space-y-2">
                         <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
-                            &copy; 2025 Algartempo Frota
+                            &copy; 2026 Algartempo Frota
                         </p>
                         <div className="flex items-center justify-center gap-2 opacity-30 group">
                             <span className="text-[10px] text-slate-500 font-mono">v1.11.0</span>
@@ -364,7 +366,7 @@ export default function Login() {
                         <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-900/50">
                             <div>
                                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <UserCog className={`w-5 h-5 ${role === 'supervisor' ? 'text-purple-500' : 'text-teal-500'}`} />
+                                    <UserCog className={`w-5 h-5 ${role === 'supervisor' ? 'text-blue-500' : 'text-teal-500'}`} />
                                     {role === 'supervisor' ? 'Registo de Supervisor' : 'Registo de Gestor'}
                                 </h2>
                                 <p className="text-sm text-slate-400">
@@ -404,7 +406,7 @@ export default function Login() {
                                             required
                                             value={regData.nome}
                                             onChange={e => setRegData({ ...regData, nome: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-purple-500 outline-none"
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-blue-500 outline-none"
                                             placeholder="Ex: João Silva"
                                         />
                                     </div>
@@ -416,18 +418,8 @@ export default function Login() {
                                                 required
                                                 value={regData.email}
                                                 onChange={e => setRegData({ ...regData, email: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-purple-500 outline-none"
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-blue-500 outline-none"
                                                 placeholder="email@algartempo.com"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-xs font-medium text-slate-400 uppercase">Telemóvel</label>
-                                            <input
-                                                type="tel"
-                                                required
-                                                value={regData.telemovel}
-                                                onChange={e => setRegData({ ...regData, telemovel: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-purple-500 outline-none"
                                                 placeholder="912 345 678"
                                             />
                                         </div>
@@ -440,7 +432,7 @@ export default function Login() {
                                                 required
                                                 value={regData.password}
                                                 onChange={e => setRegData({ ...regData, password: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-purple-500 outline-none pr-10"
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:ring-1 focus:ring-blue-500 outline-none pr-10"
                                                 placeholder="••••••••"
                                                 minLength={6}
                                             />
@@ -466,7 +458,7 @@ export default function Login() {
                                         <button
                                             type="submit"
                                             className={`w-full text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2
-                                                ${role === 'supervisor' ? 'bg-purple-600 hover:bg-purple-500' : 'bg-teal-600 hover:bg-teal-500'}
+                                                ${role === 'supervisor' ? 'bg-blue-600 hover:bg-blue-500' : 'bg-teal-600 hover:bg-teal-500'}
                                             `}
                                         >
                                             <Send className="w-4 h-4" />
@@ -485,8 +477,8 @@ export default function Login() {
                             ) : (
                                 <form onSubmit={handleConfirmation} className="space-y-6">
                                     <div className="text-center space-y-2">
-                                        <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto border border-purple-500/20 mb-4">
-                                            <Lock className="w-8 h-8 text-purple-500" />
+                                        <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto border border-blue-500/20 mb-4">
+                                            <Lock className="w-8 h-8 text-blue-500" />
                                         </div>
                                         <h3 className="text-lg font-medium text-white">Confirmação de Identidade</h3>
                                         <p className="text-sm text-slate-400">
@@ -509,7 +501,7 @@ export default function Login() {
                                                 required
                                                 value={regData.email}
                                                 onChange={e => setRegData({ ...regData, email: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:ring-1 focus:ring-purple-500 outline-none"
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:ring-1 focus:ring-blue-500 outline-none"
                                                 placeholder="email@algartempo.com"
                                             />
                                         </div>
@@ -521,7 +513,7 @@ export default function Login() {
                                                 required
                                                 value={confirmPin}
                                                 onChange={e => setConfirmPin(e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-center text-2xl font-mono tracking-widest text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-center text-2xl font-mono tracking-widest text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                                 placeholder="0000"
                                                 maxLength={6}
                                             />

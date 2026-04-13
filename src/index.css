@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --sf-bg-main: #0f172a;
+  --sf-bg-surface: #111827;
+  --sf-bg-hover: #1e293b;
+  --sf-border-soft: #334155;
+  --sf-text-primary: #f8fafc;
+  --sf-text-secondary: #cbd5e1;
+  --sf-state-available: #3b82f6;
+  --sf-state-route: #22c55e;
+  --sf-state-standby: #f59e0b;
+  --sf-state-offline: #64748b;
+  --sf-state-urgent: #ef4444;
+}
+
 @layer base {
 
   html,
@@ -17,7 +31,10 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased selection:bg-blue-500/30;
+    @apply antialiased selection:bg-blue-500/30;
+    background:
+      radial-gradient(circle at 18% 0%, #14213d 0%, var(--sf-bg-main) 50%);
+    color: var(--sf-text-primary);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     height: 100dvh;
     overscroll-behavior-y: none;
@@ -75,23 +92,23 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--sf-bg-main);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(transparent, #3b82f6, #8b5cf6, transparent);
+  background: linear-gradient(transparent, #3b82f6, #1d4ed8, transparent);
   border-radius: 20px;
-  border: 2px solid #0f172a;
+  border: 2px solid var(--sf-bg-main);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(transparent, #2563eb, #7c3aed, transparent);
+  background: linear-gradient(transparent, #2563eb, #1d4ed8, transparent);
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3b82f6 #0f172a;
+  scrollbar-color: #3b82f6 var(--sf-bg-main);
 }
 
 /* Custom Scrollbar Utility */
@@ -106,13 +123,13 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+  background: linear-gradient(to bottom, #3b82f6, #6366f1);
   border-radius: 10px;
   border: 2px solid #0f172a;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563eb, #7c3aed);
+  background: linear-gradient(to bottom, #2563eb, #4f46e5);
 }
 
 /* Animations */
