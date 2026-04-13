@@ -261,14 +261,14 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
             const newRows: GridRow[] = jsonData.flatMap((row: any) => {
                 const results: GridRow[] = [];
-                const nome = row['Nome do funcionário'] || row['Nome'] || row['PASSAGEIRO'] || row['Passageiro'] || '';
+                const nome = String(row['Nome do funcionário'] || row['Nome'] || row['PASSAGEIRO'] || row['Passageiro'] || '');
                 if (!nome && !row['Origem'] && !row['ORIGEM']) return []; // Skip empty rows
 
-                const origem = row['Origem'] || row['ORIGEM'] || '';
-                const destino = row['Destino'] || row['DESTINO'] || '';
+                const origem = String(row['Origem'] || row['ORIGEM'] || '');
+                const destino = String(row['Destino'] || row['DESTINO'] || '');
                 const obs = (row['Observações'] || row['OBS'] || row['Obs'] || '').toString();
                 const voo = row['Referência Voo'] || row['Voo'] || row['VOO'] || '';
-                const dept = row['DEPARTAMENTO'] || row['Departamento'] || '';
+                const dept = String(row['DEPARTAMENTO'] || row['Departamento'] || '');
 
                 const hEntradaRaw = row['Horário de apanhar transporte'] !== undefined ? row['Horário de apanhar transporte'] : (row['HORA'] || row['Hora'] || row['hora']);
                 const horaEntrada = parseExcelTime(hEntradaRaw);
@@ -582,13 +582,25 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             return;
         }
 
-        const validRows = rows.filter(r => r.passageiro.trim() !== '');
+        const asText = (value: unknown) => String(value ?? '').trim();
+
+        const normalizedRows = rows.map(r => ({
+            ...r,
+            passageiro: asText(r.passageiro),
+            origem: asText(r.origem),
+            destino: asText(r.destino),
+            hora: asText(r.hora),
+            obs: String(r.obs ?? ''),
+            departamento: asText(r.departamento)
+        }));
+
+        const validRows = normalizedRows.filter(r => r.passageiro !== '');
         if (validRows.length === 0) {
             alert('Adicione pelo menos um serviço válido.');
             return;
         }
 
-        const missingTime = validRows.find(r => r.hora.trim() === '');
+        const missingTime = validRows.find(r => r.hora === '');
         if (missingTime) {
             alert(`Falta hora para o passageiro: ${missingTime.passageiro}`);
             return;
