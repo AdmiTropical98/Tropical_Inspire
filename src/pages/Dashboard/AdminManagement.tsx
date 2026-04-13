@@ -47,11 +47,11 @@ export default function AdminManagement() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                         <Shield className="w-6 h-6 text-blue-500" />
                         Gestão de Administradores
                     </h2>
-                    <p className="text-slate-400 mt-1">
+                    <p className="text-slate-600 mt-1">
                         Gerir utilizadores com acesso total ao sistema
                     </p>
                 </div>
@@ -65,8 +65,8 @@ export default function AdminManagement() {
             </div>
 
             {isCreating && (
-                <div className="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 animate-fade-in">
-                    <h3 className="text-lg font-medium text-white mb-4">Adicionar Novo Administrador</h3>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 animate-fade-in shadow-sm">
+                    <h3 className="text-lg font-medium text-slate-900 mb-4">Adicionar Novo Administrador</h3>
 
                     {error && (
                         <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-400">
@@ -85,43 +85,43 @@ export default function AdminManagement() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <label className="text-xs font-medium text-slate-400 uppercase">Nome</label>
+                                <label className="text-xs font-medium text-slate-500 uppercase">Nome</label>
                                 <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
                                         type="text"
                                         required
                                         value={formData.nome}
                                         onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-white border border-slate-300 rounded-xl py-2.5 pl-10 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                         placeholder="Nome do Administrador"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-medium text-slate-400 uppercase">Email</label>
+                                <label className="text-xs font-medium text-slate-500 uppercase">Email</label>
                                 <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
                                         type="email"
                                         required
                                         value={formData.email}
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-white border border-slate-300 rounded-xl py-2.5 pl-10 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                         placeholder="email@exemplo.com"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-1 md:col-span-2">
-                                <label className="text-xs font-medium text-slate-400 uppercase">Palavra-Passe Inicial</label>
+                                <label className="text-xs font-medium text-slate-500 uppercase">Palavra-Passe Inicial</label>
                                 <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
                                         type="password"
                                         required
                                         value={formData.password}
                                         onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-white border border-slate-300 rounded-xl py-2.5 pl-10 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                                         placeholder="Mínimo 6 caracteres"
                                     />
                                 </div>
@@ -135,7 +135,7 @@ export default function AdminManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsCreating(false)}
-                                className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                                className="px-4 py-2 text-slate-500 hover:text-slate-900 transition-colors"
                             >
                                 Cancelar
                             </button>
@@ -153,14 +153,14 @@ export default function AdminManagement() {
 
             <div className="grid gap-4">
                 {adminUsers.map(admin => (
-                    <div key={admin.id} className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 flex items-center justify-between">
+                    <div key={admin.id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-4">
                             <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center border border-blue-500/20">
                                 <Shield className="w-5 h-5 text-blue-500" />
                             </div>
                             <div>
-                                <h3 className="text-white font-medium">{admin.nome || 'Sem Nome'}</h3>
-                                <p className="text-sm text-slate-400">{admin.email}</p>
+                                <h3 className="text-slate-900 font-medium">{admin.nome || 'Sem Nome'}</h3>
+                                <p className="text-sm text-slate-600">{admin.email}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -174,7 +174,7 @@ export default function AdminManagement() {
                             {currentUser?.email !== admin.email && (
                                 <button
                                     onClick={() => handleDelete(admin.id)}
-                                    className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                     title="Remover Administrador"
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -185,7 +185,7 @@ export default function AdminManagement() {
                 ))}
 
                 {adminUsers.length === 0 && (
-                    <div className="text-center py-12 text-slate-500 bg-slate-900/20 rounded-xl border border-dashed border-slate-800">
+                    <div className="text-center py-12 text-slate-500 bg-white rounded-xl border border-dashed border-slate-300">
                         Nenhum administrador encontrado.
                     </div>
                 )}

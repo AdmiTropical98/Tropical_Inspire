@@ -50,14 +50,14 @@ export default function ResetPassword() {
 
     if (success) {
         return (
-            <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-4">
-                <div className="w-full max-w-md bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 text-center space-y-6">
-                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+            <div className="min-h-screen bg-[#F5F7FA] flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-xl p-8 text-center space-y-6">
+                    <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border border-emerald-200">
                         <CheckCircle className="w-8 h-8 text-emerald-500" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-white mb-2">Palavra-passe Atualizada!</h2>
-                        <p className="text-slate-400">
+                        <h2 className="text-2xl font-bold text-slate-900 mb-2">Palavra-passe Atualizada!</h2>
+                        <p className="text-slate-600">
                             A sua palavra-passe foi alterada com sucesso.
                             <br />
                             A redirecionar para a aplicação...
@@ -69,28 +69,27 @@ export default function ResetPassword() {
     }
 
     return (
-        <div className="h-[100dvh] bg-[#0f172a] flex flex-col items-center px-4 pt-0 pb-4 relative login-scrollbar overflow-y-auto">
-            {/* Background Effects (Matching Login) */}
+        <div className="h-[100dvh] bg-[#F5F7FA] flex flex-col items-center px-4 pt-0 pb-4 relative login-scrollbar overflow-y-auto">
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-100/50 blur-[120px] rounded-full"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-100/50 blur-[120px] rounded-full"></div>
             </div>
 
             <div className="w-full max-w-md relative z-10 -mt-8">
                 <div className="text-center mb-2">
                     <img
-                        src="/logo-algar-frota.png?v=4"
+                        src="/LOGO.png"
                         alt="Algar Frota"
-                        className="w-80 h-auto object-contain mx-auto mb-0 drop-shadow-2xl"
+                        className="w-72 h-auto object-contain mx-auto mb-2"
                     />
-                    <h1 className="text-3xl font-bold text-white mb-2">Redefinir Palavra-passe</h1>
-                    <p className="text-slate-400">Escolha uma nova palavra-passe segura</p>
+                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Redefinir Palavra-passe</h1>
+                    <p className="text-slate-600">Escolha uma nova palavra-passe segura</p>
                 </div>
 
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl p-8 -mt-32 relative z-10">
+                <div className="bg-white border border-slate-200 rounded-3xl shadow-xl p-8 relative z-10">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 text-red-400 text-sm animate-pulse">
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-600 text-sm">
                                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                 {error}
                             </div>
@@ -102,20 +101,20 @@ export default function ResetPassword() {
                                     Nova Palavra-Passe
                                 </label>
                                 <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-12 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
+                                        className="w-full bg-white border border-slate-300 rounded-xl py-3.5 pl-12 pr-12 text-slate-900 focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 outline-none transition-all placeholder:text-slate-400"
                                         placeholder="••••••••"
                                         minLength={6}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                                     >
                                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
@@ -127,13 +126,13 @@ export default function ResetPassword() {
                                     Confirmar Palavra-Passe
                                 </label>
                                 <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         required
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-12 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
+                                        className="w-full bg-white border border-slate-300 rounded-xl py-3.5 pl-12 pr-12 text-slate-900 focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 outline-none transition-all placeholder:text-slate-400"
                                         placeholder="••••••••"
                                         minLength={6}
                                     />
@@ -144,7 +143,7 @@ export default function ResetPassword() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-[#C9A34E] hover:bg-[#b8903d] text-white font-bold py-4 rounded-xl shadow-lg shadow-amber-200 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'A Guardar...' : 'Atualizar Palavra-passe'}
                             {!loading && <ChevronRight className="w-5 h-5" />}

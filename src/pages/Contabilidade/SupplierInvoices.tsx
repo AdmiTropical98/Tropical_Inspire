@@ -154,8 +154,8 @@ export default function SupplierInvoices() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Faturas de Fornecedores</h1>
-                    <p className="text-slate-400">Gerencie faturas de fornecedores e acompanhe pagamentos</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Faturas de Fornecedores</h1>
+                    <p className="text-slate-600">Gerencie faturas de fornecedores e acompanhe pagamentos</p>
                 </div>
                 <button
                     onClick={handleCreateNew}
@@ -167,19 +167,19 @@ export default function SupplierInvoices() {
             </div>
 
             {/* Filters */}
-            <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-xl border border-slate-700/50">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
-                    <Filter className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-medium text-slate-300">Filtros</span>
+                    <Filter className="w-4 h-4 text-slate-500" />
+                    <span className="text-sm font-medium text-slate-700">Filtros</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Fornecedor</label>
+                        <label className="block text-xs text-slate-500 mb-1">Fornecedor</label>
                         <select
                             value={filters.supplier}
                             onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))}
-                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         >
                             <option value="">Todos</option>
                             {fornecedores.map(supplier => (
@@ -191,11 +191,11 @@ export default function SupplierInvoices() {
                     </div>
 
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Viatura</label>
+                        <label className="block text-xs text-slate-500 mb-1">Viatura</label>
                         <select
                             value={filters.vehicle}
                             onChange={(e) => setFilters(prev => ({ ...prev, vehicle: e.target.value }))}
-                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         >
                             <option value="">Todas</option>
                             {viaturas.map(vehicle => (
@@ -207,11 +207,11 @@ export default function SupplierInvoices() {
                     </div>
 
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Centro Custo</label>
+                        <label className="block text-xs text-slate-500 mb-1">Centro Custo</label>
                         <select
                             value={filters.costCenter}
                             onChange={(e) => setFilters(prev => ({ ...prev, costCenter: e.target.value }))}
-                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         >
                             <option value="">Todos</option>
                             {centrosCustos.map(cc => (
@@ -223,11 +223,11 @@ export default function SupplierInvoices() {
                     </div>
 
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Status</label>
+                        <label className="block text-xs text-slate-500 mb-1">Status</label>
                         <select
                             value={filters.status}
                             onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         >
                             <option value="">Todos</option>
                             <option value="pending">Pendente</option>
@@ -240,28 +240,28 @@ export default function SupplierInvoices() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Data Inicial</label>
+                        <label className="block text-xs text-slate-500 mb-1">Data Inicial</label>
                         <input
                             type="date"
                             value={filters.dateFrom}
                             onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Data Final</label>
+                        <label className="block text-xs text-slate-500 mb-1">Data Final</label>
                         <input
                             type="date"
                             value={filters.dateTo}
                             onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         />
                     </div>
                 </div>
             </div>
 
             {/* Search and Export */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-800/50 backdrop-blur-sm p-4 rounded-xl border border-slate-700/50">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div className="relative w-full md:w-96">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
@@ -269,28 +269,28 @@ export default function SupplierInvoices() {
                         placeholder="Buscar faturas..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full bg-white border border-slate-300 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                     />
                 </div>
 
                 <div className="flex gap-2">
                     <button
                         onClick={() => generateReport('supplier')}
-                        className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+                        className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm border border-slate-200"
                     >
                         <Download className="w-4 h-4" />
                         Por Fornecedor
                     </button>
                     <button
                         onClick={() => generateReport('vehicle')}
-                        className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+                        className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm border border-slate-200"
                     >
                         <Download className="w-4 h-4" />
                         Por Viatura
                     </button>
                     <button
                         onClick={() => generateReport('cost_center')}
-                        className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+                        className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm border border-slate-200"
                     >
                         <Download className="w-4 h-4" />
                         Por Centro Custo
@@ -299,12 +299,12 @@ export default function SupplierInvoices() {
             </div>
 
             {/* Invoices Table */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-slate-900/50">
+                        <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                     Fatura
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
@@ -327,30 +327,30 @@ export default function SupplierInvoices() {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-700/50">
+                        <tbody className="divide-y divide-slate-200">
                             {filteredInvoices.map((invoice) => (
-                                <tr key={invoice.id} className="hover:bg-slate-800/30">
+                                <tr key={invoice.id} className="hover:bg-slate-50">
                                     <td className="px-4 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-white">
+                                        <div className="text-sm font-medium text-slate-900">
                                             {invoice.invoice_number}
                                         </div>
-                                        <div className="text-sm text-slate-400">
+                                        <div className="text-sm text-slate-500">
                                             {invoice.expense_type}
                                         </div>
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-white">
+                                        <div className="text-sm text-slate-900">
                                             {invoice.supplier?.nome}
                                         </div>
-                                        <div className="text-sm text-slate-400">
+                                        <div className="text-sm text-slate-500">
                                             {invoice.cost_center?.nome}
                                         </div>
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-white">
+                                        <div className="text-sm font-medium text-slate-900">
                                             {formatCurrency(getInvoiceTotal(invoice))}
                                         </div>
-                                        <div className="text-sm text-slate-400">
+                                        <div className="text-sm text-slate-500">
                                             Base: {formatCurrency(getInvoiceBase(invoice))}
                                         </div>
                                     </td>
@@ -358,18 +358,18 @@ export default function SupplierInvoices() {
                                         <StatusBadge status={invoice.payment_status} />
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-white">
+                                        <div className="text-sm text-slate-900">
                                             {new Date(invoice.due_date).toLocaleDateString('pt-PT')}
                                         </div>
-                                        <div className="text-sm text-slate-400">
+                                        <div className="text-sm text-slate-500">
                                             Emissão: {new Date(invoice.issue_date).toLocaleDateString('pt-PT')}
                                         </div>
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-white">
+                                        <div className="text-sm text-slate-900">
                                             {invoice.vehicle?.matricula}
                                         </div>
-                                        <div className="text-sm text-slate-400">
+                                        <div className="text-sm text-slate-500">
                                             {invoice.vehicle?.marca} {invoice.vehicle?.modelo}
                                         </div>
                                     </td>
@@ -377,14 +377,14 @@ export default function SupplierInvoices() {
                                         <div className="flex items-center justify-end gap-2">
                                             <button
                                                 onClick={() => handleView(invoice)}
-                                                className="p-1 text-slate-400 hover:text-blue-400 transition-colors"
+                                                className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
                                                 title="Ver"
                                             >
                                                 <Eye className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleEdit(invoice)}
-                                                className="p-1 text-slate-400 hover:text-blue-400 transition-colors"
+                                                className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
                                                 title="Editar"
                                             >
                                                 <Edit className="w-4 h-4" />
@@ -392,7 +392,7 @@ export default function SupplierInvoices() {
                                             {invoice.payment_status !== 'paid' && (
                                                 <button
                                                     onClick={() => handleMarkAsPaid(invoice)}
-                                                    className="p-1 text-slate-400 hover:text-green-400 transition-colors"
+                                                    className="p-1 text-slate-400 hover:text-green-600 transition-colors"
                                                     title="Marcar como Pago"
                                                 >
                                                     <CheckCircle className="w-4 h-4" />
@@ -403,7 +403,7 @@ export default function SupplierInvoices() {
                                                     href={invoice.pdf_url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="p-1 text-slate-400 hover:text-blue-400 transition-colors"
+                                                    className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
                                                     title="Ver PDF"
                                                 >
                                                     <FileText className="w-4 h-4" />
@@ -411,7 +411,7 @@ export default function SupplierInvoices() {
                                             )}
                                             <button
                                                 onClick={() => handleDelete(invoice)}
-                                                className="p-1 text-slate-400 hover:text-red-400 transition-colors"
+                                                className="p-1 text-slate-400 hover:text-red-600 transition-colors"
                                                 title="Excluir"
                                             >
                                                 <Trash2 className="w-4 h-4" />

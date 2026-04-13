@@ -575,22 +575,22 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
   }, [colaboradorParagem, selectedVehicle, stops, collaboratorDriver, collaboratorService, collaboratorAssignedVehicleRegistration]);
 
   return (
-    <div className={compact ? 'w-full animate-in fade-in duration-500' : 'min-h-screen bg-[#010409] p-4 sm:p-6 lg:p-8 animate-in fade-in duration-700'}>
+    <div className={compact ? 'w-full animate-in fade-in duration-500' : 'min-h-screen bg-[#F5F7FA] p-4 sm:p-6 lg:p-8 animate-in fade-in duration-700'}>
       <div className={compact ? 'space-y-5' : 'max-w-[1600px] mx-auto space-y-8'}>
         
         {compact ? (
-          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-blue-600/10 p-3 text-blue-400 border border-blue-500/20">
+                <div className="rounded-2xl bg-blue-50 p-3 text-blue-600 border border-blue-100">
                   <Navigation className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-white">Linha do Transporte</h2>
-                  <p className="text-xs text-slate-400">Acompanhe o motorista até à sua paragem.</p>
+                  <h2 className="text-lg font-black text-slate-900">Linha do Transporte</h2>
+                  <p className="text-xs text-slate-600">Acompanhe o motorista até à sua paragem.</p>
                 </div>
               </div>
-              <button onClick={fetchVehicles} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:border-blue-500/40">
+              <button onClick={fetchVehicles} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:border-blue-400">
                 <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
                 Atualizar
               </button>
@@ -598,69 +598,69 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
 
             {colaboradorParagem ? (
               <div className="mt-4 grid gap-3 md:grid-cols-[1.2fr_0.8fr]">
-                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-blue-200/80">Sua paragem</p>
-                  <h3 className="mt-2 text-2xl font-black text-white">{colaboradorParagem}</h3>
-                  <p className="mt-2 text-sm text-blue-50/90">{collaboratorStatus?.detail || 'A sincronizar o trajeto do motorista...'}</p>
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-blue-700">Sua paragem</p>
+                  <h3 className="mt-2 text-2xl font-black text-slate-900">{colaboradorParagem}</h3>
+                  <p className="mt-2 text-sm text-slate-700">{collaboratorStatus?.detail || 'A sincronizar o trajeto do motorista...'}</p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1">
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">ETA</p>
-                    <p className="mt-2 text-xl font-black text-white">{collaboratorStatus?.eta || 'Em cálculo'}</p>
+                    <p className="mt-2 text-xl font-black text-slate-900">{collaboratorStatus?.eta || 'Em cálculo'}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Próxima paragem</p>
-                    <p className="mt-2 text-sm font-bold text-white">{collaboratorStatus?.nextStop || 'Por definir'}</p>
+                    <p className="mt-2 text-sm font-bold text-slate-900">{collaboratorStatus?.nextStop || 'Por definir'}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Motorista / Viatura</p>
-                    <p className="mt-2 text-sm font-bold text-white">{collaboratorStatus?.motorista || 'Por atribuir'}</p>
-                    <p className="text-xs text-slate-400 mt-1">{collaboratorStatus?.viatura || 'Sem viatura'}</p>
+                    <p className="mt-2 text-sm font-bold text-slate-900">{collaboratorStatus?.motorista || 'Por atribuir'}</p>
+                    <p className="text-xs text-slate-500 mt-1">{collaboratorStatus?.viatura || 'Sem viatura'}</p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                 Ainda não tem uma paragem registada. Defina a sua paragem para acompanhar o motorista em tempo real.
               </div>
             )}
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-[#0a0f1d] p-6 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent pointer-events-none" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)] relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-50/70 to-transparent pointer-events-none" />
             <div className="flex items-center gap-5 relative z-10">
-              <div className="p-4 rounded-2xl bg-blue-600/10 border border-blue-500/20 group-hover:scale-110 transition-transform duration-500">
-                <Navigation className="w-7 h-7 text-blue-400 animate-pulse" />
+              <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 group-hover:scale-110 transition-transform duration-500">
+                <Navigation className="w-7 h-7 text-blue-600 animate-pulse" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tighter uppercase">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase">
                   LINHA DE TRANSPORTES
                 </h1>
-                <p className="text-slate-400 text-xs sm:text-sm font-medium tracking-wide uppercase">
+                <p className="text-slate-600 text-xs sm:text-sm font-medium tracking-wide uppercase">
                   Monitorização Global • Tempo Real
                 </p>
               </div>
             </div>
             
             <div className="flex flex-wrap items-center gap-3 relative z-10">
-              <div className="h-10 px-4 rounded-xl bg-slate-900/50 border border-white/5 flex items-center gap-3">
+              <div className="h-10 px-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live System</span>
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Live System</span>
               </div>
             </div>
           </div>
         )}
 
         {/* Global Monitor Section */}
-        <div className="bg-[#0a0f1d] rounded-3xl border border-white/5 shadow-2xl overflow-hidden relative">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)] overflow-hidden relative">
           <div className="p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
               <div className="flex items-center gap-4">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Activity className="w-5 h-5 text-blue-400" />
+                <div className="p-2 rounded-lg bg-blue-50">
+                  <Activity className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white uppercase tracking-tight">
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
                     {selectedVehicle ? `Acompanhamento: ${selectedVehicle.label || selectedVehicle.registration}` : 'Monitorização de Tráfego'}
                   </h3>
                   {selectedVehicleId && (
@@ -672,7 +672,7 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
               </div>
 
               <div className="flex flex-wrap items-center gap-4 sm:justify-end">
-                <div className="px-3 py-1.5 rounded-lg bg-slate-900/50 border border-white/5 flex items-center gap-3">
+                <div className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${loading ? 'bg-blue-400 animate-pulse' : 'bg-green-500'}`} />
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                     {loading ? 'Sincronizando...' : lastUpdate.toLocaleTimeString()}
@@ -684,14 +684,14 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
                     <button 
                       onClick={() => setIsDemoMode(!isDemoMode)}
                       className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                        isDemoMode ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-900 border border-white/5 text-slate-400 hover:border-blue-500/30 hover:text-white'
+                        isDemoMode ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-300 text-slate-600 hover:border-blue-400 hover:text-slate-900'
                       }`}
                     >
                       <Activity size={14} className={isDemoMode ? 'animate-pulse' : ''} />
                       {isDemoMode ? 'Parar Demo' : 'Modo Demo'}
                     </button>
                   )}
-                  <button onClick={fetchVehicles} disabled={loading} className="p-2 rounded-xl bg-slate-900 border border-white/5 text-slate-400 hover:text-white transition-colors">
+                  <button onClick={fetchVehicles} disabled={loading} className="p-2 rounded-xl bg-white border border-slate-300 text-slate-600 hover:text-slate-900 transition-colors">
                     <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} />
                   </button>
                 </div>
@@ -703,13 +703,13 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
             {!compact && (
               <>
                 {/* Legend Section */}
-                <div className="mt-12 pt-8 border-t border-white/5 flex flex-wrap gap-8 items-center justify-center sm:justify-start">
+                <div className="mt-12 pt-8 border-t border-slate-200 flex flex-wrap gap-8 items-center justify-center sm:justify-start">
                   <div className="flex items-center gap-3">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[.2em]">Concluído</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[.2em]">Pendente</span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -722,14 +722,14 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
           </div>
 
           {!compact && (
-            <div className="p-8 border-t border-white/5 bg-[#030712]/40 backdrop-blur-xl">
+            <div className="p-8 border-t border-slate-200 bg-slate-50/70 backdrop-blur-xl">
               <div className="flex items-center gap-3 mb-10">
                 <div className="w-1 h-6 bg-blue-500 rounded-full" />
-                <h2 className="text-sm font-black text-white uppercase tracking-[.3em]">Catálogo de Frota</h2>
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-[.3em]">Catálogo de Frota</h2>
               </div>
               
               {vehicles.length === 0 && !isDemoMode ? (
-                <div className="p-20 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
+                <div className="p-20 text-center border-2 border-dashed border-slate-200 rounded-[2rem] bg-white">
                   <TruckIcon className="w-16 h-16 text-slate-800 mx-auto mb-6 opacity-20" />
                   <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Aguardando sinal GPS das viaturas...</p>
                 </div>
@@ -746,22 +746,22 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
                         onClick={() => setSelectedVehicleId(isSelected ? null : v.id)}
                         className={`group relative text-left p-6 rounded-[2rem] border transition-all duration-500 ${
                           isSelected 
-                            ? 'bg-blue-600/10 border-blue-500/50 shadow-2xl' 
-                            : 'bg-slate-900/40 border-white/5 hover:border-blue-500/20 hover:bg-slate-900/60'
+                            ? 'bg-blue-50 border-blue-300 shadow-md' 
+                            : 'bg-white border-slate-200 hover:border-blue-200 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-6">
-                          <div className={`p-3 rounded-2xl ${isSelected ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-colors'}`}>
+                          <div className={`p-3 rounded-2xl ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors border border-slate-200'}`}>
                             <TruckIcon size={20} />
                           </div>
                           <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                            v.status === 'moving' ? 'bg-green-500/10 text-green-400' : 'bg-slate-800 text-slate-500'
+                            v.status === 'moving' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
                           }`}>
                             {v.status === 'moving' ? 'Em Rota' : 'Standby'}
                           </div>
                         </div>
                         
-                        <h4 className="text-xl font-black text-white mb-2 tracking-tighter truncate">
+                        <h4 className="text-xl font-black text-slate-900 mb-2 tracking-tighter truncate">
                           {v.registration || v.label}
                         </h4>
                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6">

@@ -160,15 +160,15 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 relative">
             {failureModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white border border-slate-200 p-6 rounded-2xl w-full max-w-sm shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3 text-red-500 mb-4">
                             <div className="p-3 bg-red-500/10 rounded-full">
                                 <AlertTriangle className="w-6 h-6" />
                             </div>
-                            <h3 className="text-xl font-bold text-white">Passageiro Não Recolhido</h3>
+                            <h3 className="text-xl font-bold text-slate-900">Passageiro Não Recolhido</h3>
                         </div>
-                        <p className="text-slate-400 mb-4 text-sm">Por favor, indique o motivo da falha na recolha:</p>
+                        <p className="text-slate-600 mb-4 text-sm">Por favor, indique o motivo da falha na recolha:</p>
 
                         <div className="space-y-2 mb-6">
                             {['Não compareceu à paragem', 'Folga / Não necessita', 'Erro na escala / Cancelado', 'Viatura Avariada', 'Outros'].map(reason => (
@@ -178,7 +178,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                     className={`w-full text-left px-4 py-3 rounded-xl border transition-all font-medium text-sm
                                         ${failureReason === reason
                                             ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-900/20'
-                                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'}`}
+                                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}
                                 >
                                     {reason}
                                 </button>
@@ -188,7 +188,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setFailureModalOpen(false)}
-                                className="flex-1 py-3 rounded-xl font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors"
+                                className="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors border border-slate-200"
                             >
                                 Cancelar
                             </button>
@@ -204,32 +204,32 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 </div>
             )}
 
-            <div className="md:hidden flex items-center gap-3 bg-slate-800/80 backdrop-blur-md p-4 sticky top-0 z-50 border-b border-slate-700/50 -mx-4 px-4 shadow-lg">
+            <div className="md:hidden flex items-center gap-3 bg-white/95 backdrop-blur-md p-4 sticky top-0 z-50 border-b border-slate-200 -mx-4 px-4 shadow-sm">
                 <button
                     onClick={onBack}
-                    className="p-2 -ml-2 hover:bg-slate-700/50 rounded-full transition-colors text-slate-300"
+                    className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
                 >
                     <ArrowLeft className="w-6 h-6" />
                 </button>
                 <div>
-                    <h2 className="text-lg font-bold text-white leading-tight">Minha Escala</h2>
-                    <p className="text-xs text-slate-400">Serviços Atribuídos</p>
+                    <h2 className="text-lg font-bold text-slate-900 leading-tight">Minha Escala</h2>
+                    <p className="text-xs text-slate-500">Serviços Atribuídos</p>
                 </div>
             </div>
 
-            <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+            <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-blue-400" />
                         Minha Escala
                     </h2>
-                    <p className="text-slate-400 text-sm">Consulta os teus serviços agendados</p>
+                    <p className="text-slate-600 text-sm">Consulta os teus serviços agendados</p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-slate-900/50 p-1 rounded-xl border border-white/10">
+                <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-xl border border-slate-200">
                     <button
                         onClick={handlePrevDay}
-                        className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                        className="p-2 hover:bg-white rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
                     >
                         <ChevronLeft className="w-5 h-5" />
                     </button>
@@ -237,20 +237,20 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                         <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">
                             {selectedDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
                         </span>
-                        <span className="text-white font-bold">
+                        <span className="text-slate-900 font-bold">
                             {selectedDate.toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric' })}
                         </span>
                     </div>
                     <button
                         onClick={handleNextDay}
-                        className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                        className="p-2 hover:bg-white rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
                     >
                         <ChevronRight className="w-5 h-5" />
                     </button>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:block">Status:</span>
+                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wider hidden sm:block">Status:</span>
                     <div className="flex gap-2">
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 rounded text-xs text-emerald-400 border border-emerald-500/20">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Concluídos
@@ -262,10 +262,10 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 </div>
             </div>
 
-            <div className="md:hidden flex items-center justify-between bg-slate-800/50 p-2 rounded-xl mb-4 border border-slate-700/50">
+            <div className="md:hidden flex items-center justify-between bg-white p-2 rounded-xl mb-4 border border-slate-200 shadow-sm">
                 <button
                     onClick={handlePrevDay}
-                    className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -273,25 +273,25 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                         {selectedDate.toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
                     </span>
-                    <span className="text-white font-bold text-sm">
+                    <span className="text-slate-900 font-bold text-sm">
                         {selectedDate.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric' })}
                     </span>
                 </div>
                 <button
                     onClick={handleNextDay}
-                    className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
                 >
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>
 
             {services.length === 0 ? (
-                <div className="bg-slate-800/30 rounded-2xl p-12 text-center border border-slate-700/50 border-dashed mt-8 md:mt-0">
-                    <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 border-dashed mt-8 md:mt-0 shadow-sm">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Calendar className="w-8 h-8 text-slate-500" />
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-1">Sem serviços agendados</h3>
-                    <p className="text-slate-400 max-w-sm mx-auto">
+                    <h3 className="text-lg font-medium text-slate-900 mb-1">Sem serviços agendados</h3>
+                    <p className="text-slate-600 max-w-sm mx-auto">
                         Não tens serviços atribuídos para os próximos dias.
                     </p>
                 </div>
@@ -299,19 +299,19 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                 <div className="space-y-6 md:space-y-8">
                     {sortedGroupKeys.map(date => (
                         <div key={date} className="space-y-3 md:space-y-4">
-                            <div className="flex items-center gap-3 py-2 px-2 md:sticky md:top-0 md:bg-[#0f172a]/95 md:backdrop-blur md:z-10">
+                            <div className="flex items-center gap-3 py-2 px-2 md:sticky md:top-0 md:bg-[#F5F7FA]/95 md:backdrop-blur md:z-10">
                                 <span className="h-px flex-1 bg-gradient-to-r from-blue-500/50 to-transparent"></span>
-                                <h3 className="text-xs md:text-sm font-bold text-white uppercase tracking-wider px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full whitespace-nowrap">
+                                <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-wider px-3 py-1 bg-blue-50 border border-blue-200 rounded-full whitespace-nowrap">
                                     {date}
                                 </h3>
                                 <span className="h-px flex-1 bg-gradient-to-l from-blue-500/50 to-transparent"></span>
                             </div>
 
                             <div className="hidden md:block">
-                                <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                                     <table className="w-full text-left">
                                         <thead>
-                                            <tr className="bg-slate-900/50 border-b border-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
+                                            <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
                                                 <th className="px-6 py-4 font-bold">Horário</th>
                                                 <th className="px-6 py-4 font-bold">Passageiro</th>
                                                 <th className="px-6 py-4 font-bold">Itinerário</th>
@@ -319,12 +319,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                 <th className="px-6 py-4 font-bold text-right">Ações</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-700/50">
+                                        <tbody className="divide-y divide-slate-200">
                                             {groupedServices[date].map((service) => (
-                                                <tr key={service.id} className="hover:bg-slate-800/50 transition-colors group">
+                                                <tr key={service.id} className="hover:bg-slate-50 transition-colors group">
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="bg-slate-700 p-2 rounded text-white font-mono font-bold">
+                                                            <div className="bg-slate-100 p-2 rounded text-slate-900 font-mono font-bold">
                                                                 {new Date(service._parsedDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                             </div>
                                                         </div>
@@ -335,7 +335,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                 <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
                                                                     <User className="w-4 h-4" />
                                                                 </div>
-                                                                <span className="text-white font-medium">{service.passageiro || 'Não definido'}</span>
+                                                                <span className="text-slate-900 font-medium">{service.passageiro || 'Não definido'}</span>
                                                             </div>
                                                             {complianceStats?.[service.id] && (
                                                                 <div className={`flex items-center gap-1 text-[10px] font-bold ${complianceStats[service.id].status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -349,7 +349,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                         <div className="flex flex-col gap-1">
                                                             <div className="flex items-center gap-2 text-sm">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                                                                <span className="text-slate-300">{service.origem}</span>
+                                                                <span className="text-slate-700">{service.origem}</span>
                                                             </div>
                                                             {service.originArrivalTime && (
                                                                 <div className="ml-4 flex items-center gap-2 text-[11px] text-emerald-400 font-semibold">
@@ -363,10 +363,10 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                     <span>Saída {formatArrivalTime(service.originDepartureTime)} • Tempo parado {formatDuration(service.originStopDurationSeconds)}</span>
                                                                 </div>
                                                             )}
-                                                            <div className="ml-0.5 border-l border-slate-700 h-3"></div>
+                                                            <div className="ml-0.5 border-l border-slate-300 h-3"></div>
                                                             <div className="flex items-center gap-2 text-sm">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                                                                <span className="text-white font-medium">{service.destino}</span>
+                                                                <span className="text-slate-900 font-medium">{service.destino}</span>
                                                             </div>
                                                             {service.destinationArrivalTime && (
                                                                 <div className="ml-4 flex items-center gap-2 text-[11px] text-emerald-400 font-semibold">
@@ -381,9 +381,9 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                 </div>
                                                             )}
                                                             {getServiceTimeline(service).length > 0 && (
-                                                                <div className="mt-2 bg-slate-900/40 rounded-lg border border-white/5 p-2 space-y-1.5">
+                                                                <div className="mt-2 bg-slate-50 rounded-lg border border-slate-200 p-2 space-y-1.5">
                                                                     {getServiceTimeline(service).map(item => (
-                                                                        <div key={item.id} className="flex items-center gap-2 text-[11px] text-slate-300">
+                                                                        <div key={item.id} className="flex items-center gap-2 text-[11px] text-slate-700">
                                                                             <span className="text-blue-300 font-semibold min-w-[38px]">{item.time || '--:--'}</span>
                                                                             <span>{item.label}</span>
                                                                         </div>
@@ -396,10 +396,10 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                         {service.obs ? (
                                                             <div className="flex items-start gap-2">
                                                                 <Info className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
-                                                                <p className="text-sm text-slate-400 italic line-clamp-2">{service.obs}</p>
+                                                                <p className="text-sm text-slate-600 italic line-clamp-2">{service.obs}</p>
                                                             </div>
                                                         ) : (
-                                                            <span className="text-slate-600 text-sm">-</span>
+                                                            <span className="text-slate-400 text-sm">-</span>
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
@@ -419,7 +419,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                             <div className="flex justify-end gap-2">
                                                                 <button
                                                                     onClick={() => handleFailure(service.id)}
-                                                                    className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                                                                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
                                                                     title="Não Pegou"
                                                                 >
                                                                     <User className="w-5 h-5 text-red-500/50 hover:text-red-500" />
@@ -485,16 +485,16 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                     return (
                                         <div
                                             key={service.isGroup ? service.ids.join('-') : service.id}
-                                            className={`bg-slate-800 rounded-2xl border ${groupComplianceStatus === 'failed' ? 'border-red-500/50' : 'border-slate-700'} shadow-xl overflow-hidden transition-all`}
+                                            className={`bg-white rounded-2xl border ${groupComplianceStatus === 'failed' ? 'border-red-300' : 'border-slate-200'} shadow-sm overflow-hidden transition-all`}
                                         >
                                             <div className={`h-1.5 w-full ${stripColor}`}></div>
 
                                             <div className="p-4 space-y-4">
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex items-center gap-3 w-full">
-                                                        <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-700 shadow-inner flex flex-col items-center min-w-[70px]">
+                                                        <div className="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 flex flex-col items-center min-w-[70px]">
                                                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hora</span>
-                                                            <span className="text-xl font-black text-white tracking-tight">
+                                                            <span className="text-xl font-black text-slate-900 tracking-tight">
                                                                 {new Date(service._parsedDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                             </span>
                                                         </div>
@@ -526,7 +526,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-slate-700/30 rounded-xl p-3 flex flex-col gap-2 border border-slate-700/50">
+                                                <div className="bg-slate-50 rounded-xl p-3 flex flex-col gap-2 border border-slate-200">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
                                                             {service.isGroup ? <Users className="w-3 h-3 text-blue-400" /> : <User className="w-3 h-3 text-blue-400" />}
@@ -539,7 +539,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                     {service.isGroup ? (
                                                         <div className="pl-8 grid gap-1">
                                                             {service.passengers.map((p: string, idx: number) => (
-                                                                <div key={idx} className="flex items-center gap-2 text-white font-medium text-sm border-b border-white/5 last:border-0 pb-1 last:pb-0">
+                                                                <div key={idx} className="flex items-center gap-2 text-slate-900 font-medium text-sm border-b border-slate-200 last:border-0 pb-1 last:pb-0">
                                                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                                                                     {p}
                                                                 </div>
@@ -547,7 +547,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                         </div>
                                                     ) : (
                                                         <div className="pl-8">
-                                                            <span className="text-white font-bold text-base truncate block">{service.passageiro || 'Nome não indicado'}</span>
+                                                            <span className="text-slate-900 font-bold text-base truncate block">{service.passageiro || 'Nome não indicado'}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -557,12 +557,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
 
                                                     <div className="space-y-6">
                                                         <div className="relative flex gap-3">
-                                                            <div className="w-5 h-5 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
+                                                                <div className="w-5 h-5 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center shrink-0 z-10 bg-white">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                                                             </div>
                                                             <div>
                                                                 <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block mb-0.5">De (Origem)</span>
-                                                                <p className="text-slate-200 font-medium leading-tight text-sm">{service.origem}</p>
+                                                                <p className="text-slate-700 font-medium leading-tight text-sm">{service.origem}</p>
                                                                 {service.originArrivalTime && (
                                                                     <div className="mt-1.5 flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold">
                                                                         <CheckCircle className="w-3.5 h-3.5" />
@@ -579,12 +579,12 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                         </div>
 
                                                         <div className="relative flex gap-3">
-                                                            <div className="w-5 h-5 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center shrink-0 z-10 bg-slate-800">
+                                                                <div className="w-5 h-5 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center shrink-0 z-10 bg-white">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
                                                             </div>
                                                             <div>
                                                                 <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider block mb-0.5">Para (Destino)</span>
-                                                                <p className="text-white font-bold leading-tight text-sm">{service.destino}</p>
+                                                                <p className="text-slate-900 font-bold leading-tight text-sm">{service.destino}</p>
                                                                 {service.destinationArrivalTime && (
                                                                     <div className="mt-1.5 flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold">
                                                                         <CheckCircle className="w-3.5 h-3.5" />
@@ -603,10 +603,10 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                 </div>
 
                                                 {getServiceTimeline(service).length > 0 && (
-                                                    <div className="bg-slate-900/40 rounded-xl border border-white/5 p-3 space-y-2">
+                                                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-2">
                                                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Timeline automática</span>
                                                         {getServiceTimeline(service).map(item => (
-                                                            <div key={item.id} className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <div key={item.id} className="flex items-center gap-2 text-xs text-slate-700">
                                                                 <span className="text-blue-300 font-semibold min-w-[42px]">{item.time || '--:--'}</span>
                                                                 <span>{item.label}</span>
                                                             </div>
@@ -615,10 +615,10 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                 )}
 
                                                 {!service.concluido && !service.isGroup && (
-                                                    <div className="grid grid-cols-2 gap-3 mt-2 border-t border-slate-700/50 pt-3">
+                                                    <div className="grid grid-cols-2 gap-3 mt-2 border-t border-slate-200 pt-3">
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleFailure(service.id); }}
-                                                            className="flex items-center justify-center gap-2 py-2.5 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-xl font-bold text-xs transition-colors"
+                                                            className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors border border-slate-200"
                                                         >
                                                             <AlertTriangle className="w-4 h-4 text-red-500" />
                                                             Não Pegou
@@ -634,7 +634,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                 )}
 
                                                 {service.obs && (
-                                                    <div className="mt-3 pt-3 border-t border-slate-700/50">
+                                                    <div className="mt-3 pt-3 border-t border-slate-200">
                                                         {(() => {
                                                             const txt = service.obs.toLowerCase();
                                                             const isEntrada = txt.includes('entrada');
@@ -648,7 +648,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                         </div>
                                                                         <div>
                                                                             <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider block">Entrada</span>
-                                                                            {service.obs.length > 10 && <p className="text-slate-400 text-xs mt-0.5">{service.obs}</p>}
+                                                                            {service.obs.length > 10 && <p className="text-slate-600 text-xs mt-0.5">{service.obs}</p>}
                                                                         </div>
                                                                     </div>
                                                                 );
@@ -662,14 +662,14 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
                                                                         </div>
                                                                         <div>
                                                                             <span className="text-rose-400 text-xs font-bold uppercase tracking-wider block">Saída</span>
-                                                                            {service.obs.length > 10 && <p className="text-slate-400 text-xs mt-0.5">{service.obs}</p>}
+                                                                            {service.obs.length > 10 && <p className="text-slate-600 text-xs mt-0.5">{service.obs}</p>}
                                                                         </div>
                                                                     </div>
                                                                 );
                                                             }
 
                                                             return (
-                                                                <div className="flex gap-2 text-slate-400">
+                                                                <div className="flex gap-2 text-slate-600">
                                                                     <Info className="w-4 h-4 shrink-0 mt-0.5" />
                                                                     <div className="text-xs">
                                                                         <span className="font-bold text-slate-500 mr-1 uppercase text-[10px] tracking-wider">Obs:</span>

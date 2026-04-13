@@ -161,40 +161,40 @@ export default function FinancialMovements({ initialPreset }: { initialPreset?: 
         <div className="space-y-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Financial Movements</h1>
-                    <p className="text-slate-400">Chronological ERP-style ledger generated from operational documents</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Movimentos Financeiros</h1>
+                    <p className="text-slate-600">Razão cronológica gerada a partir dos documentos operacionais.</p>
                 </div>
-                <div className="text-sm text-slate-400 flex items-center gap-2">
+                <div className="text-sm text-slate-500 flex items-center gap-2">
                     <BookOpen className="w-4 h-4" />
                     {filteredMovements.length} movements
                 </div>
             </div>
 
-            <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-xl border border-slate-700/50">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div className="flex flex-wrap gap-2 mb-3">
                     <button
                         onClick={() => applyPreset('all')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'all' ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-300 border-slate-600 hover:bg-slate-800'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'all' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                     >
-                        All Movements
+                        Todos
                     </button>
                     <button
                         onClick={() => applyPreset('this_month_expenses')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'this_month_expenses' ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-300 border-slate-600 hover:bg-slate-800'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'this_month_expenses' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                     >
-                        This Month Expenses
+                        Despesas do Mês
                     </button>
                     <button
                         onClick={() => applyPreset('revenue_only')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'revenue_only' ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-300 border-slate-600 hover:bg-slate-800'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'revenue_only' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                     >
-                        Revenue Only
+                        Receitas
                     </button>
                     <button
                         onClick={() => applyPreset('fuel_only')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'fuel_only' ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-300 border-slate-600 hover:bg-slate-800'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'fuel_only' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                     >
-                        Fuel Only
+                        Combustível
                     </button>
                 </div>
 
@@ -203,19 +203,19 @@ export default function FinancialMovements({ initialPreset }: { initialPreset?: 
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search movement, document, account..."
+                            placeholder="Pesquisar movimento, documento, conta..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-300 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 outline-none"
                         />
                     </div>
 
                     <select
                         value={accountFilter}
                         onChange={(e) => setAccountFilter(e.target.value as 'all' | FinancialMovement['account_code'])}
-                        className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 outline-none"
                     >
-                        <option value="all">All Accounts</option>
+                        <option value="all">Todas as Contas</option>
                         <option value="61">61 Fuel</option>
                         <option value="62">62 Maintenance</option>
                         <option value="63">63 Tolls</option>
@@ -230,9 +230,9 @@ export default function FinancialMovements({ initialPreset }: { initialPreset?: 
                     <select
                         value={classFilter}
                         onChange={(e) => setClassFilter(e.target.value as ClassFilter)}
-                        className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 outline-none"
                     >
-                        <option value="all">All Classes</option>
+                        <option value="all">Todas as Classes</option>
                         <option value="6">6x Costs</option>
                         <option value="7">7x Revenue</option>
                     </select>
@@ -242,66 +242,66 @@ export default function FinancialMovements({ initialPreset }: { initialPreset?: 
                             type="date"
                             value={dateFrom}
                             onChange={(e) => setDateFrom(e.target.value)}
-                            className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 outline-none"
                         />
                         <input
                             type="date"
                             value={dateTo}
                             onChange={(e) => setDateTo(e.target.value)}
-                            className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 outline-none"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-slate-900/50">
+                        <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Document</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Description</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Account</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Cost Center</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Vehicle</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Debit</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Credit</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Net</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Drill-Down</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Data</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Documento</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Descrição</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Conta</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Centro de Custo</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Viatura</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Débito</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Crédito</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Saldo</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Abrir</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-700/50">
+                        <tbody className="divide-y divide-slate-200">
                             {filteredMovements.map(movement => (
-                                <tr key={movement.id} className="hover:bg-slate-700/20 transition-colors">
-                                    <td className="px-4 py-3 text-sm text-slate-300">{new Date(movement.date).toLocaleDateString('pt-PT')}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">
-                                        <div className="font-medium text-slate-200">{DOC_LABELS[movement.document_type] || movement.document_type}</div>
+                                <tr key={movement.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-4 py-3 text-sm text-slate-700">{new Date(movement.date).toLocaleDateString('pt-PT')}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700">
+                                        <div className="font-medium text-slate-900">{DOC_LABELS[movement.document_type] || movement.document_type}</div>
                                         <div className="text-xs text-slate-500">{movement.document_id}</div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-200">{movement.description}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">
+                                    <td className="px-4 py-3 text-sm text-slate-800">{movement.description}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700">
                                         {movement.account_code} - {ACCOUNT_LABELS[movement.account_code] || movement.account_code}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">{resolveCostCenter(movement.cost_center_id)}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">{resolveVehicle(movement.vehicle_id)}</td>
-                                    <td className="px-4 py-3 text-sm text-right text-red-300 font-semibold">
+                                    <td className="px-4 py-3 text-sm text-slate-700">{resolveCostCenter(movement.cost_center_id)}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700">{resolveVehicle(movement.vehicle_id)}</td>
+                                    <td className="px-4 py-3 text-sm text-right text-red-600 font-semibold">
                                         {formatCurrency(Number(movement.debit || 0))}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-right text-emerald-300 font-semibold">
+                                    <td className="px-4 py-3 text-sm text-right text-emerald-600 font-semibold">
                                         {formatCurrency(Number(movement.credit || 0))}
                                     </td>
-                                    <td className={`px-4 py-3 text-sm text-right font-semibold ${Number(movement.credit || 0) > Number(movement.debit || 0) ? 'text-emerald-400' : 'text-red-300'}`}>
+                                    <td className={`px-4 py-3 text-sm text-right font-semibold ${Number(movement.credit || 0) > Number(movement.debit || 0) ? 'text-emerald-600' : 'text-red-600'}`}>
                                         {formatCurrency(Number(movement.amount || 0))}
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <button
                                             onClick={() => openDocument(movement)}
-                                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md border border-slate-600 text-slate-200 hover:bg-slate-700/60 transition-colors"
-                                            title="Open source document"
+                                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+                                            title="Abrir documento origem"
                                         >
                                             <ExternalLink className="w-3.5 h-3.5" />
-                                            Open
+                                            Abrir
                                         </button>
                                     </td>
                                 </tr>

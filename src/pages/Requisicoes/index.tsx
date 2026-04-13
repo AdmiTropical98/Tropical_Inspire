@@ -777,7 +777,7 @@ export default function Requisicoes() {
         try {
             // Header
             try {
-                const logoImg = await loadImage('/logo.png');
+                const logoImg = await loadImage('/LOGO.png');
                 const logoWidth = 50;
                 const scaleFactor = logoWidth / logoImg.naturalWidth;
                 const logoHeight = logoImg.naturalHeight * scaleFactor;

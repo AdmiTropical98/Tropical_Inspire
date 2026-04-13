@@ -70,17 +70,17 @@ export default function ExpensesList() {
         });
     }, [expenses, searchTerm, filterCategory, sortField, sortDirection]);
 
-    if (isLoading) return <div className="p-8 text-slate-400">Loading expenses...</div>;
+    if (isLoading) return <div className="p-8 text-slate-500">Loading expenses...</div>;
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                         <ArrowDownRight className="w-6 h-6 text-red-500" />
                         Despesas e Custos
                     </h2>
-                    <p className="text-slate-400 text-sm mt-1">Registo unificado de todas as saídas (Combustível, Manutenção, Salários, Fixos)</p>
+                    <p className="text-slate-600 text-sm mt-1">Registo unificado de todas as saídas (Combustível, Manutenção, Salários, Fixos)</p>
                 </div>
 
                 <div className="flex gap-2">
@@ -93,7 +93,7 @@ export default function ExpensesList() {
                     </button>
                     <button
                         onClick={handleExport}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-all border border-slate-200"
                     >
                         <FileText className="w-4 h-4" />
                         Exportar
@@ -102,15 +102,15 @@ export default function ExpensesList() {
             </div>
 
             {/* Filters */}
-            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="relative col-span-2">
-                    <Search className="absolute left-3 top-2.5 w-5 h-5 text-slate-500" />
+                    <Search className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" />
                     <input
                         type="text"
                         placeholder="Pesquisar despesa..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-900/50 border border-slate-700 text-slate-200 pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-white border border-slate-300 text-slate-900 pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
                     />
                 </div>
 
@@ -118,7 +118,7 @@ export default function ExpensesList() {
                     <select
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value)}
-                        className="w-full bg-slate-900/50 border border-slate-700 text-slate-200 px-4 py-2 rounded-lg focus:outline-none focus:border-indigo-500 appearance-none"
+                        className="w-full bg-white border border-slate-300 text-slate-900 px-4 py-2 rounded-lg focus:outline-none focus:border-indigo-500 appearance-none"
                     >
                         <option value="all">Todas as Categorias</option>
                         <option value="variavel">Variáveis (Combustível/Manut.)</option>
@@ -131,18 +131,18 @@ export default function ExpensesList() {
 
                 <div>
                     {/* Date Filter Placeholder - could be improved with DateRangePicker */}
-                    <button className="w-full bg-slate-900/50 border border-slate-700 text-slate-200 px-4 py-2 rounded-lg flex items-center justify-between hover:bg-slate-900 transition-colors">
-                        <span className="text-slate-400">Este Mês</span>
-                        <Calendar className="w-4 h-4 text-slate-500" />
+                    <button className="w-full bg-white border border-slate-300 text-slate-900 px-4 py-2 rounded-lg flex items-center justify-between hover:bg-slate-50 transition-colors">
+                        <span className="text-slate-500">Este Mês</span>
+                        <Calendar className="w-4 h-4 text-slate-400" />
                     </button>
                 </div>
             </div>
 
             {/* Table */}
-            <div className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 shadow-xl">
+            <div className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                        <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
                             <th className="px-6 py-4 font-semibold">Data</th>
                             <th className="px-6 py-4 font-semibold">Descrição</th>
                             <th className="px-6 py-4 font-semibold">Categoria</th>
@@ -152,22 +152,22 @@ export default function ExpensesList() {
                             <th className="px-6 py-4 font-semibold text-right">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-700/50">
+                    <tbody className="divide-y divide-slate-200">
                         {filteredExpenses.map((expense) => (
-                            <tr key={expense.id} className="hover:bg-slate-700/30 transition-colors group">
-                                <td className="px-6 py-4 text-slate-300 font-medium">
+                            <tr key={expense.id} className="hover:bg-slate-50 transition-colors group">
+                                <td className="px-6 py-4 text-slate-700 font-medium">
                                     {new Date(expense.date).toLocaleDateString()}
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
-                                        <span className="text-slate-200 font-medium">{expense.description}</span>
+                                        <span className="text-slate-900 font-medium">{expense.description}</span>
                                         {expense.recurring && <span className="text-xs text-indigo-400 flex items-center gap-1">Recorrente ({expense.recurrence_period})</span>}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <Badge category={expense.category} />
                                 </td>
-                                <td className="px-6 py-4 text-slate-400 text-sm">
+                                <td className="px-6 py-4 text-slate-500 text-sm">
                                     {expense.cost_center_id || '-'}
                                 </td>
                                 <td className="px-6 py-4 text-right font-medium text-red-400">
@@ -196,7 +196,7 @@ export default function ExpensesList() {
                 </table>
 
                 {filteredExpenses.length === 0 && (
-                    <div className="p-12 text-center text-slate-500">
+                    <div className="p-12 text-center text-slate-500 bg-slate-50">
                         <ArrowDownRight className="w-12 h-12 mx-auto mb-4 opacity-20" />
                         <p>Nenhuma despesa encontrada.</p>
                     </div>
@@ -205,45 +205,45 @@ export default function ExpensesList() {
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md p-6 shadow-2xl">
-                        <h3 className="text-xl font-bold text-white mb-4">Nova Despesa</h3>
+                <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl border border-slate-200 w-full max-w-md p-6 shadow-2xl">
+                        <h3 className="text-xl font-bold text-slate-900 mb-4">Nova Despesa</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Descrição</label>
+                                <label className="block text-sm text-slate-600 mb-1">Descrição</label>
                                 <input
                                     type="text"
                                     value={newExpense.description}
                                     onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Valor (€)</label>
+                                    <label className="block text-sm text-slate-600 mb-1">Valor (€)</label>
                                     <input
                                         type="number"
                                         value={newExpense.amount}
                                         onChange={(e) => setNewExpense({ ...newExpense, amount: Number(e.target.value) })}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Data</label>
+                                    <label className="block text-sm text-slate-600 mb-1">Data</label>
                                     <input
                                         type="date"
                                         value={newExpense.date}
                                         onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Categoria</label>
+                                <label className="block text-sm text-slate-600 mb-1">Categoria</label>
                                 <select
                                     value={newExpense.category}
                                     onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
                                 >
                                     <option value="variavel">Variável</option>
                                     <option value="salario">Salário</option>
@@ -257,14 +257,14 @@ export default function ExpensesList() {
                                     checked={newExpense.paid}
                                     onChange={(e) => setNewExpense({ ...newExpense, paid: e.target.checked })}
                                     id="paid-check"
-                                    className="rounded bg-slate-900 border-slate-700"
+                                    className="rounded border-slate-300"
                                 />
-                                <label htmlFor="paid-check" className="text-slate-300 text-sm">Despesa já paga?</label>
+                                <label htmlFor="paid-check" className="text-slate-700 text-sm">Despesa já paga?</label>
                             </div>
                             <div className="flex items-center gap-4 mt-6">
                                 <button
                                     onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg"
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg border border-slate-200"
                                 >
                                     Cancelar
                                 </button>

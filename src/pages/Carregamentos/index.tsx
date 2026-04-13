@@ -393,7 +393,7 @@ export default function Carregamentos() {
                         <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
                         <button
                             onClick={handleDownloadTemplate}
-                            className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 px-5 py-3 rounded-xl font-medium transition-all border border-slate-700 hover:border-slate-600 shadow-lg"
+                            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-3 rounded-xl font-medium transition-all border border-slate-300 hover:border-slate-400 shadow-sm"
                         >
                             <TrendingUp className="w-4 h-4 rotate-180" />
                             <span className="hidden sm:inline">Template</span>
@@ -424,13 +424,13 @@ export default function Carregamentos() {
                             placeholder="Pesquisar por estação ou viatura..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none text-slate-900 transition-all"
                         />
                     </div>
                     <select
                         value={filterVehicle}
                         onChange={(e) => setFilterVehicle(e.target.value)}
-                        className="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                        className="px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none text-slate-900 transition-all"
                     >
                         <option value="all">Todas as Viaturas</option>
                         {viaturas.map(v => (
@@ -464,14 +464,14 @@ export default function Carregamentos() {
 
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 relative overflow-hidden">
+                    <div className="group bg-gradient-to-br from-white to-slate-100/90 backdrop-blur-sm p-6 rounded-2xl border border-slate-200 hover:border-emerald-300 transition-all duration-300 hover:shadow-md hover:-translate-y-1 relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                             <DollarSign className="w-24 h-24 text-emerald-500 rotate-12" />
                         </div>
                         <div className="flex justify-between items-start relative z-10">
                             <div>
-                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Custo Total</p>
-                                <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-emerald-400 transition-colors">{totalCost.toFixed(2)} <span className="text-lg text-slate-500">€</span></h3>
+                                <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">Custo Total</p>
+                                <h3 className="text-3xl font-bold text-slate-900 mt-1 group-hover:text-emerald-600 transition-colors">{totalCost.toFixed(2)} <span className="text-lg text-slate-500">€</span></h3>
                                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400">
                                     <TrendingUp className="w-3 h-3" />
                                     <span>Total Acumulado</span>
@@ -483,14 +483,14 @@ export default function Carregamentos() {
                         </div>
                     </div>
 
-                    <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-1 relative overflow-hidden">
+                    <div className="group bg-gradient-to-br from-white to-slate-100/90 backdrop-blur-sm p-6 rounded-2xl border border-slate-200 hover:border-blue-300 transition-all duration-300 hover:shadow-md hover:-translate-y-1 relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                             <Zap className="w-24 h-24 text-blue-500 rotate-12" />
                         </div>
                         <div className="flex justify-between items-start relative z-10">
                             <div>
-                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Total Energia</p>
-                                <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-blue-400 transition-colors">{totalKwh.toFixed(1)} <span className="text-lg text-slate-500">kWh</span></h3>
+                                <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">Total Energia</p>
+                                <h3 className="text-3xl font-bold text-slate-900 mt-1 group-hover:text-blue-600 transition-colors">{totalKwh.toFixed(1)} <span className="text-lg text-slate-500">kWh</span></h3>
                                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400">
                                     <BatteryCharging className="w-3 h-3" />
                                     <span>Consumo Total</span>
@@ -504,13 +504,13 @@ export default function Carregamentos() {
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-col md:flex-row gap-4 bg-slate-800/30 p-1.5 rounded-2xl border border-white/5 backdrop-blur-sm">
+                <div className="flex flex-col md:flex-row gap-4 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-sm">
                     <div className="relative flex-1 group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input type="text" placeholder="Pesquisar estação ou matrícula..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900/50 border border-transparent rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:bg-slate-900 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all" />
+                        <input type="text" placeholder="Pesquisar estação ou matrícula..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl pl-11 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/40 transition-all" />
                     </div>
                     <div className="w-full md:w-72">
-                        <select value={filterVehicle} onChange={(e) => setFilterVehicle(e.target.value)} className="w-full bg-slate-900/50 border border-transparent rounded-xl px-4 py-3 text-white focus:outline-none focus:bg-slate-900 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 appearance-none cursor-pointer transition-all">
+                        <select value={filterVehicle} onChange={(e) => setFilterVehicle(e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/40 appearance-none cursor-pointer transition-all">
                             <option value="all">Todas as Viaturas</option>
                             {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
                         </select>
@@ -518,10 +518,10 @@ export default function Carregamentos() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-slate-900/50 rounded-2xl border border-white/5 overflow-hidden backdrop-blur-sm shadow-xl">
+                <div className="bg-white/90 rounded-2xl border border-slate-200 overflow-hidden backdrop-blur-sm shadow-sm">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-slate-950/50 text-slate-400 uppercase font-medium border-b border-white/5">
+                            <thead className="bg-slate-100 text-slate-500 uppercase font-medium border-b border-slate-200">
                                 <tr>
                                     <th className="px-6 py-5 tracking-wider text-xs">Data/Hora</th>
                                     <th className="px-6 py-5 tracking-wider text-xs">Viatura</th>
@@ -531,7 +531,7 @@ export default function Carregamentos() {
                                     <th className="px-6 py-5 tracking-wider text-xs text-center">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-slate-200">
                                 {loading ? (
                                     <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center gap-3">
@@ -548,26 +548,26 @@ export default function Carregamentos() {
                                     </td></tr>
                                 ) : (
                                     filteredRecords.map((r) => (
-                                        <tr key={r.id} className="group hover:bg-slate-800/30 transition-all duration-200">
+                                        <tr key={r.id} className="group hover:bg-slate-50 transition-all duration-200">
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-white font-medium">{new Date(r.date).toLocaleDateString()}</span>
+                                                    <span className="text-slate-900 font-medium">{new Date(r.date).toLocaleDateString()}</span>
                                                     <span className="text-slate-500 text-xs font-mono">{new Date(r.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5 group-hover:border-blue-500/20 transition-colors">
-                                                        <Truck className="w-5 h-5 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200 group-hover:border-blue-300 transition-colors">
+                                                        <Truck className="w-5 h-5 text-slate-500 group-hover:text-blue-600 transition-colors" />
                                                     </div>
                                                     <div>
-                                                        <span className="block text-white font-medium bg-slate-800 px-2 py-0.5 rounded text-xs w-fit mb-0.5 border border-white/5">{r.vehicle?.matricula}</span>
+                                                        <span className="block text-slate-900 font-medium bg-slate-100 px-2 py-0.5 rounded text-xs w-fit mb-0.5 border border-slate-200">{r.vehicle?.matricula}</span>
                                                         <span className="text-slate-500 text-xs">{r.driver?.nome || 'Sem condutor'}</span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="block text-white font-medium">{r.station_name}</span>
+                                                <span className="block text-slate-900 font-medium">{r.station_name}</span>
                                                 {r.cost_center && (
                                                     <div className="flex items-center gap-1.5 text-xs text-orange-400/80 mt-1">
                                                         <Building className="w-3 h-3" />
@@ -578,7 +578,7 @@ export default function Carregamentos() {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <Zap className="w-4 h-4 text-yellow-500" />
-                                                    <span className="block text-white font-bold">{r.kwh} kWh</span>
+                                                    <span className="block text-slate-900 font-bold">{r.kwh} kWh</span>
                                                 </div>
                                                 <span className="text-slate-500 text-xs pl-6">{r.duration} min</span>
                                             </td>
@@ -603,9 +603,9 @@ export default function Carregamentos() {
                 {/* Modal */}
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                        <div className="bg-slate-900 rounded-3xl border border-white/10 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
-                            <div className="p-6 border-b border-white/5 bg-slate-950/50 flex justify-between items-center">
-                                <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                        <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-2xl shadow-xl animate-in fade-in zoom-in duration-200 overflow-hidden">
+                            <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
                                     <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
                                         <BatteryCharging className="w-5 h-5 text-blue-500" />
                                     </div>
@@ -622,7 +622,7 @@ export default function Carregamentos() {
                                     </button>
                                     <button
                                         onClick={() => setShowModal(false)}
-                                        className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
+                                        className="p-2 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-900 transition-colors"
                                     >
                                         <Trash2 className="w-5 h-5 rotate-45" />
                                     </button>
@@ -631,55 +631,55 @@ export default function Carregamentos() {
                             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">Viatura</label>
-                                        <select required value={formData.vehicle_id} onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500">
+                                        <label className="text-xs font-medium text-slate-500 uppercase">Viatura</label>
+                                        <select required value={formData.vehicle_id} onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })} className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500">
                                             <option value="">Selecione...</option>
                                             {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">Motorista (Opcional)</label>
-                                        <select value={formData.driver_id} onChange={e => setFormData({ ...formData, driver_id: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500">
+                                        <label className="text-xs font-medium text-slate-500 uppercase">Motorista (Opcional)</label>
+                                        <select value={formData.driver_id} onChange={e => setFormData({ ...formData, driver_id: e.target.value })} className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500">
                                             <option value="">Sem Motorista</option>
                                             {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">Centro de Custo (Opcional)</label>
-                                        <select value={formData.cost_center_id} onChange={e => setFormData({ ...formData, cost_center_id: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500">
+                                        <label className="text-xs font-medium text-slate-500 uppercase">Centro de Custo (Opcional)</label>
+                                        <select value={formData.cost_center_id} onChange={e => setFormData({ ...formData, cost_center_id: e.target.value })} className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500">
                                             <option value="">Nenhum</option>
                                             {centrosCustos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">Data/Hora</label>
-                                        <input type="datetime-local" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500" />
+                                        <label className="text-xs font-medium text-slate-500 uppercase">Data/Hora</label>
+                                        <input type="datetime-local" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">Estação</label>
-                                        <input type="text" required value={formData.station_name} onChange={e => setFormData({ ...formData, station_name: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500" />
+                                        <label className="text-xs font-medium text-slate-500 uppercase">Estação</label>
+                                        <input type="text" required value={formData.station_name} onChange={e => setFormData({ ...formData, station_name: e.target.value })} className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">kWh</label>
+                                        <label className="text-xs font-medium text-slate-500 uppercase">kWh</label>
                                         <div className="relative">
                                             <Zap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                            <input type="number" step="0.01" required value={formData.kwh} onChange={e => setFormData({ ...formData, kwh: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500" />
+                                            <input type="number" step="0.01" required value={formData.kwh} onChange={e => setFormData({ ...formData, kwh: e.target.value })} className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500" />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">Custo (€)</label>
+                                        <label className="text-xs font-medium text-slate-500 uppercase">Custo (€)</label>
                                         <div className="relative">
                                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                            <input type="number" step="0.01" required value={formData.cost} onChange={e => setFormData({ ...formData, cost: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500" />
+                                            <input type="number" step="0.01" required value={formData.cost} onChange={e => setFormData({ ...formData, cost: e.target.value })} className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500" />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400 uppercase">Duração (min)</label>
-                                        <input type="number" step="1" value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500" />
+                                        <label className="text-xs font-medium text-slate-500 uppercase">Duração (min)</label>
+                                        <input type="number" step="1" value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                 </div>
-                                <div className="pt-6 flex justify-end gap-3 border-t border-white/5 mt-8">
-                                    <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium">Cancelar</button>
+                                <div className="pt-6 flex justify-end gap-3 border-t border-slate-200 mt-8">
+                                    <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all font-medium">Cancelar</button>
                                     <button type="submit" disabled={submitting} className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-lg hover:shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transform active:scale-95">
                                         {submitting ? <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span> : <Zap className="w-4 h-4" />}
                                         Registar

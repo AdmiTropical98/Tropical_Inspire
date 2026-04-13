@@ -42,23 +42,23 @@ export default function RevenueChart({ services = [] }: RevenueChartProps) {
     };
 
     return (
-        <div className="relative bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl p-6 h-full flex flex-col shadow-2xl overflow-hidden group">
+        <div className="relative bg-white border border-slate-200 rounded-3xl p-6 h-full flex flex-col shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)] overflow-hidden group">
             {/* Background Details */}
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px] opacity-20 pointer-events-none" />
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:20px_20px] opacity-60 pointer-events-none" />
 
             <div className="flex items-center justify-between mb-8 relative z-10">
                 <div>
-                    <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                    <h3 className="text-slate-900 font-bold text-lg flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
                             <BarChart3 className="w-5 h-5" />
                         </div>
                         <span className="tracking-tight">Volume de Serviços</span>
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1 font-medium pl-11">Últimos 7 dias</p>
+                    <p className="text-xs text-slate-500 mt-1 font-medium pl-11">Últimos 7 dias</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-4xl font-black text-white tracking-tighter">{totalServices}</p>
-                    <div className={`text-xs font-bold flex items-center justify-end gap-1 mt-1 px-2 py-0.5 rounded-full bg-slate-800/50 border border-slate-700/50 ${Number(percentageChange) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <p className="text-4xl font-black text-slate-900 tracking-tighter">{totalServices}</p>
+                    <div className={`text-xs font-bold flex items-center justify-end gap-1 mt-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 ${Number(percentageChange) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {Number(percentageChange) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                         {percentageChange}%
                     </div>
@@ -73,7 +73,7 @@ export default function RevenueChart({ services = [] }: RevenueChartProps) {
                         <div key={index} className="flex flex-col items-center gap-3 flex-1 h-full justify-end group/bar">
                             <div className="relative w-full h-full flex items-end justify-center">
                                 {/* Bar Track */}
-                                <div className="absolute bottom-0 w-2.5 bg-slate-800/50 h-full rounded-full opacity-0 group-hover/bar:opacity-100 transition-opacity duration-300" />
+                                <div className="absolute bottom-0 w-2.5 bg-slate-100 h-full rounded-full opacity-0 group-hover/bar:opacity-100 transition-opacity duration-300" />
 
                                 {/* Actual Bar */}
                                 <div
@@ -81,12 +81,12 @@ export default function RevenueChart({ services = [] }: RevenueChartProps) {
                                     style={{ height: `${heightPercentage}%` }}
                                 >
                                     {/* Tooltip */}
-                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-xs font-bold text-white opacity-0 group-hover/bar:opacity-100 transition-all duration-300 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700 shadow-xl whitespace-nowrap transform translate-y-2 group-hover/bar:translate-y-0 z-50 pointer-events-none">
+                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-xs font-bold text-slate-900 opacity-0 group-hover/bar:opacity-100 transition-all duration-300 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-xl whitespace-nowrap transform translate-y-2 group-hover/bar:translate-y-0 z-50 pointer-events-none">
                                         {value} svcs
                                     </div>
                                 </div>
                             </div>
-                            <span className="text-[10px] font-bold text-slate-500 group-hover/bar:text-indigo-400 transition-colors uppercase tracking-wider">{getDayLabel(index)}</span>
+                            <span className="text-[10px] font-bold text-slate-500 group-hover/bar:text-indigo-600 transition-colors uppercase tracking-wider">{getDayLabel(index)}</span>
                         </div>
                     );
                 })}

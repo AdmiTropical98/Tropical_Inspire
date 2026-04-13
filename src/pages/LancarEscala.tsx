@@ -50,9 +50,9 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     // Access Control
     if (userRole && !hasAccess(userRole as any, 'escalas_create')) {
         return (
-            <div className="h-full flex flex-col items-center justify-center bg-[#0B1120] text-slate-400">
+            <div className="h-full flex flex-col items-center justify-center bg-[#F5F7FA] text-slate-500">
                 <AlertCircle className="w-12 h-12 mb-4 text-red-500 opacity-50" />
-                <h2 className="text-xl font-bold text-white mb-2">Acesso Restrito</h2>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
                 <p className="max-w-md text-center">Você não tem permissão para lançar escalas. Contacte o administrador.</p>
             </div>
         );
@@ -427,7 +427,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
         // 1. Logo Handling
         try {
-            const logoUrl = '/logo-algar-frota.png';
+            const logoUrl = '/LOGO.png';
             const imgData = await fetch(logoUrl)
                 .then(res => res.blob())
                 .then(blob => new Promise<string | ArrayBuffer>((resolve) => {
@@ -655,7 +655,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
 
     return (
-        <div className="flex flex-col text-slate-200 font-sans">
+        <div className="flex flex-col text-slate-900 font-sans gap-6">
             {/* Datalist for AutoComplete */}
             <datalist id="geofences-list">
                 {locationSuggestions.map((name: string, i: number) => (
@@ -670,7 +670,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             </datalist>
 
             {/* Top Bar: Controls */}
-            <div className="bg-[#0f172a] border-b border-slate-800 p-6 shadow-xl z-20">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)] z-20">
                 <div className="w-full flex flex-col xl:flex-row gap-6">
                     {/* Left: Inputs */}
                     <div className="flex-1">
@@ -678,13 +678,13 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                             {/* Date Picker */}
                             <div className="group relative">
-                                <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-blue-400 group-focus-within:text-blue-300 transition-colors z-10">
+                                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-blue-600 transition-colors z-10">
                                     Data da Escala
                                 </label>
-                                <div className="relative flex items-center bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden group-focus-within:border-blue-500/50 group-focus-within:ring-2 ring-blue-500/10 transition-all w-36">
+                                <div className="relative flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden group-focus-within:border-blue-400 group-focus-within:ring-2 ring-blue-500/10 transition-all w-36">
                                     <input
                                         type="date"
-                                        className="bg-transparent border-none text-sm font-medium text-white px-3 py-2.5 w-full outline-none [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                        className="bg-transparent border-none text-sm font-medium text-slate-900 px-3 py-2.5 w-full outline-none [color-scheme:light] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                                         value={referenceDate}
                                         onChange={e => setReferenceDate(e.target.value)}
                                     />
@@ -693,15 +693,15 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                             {/* Cost Center */}
                             <div className="group relative flex-1 max-w-xs min-w-[200px]">
-                                <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-purple-400 group-focus-within:text-purple-300 transition-colors z-10">
+                                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-blue-600 transition-colors z-10">
                                     Centro de Custo
                                 </label>
-                                <div className="relative bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden group-focus-within:border-purple-500/50 group-focus-within:ring-2 ring-purple-500/10 transition-all">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                <div className="relative bg-white border border-slate-300 rounded-xl overflow-hidden group-focus-within:border-blue-400 group-focus-within:ring-2 ring-blue-500/10 transition-all">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                                         <Building2 className="w-4 h-4" />
                                     </div>
                                     <select
-                                        className="bg-transparent border-none text-sm font-medium text-white pl-10 pr-10 py-2.5 w-full outline-none appearance-none [&_option]:bg-slate-900 cursor-pointer"
+                                        className="bg-transparent border-none text-sm font-medium text-slate-900 pl-10 pr-10 py-2.5 w-full outline-none appearance-none [&_option]:bg-white cursor-pointer"
                                         value={selectedCentroCusto}
                                         onChange={e => setSelectedCentroCusto(e.target.value)}
                                     >
@@ -710,7 +710,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                             <option key={cc.id} value={cc.id}>{cc.nome}</option>
                                         ))}
                                     </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                                         <ChevronDown className="w-4 h-4 opacity-50" />
                                     </div>
                                 </div>
@@ -718,21 +718,21 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                             {/* Notes */}
                             <div className="group relative flex-[1.5] min-w-[300px]">
-                                <label className="absolute -top-2.5 left-3 bg-[#0f172a] px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-slate-300 transition-colors z-10">
+                                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-blue-600 transition-colors z-10">
                                     Observações desta Escala
                                 </label>
-                                <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-xl overflow-visible group-focus-within:border-slate-500/50 transition-all relative">
-                                    <div className="pl-3 text-slate-500 group/info cursor-help relative flex items-center h-full py-2.5">
+                                <div className="flex items-center bg-white border border-slate-300 rounded-xl overflow-visible group-focus-within:border-blue-400 transition-all relative">
+                                    <div className="pl-3 text-slate-400 group/info cursor-help relative flex items-center h-full py-2.5">
                                         <Info className="w-4 h-4 hover:text-blue-400 transition-colors" />
                                         {/* Tooltip */}
-                                        <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-xl shadow-2xl text-xs text-slate-300 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-50 translate-y-[-10px] group-hover/info:translate-y-0">
+                                        <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-white border border-slate-200 rounded-xl shadow-2xl text-xs text-slate-600 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-50 translate-y-[-10px] group-hover/info:translate-y-0">
                                             Use este campo para observações gerais que se aplicam a todo o lote de escalas.
                                             {/* Arrow */}
-                                            <div className="absolute -top-1 left-4 w-2 h-2 bg-slate-800 border-t border-l border-slate-700 rotate-45"></div>
+                                            <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-t border-l border-slate-200 rotate-45"></div>
                                         </div>
                                     </div>
                                     <input
-                                        className="bg-transparent border-none text-sm text-slate-300 px-3 py-2.5 w-full outline-none placeholder:text-slate-600"
+                                        className="bg-transparent border-none text-sm text-slate-800 px-3 py-2.5 w-full outline-none placeholder:text-slate-400"
                                         placeholder="Ex: Reforço de Verão..."
                                         value={notes}
                                         onChange={e => setNotes(e.target.value)}
@@ -757,7 +757,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                             {/* Buttons */}
                             <button
                                 onClick={handleDownloadTemplate}
-                                className="bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-4 py-2.5 rounded-xl border border-slate-700/50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12"
+                                className="bg-white hover:bg-emerald-50 text-emerald-700 px-4 py-2.5 rounded-xl border border-slate-200 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12 shadow-sm"
                                 title="Baixar Modelo Excel"
                             >
                                 <Download className="w-4 h-4" />
@@ -768,7 +768,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 px-4 py-2.5 rounded-xl border border-slate-700/50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12"
+                                className="bg-white hover:bg-blue-50 text-blue-700 px-4 py-2.5 rounded-xl border border-slate-200 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12 shadow-sm"
                                 title="Importar Excel"
                             >
                                 <FileSpreadsheet className="w-4 h-4" />
@@ -777,7 +777,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                 </span>
                             </button>
 
-                            <div className="w-px h-8 bg-slate-800 mx-1"></div>
+                            <div className="w-px h-8 bg-slate-200 mx-1"></div>
 
                             <button
                                 onClick={handleLaunch}
@@ -785,8 +785,8 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                 className={`
                                 relative overflow-hidden group px-6 py-2 rounded-xl font-bold text-sm tracking-wide transition-all h-12
                                 ${isLoading
-                                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 hover:-translate-y-0.5'
+                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:-translate-y-0.5'
                                     }
                             `}
                             >
@@ -810,13 +810,13 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             </div>
 
             {/* Main Grid Area */}
-            <div className="flex-1 mt-6 bg-[url('/grid-pattern.svg')] bg-repeat opacity-[0.98]">
+            <div className="flex-1 bg-[url('/grid-pattern.svg')] bg-repeat opacity-[0.98] rounded-3xl">
                 <div className="w-full">
 
-                    <div className="bg-[#0f172a] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)] overflow-hidden flex flex-col">
 
                         {/* Grid Header */}
-                        <div className="grid grid-cols-[40px_105px_0.8fr_1.21fr_1.9fr_1.9fr_125px_1fr_60px] gap-px bg-slate-900 border-b border-slate-800">
+                        <div className="grid grid-cols-[40px_105px_0.8fr_1.21fr_1.9fr_1.9fr_125px_1fr_60px] gap-px bg-slate-50 border-b border-slate-200">
                             {[
                                 { l: '#', c: 'text-center' },
                                 { l: 'Tipo', c: 'text-center' },
@@ -836,15 +836,15 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                         </div>
 
                         {/* Grid Rows */}
-                        <div className="divide-y divide-slate-800/50 bg-[#0f172a]" ref={gridRef}>
+                        <div className="divide-y divide-slate-200 bg-white" ref={gridRef}>
                             {rows.map((row, idx) => (
                                 <div
                                     key={row.tempId}
-                                    className="group grid grid-cols-[40px_105px_0.8fr_1.21fr_1.9fr_1.9fr_125px_1fr_60px] gap-px text-sm hover:bg-slate-800/30 transition-colors focus-within:bg-slate-800/50"
+                                    className="group grid grid-cols-[40px_105px_0.8fr_1.21fr_1.9fr_1.9fr_125px_1fr_60px] gap-px text-sm hover:bg-slate-50 transition-colors focus-within:bg-blue-50/40"
                                 >
 
                                     {/* Line Number */}
-                                    <div className="p-3 text-center text-slate-600 font-mono text-xs flex items-center justify-center">
+                                    <div className="p-3 text-center text-slate-400 font-mono text-xs flex items-center justify-center">
                                         {idx + 1}
                                     </div>
 
@@ -856,7 +856,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                                     w-full h-full text-xs font-bold uppercase rounded-lg px-2 outline-none appearance-none cursor-pointer border
                                                     ${row.tipo === 'entrada' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
                                                         row.tipo === 'saida' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
-                                                            'bg-slate-800 text-slate-400 border-slate-700'}
+                                                            'bg-slate-50 text-slate-500 border-slate-200'}
                                                 `}
                                                 value={row.tipo}
                                                 onChange={e => setRowType(row.tempId, e.target.value as any)}
@@ -872,9 +872,9 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     </div>
 
                                     {/* Departamento Input */}
-                                    <div className="relative border-r border-slate-800/50">
+                                    <div className="relative border-r border-slate-200">
                                         <input
-                                            className="w-full h-full bg-transparent px-3 outline-none placeholder:text-slate-700 text-slate-300 font-medium"
+                                            className="w-full h-full bg-transparent px-3 outline-none placeholder:text-slate-400 text-slate-800 font-medium"
                                             placeholder="Geral"
                                             value={row.departamento || ''}
                                             onChange={e => updateRow(row.tempId, 'departamento', e.target.value)}
@@ -886,7 +886,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            className="w-full bg-transparent border-none text-white px-4 py-3 placeholder:text-slate-600 outline-none text-sm"
+                                            className="w-full bg-transparent border-none text-slate-900 px-4 py-3 placeholder:text-slate-400 outline-none text-sm"
                                             placeholder="..."
                                             value={row.passageiro}
                                             onChange={e => updateRow(row.tempId, 'passageiro', e.target.value)}
@@ -895,9 +895,9 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                         />
                                     </div>
 
-                                    <div className="relative border-l border-slate-800/50">
+                                    <div className="relative border-l border-slate-200">
                                         <input
-                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-700 focus:text-slate-900 focus:ring-2 ring-blue-500/20 focus:bg-blue-50 transition-all"
                                             value={row.origem}
                                             list="geofences-list"
                                             onChange={e => updateRow(row.tempId, 'origem', e.target.value)}
@@ -906,9 +906,9 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                         />
                                     </div>
 
-                                    <div className="relative border-l border-slate-800/50">
+                                    <div className="relative border-l border-slate-200">
                                         <input
-                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-300 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-700 focus:text-slate-900 focus:ring-2 ring-blue-500/20 focus:bg-blue-50 transition-all"
                                             value={row.destino}
                                             list="geofences-list"
                                             onChange={e => updateRow(row.tempId, 'destino', e.target.value)}
@@ -917,19 +917,19 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                         />
                                     </div>
 
-                                    <div className="relative border-l border-slate-800/50">
+                                    <div className="relative border-l border-slate-200">
                                         <input
                                             type="time"
-                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-white font-mono text-center focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-900 font-mono text-center focus:ring-2 ring-blue-500/20 focus:bg-blue-50 transition-all"
                                             value={row.hora}
                                             onChange={e => updateRow(row.tempId, 'hora', e.target.value)}
                                             onKeyDown={e => handleKeyDown(e, idx)}
                                         />
                                     </div>
 
-                                    <div className="relative border-l border-slate-800/50">
+                                    <div className="relative border-l border-slate-200">
                                         <input
-                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-400 focus:text-white focus:ring-2 ring-blue-500/20 focus:bg-blue-500/5 transition-all"
+                                            className="w-full h-full bg-transparent px-4 py-3 outline-none text-slate-600 focus:text-slate-900 focus:ring-2 ring-blue-500/20 focus:bg-blue-50 transition-all"
                                             value={row.obs}
                                             maxLength={50}
                                             onChange={e => updateRow(row.tempId, 'obs', e.target.value)}
@@ -938,7 +938,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                     </div>
 
                                     {/* Row Actions */}
-                                    <div className="flex items-center justify-center gap-1 border-l border-slate-800/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center justify-center gap-1 border-l border-slate-200 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => addReturnTrip(row)}
                                             className="p-1.5 hover:bg-blue-500/10 text-blue-500 rounded-lg transition-colors"
@@ -960,10 +960,10 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                         </div>
 
                         {/* Footer: Add Row */}
-                        <div className="p-4 bg-slate-900/50 border-t border-slate-800">
+                        <div className="p-4 bg-slate-50 border-t border-slate-200">
                             <button
                                 onClick={addRow}
-                                className="w-full py-3 border-2 border-dashed border-slate-700/50 rounded-xl text-slate-500 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2 font-medium text-sm"
+                                className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 font-medium text-sm"
                             >
                                 <Plus className="w-4 h-4" />
                                 Adicionar Nova Linha
@@ -972,10 +972,10 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                     </div>
 
                     {/* Instructions */}
-                    <div className="mt-8 flex gap-8 text-xs text-slate-500 px-2 opacity-50 hover:opacity-100 transition-opacity">
+                    <div className="mt-4 flex gap-8 text-xs text-slate-500 px-2 opacity-70 hover:opacity-100 transition-opacity">
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold font-mono">↙</div>
-                            <span>Use <span className="text-slate-300 font-bold">Enter</span> para adicionar novas linhas</span>
+                            <div className="w-4 h-4 rounded bg-white border border-slate-300 flex items-center justify-center text-[10px] font-bold font-mono">↙</div>
+                            <span>Use <span className="text-slate-700 font-bold">Enter</span> para adicionar novas linhas</span>
                         </div>
                     </div>
 
@@ -984,12 +984,12 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
             {/* Import Modal */}
             {showImportModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm">
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
                         <div className="p-6">
-                            <h3 className="text-xl font-bold text-white mb-2">Importar Escala</h3>
-                            <p className="text-slate-400 text-sm">
-                                Encontradas <span className="text-blue-400 font-bold">{pendingImportRows.length}</span> linhas no arquivo.
+                            <h3 className="text-xl font-bold text-slate-900 mb-2">Importar Escala</h3>
+                            <p className="text-slate-600 text-sm">
+                                Encontradas <span className="text-blue-600 font-bold">{pendingImportRows.length}</span> linhas no arquivo.
                                 <br />Como deseja proceder?
                             </p>
 
@@ -1015,7 +1015,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                         setShowImportModal(false);
                                         setPendingImportRows([]);
                                     }}
-                                    className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-400 font-medium text-sm transition-all mt-2"
+                                    className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-slate-600 font-medium text-sm transition-all mt-2"
                                 >
                                     Cancelar
                                 </button>

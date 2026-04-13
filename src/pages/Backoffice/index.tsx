@@ -22,8 +22,8 @@ export default function Backoffice() {
                 <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 ring-4 ring-red-500/20">
                     <ShieldAlert className="w-10 h-10 text-red-500" />
                 </div>
-                <h1 className="text-2xl font-black text-white mb-2 tracking-tight">ACESSO RESTRITO</h1>
-                <p className="text-slate-400 max-w-md">
+                <h1 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">ACESSO RESTRITO</h1>
+                <p className="text-slate-600 max-w-md">
                     Esta área é reservada exclusivamente para o cargo <span className="text-red-400 font-bold tracking-widest">ADMIN_MASTER</span>.
                     O seu acesso foi negado e registado por motivos de segurança.
                 </p>
@@ -32,21 +32,21 @@ export default function Backoffice() {
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#0f172a]">
+        <div className="flex flex-col h-full bg-transparent">
             {/* Backoffice Header */}
-            <header className="p-6 border-b border-slate-800/60 bg-slate-900/40 backdrop-blur-md">
+            <header className="p-6 border-b border-slate-200 bg-white/85 backdrop-blur-md">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="px-2 py-0.5 rounded bg-blue-600/20 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">
+                            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-widest border border-blue-200">
                                 LOCKED SECURE
                             </span>
-                            <h1 className="text-2xl font-black text-white tracking-tight">MASTER CONTROL CENTRE</h1>
+                            <h1 className="text-2xl font-black text-slate-900 tracking-tight">MASTER CONTROL CENTRE</h1>
                         </div>
-                        <p className="text-slate-500 text-sm font-medium">Gestão operacional de alto nível e auditoria de sistema.</p>
+                        <p className="text-slate-600 text-sm font-medium">Gestão operacional de alto nível e auditoria de sistema.</p>
                     </div>
 
-                    <div className="flex items-center gap-2 p-1 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+                    <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200">
                         <TabButton
                             active={activeTab === 'overview'}
                             onClick={() => setActiveTab('overview')}
@@ -98,8 +98,8 @@ function TabButton({ active, onClick, icon: Icon, label }: { active: boolean, on
         <button
             onClick={onClick}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30 ring-1 ring-blue-400/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200 ring-1 ring-blue-300/40'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                 }`}
         >
             <Icon className="w-4 h-4" />

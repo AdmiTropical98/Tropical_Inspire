@@ -73,18 +73,18 @@ export default function Dashboard({
 
             <PageHeader
                 title={<span className="flex items-center gap-3">
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">{greeting},</span>
-                    <span className="text-white">{currentUser?.nome?.split(' ')[0] || 'Gestor'}</span>
+                    <span className="text-slate-500">{greeting},</span>
+                    <span className="text-slate-900">{currentUser?.nome?.split(' ')[0] || 'Gestor'}</span>
                 </span>}
-                subtitle="Sistema operacional e online."
+                subtitle="Visão operacional do sistema com leitura rápida e consistente."
                 icon={Activity}
                 actions={
-                    <div className="flex items-center gap-3 bg-slate-800/40 backdrop-blur-sm p-1.5 pr-4 rounded-xl border border-white/5 shadow-sm">
-                        <div className="p-2 bg-indigo-500/20 rounded-lg">
-                            <Calendar className="w-5 h-5 text-indigo-400" />
+                    <div className="flex items-center gap-3 bg-slate-50 p-2 pr-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                            <Calendar className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="text-sm">
-                            <p className="text-white font-bold">{new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+                            <p className="text-slate-900 font-bold">{new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
                         </div>
                     </div>
                 }
@@ -139,16 +139,16 @@ export default function Dashboard({
                     {/* Approvals / Alerts */}
                     <div className="w-full min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
                         {userRole === 'admin' && pendingRegistrations > 0 ? (
-                            <div className="bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-2xl p-6 h-full flex flex-col justify-between animate-pulse-slow">
+                            <div className="bg-white border border-amber-200 rounded-2xl p-6 h-full flex flex-col justify-between shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
                                 <div>
                                     <div className="flex justify-between items-start mb-2">
-                                        <div className="p-3 rounded-xl bg-amber-500/20 text-amber-500">
+                                        <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
                                             <User className="w-6 h-6" />
                                         </div>
-                                        <span className="bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-1 rounded-full">Ação Necessária</span>
+                                        <span className="bg-amber-50 text-amber-700 text-xs font-bold px-2 py-1 rounded-full border border-amber-200">Ação Necessária</span>
                                     </div>
-                                    <h3 className="text-amber-400 font-bold text-lg mt-2">Aprovações Pendentes</h3>
-                                    <p className="text-slate-400 text-sm mt-1">{pendingRegistrations} novos utilizadores</p>
+                                    <h3 className="text-slate-900 font-bold text-lg mt-2">Aprovações Pendentes</h3>
+                                    <p className="text-slate-600 text-sm mt-1">{pendingRegistrations} novos utilizadores</p>
                                 </div>
                                 <button
                                     onClick={() => setShowApprovalsModal(true)}

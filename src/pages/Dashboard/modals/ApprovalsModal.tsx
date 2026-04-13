@@ -70,21 +70,21 @@ export default function ApprovalsModal({ isOpen, onClose }: ApprovalsModalProps)
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4">
+            <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
                 
                 {/* Header */}
-                <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                <div className="p-6 border-b border-slate-200 flex justify-between items-center">
                     <div>
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                             Aprovações Pendentes
                             <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full uppercase ml-2 border border-amber-500/30">
                                 {pendingRequests.length}
                             </span>
                         </h2>
-                        <p className="text-sm text-slate-400 mt-1">Gerencie os pedidos de acesso e registo de novos utilizadores.</p>
+                        <p className="text-sm text-slate-600 mt-1">Gerencie os pedidos de acesso e registo de novos utilizadores.</p>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-900 transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
@@ -92,34 +92,34 @@ export default function ApprovalsModal({ isOpen, onClose }: ApprovalsModalProps)
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
                     {pendingRequests.length === 0 ? (
-                        <div className="text-center py-12 text-slate-500 bg-slate-800/20 rounded-xl border border-dashed border-slate-800">
+                        <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                             <Check className="w-12 h-12 mx-auto mb-3 opacity-20" />
                             <p>Não existem pedidos pendentes de momento.</p>
                         </div>
                     ) : (
                         pendingRequests.map(req => (
-                            <div key={req.id} className="bg-slate-800/50 rounded-xl border border-slate-700 p-5 hover:border-slate-600 transition-colors">
+                            <div key={req.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 transition-colors shadow-sm">
                                 <div className="flex flex-col md:flex-row gap-6">
                                     
                                     {/* User Info */}
                                     <div className="flex-1 space-y-3">
                                         <div className="flex items-start justify-between">
-                                            <h3 className="font-bold text-white text-lg">{req.data.nome || 'Sem Nome'}</h3>
-                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-900 text-slate-400 px-2 py-1 rounded border border-slate-700">
+                                            <h3 className="font-bold text-slate-900 text-lg">{req.data.nome || 'Sem Nome'}</h3>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-500 px-2 py-1 rounded border border-slate-200">
                                                 {new Date(req.timestamp).toLocaleDateString()}
                                             </span>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-sm text-slate-300">
+                                            <div className="flex items-center gap-2 text-sm text-slate-700">
                                                 <Phone className="w-4 h-4 text-slate-500" />
                                                 <span>{req.data.telemovel || '---'}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-sm text-slate-300">
+                                            <div className="flex items-center gap-2 text-sm text-slate-700">
                                                 <Mail className="w-4 h-4 text-slate-500" />
                                                 <span>{req.data.email || '---'}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-sm text-slate-300">
+                                            <div className="flex items-center gap-2 text-sm text-slate-700">
                                                 <Shield className="w-4 h-4 text-slate-500" />
                                                 <span className="capitalize">{req.data.role || 'Utilizador'}</span>
                                             </div>
@@ -127,10 +127,10 @@ export default function ApprovalsModal({ isOpen, onClose }: ApprovalsModalProps)
 
                                         {/* PIN Display */}
                                         {req.response?.pin && (
-                                            <div className="mt-4 bg-slate-900/50 rounded-lg p-3 border border-slate-700/50 flex items-center justify-between group">
+                                            <div className="mt-4 bg-slate-50 rounded-lg p-3 border border-slate-200 flex items-center justify-between group">
                                                 <div>
                                                     <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">PIN Gerado</span>
-                                                    <p className="font-mono text-xl text-white font-bold tracking-widest">{req.response.pin}</p>
+                                                    <p className="font-mono text-xl text-slate-900 font-bold tracking-widest">{req.response.pin}</p>
                                                 </div>
                                                 <button 
                                                     onClick={() => sendWhatsApp(req)}
@@ -145,7 +145,7 @@ export default function ApprovalsModal({ isOpen, onClose }: ApprovalsModalProps)
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex md:flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-6">
+                                    <div className="flex md:flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6">
 
                                         {!req.response?.pin ? (
                                             <button
@@ -184,7 +184,7 @@ export default function ApprovalsModal({ isOpen, onClose }: ApprovalsModalProps)
                                         <button 
                                             onClick={() => handleReject(req)}
                                             disabled={!!processingId}
-                                            className="flex-1 md:flex-none px-4 py-2 bg-slate-800 hover:bg-red-500/10 hover:text-red-400 text-slate-400 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 border border-slate-700 hover:border-red-500/30"
+                                            className="flex-1 md:flex-none px-4 py-2 bg-white hover:bg-red-50 hover:text-red-600 text-slate-600 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 border border-slate-200 hover:border-red-200"
                                         >
                                             <XCircle className="w-4 h-4" />
                                             Rejeitar

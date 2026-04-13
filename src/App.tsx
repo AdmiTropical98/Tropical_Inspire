@@ -106,22 +106,22 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, on
   <div className="relative group">
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative ${active
-        ? 'bg-blue-500/15 text-blue-300 font-semibold shadow-[inset_0_0_0_1px_rgba(59,130,246,.35)]'
-        : 'text-slate-300 hover:bg-slate-700/40 hover:text-slate-100'
-        } ${collapsed ? 'justify-center' : ''}`}
+        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 relative ${active
+          ? 'bg-amber-50 text-amber-700 font-semibold'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          } ${collapsed ? 'justify-center' : ''}`}
     >
-      {active && <div className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full" />}
+        {active && <div className="absolute left-0 w-1 h-7 bg-[#C9A34E] rounded-r-full" />}
       <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
       {!collapsed && <span className="text-sm whitespace-nowrap">{label}</span>}
       {!collapsed && badge && badge > 0 && (
-        <span className="ml-auto bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ring-2 ring-slate-900">
+          <span className="ml-auto bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ring-2 ring-white">
           {badge}
         </span>
       )}
     </button>
     {collapsed && (
-      <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-slate-300 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+      <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
         {label}
         {badge && badge > 0 && ` (${badge})`}
       </div>
@@ -134,8 +134,8 @@ const SidebarGroup: React.FC<{ title: string; children: React.ReactNode; default
 
   if (collapsed) {
     return (
-      <div className="py-4 space-y-4 flex flex-col items-center border-t border-slate-800/50 group relative">
-        <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-slate-300 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+        <div className="py-4 space-y-4 flex flex-col items-center border-t border-slate-200 group relative">
+          <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
           {title}
         </div>
         {children}
@@ -150,7 +150,7 @@ const SidebarGroup: React.FC<{ title: string; children: React.ReactNode; default
         className="w-full flex items-center justify-between px-4 mb-2 group"
       >
         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{title}</span>
-        {isOpen ? <ChevronDown className="w-3 h-3 text-slate-600 group-hover:text-slate-400" /> : <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-slate-400" />}
+        {isOpen ? <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" /> : <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />}
       </button>
       {isOpen && <div className="space-y-1">{children}</div>}
     </div>
@@ -162,27 +162,27 @@ const UserProfileMenu: React.FC<{ onNavigate: (tab: string) => void; showName?: 
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <div className="relative mt-auto border-t border-slate-700/50 p-4 bg-slate-900/30">
+    <div className="relative mt-auto border-t border-slate-200 p-4 bg-white">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/50 transition-colors group"
+        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 transition-colors group"
       >
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition-all overflow-hidden bg-slate-800">
           {currentUser?.nome ? currentUser.nome.charAt(0).toUpperCase() : <UserIcon className="w-5 h-5" />}
         </div>
         {showName && (
           <div className="flex-1 text-left overflow-hidden">
-            <p className="text-sm font-bold text-slate-200 truncate">{currentUser?.nome || 'Utilizador'}</p>
-            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">{(currentUser as any)?.role || 'Guest'}</p>
+            <p className="text-sm font-bold text-slate-800 truncate">{currentUser?.nome || 'Utilizador'}</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{(currentUser as any)?.role || 'Guest'}</p>
           </div>
         )}
       </button>
 
       {showMenu && (
-        <div className="absolute bottom-full left-4 right-4 mb-2 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-200">
           <button
             onClick={() => { onNavigate('meu-perfil'); setShowMenu(false); }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all text-sm"
           >
             <UserCogIcon className="w-4 h-4" /> Perfil
           </button>
@@ -199,6 +199,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (tab: string) => void; showName?: 
 };
 
 function App() {
+  const BRAND_LOGO = '/LOGO.png';
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
@@ -222,7 +223,7 @@ function App() {
 
   if (isColaboradorArea) {
     return (
-      <div className="app-root min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-blue-500/30">
+      <div className="app-root min-h-screen bg-[#F3F6FA] text-slate-900 font-sans selection:bg-amber-500/20">
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
             <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
@@ -243,51 +244,46 @@ function App() {
   }
 
   return (
-    <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-[#0f172a] text-slate-100 font-sans selection:bg-blue-500/30">
+    <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-[#F5F7FA] text-slate-900 font-sans selection:bg-amber-500/20">
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f172a]/85 backdrop-blur-xl border-b border-slate-700/50 flex items-center justify-between px-6 z-40">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-6 z-40">
         <div className="flex items-center gap-3">
           <img
-            src="/logo-sidebar.png"
+            src={BRAND_LOGO}
             alt="Algartempo Frota"
-            className="w-8 h-8 rounded-lg object-contain"
+            className="h-8 w-auto object-contain"
           />
-          <span className="font-semibold text-white tracking-wide text-sm uppercase">Algartempo Frota</span>
+          <span className="font-semibold text-slate-800 tracking-wide text-xs uppercase">Algartempo Frota</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2.5 rounded-xl bg-slate-800/50 text-slate-300 hover:bg-slate-800 transition-all border border-slate-700/50"
+          className="p-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all border border-slate-200"
         >
           <Menu className="w-6 h-6" />
         </button>
       </div>
 
       {/* Sidebar - Desktop */}
-      <aside className={`fixed top-0 left-0 bottom-0 z-50 bg-[#111827] border-r border-slate-700/50 transition-all duration-300 flex flex-col shadow-2xl shadow-black/20 ${isSidebarCollapsed ? 'w-20' : 'w-72'
-        } hidden lg:flex`}>
-        <div className="p-6 flex items-center justify-between">
+      <aside className={`fixed top-0 left-0 bottom-0 z-50 bg-white border-r border-slate-200 transition-all duration-300 flex flex-col shadow-lg shadow-slate-200/60 ${isSidebarCollapsed ? 'w-20' : 'w-72'} hidden lg:flex`}>
+        <div className="px-5 py-5 flex items-start justify-between border-b border-slate-100">
           {!isSidebarCollapsed && (
-            <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0 pr-3">
               <img
-                src="/logo-sidebar.png"
+                src={BRAND_LOGO}
                 alt="Algartempo Frota"
-                className="w-10 h-10 rounded-xl object-contain shadow-lg shadow-blue-900/20 ring-2 ring-blue-500/20"
+                className="w-full max-w-[190px] h-auto object-contain"
               />
-              <div className="leading-tight">
-                <span className="font-semibold text-white tracking-tight text-sm uppercase block">Algartempo Frota</span>
-                <span className="text-[9px] font-medium text-blue-300 tracking-[0.18em] uppercase opacity-90">Programa Frota</span>
-              </div>
             </div>
           )}
           <button
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-2 rounded-lg hover:bg-slate-800/50 text-slate-500 hover:text-slate-300 transition-colors"
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
           >
             {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
           {(userRole === 'admin' || userRole === 'ADMIN_MASTER' || userRole === 'ADMIN') && (
             <SidebarItem
               icon={Settings2}
@@ -419,8 +415,7 @@ function App() {
 
       {/* Main Content Area */}
       <main className={`flex-1 min-w-0 h-full overflow-hidden flex flex-col transition-all duration-300 pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        <div className="shrink-0 h-16 border-b border-slate-700/50 bg-slate-900/40 px-4 sm:px-6 lg:px-8" />
-        <div className="flex-1 min-h-0 w-full max-w-full min-w-0 overflow-y-auto overflow-x-auto custom-scrollbar bg-slate-900/30">
+          <div className="flex-1 min-h-0 w-full max-w-full min-w-0 overflow-y-auto overflow-x-auto custom-scrollbar bg-[#F5F7FA]">
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
@@ -489,20 +484,20 @@ function App() {
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <aside className="relative w-80 max-w-[85vw] h-full bg-[#111827] shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
-            <div className="p-6 flex items-center justify-between border-b border-slate-700/50">
+            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+            <aside className="relative w-80 max-w-[85vw] h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+              <div className="p-6 flex items-center justify-between border-b border-slate-200">
               <div className="flex items-center gap-3">
                 <img
-                  src="/logo-sidebar.png"
+                  src={BRAND_LOGO}
                   alt="Algartempo Frota"
-                  className="w-8 h-8 rounded-lg object-contain"
+                  className="h-8 w-auto object-contain"
                 />
-                <span className="font-semibold text-white uppercase tracking-tight">Algartempo Frota</span>
+                  <span className="font-semibold text-slate-900 uppercase tracking-tight text-xs">Algartempo Frota</span>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 rounded-lg bg-slate-800/50 text-slate-500 transition-all border border-slate-700/50"
+                  className="p-2 rounded-lg bg-slate-100 text-slate-500 transition-all border border-slate-200"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -519,7 +514,7 @@ function App() {
 
               <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleNavigate('dashboard')} />
 
-              <div className="h-px bg-slate-800/50 my-3" />
+              <div className="h-px bg-slate-200 my-3" />
               <p className="text-[10px] uppercase tracking-widest font-black text-slate-500 px-1">Operações</p>
               <SidebarItem icon={Activity} label="Centro Operacional" active={activeTab === 'controlo-operacional'} onClick={() => handleNavigate('controlo-operacional')} />
               <SidebarItem icon={AlertTriangle} label="Alertas" active={activeTab === 'alerts'} onClick={() => handleNavigate('alerts')} />
@@ -527,7 +522,7 @@ function App() {
               {hasAccess(userRole, 'escalas') && <SidebarItem icon={LayoutTemplate} label="Planear Escala" active={activeTab === 'lancar-escalas'} onClick={() => handleNavigate('lancar-escalas')} />}
               {hasAccess(userRole, 'requisicoes') && <SidebarItem icon={ClipboardCheck} label="Requisições" active={activeTab === 'requisicoes'} onClick={() => handleNavigate('requisicoes')} />}
 
-              <div className="h-px bg-slate-800/50 my-3" />
+              <div className="h-px bg-slate-200 my-3" />
               <p className="text-[10px] uppercase tracking-widest font-black text-slate-500 px-1">Frota</p>
               {hasAccess(userRole, 'viaturas') && <SidebarItem icon={Car} label="Viaturas" active={isFleetRoute} onClick={() => handleNavigate('viaturas')} />}
               {hasAccess(userRole, 'motoristas') && <SidebarItem icon={UserCogIcon} label="Motoristas" active={activeTab === 'motoristas'} onClick={() => handleNavigate('motoristas')} />}
@@ -537,7 +532,7 @@ function App() {
               {hasAccess(userRole, 'geofences') && <SidebarItem icon={MapPin} label="Cercas Geográficas" active={activeTab === 'geofences'} onClick={() => handleNavigate('geofences')} />}
               {hasAccess(userRole, 'locais') && <SidebarItem icon={MapPin} label="Pontos de Interesse" active={activeTab === 'locais'} onClick={() => handleNavigate('locais')} />}
 
-              <div className="h-px bg-slate-800/50 my-3" />
+              <div className="h-px bg-slate-200 my-3" />
               <p className="text-[10px] uppercase tracking-widest font-black text-slate-500 px-1">Monitorização</p>
               {hasAccess(userRole, 'horas') && <SidebarItem icon={Clock} label="Registo de Horas" active={activeTab === 'horas'} onClick={() => handleNavigate('horas')} />}
               {hasAccess(userRole, 'combustivel') && <SidebarItem icon={Fuel} label="Abastecimentos" active={activeTab === 'combustivel'} onClick={() => handleNavigate('combustivel')} />}
@@ -545,7 +540,7 @@ function App() {
               {hasAccess(userRole, 'combustivel') && <SidebarItem icon={Gauge} label="Eficiência" active={activeTab === 'eficiencia-frota'} onClick={() => handleNavigate('eficiencia-frota')} />}
               {hasAccess(userRole, 'relatorios') && <SidebarItem icon={BarChart3} label="Analytics" active={activeTab === 'relatorios'} onClick={() => handleNavigate('relatorios')} />}
 
-              <div className="h-px bg-slate-800/50 my-3" />
+              <div className="h-px bg-slate-200 my-3" />
               <p className="text-[10px] uppercase tracking-widest font-black text-slate-500 px-1">Financeiro</p>
               {hasAccess(userRole, 'contabilidade') && <SidebarItem icon={Wallet} label="Contabilidade" active={activeTab === 'contabilidade'} onClick={() => handleNavigate('contabilidade')} />}
               {hasAccess(userRole, 'centros_custos') && <SidebarItem icon={Building2} label="Centros de Custos" active={activeTab === 'centros-custos'} onClick={() => handleNavigate('centros-custos')} />}
@@ -553,7 +548,7 @@ function App() {
               {hasAccess(userRole, 'clientes') && <SidebarItem icon={Briefcase} label="Clientes" active={activeTab === 'clientes'} onClick={() => handleNavigate('clientes')} />}
               {hasAccess(userRole, 'via_verde') && <SidebarItem icon={Ticket} label="Via Verde" active={activeTab === 'via-verde'} onClick={() => handleNavigate('via-verde')} />}
 
-              <div className="h-px bg-slate-800/50 my-3" />
+              <div className="h-px bg-slate-200 my-3" />
               <p className="text-[10px] uppercase tracking-widest font-black text-slate-500 px-1">Administração</p>
               {hasAccess(userRole, 'utilizadores') && <SidebarItem icon={UserCheck} label="Perfis" active={activeTab === 'utilizadores'} onClick={() => handleNavigate('utilizadores')} />}
               {hasAccess(userRole, 'utilizadores') && <SidebarItem icon={IdCard} label="Colaboradores" active={activeTab === 'colaboradores'} onClick={() => handleNavigate('colaboradores')} />}

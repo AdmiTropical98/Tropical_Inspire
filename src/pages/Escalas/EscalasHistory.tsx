@@ -64,7 +64,7 @@ export default function EscalasHistory() {
 
         // 1. Logo Handling
         try {
-            const logoUrl = '/logo-algar-frota.png';
+            const logoUrl = '/LOGO.png';
             const imgData = await fetch(logoUrl)
                 .then(res => res.blob())
                 .then(blob => new Promise<string | ArrayBuffer>((resolve) => {

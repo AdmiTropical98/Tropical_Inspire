@@ -134,13 +134,13 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
             <div className="flex items-center justify-between">
                 <button
                     onClick={onBack}
-                    className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Voltar
                 </button>
                 <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors">
+                    <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors border border-slate-200">
                         Salvar Rascunho
                     </button>
                     <button
@@ -153,16 +153,16 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                 </div>
             </div>
 
-            <div className="bg-[#1e293b]/50 backdrop-blur-sm p-8 rounded-2xl border border-slate-700/50 space-y-8">
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 space-y-8 shadow-sm">
 
                 {/* Invoice Meta */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-8 border-b border-slate-700/50">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-8 border-b border-slate-200">
                     <div className="space-y-4">
-                        <label className="block text-sm font-medium text-slate-400">Cliente</label>
+                        <label className="block text-sm font-medium text-slate-600">Cliente</label>
                         <select
                             value={clienteId}
                             onChange={(e) => setClienteId(e.target.value)}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         >
                             <option value="">Selecione um cliente...</option>
                             {clientes.map(c => (
@@ -170,8 +170,8 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                             ))}
                         </select>
                         {clienteId && (
-                            <div className="p-4 bg-slate-800/30 rounded-lg text-sm text-slate-400 space-y-1">
-                                <p className="font-medium text-white">{clientes.find(c => c.id === clienteId)?.nome}</p>
+                            <div className="p-4 bg-slate-50 rounded-lg text-sm text-slate-600 space-y-1 border border-slate-200">
+                                <p className="font-medium text-slate-900">{clientes.find(c => c.id === clienteId)?.nome}</p>
                                 <p>NIF: {clientes.find(c => c.id === clienteId)?.nif}</p>
                                 <p>{clientes.find(c => c.id === clienteId)?.morada}</p>
                             </div>
@@ -179,30 +179,30 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-400">Data de Emissão</label>
+                            <label className="block text-sm font-medium text-slate-600">Data de Emissão</label>
                             <input
                                 type="date"
                                 value={data}
                                 onChange={(e) => setData(e.target.value)}
-                                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-400">Data de Vencimento</label>
+                            <label className="block text-sm font-medium text-slate-600">Data de Vencimento</label>
                             <input
                                 type="date"
                                 value={vencimento}
                                 onChange={(e) => setVencimento(e.target.value)}
-                                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                             />
                         </div>
                         <div className="col-span-2 space-y-2">
-                            <label className="block text-sm font-medium text-slate-400">Notas / Observações</label>
+                            <label className="block text-sm font-medium text-slate-600">Notas / Observações</label>
                             <textarea
                                 value={notas}
                                 onChange={(e) => setNotas(e.target.value)}
                                 placeholder="Detalhes de pagamento, referências, etc."
-                                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 h-20 resize-none"
+                                className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-20 resize-none"
                             />
                         </div>
                     </div>
@@ -211,7 +211,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                 {/* Items */}
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
 
                             <FileText className="w-5 h-5 text-blue-500" />
                             Itens da Fatura
@@ -219,14 +219,14 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setShowRentalModal(true)}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-sm font-medium transition-colors border border-dashed border-slate-600 hover:border-amber-400"
+                                className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-sm font-medium transition-colors border border-dashed border-amber-300 hover:border-amber-400"
                             >
                                 <Car className="w-4 h-4" />
                                 + Aluguer Viatura
                             </button>
                             <button
                                 onClick={addItem}
-                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-sm font-medium transition-colors border border-dashed border-slate-600 hover:border-blue-500"
+                                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors border border-dashed border-blue-300 hover:border-blue-500"
                             >
                                 + Adicionar Item
                             </button>
@@ -235,18 +235,18 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
 
                     {/* Rental Modal Area (Inline for simplicity) */}
                     {showRentalModal && (
-                        <div className="p-4 bg-slate-800/50 border border-amber-500/30 rounded-xl mb-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-4 space-y-4 animate-in fade-in slide-in-from-top-2">
                             <h4 className="font-bold text-amber-400 flex items-center gap-2">
                                 <Car className="w-4 h-4" />
                                 Adicionar Cobrança de Aluguer
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1 md:col-span-2">
-                                    <label className="text-xs text-slate-400">Viatura</label>
+                                    <label className="text-xs text-slate-500">Viatura</label>
                                     <select
                                         value={selectedVehicleId}
                                         onChange={(e) => handleVehicleSelect(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500"
+                                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-amber-500"
                                     >
                                         <option value="">Selecione a viatura...</option>
                                         {viaturas.map(v => (
@@ -255,11 +255,11 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                     </select>
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
-                                    <label className="text-xs text-slate-400">Centro de Custo (Opcional)</label>
+                                    <label className="text-xs text-slate-500">Centro de Custo (Opcional)</label>
                                     <select
                                         value={selectedCostCenterId}
                                         onChange={(e) => setSelectedCostCenterId(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500"
+                                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-amber-500"
                                     >
                                         <option value="">Selecione o centro de custo...</option>
                                         {centrosCustos.map(c => (
@@ -268,23 +268,23 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs text-slate-400">Dias</label>
+                                    <label className="text-xs text-slate-500">Dias</label>
                                     <input
                                         type="number"
                                         min="1"
                                         value={rentalDays}
                                         onChange={(e) => setRentalDays(Number(e.target.value))}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500"
+                                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-amber-500"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs text-slate-400">Diária (€)</label>
+                                    <label className="text-xs text-slate-500">Diária (€)</label>
                                     <input
                                         type="number"
                                         min="0"
                                         value={rentalRate}
                                         onChange={(e) => setRentalRate(Number(e.target.value))}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500"
+                                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-amber-500"
                                     />
                                 </div>
                                 <div className="flex items-end gap-2 md:col-span-2">
@@ -296,7 +296,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                     </button>
                                     <button
                                         onClick={() => setShowRentalModal(false)}
-                                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
+                                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm transition-colors border border-slate-200"
                                     >
                                         Cancelar
                                     </button>
@@ -305,9 +305,9 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                         </div>
                     )}
 
-                    <div className="overflow-hidden rounded-xl border border-slate-700/50">
+                    <div className="overflow-hidden rounded-xl border border-slate-200">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-slate-400 uppercase bg-slate-800/50">
+                            <thead className="text-xs text-slate-500 uppercase bg-slate-50">
                                 <tr>
                                     <th className="px-4 py-3 w-[40%]">Descrição</th>
                                     <th className="px-4 py-3 text-right w-[10%]">Qtd</th>
@@ -317,7 +317,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                     <th className="px-4 py-3 w-[5%]"></th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800 bg-slate-900/20">
+                            <tbody className="divide-y divide-slate-200 bg-white">
                                 {items.map((item) => (
                                     <tr key={item.id} className="group">
                                         <td className="p-2">
@@ -326,7 +326,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                                 value={item.descricao}
                                                 onChange={(e) => updateItem(item.id, 'descricao', e.target.value)}
                                                 placeholder="Descrição do serviço ou produto"
-                                                className="w-full bg-transparent border-none text-white placeholder-slate-600 focus:ring-0 px-2"
+                                                className="w-full bg-transparent border-none text-slate-900 placeholder-slate-400 focus:ring-0 px-2"
                                             />
                                         </td>
                                         <td className="p-2">
@@ -335,7 +335,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                                 min="1"
                                                 value={item.quantidade}
                                                 onChange={(e) => updateItem(item.id, 'quantidade', e.target.value)}
-                                                className="w-full bg-transparent border-none text-right text-white focus:ring-0 px-2"
+                                                className="w-full bg-transparent border-none text-right text-slate-900 focus:ring-0 px-2"
                                             />
                                         </td>
                                         <td className="p-2">
@@ -345,7 +345,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                                 step="0.01"
                                                 value={item.precoUnitario}
                                                 onChange={(e) => updateItem(item.id, 'precoUnitario', e.target.value)}
-                                                className="w-full bg-transparent border-none text-right text-white focus:ring-0 px-2"
+                                                className="w-full bg-transparent border-none text-right text-slate-900 focus:ring-0 px-2"
                                             />
                                         </td>
                                         <td className="p-2">
@@ -355,16 +355,16 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                                 max="100"
                                                 value={item.taxaImposto}
                                                 onChange={(e) => updateItem(item.id, 'taxaImposto', e.target.value)}
-                                                className="w-full bg-transparent border-none text-right text-slate-400 focus:ring-0 px-2"
+                                                className="w-full bg-transparent border-none text-right text-slate-600 focus:ring-0 px-2"
                                             />
                                         </td>
-                                        <td className="p-2 text-right font-medium text-white px-6">
+                                        <td className="p-2 text-right font-medium text-slate-900 px-6">
                                             {formatCurrency(item.total)}
                                         </td>
                                         <td className="p-2 text-center">
                                             <button
                                                 onClick={() => removeItem(item.id)}
-                                                className="p-1.5 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded"
+                                                className="p-1.5 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -373,7 +373,7 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                                 ))}
                                 {items.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="py-8 text-center text-slate-500 italic">
+                                        <td colSpan={6} className="py-8 text-center text-slate-500 italic bg-slate-50">
                                             Adicione itens à fatura para calcular o total.
                                         </td>
                                     </tr>
@@ -384,18 +384,18 @@ export default function NovaFatura({ initialData, onBack, onSave }: NovaFaturaPr
                 </div>
 
                 {/* Totals Section */}
-                <div className="flex justify-end pt-4 border-t border-slate-700/50">
+                <div className="flex justify-end pt-4 border-t border-slate-200">
                     <div className="w-72 space-y-3">
-                        <div className="flex justify-between text-slate-400">
+                        <div className="flex justify-between text-slate-600">
                             <span>Subtotal</span>
                             <span>{formatCurrency(subtotal)}</span>
                         </div>
-                        <div className="flex justify-between text-slate-400">
+                        <div className="flex justify-between text-slate-600">
                             <span>Impostos (IVA)</span>
                             <span>{formatCurrency(totalTax)}</span>
                         </div>
-                        <div className="flex justify-between pt-3 border-t border-slate-700/50">
-                            <span className="text-lg font-bold text-white">Total a Pagar</span>
+                        <div className="flex justify-between pt-3 border-t border-slate-200">
+                            <span className="text-lg font-bold text-slate-900">Total a Pagar</span>
                             <span className="text-lg font-bold text-blue-400">
                                 {formatCurrency(total)}
                             </span>

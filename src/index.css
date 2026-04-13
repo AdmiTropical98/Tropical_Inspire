@@ -1,14 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --sf-bg-main: #0f172a;
-  --sf-bg-surface: #111827;
-  --sf-bg-hover: #1e293b;
-  --sf-border-soft: #334155;
-  --sf-text-primary: #f8fafc;
-  --sf-text-secondary: #cbd5e1;
+  --sf-bg-main: #EEF2F7;
+  --sf-bg-surface: #FFFFFF;
+  --sf-bg-hover: #E8EEF6;
+  --sf-bg-sidebar: #FFFFFF;
+  --sf-bg-header: #FFFFFF;
+  --sf-border-soft: #E2E8F0;
+  --sf-text-primary: #0F172A;
+  --sf-text-secondary: #64748B;
+  --sf-shadow-card: 0 8px 18px -12px rgba(15, 23, 42, 0.22);
   --sf-state-available: #3b82f6;
   --sf-state-route: #22c55e;
   --sf-state-standby: #f59e0b;
@@ -31,10 +36,14 @@
   }
 
   body {
-    @apply antialiased selection:bg-blue-500/30;
+    @apply antialiased selection:bg-amber-500/20;
     background:
-      radial-gradient(circle at 18% 0%, #14213d 0%, var(--sf-bg-main) 50%);
+      radial-gradient(circle at 8% 12%, rgba(30, 64, 175, 0.07), transparent 34%),
+      radial-gradient(circle at 92% 18%, rgba(148, 163, 184, 0.12), transparent 28%),
+      linear-gradient(180deg, #F3F6FA 0%, var(--sf-bg-main) 70%);
     color: var(--sf-text-primary);
+    font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.4;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     height: 100dvh;
     overscroll-behavior-y: none;
@@ -59,6 +68,15 @@
 
 @layer components {
 
+  .surface-card {
+    @apply bg-white border border-slate-200 rounded-2xl;
+    box-shadow: var(--sf-shadow-card);
+  }
+
+  .surface-toolbar {
+    @apply bg-white border-b border-slate-200;
+  }
+
   /* Glassmorphism Utilities - Light Theme Optimized */
   .glass-panel {
     @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl rounded-2xl;
@@ -77,6 +95,54 @@
   }
 }
 
+.app-root .bg-white.border.border-slate-200 {
+  box-shadow: var(--sf-shadow-card);
+}
+
+/* Legacy dark-to-light compatibility layer for remaining pages. */
+.app-root [class*="bg-[#0f172a]"],
+.app-root [class*="bg-[#1e293b]"],
+.app-root [class*="bg-slate-950"],
+.app-root [class*="bg-slate-900"] {
+  background-color: #f8fafc !important;
+}
+
+.app-root [class*="bg-slate-800"] {
+  background-color: #f1f5f9 !important;
+}
+
+.app-root [class*="border-slate-900"],
+.app-root [class*="border-slate-800"],
+.app-root [class*="border-slate-700"] {
+  border-color: #cbd5e1 !important;
+}
+
+.app-root [class*="from-slate-9"] {
+  --tw-gradient-from: #f8fafc var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.app-root [class*="to-slate-8"],
+.app-root [class*="to-slate-9"] {
+  --tw-gradient-to: #e2e8f0 var(--tw-gradient-to-position) !important;
+}
+
+.app-root [class*="bg-slate-"][class*="text-white"],
+.app-root [class*="from-slate-"][class*="text-white"],
+.app-root [class*="bg-[#0f172a]"][class*="text-white"],
+.app-root [class*="bg-[#1e293b]"][class*="text-white"] {
+  color: #0f172a !important;
+}
+
+.app-root [class*="text-slate-200"],
+.app-root [class*="text-slate-300"] {
+  color: #475569 !important;
+}
+
+.app-root [class*="text-slate-400"] {
+  color: #64748b !important;
+}
+
 /* Hide Browser Default Password Icons (Edge/Chrome/Safari) */
 input::-ms-reveal,
 input::-ms-clear,
@@ -92,23 +158,23 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--sf-bg-main);
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(transparent, #3b82f6, #1d4ed8, transparent);
+  background: linear-gradient(transparent, #C9A34E, #a0793a, transparent);
   border-radius: 20px;
-  border: 2px solid var(--sf-bg-main);
+  border: 2px solid #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(transparent, #2563eb, #1d4ed8, transparent);
+  background: linear-gradient(transparent, #b8903d, #8a6830, transparent);
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3b82f6 var(--sf-bg-main);
+  scrollbar-color: #C9A34E #F1F5F9;
 }
 
 /* Custom Scrollbar Utility */
@@ -118,18 +184,18 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(241, 245, 249, 0.8);
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3b82f6, #6366f1);
+  background: linear-gradient(to bottom, #C9A34E, #a0793a);
   border-radius: 10px;
-  border: 2px solid #0f172a;
+  border: 2px solid #F1F5F9;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563eb, #4f46e5);
+  background: linear-gradient(to bottom, #b8903d, #8a6830);
 }
 
 /* Animations */

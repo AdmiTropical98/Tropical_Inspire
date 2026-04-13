@@ -109,7 +109,7 @@ function ContabilidadeContent() {
     };
 
 
-    if (isLoading) return <div className="p-12 text-center text-slate-400">Carregando dados financeiros...</div>;
+    if (isLoading) return <div className="p-12 text-center text-slate-500">Carregando dados financeiros...</div>;
 
     if (view === 'create' || view === 'edit') {
         return (
@@ -135,22 +135,22 @@ function ContabilidadeContent() {
                         </div>
                         {/* Charts Area */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2"><PieChart className="w-5 h-5 text-slate-400" /> Distribuição de Custos</h3>
+                            <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+                                <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2"><PieChart className="w-5 h-5 text-slate-500" /> Distribuição de Custos</h3>
                                 <div className="space-y-4">
                                     {summary.expenseBreakdown.map(item => (
                                         <div key={item.category}>
-                                            <div className="flex justify-between text-sm mb-1"><span className="text-slate-300">{item.category}</span><span className="text-slate-400 font-medium">{formatCurrency(item.value)}</span></div>
-                                            <div className="w-full bg-slate-700 rounded-full h-2"><div className={`h-2 rounded-full ${item.color}`} style={{ width: `${(item.value / (summary.totalExpenses || 1)) * 100}%` }}></div></div>
+                                            <div className="flex justify-between text-sm mb-1"><span className="text-slate-700">{item.category}</span><span className="text-slate-500 font-medium">{formatCurrency(item.value)}</span></div>
+                                            <div className="w-full bg-slate-100 rounded-full h-2"><div className={`h-2 rounded-full ${item.color}`} style={{ width: `${(item.value / (summary.totalExpenses || 1)) * 100}%` }}></div></div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-slate-400" /> Top Centros Custo</h3>
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+                                <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-slate-500" /> Top Centros Custo</h3>
                                 <div className="space-y-4">
                                     {summary.topCostCenters.map((cc, i) => (
-                                        <div key={cc.id} className="flex justify-between p-3 bg-slate-900/50 rounded-lg"><span className="text-slate-300">{i + 1}. {cc.nome}</span><span className="text-indigo-400">{formatCurrency(cc.total)}</span></div>
+                                        <div key={cc.id} className="flex justify-between p-3 bg-slate-50 rounded-lg border border-slate-100"><span className="text-slate-700">{i + 1}. {cc.nome}</span><span className="text-indigo-600">{formatCurrency(cc.total)}</span></div>
                                     ))}
                                 </div>
                             </div>
@@ -170,22 +170,22 @@ function ContabilidadeContent() {
 
 
     return (
-        <div className="min-h-screen bg-slate-900 text-slate-100 p-8 pt-24 space-y-8">
+        <div className="min-h-screen bg-[#F5F7FA] text-slate-900 p-6 md:p-8 space-y-8">
             <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tight mb-2">Gestão Financeira</h1>
-                    <p className="text-slate-400 text-lg">Visão 360º das finanças.</p>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Gestão Financeira</h1>
+                    <p className="text-slate-600 text-lg">Visão clara e operacional das finanças.</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <button
                         onClick={generateCostCenterReport}
-                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl font-medium border border-slate-700 transition-all shadow-lg hidden md:flex"
+                        className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2 rounded-xl font-medium border border-slate-200 transition-all shadow-sm hidden md:flex"
                     >
                         <Download className="w-4 h-4" />
                         Relatório
                     </button>
 
-                    <div className="flex bg-slate-800 p-1.5 rounded-xl border border-slate-700/50 overflow-x-auto">
+                    <div className="flex bg-white p-1.5 rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
                         {[
                             { id: 'dashboard', label: 'Visão Geral', icon: PieChart },
                             { id: 'receitas', label: 'Alugueres', icon: ArrowUpRight },
@@ -194,7 +194,7 @@ function ContabilidadeContent() {
                             { id: 'despesas', label: 'Despesas', icon: TrendingDown },
                             { id: 'fixos', label: 'Fixos', icon: RefreshCcw },
                         ].map(tab => (
-                            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+                            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
                                 <tab.icon className="w-4 h-4" /> {tab.label}
                             </button>
                         ))}
@@ -217,9 +217,9 @@ function KPICard({ title, value, icon, color, onClick }: any) {
         <button
             type="button"
             onClick={onClick}
-            className={`w-full text-left p-6 rounded-xl border ${color.split(' ')[2]} ${color.split(' ')[0]} backdrop-blur-sm relative overflow-hidden hover:opacity-90 transition-opacity`}
+            className={`w-full text-left p-6 rounded-xl border ${color.split(' ')[2]} ${color.split(' ')[0]} relative overflow-hidden hover:opacity-95 transition-opacity shadow-sm`}
         >
-            <div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg bg-white/10 ${color.split(' ')[1]}`}>{icon}</div><h3 className="text-sm font-semibold uppercase opacity-80">{title}</h3></div>
+            <div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg bg-white/80 ${color.split(' ')[1]}`}>{icon}</div><h3 className="text-sm font-semibold uppercase opacity-80">{title}</h3></div>
             <p className="text-3xl font-bold mt-2">{formatCurrency(value)}</p>
         </button>
     );

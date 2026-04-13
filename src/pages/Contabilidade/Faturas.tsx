@@ -56,7 +56,7 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
     return (
         <div className="space-y-6">
             {/* Header Actions */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-[#1e293b]/50 backdrop-blur-sm p-4 rounded-xl border border-slate-700/50">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div className="relative w-full md:w-96">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
@@ -64,11 +64,11 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
                         placeholder={t('accounting.invoices.search')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-900 border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                        className="w-full bg-white border border-slate-300 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900"
                     />
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm border border-slate-700">
+                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm border border-slate-200">
                         <Download className="w-4 h-4" />
                         {t('accounting.invoices.export')}
                     </button>
@@ -83,9 +83,9 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
             </div>
 
             {/* Invoices List */}
-            <div className="bg-[#1e293b]/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-slate-400 uppercase bg-slate-800/50">
+                    <thead className="text-xs text-slate-500 uppercase bg-slate-50">
                         <tr>
                             <th className="px-6 py-4">Fatura</th>
                             <th className="px-6 py-4">Cliente</th>
@@ -96,21 +96,21 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
                             <th className="px-6 py-4 text-right">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="divide-y divide-slate-200">
                         {invoices.map((invoice) => (
-                            <tr key={invoice.id} className="hover:bg-slate-800/30 transition-colors group">
-                                <td className="px-6 py-4 font-medium text-white flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-slate-500" />
+                            <tr key={invoice.id} className="hover:bg-slate-50 transition-colors group">
+                                <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-slate-400" />
                                     {invoice.numero}
                                 </td>
-                                <td className="px-6 py-4 text-slate-300">
+                                <td className="px-6 py-4 text-slate-700">
                                     {invoice.isExpense
                                         ? (invoice.cliente?.nome || 'Fornecedor')
                                         : (clientes.find(c => c.id === invoice.clienteId)?.nome || 'Cliente Desconhecido')}
                                 </td>
-                                <td className="px-6 py-4 text-slate-400">{invoice.data}</td>
-                                <td className="px-6 py-4 text-slate-400">{invoice.vencimento}</td>
-                                <td className="px-6 py-4 text-right font-medium text-white">
+                                <td className="px-6 py-4 text-slate-600">{invoice.data}</td>
+                                <td className="px-6 py-4 text-slate-600">{invoice.vencimento}</td>
+                                <td className="px-6 py-4 text-right font-medium text-slate-900">
                                     <span className={invoice.total < 0 ? 'text-red-400' : 'text-emerald-400'}>
                                         {formatCurrency(invoice.total)}
                                     </span>
@@ -125,21 +125,21 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
                                         <button
                                             onClick={() => onView(invoice)}
                                             title="Ver Detalhes"
-                                            className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
                                         >
                                             <Eye className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => onEdit(invoice)}
                                             title="Editar"
-                                            className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
                                         >
                                             <Pencil className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => onDownload(invoice)}
                                             title="Baixar PDF"
-                                            className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
                                         >
                                             <Download className="w-4 h-4" />
                                         </button>
@@ -147,7 +147,7 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
                                             onClick={() => handleSendInvoiceEmail(invoice)}
                                             disabled={sendingInvoiceId === invoice.id}
                                             title="Enviar Fatura"
-                                            className="px-2.5 py-2 hover:bg-cyan-500/10 rounded-lg text-slate-400 hover:text-cyan-300 transition-colors disabled:opacity-60 flex items-center gap-1"
+                                            className="px-2.5 py-2 hover:bg-cyan-50 rounded-lg text-slate-500 hover:text-cyan-700 transition-colors disabled:opacity-60 flex items-center gap-1"
                                         >
                                             <Mail className="w-4 h-4" />
                                             <span className="text-xs font-medium">Enviar</span>
@@ -166,7 +166,7 @@ export default function Faturas({ invoices, onCreateNew, onDelete, onDownload, o
                     </tbody>
                 </table>
                 {invoices.length === 0 && (
-                    <div className="p-12 text-center text-slate-400">
+                    <div className="p-12 text-center text-slate-500">
                         <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
                         <p>{t('accounting.invoices.empty')}</p>
                     </div>

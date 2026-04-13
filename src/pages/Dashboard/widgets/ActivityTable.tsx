@@ -32,22 +32,22 @@ export default function ActivityFeed({ items, title = "Timeline de Atividade" }:
     };
 
     return (
-        <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl h-full flex flex-col overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
+        <div className="bg-white border border-slate-200 rounded-3xl h-full flex flex-col overflow-hidden shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+                    <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
                         <Clock className="w-5 h-5" />
                     </div>
-                    <h3 className="font-bold text-white text-lg tracking-tight">{title}</h3>
+                    <h3 className="font-bold text-slate-900 text-lg tracking-tight">{title}</h3>
                 </div>
-                <button className="p-2 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all">
+                <button className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-700 transition-all">
                     <Filter className="w-4 h-4" />
                 </button>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 relative">
                 {/* Vertical Line */}
-                <div className="absolute left-[2.25rem] top-6 bottom-6 w-0.5 bg-slate-800/50 rounded-full" />
+                <div className="absolute left-[2.25rem] top-6 bottom-6 w-0.5 bg-slate-200 rounded-full" />
 
                 <div className="space-y-8">
                     {items.length === 0 ? (
@@ -62,7 +62,7 @@ export default function ActivityFeed({ items, title = "Timeline de Atividade" }:
                             return (
                                 <div key={item.id} className="relative pl-12 group">
                                     {/* Timeline Dot */}
-                                    <div className={`absolute left-0 top-1 w-10 h-10 rounded-2xl border-4 border-slate-950 flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-xl
+                                    <div className={`absolute left-0 top-1 w-10 h-10 rounded-2xl border-4 border-white flex items-center justify-center transition-all duration-300 group-hover:scale-110 shadow-sm
                                         ${String(item.status || '').toUpperCase() === 'COMPLETED'
                                             ? 'bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/20'
                                             : `bg-${color}-500/20 text-${color}-400 ring-2 ring-${color}-500/20`
@@ -73,16 +73,16 @@ export default function ActivityFeed({ items, title = "Timeline de Atividade" }:
 
                                     {/* Content Card */}
                                     <div className={`
-                                        bg-slate-800/20 hover:bg-slate-800/40 border border-white/5 hover:border-white/10 
+                                        bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 
                                         rounded-2xl p-4 transition-all duration-300 hover:translate-x-1
                                     `}>
                                         <div className="flex justify-between items-start mb-1">
-                                            <h4 className="font-bold text-slate-200 text-sm">{item.title}</h4>
-                                            <span className="text-[10px] font-bold text-slate-500 bg-slate-900/50 px-2 py-1 rounded-lg">
+                                            <h4 className="font-bold text-slate-900 text-sm">{item.title}</h4>
+                                            <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-200">
                                                 {item.date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-slate-400 leading-relaxed mb-3">{item.subtitle}</p>
+                                        <p className="text-sm text-slate-600 leading-relaxed mb-3">{item.subtitle}</p>
 
                                         <div className="flex items-center gap-2">
                                             {String(item.status || '').toUpperCase() === 'COMPLETED' ? (

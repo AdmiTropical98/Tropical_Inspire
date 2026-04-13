@@ -513,7 +513,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
         try {
             // --- HEADER ---
             try {
-                const logoImg = await loadImage('/logo.png');
+                const logoImg = await loadImage('/LOGO.png');
                 const logoWidth = 50;
                 const scaleFactor = logoWidth / logoImg.naturalWidth;
                 const logoHeight = logoImg.naturalHeight * scaleFactor;
@@ -812,7 +812,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
             // --- HEADER ---
             try {
-                const logoImg = await loadImage('/logo.png');
+                const logoImg = await loadImage('/LOGO.png');
                 const logoWidth = 50;
                 const scaleFactor = logoWidth / logoImg.naturalWidth;
                 const logoHeight = logoImg.naturalHeight * scaleFactor;
@@ -1104,7 +1104,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
         try {
             // --- HEADER ---
             try {
-                const logoImg = await loadImage('/logo.png');
+                const logoImg = await loadImage('/LOGO.png');
                 const logoWidth = 40;
                 const scaleFactor = logoWidth / logoImg.naturalWidth;
                 const logoHeight = logoImg.naturalHeight * scaleFactor;
