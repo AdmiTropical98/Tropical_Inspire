@@ -235,15 +235,30 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
       <div className="pointer-events-none absolute inset-0 opacity-30" style={{ background: "linear-gradient(20deg, rgba(255,255,255,0.2) 10%, rgba(255,255,255,0) 45%), linear-gradient(-22deg, rgba(255,255,255,0.18) 20%, rgba(255,255,255,0) 48%)" }} />
 
       {/* Logo Header */}
-      <div className="relative z-10 px-6 pt-8 pb-4 md:px-10">
-        <div className="inline-flex rounded-2xl bg-white/65 px-4 py-2 shadow-[0_8px_25px_rgba(15,35,80,0.18)] backdrop-blur-sm">
-          <img src="/LOGO.png" alt="Algartempo Frota" className="h-14 w-auto drop-shadow-[0_3px_8px_rgba(17,24,39,0.25)] md:h-16" />
+      <div className="relative z-10 px-4 pt-4 pb-2 md:px-10 md:pt-8 md:pb-4">
+        {/* Mobile: compact row with logo + welcome + logout */}
+        <div className="flex items-center justify-between md:block">
+          <div className="flex items-center gap-3">
+            <div className="inline-flex rounded-xl bg-white/65 px-2.5 py-1.5 shadow-[0_8px_25px_rgba(15,35,80,0.18)] backdrop-blur-sm md:rounded-2xl md:px-4 md:py-2">
+              <img src="/LOGO.png" alt="Algartempo Frota" className="h-8 w-auto drop-shadow-[0_3px_8px_rgba(17,24,39,0.25)] md:h-14" />
+            </div>
+            <div className="md:hidden">
+              <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-widest leading-none">Área Colaborador</p>
+              <p className="text-base font-black text-slate-900 leading-tight">Bem-vindo, {colaborador.nome}</p>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="md:hidden p-2 bg-white/70 text-slate-600 rounded-xl shadow-sm backdrop-blur-sm border border-white/60 active:scale-95 transition-transform"
+            title="Terminar Sessão"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 w-full max-w-2xl mx-auto px-6 pb-8 flex flex-col justify-center"
->
+      <main className="relative z-10 flex-1 w-full max-w-2xl mx-auto px-3 sm:px-6 pb-8 flex flex-col justify-center">
 
         {/* Feedback Banner */}
         {feedback && (
@@ -260,8 +275,8 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
         {/* Main Card Container */}
         <div className="bg-white/95 rounded-3xl shadow-2xl overflow-hidden border border-white/90 backdrop-blur-sm">
           
-          {/* Greeting Section */}
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-8 py-6 border-b border-slate-200 flex justify-between items-start">
+          {/* Greeting Section — hidden on mobile (shown in header instead) */}
+          <div className="hidden md:flex bg-gradient-to-r from-blue-50 to-blue-100 px-8 py-6 border-b border-slate-200 justify-between items-start">
             <div>
               <p className="text-sm text-slate-600 uppercase tracking-widest font-bold">Painel do Colaborador</p>
               <h1 className="text-3xl font-black text-slate-900 mt-1">Bem-vindo, {colaborador.nome}</h1>
@@ -275,53 +290,55 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="grid grid-cols-3 gap-1 p-3 border-b border-slate-200 bg-slate-50/50">
-            <button
-              type="button"
-              onClick={() => setActiveTab('resumo')}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all ${
-                activeTab === 'resumo' 
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200' 
-                  : 'text-slate-600 hover:bg-white/50'
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Resumo
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('qr')}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all ${
-                activeTab === 'qr' 
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200' 
-                  : 'text-slate-600 hover:bg-white/50'
-              }`}
-            >
-              <QrCode className="w-4 h-4" />
-              QR Transporte
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('linha')}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all ${
-                activeTab === 'linha' 
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200' 
-                  : 'text-slate-600 hover:bg-white/50'
-              }`}
-            >
-              <Bus className="w-4 h-4" />
-              Linha
-            </button>
+          {/* Tabs — segmented control compact */}
+          <div className="p-2 border-b border-slate-200 bg-slate-50/50">
+            <div className="flex rounded-xl bg-slate-200/60 p-0.5 h-11">
+              <button
+                type="button"
+                onClick={() => setActiveTab('resumo')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-bold transition-all ${
+                  activeTab === 'resumo'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 active:bg-white/40'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Resumo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('qr')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-bold transition-all ${
+                  activeTab === 'qr'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 active:bg-white/40'
+                }`}
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>QR</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('linha')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-bold transition-all ${
+                  activeTab === 'linha'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 active:bg-white/40'
+                }`}
+              >
+                <Bus className="w-3.5 h-3.5" />
+                <span>Linha</span>
+              </button>
+            </div>
           </div>
 
           {/* Content Area */}
-          <div className="p-8">
+          <div className="p-4 md:p-8">
 
         {activeTab === 'resumo' ? (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Status Card */}
-            <div className="rounded-2xl border border-slate-200 p-6 bg-gradient-to-br from-blue-50 to-blue-100/50">
+            <div className="rounded-[14px] border border-slate-200 p-4 bg-gradient-to-br from-blue-50 to-blue-100/50">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-blue-500/15 flex items-center justify-center">
                   <MapPin className="w-5 h-5 text-blue-600" />
@@ -406,8 +423,8 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
             </button>
 
             {/* Recent History */}
-            <div className="bg-slate-50/50 rounded-xl border border-slate-200 p-5">
-              <div className="flex items-center justify-between mb-4">
+            <div className="bg-slate-50/50 rounded-[14px] border border-slate-200 p-4">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-widest flex items-center gap-2">
                   <History className="w-4 h-4" />
                   Histórico Recente
@@ -421,7 +438,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {isFetchingHistory ? (
                   <div className="text-center text-slate-500 py-4 text-sm animate-pulse">
                     A carregar...
@@ -435,23 +452,20 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
                     const date = new Date(p.data_hora);
                     const isEntrada = p.tipo === 'entrada';
                     return (
-                      <div key={p.id} className="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      <div key={p.id} className="flex justify-between items-center px-3 h-14 bg-white rounded-xl border border-slate-200">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
                             isEntrada
                               ? 'bg-emerald-100 text-emerald-700'
                               : 'bg-red-100 text-red-700'
                           }`}>
-                            {isEntrada ? <MapPin className="w-4 h-4" /> : <Hand className="w-4 h-4" />}
+                            {isEntrada ? <MapPin className="w-3.5 h-3.5" /> : <Hand className="w-3.5 h-3.5" />}
                           </div>
-                          <div>
-                            <p className="text-sm font-bold text-slate-900">
-                              {isEntrada ? 'Entrada' : 'Saída'}
-                            </p>
-                            <p className="text-xs text-slate-500">{date.toLocaleDateString('pt-PT')}</p>
-                          </div>
+                          <p className="text-sm font-bold text-slate-900">
+                            {isEntrada ? 'Entrada' : 'Saída'}
+                          </p>
                         </div>
-                        <p className="text-sm font-bold text-slate-600">
+                        <p className="text-sm font-bold tabular-nums text-slate-600">
                           {date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -461,14 +475,6 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
               </div>
             </div>
           </div>
-        ) : activeTab === 'qr' ? (
-          <LinhaTransportes
-            colaboradorParagem={colaborador.paragem}
-            colaboradorNome={colaborador.nome}
-            colaboradorId={colaborador.id}
-            escala={proximaEscala}
-            compact
-          />
         ) : activeTab === 'qr' ? (
           <div className="space-y-6 text-center">
             <div>
@@ -558,14 +564,14 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
             </div>
           </div>
         ) : activeTab === 'linha' ? (
-          <div className="space-y-6">
-            <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white rounded-2xl p-6 border border-blue-700">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center">
-                  <Bus className="w-5 h-5" />
+          <div className="space-y-3 md:space-y-6">
+            <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white rounded-[14px] p-4 border border-blue-700">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center shrink-0">
+                  <Bus className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold">Linha do Transporte</p>
+                  <p className="text-sm font-bold leading-tight">Linha do Transporte</p>
                   <p className="text-xs text-blue-200">Acompanhe o motorista até à sua paragem.</p>
                 </div>
               </div>
@@ -589,8 +595,11 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="text-center py-4 text-xs text-slate-600">
+        {/* Footer — safe area for gesture navigation */}
+        <div
+          className="text-center pt-4 text-xs text-slate-600"
+          style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
+        >
           <p>© 2026. ALGARTEMPO FROTA</p>
           <p>Sistema interno de gestão de transportes</p>
         </div>

@@ -579,48 +579,49 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
       <div className={compact ? 'space-y-5' : 'max-w-[1600px] mx-auto space-y-8'}>
         
         {compact ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-blue-50 p-3 text-blue-600 border border-blue-100">
-                  <Navigation className="w-5 h-5" />
+                <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600 border border-blue-100">
+                  <Navigation className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">Linha do Transporte</h2>
-                  <p className="text-xs text-slate-600">Acompanhe o motorista até à sua paragem.</p>
+                  <h2 className="text-base font-black text-slate-900">Linha do Transporte</h2>
+                  <p className="text-xs text-slate-500">Acompanhe o motorista até à sua paragem.</p>
                 </div>
               </div>
-              <button onClick={fetchVehicles} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:border-blue-400">
-                <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
+              <button onClick={fetchVehicles} disabled={loading} className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:border-blue-400">
+                <RefreshCcw size={12} className={loading ? 'animate-spin' : ''} />
                 Atualizar
               </button>
             </div>
 
             {colaboradorParagem ? (
-              <div className="mt-4 grid gap-3 md:grid-cols-[1.2fr_0.8fr]">
-                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <div className="mt-3 grid gap-3 md:grid-cols-[1.2fr_0.8fr]">
+                <div className="rounded-[14px] border border-blue-100 bg-blue-50 p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-blue-700">Sua paragem</p>
-                  <h3 className="mt-2 text-2xl font-black text-slate-900">{colaboradorParagem}</h3>
-                  <p className="mt-2 text-sm text-slate-700">{collaboratorStatus?.detail || 'A sincronizar o trajeto do motorista...'}</p>
+                  <h3 className="mt-1.5 text-xl font-black text-slate-900">{colaboradorParagem}</h3>
+                  <p className="mt-1.5 text-xs text-slate-700">{collaboratorStatus?.detail || 'A sincronizar o trajeto do motorista...'}</p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                {/* Stat cards — horizontal scroll on mobile, grid on sm+ */}
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 md:grid-cols-1 sm:gap-3 sm:pb-0">
+                  <div className="rounded-[14px] border border-slate-200 bg-white p-3 min-w-[120px] shrink-0 sm:min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">ETA</p>
-                    <p className="mt-2 text-xl font-black text-slate-900">{collaboratorStatus?.eta || 'Em cálculo'}</p>
+                    <p className="mt-1.5 text-lg font-black text-slate-900">{collaboratorStatus?.eta || 'Em cálculo'}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="rounded-[14px] border border-slate-200 bg-white p-3 min-w-[140px] shrink-0 sm:min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Próxima paragem</p>
-                    <p className="mt-2 text-sm font-bold text-slate-900">{collaboratorStatus?.nextStop || 'Por definir'}</p>
+                    <p className="mt-1.5 text-xs font-bold text-slate-900">{collaboratorStatus?.nextStop || 'Por definir'}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="rounded-[14px] border border-slate-200 bg-white p-3 min-w-[140px] shrink-0 sm:min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Motorista / Viatura</p>
-                    <p className="mt-2 text-sm font-bold text-slate-900">{collaboratorStatus?.motorista || 'Por atribuir'}</p>
-                    <p className="text-xs text-slate-500 mt-1">{collaboratorStatus?.viatura || 'Sem viatura'}</p>
+                    <p className="mt-1.5 text-xs font-bold text-slate-900">{collaboratorStatus?.motorista || 'Por atribuir'}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{collaboratorStatus?.viatura || 'Sem viatura'}</p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <div className="mt-3 rounded-[14px] border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
                 Ainda não tem uma paragem registada. Defina a sua paragem para acompanhar o motorista em tempo real.
               </div>
             )}
@@ -698,7 +699,10 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
               </div>
             </div>
 
-            <MetroLine stops={stops} vehicles={vehicleMarkers} />
+            {/* Timeline — scrollable on mobile to show upcoming stops */}
+            <div className={compact ? 'overflow-y-auto max-h-72 overscroll-contain' : ''}>
+              <MetroLine stops={stops} vehicles={vehicleMarkers} />
+            </div>
 
             {!compact && (
               <>
