@@ -222,7 +222,7 @@ function App() {
 
   if (isColaboradorArea) {
     return (
-      <div className="app-root min-h-screen bg-[#F3F6FA] text-slate-900 font-sans selection:bg-amber-500/20">
+      <div className="app-root min-h-screen bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
             <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
@@ -243,7 +243,7 @@ function App() {
   }
 
   return (
-    <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-[#F5F7FA] text-slate-900 font-sans selection:bg-amber-500/20">
+    <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20 px-2 lg:px-0">
       {/* Mobile Top Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-24 sidebar-dark-bg border-b border-white/5 flex items-center justify-between px-6 z-40">
         <div className="sidebar-texture" />
@@ -426,8 +426,8 @@ function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 min-w-0 h-full overflow-hidden flex flex-col transition-all duration-300 pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-          <div className="flex-1 min-h-0 w-full max-w-full min-w-0 overflow-y-auto overflow-x-auto custom-scrollbar bg-[#F5F7FA]">
+      <main className={`flex-1 min-w-0 h-full overflow-hidden flex flex-col transition-all duration-300 pt-16 lg:pt-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'} app-content-bg`}>
+          <div className="flex-1 min-h-0 w-full max-w-full min-w-0 overflow-y-auto overflow-x-auto custom-scrollbar bg-transparent relative z-10">
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />

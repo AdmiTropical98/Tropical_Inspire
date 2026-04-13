@@ -5,12 +5,12 @@
 @tailwind utilities;
 
 :root {
-  --sf-bg-main: #EEF2F7;
-  --sf-bg-surface: #FFFFFF;
-  --sf-bg-hover: #E8EEF6;
+  --sf-bg-main: transparent;
+  --sf-bg-surface: rgba(255, 255, 255, 0.72);
+  --sf-bg-hover: rgba(232, 238, 246, 0.8);
   --sf-bg-sidebar: #FFFFFF;
-  --sf-bg-header: #FFFFFF;
-  --sf-border-soft: #E2E8F0;
+  --sf-bg-header: rgba(255, 255, 255, 0.82);
+  --sf-border-soft: rgba(226, 232, 240, 0.6);
   --sf-text-primary: #0F172A;
   --sf-text-secondary: #64748B;
   --sf-shadow-card: 0 8px 18px -12px rgba(15, 23, 42, 0.22);
@@ -38,9 +38,8 @@
   body {
     @apply antialiased selection:bg-amber-500/20;
     background:
-      radial-gradient(circle at 8% 12%, rgba(30, 64, 175, 0.07), transparent 34%),
-      radial-gradient(circle at 92% 18%, rgba(148, 163, 184, 0.12), transparent 28%),
-      linear-gradient(180deg, #F3F6FA 0%, var(--sf-bg-main) 70%);
+      radial-gradient(circle at 8% 12%, rgba(30, 64, 175, 0.04), transparent 34%),
+      radial-gradient(circle at 92% 18%, rgba(148, 163, 184, 0.08), transparent 28%);
     color: var(--sf-text-primary);
     font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.4;
@@ -69,12 +68,12 @@
 @layer components {
 
   .surface-card {
-    @apply bg-white border border-slate-200 rounded-2xl;
+    @apply bg-white/70 backdrop-blur-md border border-slate-200/50 rounded-2xl;
     box-shadow: var(--sf-shadow-card);
   }
 
   .surface-toolbar {
-    @apply bg-white border-b border-slate-200;
+    @apply bg-white/80 backdrop-blur-lg border-b border-slate-200/50;
   }
 
   /* Glassmorphism Utilities - Light Theme Optimized */
@@ -95,20 +94,24 @@
   }
 }
 
-.app-root .bg-white.border.border-slate-200 {
-  box-shadow: var(--sf-shadow-card);
+.app-root .bg-white,
+.app-root .bg-slate-50,
+.app-root .surface-card,
+.app-root .surface-toolbar {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 /* Legacy dark-to-light compatibility layer for remaining pages. */
 .app-root [class*="bg-[#0f172a]"],
 .app-root [class*="bg-[#1e293b]"],
 .app-root [class*="bg-slate-950"],
-.app-root [class*="bg-slate-900"] {
-  background-color: #f8fafc !important;
-}
-
+.app-root [class*="bg-slate-900"],
 .app-root [class*="bg-slate-800"] {
-  background-color: #f1f5f9 !important;
+  background-color: rgba(248, 250, 252, 0.65) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
 }
 
 .app-root [class*="border-slate-900"],
@@ -567,7 +570,7 @@ input::-webkit-credentials-auto-fill-button {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(241, 245, 249, 0.88); /* Subtle white-blue overlay for readability */
+  background: rgba(241, 245, 249, 0.75); /* Reduced opacity for better map visibility */
   z-index: 0;
 }
 
