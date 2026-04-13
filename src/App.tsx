@@ -245,13 +245,13 @@ function App() {
   return (
     <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-[#F5F7FA] text-slate-900 font-sans selection:bg-amber-500/20">
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-24 sidebar-dark-bg border-b border-white/5 flex items-center justify-between px-6 z-40">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-32 sidebar-dark-bg border-b border-white/5 flex items-center justify-between px-6 z-40">
         <div className="sidebar-texture" />
         <div className="flex items-center gap-3 relative z-10">
           <img
             src={`${SIDEBAR_LOGO}?v=1`}
             alt="Algartempo Frota"
-            className="h-16 w-auto object-contain"
+            className="h-24 w-auto object-contain"
           />
         </div>
         <button
@@ -263,26 +263,35 @@ function App() {
       </div>
 
       {/* Sidebar - Desktop */}
-      <aside className={`fixed top-0 left-0 bottom-0 z-50 sidebar-dark-bg transition-all duration-300 flex flex-col ${isSidebarCollapsed ? 'w-20' : 'w-72'} hidden lg:flex shadow-2xl shadow-black/60`}>
+      <aside className={`fixed top-0 left-0 bottom-0 z-50 sidebar-dark-bg transition-all duration-300 flex flex-col ${isSidebarCollapsed ? 'w-20' : 'w-80'} hidden lg:flex shadow-2xl shadow-black/60`}>
         <div className="sidebar-sheen" />
         <div className="sidebar-texture" />
         
-        <div className="px-5 py-8 flex items-start justify-between border-b border-white/5 relative z-10">
-          {!isSidebarCollapsed && (
-            <div className="flex-1 min-w-0 pr-3">
+        <div className="px-5 py-6 flex flex-col items-center gap-4 border-b border-white/5 relative z-10">
+          {!isSidebarCollapsed ? (
+            <div className="w-full flex flex-col items-center gap-4">
+              <div className="w-full flex justify-end">
+                <button
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+              </div>
               <img
                 src={`${SIDEBAR_LOGO}?v=1`}
                 alt="Algartempo Frota"
-                className="w-full max-w-[260px] h-auto object-contain"
+                className="w-full h-auto object-contain"
               />
             </div>
+          ) : (
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           )}
-          <button
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all"
-          >
-            {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-8 sidebar-scrollbar relative z-10">
@@ -495,7 +504,7 @@ function App() {
                   <img
                     src={`${SIDEBAR_LOGO}?v=1`}
                     alt="Algartempo Frota"
-                    className="h-20 w-auto object-contain"
+                    className="h-32 w-auto object-contain"
                   />
                 </div>
                 <button
