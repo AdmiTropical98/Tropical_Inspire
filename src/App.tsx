@@ -251,7 +251,7 @@ function App() {
           <img
             src={`${SIDEBAR_LOGO}?v=1`}
             alt="Algartempo Frota"
-            className="h-20 w-auto object-contain"
+            className="h-28 w-auto object-contain scale-125 origin-center"
           />
         </div>
         <button
@@ -280,8 +280,8 @@ function App() {
                 <img
                   src={`${SIDEBAR_LOGO}?v=1`}
                   alt="Algartempo Frota"
-                  className="w-full h-auto object-contain"
-                  style={{ maxHeight: '160px' }}
+                  className="w-full h-auto object-contain scale-150 origin-center"
+                  style={{ maxHeight: '200px' }}
                 />
               </div>
             </>
@@ -505,7 +505,7 @@ function App() {
                   <img
                     src={`${SIDEBAR_LOGO}?v=1`}
                     alt="Algartempo Frota"
-                    className="h-40 w-auto object-contain"
+                    className="h-48 w-auto object-contain scale-150 origin-center"
                   />
                 </div>
                 <button
