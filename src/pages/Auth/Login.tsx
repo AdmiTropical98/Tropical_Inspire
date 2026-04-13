@@ -169,8 +169,8 @@ export default function Login() {
 
 
     return (
-        <div className="relative min-h-[100dvh] overflow-hidden bg-[#f7fafd] login-scrollbar">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(147,197,253,0.24),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(191,219,254,0.34),_transparent_30%),linear-gradient(135deg,_#edf4ff_0%,_#fafcff_55%,_#edf4ff_100%)]" />
+        <div className="relative min-h-[100dvh] overflow-hidden bg-[#f7fafd] login-scrollbar app-content-bg">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(147,197,253,0.15),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(191,219,254,0.2),_transparent_30%),linear-gradient(135deg,_rgba(237,244,255,0.4)_0%,_rgba(250,252,255,0.6)_55%,_rgba(237,244,255,0.4)_100%)] z-0" />
             <div className="absolute inset-0 pointer-events-none opacity-28" style={{ backgroundImage: 'url(/grid-pattern.svg)', backgroundRepeat: 'no-repeat', backgroundPosition: 'center 6%', backgroundSize: '40rem auto' }} />
             <div className="absolute left-[-8%] top-[18%] h-px w-[52%] rotate-[-16deg] bg-gradient-to-r from-transparent via-blue-200/80 to-transparent opacity-70" />
             <div className="absolute left-[2%] top-[38%] h-px w-[46%] rotate-[8deg] bg-gradient-to-r from-transparent via-blue-100/90 to-transparent opacity-80" />

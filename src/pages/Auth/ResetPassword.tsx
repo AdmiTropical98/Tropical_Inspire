@@ -69,10 +69,10 @@ export default function ResetPassword() {
     }
 
     return (
-        <div className="h-[100dvh] bg-[#F5F7FA] flex flex-col items-center px-4 pt-0 pb-4 relative login-scrollbar overflow-y-auto">
-            <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-100/50 blur-[120px] rounded-full"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-100/50 blur-[120px] rounded-full"></div>
+        <div className="h-[100dvh] bg-[#F5F7FA] flex flex-col items-center px-4 pt-0 pb-4 relative login-scrollbar overflow-y-auto app-content-bg">
+            <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-100/30 blur-[120px] rounded-full"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-100/30 blur-[120px] rounded-full"></div>
             </div>
 
             <div className="w-full max-w-md relative z-10 -mt-8">
