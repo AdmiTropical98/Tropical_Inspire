@@ -191,6 +191,7 @@ export interface Motorista {
     status?: 'disponivel' | 'ocupado' | 'indisponivel' | 'ferias';
     cartrackKey?: string;
     cartrackId?: string;
+    viaturaId?: string;
     currentVehicle?: string;
     tipoUtilizador?: 'motorista' | 'supervisor' | 'oficina';
     estadoOperacional?: 'disponivel' | 'em_servico' | 'a_abastecer' | 'em_oficina' | 'indisponivel';

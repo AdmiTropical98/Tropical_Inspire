@@ -203,6 +203,14 @@ const fetchWithDeduplication = <T>(key: string, fetcher: () => Promise<T>): Prom
 // ==============================
 
 export const CartrackService = {
+    invalidateCache: (keys?: Array<'vehicles' | 'drivers' | 'geofences'>) => {
+        const targetKeys = keys && keys.length > 0 ? keys : ['vehicles', 'drivers', 'geofences'];
+        targetKeys.forEach(key => {
+            cacheStore.delete(key);
+            inFlightRequests.delete(key);
+        });
+    },
+
     getVehicles: async (): Promise<CartrackVehicle[]> => {
         const cacheKey = 'vehicles';
         const cached = getCache<CartrackVehicle[]>(cacheKey);

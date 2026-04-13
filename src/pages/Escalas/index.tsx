@@ -36,6 +36,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { supabase } from '../../lib/supabase';
 import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, generateAutoDispatchTrips, type GroupedTrip } from './EscalaAutomation';
 import { emailService } from '../../services/emailService';
 import { cleanTagId } from '../../services/cartrack';
@@ -55,6 +56,15 @@ interface NewServiceState {
     centroCustoId?: string;
     colaboradorId?: string;
     validationPoints: string[];
+}
+
+interface MotoristaViaturaAssoc {
+    id: string;
+    motorista_id: string;
+    viatura_id: string;
+    inicio: string;
+    fim: string | null;
+    origem: string;
 }
 
 // Sortable Driver Card Component
@@ -283,6 +293,10 @@ export default function Escalas() {
         const driver = motoristas.find(m => m.id === driverId);
         if (!driver) return null;
 
+        if (driver.viaturaId && viaturaById.has(driver.viaturaId)) {
+            return viaturaById.get(driver.viaturaId) || null;
+        }
+
         const currentPlate = normalizePlate(driver.currentVehicle);
         if (currentPlate && viaturaByPlate.has(currentPlate)) {
             return viaturaByPlate.get(currentPlate) || null;
@@ -335,6 +349,206 @@ export default function Escalas() {
         local: '',
         obs: ''
     });
+    const [activeAssociations, setActiveAssociations] = useState<MotoristaViaturaAssoc[]>([]);
+    const [associationHistory, setAssociationHistory] = useState<MotoristaViaturaAssoc[]>([]);
+    const [selectedBindingDriverId, setSelectedBindingDriverId] = useState<string>('');
+    const [selectedBindingVehicleId, setSelectedBindingVehicleId] = useState<string>('');
+    const [bindingStart, setBindingStart] = useState<string>('08:00');
+    const [bindingEnd, setBindingEnd] = useState<string>('16:00');
+    const [selectedOperationalLine, setSelectedOperationalLine] = useState<string>('Linha Almancil');
+    const [isSavingBinding, setIsSavingBinding] = useState(false);
+
+    const operationalLines = [
+        'Linha Almancil',
+        'Linha Quinta do Lago',
+        'Linha Hotel Conrad',
+        'Linha Portimão'
+    ];
+
+    const parseAssociationMetadata = (origem?: string | null) => {
+        const raw = String(origem || '');
+        const chunks = raw.split('|').map(x => x.trim());
+        const source = chunks[0] || 'manual';
+        const lineChunk = chunks.find(c => c.startsWith('linha:'));
+        const shiftChunk = chunks.find(c => c.startsWith('turno:'));
+        return {
+            source,
+            line: lineChunk ? lineChunk.replace('linha:', '').trim() : null,
+            shift: shiftChunk ? shiftChunk.replace('turno:', '').trim() : null
+        };
+    };
+
+    const loadAssociations = async () => {
+        const { data: activeData, error: activeError } = await supabase
+            .from('motorista_viatura_assoc')
+            .select('*')
+            .is('fim', null)
+            .order('inicio', { ascending: false });
+
+        if (activeError) {
+            console.warn('Falha ao carregar associações ativas:', activeError);
+            return;
+        }
+
+        setActiveAssociations((activeData || []) as MotoristaViaturaAssoc[]);
+
+        const { data: historyData, error: historyError } = await supabase
+            .from('motorista_viatura_assoc')
+            .select('*')
+            .order('inicio', { ascending: false })
+            .limit(80);
+
+        if (historyError) {
+            console.warn('Falha ao carregar histórico de associações:', historyError);
+            return;
+        }
+
+        setAssociationHistory((historyData || []) as MotoristaViaturaAssoc[]);
+    };
+
+    useEffect(() => {
+        void loadAssociations();
+    }, []);
+
+    const activeAssocByDriver = useMemo(() => {
+        const map = new Map<string, MotoristaViaturaAssoc>();
+        activeAssociations.forEach(a => {
+            if (!map.has(a.motorista_id)) map.set(a.motorista_id, a);
+        });
+        return map;
+    }, [activeAssociations]);
+
+    const activeAssocByVehicle = useMemo(() => {
+        const map = new Map<string, MotoristaViaturaAssoc>();
+        activeAssociations.forEach(a => {
+            if (!map.has(a.viatura_id)) map.set(a.viatura_id, a);
+        });
+        return map;
+    }, [activeAssociations]);
+
+    const availableVehicles = useMemo(() => {
+        return viaturas.filter(v => !activeAssocByVehicle.has(v.id));
+    }, [viaturas, activeAssocByVehicle]);
+
+    const hasLiveVehicleSignal = (driverId: string) => {
+        const driver = motoristas.find(m => m.id === driverId);
+        if (!driver) return false;
+        return cartrackVehicles.some(v =>
+            (driver.cartrackKey && v.tagId && cleanTagId(driver.cartrackKey) === cleanTagId(v.tagId)) ||
+            (driver.cartrackId && v.driverId && String(driver.cartrackId) === String(v.driverId)) ||
+            (driver.nome && v.driverName && normalizeDriverName(driver.nome) === normalizeDriverName(v.driverName))
+        );
+    };
+
+    const getDriverOperationalStatus = (driverId: string): 'em_rota' | 'standby' | 'offline' | 'sem_viatura' | 'disponivel' => {
+        const driver = motoristas.find(m => m.id === driverId);
+        if (!driver) return 'offline';
+
+        const vehicle = resolveDetectedVehicleForDriver(driverId);
+        if (!vehicle) return 'sem_viatura';
+
+        const hasActiveService = assigned.some(s => s.motoristaId === driverId && !s.concluido);
+        if (hasActiveService) return 'em_rota';
+
+        const liveSignal = hasLiveVehicleSignal(driverId);
+        if (!liveSignal && (driver.cartrackId || driver.cartrackKey)) return 'offline';
+
+        if (liveSignal) return 'standby';
+        return 'disponivel';
+    };
+
+    const saveManualBinding = async () => {
+        if (!selectedBindingDriverId || !selectedBindingVehicleId) {
+            alert('Selecione motorista e viatura para fixar o turno.');
+            return;
+        }
+
+        setIsSavingBinding(true);
+        try {
+            const metadata = `manual|linha:${selectedOperationalLine}|turno:${bindingStart}-${bindingEnd}`;
+            const nowIso = new Date().toISOString();
+            const activeSameDriver = activeAssocByDriver.get(selectedBindingDriverId);
+            const activeSameVehicle = activeAssocByVehicle.get(selectedBindingVehicleId);
+            const idsToClose = [activeSameDriver?.id, activeSameVehicle?.id].filter(Boolean) as string[];
+
+            if (idsToClose.length > 0) {
+                const { error: closeError } = await supabase
+                    .from('motorista_viatura_assoc')
+                    .update({ fim: nowIso })
+                    .in('id', idsToClose);
+
+                if (closeError) throw closeError;
+            }
+
+            const { error: insertError } = await supabase
+                .from('motorista_viatura_assoc')
+                .insert({
+                    motorista_id: selectedBindingDriverId,
+                    viatura_id: selectedBindingVehicleId,
+                    inicio: nowIso,
+                    origem: metadata
+                });
+
+            if (insertError) throw insertError;
+
+            const vehicle = viaturaById.get(selectedBindingVehicleId);
+            const { error: updateDriverError } = await supabase
+                .from('motoristas')
+                .update({
+                    viatura_id: selectedBindingVehicleId,
+                    current_vehicle: vehicle?.matricula || null,
+                    status: 'ocupado',
+                    estado_operacional: 'em_servico'
+                })
+                .eq('id', selectedBindingDriverId);
+
+            if (updateDriverError) throw updateDriverError;
+
+            await loadAssociations();
+            await refreshData();
+            alert('Viatura fixada ao motorista com sucesso para o turno ativo.');
+        } catch (error: any) {
+            console.error('Erro ao fixar viatura por turno:', error);
+            alert(`Falha ao fixar viatura: ${error?.message || 'erro desconhecido'}`);
+        } finally {
+            setIsSavingBinding(false);
+        }
+    };
+
+    const clearDriverBinding = async (driverId: string) => {
+        const assoc = activeAssocByDriver.get(driverId);
+        if (!assoc) return;
+
+        if (!confirm('Remover fixação ativa deste motorista?')) return;
+
+        const nowIso = new Date().toISOString();
+        const { error: closeError } = await supabase
+            .from('motorista_viatura_assoc')
+            .update({ fim: nowIso })
+            .eq('id', assoc.id);
+
+        if (closeError) {
+            alert(`Falha ao remover associação: ${closeError.message}`);
+            return;
+        }
+
+        const { error: updateDriverError } = await supabase
+            .from('motoristas')
+            .update({ viatura_id: null, current_vehicle: null, status: 'disponivel', estado_operacional: 'disponivel' })
+            .eq('id', driverId);
+
+        if (updateDriverError) {
+            alert(`Associação removida, mas falhou atualização do motorista: ${updateDriverError.message}`);
+        }
+
+        await loadAssociations();
+        await refreshData();
+    };
+
+    const selectedDriverHistory = useMemo(() => {
+        if (!selectedBindingDriverId) return [];
+        return associationHistory.filter(a => a.motorista_id === selectedBindingDriverId).slice(0, 8);
+    }, [associationHistory, selectedBindingDriverId]);
 
     const isUrgentService = (service: Partial<Servico>) => {
         if (service.isUrgent || service.status === 'URGENTE') return true;

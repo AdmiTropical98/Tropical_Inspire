@@ -182,6 +182,15 @@ const isMissingDriverVehicleSessionsTableError = (error: any) => {
     );
 };
 
+const isMissingMotoristaViaturaAssocTableError = (error: any) => {
+    const message = String(error?.message || error?.details || '').toLowerCase();
+    return message.includes('motorista_viatura_assoc') && (
+        message.includes('does not exist') ||
+        message.includes('schema cache') ||
+        message.includes('relation')
+    );
+};
+
 const isMissingTipoUtilizadorColumnError = (error: any) => {
     const message = String(error?.message || error?.details || '').toLowerCase();
     return message.includes('tipo_utilizador') && (
@@ -442,6 +451,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     const supportsServiceAutoDispatchColumnsRef = useRef(true);
     const supportsServiceEventsTableRef = useRef(true);
     const supportsDriverVehicleSessionsTableRef = useRef(true);
+    const supportsMotoristaViaturaAssocTableRef = useRef(true);
     const autoGeofenceSyncRunningRef = useRef(false);
     const prevVehiclePositionsRef = useRef<Record<string, { latitude: number; longitude: number; timestamp: string }>>({});
     const lowSpeedStartByServiceRef = useRef<Record<string, number>>({});
@@ -604,7 +614,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             for (const assignment of assignments) {
                 const normalizedDriverId = String(assignment.driverId);
                 const normalizedVehicleId = String(assignment.vehicleId);
-                const isMoving = assignment.moving;
 
                 const samePairActive = activeSessions.find(session =>
                     session.active &&
@@ -612,7 +621,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     session.vehicleId === normalizedVehicleId
                 );
 
-                if (samePairActive && isMoving) continue;
+                if (samePairActive) continue;
 
                 const sessionsToClose = activeSessions.filter(session =>
                     session.active && (
@@ -640,8 +649,6 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         session.endTime = assignment.timestamp || nowIso;
                     });
                 }
-
-                if (!isMoving) continue;
 
                 const { data: inserted, error: insertError } = await supabase
                     .from('driver_vehicle_sessions')
@@ -676,6 +683,88 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             setDriverVehicleSessions(activeSessions.filter(session => session.active));
         } catch (error) {
             console.warn('Erro no sync automático de sessões motorista/viatura:', error);
+        }
+    };
+
+    const syncMotoristaViaturaAssociations = async (assignments: Array<{ driverId: string; viaturaId: string; timestamp: string; source: string }>) => {
+        if (!supportsMotoristaViaturaAssocTableRef.current) return;
+        if (assignments.length === 0) return;
+
+        try {
+            const { data: activeRows, error: fetchError } = await supabase
+                .from('motorista_viatura_assoc')
+                .select('*')
+                .is('fim', null)
+                .order('inicio', { ascending: false });
+
+            if (fetchError) {
+                if (isMissingMotoristaViaturaAssocTableError(fetchError)) {
+                    supportsMotoristaViaturaAssocTableRef.current = false;
+                    return;
+                }
+                console.warn('Falha ao carregar associacoes ativas motorista/viatura:', fetchError);
+                return;
+            }
+
+            const activeAssociations = activeRows || [];
+
+            for (const assignment of assignments) {
+                const normalizedDriverId = String(assignment.driverId);
+                const normalizedViaturaId = String(assignment.viaturaId);
+                const samePairActive = activeAssociations.find((row: any) =>
+                    String(row.motorista_id) === normalizedDriverId &&
+                    String(row.viatura_id) === normalizedViaturaId &&
+                    row.fim == null
+                );
+
+                if (samePairActive) continue;
+
+                const rowsToClose = activeAssociations.filter((row: any) =>
+                    row.fim == null && (
+                        String(row.motorista_id) === normalizedDriverId ||
+                        String(row.viatura_id) === normalizedViaturaId
+                    )
+                );
+
+                if (rowsToClose.length > 0) {
+                    const { error: closeError } = await supabase
+                        .from('motorista_viatura_assoc')
+                        .update({ fim: assignment.timestamp || new Date().toISOString() })
+                        .in('id', rowsToClose.map((row: any) => row.id));
+
+                    if (closeError && !isMissingMotoristaViaturaAssocTableError(closeError)) {
+                        console.warn('Falha ao fechar associacoes ativas motorista/viatura:', closeError);
+                    }
+
+                    rowsToClose.forEach((row: any) => {
+                        row.fim = assignment.timestamp || new Date().toISOString();
+                    });
+                }
+
+                const { data: inserted, error: insertError } = await supabase
+                    .from('motorista_viatura_assoc')
+                    .insert({
+                        motorista_id: normalizedDriverId,
+                        viatura_id: normalizedViaturaId,
+                        inicio: assignment.timestamp || new Date().toISOString(),
+                        origem: assignment.source || 'cartrack_live'
+                    })
+                    .select('*')
+                    .single();
+
+                if (insertError) {
+                    if (isMissingMotoristaViaturaAssocTableError(insertError)) {
+                        supportsMotoristaViaturaAssocTableRef.current = false;
+                        return;
+                    }
+                    console.warn('Falha ao criar associacao motorista/viatura:', insertError);
+                    continue;
+                }
+
+                activeAssociations.push(inserted);
+            }
+        } catch (error) {
+            console.warn('Erro no sync de motorista_viatura_assoc:', error);
         }
     };
 
@@ -866,8 +955,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
     const refreshData = async () => {
         try {
+            setIsRefreshing(true);
             setCartrackError(null);
             setDbConnectionError(null);
+            CartrackService.invalidateCache(['vehicles', 'drivers', 'geofences']);
 
             let loadedViaturas: any[] = [];
             const normalizePlateRef = (plate?: string | null) => (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -1177,6 +1268,34 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             let updatedMotoristas: Motorista[] = [];
             let cDrivers: any[] = [];
             let cVehicles: any[] = [];
+            let activeSessionVehicleByDriver = new Map<string, string>();
+            let activeAssocVehicleByDriver = new Map<string, string>();
+            let activeAssocSourceByDriver = new Map<string, string>();
+            const hasStrongLiveDriverSignal = (vehicle: any) => {
+                const cleanTag = cleanTagId(vehicle?.tagId);
+                const cleanName = String(vehicle?.driverName || '').trim();
+                return Boolean(vehicle?.driverId || cleanTag || (cleanName && !isAnonymousDriverLabel(cleanName, vehicle?.tagId)));
+            };
+
+            const matchesLiveDriverSignal = (vehicle: any, driver: any, currentCartrackId?: string | null) => {
+                const liveTag = cleanTagId(vehicle?.tagId);
+                const driverTag = cleanTagId(driver?.cartrack_key);
+                return Boolean(
+                    (currentCartrackId && vehicle?.driverId && String(vehicle.driverId) === String(currentCartrackId)) ||
+                    (liveTag && driverTag && liveTag === driverTag) ||
+                    isNameMatch(vehicle?.driverName, driver?.nome)
+                );
+            };
+            const associationPriority = (source?: string | null) => {
+                switch (String(source || '').toLowerCase()) {
+                    case 'manual': return 400;
+                    case 'turno': return 300;
+                    case 'cartrack_assignment': return 250;
+                    case 'cartrack_live': return 200;
+                    case 'backfill_current_vehicle': return 100;
+                    default: return 50;
+                }
+            };
 
             if (dbMotoristas) {
                 // Initialize with DB data (safe baseline)
@@ -1191,6 +1310,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     turnoFim: m.turno_fim,
                     cartrackKey: m.cartrack_key,
                     cartrackId: m.cartrack_id,
+                    viaturaId: m.viatura_id || resolveVehicleIdFromLegacyRef(m.current_vehicle),
                     currentVehicle: m.current_vehicle,
                     centroCustoId: m.centro_custo_id,
                     status: m.status || 'disponivel',
@@ -1226,6 +1346,61 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                         console.warn('Cartrack Geofences fetch failed:', geofencesResult.reason);
                     }
 
+                    if (supportsMotoristaViaturaAssocTableRef.current) {
+                        const { data: activeAssocRows, error: activeAssocError } = await supabase
+                            .from('motorista_viatura_assoc')
+                            .select('motorista_id, viatura_id, inicio, origem')
+                            .is('fim', null)
+                            .order('inicio', { ascending: false });
+
+                        if (activeAssocError) {
+                            if (isMissingMotoristaViaturaAssocTableError(activeAssocError)) {
+                                supportsMotoristaViaturaAssocTableRef.current = false;
+                            } else {
+                                console.warn('Falha ao carregar associacoes ativas motorista/viatura:', activeAssocError);
+                            }
+                        } else {
+                            (activeAssocRows || []).forEach((row: any) => {
+                                const driverId = String(row.motorista_id || '');
+                                const viaturaId = String(row.viatura_id || '');
+                                const source = String(row.origem || 'manual');
+                                if (!driverId || !viaturaId) return;
+
+                                const currentSource = activeAssocSourceByDriver.get(driverId);
+                                if (!currentSource || associationPriority(source) > associationPriority(currentSource)) {
+                                    activeAssocVehicleByDriver.set(driverId, viaturaId);
+                                    activeAssocSourceByDriver.set(driverId, source);
+                                }
+                            });
+                        }
+                    }
+
+                    if (supportsDriverVehicleSessionsTableRef.current) {
+                        const { data: activeSessionsRows, error: activeSessionsError } = await supabase
+                            .from('driver_vehicle_sessions')
+                            .select('driver_id, vehicle_id, start_time')
+                            .eq('active', true)
+                            .is('end_time', null)
+                            .order('start_time', { ascending: false });
+
+                        if (activeSessionsError) {
+                            if (isMissingDriverVehicleSessionsTableError(activeSessionsError)) {
+                                supportsDriverVehicleSessionsTableRef.current = false;
+                            } else {
+                                console.warn('Falha ao carregar fallback de sessões ativas:', activeSessionsError);
+                            }
+                        } else {
+                            (activeSessionsRows || []).forEach((row: any) => {
+                                const driverId = String(row.driver_id || '');
+                                const vehicleId = String(row.vehicle_id || '');
+                                if (!driverId || !vehicleId) return;
+                                if (!activeSessionVehicleByDriver.has(driverId)) {
+                                    activeSessionVehicleByDriver.set(driverId, vehicleId);
+                                }
+                            });
+                        }
+                    }
+
                     // If Cartrack succeeded, perform enrichment
                     if (cDrivers && cVehicles) {
                         const enriched = await Promise.all(dbMotoristas.map(async (m: any) => {
@@ -1256,14 +1431,26 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                                 }
 
                                 // 2. Active Vehicle Status (Enhanced Matching)
-                                const activeVehicle = cVehicles.find(v => {
+                                const directMatchedVehicle = cVehicles.find(v => {
                                     const vTagClean = cleanTagId(v.tagId);
                                     const mTagClean = cleanTagId(m.cartrack_key);
+                                    const assocVehicleId = activeAssocVehicleByDriver.get(String(m.id)) || m.viatura_id;
+                                    const assocSource = activeAssocSourceByDriver.get(String(m.id)) || (m.viatura_id ? 'persisted' : '');
+                                    const persistedVehiclePlate = assocVehicleId
+                                        ? loadedViaturas.find(vt => String(vt.id) === String(assocVehicleId))?.matricula
+                                        : null;
                                     
                                     const idMatch = currentCartrackId && String(v.driverId) === String(currentCartrackId);
                                     const nameMatch = isNameMatch(v.driverName, m.nome);
                                     const tagMatch = vTagClean && mTagClean && vTagClean === mTagClean;
-                                    const plateMatch = m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle);
+                                    const liveDriverMatchesThisMotorista = matchesLiveDriverSignal(v, m, currentCartrackId);
+                                    const manualAssociationWins = associationPriority(assocSource) >= associationPriority('turno');
+                                    const plateClaimAllowed = manualAssociationWins || !hasStrongLiveDriverSignal(v) || liveDriverMatchesThisMotorista;
+                                    const plateMatch =
+                                        plateClaimAllowed && (
+                                            (m.current_vehicle && normalizePlate(v.registration) === normalizePlate(m.current_vehicle)) ||
+                                            (persistedVehiclePlate && normalizePlate(v.registration) === normalizePlate(persistedVehiclePlate))
+                                        );
                                     
                                     // NEW: Extra loose matching for "tag with same name" cases
                                     const nameInTagMatch = v.tagId && isNameMatch(v.tagId, m.nome);
@@ -1272,11 +1459,44 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                                     return false;
                                 });
 
+                                const sessionVehicleId = activeSessionVehicleByDriver.get(String(m.id));
+                                const sessionCandidateVehicle = sessionVehicleId
+                                    ? cVehicles.find(v => String(v.id) === String(sessionVehicleId))
+                                    : null;
+                                const sessionMatchedVehicle = sessionCandidateVehicle && (
+                                    !hasStrongLiveDriverSignal(sessionCandidateVehicle) ||
+                                    matchesLiveDriverSignal(sessionCandidateVehicle, m, currentCartrackId)
+                                )
+                                    ? sessionCandidateVehicle
+                                    : null;
+
+                                const assocVehicleId = activeAssocVehicleByDriver.get(String(m.id)) || m.viatura_id;
+                                const assocSource = activeAssocSourceByDriver.get(String(m.id)) || (m.viatura_id ? 'persisted' : '');
+                                const assocMatchedVehicle = assocVehicleId
+                                    ? cVehicles.find(v => resolveVehicleIdFromLegacyRef(v.registration) === assocVehicleId)
+                                    : null;
+                                const activeVehicle = associationPriority(assocSource) >= associationPriority('turno')
+                                    ? (assocMatchedVehicle || directMatchedVehicle || sessionMatchedVehicle)
+                                    : (directMatchedVehicle || sessionMatchedVehicle || assocMatchedVehicle);
+                                const resolvedVehicleId = activeVehicle
+                                    ? resolveVehicleIdFromLegacyRef(activeVehicle.registration)
+                                    : (assocVehicleId || resolveVehicleIdFromLegacyRef(m.current_vehicle));
+                                const resolvedVehiclePlate =
+                                    activeVehicle?.registration ||
+                                    m.current_vehicle ||
+                                    (resolvedVehicleId ? loadedViaturas.find(vt => String(vt.id) === String(resolvedVehicleId))?.matricula : undefined);
+
                                 // PERSIFTENCE: If we detected a NEW vehicle via Cartrack that differs from DB, save it!
-                                if (activeVehicle && activeVehicle.registration !== m.current_vehicle) {
+                                if (activeVehicle && (
+                                    activeVehicle.registration !== m.current_vehicle ||
+                                    String(resolvedVehicleId || '') !== String(m.viatura_id || '')
+                                )) {
                                     console.log(`[Auto-Sync] Updating vehicle for ${m.nome}: ${activeVehicle.registration}`);
                                     supabase.from('motoristas')
-                                        .update({ current_vehicle: activeVehicle.registration })
+                                        .update({
+                                            current_vehicle: activeVehicle.registration,
+                                            viatura_id: resolvedVehicleId || null
+                                        })
                                         .eq('id', m.id)
                                         .then(({ error }) => {
                                             if (error) console.error('Failed to persist auto-detected vehicle:', error);
@@ -1286,9 +1506,17 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                                 const debugLogs: string[] = [];
                                 const vTagClean = activeVehicle ? cleanTagId(activeVehicle.tagId) : null;
                                 const mTagClean = cleanTagId(m.cartrack_key);
+                                const matchSource = activeVehicle
+                                    ? (associationPriority(assocSource) >= associationPriority('turno') && assocMatchedVehicle && activeVehicle === assocMatchedVehicle
+                                        ? assocSource
+                                        : (matchesLiveDriverSignal(activeVehicle, m, currentCartrackId)
+                                        ? 'live'
+                                        : (sessionMatchedVehicle ? 'session' : 'persisted')))
+                                    : 'none';
                                 
                                 debugLogs.push(`T:${mTagClean || '?'}`);
                                 if (currentCartrackId) debugLogs.push(`ID:${String(currentCartrackId).slice(-4)}`);
+                                debugLogs.push(`SRC:${matchSource}`);
                                 if (activeVehicle) {
                                     debugLogs.push(`V:${activeVehicle.registration}`);
                                     if (vTagClean) debugLogs.push(`VT:${vTagClean}`);
@@ -1296,9 +1524,10 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                                 return {
                                     ...m,
-                                    currentVehicle: activeVehicle?.registration || m.current_vehicle,
+                                    currentVehicle: resolvedVehiclePlate,
                                     status: activeVehicle ? 'ocupado' : (m.status || 'disponivel'),
                                     cartrackId: currentCartrackId,
+                                    viaturaId: resolvedVehicleId,
                                     debugInfo: debugLogs.join('|')
                                 };
                             } catch (e) {
@@ -1315,6 +1544,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 // Enrich Cartrack Vehicles with local data or Cartrack Driver List fallback
                 console.log('Enriching vehicles:', cVehicles.length, 'drivers:', cDrivers.length);
                 const detectedSessionAssignments: Array<{ driverId: string; vehicleId: string; moving: boolean; timestamp: string }> = [];
+                const detectedAssocAssignments: Array<{ driverId: string; viaturaId: string; timestamp: string; source: string }> = [];
                 const enrichedVehicles = cVehicles.map(v => {
                     let resolvedName = v.driverName;
 
@@ -1342,10 +1572,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     );
 
                     const localMByPlate = updatedMotoristas.find(m =>
-                        m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration)
+                        (m.currentVehicle && normalizePlate(m.currentVehicle) === normalizePlate(v.registration)) ||
+                        (m.viaturaId && normalizePlate(loadedViaturas.find(vt => String(vt.id) === String(m.viaturaId))?.matricula) === normalizePlate(v.registration))
                     );
 
-                    const localM = localMByIdentity || (!v.tagId ? localMByPlate : null);
+                    const localMByName = isProperName(resolvedName)
+                        ? updatedMotoristas.find(m => isNameMatch(m.nome, resolvedName))
+                        : null;
+
+                    const localM = localMByIdentity || localMByName || localMByPlate;
 
                     let displayName = v.tagId ? formatVehicleTagLabel(v.tagId) : 'Sem Motorista';
 
@@ -1359,12 +1594,22 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     if (localM) {
+                        const localViaturaId = resolveVehicleIdFromLegacyRef(v.registration);
                         detectedSessionAssignments.push({
                             driverId: localM.id,
                             vehicleId: String(v.id),
                             moving: Boolean((v.status && v.status !== 'stopped') || Number(v.speed || 0) > 0),
                             timestamp: v.last_position_update || new Date().toISOString()
                         });
+
+                        if (localViaturaId) {
+                            detectedAssocAssignments.push({
+                                driverId: localM.id,
+                                viaturaId: String(localViaturaId),
+                                timestamp: v.last_position_update || new Date().toISOString(),
+                                source: 'cartrack_live'
+                            });
+                        }
                     }
 
                     // 3. Detect current Cost Center from POIs (Locais)
@@ -1403,6 +1648,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 setMotoristas(updatedMotoristas);
                 setCartrackVehicles(enrichedVehicles);
                 await syncDriverVehicleSessions(detectedSessionAssignments);
+                await syncMotoristaViaturaAssociations(detectedAssocAssignments);
 
                 // FINAL SAFETY: Merge tags found in vehicles into the drivers list
                 // This handles cases where a tag is known to the system (swiped in a car) 
@@ -3528,6 +3774,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             turno_inicio: m.turnoInicio,
             turno_fim: m.turnoFim,
             cartrack_key: m.cartrackKey,
+            viatura_id: m.viaturaId || null,
             centro_custo_id: m.centroCustoId,
             shifts: m.shifts,
             zones: m.zones,
@@ -3568,6 +3815,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             turno_inicio: m.turnoInicio,
             turno_fim: m.turnoFim,
             cartrack_key: m.cartrackKey,
+            viatura_id: m.viaturaId || null,
             centro_custo_id: m.centroCustoId,
             shifts: m.shifts,
             zones: m.zones,

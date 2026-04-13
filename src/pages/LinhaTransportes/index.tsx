@@ -275,7 +275,11 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
       ? viaturas.find(v => String(v.id) === String(collaboratorService.vehicleId))?.matricula
       : undefined;
 
-    return serviceVehicle || collaboratorDriver?.currentVehicle || undefined;
+    const driverPersistedVehicle = collaboratorDriver?.viaturaId
+      ? viaturas.find(v => String(v.id) === String(collaboratorDriver.viaturaId))?.matricula
+      : undefined;
+
+    return serviceVehicle || driverPersistedVehicle || collaboratorDriver?.currentVehicle || undefined;
   }, [collaboratorDriver, collaboratorService, viaturas]);
 
   const fetchVehicles = async () => {
@@ -290,10 +294,12 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
           (m.cartrackKey && v.tagId && cleanTagId(m.cartrackKey) === cleanTagId(v.tagId)) ||
           (m.cartrackId && v.driverId && String(m.cartrackId) === String(v.driverId)) ||
           (m.nome && v.driverName && normalizeStopName(m.nome) === normalizeStopName(v.driverName)) ||
+          (m.viaturaId && viaturas?.some(vi => String(vi.id) === String(m.viaturaId) && normalizePlate(vi.matricula) === vehiclePlate)) ||
           (m.currentVehicle && normalizePlate(m.currentVehicle) === vehiclePlate)
         );
 
         const viatura = viaturas?.find(vi =>
+          (driver?.viaturaId && String(vi.id) === String(driver.viaturaId)) ||
           normalizePlate(vi.matricula) === vehiclePlate ||
           (driver?.currentVehicle && normalizePlate(vi.matricula) === normalizePlate(driver.currentVehicle))
         ) ?? null;
