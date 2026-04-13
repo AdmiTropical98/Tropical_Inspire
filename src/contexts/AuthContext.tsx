@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<UserProfile | Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null>(null);
     const [isEmailConfirmed, setIsEmailConfirmed] = useState(true); // Default true for PIN users
     const [isLoading, setIsLoading] = useState(true);
+    const [isSplashExiting, setIsSplashExiting] = useState(false);
 
     const [userStatus, setUserStatus] = useState<'online' | 'absent' | 'offline'>('online');
     const [language, setLanguage] = useState<'pt' | 'en'>('pt');
@@ -75,7 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     useEffect(() => {
+        let isCancelled = false;
+
+        const wait = (ms: number) => new Promise<void>((resolve) => {
+            window.setTimeout(resolve, ms);
+        });
+
         async function initAuth() {
+            const splashStart = Date.now();
             const storedAuth = localStorage.getItem('isAuthenticated');
             const storedRole = localStorage.getItem('userRole');
             const storedUser = localStorage.getItem('currentUser');
@@ -163,10 +171,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (storedStatus) setUserStatus(storedStatus as any);
             if (storedLang) setLanguage(storedLang as any);
+
+            // Keep splash visible for at least 1.8s to avoid abrupt startup.
+            const elapsed = Date.now() - splashStart;
+            const remaining = Math.max(0, 1800 - elapsed);
+            if (remaining > 0) {
+                await wait(remaining);
+            }
+
+            if (isCancelled) return;
+
+            // Smooth fade-out before transitioning into login/dashboard.
+            setIsSplashExiting(true);
+            await wait(380);
+
+            if (isCancelled) return;
             setIsLoading(false);
         }
 
         initAuth();
+
+        return () => {
+            isCancelled = true;
+        };
     }, []);
 
     function updateStatus(status: 'online' | 'absent' | 'offline') {
@@ -336,7 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (isLoading) {
-        return <SplashScreen message="A carregar dados..." />;
+        return <SplashScreen message="A carregar dados..." exiting={isSplashExiting} />;
     }
 
     return (

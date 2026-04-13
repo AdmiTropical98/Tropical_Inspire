@@ -476,57 +476,103 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
             </div>
           </div>
         ) : activeTab === 'qr' ? (
-          <div className="space-y-6 text-center">
+          <div className="space-y-5 text-center">
+            {/* Header */}
             <div>
-              <p className="text-sm text-slate-600 uppercase tracking-widest font-bold">Passe Digital</p>
-              <h1 className="text-4xl font-black text-slate-900 mt-2">
-                {qrAccess.allowed ? 'Desbloquear Transporte' : 'Passe Indisponível'}
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Passe Digital</p>
+              <h1 className="text-2xl font-black text-slate-900 mt-1">
+                {qrAccess.allowed ? 'Transporte' : 'Passe Indisponível'}
               </h1>
             </div>
 
             {qrAccess.allowed ? (
-              <div className="space-y-6">
-                {/* QR Code Display or Button */}
-                {activeRequest ? (
-                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border border-slate-200 p-6">
-                    {activeRequest.metodo === 'qr' ? (
-                      <div className="mx-auto w-fit bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
-                        <QRCodeSVG
-                          value={`SMARTFLEET_CHECKIN:${activeRequest.token}`}
-                          size={220}
-                          level="M"
-                          includeMargin
-                        />
-                      </div>
-                    ) : (
-                      <div className="py-8">
-                        <p className="text-xl font-black text-slate-900">Modo NFC Ativo</p>
-                        <p className="text-sm text-slate-600 mt-2">Encoste seu dispositivo ao leitor</p>
-                      </div>
-                    )}
-                    
-                    <div className="mt-6 bg-white rounded-xl p-4 border border-slate-200">
-                      <p className="text-xs text-slate-600 uppercase font-bold tracking-widest mb-2">Código de Embarque</p>
-                      <p className="text-3xl font-black font-mono text-slate-900">{activeRequest.token}</p>
-                      <p className="text-xs text-slate-500 mt-2">
-                        Válido até {new Date(activeRequest.expires_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+              <div className="space-y-4">
+                {activeRequest ? (() => {
+                  const expiresAt = new Date(activeRequest.expires_at);
+                  const msLeft = expiresAt.getTime() - Date.now();
+                  const isExpiringSoon = msLeft > 0 && msLeft < 2 * 60 * 1000; // < 2 min
+                  const isExpired = msLeft <= 0;
+                  const glowClass = isExpired ? 'qr-disabled' : isExpiringSoon ? 'qr-warning' : 'qr-active';
+
+                  return (
+                    <div className="qr-card mx-auto max-w-xs">
+                      {activeRequest.metodo === 'qr' ? (
+                        <>
+                          {/* Badge */}
+                          <div className="flex justify-center mb-4">
+                            {isExpired ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                Expirado
+                              </span>
+                            ) : isExpiringSoon ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1 text-xs font-bold text-orange-600">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping" />
+                                Expira em breve
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Válido agora
+                              </span>
+                            )}
+                          </div>
+
+                          {/* QR container with glow */}
+                          <div className={`mx-auto w-fit bg-white p-4 rounded-[20px] border border-slate-100 ${glowClass}`}>
+                            <QRCodeSVG
+                              value={`SMARTFLEET_CHECKIN:${activeRequest.token}`}
+                              size={200}
+                              level="M"
+                              includeMargin
+                            />
+                          </div>
+
+                          {/* Token + expiry */}
+                          <div className="mt-5 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Código de Embarque</p>
+                            <p className="text-2xl font-black font-mono text-slate-900">{activeRequest.token}</p>
+                            <p className={`text-xs mt-1.5 font-semibold ${isExpiringSoon ? 'text-orange-500' : 'text-slate-400'}`}>
+                              Válido até {expiresAt.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="py-8">
+                          <p className="text-xl font-black text-slate-900">Modo NFC Ativo</p>
+                          <p className="text-sm text-slate-600 mt-2">Encoste seu dispositivo ao leitor</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ) : (
+                  );
+                })() : (
+                  /* No active request — show generate button */
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3 mb-6">
+                    {/* QR disabled placeholder */}
+                    <div className="qr-card mx-auto max-w-xs">
+                      <div className="flex justify-center mb-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                          A aguardar escala
+                        </span>
+                      </div>
+                      <div className="qr-disabled mx-auto w-fit bg-slate-50 p-4 rounded-[20px] border border-slate-100 flex items-center justify-center" style={{ width: 200, height: 200 }}>
+                        <QrCode className="w-16 h-16 text-slate-300" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => setSelectedMetodo('qr')}
-                        className={`rounded-lg py-2.5 text-sm font-bold border-2 transition-colors ${selectedMetodo === 'qr' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300'}`}
+                        className={`rounded-xl py-2.5 text-sm font-bold border-2 transition-colors ${selectedMetodo === 'qr' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200'}`}
                       >
                         QR Code
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedMetodo('nfc')}
-                        className={`rounded-lg py-2.5 text-sm font-bold border-2 transition-colors ${selectedMetodo === 'nfc' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300'}`}
+                        className={`rounded-xl py-2.5 text-sm font-bold border-2 transition-colors ${selectedMetodo === 'nfc' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200'}`}
                       >
                         NFC
                       </button>
@@ -535,32 +581,42 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
                     <button
                       onClick={() => solicitarEntrada(activeEscala)}
                       disabled={isLoading || !qrAccess.allowed}
-                      className={`w-full py-4 rounded-2xl font-bold text-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                      className={`w-full py-4 rounded-2xl font-bold text-base transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
                         isLoading
                           ? 'bg-slate-200 text-slate-500'
-                          : 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200/50 hover:shadow-amber-300/60'
+                          : 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200/50'
                       }`}
                     >
                       <QrCode className="w-5 h-5" />
-                      Utilizar QR Código
+                      Gerar Passe de Embarque
                       <ArrowRight className="w-5 h-5" />
                     </button>
 
-                    <p className="text-sm text-slate-600">
+                    <p className="text-xs text-slate-500 px-4">
                       Mostre este código ao motorista para confirmar o seu embarque.
                     </p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-amber-50 border border-amber-300 rounded-xl p-6">
-                <p className="text-slate-900 font-bold">{qrAccess.message}</p>
+              /* QR not allowed */
+              <div className="qr-card mx-auto max-w-xs">
+                <div className="flex justify-center mb-4">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    A aguardar escala
+                  </span>
+                </div>
+                <div className="qr-disabled mx-auto w-fit bg-slate-50 p-4 rounded-[20px] border border-slate-100 flex items-center justify-center" style={{ width: 200, height: 200 }}>
+                  <QrCode className="w-16 h-16 text-slate-300" />
+                </div>
+                <p className="mt-4 text-sm text-slate-600 font-medium">{qrAccess.message}</p>
               </div>
             )}
 
             <div className="pt-4 border-t border-slate-200 text-center">
               <p className="text-xs text-slate-500">© 2026. ALGARTEMPO FROTA</p>
-              <p className="text-xs text-slate-600 mt-1">Sistema interno de gestão de transportes</p>
+              <p className="text-xs text-slate-400 mt-0.5">Sistema interno de gestão de transportes</p>
             </div>
           </div>
         ) : activeTab === 'linha' ? (

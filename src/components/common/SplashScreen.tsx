@@ -1,19 +1,32 @@
-export default function SplashScreen({ onComplete: _onComplete, message }: { onComplete?: () => void; message?: string }) {
+export default function SplashScreen({
+    onComplete: _onComplete,
+    message,
+    exiting = false,
+}: {
+    onComplete?: () => void;
+    message?: string;
+    exiting?: boolean;
+}) {
     return (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden select-none">
-            {/* Background — matches Login gradient */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(147,197,253,0.24),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(191,219,254,0.34),_transparent_30%),linear-gradient(135deg,_#edf4ff_0%,_#fafcff_55%,_#edf4ff_100%)]" />
-
-            {/* GPS grid overlay */}
+        <div
+            className={`fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden select-none transition-opacity duration-400 ${
+                exiting ? 'opacity-0' : 'opacity-100'
+            }`}
+        >
+            {/* Background — soft blue map look */}
             <div
-                className="absolute inset-0 pointer-events-none opacity-25"
+                className="absolute inset-0 animate-in fade-in duration-500"
                 style={{
-                    backgroundImage: 'url(/grid-pattern.svg)',
+                    backgroundImage:
+                        "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(246,250,255,0.86) 36%, rgba(219,233,255,0.82) 68%, rgba(186,210,252,0.88) 100%), radial-gradient(95% 75% at 50% 100%, rgba(126,165,235,0.42) 0%, rgba(126,165,235,0) 65%), radial-gradient(65% 55% at 10% 80%, rgba(173,204,255,0.36) 0%, rgba(173,204,255,0) 72%), radial-gradient(55% 45% at 85% 90%, rgba(173,204,255,0.34) 0%, rgba(173,204,255,0) 74%), url('/grid-pattern.svg')",
+                    backgroundSize: '100% 100%, 100% 100%, 100% 100%, 100% 100%, cover',
+                    backgroundPosition: 'center, center, center, center, center',
                     backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'center 6%',
-                    backgroundSize: '40rem auto',
                 }}
             />
+
+            {/* GPS grid overlay */}
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-white/35 via-transparent to-blue-200/25" />
 
             {/* Decorative lines (same as Login) */}
             <div className="absolute left-[-8%] top-[18%] h-px w-[52%] rotate-[-16deg] bg-gradient-to-r from-transparent via-blue-200/80 to-transparent opacity-70" />
@@ -30,12 +43,12 @@ export default function SplashScreen({ onComplete: _onComplete, message }: { onC
             />
 
             {/* Content */}
-            <div className="relative z-10 flex flex-col items-center gap-6 px-8 animate-in fade-in duration-500">
+            <div className="relative z-10 flex flex-col items-center gap-7 px-6 text-center">
                 {/* Logo */}
                 <img
                     src="/LOGO.png"
                     alt="Algartempo Frota"
-                    className="h-14 w-auto md:h-[72px] drop-shadow-[0_4px_16px_rgba(17,24,39,0.18)] object-contain"
+                    className="w-[340px] sm:w-[430px] md:w-[560px] h-auto object-contain [transform:scale(1.18)] drop-shadow-[0_14px_26px_rgba(17,24,39,0.20)] [animation:logoFadeIn_0.6s_ease_forwards]"
                 />
 
                 {/* Title + subtitle */}
@@ -51,12 +64,25 @@ export default function SplashScreen({ onComplete: _onComplete, message }: { onC
                 </div>
 
                 {/* Three-dot loading indicator */}
-                <div className="flex items-center gap-2 mt-1">
-                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce [animation-delay:0s]" />
-                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce [animation-delay:0.18s]" />
-                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce [animation-delay:0.36s]" />
+                                <div className="flex items-center gap-2 mt-1 [animation:logoFadeIn_0.8s_ease_forwards]">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500/80 animate-bounce [animation-delay:0s]" />
+                                        <span className="w-2 h-2 rounded-full bg-blue-500/80 animate-bounce [animation-delay:0.18s]" />
+                                        <span className="w-2 h-2 rounded-full bg-blue-500/80 animate-bounce [animation-delay:0.36s]" />
                 </div>
             </div>
+
+                        <style>{`
+                            @keyframes logoFadeIn {
+                                from {
+                                    opacity: 0;
+                                    transform: scale(0.96);
+                                }
+                                to {
+                                    opacity: 1;
+                                    transform: scale(1);
+                                }
+                            }
+                        `}</style>
         </div>
     );
 }
