@@ -245,13 +245,13 @@ function App() {
   return (
     <div className="app-root flex h-[100dvh] min-h-[100dvh] overflow-x-hidden bg-[#F5F7FA] text-slate-900 font-sans selection:bg-amber-500/20">
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 sidebar-dark-bg border-b border-white/5 flex items-center justify-between px-6 z-40">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-24 sidebar-dark-bg border-b border-white/5 flex items-center justify-between px-6 z-40">
         <div className="sidebar-texture" />
         <div className="flex items-center gap-3 relative z-10">
           <img
             src={`${SIDEBAR_LOGO}?v=1`}
             alt="Algartempo Frota"
-            className="h-12 w-auto object-contain"
+            className="h-16 w-auto object-contain"
           />
         </div>
         <button
@@ -273,7 +273,7 @@ function App() {
               <img
                 src={`${SIDEBAR_LOGO}?v=1`}
                 alt="Algartempo Frota"
-                className="w-full max-w-[220px] h-auto object-contain"
+                className="w-full max-w-[260px] h-auto object-contain"
               />
             </div>
           )}
@@ -495,7 +495,7 @@ function App() {
                   <img
                     src={`${SIDEBAR_LOGO}?v=1`}
                     alt="Algartempo Frota"
-                    className="h-12 w-auto object-contain"
+                    className="h-20 w-auto object-contain"
                   />
                 </div>
                 <button
