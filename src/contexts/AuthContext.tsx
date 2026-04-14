@@ -69,6 +69,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
                     if (updatedUser.foto) setUserPhoto(updatedUser.foto);
                 }
+                return;
+            }
+
+            const adminLikeRoles = ['admin', 'ADMIN_MASTER', 'ADMIN'];
+            if (adminLikeRoles.includes(String(userRole))) {
+                const { data: authUser } = await supabase.auth.getUser();
+                if (!authUser.user) return;
+
+                const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('id', authUser.user.id)
+                    .single();
+
+                if (!profile) return;
+
+                const refreshedAdmin: UserProfile = {
+                    id: authUser.user.id,
+                    email: profile.email || authUser.user.email || '',
+                    nome: profile.nome || 'Utilizador',
+                    role: (profile.role || userRole) as UserRole,
+                    status: profile.status,
+                    email_confirmed: authUser.user.email_confirmed_at !== null,
+                    permissions: profile.permissions,
+                    avatar: profile.avatar,
+                    foto: profile.foto,
+                    createdAt: authUser.user.created_at,
+                    updatedAt: new Date().toISOString()
+                };
+
+                setCurrentUser(refreshedAdmin);
+                localStorage.setItem('currentUser', JSON.stringify(refreshedAdmin));
+
+                const refreshedPhoto = refreshedAdmin.avatar || refreshedAdmin.foto;
+                if (refreshedPhoto) {
+                    setUserPhoto(refreshedPhoto);
+                    localStorage.setItem('adminPhoto', refreshedPhoto);
+                }
             }
         } catch (e) {
             console.error("Error refreshing user:", e);
@@ -151,6 +189,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             status: profile?.status,
                             email_confirmed: data.user.email_confirmed_at !== null,
                             permissions: profile?.permissions, // Load granular permissions
+                            avatar: profile?.avatar,
+                            foto: profile?.foto,
                             createdAt: data.user.created_at,
                             updatedAt: new Date().toISOString()
                         };
@@ -163,6 +203,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setCurrentUser(appUser);
                         setIsEmailConfirmed(appUser.email_confirmed);
                         localStorage.setItem('currentUser', JSON.stringify(appUser));
+
+                        const resolvedPhoto = appUser.avatar || appUser.foto || adminPhoto || undefined;
+                        if (resolvedPhoto) {
+                            setUserPhoto(resolvedPhoto);
+                            localStorage.setItem('adminPhoto', resolvedPhoto);
+                        }
                     }
                 }
             } else if (storedAuth) {
@@ -237,6 +283,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     status: profile?.status,
                     email_confirmed: data.user.email_confirmed_at !== null,
                     permissions: profile?.permissions, // Load granular permissions
+                    avatar: profile?.avatar,
+                    foto: profile?.foto,
                     createdAt: data.user.created_at,
                     updatedAt: new Date().toISOString()
                 };
@@ -250,11 +298,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(appUser);
                 setIsEmailConfirmed(appUser.email_confirmed);
 
+                const resolvedPhoto = appUser.avatar || appUser.foto || localStorage.getItem('adminPhoto') || undefined;
+                if (resolvedPhoto) {
+                    setUserPhoto(resolvedPhoto);
+                    localStorage.setItem('adminPhoto', resolvedPhoto);
+                }
+
                 // Update last login
                 await supabase.from('user_profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
-
-                const adminPhoto = localStorage.getItem('adminPhoto');
-                if (adminPhoto) setUserPhoto(adminPhoto);
                 return true;
             }
             return false;
@@ -343,10 +394,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     function updateUserPhoto(photo: string) {
         setUserPhoto(photo);
-        if (userRole === 'admin') {
+
+        const isAdminLike = ['admin', 'ADMIN_MASTER', 'ADMIN'].includes(String(userRole));
+        if (isAdminLike) {
             localStorage.setItem('adminPhoto', photo);
-        } else if (currentUser) {
-            const updatedUser = { ...currentUser, foto: photo };
+
+            if (currentUser) {
+                const updatedUser = { ...currentUser, avatar: photo, foto: photo };
+                setCurrentUser(updatedUser as any);
+                localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            }
+            return;
+        }
+
+        if (currentUser) {
+            const updatedUser = { ...currentUser, foto: photo, avatar: photo };
             setCurrentUser(updatedUser);
             localStorage.setItem('currentUser', JSON.stringify(updatedUser));
         }

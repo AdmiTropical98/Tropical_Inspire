@@ -243,7 +243,7 @@ export default function UsersPage() {
                                 <tr key={user.id} className="hover:bg-slate-800/30 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-600">
+                                            <div className="avatar-3d w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-600">
                                                 {user.avatar ? (
                                                     <img src={user.avatar} alt={user.nome} className="w-full h-full object-cover" />
                                                 ) : (

@@ -869,6 +869,8 @@ export interface UserProfile {
     role: UserRole;
     status: UserStatus;
     email_confirmed: boolean;
+    avatar?: string;
+    foto?: string;
     permissions?: DetailedPermissions;
     createdAt?: string;
     updatedAt?: string;

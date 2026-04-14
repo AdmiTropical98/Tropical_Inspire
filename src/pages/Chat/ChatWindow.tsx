@@ -107,7 +107,7 @@ export default function ChatWindow({
                     )}
 
                     {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 font-semibold
+                    <div className="avatar-3d w-10 h-10 rounded-full flex items-center justify-center border-2 font-semibold
                         bg-emerald-500/10 border-emerald-500 text-emerald-400">
                         {conversation.participantName.charAt(0).toUpperCase()}
                     </div>

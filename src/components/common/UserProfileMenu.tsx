@@ -120,7 +120,7 @@ export default function UserProfileMenu({ onNavigate, showName = true }: UserPro
                 )}
 
                 {/* Avatar / Role Icon */}
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center text-white font-bold shadow-lg overflow-hidden border border-white/10`}>
+                <div className={`avatar-3d w-10 h-10 rounded-xl bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center text-white font-bold shadow-lg overflow-hidden border border-white/10`}>
                     {getRoleIcon()}
                 </div>
 
@@ -141,7 +141,7 @@ export default function UserProfileMenu({ onNavigate, showName = true }: UserPro
 
                     {/* Header */}
                     <div className="p-4 bg-gradient-to-b from-slate-800/50 to-transparent border-b border-slate-700/50 flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center text-white font-bold shadow-lg border border-white/10`}>
+                        <div className={`avatar-3d w-10 h-10 rounded-xl bg-gradient-to-br ${getRoleGradient()} flex items-center justify-center text-white font-bold shadow-lg border border-white/10`}>
                             {getRoleIcon()}
                         </div>
                         <div>
