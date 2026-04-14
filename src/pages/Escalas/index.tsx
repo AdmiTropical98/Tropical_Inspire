@@ -4,7 +4,7 @@ import {
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, Car,
     Search, LayoutList, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid, CloudLightning, FileText, Settings, CheckCircle
+    Table as TableIcon, LayoutGrid, CloudLightning, FileText, CheckCircle
 } from 'lucide-react';
 
 import {
@@ -1485,7 +1485,7 @@ export default function Escalas() {
 
 
     return (
-        <div className="flex flex-col w-full h-full bg-[#0f172a] relative overflow-y-auto md:overflow-hidden custom-scrollbar">
+        <div className="flex flex-col w-full h-full bg-slate-50 relative overflow-y-auto">
 
             {/* HEADER TOOLBAR */}
             <input
@@ -1506,9 +1506,8 @@ export default function Escalas() {
 
 
 
-                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                            {/* Date Picker */}
-                            <div className="relative group">
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300 overflow-x-auto pb-1">
+                            <div className="relative shrink-0">
                                 <input
                                     type="date"
                                     value={selectedDate}
@@ -1516,88 +1515,65 @@ export default function Escalas() {
                                         setSelectedDate(e.target.value);
                                         setSelectedBatchId(null);
                                     }}
-                                    className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/5 outline-none focus:border-blue-500 transition-colors shadow-sm"
+                                    className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/10 outline-none focus:border-blue-500 transition-colors shadow-sm"
                                 />
                                 <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                             </div>
 
-                            {/* Action Buttons */}
                             {hasAccess(userRole, 'escalas_create') && (
-                                <div className="flex items-start gap-2 overflow-x-auto pb-1">
-                                    <div className="rounded-xl border border-blue-400/20 bg-blue-950/35 p-2 min-w-fit">
-                                        <p className="text-[10px] uppercase tracking-wider font-bold text-blue-300/80 mb-1">Primary Actions</p>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setShowNewServiceModal(true)}
-                                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transition-all"
-                                            >
-                                                <Plus className="w-4 h-4" />
-                                                <span className="hidden md:inline">Novo Serviço</span>
-                                            </button>
+                                <div className="flex items-center gap-2 min-w-max">
+                                    <button
+                                        onClick={() => setShowNewServiceModal(true)}
+                                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transition-all"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        <span>Novo Serviço</span>
+                                    </button>
 
-                                            <button
-                                                onClick={() => setShowUrgentModal(true)}
-                                                className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-red-900/20 active:scale-95 transition-all"
-                                                title="Transporte de Emergência"
-                                            >
-                                                <Siren className="w-4 h-4" />
-                                                <span className="hidden md:inline">Emergência</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <button
+                                        onClick={() => setShowUrgentModal(true)}
+                                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-red-900/20 active:scale-95 transition-all"
+                                        title="Transporte de Emergência"
+                                    >
+                                        <Siren className="w-4 h-4" />
+                                        <span>Emergência</span>
+                                    </button>
 
-                                    <div className="rounded-xl border border-emerald-400/20 bg-emerald-950/25 p-2 min-w-fit">
-                                        <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-300/80 mb-1">Automation</p>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={handleRunAutomation}
-                                                disabled={isAutoLoading || selectedCentroCusto === 'all'}
-                                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
-                                            >
-                                                {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                                <span className="hidden md:inline">Automação</span>
-                                            </button>
+                                    <button
+                                        onClick={handleRunAutomation}
+                                        disabled={isAutoLoading || selectedCentroCusto === 'all'}
+                                        className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
+                                    >
+                                        {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                        <span>Automação</span>
+                                    </button>
 
-                                            <button
-                                                onClick={handleGenerateAutoDispatch}
-                                                disabled={isAutoLoading}
-                                                className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-fuchsia-900/20 active:scale-95 transition-all"
-                                            >
-                                                {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
-                                                <span className="hidden md:inline">Gerar Serviços Automaticamente</span>
-                                            </button>
+                                    <button
+                                        onClick={handleGenerateAutoDispatch}
+                                        disabled={isAutoLoading}
+                                        className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-fuchsia-900/20 active:scale-95 transition-all"
+                                    >
+                                        {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
+                                        <span>Gerar Serviços Automaticamente</span>
+                                    </button>
 
-                                            <button
-                                                onClick={() => setShowAutoSettings(true)}
-                                                className="bg-[#1e293b] hover:bg-slate-700 text-white p-2 rounded-lg border border-white/5 transition-colors"
-                                                title="Definições de Automação"
-                                            >
-                                                <Settings className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <button
+                                        onClick={() => setShowTemplateModal(true)}
+                                        className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/40 active:scale-95 transition-all"
+                                    >
+                                        <CloudLightning className="w-4 h-4 text-amber-300" />
+                                        <span>Modelos</span>
+                                    </button>
 
-                                    <div className="rounded-xl border border-violet-400/20 bg-violet-950/25 p-2 min-w-fit">
-                                        <p className="text-[10px] uppercase tracking-wider font-bold text-violet-300/80 mb-1">Templates / Export</p>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setShowTemplateModal(true)}
-                                                className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/40 active:scale-95 transition-all"
-                                            >
-                                                <CloudLightning className="w-4 h-4 text-amber-300" />
-                                                <span className="hidden md:inline">Modelos</span>
-                                            </button>
+                                    <button
+                                        onClick={handleDownloadTemplate}
+                                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border border-white/10 shadow-lg active:scale-95 transition-all"
+                                        title="Descarregar ou Atualizar Modelo Excel com locais atuais"
+                                    >
+                                        <FileText className="w-4 h-4 text-emerald-400" />
+                                        <span>Modelo Excel</span>
+                                    </button>
 
-                                            <button
-                                                onClick={handleDownloadTemplate}
-                                                className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border border-white/10 shadow-lg active:scale-95 transition-all"
-                                                title="Descarregar ou Atualizar Modelo Excel com locais atuais"
-                                            >
-                                                <FileText className="w-4 h-4 text-emerald-400" />
-                                                <span className="hidden md:inline">Modelo Excel</span>
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
                             )}
                         </div>
@@ -1736,6 +1712,7 @@ export default function Escalas() {
                                     motoristas={processedMotoristas}
                                     pendentes={pendentes}
                                     assigned={assigned}
+                                    cartrackVehicles={cartrackVehicles}
                                     onMoveService={async (service, targetDriverId) => {
                                         await assignDriverToService(service, targetDriverId);
                                     }}
