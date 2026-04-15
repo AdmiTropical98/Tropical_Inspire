@@ -97,8 +97,8 @@ function formatHereWaypoint(point: RoutePoint) {
 }
 
 function getHereBaseLayer(layers: any) {
-    return layers?.raster?.normal?.map
-        || layers?.vector?.normal?.map
+    return layers?.vector?.normal?.map
+        || layers?.raster?.normal?.map
         || layers?.normal?.map
         || null;
 }
@@ -286,8 +286,7 @@ export default function Roteirizacao() {
 
         const map = new H.Map(mapContainerRef.current, baseLayer, {
             center: defaultCenter,
-            zoom: 11,
-            pixelRatio: window.devicePixelRatio || 1
+            zoom: 11
         });
 
         mapRef.current = map;
@@ -335,35 +334,19 @@ export default function Roteirizacao() {
         const resizeMap = () => {
             try {
                 map.getViewPort().resize();
-                map.setCenter(defaultCenter, true);
             } catch {
                 // Ignore transient resize issues
             }
         };
 
         const onResize = () => resizeMap();
-        const onVisibilityChange = () => {
-            if (!document.hidden) resizeMap();
-        };
-
         window.addEventListener('resize', onResize);
-        document.addEventListener('visibilitychange', onVisibilityChange);
 
-        const resizeObserver = typeof ResizeObserver !== 'undefined'
-            ? new ResizeObserver(() => resizeMap())
-            : null;
-        resizeObserver?.observe(mapContainerRef.current);
-
-        requestAnimationFrame(() => {
-            resizeMap();
-            requestAnimationFrame(resizeMap);
-        });
-        [120, 400, 1000].forEach(delay => window.setTimeout(resizeMap, delay));
+        window.setTimeout(resizeMap, 120);
+        window.setTimeout(resizeMap, 600);
 
         return () => {
             window.removeEventListener('resize', onResize);
-            document.removeEventListener('visibilitychange', onVisibilityChange);
-            resizeObserver?.disconnect();
         };
     }, []);
 

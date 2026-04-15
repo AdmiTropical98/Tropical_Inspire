@@ -21,20 +21,27 @@
 
   <script>
     window.onerror = function (msg, source, lineno, colno, error) {
+      const message = String(msg || '');
+      const scriptSource = String(source || '');
+      const isGenericExternalError = message === 'Script error.' || (!scriptSource && lineno === 0 && colno === 0);
+
+      if (isGenericExternalError) {
+        console.error('External script error:', { message, source: scriptSource, lineno, colno, error });
+        return false;
+      }
+
+      console.error('Critical startup error:', { message, source: scriptSource, lineno, colno, error });
       document.body.innerHTML = '<div style="background:black;color:red;padding:20px;font-family:monospace;z-index:999999;position:fixed;top:0;left:0;width:100%;height:100%;overflow:auto;">' +
         '<h1>CRITICAL STARTUP ERROR</h1>' +
-        '<h3>' + msg + '</h3>' +
-        '<p>Source: ' + source + ':' + lineno + ':' + colno + '</p>' +
+        '<h3>' + message + '</h3>' +
+        '<p>Source: ' + scriptSource + ':' + lineno + ':' + colno + '</p>' +
         '<pre>' + (error ? error.stack : 'No stack trace') + '</pre>' +
         '<button onclick="window.location.reload()" style="padding:10px;margin-top:20px;">RELOAD</button>' +
         '</div>';
       return false;
     };
     window.onunhandledrejection = function (event) {
-       document.body.innerHTML = '<div style="background:black;color:red;padding:20px;font-family:monospace;z-index:999999;position:fixed;top:0;left:0;width:100%;height:100%;overflow:auto;">' +
-        '<h1>UNHANDLED PROMISE REJECTION</h1>' +
-        '<h3>' + event.reason + '</h3>' +
-        '</div>';
+      console.error('Unhandled promise rejection:', event.reason);
     };
   </script>
 </head>
