@@ -1878,7 +1878,7 @@ export default function Combustivel() {
                     <div className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                             <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                                <History className="w-6 h-6 text-blue-400" />
+                                <History className="w-6 h-6 text-blue-600" />
                                 Histórico de Transações
                             </h2>
                             <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-2xl border border-slate-200">
@@ -1886,26 +1886,26 @@ export default function Combustivel() {
                                 <select
                                     value={filters.vehicleId}
                                     onChange={(e) => setFilters({ ...filters, vehicleId: e.target.value })}
-                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                    className="bg-transparent text-sm text-slate-700 outline-none font-bold"
                                 >
                                     <option value="">Viatura: Todas</option>
                                     {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
                                 </select>
-                                <div className="w-[1px] h-4 bg-slate-700 mx-1" />
+                                <div className="w-[1px] h-4 bg-slate-300 mx-1" />
                                 <select
                                     value={filters.centroCustoId}
                                     onChange={(e) => setFilters({ ...filters, centroCustoId: e.target.value })}
-                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                    className="bg-transparent text-sm text-slate-700 outline-none font-bold"
                                 >
                                     <option value="">C.Custo: Todos</option>
                                     {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
                                 </select>
-                                <div className="w-[1px] h-4 bg-slate-700 mx-1" />
+                                <div className="w-[1px] h-4 bg-slate-300 mx-1" />
                                 <input
                                     type="date"
                                     value={filters.startDate}
                                     onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                    className="bg-transparent text-sm text-white outline-none font-bold"
+                                    className="bg-transparent text-sm text-slate-700 outline-none font-bold"
                                 />
                             </div>
                         </div>
@@ -1937,9 +1937,9 @@ export default function Combustivel() {
                                             const { date, time } = formatDateTime(tx.timestamp);
                                             return (
                                                 <tr key={tx.id} className={`hover:bg-slate-50 transition-colors ${tx.isAnormal ? 'bg-red-500/5' : ''}`}>
-                                                    <td className="px-6 py-4 text-slate-300 font-mono">
+                                                    <td className="px-6 py-4 text-slate-600 font-mono">
                                                         {date}
-                                                        <span className="text-slate-500 ml-2 text-xs">{time}</span>
+                                                        <span className="text-slate-400 ml-2 text-xs">{time}</span>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-col">
@@ -1949,7 +1949,7 @@ export default function Combustivel() {
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-slate-300">
+                                                            <span className="text-slate-600">
                                                                 {driver ? driver.nome : (tx.driverId === null ? 'Importação BP' : 'N/A')}
                                                             </span>
                                                             {tx.isAnormal && (
@@ -1968,7 +1968,7 @@ export default function Combustivel() {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right font-mono text-slate-300 font-bold">
+                                                    <td className="px-6 py-4 text-right font-mono text-slate-700 font-bold">
                                                         {tx.totalCost ? `${tx.totalCost.toFixed(2)}€` : '-'}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
@@ -1976,7 +1976,7 @@ export default function Combustivel() {
                                                             {vehicle?.id && (
                                                                 <button
                                                                     onClick={() => navigate(`/viaturas/${vehicle.id}`)}
-                                                                    className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-300 transition-colors"
+                                                                    className="inline-flex items-center gap-1 text-slate-500 hover:text-indigo-600 transition-colors"
                                                                     title="Abrir perfil da viatura"
                                                                 >
                                                                     <Car className="w-4 h-4" />
@@ -1984,7 +1984,7 @@ export default function Combustivel() {
                                                             )}
                                                             <button
                                                                 onClick={() => setEditingTransaction(tx)}
-                                                                className="text-slate-600 hover:text-blue-400 transition-colors"
+                                                                className="text-slate-500 hover:text-blue-600 transition-colors"
                                                                 title="Editar registo"
                                                             >
                                                                 <Edit className="w-4 h-4" />
@@ -2027,7 +2027,7 @@ export default function Combustivel() {
                                     <button
                                         onClick={handleConfirmBPImport}
                                         disabled={selectedRows.length === 0}
-                                        className="px-6 py-3 bg-green-600 hover:bg-green-500 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in"
+                                        className="px-6 py-3 bg-green-600 hover:bg-green-500 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-green-900/20 animate-in fade-in zoom-in"
                                     >
                                         <Check className="w-4 h-4" />
                                         Importar Selecionados ({selectedRows.length})
@@ -2042,7 +2042,7 @@ export default function Combustivel() {
                                 </button>
                                 <button
                                     onClick={handleDownloadBPTemplate}
-                                    className="px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-300 rounded-xl font-bold transition-all flex items-center gap-2"
+                                    className="px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold transition-all flex items-center gap-2"
                                 >
                                     <Download className="w-4 h-4" />
                                     Template
@@ -2061,7 +2061,7 @@ export default function Combustivel() {
                             <div className="flex gap-4 mb-4">
                                 <Upload className="w-12 h-12 text-slate-600 group-hover:text-blue-500 transition-colors" />
                             </div>
-                            <p className="text-xl font-bold text-slate-300 group-hover:text-slate-900 transition-colors">Arraste um ficheiro ou clique para upload</p>
+                            <p className="text-xl font-bold text-slate-500 group-hover:text-slate-900 transition-colors">Arraste um ficheiro ou clique para upload</p>
                             <div className="flex gap-4 mt-3">
                                 <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                                     <FileText className="w-3.5 h-3.5 text-red-400" />
@@ -2084,7 +2084,7 @@ export default function Combustivel() {
                                         </div>
                                         {selectedRows.length > 0 && (
                                             <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30 animate-in fade-in slide-in-from-left-2">
-                                                <span className="text-blue-400 text-sm font-bold">{selectedRows.length} selecionados</span>
+                                                <span className="text-blue-600 text-sm font-bold">{selectedRows.length} selecionados</span>
                                                 <div className="h-4 w-[1px] bg-blue-500/30 mx-1" />
                                                 <select
                                                     className="bg-white border border-slate-200 rounded px-2 py-1 text-sm text-slate-900 outline-none focus:border-amber-400"
@@ -2123,7 +2123,7 @@ export default function Combustivel() {
                                         </button>
                                         <button
                                             onClick={() => setSelectedRows([])}
-                                            className="px-4 py-2 bg-slate-100 text-slate-300 hover:text-slate-900 rounded-lg text-sm font-bold"
+                                            className="px-4 py-2 bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg text-sm font-bold"
                                         >
                                             Limpar Seleção
                                         </button>
@@ -2163,7 +2163,7 @@ export default function Combustivel() {
                                                 <th className="px-3 py-4">Posto</th>
                                                 <th className="px-3 py-4">Produto</th>
                                                 <th className="px-3 py-4 text-right">Qtd. (L)</th>
-                                                <th className="px-3 py-4 text-right text-emerald-400">Total (€)</th>
+                                                <th className="px-3 py-4 text-right text-emerald-700">Total (€)</th>
                                                 <th className="px-3 py-4 min-w-[150px]">Centro de Custo</th>
                                             </tr>
                                         </thead>
@@ -2214,14 +2214,14 @@ export default function Combustivel() {
                                                                 }}
                                                             />
                                                         </td>
-                                                        <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
+                                                        <td className="px-3 py-3 text-slate-700 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
                                                         <td className="px-3 py-3 text-slate-400 font-mono text-[12px] whitespace-nowrap">{row._talao || '-'}</td>
                                                         <td className="px-3 py-3 text-slate-900 font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
                                                         <td className="px-3 py-3 text-slate-400 font-mono text-[12px] text-center">{row['Km'] || '0'}</td>
                                                         <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[150px]">{row['Posto'] || '-'}</td>
                                                         <td className="px-3 py-3 text-slate-500 text-[11px] uppercase font-bold">{row['Produto'] || '-'}</td>
                                                         <td className="px-3 py-3 text-yellow-500 font-bold font-mono text-[13px] text-right">{liters.toFixed(2)}L</td>
-                                                        <td className="px-3 py-3 text-emerald-400 font-black font-mono text-[13px] text-right">{total.toFixed(2)}€</td>
+                                                        <td className="px-3 py-3 text-emerald-700 font-black font-mono text-[13px] text-right">{total.toFixed(2)}€</td>
                                                         <td className="px-3 py-3">
                                                             <select
                                                                 className="bg-white border border-slate-200 rounded px-2 py-1.5 text-[12px] text-slate-900 outline-none focus:border-amber-400 w-full"
@@ -2303,7 +2303,7 @@ export default function Combustivel() {
                                             required type="number" step="0.01"
                                             value={manualBPForm.totalCost}
                                             onChange={e => setManualBPForm({ ...manualBPForm, totalCost: e.target.value })}
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-emerald-500 font-bold text-emerald-400"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-emerald-500 font-bold"
                                         />
                                     </div>
                                 </div>
@@ -2427,8 +2427,8 @@ export default function Combustivel() {
                                             <th className="px-3 md:px-6 py-4">Data Entrega</th>
                                             <th className="px-3 md:px-6 py-4">Fornecedor</th>
                                             <th className="px-3 md:px-6 py-4 text-right">L. Entregues</th>
-                                            <th className="px-3 md:px-6 py-4 text-right bg-blue-500/5 text-blue-400">Saída (L)</th>
-                                            <th className="px-3 md:px-6 py-4 text-right bg-blue-500/5 text-blue-400">Custo Saída</th>
+                                            <th className="px-3 md:px-6 py-4 text-right bg-blue-50 text-blue-700">Saída (L)</th>
+                                            <th className="px-3 md:px-6 py-4 text-right bg-blue-50 text-blue-700">Custo Saída</th>
                                             <th className="px-3 md:px-6 py-4 text-right">Nível Antes</th>
                                             <th className="px-3 md:px-6 py-4 text-right">Nível Depois</th>
                                             <th className="px-3 md:px-6 py-4 text-right">Audit</th>
@@ -2496,9 +2496,9 @@ export default function Combustivel() {
 
                                                 return (
                                                     <tr key={refill.id} className={`hover:bg-slate-50 transition-colors ${refill.isCurrent ? 'bg-blue-500/5' : ''} ${isOverLimit ? 'bg-red-500/5' : ''}`}>
-                                                        <td className="px-6 py-4 text-slate-300 font-mono text-[12px]">
+                                                        <td className="px-6 py-4 text-slate-600 font-mono text-[12px]">
                                                             {refill.isCurrent ? (
-                                                                <span className="flex items-center gap-2 text-blue-400 font-black">
+                                                                <span className="flex items-center gap-2 text-blue-600 font-black">
                                                                     <TrendingUp className="w-3 h-3" /> AGORA
                                                                 </span>
                                                             ) : (
@@ -2508,26 +2508,26 @@ export default function Combustivel() {
                                                                 </>
                                                             )}
                                                         </td>
-                                                        <td className={`px-6 py-4 font-bold ${refill.isCurrent ? 'text-blue-400' : 'text-white'}`}>
+                                                        <td className={`px-6 py-4 font-bold ${refill.isCurrent ? 'text-blue-600' : 'text-slate-800'}`}>
                                                             {refill.supplier || 'N/A'}
                                                         </td>
-                                                        <td className="px-6 py-4 text-right font-black text-emerald-400">
+                                                        <td className="px-6 py-4 text-right font-black text-emerald-700">
                                                             {refill.litersAdded > 0 ? `${refill.litersAdded} L` : '-'}
                                                         </td>
-                                                        <td className="px-6 py-4 text-right font-black text-amber-500 bg-blue-500/5">
+                                                        <td className="px-6 py-4 text-right font-black text-amber-500 bg-blue-50">
                                                             {refill.litersOut.toFixed(1)} L
                                                         </td>
-                                                        <td className="px-6 py-4 text-right font-bold text-slate-300 bg-blue-500/5">
+                                                        <td className="px-6 py-4 text-right font-bold text-slate-700 bg-blue-50">
                                                             {refill.costOut > 0 ? `${refill.costOut.toFixed(2)}€` : '-'}
                                                         </td>
                                                         <td className="px-6 py-4 text-right text-slate-400">
                                                             {refill.isCurrent ? '-' : `${refill.levelBefore} L`}
                                                         </td>
-                                                        <td className={`px-6 py-4 text-right font-bold ${isOverLimit ? 'text-red-500' : 'text-white'}`}>
+                                                        <td className={`px-6 py-4 text-right font-bold ${isOverLimit ? 'text-red-600' : 'text-slate-800'}`}>
                                                             <div className="flex flex-col items-end">
                                                                 <span>{refill.isCurrent ? `${fuelTank.currentLevel} L` : `${refill.levelAfter} L`}</span>
                                                                 {isOverLimit && (
-                                                                    <span className="text-[10px] bg-red-500/20 px-1.5 py-0.5 rounded text-red-400 mt-1 flex items-center gap-1">
+                                                                    <span className="text-[10px] bg-red-100 px-1.5 py-0.5 rounded text-red-600 mt-1 flex items-center gap-1">
                                                                         <AlertCircle className="w-3 h-3" /> +{(totalCalc - LIMIT).toFixed(1)} L Excesso
                                                                     </span>
                                                                 )}
@@ -2613,8 +2613,8 @@ export default function Combustivel() {
                                                 <tr>
                                                     <th className="px-6 py-4">Mês</th>
                                                     <th className="px-6 py-4 text-center">Nº Abast.</th>
-                                                    <th className="px-6 py-4 text-right text-yellow-400">Total Litros</th>
-                                                    <th className="px-6 py-4 text-right text-emerald-400">Total Gasto</th>
+                                                    <th className="px-6 py-4 text-right text-yellow-600">Total Litros</th>
+                                                    <th className="px-6 py-4 text-right text-emerald-700">Total Gasto</th>
                                                     <th className="px-6 py-4 text-right text-slate-500">€/Litro Médio</th>
                                                 </tr>
                                             </thead>
@@ -2631,29 +2631,29 @@ export default function Combustivel() {
                                                         <tr key={key} className={`hover:bg-slate-50 transition-colors ${isCurrentMonth ? 'bg-blue-500/5 border-l-2 border-blue-500' : idx % 2 === 1 ? 'bg-slate-50' : ''}`}>
                                                             <td className="px-6 py-4">
                                                                 <div className="flex items-center gap-3">
-                                                                    <span className={`font-bold ${isCurrentMonth ? 'text-blue-400' : 'text-white'}`}>{label}</span>
+                                                                    <span className={`font-bold ${isCurrentMonth ? 'text-blue-600' : 'text-slate-800'}`}>{label}</span>
                                                                     {isCurrentMonth && (
-                                                                        <span className="text-[10px] bg-blue-500/20 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                                                                        <span className="text-[10px] bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
                                                                             Atual
                                                                         </span>
                                                                     )}
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-4 text-center">
-                                                                <span className="bg-slate-100 px-3 py-1 rounded-full text-slate-300 font-bold text-xs">
+                                                                <span className="bg-slate-100 px-3 py-1 rounded-full text-slate-700 font-bold text-xs">
                                                                     {entry.count}
                                                                 </span>
                                                             </td>
                                                             <td className="px-6 py-4 text-right">
-                                                                <span className="text-yellow-400 font-black text-lg font-mono">{entry.liters.toFixed(1)}</span>
+                                                                <span className="text-yellow-600 font-black text-lg font-mono">{entry.liters.toFixed(1)}</span>
                                                                 <span className="text-slate-500 text-xs ml-1">L</span>
                                                             </td>
                                                             <td className="px-6 py-4 text-right">
-                                                                <span className="text-emerald-400 font-black text-lg font-mono">{entry.cost.toFixed(2)}</span>
+                                                                <span className="text-emerald-700 font-black text-lg font-mono">{entry.cost.toFixed(2)}</span>
                                                                 <span className="text-slate-500 text-xs ml-1">€</span>
                                                             </td>
                                                             <td className="px-6 py-4 text-right">
-                                                                <span className={`font-bold font-mono text-sm ${avgPrice > 0 ? 'text-slate-300' : 'text-slate-600'}`}>
+                                                                <span className={`font-bold font-mono text-sm ${avgPrice > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
                                                                     {avgPrice > 0 ? `${avgPrice.toFixed(3)} €/L` : '—'}
                                                                 </span>
                                                             </td>
@@ -2662,23 +2662,23 @@ export default function Combustivel() {
                                                 })}
                                             </tbody>
                                             <tfoot>
-                                                <tr className="bg-gradient-to-r from-slate-900 to-slate-950 border-t-2 border-yellow-500/30">
+                                                <tr className="bg-slate-50 border-t-2 border-slate-200">
                                                     <td className="px-6 py-5">
-                                                        <span className="text-slate-900 font-black uppercase text-xs tracking-[0.15em]">Total Geral</span>
+                                                        <span className="text-slate-700 font-black uppercase text-xs tracking-[0.15em]">Total Geral</span>
                                                     </td>
                                                     <td className="px-6 py-5 text-center">
-                                                        <span className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 px-3 py-1 rounded-full font-black text-xs">{grandCount}</span>
+                                                        <span className="bg-yellow-100 border border-yellow-300 text-yellow-700 px-3 py-1 rounded-full font-black text-xs">{grandCount}</span>
                                                     </td>
                                                     <td className="px-6 py-5 text-right">
-                                                        <span className="text-yellow-400 font-black text-xl font-mono">{grandLiters.toFixed(1)}</span>
+                                                        <span className="text-yellow-600 font-black text-xl font-mono">{grandLiters.toFixed(1)}</span>
                                                         <span className="text-slate-500 text-xs ml-1">L</span>
                                                     </td>
                                                     <td className="px-6 py-5 text-right">
-                                                        <span className="text-emerald-400 font-black text-xl font-mono">{grandCost.toFixed(2)}</span>
+                                                        <span className="text-emerald-700 font-black text-xl font-mono">{grandCost.toFixed(2)}</span>
                                                         <span className="text-slate-500 text-xs ml-1">€</span>
                                                     </td>
                                                     <td className="px-6 py-5 text-right">
-                                                        <span className="text-slate-400 font-bold font-mono text-sm">
+                                                        <span className="text-slate-600 font-bold font-mono text-sm">
                                                             {grandLiters > 0 ? `${(grandCost / grandLiters).toFixed(3)} €/L` : '—'}
                                                         </span>
                                                     </td>
@@ -2798,7 +2798,7 @@ export default function Combustivel() {
                                                             alert(err.message);
                                                         }
                                                     }}
-                                                    className="w-full py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                                                    className="w-full py-2 bg-purple-50 border border-purple-200 text-purple-700 hover:bg-purple-100 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
                                                 >
                                                     Recalcular a partir do Baseline
                                                 </button>
