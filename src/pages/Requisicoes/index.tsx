@@ -1226,7 +1226,7 @@ export default function Requisicoes() {
                 icon={ClipboardCheck}
             >
                 <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-                    <div className="flex bg-[#0c1730]/85 p-1.5 rounded-2xl border border-blue-900/60 backdrop-blur-md shadow-[0_16px_44px_rgba(2,6,23,0.45)] overflow-x-auto max-w-full scrollbar-none">
+                    <div className="flex bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/70 shadow-sm overflow-x-auto max-w-full scrollbar-none">
                         {[
                             { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
                             { id: 'list', icon: List, label: 'Lista' },
@@ -1238,7 +1238,7 @@ export default function Requisicoes() {
                                 className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
                             ${activeTab === tab.id
                                         ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/30'
-                                        : 'text-slate-300 hover:text-slate-900 hover:bg-slate-50'}`}
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
                             >
                                 <tab.icon className="w-4 h-4" />
                                 {tab.label}
@@ -1263,9 +1263,9 @@ export default function Requisicoes() {
                                     <Clock className="w-24 h-24 text-amber-500" />
                                 </div>
                                 <div className="relative z-10">
-                                    <h3 className="text-amber-200/60 text-xs font-bold uppercase tracking-wider mb-2">Pendentes</h3>
+                                    <h3 className="text-amber-700 text-xs font-bold uppercase tracking-wider mb-2">Pendentes</h3>
                                     <p className="text-4xl font-black text-slate-900 mb-4">{stats.pending}</p>
-                                    <div className="flex items-center gap-2 text-amber-300 text-xs font-bold px-3 py-1.5 bg-amber-500/10 w-fit rounded-lg border border-amber-500/20">
+                                    <div className="flex items-center gap-2 text-amber-700 text-xs font-bold px-3 py-1.5 bg-amber-500/10 w-fit rounded-lg border border-amber-500/20">
                                         <AlertCircle className="w-3.5 h-3.5" />
                                         A aguardar aprovação
                                     </div>
@@ -1280,9 +1280,9 @@ export default function Requisicoes() {
                                     <CheckCircle className="w-24 h-24 text-emerald-500" />
                                 </div>
                                 <div className="relative z-10">
-                                    <h3 className="text-emerald-200/60 text-xs font-bold uppercase tracking-wider mb-2">Concluídas</h3>
+                                    <h3 className="text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2">Concluídas</h3>
                                     <p className="text-4xl font-black text-slate-900 mb-4">{stats.completed}</p>
-                                    <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold px-3 py-1.5 bg-emerald-500/10 w-fit rounded-lg border border-emerald-500/20">
+                                    <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold px-3 py-1.5 bg-emerald-500/10 w-fit rounded-lg border border-emerald-500/20">
                                         <TrendingUp className="w-3.5 h-3.5" />
                                         Processadas com sucesso
                                     </div>
@@ -1297,9 +1297,9 @@ export default function Requisicoes() {
                                     <Package className="w-24 h-24 text-blue-500" />
                                 </div>
                                 <div className="relative z-10">
-                                    <h3 className="text-blue-200/60 text-xs font-bold uppercase tracking-wider mb-2">Total</h3>
+                                    <h3 className="text-blue-700 text-xs font-bold uppercase tracking-wider mb-2">Total</h3>
                                     <p className="text-4xl font-black text-slate-900 mb-4">{stats.total}</p>
-                                    <div className="flex items-center gap-2 text-blue-300 text-xs font-bold px-3 py-1.5 bg-blue-500/10 w-fit rounded-lg border border-blue-500/20">
+                                    <div className="flex items-center gap-2 text-blue-700 text-xs font-bold px-3 py-1.5 bg-blue-500/10 w-fit rounded-lg border border-blue-500/20">
                                         <Calendar className="w-3.5 h-3.5" />
                                         Requisições criadas
                                     </div>
@@ -1399,7 +1399,7 @@ export default function Requisicoes() {
                 {activeTab === 'list' && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
                         {/* Toolbar */}
-                        <div className="rounded-[2rem] border border-slate-200/90 bg-[linear-gradient(135deg,rgba(5,17,39,0.95),rgba(12,30,66,0.9))] p-4 md:p-5 shadow-[0_28px_70px_rgba(2,6,23,0.45)]">
+                        <div className="rounded-[2rem] border border-slate-200/70 bg-white/90 backdrop-blur-md p-4 md:p-5 shadow-sm">
                             <div className="flex flex-wrap gap-2 mb-4">
                                 <button
                                     type="button"
@@ -1412,7 +1412,7 @@ export default function Requisicoes() {
                                 <button
                                     type="button"
                                     onClick={() => setListFilter('pendentes')}
-                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${listFilter === 'pendentes' ? 'bg-blue-900/50 border-blue-500/40 text-blue-200' : 'bg-white border-slate-200 text-slate-600'}`}
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${listFilter === 'pendentes' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                                 >
                                     <Clock className="w-4 h-4" />
                                     Abertas
@@ -1420,7 +1420,7 @@ export default function Requisicoes() {
                                 <button
                                     type="button"
                                     onClick={() => setListFilter('historico')}
-                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${listFilter === 'historico' ? 'bg-blue-900/50 border-blue-500/40 text-blue-200' : 'bg-white border-slate-200 text-slate-600'}`}
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${listFilter === 'historico' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                                 >
                                     <CheckCircle className="w-4 h-4" />
                                     Fechadas
@@ -1435,7 +1435,7 @@ export default function Requisicoes() {
                                     <input
                                         type="text"
                                         placeholder="Pesquisar por número, fornecedor..."
-                                        className="block w-full pl-12 pr-4 py-3.5 bg-[#070f1f] border border-slate-200 rounded-2xl leading-5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm transition-all shadow-inner"
+                                        className="block w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl leading-5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 sm:text-sm transition-all"
                                         value={filter}
                                         onChange={e => setFilter(e.target.value)}
                                     />
@@ -1458,7 +1458,7 @@ export default function Requisicoes() {
                         </div>
 
                         {/* Advanced Filters */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-[#0a152d]/90 p-4 rounded-3xl border border-slate-200 shadow-inner shadow-black/30">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-slate-200/70 shadow-sm">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Fornecedor</label>
                                 <input
@@ -1520,7 +1520,7 @@ export default function Requisicoes() {
                                 const supplierBadge = getSupplierResponseBadge(req);
 
                                 return (
-                                    <div key={req.id} className="bg-[linear-gradient(128deg,rgba(10,24,52,0.95),rgba(18,35,70,0.88))] backdrop-blur-xl border border-slate-200/70 rounded-3xl p-5 md:p-6 hover:border-blue-400/40 transition-all hover:shadow-[0_14px_42px_rgba(6,14,35,0.45)] group relative overflow-visible">
+                                    <div key={req.id} className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-3xl p-5 md:p-6 hover:border-blue-400/40 transition-all hover:shadow-md group relative overflow-visible">
                                         {/* decorative blob */}
                                         <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors pointer-events-none"></div>
                                         <div className={`absolute left-0 top-0 h-full w-1.5 ${req.status === 'concluida' ? 'bg-emerald-500/70' : 'bg-amber-500/70'}`} />
@@ -1530,7 +1530,7 @@ export default function Requisicoes() {
                                             <div className="flex-1 min-w-0 space-y-4">
                                                 <div className="flex flex-wrap items-center justify-between gap-4">
                                                     <div className="flex flex-wrap items-center gap-3">
-                                                        <span className="h-10 px-4 inline-flex items-center rounded-xl border border-slate-200 bg-white/90 text-sm font-mono font-bold text-blue-200">
+                                                        <span className="h-10 px-4 inline-flex items-center rounded-xl border border-slate-200 bg-white text-sm font-mono font-bold text-blue-600">
                                                             R:{req.numero?.split('/')[1]}
                                                         </span>
                                                         <span className={`h-10 px-4 inline-flex items-center rounded-xl text-xs font-bold uppercase tracking-wider border
@@ -1539,9 +1539,9 @@ export default function Requisicoes() {
                                                             {req.status === 'concluida' ? 'Concluída' : 'Pendente'}
                                                         </span>
                                                         <span className={`h-10 px-4 inline-flex items-center rounded-xl text-xs font-bold uppercase tracking-wide border gap-1.5
-                                                            ${req.tipo === 'Oficina' ? 'bg-slate-100 border-slate-200 text-slate-300' : ''}
-                                                            ${req.tipo === 'Stock' ? 'bg-purple-900/30 border-purple-500/30 text-purple-400' : ''}
-                                                            ${req.tipo === 'Viatura' ? 'bg-indigo-900/30 border-indigo-500/30 text-indigo-400' : ''}
+                                                            ${req.tipo === 'Oficina' ? 'bg-slate-100 border-slate-200 text-slate-700' : ''}
+                                                            ${req.tipo === 'Stock' ? 'bg-purple-50 border-purple-200 text-purple-700' : ''}
+                                                            ${req.tipo === 'Viatura' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : ''}
                                                         `}>
                                                             {req.tipo === 'Oficina' && <Building className="w-3 h-3" />}
                                                             {req.tipo === 'Stock' && <Box className="w-3 h-3" />}
@@ -1550,7 +1550,7 @@ export default function Requisicoes() {
                                                         </span>
                                                     </div>
 
-                                                    <span className="h-10 px-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 text-sm text-slate-300">
+                                                    <span className="h-10 px-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-600">
                                                         <Calendar className="w-4 h-4 text-slate-400" />
                                                         {formatSmallDate(req.data)}
                                                     </span>
@@ -1559,12 +1559,12 @@ export default function Requisicoes() {
                                                 <div>
                                                     <h3 className="font-bold text-slate-900 text-xl leading-snug tracking-tight">{fornecedor?.nome || t('req.card.unknown_supplier')}</h3>
                                                     {viatura && (
-                                                        <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-indigo-300 font-medium">
+                                                        <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-indigo-600 font-medium">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
                                                             {viatura.matricula} - {viatura.marca} {viatura.modelo}
                                                             <button
                                                                 onClick={() => navigate(`/viaturas/${viatura.id}`)}
-                                                                className="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/20 transition-colors text-[11px]"
+                                                                className="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 transition-colors text-[11px]"
                                                                 title="Abrir perfil da viatura"
                                                             >
                                                                 Perfil <ArrowRight className="w-3 h-3" />
@@ -1578,9 +1578,9 @@ export default function Requisicoes() {
                                                         <Package className="w-4 h-4 text-slate-500" />
                                                         <span className="text-slate-900 font-bold">{(req.itens || []).length}</span> itens
                                                     </span>
-                                                    <span className="h-9 flex items-center gap-2 bg-white/90 px-3 py-1.5 rounded-lg border border-slate-200">
+                                                    <span className="h-9 flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
                                                         <User className="w-4 h-4 text-slate-500" />
-                                                        <span className="text-slate-300">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
+                                                        <span className="text-slate-700">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
                                                     </span>
                                                     <span className={`h-9 flex items-center gap-2 px-3 py-1.5 rounded-lg border ${erpBadge.className}`}>
                                                         <TrendingUp className="w-4 h-4" />
@@ -1599,14 +1599,14 @@ export default function Requisicoes() {
                                                 )}
 
                                                 {req.supplier_comment && (
-                                                    <p className="text-sm text-slate-300 bg-white/90 border border-slate-200/70 rounded-xl px-3 py-2">
+                                                    <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
                                                         Comentario fornecedor: {req.supplier_comment}
                                                     </p>
                                                 )}
 
                                                 <div className="mt-2 bg-white/90 border border-slate-200/70 rounded-2xl p-4">
                                                     <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                                                        <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                                        <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2">
                                                             <FileText className="w-4 h-4 text-slate-400" />
                                                             Faturas associadas
                                                         </h4>
@@ -1647,16 +1647,16 @@ export default function Requisicoes() {
                                             {/* Right Actions */}
                                             <div className="flex lg:flex-col lg:items-end justify-between items-center gap-3 border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6 min-w-[180px]">
                                                 {req.fatura && (
-                                                    <div className="flex items-center gap-2 bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-500/20 mb-auto">
-                                                        <FileText className="w-3.5 h-3.5 text-emerald-500" />
-                                                        <span className="text-xs text-emerald-400 font-mono font-bold">{req.fatura}</span>
+                                                    <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 mb-auto">
+                                                        <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                                                        <span className="text-xs text-emerald-700 font-mono font-bold">{req.fatura}</span>
                                                     </div>
                                                 )}
 
                                                 <div className="flex items-center gap-2 mt-auto">
                                                     <button
                                                         onClick={() => navigate(`/finance/faturas/nova?requisitionId=${req.id}`)}
-                                                        className="flex items-center gap-2 px-3 py-3 text-indigo-300 bg-indigo-900/20 hover:bg-indigo-800/40 hover:text-slate-900 border border-indigo-500/20 rounded-xl transition-colors"
+                                                        className="flex items-center gap-2 px-3 py-3 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition-colors"
                                                         title="Criar fatura a partir desta requisição"
                                                     >
                                                         <PlusCircle className="w-4 h-4" />
@@ -1665,7 +1665,7 @@ export default function Requisicoes() {
 
                                                     <button
                                                         onClick={() => generatePDF(req)}
-                                                        className="p-3 text-blue-300 bg-blue-900/20 hover:bg-blue-800/40 hover:text-slate-900 border border-blue-500/20 rounded-xl transition-colors"
+                                                        className="p-3 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors"
                                                         title="Imprimir PDF"
                                                     >
                                                         <Printer className="w-5 h-5" />
@@ -1674,7 +1674,7 @@ export default function Requisicoes() {
                                                     <button
                                                         onClick={() => handleSendSupplierEmail(req)}
                                                         disabled={sendingEmailReqId === req.id}
-                                                        className="flex items-center gap-2 px-3 py-3 text-cyan-300 bg-cyan-900/20 hover:bg-cyan-800/40 hover:text-slate-900 border border-cyan-500/20 rounded-xl transition-colors disabled:opacity-60"
+                                                        className="flex items-center gap-2 px-3 py-3 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-xl transition-colors disabled:opacity-60"
                                                         title="Enviar por Email"
                                                     >
                                                         <Mail className="w-5 h-5" />
