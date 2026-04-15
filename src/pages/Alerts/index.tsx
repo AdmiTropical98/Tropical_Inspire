@@ -137,6 +137,8 @@ const AlertItem: React.FC<{
     }
   };
 
+  const statusCfg = getStatusConfig(alert.status)!;
+
   return (
     <div className={`border-l-4 ${config.color} ${config.bgColor} rounded-r-2xl p-4 mb-3 hover:brightness-[0.98] hover:shadow-sm transition-all duration-200`}>
       <div className="flex items-start justify-between">
