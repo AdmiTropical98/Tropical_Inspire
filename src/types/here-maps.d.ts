@@ -16,7 +16,7 @@ declare namespace H {
   }
 
   class Map {
-    constructor(element: HTMLElement, layer: any, options?: { zoom?: number; center?: { lat: number; lng: number } });
+    constructor(element: HTMLElement, layer: any, options?: { zoom?: number; center?: { lat: number; lng: number }; pixelRatio?: number });
     setCenter(pos: { lat: number; lng: number }, animate?: boolean): void;
     setZoom(zoom: number, animate?: boolean): void;
     getViewPort(): { resize(): void };

@@ -6,6 +6,13 @@ const HERE_API_KEY = String(
     import.meta.env.VITE_HERE_API_KEY || (import.meta.env as any).HERE_API_KEY || ''
 ).trim();
 
+function getHereBaseLayer(layers: any) {
+    return layers?.raster?.normal?.map
+        || layers?.vector?.normal?.map
+        || layers?.normal?.map
+        || null;
+}
+
 interface GeofenceMapProps {
     geofences: CartrackGeofence[];
     vehicles?: CartrackVehicle[];
@@ -96,10 +103,16 @@ export default function GeofenceMap({
             initializedRef.current = true;
             const platform = new H.service.Platform({ apikey: HERE_API_KEY });
             const layers = platform.createDefaultLayers();
+            const baseLayer = getHereBaseLayer(layers);
+            if (!baseLayer) {
+                initializedRef.current = false;
+                return;
+            }
 
-            const map = new H.Map(containerRef.current!, layers.vector.normal.map, {
+            const map = new H.Map(containerRef.current!, baseLayer, {
                 zoom: 9,
-                center: { lat: 37.1, lng: -8.0 }
+                center: { lat: 37.1, lng: -8.0 },
+                pixelRatio: window.devicePixelRatio || 1
             });
 
             mapRef.current = map;
@@ -110,11 +123,37 @@ export default function GeofenceMap({
             geofenceGroupRef.current = geofenceGroup;
             map.addObject(geofenceGroup);
 
-            const onResize = () => map.getViewPort().resize();
+            const resizeMap = () => {
+                try {
+                    map.getViewPort().resize();
+                } catch {
+                    // Ignore transient resize issues
+                }
+            };
+
+            const onResize = () => resizeMap();
+            const onVisibilityChange = () => {
+                if (!document.hidden) resizeMap();
+            };
+
             window.addEventListener('resize', onResize);
+            document.addEventListener('visibilitychange', onVisibilityChange);
+
+            const resizeObserver = typeof ResizeObserver !== 'undefined'
+                ? new ResizeObserver(() => resizeMap())
+                : null;
+            resizeObserver?.observe(containerRef.current!);
+
+            requestAnimationFrame(() => {
+                resizeMap();
+                requestAnimationFrame(resizeMap);
+            });
+            [120, 400, 1000].forEach(delay => window.setTimeout(resizeMap, delay));
 
             return () => {
                 window.removeEventListener('resize', onResize);
+                document.removeEventListener('visibilitychange', onVisibilityChange);
+                resizeObserver?.disconnect();
             };
         };
 

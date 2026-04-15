@@ -96,6 +96,13 @@ function formatHereWaypoint(point: RoutePoint) {
     return `${point.lat},${point.lng}`;
 }
 
+function getHereBaseLayer(layers: any) {
+    return layers?.raster?.normal?.map
+        || layers?.vector?.normal?.map
+        || layers?.normal?.map
+        || null;
+}
+
 function SortableItem(props: any) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: props.id });
     const style = { transform: CSS.Transform.toString(transform), transition };
@@ -274,9 +281,13 @@ export default function Roteirizacao() {
         platformRef.current = platform;
 
         const layers = platform.createDefaultLayers();
-        const map = new H.Map(mapContainerRef.current, layers.vector.normal.map, {
+        const baseLayer = getHereBaseLayer(layers);
+        if (!baseLayer) return;
+
+        const map = new H.Map(mapContainerRef.current, baseLayer, {
             center: defaultCenter,
-            zoom: 11
+            zoom: 11,
+            pixelRatio: window.devicePixelRatio || 1
         });
 
         mapRef.current = map;
@@ -321,10 +332,39 @@ export default function Roteirizacao() {
             ]);
         });
 
-        const onResize = () => map.getViewPort().resize();
-        window.addEventListener('resize', onResize);
+        const resizeMap = () => {
+            try {
+                map.getViewPort().resize();
+                map.setCenter(defaultCenter, true);
+            } catch {
+                // Ignore transient resize issues
+            }
+        };
 
-        setTimeout(() => map.getViewPort().resize(), 120);
+        const onResize = () => resizeMap();
+        const onVisibilityChange = () => {
+            if (!document.hidden) resizeMap();
+        };
+
+        window.addEventListener('resize', onResize);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
+        const resizeObserver = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(() => resizeMap())
+            : null;
+        resizeObserver?.observe(mapContainerRef.current);
+
+        requestAnimationFrame(() => {
+            resizeMap();
+            requestAnimationFrame(resizeMap);
+        });
+        [120, 400, 1000].forEach(delay => window.setTimeout(resizeMap, delay));
+
+        return () => {
+            window.removeEventListener('resize', onResize);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            resizeObserver?.disconnect();
+        };
     }, []);
 
     useEffect(() => {
