@@ -6,11 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "build:mobile": "npm run build && npx cap sync",
+    "sync:mobile": "npx cap sync",
+    "open:android": "npx cap open android",
+    "open:ios": "npx cap open ios",
     "lint": "eslint .",
     "preview": "vite preview",
     "email:api": "node email-api/src/server.js"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/geolocation": "^8.2.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -39,6 +48,10 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",

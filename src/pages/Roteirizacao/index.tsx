@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
 import {
     MapPin, Search, Navigation,
     GripVertical, Trash2, ArrowRight,
@@ -102,6 +104,22 @@ function getHereBaseLayer(layers: any) {
         || layers?.normal?.map
         || layers?.raster?.satellite?.map
         || null;
+}
+
+function isNativeMobileApp() {
+    return Capacitor.isNativePlatform();
+}
+
+async function ensureMobileLocationAccess() {
+    if (!isNativeMobileApp()) return true;
+
+    try {
+        const permissions = await Geolocation.requestPermissions();
+        return permissions.location === 'granted' || permissions.coarseLocation === 'granted';
+    } catch (error) {
+        console.warn('[Roteirização] Mobile location permission unavailable:', error);
+        return false;
+    }
 }
 
 function SortableItem(props: any) {
@@ -597,6 +615,27 @@ export default function Roteirizacao() {
         setIsOffRoute(false);
     }, [navigationEnabled]);
 
+    useEffect(() => {
+        if (!isNativeMobileApp() || !mapRef.current || trackedVehicle) return;
+
+        let cancelled = false;
+        Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 30000
+        }).then(({ coords }) => {
+            if (cancelled || !mapRef.current) return;
+            mapRef.current.setCenter({ lat: coords.latitude, lng: coords.longitude }, true);
+            mapRef.current.setZoom(14, true);
+        }).catch(() => {
+            // Ignore if the device denies location access
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [trackedVehicle]);
+
     const handleAddStop = (item: any) => {
         const coords = getItemCoordinates(item);
         if (!coords) {
@@ -632,6 +671,18 @@ export default function Roteirizacao() {
     };
 
     const handleRemoveStop = (id: string) => setRouteStops(prev => prev.filter(s => s.id !== id));
+
+    const handleNavigationToggle = async () => {
+        if (!navigationEnabled) {
+            const hasPermission = await ensureMobileLocationAccess();
+            if (!hasPermission) {
+                alert('Permita acesso à localização para usar a navegação no telemóvel.');
+                return;
+            }
+        }
+
+        setNavigationEnabled(v => !v);
+    };
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -863,7 +914,7 @@ export default function Roteirizacao() {
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             <button
-                                onClick={() => setNavigationEnabled(v => !v)}
+                                onClick={handleNavigationToggle}
                                 disabled={!trackedVehicleId || routeStops.length < 2}
                                 className={`py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition ${navigationEnabled ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'} disabled:opacity-40`}
                             >
@@ -1115,7 +1166,7 @@ export default function Roteirizacao() {
                         Seguir Viatura
                     </button>
                     <button
-                        onClick={() => setNavigationEnabled(v => !v)}
+                        onClick={handleNavigationToggle}
                         disabled={!trackedVehicleId || routeStops.length < 2}
                         className={`px-3 py-2 rounded-xl text-[11px] font-bold border ${navigationEnabled ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-700 border-slate-200'} disabled:opacity-40`}
                     >
