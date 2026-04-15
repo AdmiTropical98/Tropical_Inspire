@@ -2,6 +2,7 @@
 // Extend Vite ImportMetaEnv with HERE Maps API key
 interface ImportMetaEnv {
   readonly VITE_HERE_API_KEY: string;
+  readonly HERE_API_KEY?: string;
 }
 
 declare namespace H {

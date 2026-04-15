@@ -26,7 +26,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 
-const HERE_API_KEY = String(import.meta.env.VITE_HERE_API_KEY || '');
+const HERE_API_KEY = String(
+    import.meta.env.VITE_HERE_API_KEY || (import.meta.env as any).HERE_API_KEY || ''
+).trim();
 
 interface RouteStop {
     id: string;

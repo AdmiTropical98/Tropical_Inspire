@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react';
 import type { CartrackGeofence, CartrackVehicle } from '../../services/cartrack';
 import type { Local } from '../../types';
 
-const HERE_API_KEY = String(import.meta.env.VITE_HERE_API_KEY || '');
+const HERE_API_KEY = String(
+    import.meta.env.VITE_HERE_API_KEY || (import.meta.env as any).HERE_API_KEY || ''
+).trim();
 
 interface GeofenceMapProps {
     geofences: CartrackGeofence[];
