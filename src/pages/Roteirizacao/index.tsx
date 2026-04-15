@@ -303,8 +303,7 @@ export default function Roteirizacao() {
                 const map = new H.Map(mapContainerRef.current, baseLayer, {
                     center: defaultCenter,
                     zoom: 11,
-                    pixelRatio: window.devicePixelRatio || 1,
-                    engineType: H.Map.EngineType.P2D
+                    pixelRatio: window.devicePixelRatio || 1
                 });
 
                 mapRef.current = map;

@@ -113,8 +113,7 @@ export default function GeofenceMap({
             const map = new H.Map(containerRef.current!, baseLayer, {
                 zoom: 9,
                 center: { lat: 37.1, lng: -8.0 },
-                pixelRatio: window.devicePixelRatio || 1,
-                engineType: H.Map.EngineType.P2D
+                pixelRatio: window.devicePixelRatio || 1
             });
 
             mapRef.current = map;
