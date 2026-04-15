@@ -459,19 +459,20 @@ export default function MyProfile() {
         <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-500">
             <div className="p-4 md:p-8">
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                    {/* Sidebar */}
                     <aside className="xl:col-span-4">
-                        <div className="bg-[#0f172a] border border-slate-200 rounded-2xl p-6 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+                        <div className="bg-white/90 backdrop-blur-md border border-slate-200/60 rounded-2xl p-6 shadow-[0_4px_20px_-6px_rgba(15,23,42,0.10)]">
                             <div className="flex flex-col items-start gap-4">
                                 {resolveCurrentAvatar() ? (
                                     renderAvatar(resolveCurrentAvatar(), formData.nome || 'Utilizador')
                                 ) : (
-                                    <div className="profile-avatar bg-white/90 flex items-center justify-center">
-                                        <UserCircle2 className="w-10 h-10 text-slate-500" />
+                                    <div className="profile-avatar bg-slate-100 flex items-center justify-center">
+                                        <UserCircle2 className="w-10 h-10 text-slate-400" />
                                     </div>
                                 )}
                                 <div className="min-w-0">
                                     <h2 className="text-xl font-bold text-slate-900 leading-tight truncate">{formData.nome || 'Utilizador'}</h2>
-                                    <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                                    <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[11px] font-bold uppercase tracking-wider text-blue-700">
                                         <Shield className="w-3 h-3" />
                                         {roleLabel}
                                     </span>
@@ -489,7 +490,7 @@ export default function MyProfile() {
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="w-full bg-white/90 border border-slate-200 hover:border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-200 font-semibold flex items-center justify-center gap-2 transition-colors"
+                                    className="w-full bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-700 font-semibold flex items-center justify-center gap-2 transition-colors"
                                 >
                                     <Upload className="w-4 h-4" />
                                     Upload photo
@@ -497,7 +498,7 @@ export default function MyProfile() {
                                 <button
                                     type="button"
                                     onClick={() => setShowAvatarModal(true)}
-                                    className="w-full bg-white/90 border border-slate-200 hover:border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-200 font-semibold flex items-center justify-center gap-2 transition-colors"
+                                    className="w-full bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-700 font-semibold flex items-center justify-center gap-2 transition-colors"
                                 >
                                     <Images className="w-4 h-4" />
                                     Choose predefined avatar
@@ -506,28 +507,28 @@ export default function MyProfile() {
 
                             <div className="mt-6 space-y-3 text-sm">
                                 <div>
-                                    <p className="text-slate-500 uppercase tracking-wider text-[11px]">Departamento</p>
-                                    <p className="text-slate-200 font-semibold">{department}</p>
+                                    <p className="text-slate-400 uppercase tracking-wider text-[11px] font-semibold">Departamento</p>
+                                    <p className="text-slate-800 font-semibold mt-0.5">{department}</p>
                                 </div>
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <Clock3 className="w-4 h-4" />
+                                <div className="flex items-center gap-2 text-slate-500">
+                                    <Clock3 className="w-4 h-4 flex-shrink-0" />
                                     <p className="text-sm">Ultimo acesso: {resolveLastLogin()}</p>
                                 </div>
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <MapPin className="w-4 h-4" />
+                                <div className="flex items-center gap-2 text-slate-500">
+                                    <MapPin className="w-4 h-4 flex-shrink-0" />
                                     <p className="text-sm">Sessao atual: {sessionLocation}</p>
                                 </div>
                             </div>
 
-                            <div className="mt-6 pt-5 border-t border-slate-200 space-y-3">
-                                <p className="text-slate-500 uppercase tracking-wider text-[11px]">Permissoes</p>
+                            <div className="mt-6 pt-5 border-t border-slate-200/60 space-y-3">
+                                <p className="text-slate-400 uppercase tracking-wider text-[11px] font-semibold">Permissoes</p>
                                 <div className="flex flex-wrap gap-2">
                                     {permissions.map((permission) => (
                                         <span
                                             key={permission}
-                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-200"
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700"
                                         >
-                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                                             {permission}
                                         </span>
                                     ))}
@@ -536,81 +537,83 @@ export default function MyProfile() {
                         </div>
                     </aside>
 
+                    {/* Main form */}
                     <section className="xl:col-span-8">
-                        <form onSubmit={handleSave} className="bg-[#0f172a] border border-slate-200 rounded-2xl p-6 md:p-8 space-y-8 relative shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
+                        <form onSubmit={handleSave} className="bg-white/90 backdrop-blur-md border border-slate-200/60 rounded-2xl p-6 md:p-8 space-y-8 relative shadow-[0_4px_20px_-6px_rgba(15,23,42,0.10)]">
                             <input type="hidden" id="selectedAvatar" name="avatar" value={resolveCurrentAvatar()} readOnly />
 
                             {message && (
-                                <div className={`absolute top-0 left-0 right-0 p-4 flex items-center justify-center gap-2 text-sm font-bold animate-in slide-in-from-top-4 ${message.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'}`}>
+                                <div className={`absolute top-0 left-0 right-0 rounded-t-2xl overflow-hidden p-4 flex items-center justify-center gap-2 text-sm font-bold animate-in slide-in-from-top-4 ${message.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'}`}>
                                     {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                                     {message.text}
                                 </div>
                             )}
 
+                            {/* Informacoes Pessoais */}
                             <div className="space-y-5">
-                                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-2">
-                                    <User className="w-5 h-5 text-blue-500" />
+                                <h3 className="text-base font-semibold text-slate-700 flex items-center gap-2 border-b border-slate-200/60 pb-3">
+                                    <User className="w-4 h-4 text-blue-500" />
                                     Informacoes Pessoais
                                 </h3>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400">Nome completo</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nome completo</label>
                                         <input
                                             type="text"
                                             value={formData.nome || ''}
                                             onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                                            className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all outline-none"
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400">Email</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Email</label>
                                         <div className="relative">
-                                            <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                                            <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                                             <input
                                                 type="email"
                                                 value={formData.email || ''}
                                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                                className="w-full bg-white/90 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all outline-none"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400">Telefone</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Telefone</label>
                                         <div className="relative">
-                                            <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                                            <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                                             <input
                                                 type="tel"
                                                 value={formData.telemovel || ''}
                                                 onChange={e => setFormData({ ...formData, telemovel: e.target.value })}
-                                                className="w-full bg-white/90 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all outline-none"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400">Username</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Username</label>
                                         <div className="relative">
-                                            <UserCircle2 className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                                            <UserCircle2 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                                             <input
                                                 type="text"
                                                 value={username}
                                                 onChange={e => setFormData({ ...formData, username: e.target.value })}
-                                                className="w-full bg-white/90 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all outline-none"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400">Idioma</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Idioma</label>
                                         <div className="relative">
-                                            <Globe className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                                            <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                                             <select
                                                 value={language}
                                                 onChange={e => setFormData({ ...formData, language: e.target.value })}
-                                                className="w-full bg-white/90 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all outline-none appearance-none"
                                             >
                                                 <option value="pt-PT">Portugues (PT)</option>
                                                 <option value="en-GB">English (UK)</option>
@@ -618,14 +621,14 @@ export default function MyProfile() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400">Fuso horario</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Fuso horario</label>
                                         <div className="relative">
-                                            <Clock3 className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                                            <Clock3 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                                             <select
                                                 value={timezone}
                                                 onChange={e => setFormData({ ...formData, timezone: e.target.value })}
-                                                className="w-full bg-white/90 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all outline-none appearance-none"
                                             >
                                                 <option value="Europe/Lisbon">Europe/Lisbon</option>
                                                 <option value="Europe/Madrid">Europe/Madrid</option>
@@ -636,79 +639,81 @@ export default function MyProfile() {
                                 </div>
                             </div>
 
+                            {/* Seguranca */}
                             <div className="space-y-5 pt-1">
-                                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-2">
-                                    <Key className="w-5 h-5 text-amber-500" />
+                                <h3 className="text-base font-semibold text-slate-700 flex items-center gap-2 border-b border-slate-200/60 pb-3">
+                                    <Key className="w-4 h-4 text-amber-500" />
                                     Seguranca
                                 </h3>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400">PIN de acesso</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">PIN de acesso</label>
                                         <input
                                             type="text"
                                             maxLength={6}
                                             value={formData.pin || ''}
                                             onChange={e => setFormData({ ...formData, pin: e.target.value })}
-                                            className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono tracking-widest text-center focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono tracking-widest text-center focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all outline-none"
                                             placeholder="000000"
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-slate-400">Alterar password</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Alterar password</label>
                                         <div className="relative">
-                                            <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                                            <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                                             <input
                                                 type="password"
                                                 value={formData.password || ''}
                                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                                className="w-full bg-white/90 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all outline-none"
                                                 placeholder="Nova password"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="bg-white/90 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between">
                                         <div>
-                                            <p className="text-xs font-medium text-slate-400">Sessoes ativas</p>
-                                            <p className="text-sm font-semibold text-slate-900">1 sessao atual</p>
+                                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Sessoes ativas</p>
+                                            <p className="text-sm font-semibold text-slate-800 mt-0.5">1 sessao atual</p>
                                         </div>
-                                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Ativa</span>
+                                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Ativa</span>
                                     </div>
 
-                                    <label className="bg-white/90 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer">
+                                    <label className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors">
                                         <div>
-                                            <p className="text-xs font-medium text-slate-400">Autenticacao de 2 fatores</p>
-                                            <p className="text-sm font-semibold text-slate-900">Ativar 2FA (opcional)</p>
+                                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Autenticacao de 2 fatores</p>
+                                            <p className="text-sm font-semibold text-slate-800 mt-0.5">Ativar 2FA (opcional)</p>
                                         </div>
                                         <input
                                             type="checkbox"
                                             checked={Boolean((formData as any).twoFactorEnabled)}
                                             onChange={e => setFormData({ ...formData, twoFactorEnabled: e.target.checked })}
-                                            className="h-4 w-4 rounded border-slate-300 bg-slate-100 text-blue-500 focus:ring-blue-500"
+                                            className="h-4 w-4 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
                                         />
                                     </label>
 
-                                    <div className="bg-white/90 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between md:col-span-2">
                                         <div>
-                                            <p className="text-xs font-medium text-slate-400">Dispositivos autorizados</p>
-                                            <p className="text-sm font-semibold text-slate-900">Web Chrome (este dispositivo)</p>
+                                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Dispositivos autorizados</p>
+                                            <p className="text-sm font-semibold text-slate-800 mt-0.5">Web Chrome (este dispositivo)</p>
                                         </div>
-                                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Confiavel</span>
+                                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-semibold">Confiavel</span>
                                     </div>
                                 </div>
                             </div>
 
+                            {/* Atividade recente */}
                             <div className="space-y-4 pt-1">
-                                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-2">
-                                    <Clock3 className="w-5 h-5 text-blue-500" />
+                                <h3 className="text-base font-semibold text-slate-700 flex items-center gap-2 border-b border-slate-200/60 pb-3">
+                                    <Clock3 className="w-4 h-4 text-blue-500" />
                                     Atividade recente
                                 </h3>
                                 <div className="space-y-2">
                                     {recentActivity.map((item) => (
-                                        <div key={item} className="bg-white/90 border border-slate-200 rounded-xl px-4 py-3">
-                                            <p className="text-sm text-slate-200">{item}</p>
+                                        <div key={item} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                                            <p className="text-sm text-slate-600">{item}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -738,15 +743,16 @@ export default function MyProfile() {
                 </div>
             </div>
 
+            {/* Avatar modal */}
             {showAvatarModal && (
-                <div className="fixed inset-0 z-[7000] bg-white/75 backdrop-blur-sm p-4 flex items-center justify-center">
-                    <div className="w-full max-w-4xl bg-[#0f172a] border border-slate-200 rounded-2xl p-6 md:p-8">
+                <div className="fixed inset-0 z-[7000] bg-slate-900/40 backdrop-blur-sm p-4 flex items-center justify-center">
+                    <div className="w-full max-w-4xl bg-white/95 backdrop-blur-md border border-slate-200/60 rounded-2xl p-6 md:p-8 shadow-2xl">
                         <div className="flex items-center justify-between mb-5">
                             <h3 className="text-xl font-bold text-slate-900">Selecionar Avatar por Função</h3>
                             <button
                                 type="button"
                                 onClick={() => setShowAvatarModal(false)}
-                                className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                                className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -761,7 +767,7 @@ export default function MyProfile() {
                                         key={avatar.role}
                                         onClick={() => handleSelectPredefinedAvatar(avatar.path)}
                                         data-avatar={avatar.path}
-                                        className={`avatar-option bg-white/90 border rounded-xl p-4 text-left transition-colors ${isSelected ? 'selected border-blue-500' : 'border-slate-200 hover:border-slate-300'}`}
+                                        className={`avatar-option bg-slate-50 border rounded-xl p-4 text-left transition-all ${isSelected ? 'selected border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300 hover:bg-white'}`}
                                     >
                                         <div className="flex items-center gap-3">
                                             <img
@@ -773,7 +779,7 @@ export default function MyProfile() {
                                             {renderAvatar(avatar.path, avatar.label)}
                                             <div>
                                                 <p className="text-sm font-bold text-slate-900">{avatar.label}</p>
-                                                <p className="text-xs text-slate-400">Algartempo Frota</p>
+                                                <p className="text-xs text-slate-500">Algartempo Frota</p>
                                             </div>
                                         </div>
                                     </button>
