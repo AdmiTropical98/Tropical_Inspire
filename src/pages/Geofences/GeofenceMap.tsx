@@ -1,27 +1,14 @@
-import { MapContainer, TileLayer, Polygon, Circle, Marker, Popup, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { CartrackGeofence, CartrackVehicle } from '../../services/cartrack';
 import type { Local } from '../../types';
 
-// Fix for default marker icons in Leaflet
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-const DefaultIcon = L.icon({
-    iconUrl: markerIcon,
-    shadowUrl: markerShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+const HERE_API_KEY = String(import.meta.env.VITE_HERE_API_KEY || '');
 
 interface GeofenceMapProps {
     geofences: CartrackGeofence[];
     vehicles?: CartrackVehicle[];
     selectedVehicle?: CartrackVehicle | null;
-    locais?: Local[]; // NEW: POIs from our database
+    locais?: Local[];
     onSelectVehicle?: (v: CartrackVehicle) => void;
     activeServiceByVehicle?: Record<string, VehicleServiceTracking>;
 }
@@ -44,30 +31,182 @@ export interface VehicleServiceTracking {
     lastEventTime?: string | null;
 }
 
-// Custom icon for car with rotation and license plate label
-const createCarIcon = (registration: string, heading: number, status: 'moving' | 'stopped' | 'idle') => {
-    const color = status === 'moving' ? '#22c55e' : (status === 'idle' ? '#f59e0b' : '#94a3b8');
-    const isMoving = status === 'moving';
+function buildVehicleMarkerEl(vehicle: CartrackVehicle, isSelected: boolean): HTMLElement {
+    const status = (vehicle.status || 'stopped') as 'moving' | 'idle' | 'stopped';
+    const color = status === 'moving' ? '#22c55e' : status === 'idle' ? '#f59e0b' : '#94a3b8';
+    const border = isSelected ? '#fbbf24' : 'white';
+    const shadow = isSelected
+        ? `0 0 0 3px #fbbf24, 0 0 15px ${color}80`
+        : `0 0 15px ${color}80`;
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
+    el.innerHTML = `
+        <div style="background:#1e293b;color:white;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:900;border:1px solid rgba(255,255,255,0.2);box-shadow:0 4px 15px rgba(0,0,0,0.4);margin-bottom:4px;white-space:nowrap;letter-spacing:-0.5px;">${vehicle.registration}</div>
+        <div style="width:22px;height:22px;background:${color};border:3px solid ${border};border-radius:50%;box-shadow:${shadow};display:flex;align-items:center;justify-content:center;">
+            <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid white;margin-top:-3px;transform:rotate(${vehicle.bearing || 0}deg);"></div>
+        </div>`;
+    return el;
+}
 
-    return L.divIcon({
-        className: 'custom-car-marker',
-        html: `
-            <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
-                <div style="
-                    background: #1e1e2d; 
-                    color: white; 
-                    padding: 2px 8px; 
-                    border-radius: 6px; 
-                    font-size: 11px; 
-                    font-family: 'JetBrains Mono', monospace;
-                    font-weight: 900; 
-                    border: 1px solid rgba(255,255,255,0.2);
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-                    margin-bottom: 5px;
-                    white-space: nowrap;
-                    z-index: 10;
-                    letter-spacing: -0.5px;
-                ">${registration}</div>
+export default function GeofenceMap({
+    geofences,
+    vehicles = [],
+    selectedVehicle,
+    locais = [],
+    onSelectVehicle,
+    activeServiceByVehicle = {}
+}: GeofenceMapProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<any>(null);
+    const geofenceGroupRef = useRef<any>(null);
+    const clusterLayerRef = useRef<any>(null);
+    const initRef = useRef(false);
+    const onSelectRef = useRef(onSelectVehicle);
+    onSelectRef.current = onSelectVehicle;
+
+    // Initialize HERE Map once
+    useEffect(() => {
+        if (!containerRef.current || initRef.current) return;
+        const tryInit = () => {
+            const H = window.H;
+            if (!H) { setTimeout(tryInit, 150); return; }
+            initRef.current = true;
+            const platform = new H.service.Platform({ apikey: HERE_API_KEY });
+            const layers = platform.createDefaultLayers();
+            const map = new H.Map(containerRef.current!, layers.vector.normal.map, {
+                zoom: 9,
+                center: { lat: 37.1, lng: -8.0 },
+            });
+            mapRef.current = map;
+            new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+            H.ui.UI.createDefault(map, layers);
+            const gGroup = new H.map.Group();
+            geofenceGroupRef.current = gGroup;
+            map.addObject(gGroup);
+            const onResize = () => map.getViewPort().resize();
+            window.addEventListener('resize', onResize);
+            return () => window.removeEventListener('resize', onResize);
+        };
+        const cleanup = tryInit();
+        return () => {
+            cleanup?.();
+            if (mapRef.current) { mapRef.current.dispose(); mapRef.current = null; initRef.current = false; }
+        };
+    }, []);
+
+    // Draw geofences and local POIs
+    useEffect(() => {
+        const H = window.H;
+        if (!mapRef.current || !H || !geofenceGroupRef.current) return;
+        const group = geofenceGroupRef.current;
+        group.removeObjects(group.getObjects(true));
+
+        geofences.forEach(geo => {
+            try {
+                if (geo.points && geo.points.length > 2) {
+                    const ls = new H.geo.LineString();
+                    geo.points.forEach((p: any) => { if (p.lat && p.lng) ls.pushPoint({ lat: p.lat, lng: p.lng }); });
+                    if (geo.points[0]) ls.pushPoint({ lat: geo.points[0].lat, lng: geo.points[0].lng });
+                    group.addObject(new H.map.Polygon(ls, {
+                        style: { strokeColor: 'rgba(59,130,246,0.8)', fillColor: 'rgba(59,130,246,0.15)', lineWidth: 2 }
+                    }));
+                } else if ((geo as any).latitude && (geo as any).longitude && (geo as any).radius) {
+                    group.addObject(new H.map.Circle(
+                        { lat: (geo as any).latitude, lng: (geo as any).longitude },
+                        (geo as any).radius,
+                        { style: { strokeColor: 'rgba(139,92,246,0.8)', fillColor: 'rgba(139,92,246,0.15)', lineWidth: 2 } }
+                    ));
+                }
+            } catch { /* skip invalid geometry */ }
+        });
+
+        locais.forEach(local => {
+            if (!local.latitude || !local.longitude) return;
+            try {
+                group.addObject(new H.map.Circle(
+                    { lat: local.latitude, lng: local.longitude },
+                    local.raio || 50,
+                    { style: { strokeColor: local.cor ? local.cor + 'cc' : 'rgba(16,185,129,0.8)', fillColor: local.cor ? local.cor + '26' : 'rgba(16,185,129,0.15)', lineWidth: 2 } }
+                ));
+            } catch { /* skip */ }
+        });
+    }, [geofences, locais]);
+
+    // Update vehicle clustering layer
+    useEffect(() => {
+        const H = window.H;
+        if (!mapRef.current || !H) return;
+        const map = mapRef.current;
+
+        if (clusterLayerRef.current) {
+            try { map.removeLayer(clusterLayerRef.current); } catch { /* ignore */ }
+            clusterLayerRef.current = null;
+        }
+
+        const valid = vehicles.filter(v => v.latitude && v.longitude && v.latitude !== 0 && v.longitude !== 0);
+        if (!valid.length) return;
+
+        const dataPoints = valid.map(v => new H.clustering.DataPoint(v.latitude, v.longitude, null, v));
+
+        const theme = {
+            getClusterPresentation(cluster: any) {
+                const el = document.createElement('div');
+                el.style.cssText = [
+                    'background:#2563eb', 'color:white', 'border:3px solid white',
+                    'border-radius:50%', 'width:40px', 'height:40px',
+                    'display:flex', 'align-items:center', 'justify-content:center',
+                    'font-weight:900', 'font-size:14px',
+                    'box-shadow:0 4px 15px rgba(37,99,235,0.5)', 'cursor:pointer'
+                ].join(';');
+                el.textContent = String(cluster.getWeight());
+                return new H.map.DomMarker(cluster.getPosition(), { icon: new H.map.DomIcon(el) });
+            },
+            getNoisePresentation(noisePoint: any) {
+                const v: CartrackVehicle = noisePoint.getData();
+                const isSelected = selectedVehicle?.id === v.id;
+                const el = buildVehicleMarkerEl(v, isSelected);
+                const marker = new H.map.DomMarker(noisePoint.getPosition(), { icon: new H.map.DomIcon(el), data: v });
+                marker.addEventListener('tap', () => onSelectRef.current?.(v));
+                return marker;
+            }
+        };
+
+        const provider = new H.clustering.Provider(dataPoints, {
+            clusteringOptions: { eps: 40, minWeight: 2 },
+            theme
+        });
+        const layer = new H.map.layer.ObjectLayer(provider);
+        clusterLayerRef.current = layer;
+        map.addLayer(layer);
+
+        // Auto-fit bounds to all vehicles (only when no vehicle is selected)
+        if (!selectedVehicle) {
+            let top = -Infinity, left = Infinity, bottom = Infinity, right = -Infinity;
+            valid.forEach(v => {
+                top = Math.max(top, v.latitude);
+                left = Math.min(left, v.longitude);
+                bottom = Math.min(bottom, v.latitude);
+                right = Math.max(right, v.longitude);
+            });
+            if (top > -Infinity) {
+                setTimeout(() => {
+                    if (mapRef.current) {
+                        mapRef.current.setLookAtData({ bounds: new H.geo.Rect(top, left, bottom, right) }, true);
+                    }
+                }, 400);
+            }
+        }
+    }, [vehicles, selectedVehicle, activeServiceByVehicle]);
+
+    // Focus map on selected vehicle
+    useEffect(() => {
+        if (!mapRef.current || !selectedVehicle?.latitude || !selectedVehicle?.longitude) return;
+        mapRef.current.setCenter({ lat: selectedVehicle.latitude, lng: selectedVehicle.longitude }, true);
+        mapRef.current.setZoom(17, true);
+    }, [selectedVehicle?.id]);
+
+    return <div ref={containerRef} style={{ width: '100%', height: '100%', borderRadius: 'inherit' }} />;
+}
                 
                 <div style="transform: rotate(${heading}deg); transition: transform 0.6s ease; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; position: relative;">
                     ${isMoving ? `<div class="pulse-ring"></div>` : ''}

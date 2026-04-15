@@ -33,7 +33,6 @@ import EquipaOficinaTab from './pages/EquipaOficina';
 import PermissoesTab from './pages/Permissoes';
 import RoteirizacaoTab from './pages/Roteirizacao';
 import GeofencesTab from './pages/Geofences';
-import LocaisTab from './pages/Locais';
 import AvaliacaoDriversTab from './pages/Avaliacao';
 import ContabilidadeTab from './pages/Contabilidade';
 import SupplierInvoiceDocumentPage from './pages/Contabilidade/SupplierInvoiceDocumentPage';
@@ -326,6 +325,8 @@ function App() {
     handleNavigate(target);
   };
 
+  const isFullScreenPage = location.pathname === '/roteirizacao';
+
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
     location.pathname.startsWith('/colaborador/');
@@ -491,7 +492,6 @@ function App() {
       ...(hasAccess(userRole, 'roteirizacao') ? [{ key: 'roteirizacao', label: 'Roteirização', icon: Navigation, path: '/roteirizacao', active: activeTab === 'roteirizacao' } as NavItem] : []),
       { key: 'linha-transportes', label: 'Linha Transportes', icon: Navigation, path: '/linha-transportes', active: activeTab === 'linha-transportes' },
       ...(hasAccess(userRole, 'geofences') ? [{ key: 'geofences', label: 'Cercas Geográficas', icon: MapPin, path: '/geofences', active: activeTab === 'geofences' } as NavItem] : []),
-      ...(hasAccess(userRole, 'locais') ? [{ key: 'locais', label: 'Pontos de Interesse', icon: MapPin, path: '/locais', active: activeTab === 'locais' } as NavItem] : []),
       ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'utilizadores', label: 'Perfis', icon: UserCheck, path: '/utilizadores', active: activeTab === 'utilizadores' } as NavItem] : []),
       ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'colaboradores', label: 'Colaboradores', icon: IdCard, path: '/colaboradores', active: activeTab === 'colaboradores' } as NavItem] : []),
       {
@@ -584,15 +584,15 @@ function App() {
         </div>
       </nav>
 
-      <main className="app-content-bg flex-1 min-h-0 overflow-visible">
-        <div className="relative z-10 flex h-full min-h-0 w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto custom-scrollbar bg-transparent">
+      <main className={`app-content-bg flex-1 min-h-0 ${isFullScreenPage ? 'overflow-hidden' : 'overflow-visible'}`}>
+        <div className={`relative z-10 bg-transparent ${isFullScreenPage ? 'h-full w-full overflow-hidden' : 'flex h-full min-h-0 w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto custom-scrollbar'}`}>
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
               <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
             </div>
           }>
-            <div className="flex-1 w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0">
+            <div className={isFullScreenPage ? 'h-full w-full' : 'flex-1 w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0'}>
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
@@ -619,7 +619,6 @@ function App() {
                 <Route path="/permissoes" element={<PermissoesTab />} />
                 <Route path="/roteirizacao" element={<RoteirizacaoTab />} />
                 <Route path="/geofences" element={<GeofencesTab />} />
-                <Route path="/locais" element={<LocaisTab />} />
                 <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
                 <Route path="/contabilidade" element={<ContabilidadeTab />} />
                 <Route path="/finance/faturas/nova" element={<NovaFaturaPage />} />
