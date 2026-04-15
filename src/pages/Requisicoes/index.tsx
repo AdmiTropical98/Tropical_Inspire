@@ -269,20 +269,20 @@ export default function Requisicoes() {
         if (req.supplier_confirmed) {
             return {
                 label: 'Confirmado pelo fornecedor',
-                className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                className: 'bg-emerald-50 text-emerald-700 border-emerald-200'
             };
         }
 
         if (req.supplier_refused || req.supplier_rejected) {
             return {
                 label: 'Recusado pelo fornecedor',
-                className: 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                className: 'bg-rose-50 text-rose-700 border-rose-200'
             };
         }
 
         return {
-            label: 'Pendente confirmacao fornecedor',
-            className: 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+            label: 'Pendente confirm. fornecedor',
+            className: 'bg-amber-50 text-amber-700 border-amber-200'
         };
     };
 
@@ -354,10 +354,10 @@ export default function Requisicoes() {
     };
 
     const getErpBadge = (status?: Requisicao['erp_status']) => {
-        if (status === 'closed') return { label: 'Closed', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
-        if (status === 'invoiced') return { label: 'Invoiced', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
-        if (status === 'awaiting_invoice') return { label: 'Awaiting Invoice', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
-        return { label: 'Pending', className: 'bg-slate-500/10 text-slate-300 border-slate-500/20' };
+        if (status === 'closed') return { label: 'Concluído', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+        if (status === 'invoiced') return { label: 'Faturado', className: 'bg-blue-50 text-blue-700 border-blue-200' };
+        if (status === 'awaiting_invoice') return { label: 'Aguarda Fatura', className: 'bg-amber-50 text-amber-700 border-amber-200' };
+        return { label: 'Pendente', className: 'bg-slate-100 text-slate-600 border-slate-200' };
     };
 
     const getPaymentStatusLabel = (status?: string) => {
@@ -1363,7 +1363,7 @@ export default function Requisicoes() {
                                     <h3 className="text-xl font-bold text-slate-900">Recentes</h3>
                                     <button
                                         onClick={() => setActiveTab('list')}
-                                        className="text-blue-400 text-xs font-bold hover:text-blue-300 transition-colors"
+                                        className="text-blue-600 text-xs font-bold hover:text-blue-700 transition-colors"
                                     >
                                         Ver Todas
                                     </button>
@@ -1375,7 +1375,7 @@ export default function Requisicoes() {
                                             className="flex items-center gap-4 p-4 bg-white/90 rounded-2xl border border-slate-200/50 hover:border-slate-200 transition-colors cursor-pointer group"
                                             onClick={() => handleEdit(req)}
                                         >
-                                            <div className="w-12 h-12 rounded-xl bg-white/90 border border-slate-200 flex items-center justify-center font-mono font-bold text-blue-400 group-hover:border-blue-500/30 transition-colors">
+                                            <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center font-mono font-bold text-blue-600 group-hover:border-blue-400 transition-colors">
                                                 R:{req.numero?.split('/')[1]}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -1534,7 +1534,7 @@ export default function Requisicoes() {
                                                             R:{req.numero?.split('/')[1]}
                                                         </span>
                                                         <span className={`h-10 px-4 inline-flex items-center rounded-xl text-xs font-bold uppercase tracking-wider border
-                                                            ${req.status === 'concluida' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}
+                                                            ${req.status === 'concluida' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}
                                                         `}>
                                                             {req.status === 'concluida' ? 'Concluída' : 'Pendente'}
                                                         </span>
@@ -1631,10 +1631,10 @@ export default function Requisicoes() {
                                                                 <tbody>
                                                                     {associatedInvoices.map(invoice => (
                                                                         <tr key={invoice.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                                                            <td className="py-2.5 px-3 text-slate-200 font-medium">{invoice.invoice_number}</td>
-                                                                            <td className="py-2.5 px-3 text-slate-300">{formatSmallDate(invoice.issue_date)}</td>
-                                                                            <td className="py-2.5 px-3 text-right text-slate-200">{formatCurrency(Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0))}</td>
-                                                                            <td className="py-2.5 px-3 text-slate-300">{getPaymentStatusLabel(invoice.payment_status)}</td>
+                                                                            <td className="py-2.5 px-3 text-slate-800 font-medium">{invoice.invoice_number}</td>
+                                                                            <td className="py-2.5 px-3 text-slate-600">{formatSmallDate(invoice.issue_date)}</td>
+                                                                            <td className="py-2.5 px-3 text-right text-slate-800">{formatCurrency(Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0))}</td>
+                                                                            <td className="py-2.5 px-3 text-slate-600">{getPaymentStatusLabel(invoice.payment_status)}</td>
                                                                         </tr>
                                                                     ))}
                                                                 </tbody>
@@ -1783,7 +1783,7 @@ export default function Requisicoes() {
                                 </div>
                                 <h3 className="text-slate-400 text-lg font-medium">Nenhuma requisição encontrada.</h3>
                                 {listFilter === 'pendentes' && (
-                                    <button onClick={() => setActiveTab('create')} className="mt-4 text-blue-400 hover:text-blue-300 font-bold text-sm tracking-wide uppercase border-b border-transparent hover:border-blue-300 transition-all">
+                                    <button onClick={() => setActiveTab('create')} className="mt-4 text-blue-600 hover:text-blue-700 font-bold text-sm tracking-wide uppercase border-b border-transparent hover:border-blue-600 transition-all">
                                         Criar nova requisição
                                     </button>
                                 )}
@@ -2033,9 +2033,9 @@ export default function Requisicoes() {
                                             <tbody className="divide-y divide-slate-100/50">
                                                 {items.map(item => (
                                                     <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
-                                                        <td className="px-6 py-4 text-sm font-medium text-slate-200">{item.descricao}</td>
+                                                        <td className="px-6 py-4 text-sm font-medium text-slate-800">{item.descricao}</td>
                                                         <td className="px-4 py-4 text-center">
-                                                            <span className="px-2.5 py-1 bg-white/90 rounded-lg text-xs font-mono font-bold text-blue-400 border border-slate-200">
+                                                            <span className="px-2.5 py-1 bg-blue-50 rounded-lg text-xs font-mono font-bold text-blue-700 border border-blue-200">
                                                                 {item.quantidade}
                                                             </span>
                                                         </td>
@@ -2376,7 +2376,7 @@ export default function Requisicoes() {
                                                         <div className="text-xs text-slate-400 font-mono">
                                                             {inv.valor_liquido.toFixed(2)} € + {(inv.iva_taxa * 100).toFixed(0)}% IVA
                                                         </div>
-                                                        <div className="text-sm text-emerald-400 font-mono font-bold">
+                                                        <div className="text-sm text-emerald-700 font-mono font-bold">
                                                             = {inv.valor_total.toFixed(2)} €
                                                         </div>
                                                     </div>
