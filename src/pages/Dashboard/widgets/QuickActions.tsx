@@ -1,4 +1,4 @@
-import { PlusCircle, UserPlus, MapPin, Truck } from 'lucide-react';
+import { PlusCircle, UserPlus, Truck } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { usePermissions } from '../../../contexts/PermissionsContext';
 
@@ -27,12 +27,6 @@ export default function QuickActions({ onNewService, onNewClient, onNewVehicle }
             color: 'emerald',
             onClick: onNewClient,
             show: hasAccess(userRole, 'clientes')
-        },
-        {
-            label: 'Novo Local',
-            icon: MapPin,
-            color: 'amber',
-            show: hasAccess(userRole, 'locais')
         },
         {
             label: 'Nova Viatura',

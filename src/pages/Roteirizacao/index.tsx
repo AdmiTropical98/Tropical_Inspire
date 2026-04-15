@@ -1,12 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
     MapPin, Search, Navigation,
     GripVertical, Trash2, ArrowRight,
     Save, RefreshCw, Car, CheckCircle2,
-    Clock, Fuel, Euro, AlertCircle, History, X, Route
+    Clock, Fuel, Euro, AlertCircle, History, X, Route, Crosshair
 } from 'lucide-react';
 import {
     DndContext,
@@ -29,45 +26,74 @@ import { CSS } from '@dnd-kit/utilities';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 
-// Fix Leaflet Icons
-import details from 'leaflet/dist/images/marker-icon.png';
-import shadow from 'leaflet/dist/images/marker-shadow.png';
+const HERE_API_KEY = String(import.meta.env.VITE_HERE_API_KEY || '');
 
-const DefaultIcon = L.icon({
-    iconUrl: details,
-    shadowUrl: shadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+interface RouteStop {
+    id: string;
+    name: string;
+    lat: number;
+    lng: number;
+    type: string;
+}
 
-// Custom Numbered Icon
-const createNumberedIcon = (number: number, isLast: boolean, isFirst: boolean) => {
-    const bgColor = isFirst ? '#22c55e' : (isLast ? '#ef4444' : '#3b82f6');
-    const border = isFirst ? '#16a34a' : (isLast ? '#dc2626' : '#2563eb');
-    return L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="
-            background-color: ${bgColor};
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            font-size: 13px;
-            border: 3px solid ${border};
-            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-            transform: translate(-16px, -16px);
-        ">${number}</div>`,
-        iconSize: [0, 0],
-        iconAnchor: [0, 0]
-    });
-};
+interface RouteSummary {
+    distance: number;
+    time: number;
+    fuel: number;
+    cost: number;
+}
 
-// Sortable Item Component
+interface RoutePoint {
+    lat: number;
+    lng: number;
+}
+
+function parseCoordinateValue(value: unknown): number | null {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === 'string') {
+        const normalized = value.trim().replace(',', '.');
+        if (!normalized) return null;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+}
+
+function normalizeCoordinatePair(latValue: unknown, lngValue: unknown): RoutePoint | null {
+    let lat = parseCoordinateValue(latValue);
+    let lng = parseCoordinateValue(lngValue);
+
+    if (lat === null || lng === null) return null;
+
+    const looksSwapped = (Math.abs(lat) > 90 && Math.abs(lng) <= 90)
+        || (Math.abs(lat) < 25 && Math.abs(lng) > 25);
+
+    if (looksSwapped) {
+        [lat, lng] = [lng, lat];
+    }
+
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+        return null;
+    }
+
+    return { lat, lng };
+}
+
+function getItemCoordinates(item: any): RoutePoint | null {
+    return normalizeCoordinatePair(
+        item?.points?.[0]?.lat ?? item?.position?.lat ?? item?.center?.lat ?? item?.lat ?? item?.latitude ?? item?.y,
+        item?.points?.[0]?.lng ?? item?.position?.lng ?? item?.center?.lng ?? item?.lng ?? item?.longitude ?? item?.x
+    );
+}
+
+function formatHereWaypoint(point: RoutePoint) {
+    return `${point.lat},${point.lng}`;
+}
+
 function SortableItem(props: any) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: props.id });
     const style = { transform: CSS.Transform.toString(transform), transition };
@@ -78,174 +104,473 @@ function SortableItem(props: any) {
     );
 }
 
-// Map auto-fit component
-function MapBounds({ points }: { points: { lat: number; lng: number }[] }) {
-    const map = useMap();
-    useEffect(() => {
-        if (points.length > 0) {
-            const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
-            map.fitBounds(bounds, { padding: [60, 60] });
+function normalizePlate(value?: string | null) {
+    return String(value || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+}
+
+function buildStopIcon(index: number, total: number) {
+    const isFirst = index === 0;
+    const isLast = index === total - 1;
+    const bg = isFirst ? '#22c55e' : (isLast ? '#ef4444' : '#2563eb');
+    const border = isFirst ? '#16a34a' : (isLast ? '#dc2626' : '#1d4ed8');
+
+    const el = document.createElement('div');
+    el.style.cssText = 'width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:13px;border:3px solid ' + border + ';box-shadow:0 4px 14px rgba(0,0,0,0.25);background:' + bg + ';';
+    el.innerText = String(index + 1);
+    return new window.H.map.DomIcon(el);
+}
+
+function buildVehicleMarkerEl(registration: string) {
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex;flex-direction:column;align-items:center;';
+    el.innerHTML = `
+        <div style="background:#0f172a;color:white;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:900;border:1px solid rgba(255,255,255,0.2);box-shadow:0 4px 12px rgba(0,0,0,0.4);margin-bottom:5px;white-space:nowrap;">${registration}</div>
+        <div style="width:24px;height:24px;background:#0ea5e9;border:3px solid white;border-radius:50%;box-shadow:0 0 16px rgba(14,165,233,0.65);"></div>
+    `;
+    return el;
+}
+
+function projectToSegment(point: RoutePoint, a: RoutePoint, b: RoutePoint): RoutePoint {
+    const ax = a.lng;
+    const ay = a.lat;
+    const bx = b.lng;
+    const by = b.lat;
+    const px = point.lng;
+    const py = point.lat;
+
+    const abx = bx - ax;
+    const aby = by - ay;
+    const ab2 = abx * abx + aby * aby;
+    if (ab2 === 0) return a;
+
+    const apx = px - ax;
+    const apy = py - ay;
+    const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / ab2));
+    return { lat: ay + aby * t, lng: ax + abx * t };
+}
+
+function distanceMeters(a: RoutePoint, b: RoutePoint) {
+    const R = 6371000;
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const lat1 = a.lat * Math.PI / 180;
+    const lat2 = b.lat * Math.PI / 180;
+
+    const sinDLat = Math.sin(dLat / 2);
+    const sinDLng = Math.sin(dLng / 2);
+    const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+    return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function snapToRoute(point: RoutePoint, path: RoutePoint[]) {
+    if (path.length < 2) return { snapped: point, distance: Infinity };
+
+    let bestPoint = point;
+    let bestDistance = Infinity;
+
+    for (let i = 0; i < path.length - 1; i += 1) {
+        const projected = projectToSegment(point, path[i], path[i + 1]);
+        const d = distanceMeters(point, projected);
+        if (d < bestDistance) {
+            bestDistance = d;
+            bestPoint = projected;
         }
-    }, [points, map]);
-    return null;
-}
-
-// Map resize fixer
-function MapResizer() {
-    const map = useMap();
-    useEffect(() => {
-        setTimeout(() => map.invalidateSize(), 100);
-    }, [map]);
-    return null;
-}
-
-interface RouteStop {
-    id: string;
-    name: string;
-    lat: number;
-    lng: number;
-    type: string;
-}
-
-interface OSRMRoute {
-    geometry: { coordinates: [number, number][] };
-    distance: number; // meters
-    duration: number; // seconds
-    legs: { steps: any[] }[];
-}
-
-// Compute the centroid of a geofence, handling polygons and circle geofences
-function getGeofenceCentroid(g: { latitude?: number; longitude?: number; points?: { lat: number; lng: number }[]; polygon_wkt?: string }): { lat: number; lng: number } | null {
-    // Try direct coordinates — validate they look like real geographic coords
-    const isValid = (lat: number, lng: number) => lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !(lat === 0 && lng === 0);
-    const isReasonable = (lat: number, lng: number) => lat >= 25 && lat <= 72 && lng >= -30 && lng <= 45; // Europe + N.Africa
-
-    if (g.latitude && g.longitude && isValid(g.latitude, g.longitude) && isReasonable(g.latitude, g.longitude)) {
-        return { lat: g.latitude, lng: g.longitude };
     }
 
-    // Try centroid from points array
-    if (g.points && g.points.length > 0) {
-        const avgLat = g.points.reduce((s, p) => s + p.lat, 0) / g.points.length;
-        const avgLng = g.points.reduce((s, p) => s + p.lng, 0) / g.points.length;
-        if (isValid(avgLat, avgLng) && isReasonable(avgLat, avgLng)) return { lat: avgLat, lng: avgLng };
-        // Try swapped (some APIs return lng,lat order)
-        const avgLatSwap = g.points.reduce((s, p) => s + p.lng, 0) / g.points.length;
-        const avgLngSwap = g.points.reduce((s, p) => s + p.lat, 0) / g.points.length;
-        if (isValid(avgLatSwap, avgLngSwap) && isReasonable(avgLatSwap, avgLngSwap)) return { lat: avgLatSwap, lng: avgLngSwap };
+    return { snapped: bestPoint, distance: bestDistance };
+}
+
+function decodeSectionPolyline(polyline: string): RoutePoint[] {
+    const H = window.H;
+    if (!H || !polyline) return [];
+
+    const line = H.geo.LineString.fromFlexPolyline(polyline);
+    const points: RoutePoint[] = [];
+
+    for (let i = 0; i < line.getPointCount(); i += 1) {
+        const p = line.extractPoint(i);
+        points.push({ lat: p.lat, lng: p.lng });
     }
 
-    // Try parsing WKT: POLYGON((lng lat, lng lat, ...))
-    if (g.polygon_wkt) {
-        const matches = g.polygon_wkt.match(/[-\d.]+\s+[-\d.]+/g);
-        if (matches && matches.length > 0) {
-            const pairs = matches.map(m => { const [a, b] = m.trim().split(/\s+/); return [parseFloat(a), parseFloat(b)]; });
-            // WKT is typically (longitude latitude)
-            const avgLng = pairs.reduce((s, p) => s + p[0], 0) / pairs.length;
-            const avgLat = pairs.reduce((s, p) => s + p[1], 0) / pairs.length;
-            if (isValid(avgLat, avgLng) && isReasonable(avgLat, avgLng)) return { lat: avgLat, lng: avgLng };
-            // Try reversed (latitude longitude)
-            const avgLat2 = pairs.reduce((s, p) => s + p[0], 0) / pairs.length;
-            const avgLng2 = pairs.reduce((s, p) => s + p[1], 0) / pairs.length;
-            if (isValid(avgLat2, avgLng2) && isReasonable(avgLat2, avgLng2)) return { lat: avgLat2, lng: avgLng2 };
-        }
-    }
-
-    return null;
+    return points;
 }
 
 export default function Roteirizacao() {
-    const { locais, motoristas, viaturas, saveRoute, registerLog, rotasPlaneadas, updateRouteStatus, geofences } = useWorkshop();
+    const {
+        locais,
+        motoristas,
+        viaturas,
+        saveRoute,
+        registerLog,
+        rotasPlaneadas,
+        updateRouteStatus,
+        geofences,
+        cartrackVehicles
+    } = useWorkshop();
     const { currentUser } = useAuth();
+
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<any>(null);
+    const platformRef = useRef<any>(null);
+    const routeGroupRef = useRef<any>(null);
+    const stopMarkerGroupRef = useRef<any>(null);
+    const navMarkerRef = useRef<any>(null);
+    const routePathRef = useRef<RoutePoint[]>([]);
+    const lastRerouteAtRef = useRef(0);
 
     const [selectedMotorista, setSelectedMotorista] = useState('');
     const [selectedViatura, setSelectedViatura] = useState('');
+    const [trackedVehicleId, setTrackedVehicleId] = useState('');
     const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [geocodeResults, setGeocodeResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     const searchDebounceRef = useRef<any>(null);
+
     const [activeTab, setActiveTab] = useState<'locais' | 'ativas'>('locais');
     const [isSaving, setIsSaving] = useState(false);
     const [isRouting, setIsRouting] = useState(false);
-    const [osrmRoute, setOsrmRoute] = useState<OSRMRoute | null>(null);
     const [routeError, setRouteError] = useState<string | null>(null);
+    const [navigationEnabled, setNavigationEnabled] = useState(false);
+    const [autoCenterNav, setAutoCenterNav] = useState(true);
+    const [isOffRoute, setIsOffRoute] = useState(false);
+
+    const [routePath, setRoutePath] = useState<RoutePoint[]>([]);
+    const [summary, setSummary] = useState<RouteSummary>({ distance: 0, time: 0, fuel: 0, cost: 0 });
 
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const defaultCenter: [number, number] = [38.7223, -9.1393];
+    const defaultCenter = { lat: 38.7223, lng: -9.1393 };
 
-    // OSRM real road routing
-    const fetchOSRMRoute = useCallback(async (stops: RouteStop[]) => {
-        if (stops.length < 2) { setOsrmRoute(null); return; }
+    const trackedVehicle = useMemo(() => {
+        if (!trackedVehicleId) return null;
+        return cartrackVehicles.find(v => String(v.id) === String(trackedVehicleId)) || null;
+    }, [cartrackVehicles, trackedVehicleId]);
+
+    useEffect(() => {
+        if (!selectedViatura || trackedVehicleId) return;
+        const appVehicle = viaturas.find(v => v.id === selectedViatura);
+        if (!appVehicle) return;
+
+        const target = normalizePlate(appVehicle.matricula);
+        if (!target) return;
+
+        const match = cartrackVehicles.find(v => normalizePlate(v.registration) === target);
+        if (match) setTrackedVehicleId(match.id);
+    }, [selectedViatura, trackedVehicleId, viaturas, cartrackVehicles]);
+
+    const initializeMap = useCallback(() => {
+        if (mapRef.current || !mapContainerRef.current || !window.H || !HERE_API_KEY) return;
+
+        const H = window.H;
+        const platform = new H.service.Platform({ apikey: HERE_API_KEY });
+        platformRef.current = platform;
+
+        const layers = platform.createDefaultLayers();
+        const map = new H.Map(mapContainerRef.current, layers.vector.normal.map, {
+            center: defaultCenter,
+            zoom: 11
+        });
+
+        mapRef.current = map;
+        new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+        H.ui.UI.createDefault(map, layers, 'pt-PT');
+
+        routeGroupRef.current = new H.map.Group();
+        stopMarkerGroupRef.current = new H.map.Group();
+
+        map.addObject(routeGroupRef.current);
+        map.addObject(stopMarkerGroupRef.current);
+
+        map.addEventListener('tap', async (evt: any) => {
+            const target = evt.target;
+            if (target && target !== map) return;
+
+            const pointer = evt.currentPointer;
+            const coord = map.screenToGeo(pointer.viewportX, pointer.viewportY);
+            if (!coord) return;
+
+            const name = await (async () => {
+                try {
+                    const response = await fetch(
+                        `https://revgeocode.search.hereapi.com/v1/revgeocode?at=${coord.lat},${coord.lng}&lang=pt-PT&limit=1&apikey=${HERE_API_KEY}`
+                    );
+                    const data = await response.json();
+                    return data?.items?.[0]?.title || `Ponto ${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`;
+                } catch {
+                    return `Ponto ${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`;
+                }
+            })();
+
+            setRouteStops(prev => [
+                ...prev,
+                {
+                    id: crypto.randomUUID(),
+                    name,
+                    lat: coord.lat,
+                    lng: coord.lng,
+                    type: 'mapa'
+                }
+            ]);
+        });
+
+        const onResize = () => map.getViewPort().resize();
+        window.addEventListener('resize', onResize);
+
+        setTimeout(() => map.getViewPort().resize(), 120);
+    }, []);
+
+    useEffect(() => {
+        initializeMap();
+        return () => {
+            if (mapRef.current) {
+                mapRef.current.dispose();
+                mapRef.current = null;
+            }
+        };
+    }, [initializeMap]);
+
+    const fetchHereRoute = useCallback(async (stops: RouteStop[], originOverride?: RoutePoint) => {
+        if (stops.length < 2 || !HERE_API_KEY) {
+            setRoutePath([]);
+            setSummary({ distance: 0, time: 0, fuel: 0, cost: 0 });
+            return;
+        }
+
         setIsRouting(true);
         setRouteError(null);
+
         try {
-            const coords = stops.map(s => `${s.lng},${s.lat}`).join(';');
-            const res = await fetch(
-                `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=true`
-            );
-            const data = await res.json();
-            if (data.code === 'Ok' && data.routes?.length > 0) {
-                setOsrmRoute(data.routes[0]);
-            } else {
-                setRouteError('Não foi possível calcular a rota. Verifique os pontos selecionados.');
-                setOsrmRoute(null);
+            const normalizedStops = stops.map(stop => ({
+                stop,
+                coords: getItemCoordinates(stop)
+            }));
+            const hasInvalidStop = normalizedStops.some(entry => entry.coords === null);
+            const origin = originOverride
+                ? normalizeCoordinatePair(originOverride.lat, originOverride.lng)
+                : normalizedStops[0]?.coords ?? null;
+            const destination = normalizedStops[normalizedStops.length - 1]?.coords ?? null;
+            const viaStops = normalizedStops.slice(1, -1).map(entry => entry.coords).filter((coords): coords is RoutePoint => coords !== null);
+
+            if (hasInvalidStop || !origin || !destination) {
+                setRouteError('Os pontos selecionados não têm coordenadas válidas para cálculo de rota.');
+                setRoutePath([]);
+                setSummary({ distance: 0, time: 0, fuel: 0, cost: 0 });
+                return;
             }
-        } catch {
-            setRouteError('Erro ao contactar o serviço de rotas.');
-            setOsrmRoute(null);
+
+            const params = new URLSearchParams();
+            params.set('transportMode', 'car');
+            params.set('origin', formatHereWaypoint(origin));
+            params.set('destination', formatHereWaypoint(destination));
+            params.set('return', 'polyline,summary');
+            params.set('apikey', HERE_API_KEY);
+            viaStops.forEach(coords => params.append('via', formatHereWaypoint(coords)));
+
+            const response = await fetch(`https://router.hereapi.com/v8/routes?${params.toString()}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error('[HERE Routing] API error:', data);
+                throw new Error(data?.error_description || data?.error || data?.title || 'HERE routing failed');
+            }
+
+            const route = data?.routes?.[0];
+            if (!route || !route.sections?.length) {
+                console.warn('[HERE Routing] No route found for waypoints:', {
+                    origin,
+                    destination,
+                    via: viaStops,
+                    data
+                });
+                setRouteError('Não foi possível calcular a rota para os pontos selecionados.');
+                setRoutePath([]);
+                setSummary({ distance: 0, time: 0, fuel: 0, cost: 0 });
+                return;
+            }
+
+            const points: RoutePoint[] = route.sections.flatMap((section: any) => decodeSectionPolyline(section.polyline || ''));
+            const totalDistance = route.sections.reduce((sum: number, section: any) => sum + Number(section.summary?.length || 0), 0);
+            const totalDuration = route.sections.reduce((sum: number, section: any) => sum + Number(section.summary?.duration || 0), 0);
+
+            const distanceKm = totalDistance / 1000;
+            const minutes = totalDuration / 60;
+
+            setSummary({
+                distance: distanceKm,
+                time: minutes,
+                fuel: (distanceKm / 100) * 8.5,
+                cost: (distanceKm / 100) * 8.5 * 1.62
+            });
+            setRoutePath(points);
+        } catch (error) {
+            console.error('[HERE Routing] Route calculation failed:', error);
+            setRouteError('Erro ao contactar o serviço HERE Routing.');
+            setRoutePath([]);
+            setSummary({ distance: 0, time: 0, fuel: 0, cost: 0 });
         } finally {
             setIsRouting(false);
         }
     }, []);
 
-    // Auto-calculate route when stops change
     useEffect(() => {
         if (routeStops.length >= 2) {
-            const t = setTimeout(() => fetchOSRMRoute(routeStops), 600);
-            return () => clearTimeout(t);
-        } else {
-            setOsrmRoute(null);
+            const timer = setTimeout(() => {
+                void fetchHereRoute(routeStops);
+            }, 450);
+            return () => clearTimeout(timer);
         }
-    }, [routeStops, fetchOSRMRoute]);
 
-    // Summary from OSRM real data
-    const summary = osrmRoute ? {
-        distance: osrmRoute.distance / 1000,
-        time: osrmRoute.duration / 60,
-        fuel: (osrmRoute.distance / 1000 / 100) * 8.5,
-        cost: (osrmRoute.distance / 1000 / 100) * 8.5 * 1.62,
-    } : { distance: 0, time: 0, fuel: 0, cost: 0 };
+        setRoutePath([]);
+        setSummary({ distance: 0, time: 0, fuel: 0, cost: 0 });
+        setRouteError(null);
+    }, [routeStops, fetchHereRoute]);
 
-    // Route polyline from OSRM geometry
-    const routePolyline: [number, number][] = osrmRoute
-        ? osrmRoute.geometry.coordinates.map(([lng, lat]) => [lat, lng])
-        : [];
+    useEffect(() => {
+        const H = window.H;
+        if (!H || !mapRef.current || !routeGroupRef.current) return;
+
+        const routeGroup = routeGroupRef.current;
+        routeGroup.removeObjects(routeGroup.getObjects(true));
+        routePathRef.current = routePath;
+
+        if (routePath.length < 2) return;
+
+        const borderLine = new H.geo.LineString();
+        const mainLine = new H.geo.LineString();
+
+        routePath.forEach(point => {
+            borderLine.pushPoint(point);
+            mainLine.pushPoint(point);
+        });
+
+        const borderPolyline = new H.map.Polyline(borderLine, {
+            style: { strokeColor: 'rgba(255,255,255,0.7)', lineWidth: 8 }
+        });
+        const mainPolyline = new H.map.Polyline(mainLine, {
+            style: { strokeColor: '#2563eb', lineWidth: 5 }
+        });
+
+        routeGroup.addObject(borderPolyline);
+        routeGroup.addObject(mainPolyline);
+
+        const bounds = routeGroup.getBoundingBox();
+        if (bounds) {
+            mapRef.current.setLookAtData({ bounds }, true);
+        }
+    }, [routePath]);
+
+    useEffect(() => {
+        const H = window.H;
+        if (!H || !mapRef.current || !stopMarkerGroupRef.current) return;
+
+        const group = stopMarkerGroupRef.current;
+        group.removeObjects(group.getObjects(true));
+
+        const markers = routeStops.map((stop, index) => {
+            const marker = new H.map.DomMarker({ lat: stop.lat, lng: stop.lng }, {
+                icon: buildStopIcon(index, routeStops.length),
+                data: stop
+            });
+            marker.addEventListener('tap', () => {
+                const HRef = window.H;
+                if (!HRef || !mapRef.current) return;
+                const bubble = new HRef.ui.InfoBubble({ lat: stop.lat, lng: stop.lng }, {
+                    content: `<div style="font-size:12px;font-weight:700;">${stop.name}</div>`
+                });
+                const ui = HRef.ui.UI.createDefault(mapRef.current, platformRef.current?.createDefaultLayers?.() || undefined, 'pt-PT');
+                ui.addBubble(bubble);
+                setTimeout(() => bubble.close(), 1600);
+            });
+            return marker;
+        });
+
+        group.addObjects(markers);
+    }, [routeStops]);
+
+    useEffect(() => {
+        if (!navigationEnabled || !trackedVehicle || !mapRef.current || !window.H) return;
+
+        const currentPosition = { lat: trackedVehicle.latitude, lng: trackedVehicle.longitude };
+        if (!currentPosition.lat || !currentPosition.lng) return;
+
+        const { snapped, distance } = snapToRoute(currentPosition, routePathRef.current);
+
+        if (!navMarkerRef.current) {
+            navMarkerRef.current = new window.H.map.DomMarker(snapped, {
+                icon: new window.H.map.DomIcon(buildVehicleMarkerEl(trackedVehicle.registration || 'VIATURA'))
+            });
+            mapRef.current.addObject(navMarkerRef.current);
+        } else {
+            navMarkerRef.current.setGeometry(snapped);
+        }
+
+        if (autoCenterNav) {
+            mapRef.current.setCenter(snapped, true);
+            mapRef.current.setZoom(16, true);
+        }
+
+        const deviated = Number.isFinite(distance) && distance > 120;
+        setIsOffRoute(deviated);
+
+        const now = Date.now();
+        if (deviated && routeStops.length >= 2 && now - lastRerouteAtRef.current > 12000) {
+            lastRerouteAtRef.current = now;
+            void fetchHereRoute(routeStops, currentPosition);
+        }
+    }, [navigationEnabled, autoCenterNav, trackedVehicle?.latitude, trackedVehicle?.longitude, trackedVehicle?.id, fetchHereRoute, routeStops]);
+
+    useEffect(() => {
+        if (!navigationEnabled || !mapRef.current || !navMarkerRef.current) return;
+
+        if (!trackedVehicle) {
+            mapRef.current.removeObject(navMarkerRef.current);
+            navMarkerRef.current = null;
+            setIsOffRoute(false);
+        }
+    }, [navigationEnabled, trackedVehicle]);
+
+    useEffect(() => {
+        if (navigationEnabled) return;
+        if (mapRef.current && navMarkerRef.current) {
+            mapRef.current.removeObject(navMarkerRef.current);
+            navMarkerRef.current = null;
+        }
+        setIsOffRoute(false);
+    }, [navigationEnabled]);
 
     const handleAddStop = (item: any) => {
-        if (!item.latitude || !item.longitude) return;
+        const coords = getItemCoordinates(item);
+        if (!coords) {
+            console.warn('[Roteirização] Ignored POI with invalid coordinates:', item);
+            return;
+        }
+
         const stop: RouteStop = {
             id: crypto.randomUUID(),
             name: item.nome || item.name,
-            lat: item.latitude,
-            lng: item.longitude,
-            type: item.source === 'geofence' ? 'pesquisa' : 'local',
+            lat: coords.lat,
+            lng: coords.lng,
+            type: item.source === 'geofence' ? 'pesquisa' : 'local'
         };
         setRouteStops(prev => [...prev, stop]);
     };
 
     const handleAddGeocodedStop = (result: any) => {
+        const coords = getItemCoordinates(result);
+        if (!coords) return;
+
         const stop: RouteStop = {
             id: `geo-${Date.now()}`,
-            name: result.display_name.split(',').slice(0, 2).join(',').trim(),
-            lat: parseFloat(result.lat),
-            lng: parseFloat(result.lon),
-            type: 'pesquisa',
+            name: result.title || result.address?.label || `${result.position?.lat}, ${result.position?.lng}`,
+            lat: coords.lat,
+            lng: coords.lng,
+            type: 'pesquisa'
         };
         setRouteStops(prev => [...prev, stop]);
         setSearchTerm('');
@@ -282,10 +607,8 @@ export default function Roteirizacao() {
         const first = routeStops[0];
         const last = routeStops[routeStops.length - 1];
         const middle = routeStops.slice(1, -1);
+        if (middle.length === 0) return;
 
-        if (middle.length === 0) return; // Only 2 stops, nothing to optimize
-
-        // Brute-force permutations for ≤7 middle stops (≤5040 combos), nearest-neighbour for more
         const permute = (arr: RouteStop[]): RouteStop[][] => {
             if (arr.length <= 1) return [arr];
             return arr.flatMap((el, i) => permute([...arr.slice(0, i), ...arr.slice(i + 1)]).map(rest => [el, ...rest]));
@@ -299,14 +622,19 @@ export default function Roteirizacao() {
                 return routeDist(candidate) < routeDist([first, ...best, last]) ? perm : best;
             }, middle);
         } else {
-            // Nearest-neighbour keeping first and last fixed
             const optimized: RouteStop[] = [];
             let remaining = [...middle];
             let current = first;
             while (remaining.length > 0) {
                 let nearestIdx = 0;
                 let minDist = Infinity;
-                remaining.forEach((s, i) => { const d = haversine(current, s); if (d < minDist) { minDist = d; nearestIdx = i; } });
+                remaining.forEach((s, i) => {
+                    const d = haversine(current, s);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearestIdx = i;
+                    }
+                });
                 optimized.push(remaining[nearestIdx]);
                 current = remaining[nearestIdx];
                 remaining.splice(nearestIdx, 1);
@@ -315,26 +643,6 @@ export default function Roteirizacao() {
         }
 
         setRouteStops([first, ...bestOrder, last]);
-    };
-
-    const handleExportGoogleMaps = () => {
-        if (routeStops.length === 0) return;
-        const origin = `${routeStops[0].lat},${routeStops[0].lng}`;
-        if (routeStops.length === 1) {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${origin}`, '_blank');
-            return;
-        }
-        const last = routeStops[routeStops.length - 1];
-        const destination = `${last.lat},${last.lng}`;
-        const waypoints = routeStops.slice(1, -1).map(s => `${s.lat},${s.lng}`).join('|');
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
-        window.open(url, '_blank');
-    };
-
-    const handleExportWaze = () => {
-        if (routeStops.length === 0) return;
-        const last = routeStops[routeStops.length - 1];
-        window.open(`https://waze.com/ul?ll=${last.lat},${last.lng}&navigate=yes`, '_blank');
     };
 
     const handleSaveRoute = async () => {
@@ -352,6 +660,7 @@ export default function Roteirizacao() {
                 rota_json: routeStops,
                 estado: 'planeada'
             });
+
             if (success && data) {
                 await registerLog({
                     utilizador: currentUser?.email || 'Sistema',
@@ -371,50 +680,67 @@ export default function Roteirizacao() {
     };
 
     const handleFinalizeRoute = async (routeId: string, plannedDist: number) => {
-        const realDist = prompt(`Distância real percorrida (KM) — estimativa: ${plannedDist.toFixed(1)}km:`, plannedDist.toFixed(1));
+        const realDist = prompt(`Distância real percorrida (KM) - estimativa: ${plannedDist.toFixed(1)}km:`, plannedDist.toFixed(1));
         if (realDist === null) return;
         const distance = parseFloat(realDist);
         const deviation = Math.abs(distance - plannedDist) / plannedDist;
         let justification = '';
         if (deviation > 0.25) {
             justification = prompt('Desvio >25% detetado. Introduza uma justificação:', '') || '';
-            if (!justification) { alert('Justificação obrigatória para desvios >25%.'); return; }
+            if (!justification) {
+                alert('Justificação obrigatória para desvios >25%.');
+                return;
+            }
         }
         try {
             await updateRouteStatus(routeId, 'concluida', distance, justification);
             alert('Rota concluída!');
-        } catch { alert('Erro ao concluir rota.'); }
+        } catch {
+            alert('Erro ao concluir rota.');
+        }
     };
 
     const handleSearchChange = (value: string) => {
         setSearchTerm(value);
         setShowDropdown(value.length > 1);
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-        if (value.length < 3) { setGeocodeResults([]); return; }
+        if (value.length < 3) {
+            setGeocodeResults([]);
+            return;
+        }
         setIsSearching(true);
+
         searchDebounceRef.current = setTimeout(async () => {
             try {
-                const res = await fetch(
-                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=6&countrycodes=pt&accept-language=pt`,
-                    { headers: { 'Accept-Language': 'pt' } }
-                );
-                setGeocodeResults(await res.json());
-            } catch { setGeocodeResults([]); }
-            finally { setIsSearching(false); }
-        }, 500);
+                const response = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(value)}&in=countryCode:PRT&limit=6&lang=pt-PT&apiKey=${HERE_API_KEY}`);
+                const data = await response.json();
+                setGeocodeResults(data?.items || []);
+            } catch {
+                setGeocodeResults([]);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 450);
     };
 
-    // Combine local POIs + Cartrack geofences with validated/computed coordinates
     const cartrackPOIs = geofences
         .map(g => {
-            const center = getGeofenceCentroid(g);
-            if (!center) return null;
-            return { id: g.id, nome: g.name, latitude: center.lat, longitude: center.lng, tipo: g.group_name || 'cartrack', source: 'geofence' as const };
+            const coords = getItemCoordinates(g);
+            if (!coords) return null;
+            return {
+                id: g.id,
+                nome: g.name,
+                latitude: coords.lat,
+                longitude: coords.lng,
+                tipo: g.group_name || 'cartrack',
+                source: 'geofence' as const
+            };
         })
         .filter((g): g is NonNullable<typeof g> => g !== null);
+
     const allPOIs = [
         ...locais.map(l => ({ ...l, source: 'local' as const })),
-        ...cartrackPOIs,
+        ...cartrackPOIs
     ];
     const filteredPOIs = allPOIs.filter(p => p.nome?.toLowerCase().includes(searchTerm.toLowerCase()));
     const activeRoutes = rotasPlaneadas.filter(r => r.estado === 'planeada');
@@ -428,10 +754,7 @@ export default function Roteirizacao() {
 
     return (
         <div className="flex h-full w-full overflow-hidden">
-            {/* ── LEFT SIDEBAR ── */}
-            <div className="w-[360px] shrink-0 flex flex-col bg-white border-r border-slate-200 shadow-lg z-10 overflow-hidden">
-
-                {/* Header */}
+            <div className="w-[380px] shrink-0 flex flex-col bg-white border-r border-slate-200 shadow-lg z-10 overflow-hidden">
                 <div className="px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0">
@@ -439,14 +762,15 @@ export default function Roteirizacao() {
                         </div>
                         <div>
                             <h1 className="text-sm font-extrabold text-slate-900 uppercase tracking-tight leading-none">Roteirização</h1>
-                            <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mt-0.5">Planeador de Trajetos</p>
+                            <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mt-0.5">HERE Navigation Mode</p>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+
+                    <div className="grid grid-cols-2 gap-2 mb-2">
                         <div>
                             <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Motorista</label>
                             <select
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none"
                                 value={selectedMotorista}
                                 onChange={e => setSelectedMotorista(e.target.value)}
                             >
@@ -457,7 +781,7 @@ export default function Roteirizacao() {
                         <div>
                             <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Viatura</label>
                             <select
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none"
                                 value={selectedViatura}
                                 onChange={e => setSelectedViatura(e.target.value)}
                             >
@@ -466,16 +790,50 @@ export default function Roteirizacao() {
                             </select>
                         </div>
                     </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                        <div>
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Viatura Cartrack</label>
+                            <select
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none"
+                                value={trackedVehicleId}
+                                onChange={e => setTrackedVehicleId(e.target.value)}
+                            >
+                                <option value="">Selecionar viatura para navegação</option>
+                                {cartrackVehicles
+                                    .filter(v => v.latitude && v.longitude)
+                                    .sort((a, b) => a.registration.localeCompare(b.registration))
+                                    .map(v => (
+                                        <option key={v.id} value={v.id}>{v.registration}</option>
+                                    ))}
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => setNavigationEnabled(v => !v)}
+                                disabled={!trackedVehicleId || routeStops.length < 2}
+                                className={`py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition ${navigationEnabled ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'} disabled:opacity-40`}
+                            >
+                                {navigationEnabled ? 'Navegação ON' : 'Navegação OFF'}
+                            </button>
+                            <button
+                                onClick={() => setAutoCenterNav(v => !v)}
+                                disabled={!navigationEnabled}
+                                className={`py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition ${autoCenterNav ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'} disabled:opacity-40`}
+                            >
+                                Auto-center
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Search box */}
                 <div className="px-4 pt-3 pb-2 shrink-0">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Pesquisar morada, local, POI..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-xs"
                             value={searchTerm}
                             onChange={e => handleSearchChange(e.target.value)}
                             onFocus={() => searchTerm.length > 1 && setShowDropdown(true)}
@@ -491,6 +849,7 @@ export default function Roteirizacao() {
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         )}
+
                         {showDropdown && (filteredPOIs.length > 0 || geocodeResults.length > 0) && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl overflow-hidden z-50 shadow-2xl max-h-64 overflow-y-auto">
                                 {filteredPOIs.slice(0, 4).map(poi => (
@@ -502,7 +861,7 @@ export default function Roteirizacao() {
                                         </div>
                                         <div>
                                             <div className="text-xs text-slate-800 font-semibold">{poi.nome}</div>
-                                            <div className="text-[9px] text-slate-400">{poi.source === 'geofence' ? '🛰 Cartrack' : '📍 Local'} • {poi.tipo}</div>
+                                            <div className="text-[9px] text-slate-400">{poi.source === 'geofence' ? 'Cartrack' : 'Local'} - {poi.tipo}</div>
                                         </div>
                                     </button>
                                 ))}
@@ -514,8 +873,8 @@ export default function Roteirizacao() {
                                             <Search className="w-3 h-3 text-slate-500" />
                                         </div>
                                         <div className="min-w-0">
-                                            <div className="text-xs text-slate-800 font-semibold truncate">{result.display_name.split(',').slice(0, 2).join(',')}</div>
-                                            <div className="text-[9px] text-slate-400 truncate">{result.display_name.split(',').slice(2, 4).join(',')}</div>
+                                            <div className="text-xs text-slate-800 font-semibold truncate">{result.title}</div>
+                                            <div className="text-[9px] text-slate-400 truncate">{result.address?.label || ''}</div>
                                         </div>
                                     </button>
                                 ))}
@@ -524,7 +883,6 @@ export default function Roteirizacao() {
                     </div>
                 </div>
 
-                {/* Stops List */}
                 <div className="px-4 pb-2 shrink-0">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -547,7 +905,7 @@ export default function Roteirizacao() {
                             </div>
                             <div className="text-center">
                                 <p className="text-xs font-semibold text-slate-500">Sem paragens definidas</p>
-                                <p className="text-[10px] text-slate-400 mt-1">Pesquise um local ou selecione um POI abaixo</p>
+                                <p className="text-[10px] text-slate-400 mt-1">Pesquise, clique no mapa, ou use POIs Cartrack</p>
                             </div>
                         </div>
                     ) : (
@@ -561,19 +919,19 @@ export default function Roteirizacao() {
                                             <SortableItem key={stop.id} id={stop.id}>
                                                 <div className={`group flex items-center gap-2.5 p-2.5 rounded-xl border cursor-grab active:cursor-grabbing transition-all hover:shadow-sm ${
                                                     isFirst ? 'bg-emerald-50 border-emerald-200' :
-                                                    isLast && routeStops.length > 1 ? 'bg-red-50 border-red-200' :
-                                                    'bg-white border-slate-200 hover:border-blue-200'
-                                                }`}>
+                                                        isLast && routeStops.length > 1 ? 'bg-red-50 border-red-200' :
+                                                            'bg-white border-slate-200 hover:border-blue-200'
+                                                    }`}>
                                                     <GripVertical className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 text-white ${
                                                         isFirst ? 'bg-emerald-500' :
-                                                        isLast && routeStops.length > 1 ? 'bg-red-500' :
-                                                        'bg-blue-500'
-                                                    }`}>{index + 1}</div>
+                                                            isLast && routeStops.length > 1 ? 'bg-red-500' :
+                                                                'bg-blue-500'
+                                                        }`}>{index + 1}</div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="text-xs font-semibold text-slate-800 truncate">{stop.name}</div>
                                                         <div className="text-[9px] text-slate-400 capitalize">
-                                                            {isFirst ? '🟢 Partida' : isLast && routeStops.length > 1 ? '🔴 Destino' : `⭕ Paragem ${index}`}
+                                                            {isFirst ? 'Partida' : isLast && routeStops.length > 1 ? 'Destino' : `Paragem ${index}`}
                                                         </div>
                                                     </div>
                                                     <button onClick={() => handleRemoveStop(stop.id)}
@@ -590,45 +948,32 @@ export default function Roteirizacao() {
                     )}
                 </div>
 
-                {/* Summary strip */}
-                {osrmRoute && (
+                {routePath.length > 1 && (
                     <div className="mx-4 mb-3 p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shrink-0">
                         <div className="grid grid-cols-4 gap-2">
-                            <div className="text-center">
-                                <div className="text-[8px] font-bold text-blue-200 uppercase">KM</div>
-                                <div className="text-sm font-black text-white">{summary.distance.toFixed(1)}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-[8px] font-bold text-blue-200 uppercase">Tempo</div>
-                                <div className="text-sm font-black text-white">{formatTime(summary.time)}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-[8px] font-bold text-blue-200 uppercase">Litros</div>
-                                <div className="text-sm font-black text-amber-300">{summary.fuel.toFixed(1)}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-[8px] font-bold text-blue-200 uppercase">Custo</div>
-                                <div className="text-sm font-black text-emerald-300">{summary.cost.toFixed(2)}€</div>
-                            </div>
+                            <div className="text-center"><div className="text-[8px] font-bold text-blue-200 uppercase">KM</div><div className="text-sm font-black text-white">{summary.distance.toFixed(1)}</div></div>
+                            <div className="text-center"><div className="text-[8px] font-bold text-blue-200 uppercase">Tempo</div><div className="text-sm font-black text-white">{formatTime(summary.time)}</div></div>
+                            <div className="text-center"><div className="text-[8px] font-bold text-blue-200 uppercase">Litros</div><div className="text-sm font-black text-amber-300">{summary.fuel.toFixed(1)}</div></div>
+                            <div className="text-center"><div className="text-[8px] font-bold text-blue-200 uppercase">Custo</div><div className="text-sm font-black text-emerald-300">{summary.cost.toFixed(2)}EUR</div></div>
                         </div>
                         {isRouting && (
                             <div className="flex items-center justify-center gap-1.5 mt-2">
                                 <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin" />
-                                <span className="text-[9px] text-blue-200 font-semibold">A calcular rota...</span>
+                                <span className="text-[9px] text-blue-200 font-semibold">A calcular rota HERE...</span>
                             </div>
                         )}
                     </div>
                 )}
-                {routeError && (
+
+                {(routeError || isOffRoute) && (
                     <div className="mx-4 mb-3 p-2.5 bg-red-50 border border-red-200 rounded-xl shrink-0">
                         <div className="flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                            <span className="text-[10px] text-red-600 font-semibold">{routeError}</span>
+                            <span className="text-[10px] text-red-600 font-semibold">{routeError || 'Desvio de rota detetado. A recalcular automaticamente...'}</span>
                         </div>
                     </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="px-4 pb-4 space-y-2 shrink-0">
                     <div className="grid grid-cols-2 gap-2">
                         <button onClick={handleOptimize} disabled={routeStops.length < 3}
@@ -642,21 +987,8 @@ export default function Roteirizacao() {
                             {isSaving ? 'A guardar...' : 'Guardar'}
                         </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={handleExportGoogleMaps} disabled={routeStops.length === 0}
-                            className="flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-[11px] font-bold text-white uppercase transition-all disabled:opacity-40 shadow-md shadow-blue-500/20">
-                            <Navigation className="w-3.5 h-3.5" />
-                            Google Maps
-                        </button>
-                        <button onClick={handleExportWaze} disabled={routeStops.length === 0}
-                            className="flex items-center justify-center gap-1.5 py-2.5 bg-cyan-500 hover:bg-cyan-400 rounded-xl text-[11px] font-bold text-white uppercase transition-all disabled:opacity-40 shadow-md shadow-cyan-500/20">
-                            <Navigation className="w-3.5 h-3.5 rotate-45" />
-                            Waze
-                        </button>
-                    </div>
                 </div>
 
-                {/* POI / Active routes tabs */}
                 <div className="border-t border-slate-100 flex flex-col shrink-0" style={{ height: '220px' }}>
                     <div className="flex gap-1 px-4 pt-3 pb-2">
                         {(['locais', 'ativas'] as const).map(tab => (
@@ -675,9 +1007,7 @@ export default function Roteirizacao() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="text-xs font-semibold text-slate-700 truncate group-hover:text-blue-700">{poi.nome}</div>
-                                    <div className="text-[9px] text-slate-400 capitalize flex items-center gap-1">
-                                        {poi.source === 'geofence' ? '🛰 Cartrack' : '📍 Local'} • {poi.tipo}
-                                    </div>
+                                    <div className="text-[9px] text-slate-400 capitalize flex items-center gap-1">{poi.source === 'geofence' ? 'Cartrack' : 'Local'} - {poi.tipo}</div>
                                 </div>
                                 <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
                             </button>
@@ -697,12 +1027,10 @@ export default function Roteirizacao() {
                                         <div className="min-w-0">
                                             <div className="text-[10px] font-bold text-slate-700 truncate">{route.data}</div>
                                             <div className="text-[9px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                                <Car className="w-3 h-3" />{vtr?.matricula || 'N/A'} • {mot?.nome || 'N/A'}
+                                                <Car className="w-3 h-3" />{vtr?.matricula || 'N/A'} - {mot?.nome || 'N/A'}
                                             </div>
                                         </div>
-                                        <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">
-                                            {route.distancia_estimada.toFixed(0)}km
-                                        </span>
+                                        <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">{route.distancia_estimada.toFixed(0)}km</span>
                                     </div>
                                     <button onClick={() => handleFinalizeRoute(route.id, route.distancia_estimada)}
                                         className="w-full py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white text-[9px] font-bold uppercase rounded-lg border border-emerald-200 hover:border-emerald-600 transition-all flex items-center justify-center gap-1.5">
@@ -711,118 +1039,43 @@ export default function Roteirizacao() {
                                 </div>
                             );
                         })}
-                        {activeTab === 'ativas' && activeRoutes.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-24 gap-2 text-slate-400">
-                                <History className="w-5 h-5 opacity-30" />
-                                <p className="text-[10px] font-semibold">Nenhuma rota ativa</p>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
 
-            {/* ── MAP AREA ── */}
-            <div className="flex-1 relative overflow-hidden">
-                <MapContainer center={defaultCenter} zoom={11} className="h-full w-full outline-none" zoomControl={false}>
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                    />
-
-                    {/* Real OSRM route geometry */}
-                    {routePolyline.length > 1 && (
-                        <>
-                            <Polyline positions={routePolyline} color="#ffffff" weight={7} opacity={0.6} />
-                            <Polyline positions={routePolyline} color="#2563eb" weight={4} opacity={0.9} />
-                        </>
-                    )}
-
-                    {/* Markers */}
-                    {routeStops.map((stop, index) => (
-                        <Marker key={stop.id} position={[stop.lat, stop.lng]}
-                            icon={createNumberedIcon(index + 1, index === routeStops.length - 1, index === 0)}>
-                            <Popup>
-                                <div className="text-sm font-bold text-slate-800">{stop.name}</div>
-                                <div className="text-[10px] text-slate-400 mt-0.5">
-                                    {index === 0 ? 'Ponto de partida' : index === routeStops.length - 1 ? 'Destino final' : `Paragem ${index}`}
-                                </div>
-                            </Popup>
-                        </Marker>
-                    ))}
-
-                    <MapBounds points={routeStops} />
-                    <MapResizer />
-                </MapContainer>
-
-                {/* Computing overlay */}
-                {isRouting && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-full border border-blue-100 shadow-lg flex items-center gap-2.5">
-                        <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                        <span className="text-xs font-semibold text-blue-700">A calcular melhor trajeto...</span>
+            <div className="flex-1 relative overflow-hidden bg-slate-100">
+                {!HERE_API_KEY && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-xs text-red-600 font-semibold">
+                        HERE_API_KEY em falta.
                     </div>
                 )}
 
-                {/* Floating stats card (top-right) */}
-                {routeStops.length > 0 && (
-                    <div className="absolute top-4 right-4 z-[1000] w-[240px]">
-                        <div className="bg-white/96 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-                            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Resumo do Percurso</span>
-                                <div className={`w-2 h-2 rounded-full ${osrmRoute ? 'bg-emerald-400' : 'bg-white/30'} ${isRouting ? 'animate-pulse' : ''}`} />
-                            </div>
-                            <div className="p-4 grid grid-cols-2 gap-3">
-                                <div className="flex items-start gap-2">
-                                    <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
-                                        <Navigation className="w-3.5 h-3.5 text-blue-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-[9px] font-semibold text-slate-400 uppercase">Distância</div>
-                                        <div className="text-base font-black text-slate-800">{summary.distance.toFixed(1)}<span className="text-[9px] text-slate-400 ml-0.5">km</span></div>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center shrink-0 mt-0.5">
-                                        <Clock className="w-3.5 h-3.5 text-purple-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-[9px] font-semibold text-slate-400 uppercase">Tempo</div>
-                                        <div className="text-base font-black text-slate-800">{formatTime(summary.time)}</div>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0 mt-0.5">
-                                        <Fuel className="w-3.5 h-3.5 text-amber-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-[9px] font-semibold text-slate-400 uppercase">Consumo</div>
-                                        <div className="text-base font-black text-amber-600">{summary.fuel.toFixed(1)}<span className="text-[9px] text-slate-400 ml-0.5">L</span></div>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
-                                        <Euro className="w-3.5 h-3.5 text-emerald-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-[9px] font-semibold text-slate-400 uppercase">Custo Est.</div>
-                                        <div className="text-base font-black text-emerald-600">{summary.cost.toFixed(2)}<span className="text-[9px] text-slate-400 ml-0.5">€</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="px-4 pb-3 pt-0">
-                                <div className="text-[9px] text-slate-400 text-center">
-                                    {routeStops.length} paragem{routeStops.length !== 1 ? 's' : ''} • 8.5L/100km • €1.62/L
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <div ref={mapContainerRef} className="h-full w-full" />
 
-                {/* Empty state hint */}
+                <div className="absolute top-4 right-4 z-[1000] flex gap-2">
+                    <button
+                        onClick={() => setAutoCenterNav(v => !v)}
+                        disabled={!navigationEnabled}
+                        className={`px-3 py-2 rounded-xl text-[11px] font-bold border ${autoCenterNav ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200'} disabled:opacity-40`}
+                    >
+                        <Crosshair className="w-4 h-4 inline mr-1" />
+                        Seguir Viatura
+                    </button>
+                    <button
+                        onClick={() => setNavigationEnabled(v => !v)}
+                        disabled={!trackedVehicleId || routeStops.length < 2}
+                        className={`px-3 py-2 rounded-xl text-[11px] font-bold border ${navigationEnabled ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-700 border-slate-200'} disabled:opacity-40`}
+                    >
+                        <Navigation className="w-4 h-4 inline mr-1" />
+                        {navigationEnabled ? 'Navegação Ativa' : 'Iniciar Navegação'}
+                    </button>
+                </div>
+
                 {routeStops.length === 0 && (
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000]">
                         <div className="bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-slate-200 shadow-lg text-center">
-                            <p className="text-xs font-semibold text-slate-600">Adicione paragens na barra lateral para calcular o melhor trajeto</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Usa os POIs Cartrack ou pesquisa qualquer morada</p>
+                            <p className="text-xs font-semibold text-slate-600">Clique no mapa para adicionar paragens rapidamente</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">A rota HERE é recalculada automaticamente ao alterar paragens</p>
                         </div>
                     </div>
                 )}
