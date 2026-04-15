@@ -3,7 +3,7 @@ import {
     MapPin, Search, Navigation,
     GripVertical, Trash2, ArrowRight,
     Save, RefreshCw, Car, CheckCircle2,
-    Clock, Fuel, Euro, AlertCircle, History, X, Route, Crosshair
+    AlertCircle, X, Route, Crosshair
 } from 'lucide-react';
 import {
     DndContext,
@@ -97,9 +97,10 @@ function formatHereWaypoint(point: RoutePoint) {
 }
 
 function getHereBaseLayer(layers: any) {
-    return layers?.vector?.normal?.map
-        || layers?.raster?.normal?.map
+    return layers?.raster?.normal?.map
+        || layers?.vector?.normal?.map
         || layers?.normal?.map
+        || layers?.raster?.satellite?.map
         || null;
 }
 
@@ -274,85 +275,113 @@ export default function Roteirizacao() {
     }, [selectedViatura, trackedVehicleId, viaturas, cartrackVehicles]);
 
     const initializeMap = useCallback(() => {
-        if (mapRef.current || !mapContainerRef.current || !window.H || !HERE_API_KEY) return;
+        if (mapRef.current || !mapContainerRef.current || !HERE_API_KEY) return undefined;
 
-        const H = window.H;
-        const platform = new H.service.Platform({ apikey: HERE_API_KEY });
-        platformRef.current = platform;
+        let cancelled = false;
+        let resizeHandler: (() => void) | null = null;
 
-        const layers = platform.createDefaultLayers();
-        const baseLayer = getHereBaseLayer(layers);
-        if (!baseLayer) return;
+        const tryInit = () => {
+            if (cancelled || mapRef.current || !mapContainerRef.current) return;
 
-        const map = new H.Map(mapContainerRef.current, baseLayer, {
-            center: defaultCenter,
-            zoom: 11
-        });
+            const H = window.H;
+            if (!H) {
+                window.setTimeout(tryInit, 150);
+                return;
+            }
 
-        mapRef.current = map;
-        new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-        H.ui.UI.createDefault(map, layers, 'pt-PT');
-
-        routeGroupRef.current = new H.map.Group();
-        stopMarkerGroupRef.current = new H.map.Group();
-
-        map.addObject(routeGroupRef.current);
-        map.addObject(stopMarkerGroupRef.current);
-
-        map.addEventListener('tap', async (evt: any) => {
-            const target = evt.target;
-            if (target && target !== map) return;
-
-            const pointer = evt.currentPointer;
-            const coord = map.screenToGeo(pointer.viewportX, pointer.viewportY);
-            if (!coord) return;
-
-            const name = await (async () => {
-                try {
-                    const response = await fetch(
-                        `https://revgeocode.search.hereapi.com/v1/revgeocode?at=${coord.lat},${coord.lng}&lang=pt-PT&limit=1&apikey=${HERE_API_KEY}`
-                    );
-                    const data = await response.json();
-                    return data?.items?.[0]?.title || `Ponto ${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`;
-                } catch {
-                    return `Ponto ${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`;
-                }
-            })();
-
-            setRouteStops(prev => [
-                ...prev,
-                {
-                    id: crypto.randomUUID(),
-                    name,
-                    lat: coord.lat,
-                    lng: coord.lng,
-                    type: 'mapa'
-                }
-            ]);
-        });
-
-        const resizeMap = () => {
             try {
-                map.getViewPort().resize();
-            } catch {
-                // Ignore transient resize issues
+                const platform = new H.service.Platform({ apikey: HERE_API_KEY });
+                platformRef.current = platform;
+
+                const layers = platform.createDefaultLayers();
+                const baseLayer = getHereBaseLayer(layers);
+                if (!baseLayer) {
+                    console.error('[Roteirização] HERE base layer indisponível.');
+                    return;
+                }
+
+                const map = new H.Map(mapContainerRef.current, baseLayer, {
+                    center: defaultCenter,
+                    zoom: 11,
+                    pixelRatio: window.devicePixelRatio || 1,
+                    engineType: H.Map.EngineType.P2D
+                });
+
+                mapRef.current = map;
+                new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+                H.ui.UI.createDefault(map, layers, 'pt-PT');
+
+                routeGroupRef.current = new H.map.Group();
+                stopMarkerGroupRef.current = new H.map.Group();
+
+                map.addObject(routeGroupRef.current);
+                map.addObject(stopMarkerGroupRef.current);
+
+                map.addEventListener('tap', async (evt: any) => {
+                    const target = evt.target;
+                    if (target && target !== map) return;
+
+                    const pointer = evt.currentPointer;
+                    const coord = map.screenToGeo(pointer.viewportX, pointer.viewportY);
+                    if (!coord) return;
+
+                    const name = await (async () => {
+                        try {
+                            const response = await fetch(
+                                `https://revgeocode.search.hereapi.com/v1/revgeocode?at=${coord.lat},${coord.lng}&lang=pt-PT&limit=1&apikey=${HERE_API_KEY}`
+                            );
+                            const data = await response.json();
+                            return data?.items?.[0]?.title || `Ponto ${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`;
+                        } catch {
+                            return `Ponto ${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`;
+                        }
+                    })();
+
+                    setRouteStops(prev => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            name,
+                            lat: coord.lat,
+                            lng: coord.lng,
+                            type: 'mapa'
+                        }
+                    ]);
+                });
+
+                const resizeMap = () => {
+                    try {
+                        map.getViewPort().resize();
+                    } catch {
+                        // Ignore transient resize issues
+                    }
+                };
+
+                resizeHandler = () => resizeMap();
+                window.addEventListener('resize', resizeHandler);
+
+                window.setTimeout(resizeMap, 120);
+                window.setTimeout(resizeMap, 600);
+                window.setTimeout(resizeMap, 1200);
+            } catch (error) {
+                console.error('[Roteirização] Falha ao inicializar HERE map:', error);
             }
         };
 
-        const onResize = () => resizeMap();
-        window.addEventListener('resize', onResize);
-
-        window.setTimeout(resizeMap, 120);
-        window.setTimeout(resizeMap, 600);
+        tryInit();
 
         return () => {
-            window.removeEventListener('resize', onResize);
+            cancelled = true;
+            if (resizeHandler) {
+                window.removeEventListener('resize', resizeHandler);
+            }
         };
     }, []);
 
     useEffect(() => {
-        initializeMap();
+        const cleanupInit = initializeMap();
         return () => {
+            cleanupInit?.();
             if (mapRef.current) {
                 mapRef.current.dispose();
                 mapRef.current = null;

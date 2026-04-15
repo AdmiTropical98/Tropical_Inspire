@@ -7,9 +7,10 @@ const HERE_API_KEY = String(
 ).trim();
 
 function getHereBaseLayer(layers: any) {
-    return layers?.vector?.normal?.map
-        || layers?.raster?.normal?.map
+    return layers?.raster?.normal?.map
+        || layers?.vector?.normal?.map
         || layers?.normal?.map
+        || layers?.raster?.satellite?.map
         || null;
 }
 
@@ -111,7 +112,9 @@ export default function GeofenceMap({
 
             const map = new H.Map(containerRef.current!, baseLayer, {
                 zoom: 9,
-                center: { lat: 37.1, lng: -8.0 }
+                center: { lat: 37.1, lng: -8.0 },
+                pixelRatio: window.devicePixelRatio || 1,
+                engineType: H.Map.EngineType.P2D
             });
 
             mapRef.current = map;
