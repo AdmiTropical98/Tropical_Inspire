@@ -65,20 +65,20 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-slate-700 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white/90 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 rounded-t-2xl">
+                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-100 rounded-t-2xl">
                     <div>
-                        <h2 className="text-xl font-bold text-white">Seleção de Viaturas em Massa</h2>
+                        <h2 className="text-xl font-bold text-slate-900">Seleção de Viaturas em Massa</h2>
                         <p className="text-sm text-slate-400">Selecione as viaturas para o aluguer</p>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-lg">
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-900 transition-colors p-2 hover:bg-slate-700 rounded-lg">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Filters */}
-                <div className="p-4 border-b border-slate-800 flex flex-col md:flex-row gap-4 bg-slate-900/50">
+                <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row gap-4 bg-white/90">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
@@ -86,7 +86,7 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
                             placeholder="Pesquisar por matrícula, marca ou modelo..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 font-medium"
+                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 font-medium"
                         />
                     </div>
                     <div className="relative w-full md:w-48">
@@ -94,7 +94,7 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 font-medium appearance-none"
+                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 font-medium appearance-none"
                         >
                             <option value="all">Todos os Estados</option>
                             <option value="disponivel">Disponível</option>
@@ -105,10 +105,10 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
                 </div>
 
                 {/* Grid Header / Select All */}
-                <div className="px-6 py-3 bg-slate-800/30 flex items-center justify-between border-b border-slate-800">
+                <div className="px-6 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-200">
                     <button
                         onClick={toggleSelectAll}
-                        className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                        className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-slate-900 transition-colors"
                     >
                         {isAllVisibleSelected ? <CheckSquare className="w-5 h-5 text-blue-500" /> : <Square className="w-5 h-5 text-slate-500" />}
                         {isAllVisibleSelected ? 'Deselecionar Todos' : 'Selecionar Todos Visíveis'}
@@ -119,7 +119,7 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
                 </div>
 
                 {/* Content Grid */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-950/30">
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white/30">
                     {filteredVehicles.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {filteredVehicles.map(v => {
@@ -132,7 +132,7 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
                                             relative p-4 rounded-xl border cursor-pointer transition-all group select-none
                                             ${isSelected
                                                 ? 'bg-blue-600/10 border-blue-500 ring-1 ring-blue-500/50'
-                                                : 'bg-slate-800/40 border-slate-700 hover:bg-slate-800 hover:border-slate-600'
+                                                : 'bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                                             }
                                         `}
                                     >
@@ -143,11 +143,11 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
                                             </div>
                                             <div className={`
                                                 w-5 h-5 rounded flex items-center justify-center border transition-colors
-                                                ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-600 bg-slate-900 group-hover:border-slate-500'}
+                                                ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-300 bg-white/90 group-hover:border-slate-500'}
                                             `}>
-                                                {isSelected && <X className="w-3 h-3 text-white rotate-45 transform" style={{ transform: 'rotate(0deg)' }}><path d="M20 6L9 17l-5-5" /></X>}
+                                                {isSelected && <X className="w-3 h-3 text-slate-900 rotate-45 transform" style={{ transform: 'rotate(0deg)' }}><path d="M20 6L9 17l-5-5" /></X>}
                                                 {/* Lucide X is not Check, let's fix icon or just use CSS */}
-                                                {isSelected && <CheckSquare className="w-5 h-5 text-white" />}
+                                                {isSelected && <CheckSquare className="w-5 h-5 text-slate-900" />}
                                             </div>
                                         </div>
 
@@ -159,7 +159,7 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
                                                 {v.estado ? v.estado.replace('_', ' ').toUpperCase() : 'DISPONÍVEL'}
                                             </span>
                                             {v.precoDiario && (
-                                                <span className="text-xs font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded ml-auto">
+                                                <span className="text-xs font-mono text-slate-400 bg-white/90 px-1.5 py-0.5 rounded ml-auto">
                                                     {v.precoDiario}€/dia
                                                 </span>
                                             )}
@@ -177,10 +177,10 @@ export default function VehicleSelectionModal({ isOpen, onClose, viaturas, selec
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-800 bg-slate-900 flex justify-end gap-3 rounded-b-2xl">
+                <div className="p-6 border-t border-slate-200 bg-white/90 flex justify-end gap-3 rounded-b-2xl">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 font-medium transition-all"
+                        className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-300 hover:text-slate-900 hover:bg-slate-100 font-medium transition-all"
                     >
                         Cancelar
                     </button>

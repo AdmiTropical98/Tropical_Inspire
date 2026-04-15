@@ -130,12 +130,12 @@ export default function ClientProfile() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white">Perfil Financeiro do Cliente</h1>
+          <h1 className="text-2xl font-black text-slate-900">Perfil Financeiro do Cliente</h1>
           <p className="text-sm text-slate-400">{client.nome} • NIF {client.nif || '-'}</p>
         </div>
         <Link
           to="/clientes"
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-900 hover:bg-slate-700"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Link>
@@ -147,7 +147,7 @@ export default function ClientProfile() {
         <SummaryCard title="Viaturas associadas" value={String(totals.vehiclesCount)} icon={<Car className="h-4 w-4" />} />
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+      <section className="rounded-2xl border border-slate-200 bg-white/90 p-5">
         <h2 className="mb-4 text-sm font-bold uppercase text-slate-300">Despesas por mês</h2>
         <div className="h-72">
           {monthlyData.length === 0 ? (
@@ -169,12 +169,12 @@ export default function ClientProfile() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+      <section className="rounded-2xl border border-slate-200 bg-white/90 p-5">
         <h2 className="mb-4 text-sm font-bold uppercase text-slate-300">Histórico financeiro</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-800 text-left text-slate-400">
+              <tr className="border-b border-slate-200 text-left text-slate-400">
                 <th className="py-2 pr-3">Número</th>
                 <th className="py-2 pr-3">Data</th>
                 <th className="py-2 pr-3">Fornecedor</th>
@@ -185,7 +185,7 @@ export default function ClientProfile() {
             </thead>
             <tbody>
               {history.map((row) => (
-                <tr key={row.id} className="border-b border-slate-800/60 text-slate-200">
+                <tr key={row.id} className="border-b border-slate-200/60 text-slate-200">
                   <td className="py-2 pr-3 font-mono">{row.numero}</td>
                   <td className="py-2 pr-3">{new Date(row.data).toLocaleDateString('pt-PT')}</td>
                   <td className="py-2 pr-3">{row.fornecedor?.nome || '-'}</td>
@@ -202,7 +202,7 @@ export default function ClientProfile() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-300">
+      <section className="rounded-xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-300">
         <p className="mb-2 font-semibold text-slate-200">Dados do cliente</p>
         <div className="flex items-center gap-2"><User className="h-4 w-4 text-slate-400" /> {client.email || 'Sem email'} • {client.telefone || 'Sem telefone'}</div>
       </section>
@@ -212,9 +212,9 @@ export default function ClientProfile() {
 
 function SummaryCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+    <div className="rounded-xl border border-slate-200 bg-white/90 p-4">
       <p className="flex items-center gap-2 text-xs uppercase text-slate-400">{icon}{title}</p>
-      <p className="mt-2 text-2xl font-black text-white">{value}</p>
+      <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
     </div>
   );
 }

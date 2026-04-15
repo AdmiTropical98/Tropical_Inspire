@@ -42,7 +42,7 @@ export default function QuickActionsPanel({
     ];
 
     return (
-        <div className={`relative bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden transition-all duration-300 ${
+        <div className={`relative bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-2xl overflow-hidden transition-all duration-300 ${
             isCollapsed ? 'w-16 hidden lg:flex flex-col items-center p-2' : 'lg:col-span-2 lg:flex flex-col p-4 hidden'
         }`}>
             {/* Header */}
@@ -50,12 +50,12 @@ export default function QuickActionsPanel({
                 {!isCollapsed && (
                     <>
                         <div>
-                            <h3 className="text-sm font-bold text-white mb-1">Ações Rápidas</h3>
+                            <h3 className="text-sm font-bold text-slate-900 mb-1">Ações Rápidas</h3>
                             <p className="text-xs text-slate-500">{conversation.participantName}</p>
                         </div>
                         <button
                             onClick={() => onToggleCollapse(true)}
-                            className="p-1.5 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                            className="p-1.5 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
                             title="Colapsar painel"
                         >
                             <ChevronRight className="w-4 h-4" />
@@ -66,7 +66,7 @@ export default function QuickActionsPanel({
                 {isCollapsed && (
                     <button
                         onClick={() => onToggleCollapse(false)}
-                        className="p-1.5 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                        className="p-1.5 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
                         title="Expandir painel"
                     >
                         <ChevronLeft className="w-4 h-4" />
@@ -104,8 +104,8 @@ export default function QuickActionsPanel({
 
             {/* Driver Status Card */}
             {!isCollapsed && (
-                <div className="mt-4 pt-4 border-t border-slate-700/50 w-full">
-                    <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-xl p-3 space-y-2">
+                <div className="mt-4 pt-4 border-t border-slate-200/50 w-full">
+                    <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-200/50 rounded-xl p-3 space-y-2">
                         <div className="flex items-center gap-2">
                             <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
                             <span className="text-xs font-bold text-slate-400 uppercase">Status</span>
@@ -118,7 +118,7 @@ export default function QuickActionsPanel({
 
             {/* Collapsed Status Indicator */}
             {isCollapsed && (
-                <div className="mt-auto pt-2 border-t border-slate-700/50 w-full flex justify-center">
+                <div className="mt-auto pt-2 border-t border-slate-200/50 w-full flex justify-center">
                     <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
                 </div>
             )}

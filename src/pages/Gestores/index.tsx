@@ -269,7 +269,7 @@ export default function Gestores() {
                 confirmText="Sim, Convidar Administrador"
             />
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
                         <UserCheck className="w-6 h-6 text-teal-400" />
                     </div>
@@ -281,22 +281,22 @@ export default function Gestores() {
             {/* Pending Requests Section */}
             {pendingRequests.length > 0 && (
                 <div className="bg-teal-500/5 border border-teal-500/20 rounded-2xl p-6 mb-8">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[#1f2957] mb-4 flex items-center gap-2">
                         <AlertCircle className="w-5 h-5 text-teal-400" />
                         Pedidos de Registo Pendentes
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {pendingRequests.map(req => (
-                            <div key={req.id} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                            <div key={req.id} className="bg-white/90 rounded-xl p-4 border border-slate-200/50">
                                 <div className="flex items-start justify-between mb-3">
-                                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
                                         <Users className="w-5 h-5 text-slate-400" />
                                     </div>
                                     <span className="text-xs bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded-full border border-yellow-500/20">
                                         Pendente
                                     </span>
                                 </div>
-                                <h4 className="font-bold text-white">{req.data.nome || 'Sem Nome'}</h4>
+                                <h4 className="font-bold text-slate-900">{req.data.nome || 'Sem Nome'}</h4>
                                 <div className="text-sm text-slate-400 space-y-1 mt-2">
                                     <p className="flex items-center gap-2">
                                         <span className="opacity-50">Email:</span>
@@ -307,7 +307,7 @@ export default function Gestores() {
                                         {req.data.telemovel}
                                     </p>
                                 </div>
-                                <div className="mt-4 pt-4 border-t border-slate-700/50 flex gap-2">
+                                <div className="mt-4 pt-4 border-t border-slate-200/50 flex gap-2">
                                     <button
                                         onClick={() => handleApproveRequest(req)}
                                         className="flex-1 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -329,7 +329,7 @@ export default function Gestores() {
                                             // I will hide this button here or just make it open empty chat.
                                             window.open(`https://wa.me/${cleanPhone}`, '_blank');
                                         }}
-                                        className="w-10 h-10 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg flex items-center justify-center transition-colors"
+                                        className="w-10 h-10 bg-slate-100 hover:bg-slate-700 text-slate-400 rounded-lg flex items-center justify-center transition-colors"
                                         title="Abrir WhatsApp"
                                     >
                                         <Share2 className="w-4 h-4" />
@@ -350,7 +350,7 @@ export default function Gestores() {
                         </div>
                         <TrendingUp className="w-5 h-5 text-blue-400/50" />
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.total}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.total}</p>
                     <p className="text-sm text-slate-400">Total de Gestores</p>
                 </div>
 
@@ -360,7 +360,7 @@ export default function Gestores() {
                             <Users className="w-6 h-6 text-emerald-400" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.active}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.active}</p>
                     <p className="text-sm text-slate-400">Ativos</p>
                 </div>
 
@@ -370,19 +370,19 @@ export default function Gestores() {
                             <UserX className="w-6 h-6 text-red-400" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.blocked}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.blocked}</p>
                     <p className="text-sm text-slate-400">Bloqueados</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Add Form */}
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
-                    <h3 className="font-bold text-white mb-6 text-lg">Adicionar Novo Gestor</h3>
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-3xl p-6 lg:p-8 h-fit">
+                    <h3 className="font-bold text-slate-900 mb-6 text-lg">Adicionar Novo Gestor</h3>
                     <form onSubmit={handleCreateGestor} className="space-y-4">
                         {/* Static Icon */}
                         <div className="flex justify-center mb-4">
-                            <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                            <div className="w-24 h-24 rounded-full bg-white/90 border-2 border-slate-200 flex items-center justify-center">
                                 <Shield className="w-12 h-12 text-slate-600" />
                             </div>
                         </div>
@@ -394,7 +394,7 @@ export default function Gestores() {
                                 required
                                 value={newGestor.nome}
                                 onChange={e => setNewGestor({ ...newGestor, nome: e.target.value })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200"
                                 placeholder="Ex: Gestor Silva"
                             />
                         </div>
@@ -406,7 +406,7 @@ export default function Gestores() {
                                     required
                                     value={newGestor.email}
                                     onChange={e => setNewGestor({ ...newGestor, email: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200"
                                     placeholder="gestor@algartempo.com"
                                 />
                             </div>
@@ -417,7 +417,7 @@ export default function Gestores() {
                                     required
                                     value={newGestor.telemovel}
                                     onChange={e => setNewGestor({ ...newGestor, telemovel: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200"
                                     placeholder="910000000"
                                 />
                             </div>
@@ -428,7 +428,7 @@ export default function Gestores() {
                             <select
                                 value={newGestor.role}
                                 onChange={e => setNewGestor({ ...newGestor, role: e.target.value as UserRole })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200"
                             >
                                 <option value="GESTOR">GESTOR (Operacional)</option>
                                 <option value="ADMIN">ADMIN (Gestão operacional + users)</option>
@@ -444,15 +444,15 @@ export default function Gestores() {
                         {/* Cost Centers */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase ml-1">Centros de Custo</label>
-                            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                            <div className="bg-white border border-slate-200 rounded-xl p-4">
                                 <label className="flex items-center gap-3 mb-3 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={newGestor.allCostCenters}
                                         onChange={e => setNewGestor({ ...newGestor, allCostCenters: e.target.checked })}
-                                        className="w-4 h-4 rounded border-slate-700 text-teal-600 focus:ring-teal-500 bg-slate-900"
+                                        className="w-4 h-4 rounded border-slate-200 text-teal-600 focus:ring-teal-500 bg-white/90"
                                     />
-                                    <span className="text-sm text-white font-medium">Todos os Centros de Custo</span>
+                                    <span className="text-sm text-slate-900 font-medium">Todos os Centros de Custo</span>
                                 </label>
 
                                 {!newGestor.allCostCenters && (
@@ -470,9 +470,9 @@ export default function Gestores() {
                                                             setNewGestor({ ...newGestor, centroCustoIds: current.filter(id => id !== cc.id) });
                                                         }
                                                     }}
-                                                    className="w-3.5 h-3.5 rounded border-slate-700 text-teal-600 focus:ring-teal-500 bg-slate-900"
+                                                    className="w-3.5 h-3.5 rounded border-slate-200 text-teal-600 focus:ring-teal-500 bg-white/90"
                                                 />
-                                                <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{cc.nome}</span>
+                                                <span className="text-sm text-slate-300 group-hover:text-slate-900 transition-colors">{cc.nome}</span>
                                             </label>
                                         ))}
                                     </div>
@@ -487,9 +487,9 @@ export default function Gestores() {
                 </div>
 
                 {/* List */}
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-3xl p-6 lg:p-8 h-fit">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-white text-lg">Lista de Gestores</h3>
+                        <h3 className="font-bold text-slate-900 text-lg">Lista de Gestores</h3>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setViewMode('list')}
@@ -517,7 +517,7 @@ export default function Gestores() {
                                 placeholder="Pesquisar gestores..."
                                 value={filter}
                                 onChange={e => setFilter(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:border-blue-500 outline-none transition-all"
+                                className="w-full pl-9 pr-4 py-2 bg-white/90 border border-slate-200 rounded-lg text-sm text-slate-900 focus:border-blue-500 outline-none transition-all"
                             />
                         </div>
 
@@ -528,7 +528,7 @@ export default function Gestores() {
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === status
                                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-100 hover:text-slate-300'
                                         }`}
                                 >
                                     {status === 'all' ? 'Todos' : status === 'active' ? 'Ativos' : 'Bloqueados'}
@@ -539,15 +539,15 @@ export default function Gestores() {
 
                     <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
                         {filteredItems.length === 0 ? (
-                            <div className="col-span-2 text-center py-12 bg-slate-800/20 rounded-2xl border border-slate-800 border-dashed">
+                            <div className="col-span-2 text-center py-12 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
                                 <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                                 <p className="text-slate-400">Nenhum gestor encontrado.</p>
                             </div>
                         ) : (
                             filteredItems.map(gestor => (
-                                <div key={gestor.id} className={`flex ${viewMode === 'grid' ? 'flex-col items-center text-center' : 'items-center justify-between'} p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl group hover:border-blue-500/20 transition-all`}>
+                                <div key={gestor.id} className={`flex ${viewMode === 'grid' ? 'flex-col items-center text-center' : 'items-center justify-between'} p-4 bg-slate-50 border border-slate-200/50 rounded-xl group hover:border-blue-500/20 transition-all`}>
                                     <div className={`flex items-center gap-3 ${viewMode === 'grid' ? 'flex-col' : 'flex-1'}`}>
-                                        <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                                        <div className="w-10 h-10 rounded-full bg-white/90 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                                             {gestor.foto ? (
                                                 <img src={gestor.foto} alt={gestor.nome} className="w-full h-full object-cover" />
                                             ) : (
@@ -555,7 +555,7 @@ export default function Gestores() {
                                             )}
                                         </div>
                                         <div className={viewMode === 'grid' ? 'w-full' : ''}>
-                                            <p className="text-white font-medium text-sm">{gestor.nome}</p>
+                                            <p className="text-slate-900 font-medium text-sm">{gestor.nome}</p>
                                             <p className="text-xs text-slate-500">{gestor.email}</p>
                                             {viewMode === 'list' && (
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border w-fit mt-1
@@ -571,7 +571,7 @@ export default function Gestores() {
                                     {viewMode === 'list' && (
                                         <div className="flex items-center gap-2">
                                             {gestor.pin && (
-                                                <span className="font-mono text-xs bg-slate-950 px-2 py-1 rounded text-slate-400 border border-slate-800 mr-2">PIN: {gestor.pin}</span>
+                                                <span className="font-mono text-xs bg-white px-2 py-1 rounded text-slate-400 border border-slate-200 mr-2">PIN: {gestor.pin}</span>
                                             )}
                                             <button
                                                 onClick={() => handleSharePin(gestor, 'sms')}

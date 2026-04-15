@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { Lock, Mail, ChevronRight, AlertCircle, Eye, EyeOff, User, Users, ShieldCheck, UserCog, Send, CheckCircle, X, Wrench, UserCheck, MapPin } from 'lucide-react';
 import type { Notification } from '../../types';
 
 export default function Login() {
+    // Lock scroll synchronously before paint
+    document.documentElement.classList.add('login-active');
+
+    useEffect(() => {
+        return () => {
+            document.documentElement.classList.remove('login-active');
+        };
+    }, []);
+
     const { login } = useAuth();
     const { addNotification, updateNotification, notifications, addSupervisor, addGestor } = useWorkshop();
     const [role, setRoleState] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor'>(() => {
@@ -169,9 +178,8 @@ export default function Login() {
 
 
     return (
-        <div className="relative min-h-[100dvh] overflow-hidden bg-[#f7fafd] login-scrollbar app-content-bg">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(147,197,253,0.15),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(191,219,254,0.2),_transparent_30%),linear-gradient(135deg,_rgba(237,244,255,0.4)_0%,_rgba(250,252,255,0.6)_55%,_rgba(237,244,255,0.4)_100%)] z-0" />
-            <div className="absolute inset-0 pointer-events-none opacity-28" style={{ backgroundImage: 'url(/grid-pattern.svg)', backgroundRepeat: 'no-repeat', backgroundPosition: 'center 6%', backgroundSize: '40rem auto' }} />
+        <div className="fixed inset-0 overflow-hidden" style={{ backgroundImage: "url('/fundo_páginas.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+            <div className="absolute inset-0 z-0" style={{ background: 'rgba(255, 255, 255, 0.55)' }} />
             <div className="absolute left-[-8%] top-[18%] h-px w-[52%] rotate-[-16deg] bg-gradient-to-r from-transparent via-blue-200/80 to-transparent opacity-70" />
             <div className="absolute left-[2%] top-[38%] h-px w-[46%] rotate-[8deg] bg-gradient-to-r from-transparent via-blue-100/90 to-transparent opacity-80" />
             <div className="absolute right-[4%] top-[28%] h-px w-[24%] rotate-[28deg] bg-gradient-to-r from-transparent via-slate-200/80 to-transparent opacity-60 hidden lg:block" />
@@ -188,9 +196,9 @@ export default function Login() {
                 <MapPin className="absolute inset-0 m-auto h-7 w-7 text-blue-100" />
             </div>
 
-            <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1440px] items-center px-6 py-8 lg:px-16 xl:px-20">
-                <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-[1.05fr_0.72fr] xl:gap-16">
-                    <section className="relative flex min-h-[320px] items-center justify-center lg:min-h-[720px] lg:justify-start">
+            <div className="relative z-10 mx-auto flex h-full w-full max-w-[1440px] items-center justify-center px-6 lg:px-16 xl:px-20">
+                <div className="grid w-full grid-cols-1 items-center gap-6 lg:grid-cols-[1.05fr_0.72fr] xl:gap-16">
+                    <section className="relative hidden items-center justify-center lg:flex lg:justify-start">
                         <div className="relative flex w-full items-center justify-center lg:justify-center">
                             <img src="/LOGO.png" alt="Algartempo Frota" className="w-full max-w-[360px] object-contain drop-shadow-[0_20px_40px_rgba(37,99,235,0.08)] sm:max-w-[430px] lg:max-w-[520px]" />
                         </div>

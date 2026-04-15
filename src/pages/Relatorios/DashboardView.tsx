@@ -148,18 +148,18 @@ export default function DashboardView() {
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Activity Chart */}
-                <div className="lg:col-span-2 bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
+                <div className="lg:col-span-2 bg-slate-100 p-6 rounded-2xl border border-slate-200/50 backdrop-blur-sm">
                     <div className="flex justify-between items-center mb-6">
                         <div>
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-[#1f2957] flex items-center gap-2">
                                 <TrendingUp className="w-5 h-5 text-blue-400" />
                                 Atividade da Frota
                             </h3>
                             <p className="text-sm text-slate-400">Serviços e manutenções nos últimos 7 dias</p>
                         </div>
-                        <div className="flex bg-slate-900/50 p-1 rounded-lg">
+                        <div className="flex bg-white/90 p-1 rounded-lg">
                             <button className="px-3 py-1 text-xs font-medium text-white bg-slate-700 rounded-md shadow-sm">7 Dias</button>
-                            <button className="px-3 py-1 text-xs font-medium text-slate-400 hover:text-white">30 Dias</button>
+                            <button className="px-3 py-1 text-xs font-medium text-slate-400 hover:text-slate-900">30 Dias</button>
                         </div>
                     </div>
                     <div className="h-[300px] w-full">
@@ -192,8 +192,8 @@ export default function DashboardView() {
                 </div>
 
                 {/* Status Pie Chart */}
-                <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm flex flex-col">
-                    <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200/50 backdrop-blur-sm flex flex-col">
+                    <h3 className="text-lg font-bold text-[#1f2957] mb-2 flex items-center gap-2">
                         <Car className="w-5 h-5 text-emerald-400" />
                         Estado da Frota
                     </h3>
@@ -225,7 +225,7 @@ export default function DashboardView() {
                         {/* Center Text */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-center mt-[-20px]">
-                                <span className="text-3xl font-bold text-white block">{stats.totalVehicles}</span>
+                                <span className="text-3xl font-bold text-slate-900 block">{stats.totalVehicles}</span>
                                 <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
                             </div>
                         </div>
@@ -236,7 +236,7 @@ export default function DashboardView() {
             {/* Quick Actions / Bottom Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-gradient-to-br from-indigo-900/40 to-slate-800/40 p-6 rounded-xl border border-indigo-500/20">
-                    <h3 className="font-bold text-white mb-2 flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
                         <Fuel className="w-5 h-5 text-indigo-400" /> Eficiência de Combustível
                     </h3>
                     <p className="text-sm text-slate-400 mb-4">Análise detalhada de consumo por viatura e rota.</p>
@@ -246,7 +246,7 @@ export default function DashboardView() {
                 </div>
 
                 <div className="bg-gradient-to-br from-emerald-900/40 to-slate-800/40 p-6 rounded-xl border border-emerald-500/20">
-                    <h3 className="font-bold text-white mb-2 flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-emerald-400" /> Próximas Inspeções
                     </h3>
                     <p className="text-sm text-slate-400 mb-4">Visualize e agende inspeções obrigatórias para o próximo mês.</p>
@@ -256,7 +256,7 @@ export default function DashboardView() {
                 </div>
 
                 <div className="bg-gradient-to-br from-rose-900/40 to-slate-800/40 p-6 rounded-xl border border-rose-500/20">
-                    <h3 className="font-bold text-white mb-2 flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
                         <AlertTriangle className="w-5 h-5 text-rose-400" /> Incidentes Críticos
                     </h3>
                     <p className="text-sm text-slate-400 mb-4">Relatório de avarias e incidentes registados recentemente.</p>
@@ -279,7 +279,7 @@ function KPICard({ title, value, subValue, icon: Icon, color, trend }: any) {
     };
 
     return (
-        <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm hover:bg-slate-800/70 transition-all duration-300 group">
+        <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200/50 backdrop-blur-sm hover:bg-slate-100/70 transition-all duration-300 group">
             <div className="flex justify-between items-start mb-4">
                 <div className={`p-3 rounded-xl ${colorClasses[color]} transition-colors group-hover:scale-110 duration-300`}>
                     <Icon className="w-6 h-6" />
@@ -291,9 +291,9 @@ function KPICard({ title, value, subValue, icon: Icon, color, trend }: any) {
                 )}
             </div>
             <div className="space-y-1">
-                <h3 className="text-3xl font-bold text-white tracking-tight">{value}</h3>
+                <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{value}</h3>
                 <p className="text-sm text-slate-400 font-medium">{title}</p>
-                <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-700/50">
+                <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200/50">
                     {subValue}
                 </p>
             </div>

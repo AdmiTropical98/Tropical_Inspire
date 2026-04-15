@@ -99,7 +99,7 @@ export default function Fornecedores() {
                     <input
                         type="text"
                         placeholder={t('suppliers.search')}
-                        className="pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full text-sm text-slate-200 placeholder-slate-500 transition-all"
+                        className="pl-9 pr-4 py-2 bg-slate-100 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full text-sm text-slate-200 placeholder-slate-500 transition-all"
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
                     />
@@ -109,8 +109,8 @@ export default function Fornecedores() {
             {/* Content Container */}
             <div className="animate-in fade-in duration-500">
                 {showForm ? (
-                    <div className="w-full min-w-0 bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
-                        <h2 className="text-lg font-bold mb-6 text-white flex items-center gap-2">
+                    <div className="w-full min-w-0 bg-slate-100 p-6 rounded-2xl border border-slate-200 shadow-xl backdrop-blur-sm">
+                        <h2 className="text-lg font-bold mb-6 text-slate-900 flex items-center gap-2">
                             <div className="w-1 h-6 bg-blue-500 rounded-full"></div>
                             {t('suppliers.new')}
                         </h2>
@@ -118,7 +118,7 @@ export default function Fornecedores() {
                             {/* Image Upload */}
                             <div className="flex justify-center mb-6">
                                 <div className="relative group">
-                                    <div className={`w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-2 ${formData.foto ? 'border-blue-500' : 'border-slate-600 border-dashed bg-slate-800'}`}>
+                                    <div className={`w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-2 ${formData.foto ? 'border-blue-500' : 'border-slate-300 border-dashed bg-slate-100'}`}>
                                         {formData.foto ? (
                                             <img src={formData.foto} alt="Preview" className="w-full h-full object-cover" />
                                         ) : (
@@ -151,7 +151,7 @@ export default function Fornecedores() {
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">{t('suppliers.form.name')}</label>
                                     <input
                                         required
-                                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
+                                        className="w-full px-4 py-2.5 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
                                         value={formData.nome}
                                         onChange={e => setFormData({ ...formData, nome: e.target.value })}
                                     />
@@ -159,7 +159,7 @@ export default function Fornecedores() {
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">{t('suppliers.form.nif')}</label>
                                     <input
-                                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
+                                        className="w-full px-4 py-2.5 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
                                         value={formData.nif}
                                         onChange={e => setFormData({ ...formData, nif: e.target.value })}
                                     />
@@ -167,7 +167,7 @@ export default function Fornecedores() {
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">{t('suppliers.form.contact')}</label>
                                     <input
-                                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
+                                        className="w-full px-4 py-2.5 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
                                         value={formData.contacto}
                                         onChange={e => setFormData({ ...formData, contacto: e.target.value })}
                                     />
@@ -176,7 +176,7 @@ export default function Fornecedores() {
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">{t('suppliers.form.email')}</label>
                                     <input
                                         type="email"
-                                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
+                                        className="w-full px-4 py-2.5 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
                                         value={formData.email}
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
                                     />
@@ -184,7 +184,7 @@ export default function Fornecedores() {
                                 <div className="col-span-2">
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">{t('suppliers.form.address')}</label>
                                     <input
-                                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
+                                        className="w-full px-4 py-2.5 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all"
                                         value={formData.morada}
                                         onChange={e => setFormData({ ...formData, morada: e.target.value })}
                                     />
@@ -193,17 +193,17 @@ export default function Fornecedores() {
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">{t('suppliers.form.obs')}</label>
                                     <textarea
                                         rows={3}
-                                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all resize-none"
+                                        className="w-full px-4 py-2.5 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200 transition-all resize-none"
                                         value={formData.obs}
                                         onChange={e => setFormData({ ...formData, obs: e.target.value })}
                                     />
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3 pt-6 border-t border-slate-700/50">
+                            <div className="flex justify-end gap-3 pt-6 border-t border-slate-200/50">
                                 <button
                                     type="button"
                                     onClick={() => setShowForm(false)}
-                                    className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700 border border-slate-600 rounded-xl transition-all"
+                                    className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-slate-900 hover:bg-slate-700 border border-slate-300 rounded-xl transition-all"
                                 >
                                     {t('suppliers.form.cancel')}
                                 </button>
@@ -219,7 +219,7 @@ export default function Fornecedores() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {filteredItems.map(fornecedor => (
-                            <div key={fornecedor.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/10 transition-all group relative">
+                            <div key={fornecedor.id} className="bg-slate-100 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/10 transition-all group relative">
                                 <button
                                     onClick={() => deleteFornecedor(fornecedor.id)}
                                     className="absolute top-4 right-4 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-red-500/10 rounded-lg z-10"
@@ -238,7 +238,7 @@ export default function Fornecedores() {
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white text-lg leading-tight">{fornecedor.nome}</h3>
+                                        <h3 className="font-bold text-slate-900 text-lg leading-tight">{fornecedor.nome}</h3>
                                         <p className="text-sm text-slate-400 mt-1 font-mono">NIF: {fornecedor.nif}</p>
                                         <div className="mt-2 inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
                                             TOTAL: {requisicoes
@@ -249,7 +249,7 @@ export default function Fornecedores() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2.5 mt-4 pt-4 border-t border-slate-700/50 text-sm">
+                                <div className="space-y-2.5 mt-4 pt-4 border-t border-slate-200/50 text-sm">
                                     <div className="flex items-center gap-2.5 text-slate-400">
                                         <Phone className="h-4 w-4 text-slate-500" />
                                         <span>{fornecedor.contacto || 'Sem contacto'}</span>
@@ -264,7 +264,7 @@ export default function Fornecedores() {
                                     </div>
                                 </div>
 
-                                <div className="mt-4 pt-4 border-t border-slate-700/60">
+                                <div className="mt-4 pt-4 border-t border-slate-200/60">
                                     <div className="flex items-center gap-2">
                                         <button
                                             type="button"
@@ -286,7 +286,7 @@ export default function Fornecedores() {
                         ))}
                         {filteredItems.length === 0 && (
                             <div className="col-span-full text-center py-20">
-                                <div className="inline-flex p-4 bg-slate-800/50 rounded-full mb-4">
+                                <div className="inline-flex p-4 bg-slate-100 rounded-full mb-4">
                                     <Search className="w-8 h-8 text-slate-600" />
                                 </div>
                                 <p className="text-slate-500 text-lg">{t('suppliers.list.empty')}</p>
@@ -298,14 +298,14 @@ export default function Fornecedores() {
             </div>
 
             {editingSupplier && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
-                    <div className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-                        <div className="flex items-center justify-between border-b border-slate-700 px-6 py-4">
-                            <h2 className="text-lg font-bold text-white">Editar Fornecedor</h2>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 p-4">
+                    <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white/90 shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                            <h2 className="text-lg font-bold text-[#1f2957]">Editar Fornecedor</h2>
                             <button
                                 type="button"
                                 onClick={closeEditModal}
-                                className="rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
+                                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-100 hover:text-slate-900"
                             >
                                 Cancelar
                             </button>
@@ -317,7 +317,7 @@ export default function Fornecedores() {
                                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">Nome</label>
                                     <input
                                         required
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         value={editFormData.nome}
                                         onChange={e => setEditFormData(prev => ({ ...prev, nome: e.target.value }))}
                                     />
@@ -326,7 +326,7 @@ export default function Fornecedores() {
                                 <div>
                                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">NIF</label>
                                     <input
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         value={editFormData.nif}
                                         onChange={e => setEditFormData(prev => ({ ...prev, nif: e.target.value }))}
                                     />
@@ -335,7 +335,7 @@ export default function Fornecedores() {
                                 <div>
                                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">Telefone</label>
                                     <input
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         value={editFormData.contacto}
                                         onChange={e => setEditFormData(prev => ({ ...prev, contacto: e.target.value }))}
                                     />
@@ -345,7 +345,7 @@ export default function Fornecedores() {
                                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">Email</label>
                                     <input
                                         type="email"
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         value={editFormData.email}
                                         onChange={e => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
                                     />
@@ -354,7 +354,7 @@ export default function Fornecedores() {
                                 <div className="md:col-span-2">
                                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">Morada</label>
                                     <input
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         value={editFormData.morada}
                                         onChange={e => setEditFormData(prev => ({ ...prev, morada: e.target.value }))}
                                     />
@@ -364,18 +364,18 @@ export default function Fornecedores() {
                                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">Notas</label>
                                     <textarea
                                         rows={4}
-                                        className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-200 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         value={editFormData.obs}
                                         onChange={e => setEditFormData(prev => ({ ...prev, obs: e.target.value }))}
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-3 border-t border-slate-700 pt-4">
+                            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
                                 <button
                                     type="button"
                                     onClick={closeEditModal}
-                                    className="rounded-xl border border-slate-600 px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
+                                    className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-slate-100 hover:text-slate-900"
                                 >
                                     Cancelar
                                 </button>

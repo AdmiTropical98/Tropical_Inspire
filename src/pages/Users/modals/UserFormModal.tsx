@@ -227,17 +227,17 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="bg-white/90 border border-slate-200 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
 
                 {/* Header */}
-                <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                         {user ? 'Editar Utilizador' : 'Novo Utilizador'}
                         <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full uppercase ml-2 border border-blue-500/30">
                             {role}
                         </span>
                     </h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-900 transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
@@ -262,7 +262,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all
                                             ${role === r.id
                                                 ? 'bg-blue-600/20 border-blue-500 text-white'
-                                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                                                : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-700'
                                             }`}
                                     >
                                         <span className="font-bold text-sm">{r.label}</span>
@@ -281,7 +281,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                 <div>
                                     <label className="block text-xs font-medium text-slate-400 mb-1">Nome Completo *</label>
                                     <input
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={formData.nome}
                                         onChange={e => setFormData({ ...formData, nome: e.target.value })}
                                         required
@@ -292,7 +292,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Email {role === 'admin' && '*'}</label>
                                         <input
                                             type="email"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.email}
                                             onChange={e => setFormData({ ...formData, email: e.target.value })}
                                             required={role === 'admin'}
@@ -305,7 +305,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     <div>
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Telemóvel * {role === 'oficina' && '(Login)'}</label>
                                         <input
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.telemovel}
                                             onChange={e => setFormData({ ...formData, telemovel: e.target.value })}
                                             required
@@ -327,7 +327,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                 <div>
                                     <label className="block text-xs font-medium text-slate-400 mb-1">PIN de Acesso *</label>
                                     <input
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 font-mono focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={formData.pin}
                                         onChange={e => setFormData({ ...formData, pin: e.target.value })}
                                         placeholder="0000"
@@ -340,7 +340,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
                                         <input
                                             type="password"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.password}
                                             onChange={e => setFormData({ ...formData, password: e.target.value })}
                                             placeholder="Min. 6 caracteres"
@@ -360,7 +360,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     <div>
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Função</label>
                                         <select
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.tipoUtilizador || 'motorista'}
                                             onChange={e => setFormData({ ...formData, tipoUtilizador: e.target.value })}
                                         >
@@ -373,7 +373,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Vencimento Base</label>
                                         <input
                                             type="number"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.vencimentoBase}
                                             onChange={e => setFormData({ ...formData, vencimentoBase: e.target.value })}
                                         />
@@ -382,7 +382,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Valor Hora Extra</label>
                                         <input
                                             type="number"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.valorHora}
                                             onChange={e => setFormData({ ...formData, valorHora: e.target.value })}
                                         />
@@ -390,7 +390,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     <div>
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Carta Condução</label>
                                         <input
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.cartaConducao}
                                             onChange={e => setFormData({ ...formData, cartaConducao: e.target.value })}
                                         />
@@ -399,7 +399,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                 <div className="mt-4">
                                     <label className="block text-xs font-medium text-slate-400 mb-1">Centro de Custo</label>
                                     <select
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={formData.centroCustoId || ''}
                                         onChange={e => setFormData({ ...formData, centroCustoId: e.target.value })}
                                     >
@@ -418,7 +418,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Início Turno</label>
                                         <input
                                             type="time"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.turnoInicio}
                                             onChange={e => setFormData({ ...formData, turnoInicio: e.target.value })}
                                         />
@@ -427,7 +427,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         <label className="block text-xs font-medium text-slate-400 mb-1">Fim Turno</label>
                                         <input
                                             type="time"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.turnoFim}
                                             onChange={e => setFormData({ ...formData, turnoFim: e.target.value })}
                                         />
@@ -438,22 +438,22 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
 
                         {/* Permissions */}
                         {role !== 'admin' && (
-                            <div className="space-y-4 pt-4 border-t border-slate-800">
+                            <div className="space-y-4 pt-4 border-t border-slate-200">
                                 <h3 className="text-sm font-bold text-slate-500 uppercase flex items-center gap-2">
                                     <Shield className="w-4 h-4" /> Permissões de Acesso
                                 </h3>
-                                <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div className="bg-white/90 rounded-xl p-4 border border-slate-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {availableModules.map(module => {
                                         const isBlocked = formData.blockedPermissions.includes(module);
                                         return (
-                                            <label key={module} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-900 cursor-pointer transition-colors group">
+                                            <label key={module} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/90 cursor-pointer transition-colors group">
                                                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors
                                                     ${!isBlocked
                                                         ? 'bg-blue-600 border-blue-500'
-                                                        : 'bg-slate-900 border-slate-600'
+                                                        : 'bg-white/90 border-slate-300'
                                                     }`}
                                                 >
-                                                    {!isBlocked && <Save className="w-3 h-3 text-white" />}
+                                                    {!isBlocked && <Save className="w-3 h-3 text-slate-900" />}
                                                 </div>
                                                 <input
                                                     type="checkbox"
@@ -473,8 +473,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3 rounded-b-2xl">
-                        <button type="button" onClick={onClose} className="px-5 py-2.5 text-slate-400 hover:text-white transition-colors font-medium">
+                    <div className="p-6 border-t border-slate-200 bg-white/90 flex justify-end gap-3 rounded-b-2xl">
+                        <button type="button" onClick={onClose} className="px-5 py-2.5 text-slate-400 hover:text-slate-900 transition-colors font-medium">
                             Cancelar
                         </button>
                         <button type="submit" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2">

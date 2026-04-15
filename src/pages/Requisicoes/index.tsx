@@ -1218,14 +1218,15 @@ export default function Requisicoes() {
     });
 
     return (
-        <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-500">
+        <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-500 relative">
+            <div className="pointer-events-none absolute inset-0 -z-10 rounded-[2rem] bg-[radial-gradient(120%_90%_at_20%_0%,rgba(37,99,235,0.22)_0%,rgba(2,6,23,0)_50%),radial-gradient(110%_90%_at_85%_100%,rgba(16,185,129,0.16)_0%,rgba(2,6,23,0)_52%)]" />
             <PageHeader
                 title={t('req.title')}
                 subtitle={t('req.subtitle')}
                 icon={ClipboardCheck}
             >
                 <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-                    <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
+                    <div className="flex bg-[#0c1730]/85 p-1.5 rounded-2xl border border-blue-900/60 backdrop-blur-md shadow-[0_16px_44px_rgba(2,6,23,0.45)] overflow-x-auto max-w-full scrollbar-none">
                         {[
                             { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
                             { id: 'list', icon: List, label: 'Lista' },
@@ -1236,8 +1237,8 @@ export default function Requisicoes() {
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
                             ${activeTab === tab.id
-                                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                        ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/30'
+                                        : 'text-slate-300 hover:text-slate-900 hover:bg-slate-50'}`}
                             >
                                 <tab.icon className="w-4 h-4" />
                                 {tab.label}
@@ -1263,7 +1264,7 @@ export default function Requisicoes() {
                                 </div>
                                 <div className="relative z-10">
                                     <h3 className="text-amber-200/60 text-xs font-bold uppercase tracking-wider mb-2">Pendentes</h3>
-                                    <p className="text-4xl font-black text-white mb-4">{stats.pending}</p>
+                                    <p className="text-4xl font-black text-slate-900 mb-4">{stats.pending}</p>
                                     <div className="flex items-center gap-2 text-amber-300 text-xs font-bold px-3 py-1.5 bg-amber-500/10 w-fit rounded-lg border border-amber-500/20">
                                         <AlertCircle className="w-3.5 h-3.5" />
                                         A aguardar aprovação
@@ -1280,7 +1281,7 @@ export default function Requisicoes() {
                                 </div>
                                 <div className="relative z-10">
                                     <h3 className="text-emerald-200/60 text-xs font-bold uppercase tracking-wider mb-2">Concluídas</h3>
-                                    <p className="text-4xl font-black text-white mb-4">{stats.completed}</p>
+                                    <p className="text-4xl font-black text-slate-900 mb-4">{stats.completed}</p>
                                     <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold px-3 py-1.5 bg-emerald-500/10 w-fit rounded-lg border border-emerald-500/20">
                                         <TrendingUp className="w-3.5 h-3.5" />
                                         Processadas com sucesso
@@ -1297,7 +1298,7 @@ export default function Requisicoes() {
                                 </div>
                                 <div className="relative z-10">
                                     <h3 className="text-blue-200/60 text-xs font-bold uppercase tracking-wider mb-2">Total</h3>
-                                    <p className="text-4xl font-black text-white mb-4">{stats.total}</p>
+                                    <p className="text-4xl font-black text-slate-900 mb-4">{stats.total}</p>
                                     <div className="flex items-center gap-2 text-blue-300 text-xs font-bold px-3 py-1.5 bg-blue-500/10 w-fit rounded-lg border border-blue-500/20">
                                         <Calendar className="w-3.5 h-3.5" />
                                         Requisições criadas
@@ -1305,7 +1306,7 @@ export default function Requisicoes() {
                                 </div>
                             </div>
 
-                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex flex-col justify-center gap-4 relative overflow-hidden">
+                            <div className="bg-white/90 border border-slate-200/70 p-6 rounded-[2rem] flex flex-col justify-center gap-4 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-blue-500/5 opacity-50"></div>
                                 <button
                                     onClick={() => setActiveTab('create')}
@@ -1319,7 +1320,7 @@ export default function Requisicoes() {
                                 </button>
                                 <button
                                     onClick={() => { setActiveTab('list'); setListFilter('pendentes'); }}
-                                    className="relative w-full py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-2xl text-md font-bold border border-slate-700 hover:border-slate-600 transition-all active:scale-95"
+                                    className="relative w-full py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-2xl text-md font-bold border border-slate-200 hover:border-slate-300 transition-all active:scale-95"
                                 >
                                     Ver Pendentes
                                 </button>
@@ -1328,16 +1329,16 @@ export default function Requisicoes() {
 
                         {/* Dashboard Chart & Recent Requisitions */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div className="lg:col-span-2 bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] p-8 relative overflow-hidden">
+                            <div className="lg:col-span-2 bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 relative overflow-hidden">
                                 <div className="flex items-center justify-between mb-8">
                                     <div>
-                                        <h3 className="text-xl font-bold text-white mb-1">Volume de Requisições</h3>
+                                        <h3 className="text-xl font-bold text-slate-900 mb-1">Volume de Requisições</h3>
                                         <p className="text-slate-500 text-sm font-medium uppercase tracking-widest flex items-center gap-2">
                                             <TrendingUp className="w-4 h-4 text-emerald-500" />
                                             Últimos meses
                                         </p>
                                     </div>
-                                    <div className="px-4 py-2 bg-slate-950 rounded-xl border border-slate-800 text-xs font-bold text-blue-400">
+                                    <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-blue-400">
                                         Auto-Gerado
                                     </div>
                                 </div>
@@ -1357,9 +1358,9 @@ export default function Requisicoes() {
                                 </div>
                             </div>
 
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] p-8 flex flex-col">
+                            <div className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 flex flex-col">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-xl font-bold text-white">Recentes</h3>
+                                    <h3 className="text-xl font-bold text-slate-900">Recentes</h3>
                                     <button
                                         onClick={() => setActiveTab('list')}
                                         className="text-blue-400 text-xs font-bold hover:text-blue-300 transition-colors"
@@ -1371,14 +1372,14 @@ export default function Requisicoes() {
                                     {requisicoes.slice(0, 4).map(req => (
                                         <div
                                             key={req.id}
-                                            className="flex items-center gap-4 p-4 bg-slate-950/50 rounded-2xl border border-slate-800/50 hover:border-slate-700 transition-colors cursor-pointer group"
+                                            className="flex items-center gap-4 p-4 bg-white/90 rounded-2xl border border-slate-200/50 hover:border-slate-200 transition-colors cursor-pointer group"
                                             onClick={() => handleEdit(req)}
                                         >
-                                            <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center font-mono font-bold text-blue-400 group-hover:border-blue-500/30 transition-colors">
+                                            <div className="w-12 h-12 rounded-xl bg-white/90 border border-slate-200 flex items-center justify-center font-mono font-bold text-blue-400 group-hover:border-blue-500/30 transition-colors">
                                                 R:{req.numero?.split('/')[1]}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-white truncate">
+                                                <p className="text-sm font-bold text-slate-900 truncate">
                                                     {fornecedores.find(f => f.id === req.fornecedorId)?.nome || 'Fornecedor'}
                                                 </p>
                                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
@@ -1398,7 +1399,34 @@ export default function Requisicoes() {
                 {activeTab === 'list' && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 fade-in">
                         {/* Toolbar */}
-                        <div className="flex flex-col lg:flex-row gap-6 justify-between items-center bg-slate-900/50 p-4 rounded-[2rem] border border-slate-800 backdrop-blur-md">
+                        <div className="rounded-[2rem] border border-slate-200/90 bg-[linear-gradient(135deg,rgba(5,17,39,0.95),rgba(12,30,66,0.9))] p-4 md:p-5 shadow-[0_28px_70px_rgba(2,6,23,0.45)]">
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => { setActiveTab('create'); }}
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Nova
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setListFilter('pendentes')}
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${listFilter === 'pendentes' ? 'bg-blue-900/50 border-blue-500/40 text-blue-200' : 'bg-white border-slate-200 text-slate-600'}`}
+                                >
+                                    <Clock className="w-4 h-4" />
+                                    Abertas
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setListFilter('historico')}
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${listFilter === 'historico' ? 'bg-blue-900/50 border-blue-500/40 text-blue-200' : 'bg-white border-slate-200 text-slate-600'}`}
+                                >
+                                    <CheckCircle className="w-4 h-4" />
+                                    Fechadas
+                                </button>
+                            </div>
+
                             <div className="flex-1 flex flex-col md:flex-row gap-4 w-full">
                                 <div className="relative flex-1 group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -1407,7 +1435,7 @@ export default function Requisicoes() {
                                     <input
                                         type="text"
                                         placeholder="Pesquisar por número, fornecedor..."
-                                        className="block w-full pl-12 pr-4 py-4 bg-slate-950 border border-slate-800 rounded-2xl leading-5 text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm transition-all shadow-inner"
+                                        className="block w-full pl-12 pr-4 py-3.5 bg-[#070f1f] border border-slate-200 rounded-2xl leading-5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm transition-all shadow-inner"
                                         value={filter}
                                         onChange={e => setFilter(e.target.value)}
                                     />
@@ -1421,7 +1449,7 @@ export default function Requisicoes() {
                                         setSearchStatus('all');
                                         setFilter('');
                                     }}
-                                    className="p-4 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-2xl border border-slate-700 transition-all flex items-center justify-center"
+                                    className="p-3.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-2xl border border-slate-200 transition-all flex items-center justify-center"
                                     title="Limpar filtros"
                                 >
                                     <RotateCcw className="w-5 h-5" />
@@ -1430,7 +1458,7 @@ export default function Requisicoes() {
                         </div>
 
                         {/* Advanced Filters */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-900/30 p-4 rounded-3xl border border-slate-800/50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-[#0a152d]/90 p-4 rounded-3xl border border-slate-200 shadow-inner shadow-black/30">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Fornecedor</label>
                                 <input
@@ -1438,7 +1466,7 @@ export default function Requisicoes() {
                                     placeholder="Filtrar fornecedor..."
                                     value={searchSupplier}
                                     onChange={e => setSearchSupplier(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -1448,7 +1476,7 @@ export default function Requisicoes() {
                                     placeholder="Filtrar veículo..."
                                     value={searchVehicle}
                                     onChange={e => setSearchVehicle(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -1458,7 +1486,7 @@ export default function Requisicoes() {
                                     placeholder="Filtrar CC..."
                                     value={searchCostCenter}
                                     onChange={e => setSearchCostCenter(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -1466,7 +1494,7 @@ export default function Requisicoes() {
                                 <select
                                     value={searchStatus}
                                     onChange={e => setSearchStatus(e.target.value as any)}
-                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                 >
                                     <option value="all">Todos os Estados</option>
                                     <option value="pendente">Pendentes</option>
@@ -1492,7 +1520,7 @@ export default function Requisicoes() {
                                 const supplierBadge = getSupplierResponseBadge(req);
 
                                 return (
-                                    <div key={req.id} className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/70 rounded-3xl p-6 hover:border-blue-500/30 transition-all hover:bg-slate-800/40 group relative overflow-visible">
+                                    <div key={req.id} className="bg-[linear-gradient(128deg,rgba(10,24,52,0.95),rgba(18,35,70,0.88))] backdrop-blur-xl border border-slate-200/70 rounded-3xl p-5 md:p-6 hover:border-blue-400/40 transition-all hover:shadow-[0_14px_42px_rgba(6,14,35,0.45)] group relative overflow-visible">
                                         {/* decorative blob */}
                                         <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors pointer-events-none"></div>
                                         <div className={`absolute left-0 top-0 h-full w-1.5 ${req.status === 'concluida' ? 'bg-emerald-500/70' : 'bg-amber-500/70'}`} />
@@ -1502,7 +1530,7 @@ export default function Requisicoes() {
                                             <div className="flex-1 min-w-0 space-y-4">
                                                 <div className="flex flex-wrap items-center justify-between gap-4">
                                                     <div className="flex flex-wrap items-center gap-3">
-                                                        <span className="h-10 px-4 inline-flex items-center rounded-xl border border-slate-700 bg-slate-950 text-sm font-mono font-bold text-blue-300">
+                                                        <span className="h-10 px-4 inline-flex items-center rounded-xl border border-slate-200 bg-white/90 text-sm font-mono font-bold text-blue-200">
                                                             R:{req.numero?.split('/')[1]}
                                                         </span>
                                                         <span className={`h-10 px-4 inline-flex items-center rounded-xl text-xs font-bold uppercase tracking-wider border
@@ -1511,7 +1539,7 @@ export default function Requisicoes() {
                                                             {req.status === 'concluida' ? 'Concluída' : 'Pendente'}
                                                         </span>
                                                         <span className={`h-10 px-4 inline-flex items-center rounded-xl text-xs font-bold uppercase tracking-wide border gap-1.5
-                                                            ${req.tipo === 'Oficina' ? 'bg-slate-800 border-slate-700 text-slate-300' : ''}
+                                                            ${req.tipo === 'Oficina' ? 'bg-slate-100 border-slate-200 text-slate-300' : ''}
                                                             ${req.tipo === 'Stock' ? 'bg-purple-900/30 border-purple-500/30 text-purple-400' : ''}
                                                             ${req.tipo === 'Viatura' ? 'bg-indigo-900/30 border-indigo-500/30 text-indigo-400' : ''}
                                                         `}>
@@ -1522,14 +1550,14 @@ export default function Requisicoes() {
                                                         </span>
                                                     </div>
 
-                                                    <span className="h-10 px-4 inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 text-sm text-slate-300">
+                                                    <span className="h-10 px-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 text-sm text-slate-300">
                                                         <Calendar className="w-4 h-4 text-slate-400" />
                                                         {formatSmallDate(req.data)}
                                                     </span>
                                                 </div>
 
                                                 <div>
-                                                    <h3 className="font-bold text-white text-xl leading-snug">{fornecedor?.nome || t('req.card.unknown_supplier')}</h3>
+                                                    <h3 className="font-bold text-slate-900 text-xl leading-snug tracking-tight">{fornecedor?.nome || t('req.card.unknown_supplier')}</h3>
                                                     {viatura && (
                                                         <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-indigo-300 font-medium">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
@@ -1546,11 +1574,11 @@ export default function Requisicoes() {
                                                 </div>
 
                                                 <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
-                                                    <span className="h-9 flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
+                                                    <span className="h-9 flex items-center gap-2 bg-white/90 px-3 py-1.5 rounded-lg border border-slate-200">
                                                         <Package className="w-4 h-4 text-slate-500" />
-                                                        <span className="text-white font-bold">{(req.itens || []).length}</span> itens
+                                                        <span className="text-slate-900 font-bold">{(req.itens || []).length}</span> itens
                                                     </span>
-                                                    <span className="h-9 flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800">
+                                                    <span className="h-9 flex items-center gap-2 bg-white/90 px-3 py-1.5 rounded-lg border border-slate-200">
                                                         <User className="w-4 h-4 text-slate-500" />
                                                         <span className="text-slate-300">{req.criadoPor?.split(' ')[0] || 'Staff'}</span>
                                                     </span>
@@ -1571,29 +1599,29 @@ export default function Requisicoes() {
                                                 )}
 
                                                 {req.supplier_comment && (
-                                                    <p className="text-sm text-slate-300 bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-2">
+                                                    <p className="text-sm text-slate-300 bg-white/90 border border-slate-200/70 rounded-xl px-3 py-2">
                                                         Comentario fornecedor: {req.supplier_comment}
                                                     </p>
                                                 )}
 
-                                                <div className="mt-2 bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4">
+                                                <div className="mt-2 bg-white/90 border border-slate-200/70 rounded-2xl p-4">
                                                     <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                                                         <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
                                                             <FileText className="w-4 h-4 text-slate-400" />
                                                             Faturas associadas
                                                         </h4>
                                                         <span className="text-xs text-slate-400">
-                                                            Total faturado: <span className="text-white font-semibold">{formatCurrency(totalInvoicedAmount)}</span>
+                                                            Total faturado: <span className="text-slate-900 font-semibold">{formatCurrency(totalInvoicedAmount)}</span>
                                                         </span>
                                                     </div>
 
                                                     {associatedInvoices.length === 0 ? (
                                                         <p className="text-xs text-slate-500">Sem faturas associadas.</p>
                                                     ) : (
-                                                        <div className="overflow-x-auto rounded-xl border border-slate-800/80">
+                                                        <div className="overflow-x-auto rounded-xl border border-slate-200/80">
                                                             <table className="w-full text-xs">
-                                                                <thead className="bg-slate-950/70">
-                                                                    <tr className="text-slate-400 border-b border-slate-800">
+                                                                <thead className="bg-white/90">
+                                                                    <tr className="text-slate-400 border-b border-slate-100">
                                                                         <th className="text-left py-2.5 px-3 font-semibold">Nº Fatura</th>
                                                                         <th className="text-left py-2.5 px-3 font-semibold">Data</th>
                                                                         <th className="text-right py-2.5 px-3 font-semibold">Total</th>
@@ -1602,7 +1630,7 @@ export default function Requisicoes() {
                                                                 </thead>
                                                                 <tbody>
                                                                     {associatedInvoices.map(invoice => (
-                                                                        <tr key={invoice.id} className="border-b border-slate-900/80 last:border-0 hover:bg-slate-900/40">
+                                                                        <tr key={invoice.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                                                                             <td className="py-2.5 px-3 text-slate-200 font-medium">{invoice.invoice_number}</td>
                                                                             <td className="py-2.5 px-3 text-slate-300">{formatSmallDate(invoice.issue_date)}</td>
                                                                             <td className="py-2.5 px-3 text-right text-slate-200">{formatCurrency(Number(invoice.total_final ?? invoice.total ?? invoice.total_value ?? 0))}</td>
@@ -1617,7 +1645,7 @@ export default function Requisicoes() {
                                             </div>
 
                                             {/* Right Actions */}
-                                            <div className="flex lg:flex-col lg:items-end justify-between items-center gap-3 border-t lg:border-t-0 lg:border-l border-slate-800 pt-4 lg:pt-0 lg:pl-6 min-w-[180px]">
+                                            <div className="flex lg:flex-col lg:items-end justify-between items-center gap-3 border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6 min-w-[180px]">
                                                 {req.fatura && (
                                                     <div className="flex items-center gap-2 bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-500/20 mb-auto">
                                                         <FileText className="w-3.5 h-3.5 text-emerald-500" />
@@ -1628,16 +1656,16 @@ export default function Requisicoes() {
                                                 <div className="flex items-center gap-2 mt-auto">
                                                     <button
                                                         onClick={() => navigate(`/finance/faturas/nova?requisitionId=${req.id}`)}
-                                                        className="flex items-center gap-2 px-3 py-3 text-indigo-300 bg-indigo-900/20 hover:bg-indigo-800/40 hover:text-white border border-indigo-500/20 rounded-xl transition-colors"
+                                                        className="flex items-center gap-2 px-3 py-3 text-indigo-300 bg-indigo-900/20 hover:bg-indigo-800/40 hover:text-slate-900 border border-indigo-500/20 rounded-xl transition-colors"
                                                         title="Criar fatura a partir desta requisição"
                                                     >
                                                         <PlusCircle className="w-4 h-4" />
-                                                        <span className="text-sm font-medium">Create Invoice from Requisition</span>
+                                                        <span className="text-sm font-medium">Criar fatura</span>
                                                     </button>
 
                                                     <button
                                                         onClick={() => generatePDF(req)}
-                                                        className="p-3 text-blue-300 bg-blue-900/20 hover:bg-blue-800/40 hover:text-white border border-blue-500/20 rounded-xl transition-colors"
+                                                        className="p-3 text-blue-300 bg-blue-900/20 hover:bg-blue-800/40 hover:text-slate-900 border border-blue-500/20 rounded-xl transition-colors"
                                                         title="Imprimir PDF"
                                                     >
                                                         <Printer className="w-5 h-5" />
@@ -1646,7 +1674,7 @@ export default function Requisicoes() {
                                                     <button
                                                         onClick={() => handleSendSupplierEmail(req)}
                                                         disabled={sendingEmailReqId === req.id}
-                                                        className="flex items-center gap-2 px-3 py-3 text-cyan-300 bg-cyan-900/20 hover:bg-cyan-800/40 hover:text-white border border-cyan-500/20 rounded-xl transition-colors disabled:opacity-60"
+                                                        className="flex items-center gap-2 px-3 py-3 text-cyan-300 bg-cyan-900/20 hover:bg-cyan-800/40 hover:text-slate-900 border border-cyan-500/20 rounded-xl transition-colors disabled:opacity-60"
                                                         title="Enviar por Email"
                                                     >
                                                         <Mail className="w-5 h-5" />
@@ -1668,16 +1696,16 @@ export default function Requisicoes() {
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => setOpenMenuId(prev => prev === req.id ? null : req.id)}
-                                                                        className="p-3 text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700"
+                                                                        className="p-3 text-slate-400 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors border border-slate-200"
                                                                     >
                                                                         <Clock className="w-5 h-5" />
                                                                     </button>
                                                                     {openMenuId === req.id && (
-                                                                    <div className="absolute bottom-full mb-2 right-0 z-[9999] w-44 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-lg p-2">
+                                                                    <div className="absolute bottom-full mb-2 right-0 z-[9999] w-44 bg-white backdrop-blur-md border border-slate-200 shadow-lg rounded-xl shadow-lg p-2">
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleReopen(req.id)}
-                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-amber-500 hover:bg-slate-800 rounded-md transition-colors"
+                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-amber-500 hover:bg-slate-50 rounded-md transition-colors"
                                                                         >
                                                                             <RotateCcw className="w-4 h-4" />
                                                                             Reabrir
@@ -1685,7 +1713,7 @@ export default function Requisicoes() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleEditById(req.id)}
-                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:bg-slate-800 rounded-md transition-colors"
+                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:bg-slate-50 rounded-md transition-colors"
                                                                         >
                                                                             <Pencil className="w-4 h-4" />
                                                                             Editar
@@ -1694,7 +1722,7 @@ export default function Requisicoes() {
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => handleDelete(req.id)}
-                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-md transition-colors"
+                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-slate-50 rounded-md transition-colors"
                                                                             >
                                                                                 <Trash2 className="w-4 h-4" />
                                                                                 Apagar
@@ -1710,16 +1738,16 @@ export default function Requisicoes() {
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => setOpenMenuId(prev => prev === req.id ? null : req.id)}
-                                                                        className="p-3 text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700"
+                                                                        className="p-3 text-slate-400 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors border border-slate-200"
                                                                     >
                                                                         <Settings2 className="w-5 h-5" />
                                                                     </button>
                                                                     {openMenuId === req.id && (
-                                                                    <div className="absolute bottom-full mb-2 right-0 z-[9999] w-44 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-lg p-2">
+                                                                    <div className="absolute bottom-full mb-2 right-0 z-[9999] w-44 bg-white backdrop-blur-md border border-slate-200 shadow-lg rounded-xl shadow-lg p-2">
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleEditById(req.id)}
-                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:bg-slate-800 rounded-md transition-colors"
+                                                                            className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:bg-slate-50 rounded-md transition-colors"
                                                                         >
                                                                             <Pencil className="w-4 h-4" />
                                                                             Editar
@@ -1728,7 +1756,7 @@ export default function Requisicoes() {
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => handleDelete(req.id)}
-                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-md transition-colors"
+                                                                                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-slate-50 rounded-md transition-colors"
                                                                             >
                                                                                 <Trash2 className="w-4 h-4" />
                                                                                 Apagar
@@ -1749,8 +1777,8 @@ export default function Requisicoes() {
                         </div>
 
                         {filteredItems.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-24 bg-slate-900/20 rounded-[2rem] border border-dashed border-slate-700">
-                                <div className="bg-slate-800 p-6 rounded-full mb-6 shadow-inner">
+                            <div className="flex flex-col items-center justify-center py-24 bg-slate-50/60 rounded-[2rem] border border-dashed border-slate-200">
+                                <div className="bg-slate-100 p-6 rounded-full mb-6 shadow-inner">
                                     <Search className="w-12 h-12 text-slate-600" />
                                 </div>
                                 <h3 className="text-slate-400 text-lg font-medium">Nenhuma requisição encontrada.</h3>
@@ -1767,16 +1795,16 @@ export default function Requisicoes() {
                 {/* Create Tab */}
                 {activeTab === 'create' && (
                     <div className="w-full min-w-0 animate-in slide-in-from-bottom-8 fade-in pb-10">
-                        <div className="bg-slate-900/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-700/50 shadow-2xl relative">
+                        <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200/50 shadow-2xl relative">
                             {/* Decorative Glow */}
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
 
-                            <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-800">
+                            <div className="flex items-center gap-4 mb-8 pb-8 border-b border-slate-100">
                                 <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
                                     <PlusCircle className="w-7 h-7" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-black text-white tracking-tight">
+                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                                         {editingId ? 'Editar Requisição' : t('req.form.title')}
                                         <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">v2.2</span>
                                     </h2>
@@ -1805,7 +1833,7 @@ export default function Requisicoes() {
                                             <input
                                                 type="date"
                                                 required
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
+                                                className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-600 transition-all font-medium shadow-sm"
                                                 value={data}
                                                 onChange={e => setData(e.target.value)}
                                             />
@@ -1822,7 +1850,7 @@ export default function Requisicoes() {
                                                     setTipo(val);
                                                     setViaturaId('');
                                                 }}
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all appearance-none font-medium shadow-sm"
+                                                className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-600 transition-all appearance-none font-medium shadow-sm"
                                             >
                                                 <option value="Oficina">Oficina (Geral)</option>
                                                 <option value="Stock">Stock (Armazém)</option>
@@ -1840,7 +1868,7 @@ export default function Requisicoes() {
                                                     required
                                                     value={viaturaId}
                                                     onChange={(e) => setViaturaId(e.target.value)}
-                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-600 transition-all font-medium shadow-sm"
                                                 >
                                                     <option value="">{t('req.form.vehicle_select')}</option>
                                                     {viaturas.map(v => (
@@ -1860,7 +1888,7 @@ export default function Requisicoes() {
                                             <select
                                                 value={clienteId}
                                                 onChange={(e) => setClienteId(e.target.value)}
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all appearance-none font-medium shadow-sm"
+                                                className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-600 transition-all appearance-none font-medium shadow-sm"
                                             >
                                                 <option value="">Nenhum / Custo interno</option>
                                                 {(() => {
@@ -1888,7 +1916,7 @@ export default function Requisicoes() {
                                             <select
                                                 value={centroCustoId || ''}
                                                 onChange={(e) => setCentroCustoId(e.target.value || undefined)}
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
+                                                className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-600 transition-all font-medium shadow-sm"
                                             >
                                                 <option value="">Selecione... (Opcional)</option>
                                                 {centrosCustos.map(cc => (
@@ -1904,7 +1932,7 @@ export default function Requisicoes() {
                                             <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                                             <select
                                                 required
-                                                className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm"
+                                                className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-600 transition-all font-medium shadow-sm"
                                                 value={fornecedorId}
                                                 onChange={e => setFornecedorId(e.target.value)}
                                             >
@@ -1918,21 +1946,21 @@ export default function Requisicoes() {
                                 </div>
 
                                 {/* Items Section */}
-                                <div className="bg-slate-950/30 rounded-3xl p-6 border border-slate-800/50">
-                                    <label className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wider mb-4">
-                                        <div className="bg-slate-800 p-1.5 rounded-lg border border-slate-700">
+                                <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200/50">
+                                    <label className="flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
+                                        <div className="bg-slate-100 p-1.5 rounded-lg border border-slate-200">
                                             <List className="w-4 h-4 text-blue-400" />
                                         </div>
                                         {t('req.form.items')}
                                     </label>
 
-                                    <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-inner mb-4">
+                                    <div className="bg-white/90/80 p-6 rounded-2xl border border-slate-200 shadow-inner mb-4">
                                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-end">
                                             <div className="md:col-span-12 xl:col-span-4 space-y-1.5">
                                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descrição</label>
                                                 <input
                                                     placeholder={t('req.form.desc_placeholder')}
-                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all placeholder-slate-600 shadow-sm"
+                                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-600 transition-all placeholder-slate-600 shadow-sm"
                                                     value={newItemDesc}
                                                     onChange={e => setNewItemDesc(e.target.value)}
                                                     onKeyDown={(e) => {
@@ -1949,7 +1977,7 @@ export default function Requisicoes() {
                                                 <input
                                                     type="number"
                                                     min="1"
-                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-center shadow-sm"
+                                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-600 transition-all font-mono text-center shadow-sm"
                                                     value={newItemQtd}
                                                     onChange={e => setNewItemQtd(parseInt(e.target.value) || 1)}
                                                 />
@@ -1960,7 +1988,7 @@ export default function Requisicoes() {
                                                 <input
                                                     type="text"
                                                     placeholder="0,00"
-                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-right shadow-sm"
+                                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-600 transition-all font-mono text-right shadow-sm"
                                                     value={newItemValorUnitario}
                                                     onChange={e => setNewItemValorUnitario(e.target.value)}
                                                 />
@@ -1971,7 +1999,7 @@ export default function Requisicoes() {
                                                 <input
                                                     type="text"
                                                     placeholder="0,00"
-                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 transition-all font-mono text-right shadow-sm"
+                                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-600 transition-all font-mono text-right shadow-sm"
                                                     value={newItemValorTotal}
                                                     onChange={e => setNewItemValorTotal(e.target.value)}
                                                 />
@@ -1991,10 +2019,10 @@ export default function Requisicoes() {
                                     </div>
 
                                     {/* Added Items List - Mini Table */}
-                                    <div className="overflow-x-auto border border-slate-800 rounded-2xl bg-slate-950/20">
+                                    <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white/20">
                                         <table className="w-full text-left border-collapse" style={{ minWidth: '520px' }}>
                                             <thead>
-                                                <tr className="bg-slate-950/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800">
+                                                <tr className="bg-white/90 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-100">
                                                     <th className="px-4 py-4">Item / Descrição</th>
                                                     <th className="px-3 py-4 text-center w-20">Qtd</th>
                                                     <th className="px-3 py-4 text-right w-28">Unitário</th>
@@ -2002,19 +2030,19 @@ export default function Requisicoes() {
                                                     <th className="px-3 py-4 text-center w-16">Ações</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-800/50">
+                                            <tbody className="divide-y divide-slate-100/50">
                                                 {items.map(item => (
-                                                    <tr key={item.id} className="hover:bg-slate-800/20 transition-colors group">
+                                                    <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
                                                         <td className="px-6 py-4 text-sm font-medium text-slate-200">{item.descricao}</td>
                                                         <td className="px-4 py-4 text-center">
-                                                            <span className="px-2.5 py-1 bg-slate-900 rounded-lg text-xs font-mono font-bold text-blue-400 border border-slate-800">
+                                                            <span className="px-2.5 py-1 bg-white/90 rounded-lg text-xs font-mono font-bold text-blue-400 border border-slate-200">
                                                                 {item.quantidade}
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-4 text-right text-xs font-mono text-slate-400">
                                                             {item.valor_unitario ? `${item.valor_unitario.toFixed(2)}€` : '---'}
                                                         </td>
-                                                        <td className="px-4 py-4 text-right text-sm font-mono font-bold text-white">
+                                                        <td className="px-4 py-4 text-right text-sm font-mono font-bold text-slate-900">
                                                             {item.valor_total ? `${item.valor_total.toFixed(2)}€` : '---'}
                                                         </td>
                                                         <td className="px-6 py-4">
@@ -2047,7 +2075,7 @@ export default function Requisicoes() {
                                             </tbody>
                                             {items.length > 0 && (
                                                 <tfoot>
-                                                    <tr className="bg-slate-950/50 border-t border-slate-800">
+                                                    <tr className="bg-white/90 border-t border-slate-200">
                                                         <td colSpan={3} className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase">Total Estimado</td>
                                                         <td className="px-4 py-4 text-right">
                                                             <span className="text-lg font-black text-blue-400 font-mono">
@@ -2062,22 +2090,22 @@ export default function Requisicoes() {
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-950/30 rounded-3xl p-6 border border-slate-800/50 space-y-3">
-                                    <label className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wider">
-                                        <div className="bg-slate-800 p-1.5 rounded-lg border border-slate-700">
+                                <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200/50 space-y-3">
+                                    <label className="flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider">
+                                        <div className="bg-slate-100 p-1.5 rounded-lg border border-slate-200">
                                             <FileText className="w-4 h-4 text-blue-400" />
                                         </div>
                                         Observações
                                     </label>
                                     <textarea
-                                        className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-200 transition-all font-medium shadow-sm resize-none h-36"
+                                        className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-600 transition-all font-medium shadow-sm resize-none h-36"
                                         placeholder="Notas ou instruções adicionais..."
                                         value={obs}
                                         onChange={e => setObs(e.target.value)}
                                     />
                                 </div>
 
-                                <div className="flex justify-end pt-4 border-t border-slate-800">
+                                <div className="flex justify-end pt-4 border-t border-slate-200">
                                     <button
                                         type="submit"
                                         disabled={isSubmittingRequisition}
@@ -2094,8 +2122,8 @@ export default function Requisicoes() {
                 {
                     showEditModal && itemEmEdicao && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                                <h3 className="text-2xl font-bold text-white mb-6">
+                            <div className="bg-white/90 border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                                <h3 className="text-2xl font-bold text-slate-900 mb-6">
                                     Editar Item
                                 </h3>
 
@@ -2108,7 +2136,7 @@ export default function Requisicoes() {
                                             type="text"
                                             value={newItemDesc}
                                             onChange={e => setNewItemDesc(e.target.value)}
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900"
                                         />
                                     </div>
 
@@ -2122,7 +2150,7 @@ export default function Requisicoes() {
                                                 min={1}
                                                 value={newItemQtd}
                                                 onChange={e => setNewItemQtd(Number(e.target.value))}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono"
                                             />
                                         </div>
                                         <div>
@@ -2134,7 +2162,7 @@ export default function Requisicoes() {
                                                 value={newItemValorUnitario}
                                                 onChange={e => setNewItemValorUnitario(e.target.value)}
                                                 placeholder="0,00"
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono"
                                             />
                                         </div>
                                     </div>
@@ -2148,7 +2176,7 @@ export default function Requisicoes() {
                                             value={newItemValorTotal}
                                             onChange={e => setNewItemValorTotal(e.target.value)}
                                             placeholder="0,00"
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono"
                                         />
                                     </div>
                                 </div>
@@ -2157,7 +2185,7 @@ export default function Requisicoes() {
                                     <button
                                         type="button"
                                         onClick={() => setShowEditModal(false)}
-                                        className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl"
+                                        className="px-4 py-2 bg-slate-100 text-slate-500 rounded-xl"
                                     >
                                         Cancelar
                                     </button>
@@ -2202,9 +2230,9 @@ export default function Requisicoes() {
                 {
                     showEmailModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-2xl w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="bg-white/90 border border-slate-200 rounded-3xl p-8 max-w-2xl w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
                                 <div className="relative z-10 shrink-0 mb-6">
-                                    <h3 className="text-2xl font-bold text-white mb-2">Enviar Email</h3>
+                                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Enviar Email</h3>
                                     <p className="text-slate-400">Edite o email antes de enviar para o fornecedor.</p>
                                 </div>
 
@@ -2216,7 +2244,7 @@ export default function Requisicoes() {
                                                 type="email"
                                                 value={emailTo}
                                                 onChange={e => setEmailTo(e.target.value)}
-                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-slate-900 transition-all"
                                                 placeholder="fornecedor@email.com"
                                             />
                                         </div>
@@ -2227,7 +2255,7 @@ export default function Requisicoes() {
                                                 type="text"
                                                 value={emailSubject}
                                                 onChange={e => setEmailSubject(e.target.value)}
-                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-slate-900 transition-all"
                                             />
                                         </div>
 
@@ -2237,7 +2265,7 @@ export default function Requisicoes() {
                                                 type="text"
                                                 value={emailCc}
                                                 onChange={e => setEmailCc(e.target.value)}
-                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-slate-900 transition-all"
                                                 placeholder="email1@empresa.pt; email2@empresa.pt"
                                             />
                                             <p className="text-xs text-slate-500">Pode separar vários emails com ponto e vírgula, vírgula ou espaço.</p>
@@ -2249,7 +2277,7 @@ export default function Requisicoes() {
                                                 value={emailMessage}
                                                 onChange={e => setEmailMessage(e.target.value)}
                                                 rows={12}
-                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-white transition-all font-mono text-sm"
+                                                className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none text-slate-900 transition-all font-mono text-sm"
                                             />
                                         </div>
 
@@ -2259,7 +2287,7 @@ export default function Requisicoes() {
                                     </div>
                                 ) : (
                                     <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 relative z-10 min-h-0">
-                                        <div className="p-5 bg-slate-950/70 border border-slate-800 rounded-2xl">
+                                        <div className="p-5 bg-white/90 border border-slate-200 rounded-2xl">
                                             <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">De:</span> {SENDER_EMAIL}</p>
                                             <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">Para:</span> {emailTo}</p>
                                             <p className="text-sm text-slate-300 mb-1"><span className="text-slate-500">CC:</span> {emailCc || '—'}</p>
@@ -2275,7 +2303,7 @@ export default function Requisicoes() {
                                             <button
                                                 type="button"
                                                 onClick={closeEmailModal}
-                                                className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                                                className="flex-1 py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-xl font-bold transition-all"
                                             >
                                                 Cancelar
                                             </button>
@@ -2299,7 +2327,7 @@ export default function Requisicoes() {
                                             <button
                                                 type="button"
                                                 onClick={closeEmailModal}
-                                                className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                                                className="flex-1 py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-xl font-bold transition-all"
                                             >
                                                 Cancelar
                                             </button>
@@ -2323,13 +2351,13 @@ export default function Requisicoes() {
                 {
                     showConfirmModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="bg-white/90 border border-slate-200 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
                                 <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
                                     <FileText className="w-32 h-32 text-emerald-500" />
                                 </div>
 
                                 <div className="relative z-10 shrink-0">
-                                    <h3 className="text-2xl font-bold text-white mb-2">Confirmar Requisição</h3>
+                                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Confirmar Requisição</h3>
                                     <p className="text-slate-400 mb-6">Adicione uma ou mais faturas para concluir.</p>
                                 </div>
 
@@ -2342,9 +2370,9 @@ export default function Requisicoes() {
                                                 <span className="text-emerald-500">Total: {(invoicesList.reduce((acc, curr) => acc + curr.valor_total, 0)).toFixed(2)} €</span>
                                             </div>
                                             {invoicesList.map((inv, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+                                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-100 rounded-xl border border-slate-200">
                                                     <div>
-                                                        <div className="text-sm font-bold text-white">{inv.numero}</div>
+                                                        <div className="text-sm font-bold text-slate-900">{inv.numero}</div>
                                                         <div className="text-xs text-slate-400 font-mono">
                                                             {inv.valor_liquido.toFixed(2)} € + {(inv.iva_taxa * 100).toFixed(0)}% IVA
                                                         </div>
@@ -2365,12 +2393,12 @@ export default function Requisicoes() {
                                     )}
 
                                     {/* INPUT FORM FOR NEW INVOICE */}
-                                    <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 space-y-4">
+                                    <div className="p-4 bg-white/90 rounded-2xl border border-slate-200 space-y-4">
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-slate-500 uppercase">Número da Fatura</label>
                                             <input
                                                 type="text"
-                                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
+                                                className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 transition-all shadow-inner"
                                                 value={invoiceNumber}
                                                 onChange={e => setInvoiceNumber(e.target.value)}
                                                 placeholder="Ex: FT 2024/123"
@@ -2388,7 +2416,7 @@ export default function Requisicoes() {
                                                 <input
                                                     type="number"
                                                     step="0.01"
-                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner font-mono"
+                                                    className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 transition-all shadow-inner font-mono"
                                                     value={invoiceNetAmount}
                                                     onChange={e => setInvoiceNetAmount(e.target.value)}
                                                     placeholder="0.00"
@@ -2397,7 +2425,7 @@ export default function Requisicoes() {
                                             <div className="space-y-2">
                                                 <label className="text-xs font-bold text-slate-500 uppercase">Taxa IVA</label>
                                                 <select
-                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all shadow-inner"
+                                                    className="w-full px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 transition-all shadow-inner"
                                                     value={invoiceVatRate}
                                                     onChange={e => setInvoiceVatRate(parseFloat(e.target.value))}
                                                 >
@@ -2411,7 +2439,7 @@ export default function Requisicoes() {
 
                                         {/* Auto-calculated Total Preview */}
                                         {invoiceNetAmount && (
-                                            <div className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-800">
+                                            <div className="flex justify-between items-center p-3 bg-white/90 rounded-xl border border-slate-200">
                                                 <span className="text-xs text-slate-500 font-bold uppercase">Total com IVA</span>
                                                 <span className="text-emerald-400 font-mono font-bold">
                                                     {(parseFloat(invoiceNetAmount.replace(',', '.')) * (1 + invoiceVatRate)).toFixed(2)} €
@@ -2422,7 +2450,7 @@ export default function Requisicoes() {
                                         <button
                                             type="button"
                                             onClick={addInvoiceToList}
-                                            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all font-bold flex items-center justify-center gap-2"
+                                            className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-xl border border-slate-200 transition-all font-bold flex items-center justify-center gap-2"
                                         >
                                             <Plus className="w-5 h-5" /> Adicionar Fatura
                                         </button>
@@ -2433,7 +2461,7 @@ export default function Requisicoes() {
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirmModal(false)}
-                                        className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                                        className="flex-1 py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-xl font-bold transition-all"
                                     >
                                         Cancelar
                                     </button>

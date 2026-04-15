@@ -49,8 +49,8 @@ export default function SupplierInvoiceDocumentPage({ mode }: SupplierInvoiceDoc
 
     if (mode === 'edit' && !selectedInvoice) {
         return (
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-8">
-                <h2 className="text-xl font-semibold text-white mb-2">Fatura não encontrada</h2>
+            <div className="bg-white/90 border border-slate-200 rounded-xl p-8">
+                <h2 className="text-xl font-semibold text-slate-900 mb-2">Fatura não encontrada</h2>
                 <p className="text-slate-400 mb-6">A fatura solicitada não existe ou ainda não foi carregada.</p>
                 <button
                     onClick={handleCancel}

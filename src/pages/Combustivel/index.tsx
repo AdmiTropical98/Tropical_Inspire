@@ -1247,7 +1247,7 @@ export default function Combustivel() {
                 subtitle={t('fuel.subtitle')}
                 icon={Fuel}
             >
-                <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
                     {[
                         { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
                         { id: 'abastecer', icon: Fuel, label: 'Abastecer' },
@@ -1262,7 +1262,7 @@ export default function Combustivel() {
                             className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
                             ${activeTab === tab.id
                                     ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                         >
                             <tab.icon className="w-4 h-4" />
                             {tab.label}
@@ -1766,13 +1766,13 @@ export default function Combustivel() {
 
                 {/* SUPPLY TAB */}
                 {activeTab === 'tanque' && (
-                    <div className="w-full min-w-0 bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
-                        <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-800">
+                    <div className="w-full min-w-0 bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
+                        <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-100">
                             <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
                                 <Truck className="w-8 h-8" />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black text-white tracking-tight">Reabastecer Tanque</h2>
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Reabastecer Tanque</h2>
                                 <p className="text-slate-400 text-lg mt-1">Registo de entrada de combustível (Cisterna)</p>
                             </div>
                         </div>
@@ -1786,7 +1786,7 @@ export default function Combustivel() {
                                         type="text"
                                         value={supplyForm.supplier}
                                         onChange={(e) => setSupplyForm({ ...supplyForm, supplier: e.target.value })}
-                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                        className="w-full px-6 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all font-medium text-lg"
                                         placeholder="Ex: Galp, Repsol..."
                                     />
                                 </div>
@@ -1800,7 +1800,7 @@ export default function Combustivel() {
                                             step="0.1"
                                             value={supplyForm.litersAdded}
                                             onChange={(e) => setSupplyForm({ ...supplyForm, litersAdded: e.target.value })}
-                                            className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-xl"
+                                            className="w-full pl-6 pr-12 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all font-mono text-xl"
                                             placeholder="0.0"
                                         />
                                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">L</span>
@@ -1816,7 +1816,7 @@ export default function Combustivel() {
                                             step="0.001"
                                             value={supplyForm.pricePerLiter}
                                             onChange={(e) => setSupplyForm({ ...supplyForm, pricePerLiter: e.target.value })}
-                                            className="w-full pl-6 pr-12 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-xl"
+                                            className="w-full pl-6 pr-12 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all font-mono text-xl"
                                             placeholder="0.000"
                                         />
                                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">€</span>
@@ -1829,7 +1829,7 @@ export default function Combustivel() {
                                         type="date"
                                         value={supplyForm.manualDate}
                                         onChange={(e) => setSupplyForm({ ...supplyForm, manualDate: e.target.value })}
-                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                        className="w-full px-6 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all font-medium text-lg"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -1839,7 +1839,7 @@ export default function Combustivel() {
                                         type="time"
                                         value={supplyForm.manualTime}
                                         onChange={(e) => setSupplyForm({ ...supplyForm, manualTime: e.target.value })}
-                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-medium text-lg"
+                                        className="w-full px-6 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all font-medium text-lg"
                                     />
                                 </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">
@@ -1848,16 +1848,16 @@ export default function Combustivel() {
                                         type="number"
                                         value={supplyForm.pumpReading}
                                         onChange={(e) => setSupplyForm({ ...supplyForm, pumpReading: e.target.value })}
-                                        className="w-full px-6 py-4 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all font-mono text-lg"
+                                        className="w-full px-6 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all font-mono text-lg"
                                         placeholder="000000"
                                     />
                                 </div>
                             </div>
-                            <div className="flex gap-4 pt-4 border-t border-slate-800">
+                            <div className="flex gap-4 pt-4 border-t border-slate-200">
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('overview')}
-                                    className="px-8 py-4 text-slate-400 hover:text-white font-bold hover:bg-slate-800 rounded-xl transition-all"
+                                    className="px-8 py-4 text-slate-500 hover:text-slate-700 font-bold hover:bg-slate-50 rounded-xl transition-all"
                                 >
                                     Cancelar
                                 </button>
@@ -1875,13 +1875,13 @@ export default function Combustivel() {
 
                 {/* HISTORY TAB */}
                 {activeTab === 'historico' && (
-                    <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
+                    <div className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
-                            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                                 <History className="w-6 h-6 text-blue-400" />
                                 Histórico de Transações
                             </h2>
-                            <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-2xl border border-slate-700/50">
+                            <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-2xl border border-slate-200">
                                 <Filter className="w-4 h-4 text-slate-500 ml-2" />
                                 <select
                                     value={filters.vehicleId}
@@ -1910,9 +1910,9 @@ export default function Combustivel() {
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
+                        <div className="overflow-x-auto rounded-2xl border border-slate-200 table-scroll">
                             <table className="w-full text-left text-sm" style={{ minWidth: '750px' }}>
-                                <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-xs tracking-wider">
                                     <tr>
                                         <th className="px-3 md:px-6 py-4">Data/Hora</th>
                                         <th className="px-3 md:px-6 py-4">Viatura</th>
@@ -1923,7 +1923,7 @@ export default function Combustivel() {
                                         <th className="px-3 md:px-6 py-4 text-right">Ações</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-800 bg-slate-900/30">
+                                <tbody className="divide-y divide-slate-100">
                                     {fuelTransactions
                                         .filter(tx => {
                                             const matchesVehicle = !filters.vehicleId || tx.vehicleId === filters.vehicleId;
@@ -1936,14 +1936,14 @@ export default function Combustivel() {
                                             const vehicle = viaturas.find(v => v.id === tx.vehicleId);
                                             const { date, time } = formatDateTime(tx.timestamp);
                                             return (
-                                                <tr key={tx.id} className={`hover:bg-slate-800/50 transition-colors ${tx.isAnormal ? 'bg-red-500/5' : ''}`}>
+                                                <tr key={tx.id} className={`hover:bg-slate-50 transition-colors ${tx.isAnormal ? 'bg-red-500/5' : ''}`}>
                                                     <td className="px-6 py-4 text-slate-300 font-mono">
                                                         {date}
                                                         <span className="text-slate-500 ml-2 text-xs">{time}</span>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-col">
-                                                            <span className="font-bold text-white">{vehicle?.matricula}</span>
+                                                            <span className="font-bold text-slate-900">{vehicle?.matricula}</span>
                                                             <span className="text-[10px] text-slate-500 uppercase">{vehicle?.marca} {vehicle?.modelo}</span>
                                                         </div>
                                                     </td>
@@ -2016,9 +2016,9 @@ export default function Combustivel() {
 
                 {/* BP TAB */}
                 {activeTab === 'bp' && (
-                    <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
+                    <div className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
                         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                                 <FileSpreadsheet className="w-6 h-6 text-green-400" />
                                 Importar BP
                             </h2>
@@ -2042,7 +2042,7 @@ export default function Combustivel() {
                                 </button>
                                 <button
                                     onClick={handleDownloadBPTemplate}
-                                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all flex items-center gap-2"
+                                    className="px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-300 rounded-xl font-bold transition-all flex items-center gap-2"
                                 >
                                     <Download className="w-4 h-4" />
                                     Template
@@ -2050,7 +2050,7 @@ export default function Combustivel() {
                             </div>
                         </div>
 
-                        <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-950/30 hover:bg-slate-900/30 transition-all cursor-pointer group mb-8 relative">
+                        <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-300 rounded-3xl bg-slate-50 hover:bg-slate-50/70 transition-all cursor-pointer group mb-8 relative">
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -2061,13 +2061,13 @@ export default function Combustivel() {
                             <div className="flex gap-4 mb-4">
                                 <Upload className="w-12 h-12 text-slate-600 group-hover:text-blue-500 transition-colors" />
                             </div>
-                            <p className="text-xl font-bold text-slate-300 group-hover:text-white transition-colors">Arraste um ficheiro ou clique para upload</p>
+                            <p className="text-xl font-bold text-slate-300 group-hover:text-slate-900 transition-colors">Arraste um ficheiro ou clique para upload</p>
                             <div className="flex gap-4 mt-3">
-                                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-800 px-3 py-1 rounded-full">
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                                     <FileText className="w-3.5 h-3.5 text-red-400" />
                                     Fatura BP (.pdf)
                                 </span>
-                                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-800 px-3 py-1 rounded-full">
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                                     <FileSpreadsheet className="w-3.5 h-3.5 text-green-400" />
                                     Excel (.xlsx)
                                 </span>
@@ -2079,7 +2079,7 @@ export default function Combustivel() {
                                 <div className="flex flex-wrap justify-between items-center gap-4">
                                     <div className="flex items-center gap-4">
                                         <div>
-                                            <h3 className="font-bold text-white text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
+                                            <h3 className="font-bold text-slate-900 text-xl">Pré-visualização ({bpTransactions.length} registos)</h3>
                                             <p className="text-[11px] text-slate-500">Registos encontrados: {bpTransactions.length}</p>
                                         </div>
                                         {selectedRows.length > 0 && (
@@ -2087,7 +2087,7 @@ export default function Combustivel() {
                                                 <span className="text-blue-400 text-sm font-bold">{selectedRows.length} selecionados</span>
                                                 <div className="h-4 w-[1px] bg-blue-500/30 mx-1" />
                                                 <select
-                                                    className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+                                                    className="bg-white border border-slate-200 rounded px-2 py-1 text-sm text-slate-900 outline-none focus:border-amber-400"
                                                     value={bulkCC}
                                                     onChange={(e) => setBulkCC(e.target.value)}
                                                 >
@@ -2117,13 +2117,13 @@ export default function Combustivel() {
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setSelectedRows(bpTransactions.map((_: any, i: number) => i))}
-                                            className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg text-sm font-bold"
+                                            className="px-4 py-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg text-sm font-bold"
                                         >
                                             Selecionar Todos
                                         </button>
                                         <button
                                             onClick={() => setSelectedRows([])}
-                                            className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg text-sm font-bold"
+                                            className="px-4 py-2 bg-slate-100 text-slate-300 hover:text-slate-900 rounded-lg text-sm font-bold"
                                         >
                                             Limpar Seleção
                                         </button>
@@ -2132,20 +2132,20 @@ export default function Combustivel() {
                                                 setBpTransactions([]);
                                                 setSelectedRows([]);
                                             }}
-                                            className="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-sm font-bold"
+                                            className="px-4 py-2 bg-slate-100 text-slate-500 hover:text-slate-700 rounded-lg text-sm font-bold"
                                         >
                                             Limpar Lista
                                         </button>
                                     </div>
                                 </div>
-                                <div className="overflow-x-auto rounded-xl border border-slate-800 table-scroll">
+                                <div className="overflow-x-auto rounded-xl border border-slate-200 table-scroll">
                                     <table className="w-full text-sm text-left" style={{ minWidth: '800px' }}>
-                                        <thead className="bg-slate-950 text-slate-400 uppercase font-extrabold text-[10px] tracking-widest whitespace-nowrap">
+                                        <thead className="bg-slate-50 text-slate-500 uppercase font-extrabold text-[10px] tracking-widest whitespace-nowrap">
                                             <tr>
                                                 <th className="px-3 py-4 text-center">
                                                     <input
                                                         type="checkbox"
-                                                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                                        className="w-4 h-4 rounded border-slate-200 bg-white/90 text-blue-600 focus:ring-blue-500"
                                                         checked={selectedRows.length === bpTransactions.length && bpTransactions.length > 0}
                                                         onChange={(e) => {
                                                             if (e.target.checked) {
@@ -2158,7 +2158,7 @@ export default function Combustivel() {
                                                 </th>
                                                 <th className="px-3 py-4">Data/Hora</th>
                                                 <th className="px-3 py-4">Talão</th>
-                                                <th className="px-3 py-4 font-black text-white">Viatura</th>
+                                                <th className="px-3 py-4 font-black text-slate-900">Viatura</th>
                                                 <th className="px-3 py-4 text-center">KM</th>
                                                 <th className="px-3 py-4">Posto</th>
                                                 <th className="px-3 py-4">Produto</th>
@@ -2167,7 +2167,7 @@ export default function Combustivel() {
                                                 <th className="px-3 py-4 min-w-[150px]">Centro de Custo</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-800 bg-slate-900/50">
+                                        <tbody className="divide-y divide-slate-100">
                                             {bpTransactions.map((row: any, i: number) => {
                                                 const diaHora = row['Dia Hora'];
                                                 const dataVal = row['Data'];
@@ -2199,11 +2199,11 @@ export default function Combustivel() {
                                                 const total = parseImportNumber(row['Total']) || (liters * price);
 
                                                 return (
-                                                    <tr key={i} className={`hover:bg-slate-800/30 transition-colors border-b border-slate-800/50 ${selectedRows.includes(i) ? 'bg-blue-600/5' : ''}`}>
+                                                    <tr key={i} className={`hover:bg-slate-50 transition-colors border-b border-slate-100 ${selectedRows.includes(i) ? 'bg-blue-600/5' : ''}`}>
                                                         <td className="px-3 py-3 text-center">
                                                             <input
                                                                 type="checkbox"
-                                                                className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                                                className="w-4 h-4 rounded border-slate-200 bg-white/90 text-blue-600 focus:ring-blue-500"
                                                                 checked={selectedRows.includes(i)}
                                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                                     if (e.target.checked) {
@@ -2216,7 +2216,7 @@ export default function Combustivel() {
                                                         </td>
                                                         <td className="px-3 py-3 text-slate-300 font-medium whitespace-nowrap text-[12px]">{displayDate}</td>
                                                         <td className="px-3 py-3 text-slate-400 font-mono text-[12px] whitespace-nowrap">{row._talao || '-'}</td>
-                                                        <td className="px-3 py-3 text-white font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
+                                                        <td className="px-3 py-3 text-slate-900 font-black text-[14px] whitespace-nowrap">{row['Matrícula'] || '-'}</td>
                                                         <td className="px-3 py-3 text-slate-400 font-mono text-[12px] text-center">{row['Km'] || '0'}</td>
                                                         <td className="px-3 py-3 text-slate-400 text-[11px] truncate max-w-[150px]">{row['Posto'] || '-'}</td>
                                                         <td className="px-3 py-3 text-slate-500 text-[11px] uppercase font-bold">{row['Produto'] || '-'}</td>
@@ -2224,7 +2224,7 @@ export default function Combustivel() {
                                                         <td className="px-3 py-3 text-emerald-400 font-black font-mono text-[13px] text-right">{total.toFixed(2)}€</td>
                                                         <td className="px-3 py-3">
                                                             <select
-                                                                className="bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-[12px] text-white outline-none focus:border-blue-500 w-full"
+                                                                className="bg-white border border-slate-200 rounded px-2 py-1.5 text-[12px] text-slate-900 outline-none focus:border-amber-400 w-full"
                                                                 value={row._selectedCC || ''}
                                                                 onChange={(e) => {
                                                                     const newTransactions = [...bpTransactions];
@@ -2251,9 +2251,9 @@ export default function Combustivel() {
 
                 {/* MANUAL BP MODAL */}
                 {isManualBPOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-                        <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
-                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/80 backdrop-blur-sm animate-in fade-in">
+                        <div className="bg-white/90 border border-slate-200 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
+                            <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                                 <Plus className="w-6 h-6 text-blue-500" />
                                 Inserir Talão BP Manual
                             </h3>
@@ -2265,7 +2265,7 @@ export default function Combustivel() {
                                             required type="date"
                                             value={manualBPForm.date}
                                             onChange={e => setManualBPForm({ ...manualBPForm, date: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-blue-500"
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -2274,7 +2274,7 @@ export default function Combustivel() {
                                             required type="time"
                                             value={manualBPForm.time}
                                             onChange={e => setManualBPForm({ ...manualBPForm, time: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-blue-500"
                                         />
                                     </div>
                                 </div>
@@ -2284,7 +2284,7 @@ export default function Combustivel() {
                                         required type="text" placeholder="Sem traços (ex: AA00BB)"
                                         value={manualBPForm.licensePlate}
                                         onChange={e => setManualBPForm({ ...manualBPForm, licensePlate: e.target.value.toUpperCase() })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500 uppercase"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-blue-500 uppercase"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -2294,7 +2294,7 @@ export default function Combustivel() {
                                             required type="number" step="0.01"
                                             value={manualBPForm.liters}
                                             onChange={e => setManualBPForm({ ...manualBPForm, liters: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-blue-500"
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -2303,7 +2303,7 @@ export default function Combustivel() {
                                             required type="number" step="0.01"
                                             value={manualBPForm.totalCost}
                                             onChange={e => setManualBPForm({ ...manualBPForm, totalCost: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-emerald-500 font-bold text-emerald-400"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-emerald-500 font-bold text-emerald-400"
                                         />
                                     </div>
                                 </div>
@@ -2313,7 +2313,7 @@ export default function Combustivel() {
                                         type="text"
                                         value={manualBPForm.station}
                                         onChange={e => setManualBPForm({ ...manualBPForm, station: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-blue-500"
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -2321,7 +2321,7 @@ export default function Combustivel() {
                                     <select
                                         value={manualBPForm.centroCustoId}
                                         onChange={e => setManualBPForm({ ...manualBPForm, centroCustoId: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-blue-500"
                                     >
                                         <option value="">-- Selecionar --</option>
                                         {centrosCustos.map(cc => (
@@ -2334,7 +2334,7 @@ export default function Combustivel() {
                                     <button
                                         type="button"
                                         onClick={() => setIsManualBPOpen(false)}
-                                        className="px-4 py-2 text-slate-400 hover:text-white font-bold"
+                                        className="px-4 py-2 text-slate-500 hover:text-slate-700 font-bold"
                                     >
                                         Cancelar
                                     </button>
@@ -2361,7 +2361,7 @@ export default function Combustivel() {
                                     </div>
                                     <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Entradas Tanque</span>
                                 </div>
-                                <div className="text-3xl font-black text-white">{totalTankIn.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                                <div className="text-3xl font-black text-slate-900">{totalTankIn.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
                             </div>
 
                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-3xl p-6 backdrop-blur-md">
@@ -2371,7 +2371,7 @@ export default function Combustivel() {
                                     </div>
                                     <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Saídas Oficina</span>
                                 </div>
-                                <div className="text-3xl font-black text-white">{totalInternalLiters.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                                <div className="text-3xl font-black text-slate-900">{totalInternalLiters.toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
                             </div>
 
                             <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-md">
@@ -2381,14 +2381,14 @@ export default function Combustivel() {
                                     </div>
                                     <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Diferença Acumulada</span>
                                 </div>
-                                <div className="text-3xl font-black text-white">{(totalTankIn - totalInternalLiters).toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
+                                <div className="text-3xl font-black text-slate-900">{(totalTankIn - totalInternalLiters).toLocaleString()} <span className="text-sm text-slate-500">Litros</span></div>
                             </div>
                         </div>
 
                         {/* Tank Refill History */}
-                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
+                        <div className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
-                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                                     <Droplets className="w-6 h-6 text-emerald-400" />
                                     Registo de Entradas e Consumo por Intervalo
                                 </h2>
@@ -2402,7 +2402,7 @@ export default function Combustivel() {
                                     </button>
                                     <button
                                         onClick={exportAuditReport}
-                                        className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold transition-all border border-slate-700 shadow-xl"
+                                        className="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 px-6 py-3 rounded-2xl font-bold transition-all border border-slate-200 shadow-xl"
                                     >
                                         <Download className="w-5 h-5" />
                                         Exportar Auditoria (Excel)
@@ -2420,9 +2420,9 @@ export default function Combustivel() {
                                 Gere uma folha imprimível para motoristas e equipa da oficina registarem manualmente abastecimentos feitos no tanque interno, com campos de assinatura e controlo por viatura.
                             </p>
 
-                            <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
+                            <div className="overflow-x-auto rounded-2xl border border-slate-200 table-scroll">
                                 <table className="w-full text-left text-sm" style={{ minWidth: '850px' }}>
-                                    <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                    <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-xs tracking-wider">
                                         <tr>
                                             <th className="px-3 md:px-6 py-4">Data Entrega</th>
                                             <th className="px-3 md:px-6 py-4">Fornecedor</th>
@@ -2434,7 +2434,7 @@ export default function Combustivel() {
                                             <th className="px-3 md:px-6 py-4 text-right">Audit</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-800 bg-slate-900/30">
+                                    <tbody className="divide-y divide-slate-100">
                                         {(() => {
                                             const sortedRefills = [...tankRefills].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -2495,7 +2495,7 @@ export default function Combustivel() {
                                                 const isOverLimit = totalCalc > LIMIT;
 
                                                 return (
-                                                    <tr key={refill.id} className={`hover:bg-slate-800/10 transition-colors ${refill.isCurrent ? 'bg-blue-500/5' : ''} ${isOverLimit ? 'bg-red-500/5' : ''}`}>
+                                                    <tr key={refill.id} className={`hover:bg-slate-50 transition-colors ${refill.isCurrent ? 'bg-blue-500/5' : ''} ${isOverLimit ? 'bg-red-500/5' : ''}`}>
                                                         <td className="px-6 py-4 text-slate-300 font-mono text-[12px]">
                                                             {refill.isCurrent ? (
                                                                 <span className="flex items-center gap-2 text-blue-400 font-black">
@@ -2564,13 +2564,13 @@ export default function Combustivel() {
                         </div>
 
                         {/* Monthly Totals Section */}
-                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
+                        <div className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-8">
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="p-3 bg-yellow-500/10 rounded-2xl">
                                     <BarChart3 className="w-6 h-6 text-yellow-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white">Totais por Mês</h2>
+                                    <h2 className="text-2xl font-bold text-slate-900">Totais por Mês</h2>
                                     <p className="text-slate-400 text-sm mt-1">Soma de litros e custo de todos os abastecimentos (Oficina + BP)</p>
                                 </div>
                             </div>
@@ -2607,9 +2607,9 @@ export default function Combustivel() {
                                 }
 
                                 return (
-                                    <div className="overflow-x-auto rounded-2xl border border-slate-800 table-scroll">
+                                    <div className="overflow-x-auto rounded-2xl border border-slate-200 table-scroll">
                                         <table className="w-full text-left text-sm" style={{ minWidth: '650px' }}>
-                                            <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-xs tracking-wider">
+                                            <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-xs tracking-wider">
                                                 <tr>
                                                     <th className="px-6 py-4">Mês</th>
                                                     <th className="px-6 py-4 text-center">Nº Abast.</th>
@@ -2618,7 +2618,7 @@ export default function Combustivel() {
                                                     <th className="px-6 py-4 text-right text-slate-500">€/Litro Médio</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-800 bg-slate-900/30">
+                                            <tbody className="divide-y divide-slate-100">
                                                 {months.map((key, idx) => {
                                                     const [year, month] = key.split('-');
                                                     const label = `${ptMonths[parseInt(month) - 1]} ${year}`;
@@ -2628,7 +2628,7 @@ export default function Combustivel() {
                                                     const isCurrentMonth = parseInt(year) === now.getFullYear() && parseInt(month) === now.getMonth() + 1;
 
                                                     return (
-                                                        <tr key={key} className={`hover:bg-slate-800/20 transition-colors ${isCurrentMonth ? 'bg-blue-500/5 border-l-2 border-blue-500' : idx % 2 === 1 ? 'bg-slate-950/30' : ''}`}>
+                                                        <tr key={key} className={`hover:bg-slate-50 transition-colors ${isCurrentMonth ? 'bg-blue-500/5 border-l-2 border-blue-500' : idx % 2 === 1 ? 'bg-slate-50' : ''}`}>
                                                             <td className="px-6 py-4">
                                                                 <div className="flex items-center gap-3">
                                                                     <span className={`font-bold ${isCurrentMonth ? 'text-blue-400' : 'text-white'}`}>{label}</span>
@@ -2640,7 +2640,7 @@ export default function Combustivel() {
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-4 text-center">
-                                                                <span className="bg-slate-800 px-3 py-1 rounded-full text-slate-300 font-bold text-xs">
+                                                                <span className="bg-slate-100 px-3 py-1 rounded-full text-slate-300 font-bold text-xs">
                                                                     {entry.count}
                                                                 </span>
                                                             </td>
@@ -2664,7 +2664,7 @@ export default function Combustivel() {
                                             <tfoot>
                                                 <tr className="bg-gradient-to-r from-slate-900 to-slate-950 border-t-2 border-yellow-500/30">
                                                     <td className="px-6 py-5">
-                                                        <span className="text-white font-black uppercase text-xs tracking-[0.15em]">Total Geral</span>
+                                                        <span className="text-slate-900 font-black uppercase text-xs tracking-[0.15em]">Total Geral</span>
                                                     </td>
                                                     <td className="px-6 py-5 text-center">
                                                         <span className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 px-3 py-1 rounded-full font-black text-xs">{grandCount}</span>
@@ -2697,14 +2697,14 @@ export default function Combustivel() {
                 {
                     isEditingTank && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
-                            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl">
-                                <h3 className="text-xl font-bold text-white mb-6">Configurar Tanque</h3>
+                            <div className="bg-white/90 border border-slate-200 rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+                                <h3 className="text-xl font-bold text-slate-900 mb-6">Configurar Tanque</h3>
                                 <form onSubmit={saveTankChanges} className="space-y-4">
                                     <div>
                                         <label className="text-xs font-bold text-slate-500 uppercase">Capacidade Total (L)</label>
                                         <input
                                             type="number"
-                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full mt-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={editTankForm.capacity}
                                             onChange={e => setEditTankForm({ ...editTankForm, capacity: e.target.value })}
                                         />
@@ -2713,7 +2713,7 @@ export default function Combustivel() {
                                         <label className="text-xs font-bold text-slate-500 uppercase">Nível Atual (L)</label>
                                         <input
                                             type="number"
-                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full mt-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={editTankForm.currentLevel}
                                             onChange={e => setEditTankForm({ ...editTankForm, currentLevel: e.target.value })}
                                         />
@@ -2723,7 +2723,7 @@ export default function Combustivel() {
                                         <input
                                             type="number"
                                             step="0.001"
-                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full mt-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={editTankForm.averagePrice}
                                             onChange={e => setEditTankForm({ ...editTankForm, averagePrice: e.target.value })}
                                         />
@@ -2732,20 +2732,20 @@ export default function Combustivel() {
                                         <label className="text-xs font-bold text-slate-500 uppercase font-mono">Contador da Bomba (L)</label>
                                         <input
                                             type="number"
-                                            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 outline-none font-mono"
+                                            className="w-full mt-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-purple-500 outline-none font-mono"
                                             value={editTankForm.pumpTotalizer}
                                             onChange={e => setEditTankForm({ ...editTankForm, pumpTotalizer: e.target.value })}
                                         />
                                     </div>
 
-                                    <div className="pt-4 border-t border-slate-800">
+                                    <div className="pt-4 border-t border-slate-200">
                                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Baseline (Saldo Confirmado)</h4>
                                         <div className="space-y-4">
                                             <div>
                                                 <label className="text-xs font-bold text-slate-500 uppercase">Data do Baseline</label>
                                                 <input
                                                     type="date"
-                                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                                    className="w-full mt-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-yellow-500 outline-none"
                                                     value={editTankForm.baselineDate ? editTankForm.baselineDate.split('T')[0] : ''}
                                                     onChange={e => setEditTankForm({ ...editTankForm, baselineDate: e.target.value })}
                                                 />
@@ -2754,7 +2754,7 @@ export default function Combustivel() {
                                                 <label className="text-xs font-bold text-slate-500 uppercase">Saldo no Baseline (L)</label>
                                                 <input
                                                     type="number"
-                                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                                    className="w-full mt-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-yellow-500 outline-none"
                                                     value={editTankForm.baselineLevel}
                                                     onChange={e => setEditTankForm({ ...editTankForm, baselineLevel: e.target.value })}
                                                 />
@@ -2763,7 +2763,7 @@ export default function Combustivel() {
                                                 <label className="text-xs font-bold text-slate-500 uppercase">Contador no Baseline (L)</label>
                                                 <input
                                                     type="number"
-                                                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                                                    className="w-full mt-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-yellow-500 outline-none"
                                                     value={editTankForm.baselineTotalizer}
                                                     onChange={e => setEditTankForm({ ...editTankForm, baselineTotalizer: e.target.value })}
                                                 />
@@ -2806,7 +2806,7 @@ export default function Combustivel() {
                                         </div>
                                     </div>
                                     <div className="flex gap-3 pt-4">
-                                        <button type="button" onClick={() => setIsEditingTank(false)} className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold">Cancelar</button>
+                                        <button type="button" onClick={() => setIsEditingTank(false)} className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold">Cancelar</button>
                                         <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">Guardar</button>
                                     </div>
                                 </form>
@@ -2817,14 +2817,14 @@ export default function Combustivel() {
                 {/* EDIT TRANSACTION MODAL */}
                 {
                     editingTransaction && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-                            <div className="bg-slate-900 border border-slate-700 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95">
-                                <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-white/80 backdrop-blur-sm animate-in fade-in">
+                            <div className="bg-white/90 border border-slate-200 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95">
+                                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white/90">
                                     <div>
-                                        <h3 className="text-xl font-bold text-white">Editar Abastecimento</h3>
+                                        <h3 className="text-xl font-bold text-slate-900">Editar Abastecimento</h3>
                                         <p className="text-slate-500 text-sm mt-1">ID: {editingTransaction.id}</p>
                                     </div>
-                                    <button onClick={() => setEditingTransaction(null)} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
+                                    <button onClick={() => setEditingTransaction(null)} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors">
                                         <X className="w-6 h-6" />
                                     </button>
                                 </div>
@@ -2835,7 +2835,7 @@ export default function Combustivel() {
                                             <select
                                                 value={editingTransaction.vehicleId}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, vehicleId: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
                                             >
                                                 {viaturas.map(v => <option key={v.id} value={v.id}>{v.matricula}</option>)}
                                             </select>
@@ -2845,7 +2845,7 @@ export default function Combustivel() {
                                             <select
                                                 value={editingTransaction.driverId}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, driverId: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
                                             >
                                                 <option value="">Não Atribuído (BP)</option>
                                                 {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome} - {(m.tipoUtilizador || (m as any).tipo_utilizador || 'motorista')}</option>)}
@@ -2858,7 +2858,7 @@ export default function Combustivel() {
                                                 step="0.01"
                                                 value={editingTransaction.liters}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, liters: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -2867,7 +2867,7 @@ export default function Combustivel() {
                                                 type="number"
                                                 value={editingTransaction.km || ''}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, km: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -2877,7 +2877,7 @@ export default function Combustivel() {
                                                 step="0.01"
                                                 value={editingTransaction.totalCost}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, totalCost: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
                                             />
                                         </div>
                                         <div className="col-span-2 space-y-2">
@@ -2886,7 +2886,7 @@ export default function Combustivel() {
                                                 type="datetime-local"
                                                 value={new Date(new Date(editingTransaction.timestamp).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, timestamp: new Date(e.target.value).toISOString() })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
                                             />
                                         </div>
                                         <div className="col-span-2 space-y-2">
@@ -2894,7 +2894,7 @@ export default function Combustivel() {
                                             <select
                                                 value={editingTransaction.centroCustoId}
                                                 onChange={e => setEditingTransaction({ ...editingTransaction, centroCustoId: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-white transition-all"
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none text-slate-900 transition-all"
                                             >
                                                 <option value="">Sem Centro de Custo</option>
                                                 {centrosCustos.map(cc => <option key={cc.id} value={cc.id}>{cc.nome}</option>)}
@@ -2905,7 +2905,7 @@ export default function Combustivel() {
                                         <button
                                             type="button"
                                             onClick={() => setEditingTransaction(null)}
-                                            className="flex-1 px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all"
+                                            className="flex-1 px-6 py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-2xl font-bold transition-all"
                                         >
                                             Cancelar
                                         </button>

@@ -87,11 +87,11 @@ export default function EscalaTimelineModal({
     const upcomingCount = services.length - completedCount - activeCount;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-            <div className="bg-[#0f172a] border border-slate-700/60 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm p-4">
+            <div className="bg-[#0f172a] border border-slate-200/60 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
 
                 {/* Header */}
-                <div className="p-6 border-b border-slate-800/60 flex items-start justify-between gap-4">
+                <div className="p-6 border-b border-slate-200/60 flex items-start justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
@@ -103,7 +103,7 @@ export default function EscalaTimelineModal({
                                 </span>
                             )}
                         </div>
-                        <h2 className="text-xl font-black text-white">Linha Cronológica da Escala</h2>
+                        <h2 className="text-xl font-black text-slate-900">Linha Cronológica da Escala</h2>
                         <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
                             <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{batch.reference_date}</span>
                             <span className="flex items-center gap-1">
@@ -115,23 +115,23 @@ export default function EscalaTimelineModal({
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors shrink-0"
+                        className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-colors shrink-0"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Stats */}
-                <div className="px-6 py-3 border-b border-slate-800/40 grid grid-cols-3 gap-3">
-                    <div className="bg-slate-800/40 rounded-xl px-4 py-2.5 text-center">
+                <div className="px-6 py-3 border-b border-slate-200/40 grid grid-cols-3 gap-3">
+                    <div className="bg-slate-50 rounded-xl px-4 py-2.5 text-center">
                         <p className="text-2xl font-black text-emerald-400">{completedCount}</p>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Concluídos</p>
                     </div>
-                    <div className="bg-slate-800/40 rounded-xl px-4 py-2.5 text-center">
+                    <div className="bg-slate-50 rounded-xl px-4 py-2.5 text-center">
                         <p className="text-2xl font-black text-amber-400">{activeCount}</p>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Em Curso</p>
                     </div>
-                    <div className="bg-slate-800/40 rounded-xl px-4 py-2.5 text-center">
+                    <div className="bg-slate-50 rounded-xl px-4 py-2.5 text-center">
                         <p className="text-2xl font-black text-slate-300">{upcomingCount}</p>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Pendentes</p>
                     </div>
@@ -147,7 +147,7 @@ export default function EscalaTimelineModal({
                                     {group.motoristaNome.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                    <p className="font-bold text-white text-sm">{group.motoristaNome}</p>
+                                    <p className="font-bold text-slate-900 text-sm">{group.motoristaNome}</p>
                                     <div className="flex items-center gap-2 text-[11px] text-slate-400">
                                         {group.vehiclePlate !== '—' && (
                                             <span className="flex items-center gap-1">
@@ -185,7 +185,7 @@ export default function EscalaTimelineModal({
                                                         <Circle className="w-4 h-4 text-amber-400 fill-amber-400/40" />
                                                     </div>
                                                 ) : (
-                                                    <div className="w-9 h-9 rounded-full bg-slate-800 border-2 border-slate-600/50 flex items-center justify-center">
+                                                    <div className="w-9 h-9 rounded-full bg-slate-100 border-2 border-slate-300/50 flex items-center justify-center">
                                                         <Circle className="w-4 h-4 text-slate-500" />
                                                     </div>
                                                 )}
@@ -197,7 +197,7 @@ export default function EscalaTimelineModal({
                                                     ? 'bg-emerald-500/5 border-emerald-500/20'
                                                     : status === 'active'
                                                     ? 'bg-amber-500/5 border-amber-500/30'
-                                                    : 'bg-slate-800/40 border-slate-700/40'
+                                                    : 'bg-slate-50 border-slate-200/40'
                                             }`}>
                                                 {/* Time + passenger */}
                                                 <div className="flex items-center justify-between mb-2">
@@ -222,7 +222,7 @@ export default function EscalaTimelineModal({
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                                                         status === 'completed' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
                                                         status === 'active' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
-                                                        'bg-slate-700/50 text-slate-500 border-slate-600/30'
+                                                        'bg-slate-700/50 text-slate-500 border-slate-300/30'
                                                     }`}>
                                                         {status === 'completed' ? 'Concluído' : status === 'active' ? 'Em curso' : 'Pendente'}
                                                     </span>

@@ -55,19 +55,19 @@ export default function AuditLogs() {
                         placeholder="Pesquisar por ação, módulo ou ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-900/40 border border-slate-800/60 rounded-2xl py-3 pl-12 pr-4 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all font-medium"
+                        className="w-full bg-white/90 border border-slate-200/60 rounded-2xl py-3 pl-12 pr-4 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all font-medium"
                     />
                 </div>
-                <button className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl transition-all font-black text-xs uppercase tracking-widest border border-slate-700/60 shadow-lg">
+                <button className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-700 text-slate-900 rounded-2xl transition-all font-black text-xs uppercase tracking-widest border border-slate-200/60 shadow-lg">
                     <Download className="w-4 h-4" /> Exportar Logs
                 </button>
             </div>
 
-            <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl overflow-hidden backdrop-blur-md">
+            <div className="bg-white/90 border border-slate-200/60 rounded-3xl overflow-hidden backdrop-blur-md">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="border-b border-slate-800/60 bg-slate-800/20">
+                            <tr className="border-b border-slate-200/60 bg-slate-50">
                                 <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Timestamp</th>
                                 <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500">User ID</th>
                                 <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Ação</th>
@@ -77,7 +77,7 @@ export default function AuditLogs() {
                         </thead>
                         <tbody className="divide-y divide-slate-800/40 text-sm">
                             {filteredLogs.map((log) => (
-                                <tr key={log.id} className="hover:bg-slate-800/20 transition-colors group">
+                                <tr key={log.id} className="hover:bg-slate-50 transition-colors group">
                                     <td className="p-4 whitespace-nowrap">
                                         <div className="flex items-center gap-2 text-slate-400 font-bold">
                                             <Clock className="w-3.5 h-3.5" />
@@ -102,7 +102,7 @@ export default function AuditLogs() {
                                         </div>
                                     </td>
                                     <td className="p-4">
-                                        <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 hover:bg-slate-700 text-slate-200 rounded-lg transition-all text-xs font-bold border border-slate-700/40">
+                                        <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-700 text-slate-200 rounded-lg transition-all text-xs font-bold border border-slate-200/40">
                                             <Eye className="w-3.5 h-3.5" /> Ver JSON
                                         </button>
                                     </td>

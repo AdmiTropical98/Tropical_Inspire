@@ -102,13 +102,13 @@ export default function TransportesEva() {
     return (
         <div className="h-full flex flex-col bg-[#0f172a] text-slate-100 p-4 md:p-8 overflow-y-auto custom-scrollbar font-sans">
             {/* Header Content */}
-            <div className="flex flex-col md:flex-row border-b border-slate-800/60 pb-8 mb-8 justify-between items-start md:items-end bg-gradient-to-r from-transparent via-transparent to-transparent gap-4">
+            <div className="flex flex-col md:flex-row border-b border-slate-200/60 pb-8 mb-8 justify-between items-start md:items-end bg-gradient-to-r from-transparent via-transparent to-transparent gap-4">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-3 bg-yellow-500/10 rounded-2xl border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.1)]">
                             <Bus className="w-8 h-8 text-yellow-500" />
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+                        <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
                             Transportes EVA
                         </h1>
                     </div>
@@ -117,8 +117,8 @@ export default function TransportesEva() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-[#1e293b]/80 p-1.5 pr-4 rounded-xl border border-slate-700/50 shadow-sm backdrop-blur-sm w-full md:w-auto">
-                    <div className="p-2 bg-slate-800 rounded-lg text-slate-400">
+                <div className="flex items-center gap-4 bg-[#1e293b]/80 p-1.5 pr-4 rounded-xl border border-slate-200/50 shadow-sm backdrop-blur-sm w-full md:w-auto">
+                    <div className="p-2 bg-slate-100 rounded-lg text-slate-400">
                         <Calendar className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col flex-1">
@@ -148,10 +148,10 @@ export default function TransportesEva() {
                             <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider">Despesa Mensal</h3>
                         </div>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-bold text-white tracking-tight">{totalMonth.toFixed(2)}</span>
+                            <span className="text-4xl font-bold text-slate-900 tracking-tight">{totalMonth.toFixed(2)}</span>
                             <span className="text-xl font-medium text-yellow-500">€</span>
                         </div>
-                        <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-900/40 w-fit px-2 py-1 rounded-lg border border-slate-800">
+                        <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-white/90 w-fit px-2 py-1 rounded-lg border border-slate-200">
                             <span>{new Date(selectedMonth).toLocaleString('pt-PT', { month: 'long', year: 'numeric' })}</span>
                         </div>
                     </div>
@@ -170,10 +170,10 @@ export default function TransportesEva() {
                             <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider">Dias Utilizados</h3>
                         </div>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-bold text-white tracking-tight">{totalTrips}</span>
+                            <span className="text-4xl font-bold text-slate-900 tracking-tight">{totalTrips}</span>
                             <span className="text-xl font-medium text-green-500">dias</span>
                         </div>
-                        <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-900/40 w-fit px-2 py-1 rounded-lg border border-slate-800">
+                        <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-white/90 w-fit px-2 py-1 rounded-lg border border-slate-200">
                             <span>Total de utilização</span>
                         </div>
                     </div>
@@ -191,10 +191,10 @@ export default function TransportesEva() {
                             </div>
                             <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider">Ocorrências</h3>
                         </div>
-                        <div className="text-4xl font-bold text-white tracking-tight">
+                        <div className="text-4xl font-bold text-slate-900 tracking-tight">
                             {filteredTransports.reduce((acc, t) => acc + (t.days?.filter(d => d.hasIssue).length || 0), 0)}
                         </div>
-                        <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-900/40 w-fit px-2 py-1 rounded-lg border border-slate-800">
+                        <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500 bg-white/90 w-fit px-2 py-1 rounded-lg border border-slate-200">
                             <span>Atrasos ou Problemas</span>
                         </div>
                     </div>
@@ -203,11 +203,11 @@ export default function TransportesEva() {
 
             <div className="flex-1 flex flex-col lg:flex-row gap-8 min-h-0 overflow-hidden">
                 {/* Form Panel */}
-                <div className="w-full lg:w-[450px] flex flex-col bg-[#1e293b]/40 border border-slate-700/50 rounded-2xl shadow-xl backdrop-blur-sm lg:sticky lg:top-0 h-fit max-h-[50vh] lg:max-h-full overflow-hidden shrink-0">
-                    <div className="flex-none p-6 border-b border-slate-700/50 bg-slate-800/30 rounded-t-2xl">
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <div className="w-full lg:w-[450px] flex flex-col bg-[#1e293b]/40 border border-slate-200/50 rounded-2xl shadow-xl backdrop-blur-sm lg:sticky lg:top-0 h-fit max-h-[50vh] lg:max-h-full overflow-hidden shrink-0">
+                    <div className="flex-none p-6 border-b border-slate-200/50 bg-slate-50 rounded-t-2xl">
+                        <h2 className="text-lg font-bold text-[#1f2957] flex items-center gap-2">
                             <div className="bg-blue-500 p-1.5 rounded-lg">
-                                <Plus className="w-4 h-4 text-white" />
+                                <Plus className="w-4 h-4 text-slate-900" />
                             </div>
                             Novo Registo
                         </h2>
@@ -222,13 +222,13 @@ export default function TransportesEva() {
                                 placeholder="Ex: Faro - Lisboa (Bus 45)"
                                 value={formData.route}
                                 onChange={e => setFormData({ ...formData, route: e.target.value })}
-                                className="w-full bg-slate-950/50 border border-slate-700/70 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none"
+                                className="w-full bg-white/90 border border-slate-200/70 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none"
                             />
                         </div>
 
                         {/* Usage Days Section */}
-                        <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-800">
-                            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200">
+                            <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-blue-500" />
                                 Dias de Utilização
                             </h3>
@@ -240,7 +240,7 @@ export default function TransportesEva() {
                                         type="date"
                                         value={tempDate}
                                         onChange={e => setTempDate(e.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none mt-1"
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none mt-1"
                                     />
                                 </div>
                                 <button
@@ -253,11 +253,11 @@ export default function TransportesEva() {
                             </div>
 
                             {/* Optional Incident Report per Day */}
-                            <div className="mb-4 pt-4 border-t border-slate-800">
+                            <div className="mb-4 pt-4 border-t border-slate-200">
                                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer w-fit p-1">
-                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${tempIncident ? 'bg-red-500 border-red-500' : 'border-slate-600'}`}>
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${tempIncident ? 'bg-red-500 border-red-500' : 'border-slate-300'}`}>
                                         <input type="checkbox" checked={tempIncident} onChange={e => setTempIncident(e.target.checked)} className="hidden" />
-                                        {tempIncident && <Check className="w-3 h-3 text-white" />}
+                                        {tempIncident && <Check className="w-3 h-3 text-slate-900" />}
                                     </div>
                                     <span className={tempIncident ? 'text-red-400 font-bold' : ''}>Houve algum problema neste dia?</span>
                                 </label>
@@ -267,7 +267,7 @@ export default function TransportesEva() {
                                         <select
                                             value={tempIncidentType}
                                             onChange={e => setTempIncidentType(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
                                         >
                                             <option value="delay">Atraso</option>
                                             <option value="mechanical">Problema Mecânico</option>
@@ -279,7 +279,7 @@ export default function TransportesEva() {
                                             placeholder="Descreva o problema..."
                                             value={tempIncidentDesc}
                                             onChange={e => setTempIncidentDesc(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
                                         />
                                     </div>
                                 )}
@@ -291,7 +291,7 @@ export default function TransportesEva() {
                                     <p className="text-xs text-slate-500 text-center py-2 italic">Nenhum dia adicionado</p>
                                 )}
                                 {usageDays.map(day => (
-                                    <div key={day.id} className="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+                                    <div key={day.id} className="flex items-center justify-between bg-slate-100 p-2 rounded-lg border border-slate-200/50">
                                         <div className="flex items-center gap-3">
                                             <span className="text-sm font-mono text-slate-300">{day.date}</span>
                                             {day.hasIssue && (
@@ -320,7 +320,7 @@ export default function TransportesEva() {
                                     placeholder="0.00"
                                     value={formData.amount}
                                     onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                                    className="w-full bg-slate-950/50 border border-slate-700/70 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none font-mono text-lg"
+                                    className="w-full bg-white/90 border border-slate-200/70 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none font-mono text-lg"
                                 />
                                 <div className="absolute left-4 top-3.5 text-slate-500 font-bold text-sm pointer-events-none">€</div>
                             </div>
@@ -331,7 +331,7 @@ export default function TransportesEva() {
                             <textarea
                                 value={formData.notes}
                                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                className="w-full bg-slate-950/50 border border-slate-700/70 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none resize-none h-20 text-sm"
+                                className="w-full bg-white/90 border border-slate-200/70 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none resize-none h-20 text-sm"
                                 placeholder="Observações..."
                             />
                         </div>
@@ -350,10 +350,10 @@ export default function TransportesEva() {
                 </div>
 
                 {/* History List */}
-                <div className="flex-1 bg-[#1e293b]/40 border border-slate-700/50 rounded-2xl shadow-xl backdrop-blur-sm flex flex-col overflow-hidden h-[50vh] lg:h-auto">
-                    <div className="p-6 border-b border-slate-700/50 bg-slate-800/30 flex justify-between items-center rounded-t-2xl">
+                <div className="flex-1 bg-[#1e293b]/40 border border-slate-200/50 rounded-2xl shadow-xl backdrop-blur-sm flex flex-col overflow-hidden h-[50vh] lg:h-auto">
+                    <div className="p-6 border-b border-slate-200/50 bg-slate-50 flex justify-between items-center rounded-t-2xl">
                         <div>
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-[#1f2957] flex items-center gap-2">
                                 <Receipt className="w-5 h-5 text-slate-400" />
                                 Histórico
                             </h2>
@@ -361,27 +361,27 @@ export default function TransportesEva() {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-900/20 p-4 space-y-4">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-white/90/20 p-4 space-y-4">
                         {filteredTransports.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-slate-500">
                                 <p>Sem registos</p>
                             </div>
                         ) : (
                             filteredTransports.map(t => (
-                                <div key={t.id} className="bg-slate-800/40 border border-slate-700/50 rounded-xl overflow-hidden hover:bg-slate-800/60 transition-all group">
+                                <div key={t.id} className="bg-slate-50 border border-slate-200/50 rounded-xl overflow-hidden hover:bg-slate-100 transition-all group">
                                     {/* Card Header */}
-                                    <div className="p-4 flex items-center justify-between border-b border-slate-700/30">
+                                    <div className="p-4 flex items-center justify-between border-b border-slate-200/30">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-slate-900 rounded-lg flex flex-col items-center justify-center border border-slate-800">
+                                            <div className="w-12 h-12 bg-white/90 rounded-lg flex flex-col items-center justify-center border border-slate-200">
                                                 <span className="text-[10px] uppercase font-bold text-slate-500">
                                                     {new Date(t.referenceDate).toLocaleString('pt-PT', { month: 'short' })}
                                                 </span>
-                                                <span className="text-lg font-bold text-white">
+                                                <span className="text-lg font-bold text-[#1f2957]">
                                                     {new Date(t.referenceDate).getDate()}
                                                 </span>
                                             </div>
                                             <div>
-                                                <h3 className="font-bold text-white text-lg">{t.route}</h3>
+                                                <h3 className="font-bold text-slate-900 text-lg">{t.route}</h3>
                                                 <div className="text-xs text-slate-400">
                                                     {t.days?.length || 0} dias de utilização
                                                 </div>
@@ -396,7 +396,7 @@ export default function TransportesEva() {
                                     </div>
 
                                     {/* Card Body - Days Grid */}
-                                    <div className="p-4 bg-slate-900/30">
+                                    <div className="p-4 bg-slate-50/60">
                                         <div className="flex flex-wrap gap-2">
                                             {t.days?.map(day => (
                                                 <div key={day.id}
@@ -414,7 +414,7 @@ export default function TransportesEva() {
                                             ))}
                                         </div>
                                         {t.notes && (
-                                            <div className="mt-3 text-sm text-slate-500 italic border-t border-slate-700/30 pt-2">
+                                            <div className="mt-3 text-sm text-slate-500 italic border-t border-slate-200/30 pt-2">
                                                 "{t.notes}"
                                             </div>
                                         )}

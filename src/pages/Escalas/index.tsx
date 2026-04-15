@@ -89,9 +89,9 @@ function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId
         <div
             ref={setNodeRef}
             style={style}
-            className={`bg-[#1e293b] rounded-2xl shadow-lg flex flex-col group transition-all duration-200 min-h-[420px] max-h-[calc(100vh-280px)]
+            className={`bg-white/90 rounded-2xl shadow-lg flex flex-col group transition-all duration-200 min-h-[420px] max-h-[calc(100vh-280px)]
                 ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
-                border border-white/5 hover:border-white/10
+                border border-slate-100 hover:border-slate-200
                 ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
             `}
             onClick={onClick}
@@ -589,7 +589,7 @@ export default function Escalas() {
         if (state === 'completed') return { label: 'Completed', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', border: 'border-emerald-500/30' };
         if (state === 'active') return { label: 'Active', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40', border: 'border-amber-500/30' };
         if (state === 'delayed') return { label: 'Delayed', badge: 'bg-red-500/20 text-red-300 border-red-500/40', border: 'border-red-500/30' };
-        return { label: 'Scheduled', badge: 'bg-slate-500/20 text-slate-300 border-slate-500/40', border: 'border-slate-600/30' };
+        return { label: 'Scheduled', badge: 'bg-slate-500/20 text-slate-300 border-slate-500/40', border: 'border-slate-300/30' };
     };
 
     const handlePendingDragStart = (serviceId: string) => (e: React.DragEvent) => {
@@ -1515,7 +1515,7 @@ export default function Escalas() {
                                         setSelectedDate(e.target.value);
                                         setSelectedBatchId(null);
                                     }}
-                                    className="bg-[#1e293b] text-white text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-white/10 outline-none focus:border-blue-500 transition-colors shadow-sm"
+                                    className="bg-white/90 text-slate-900 text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-slate-200 outline-none focus:border-blue-500 transition-colors shadow-sm"
                                 />
                                 <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                             </div>
@@ -1567,7 +1567,7 @@ export default function Escalas() {
 
                                     <button
                                         onClick={handleDownloadTemplate}
-                                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border border-white/10 shadow-lg active:scale-95 transition-all"
+                                        className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border border-slate-200 shadow-lg active:scale-95 transition-all"
                                         title="Descarregar ou Atualizar Modelo Excel com locais atuais"
                                     >
                                         <FileText className="w-4 h-4 text-emerald-400" />
@@ -1589,7 +1589,7 @@ export default function Escalas() {
                         <div className="flex items-center gap-4 shrink-0">
                             <div className="flex flex-col items-center">
                                 <span className="text-[10px] uppercase text-slate-500 font-bold">Total</span>
-                                <span className="text-xl font-bold text-white">{totalServices}</span>
+                                <span className="text-xl font-bold text-slate-900">{totalServices}</span>
                             </div>
                             <div className="w-px h-8 bg-white/5"></div>
                             <div className="flex flex-col items-center">
@@ -1628,7 +1628,7 @@ export default function Escalas() {
                                 <span>Progresso</span>
                                 <span>{progressPercentage}%</span>
                             </div>
-                            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500"
                                     style={{ width: `${progressPercentage}%` }}
@@ -1647,7 +1647,7 @@ export default function Escalas() {
                                 placeholder="Procurar serviço..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50 placeholder:text-slate-600"
+                                className="w-full bg-white/90 border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-sm text-slate-900 focus:outline-none focus:border-blue-500/50 placeholder:text-slate-600"
                             />
                         </div>
 
@@ -1656,7 +1656,7 @@ export default function Escalas() {
                             <select
                                 value={selectedCentroCusto}
                                 onChange={(e) => setSelectedCentroCusto(e.target.value)}
-                                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
+                                className="w-full bg-white/90 border border-slate-200 rounded-xl py-2 px-3 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
                             >
                                 <option value="all">Todos Centros</option>
                                 {centrosCustos.map(cc => (
@@ -1667,17 +1667,17 @@ export default function Escalas() {
 
                         {/* View Mode Toggle */}
                         {hasAccess(userRole, 'escalas_create') && (
-                            <div className="flex bg-[#1e293b] rounded-lg p-1 border border-white/5 shrink-0">
+                            <div className="flex bg-white/90 rounded-lg p-1 border border-slate-100 shrink-0">
                                 <button
                                     onClick={() => setViewMode('cards')}
-                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                     title="Cartões"
                                 >
                                     <LayoutGrid className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => setViewMode('table')}
-                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                     title="Lista"
                                 >
                                     <TableIcon className="w-4 h-4" />
@@ -1702,7 +1702,7 @@ export default function Escalas() {
             <div className="flex-1 overflow-hidden relative">
                 <div className="flex flex-col md:flex-row h-full w-full overflow-hidden">
                     {/* DRIVERS GRID WIDGET */}
-                    <div className="flex-1 flex flex-col min-w-0 h-full relative md:border-r border-white/5">
+                    <div className="flex-1 flex flex-col min-w-0 h-full relative md:border-r border-slate-100">
 
                         {/* Status Tabs (Stick to top of widget) */}
 
@@ -1722,12 +1722,12 @@ export default function Escalas() {
                         )}
 
                         {viewMode === 'table' && (
-                            <div className="flex-1 flex flex-col bg-[#1e293b]/30 overflow-hidden h-full">
+                            <div className="flex-1 flex flex-col bg-white/90/30 overflow-hidden h-full">
                                 {/* Bulk Action Bar */}
-                                <div className="h-16 bg-[#1e293b] border-b border-white/5 px-6 flex items-center justify-between shrink-0">
+                                <div className="h-16 bg-white/90 border-b border-slate-100 px-6 flex items-center justify-between shrink-0">
                                     <div className="flex items-center gap-4">
                                         <span className="text-slate-400 text-sm">
-                                            <span className="text-white font-bold">{filteredServicos.length}</span> serviços encontrados
+                                            <span className="text-slate-900 font-bold">{filteredServicos.length}</span> serviços encontrados
                                         </span>
                                         {selectedPendentes.length > 0 && (
                                             <>
@@ -1742,19 +1742,19 @@ export default function Escalas() {
                                     <div className="flex items-center gap-4">
                                         {selectedPendentes.length > 0 ? (
                                             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                                                <div className="flex items-center gap-2 bg-[#0f172a] p-1 pr-2 rounded-lg border border-white/10">
+                                                <div className="flex items-center gap-2 bg-slate-50 p-1 pr-2 rounded-lg border border-slate-200">
                                                     <select
-                                                        className="bg-transparent text-sm px-3 py-1.5 text-slate-300 outline-none focus:text-white cursor-pointer min-w-[200px]"
+                                                        className="bg-transparent text-sm px-3 py-1.5 text-slate-300 outline-none focus:text-slate-900 cursor-pointer min-w-[200px]"
                                                         value={selectedMotoristaForAssign}
                                                         onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
                                                     >
-                                                        <option value="" className="bg-slate-900">Atribuir a motorista...</option>
+                                                        <option value="" className="bg-white/90">Atribuir a motorista...</option>
                                                         {displayMotoristas.filter(m => m.status === 'disponivel').map(m => (
-                                                            <option key={m.id} value={m.id} className="bg-slate-900">{formatDriverOptionLabel(m)} (Disponível)</option>
+                                                            <option key={m.id} value={m.id} className="bg-white/90">{formatDriverOptionLabel(m)} (Disponível)</option>
                                                         ))}
                                                         <option disabled>──────────</option>
                                                         {displayMotoristas.filter(m => m.status !== 'disponivel').map(m => (
-                                                            <option key={m.id} value={m.id} className="bg-slate-900 text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
+                                                            <option key={m.id} value={m.id} className="bg-white/90 text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
                                                         ))}
                                                     </select>
                                                     <button
@@ -1784,7 +1784,7 @@ export default function Escalas() {
                                 </div>
 
                                 {/* Table Header */}
-                                <div className="bg-[#0f172a] border-b border-white/5 grid grid-cols-[50px_80px_1fr_1fr_1fr_120px_200px_120px] gap-4 px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider sticky top-0 z-10">
+                                <div className="bg-slate-50 border-b border-slate-100 grid grid-cols-[50px_80px_1fr_1fr_1fr_120px_200px_120px] gap-4 px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider sticky top-0 z-10">
                                     <div className="flex items-center justify-center">
                                         <input
                                             type="checkbox"
@@ -1796,7 +1796,7 @@ export default function Escalas() {
                                                     setSelectedPendentes(filteredServicos.map(s => s.id));
                                                 }
                                             }}
-                                            className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-offset-0 focus:ring-transparent"
+                                            className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-offset-0 focus:ring-transparent"
                                         />
                                     </div>
                                     <div>Hora</div>
@@ -1816,7 +1816,7 @@ export default function Escalas() {
                                             <p className="text-lg font-medium">Nenhum serviço encontrado</p>
                                         </div>
                                     ) : (
-                                        <div className="divide-y divide-white/5">
+                                        <div className="divide-y divide-slate-100">
                                             {filteredServicos.map((service) => (
                                                 <div
                                                     key={service.id}
@@ -1829,12 +1829,12 @@ export default function Escalas() {
                                                             type="checkbox"
                                                             checked={selectedPendentes.includes(service.id)}
                                                             onChange={() => togglePendenteSelection(service.id)}
-                                                            className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-offset-0 focus:ring-transparent"
+                                                            className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-offset-0 focus:ring-transparent"
                                                         />
                                                     </div>
 
                                                     {/* Hora */}
-                                                    <div className="font-mono text-sm text-white font-medium flex items-center gap-2">
+                                                    <div className="font-mono text-sm text-slate-900 font-medium flex items-center gap-2">
                                                         {service.hora}
                                                     </div>
 
@@ -1876,7 +1876,7 @@ export default function Escalas() {
                                                     {/* Motorista */}
                                                     <div onClick={e => e.stopPropagation()}>
                                                         <select
-                                                            className={`w-full bg-[#0f172a] border ${service.motoristaId ? 'border-blue-500/30 text-blue-200' : 'border-white/10 text-slate-400'} text-xs rounded-lg px-2 py-1.5 focus:border-blue-500 outline-none cursor-pointer`}
+                                                            className={`w-full bg-slate-50 border ${service.motoristaId ? 'border-blue-500/30 text-blue-200' : 'border-slate-200 text-slate-400'} text-xs rounded-lg px-2 py-1.5 focus:border-blue-500 outline-none cursor-pointer`}
                                                             value={service.motoristaId || ''}
                                                             onChange={async (e) => {
                                                                 const newDriverId = e.target.value;
@@ -1929,12 +1929,12 @@ export default function Escalas() {
                         {
                             showNewServiceModal && (
                                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto">
-                                    <div className="bg-[#1e293b] border border-white/10 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                        <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center gap-3">
+                                    <div className="bg-white/90 border border-slate-200 p-0 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="p-6 bg-white/90 border-b border-slate-100 flex items-center gap-3">
                                             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
                                                 <Plus className="w-5 h-5" />
                                             </div>
-                                            <h2 className="text-xl font-bold text-white">{t('schedule.modal.new.title')}</h2>
+                                            <h2 className="text-xl font-bold text-slate-900">{t('schedule.modal.new.title')}</h2>
                                         </div>
 
                                         <form onSubmit={handleCreateService} className="p-6 space-y-5">
@@ -1944,7 +1944,7 @@ export default function Escalas() {
                                                     <input
                                                         type="time"
                                                         required
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none font-mono"
                                                         value={newService.hora}
                                                         onChange={e => setNewService({ ...newService, hora: e.target.value })}
                                                     />
@@ -1957,7 +1957,7 @@ export default function Escalas() {
                                                             type="text"
                                                             required
                                                             placeholder="Nome do passageiro..."
-                                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                                             value={newService.passageiro}
                                                             onChange={e => handleNewServicePassengerChange(e.target.value)}
                                                             list="colaboradores-list"
@@ -1979,7 +1979,7 @@ export default function Escalas() {
                                                         required
                                                         list="geofences-list"
                                                         placeholder="Onde apanhar..."
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                                         value={newService.origem}
                                                         onChange={e => setNewService({ ...newService, origem: e.target.value })}
                                                     />
@@ -1991,7 +1991,7 @@ export default function Escalas() {
                                                         required
                                                         list="geofences-list"
                                                         placeholder="Destino..."
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                                         value={newService.destino}
                                                         onChange={e => setNewService({ ...newService, destino: e.target.value })}
                                                     />
@@ -2004,7 +2004,7 @@ export default function Escalas() {
                                                     <input
                                                         type="text"
                                                         placeholder="Ex: Voo LX123"
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                                         value={newService.referencia}
                                                         onChange={e => setNewService({ ...newService, referencia: e.target.value })}
                                                     />
@@ -2013,7 +2013,7 @@ export default function Escalas() {
                                                 <div>
                                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('menu.cost_centers')}</label>
                                                     <select
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none appearance-none"
                                                         value={newService.centroCustoId}
                                                         onChange={e => setNewService({ ...newService, centroCustoId: e.target.value })}
                                                     >
@@ -2029,7 +2029,7 @@ export default function Escalas() {
                                             {/* Validation Points Selection */}
                                             <div>
                                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pontos de Validação (POIs)</label>
-                                                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto custom-scrollbar p-2 border border-slate-700 rounded-xl bg-slate-950/50">
+                                                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto custom-scrollbar p-2 border border-slate-200 rounded-xl bg-white/90">
                                                     {locais.map(poi => (
                                                         <label key={poi.id} className="flex items-center gap-2 p-1.5 hover:bg-white/5 rounded-lg cursor-pointer">
                                                             <input
@@ -2044,7 +2044,7 @@ export default function Escalas() {
                                                                             : prev.validationPoints.filter(id => id !== poi.id)
                                                                     }));
                                                                 }}
-                                                                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-0"
+                                                                className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-0"
                                                             />
                                                             <span className="text-xs text-slate-300">{poi.nome}</span>
                                                         </label>
@@ -2053,13 +2053,13 @@ export default function Escalas() {
                                                 </div>
                                             </div>
 
-                                            <div className="pt-4 border-t border-white/5">
-                                                <label className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-xl border border-white/5 cursor-pointer hover:bg-slate-900 transition-colors">
+                                            <div className="pt-4 border-t border-slate-100">
+                                                <label className="flex items-center gap-3 p-3 bg-white/90 rounded-xl border border-slate-100 cursor-pointer hover:bg-white/90 transition-colors">
                                                     <input
                                                         type="checkbox"
                                                         checked={newService.temRegresso}
                                                         onChange={e => setNewService({ ...newService, temRegresso: e.target.checked })}
-                                                        className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900"
+                                                        className="w-5 h-5 rounded border-slate-300 bg-white text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                                                     />
                                                     <span className="text-sm font-bold text-slate-300">
                                                         {t('schedule.modal.new.return_check')}
@@ -2067,14 +2067,14 @@ export default function Escalas() {
                                                 </label>
 
                                                 {newService.temRegresso && (
-                                                    <div className="mt-4 pl-4 border-l-2 border-slate-700 space-y-4 animate-in slide-in-from-top-2">
+                                                    <div className="mt-4 pl-4 border-l-2 border-slate-200 space-y-4 animate-in slide-in-from-top-2">
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <div>
                                                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('schedule.modal.new.exit_time')}</label>
                                                                 <input
                                                                     type="time"
                                                                     required
-                                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none font-mono"
                                                                     value={newService.horaRegresso}
                                                                     onChange={e => setNewService({ ...newService, horaRegresso: e.target.value })}
                                                                 />
@@ -2085,7 +2085,7 @@ export default function Escalas() {
                                                                     type="text"
                                                                     list="geofences-list"
                                                                     placeholder="Opcional..."
-                                                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none"
                                                                     value={newService.destinoRegresso}
                                                                     onChange={e => setNewService({ ...newService, destinoRegresso: e.target.value })}
                                                                 />
@@ -2099,7 +2099,7 @@ export default function Escalas() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowNewServiceModal(false)}
-                                                    className="px-6 py-3 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+                                                    className="px-6 py-3 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium"
                                                 >
                                                     Cancelar
                                                 </button>
@@ -2113,32 +2113,32 @@ export default function Escalas() {
                 </div >
                 {
                     hasAccess(userRole, 'escalas_view_pending') && viewMode === 'table' && (
-                        <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-[#0f172a] border-t md:border-t-0 md:border-l border-white/5">
-                            <div className="h-full flex flex-col bg-[#0f172a] border-l border-white/5 overflow-hidden">
-                                <div className="p-4 bg-[#0f172a]/95 backdrop-blur border-b border-white/5 flex items-center gap-3 shrink-0">
+                        <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-slate-50 border-t md:border-t-0 md:border-l border-slate-100">
+                            <div className="h-full flex flex-col bg-slate-50 border-l border-slate-100 overflow-hidden">
+                                <div className="p-4 bg-slate-50/95 backdrop-blur border-b border-slate-100 flex items-center gap-3 shrink-0">
                                     <div className="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-900/20">
-                                        <Upload className="w-4 h-4 text-white" />
+                                        <Upload className="w-4 h-4 text-slate-900" />
                                     </div>
-                                    <h2 className="text-lg font-bold text-white truncate flex-1">
+                                    <h2 className="text-lg font-bold text-[#1f2957] truncate flex-1">
                                         {t('schedule.pending.title')}
                                     </h2>
-                                    <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-white/10 font-mono">
+                                    <span className="bg-slate-100 text-slate-500 text-xs px-2.5 py-1 rounded-full border border-slate-200 font-mono">
                                         {globalPendentes.length}
                                     </span>
                                 </div>
 
                                 {/* Batch Assign Control */}
                                 {!isDistributeMode && pendentes.length > 0 && (
-                                    <div className="p-4 border-b border-white/5 space-y-2">
-                                        <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl border border-white/10">
+                                    <div className="p-4 border-b border-slate-100 space-y-2">
+                                        <div className="flex gap-2 p-1 bg-white/90 rounded-xl border border-slate-200">
                                             <select
-                                                className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-white cursor-pointer w-full"
+                                                className="flex-1 bg-transparent text-sm px-3 py-2 text-slate-300 outline-none focus:text-slate-900 cursor-pointer w-full"
                                                 value={selectedMotoristaForAssign}
                                                 onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
                                             >
-                                                <option value="" className="bg-slate-900">{t('schedule.pending.assign_to')}</option>
+                                                <option value="" className="bg-white/90">{t('schedule.pending.assign_to')}</option>
                                                 {displayMotoristas.map(m => (
-                                                    <option key={m.id} value={m.id} className="bg-slate-900">{formatDriverOptionLabel(m)}</option>
+                                                    <option key={m.id} value={m.id} className="bg-white/90">{formatDriverOptionLabel(m)}</option>
                                                 ))}
                                             </select>
                                             <button
@@ -2159,13 +2159,13 @@ export default function Escalas() {
                                             )}
                                         </div>
                                         <div className="flex items-center justify-between px-1">
-                                            <button onClick={toggleSelectAll} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-white">Selecionar Todos</button>
+                                            <button onClick={toggleSelectAll} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-slate-900">Selecionar Todos</button>
                                             <span className="text-[10px] text-slate-600">{selectedPendentes.length} selecionados</span>
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="p-4 border-b border-white/5 bg-slate-900/30">
+                                <div className="p-4 border-b border-slate-100 bg-slate-50/60">
                                     <div className="flex items-center justify-between mb-3">
                                         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Pendentes Rápidos</h3>
                                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300">Arrastar para motorista</span>
@@ -2180,7 +2180,7 @@ export default function Escalas() {
                                                     key={`quick-${service.id}`}
                                                     draggable
                                                     onDragStart={handlePendingDragStart(service.id)}
-                                                    className={`rounded-xl border ${visual.border} bg-[#0f172a] p-3 cursor-grab active:cursor-grabbing hover:border-blue-400/40`}
+                                                    className={`rounded-xl border ${visual.border} bg-slate-50 p-3 cursor-grab active:cursor-grabbing hover:border-blue-400/40`}
                                                 >
                                                     <div className="flex items-center justify-between gap-2">
                                                         <span className="text-[11px] font-mono font-bold text-blue-300">{service.hora}</span>
@@ -2237,20 +2237,20 @@ export default function Escalas() {
                                             <>
                                                 {/* Ad-Hoc (Ideally empty now) */}
                                                 {adHoc.length > 0 && (
-                                                    <div className={`rounded-xl border transition-all overflow-hidden ${expandedBatchId === 'adhoc' ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                                    <div className={`rounded-xl border transition-all overflow-hidden ${expandedBatchId === 'adhoc' ? 'bg-white/90 border-blue-500/50' : 'bg-white/90 border-slate-100 hover:bg-white/90/80'}`}>
                                                         <div
                                                             onClick={() => setExpandedBatchId(expandedBatchId === 'adhoc' ? null : 'adhoc')}
                                                             className="p-4 cursor-pointer"
                                                         >
-                                                            <div className="flex justify-between items-start mb-2"><div className="font-bold text-white text-sm">Escalas Manuais / Legado</div><span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-white/5">{adHoc.length}</span></div>
+                                                            <div className="flex justify-between items-start mb-2"><div className="font-bold text-slate-900 text-sm">Escalas Manuais / Legado</div><span className="bg-slate-100 text-slate-400 text-[10px] px-1.5 py-0.5 rounded border border-slate-100">{adHoc.length}</span></div>
                                                             <div className="text-xs text-slate-500">Serviços sem lote associado</div>
                                                         </div>
 
                                                         {/* EXPANDED CONTENT AD-HOC */}
                                                         {expandedBatchId === 'adhoc' && (
-                                                            <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
+                                                            <div className="bg-white/90 border-t border-slate-100 p-3 space-y-2">
                                                                 {adHoc.map(service => (
-                                                                    <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
+                                                                    <div key={service.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
                                                                         <div className="flex justify-between items-start">
                                                                             <div className="flex items-center gap-2">
                                                                                 <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
@@ -2282,9 +2282,9 @@ export default function Escalas() {
                                                                             <ArrowRight className="w-3 h-3 text-slate-600" />
                                                                             <span className="truncate text-right" title={service.destino}>{service.destino}</span>
                                                                         </div>
-                                                                        <div className="pt-2 border-t border-white/5">
+                                                                        <div className="pt-2 border-t border-slate-100">
                                                                             <select
-                                                                                className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
+                                                                                className="w-full bg-slate-100 text-slate-500 text-[10px] px-2 py-1.5 rounded border border-slate-200 outline-none focus:border-blue-500/50"
                                                                                 value=""
                                                                                 onChange={(e) => {
                                                                                     if (e.target.value) {
@@ -2322,7 +2322,7 @@ export default function Escalas() {
                                                     const centroCustoName = batch?.centro_custo_id ? centrosCustos.find(c => c.id === batch.centro_custo_id)?.nome : 'Sem Centro Custo';
 
                                                     return (
-                                                        <div key={batchId} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-[#1e293b] border-blue-500/50' : 'bg-[#1e293b] border-white/5 hover:bg-[#1e293b]/80'}`}>
+                                                        <div key={batchId} className={`rounded-xl border transition-all overflow-hidden ${isExpanded ? 'bg-white/90 border-blue-500/50' : 'bg-white/90 border-slate-100 hover:bg-white/90/80'}`}>
                                                             <div
                                                                 onClick={() => setExpandedBatchId(isExpanded ? null : batchId)}
                                                                 className="p-4 cursor-pointer"
@@ -2333,9 +2333,9 @@ export default function Escalas() {
                                                                             {createdBy.charAt(0).toUpperCase()}
                                                                         </div>
                                                                         <div>
-                                                                            <div className="font-bold text-white text-sm flex items-center gap-2">
+                                                                            <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
                                                                                 {createdBy}
-                                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-normal capitalize ${batch ? 'bg-slate-800 text-slate-400 border-white/10' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-normal capitalize ${batch ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                                                                                     {createdByRole}
                                                                                 </span>
                                                                             </div>
@@ -2386,9 +2386,9 @@ export default function Escalas() {
 
                                                             {/* EXPANDED CONTENT */}
                                                             {isExpanded && (
-                                                                <div className="bg-slate-900/50 border-t border-white/5 p-3 space-y-2">
+                                                                <div className="bg-white/90 border-t border-slate-100 p-3 space-y-2">
                                                                     {batchServices.map(service => (
-                                                                        <div key={service.id} className="bg-[#0f172a] p-3 rounded-lg border border-white/5 space-y-2">
+                                                                        <div key={service.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
                                                                             <div className="flex justify-between items-start">
                                                                                 <div className="flex items-center gap-2">
                                                                                     <span className="text-blue-400 font-mono font-bold text-xs bg-blue-400/10 px-1.5 py-0.5 rounded">{service.hora}</span>
@@ -2420,9 +2420,9 @@ export default function Escalas() {
                                                                                 <span className="truncate text-right" title={service.destino}>{service.destino}</span>
                                                                             </div>
 
-                                                                            <div className="pt-2 border-t border-white/5">
+                                                                            <div className="pt-2 border-t border-slate-100">
                                                                                 <select
-                                                                                    className="w-full bg-slate-800 text-slate-300 text-[10px] px-2 py-1.5 rounded border border-white/10 outline-none focus:border-blue-500/50"
+                                                                                    className="w-full bg-slate-100 text-slate-500 text-[10px] px-2 py-1.5 rounded border border-slate-200 outline-none focus:border-blue-500/50"
                                                                                     value=""
                                                                                     onChange={(e) => {
                                                                                         if (e.target.value) {
@@ -2469,8 +2469,8 @@ export default function Escalas() {
             {/* MODAL: AUTO SETTINGS */}
             {showAutoSettings && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-[#1e293b] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
-                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <div className="bg-white/90 border border-slate-200 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+                        <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                             <MoreVertical className="w-5 h-5 text-blue-400" />
                             Configuração de Automação
                         </h2>
@@ -2480,7 +2480,7 @@ export default function Escalas() {
                                 <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Google Sheet Albufeira (CSV/Export URL)</label>
                                 <input
                                     type="text"
-                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm"
                                     placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
                                     value={autoSettings.albufeiraUrl}
                                     onChange={e => setAutoSettings({ ...autoSettings, albufeiraUrl: e.target.value })}
@@ -2490,7 +2490,7 @@ export default function Escalas() {
                                 <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Google Sheet Quarteira (CSV/Export URL)</label>
                                 <input
                                     type="text"
-                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm"
                                     placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
                                     value={autoSettings.quarteiraUrl}
                                     onChange={e => setAutoSettings({ ...autoSettings, quarteiraUrl: e.target.value })}
@@ -2501,7 +2501,7 @@ export default function Escalas() {
                         <div className="flex gap-3 mt-8">
                             <button
                                 onClick={() => setShowAutoSettings(false)}
-                                className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700 transition-colors"
+                                className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-700 transition-colors"
                             >
                                 Fechar
                             </button>
@@ -2523,14 +2523,14 @@ export default function Escalas() {
             {/* MODAL: AUTOMATION PREVIEW */}
             {showAutoModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-[#1e293b] border border-emerald-500/20 p-6 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="bg-white/90 border border-emerald-500/20 p-6 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
                                     <CloudLightning className="w-8 h-8 text-emerald-500" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white">{automationMode === 'auto-dispatch' ? 'Pré-visualização do Auto Dispatch' : 'Pré-visualização da Escala'}</h2>
+                                    <h2 className="text-2xl font-bold text-slate-900">{automationMode === 'auto-dispatch' ? 'Pré-visualização do Auto Dispatch' : 'Pré-visualização da Escala'}</h2>
                                     <p className="text-slate-400 text-sm">Verifique, edite e remova propostas antes de confirmar.</p>
                                 </div>
                             </div>
@@ -2545,7 +2545,7 @@ export default function Escalas() {
                                 </button>
                                 <button
                                     onClick={() => setShowAutoModal(false)}
-                                    className="text-slate-400 hover:text-white p-2"
+                                    className="text-slate-500 hover:text-slate-700 p-2"
                                 >
                                     <Trash2 className="w-6 h-6" />
                                 </button>
@@ -2559,7 +2559,7 @@ export default function Escalas() {
                                 const computedOccupancy = Number((((computedPassengers / Math.max(computedCapacity, 1)) * 100)).toFixed(2));
 
                                 return (
-                                    <div key={trip.id} className="bg-slate-900/50 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center group">
+                                    <div key={trip.id} className="bg-white/90 border border-slate-100 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center group">
                                         <div className="flex items-center gap-3 min-w-[100px]">
                                             <span className="bg-emerald-500/20 text-emerald-400 font-mono font-bold px-2 py-1 rounded border border-emerald-500/20">{trip.hora}</span>
                                         </div>
@@ -2570,30 +2570,30 @@ export default function Escalas() {
                                                     <MapPin className="w-3 h-3" /> Origem
                                                     {trip.areaOrigem && <span className="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded ml-1">{trip.areaOrigem}</span>}
                                                 </div>
-                                                <div className="text-white font-medium">{trip.origem}</div>
+                                                <div className="text-slate-900 font-medium">{trip.origem}</div>
                                             </div>
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-2 text-xs text-slate-500 uppercase font-bold tracking-wider">
                                                     <ArrowRight className="w-3 h-3" /> Destino
                                                     {trip.areaDestino && <span className="bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded ml-1">{trip.areaDestino}</span>}
                                                 </div>
-                                                <div className="text-white font-medium">{trip.destino}</div>
+                                                <div className="text-slate-900 font-medium">{trip.destino}</div>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center gap-4">
-                                            <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[40px]">
+                                            <div className="bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-100 text-center min-w-[40px]">
                                                 <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Pass.</div>
-                                                <div className="text-white font-bold leading-none">{computedPassengers}</div>
+                                                <div className="text-slate-900 font-bold leading-none">{computedPassengers}</div>
                                             </div>
 
-                                            <div className="bg-[#0f172a] rounded-lg px-3 py-1.5 border border-white/5 text-center min-w-[72px]">
+                                            <div className="bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-100 text-center min-w-[72px]">
                                                 <div className="text-[10px] text-slate-500 font-bold leading-none mb-1">Ocupação</div>
                                                 <div className="text-emerald-300 font-bold leading-none">{computedOccupancy.toFixed(0)}%</div>
                                             </div>
 
                                             <select
-                                                className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
+                                                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500/50 outline-none w-48"
                                                 value={trip.vehicleId || ''}
                                                 onChange={(e) => {
                                                     const vehicleId = e.target.value;
@@ -2615,7 +2615,7 @@ export default function Escalas() {
                                             </select>
 
                                             <select
-                                                className="bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none w-48"
+                                                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500/50 outline-none w-48"
                                                 value={trip.motoristaId || ''}
                                                 onChange={(e) => {
                                                     const newTrips = [...automationTrips];
@@ -2641,14 +2641,14 @@ export default function Escalas() {
                             })}
                         </div>
 
-                        <div className="mt-6 pt-6 border-t border-white/10 flex justify-between items-center">
+                        <div className="mt-6 pt-6 border-t border-slate-200 flex justify-between items-center">
                             <div className="text-slate-400 text-sm">
-                                <span className="text-white font-bold">{automationTrips.length}</span> serviços propostos. PRONTO PARA CONFIRMAR.
+                                <span className="text-slate-900 font-bold">{automationTrips.length}</span> serviços propostos. PRONTO PARA CONFIRMAR.
                             </div>
                             <div className="flex gap-4">
                                 <button
                                     onClick={() => setShowAutoModal(false)}
-                                    className="px-6 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700 transition-colors"
+                                    className="px-6 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-700 transition-colors"
                                 >
                                     Cancelar
                                 </button>
@@ -2669,13 +2669,13 @@ export default function Escalas() {
             {
                 showUrgentModal && (
                     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 overflow-y-auto">
-                        <div className="bg-[#1e293b] border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
+                        <div className="bg-white/90 border border-red-500/30 p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-in zoom-in-95 duration-200">
                             <div className="flex items-center gap-4 mb-8 text-red-500">
                                 <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
                                     <Siren className="w-8 h-8" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white">{t('schedule.modal.urgent.title')}</h2>
+                                    <h2 className="text-2xl font-bold text-slate-900">{t('schedule.modal.urgent.title')}</h2>
                                     <p className="text-red-400/80 text-sm font-medium">Este pedido será notificado aos supervisores.</p>
                                 </div>
                             </div>
@@ -2687,7 +2687,7 @@ export default function Escalas() {
                                         <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.time')}</label>
                                         <input
                                             type="time"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
                                             value={urgentData.hora}
                                             onChange={e => setUrgentData({ ...urgentData, hora: e.target.value })}
                                         />
@@ -2698,7 +2698,7 @@ export default function Escalas() {
                                             type="text"
                                             required
                                             placeholder="Nome..."
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
                                             value={urgentData.passageiro}
                                             onChange={e => handleUrgentPassengerChange(e.target.value)}
                                         />
@@ -2713,7 +2713,7 @@ export default function Escalas() {
                                             required
                                             list="geofences-list"
                                             placeholder="Onde está..."
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
                                             value={urgentData.origem}
                                             onChange={e => setUrgentData({ ...urgentData, origem: e.target.value })}
                                         />
@@ -2725,7 +2725,7 @@ export default function Escalas() {
                                             required
                                             list="geofences-list"
                                             placeholder="Para onde vai..."
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none shadow-inner"
                                             value={urgentData.destino}
                                             onChange={e => setUrgentData({ ...urgentData, destino: e.target.value })}
                                         />
@@ -2735,7 +2735,7 @@ export default function Escalas() {
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase mb-2">{t('schedule.modal.urgent.obs')}</label>
                                     <textarea
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none resize-none shadow-inner"
                                         rows={3}
                                         placeholder="Detalhes adicionais..."
                                         value={urgentData.obs}
@@ -2743,11 +2743,11 @@ export default function Escalas() {
                                     />
                                 </div>
 
-                                <div className="flex gap-4 pt-4 border-t border-white/5">
+                                <div className="flex gap-4 pt-4 border-t border-slate-100">
                                     <button
                                         type="button"
                                         onClick={() => setShowUrgentModal(false)}
-                                        className="flex-1 py-4 bg-slate-800 text-slate-300 hover:text-white rounded-xl font-bold transition-colors"
+                                        className="flex-1 py-4 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-xl font-bold transition-colors"
                                     >
                                         Cancelar
                                     </button>
@@ -2767,17 +2767,17 @@ export default function Escalas() {
             {/* Template Selection Modal */}
             {showTemplateModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-                    <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
-                        <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center justify-between">
+                    <div className="bg-white/90 border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+                        <div className="p-6 bg-white/90 border-b border-slate-100 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
                                     <FileText className="w-5 h-5" />
                                 </div>
-                                <h2 className="text-xl font-bold text-white">Lançar Escala Permanente (Modelo)</h2>
+                                <h2 className="text-xl font-bold text-slate-900">Lançar Escala Permanente (Modelo)</h2>
                             </div>
                             <button
                                 onClick={() => setShowTemplateModal(false)}
-                                className="text-slate-400 hover:text-white transition-colors"
+                                className="text-slate-500 hover:text-slate-700 transition-colors"
                             >
                                 <Plus className="w-6 h-6 rotate-45" />
                             </button>
@@ -2791,7 +2791,7 @@ export default function Escalas() {
                                         onClick={() => setSelectedTemplateId(template.id)}
                                         className={`group p-5 rounded-2xl border transition-all text-left relative overflow-hidden ${selectedTemplateId === template.id
                                             ? 'bg-indigo-500/10 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xl shadow-indigo-900/20'
-                                            : 'bg-slate-800/40 border-white/5 hover:border-white/10 hover:bg-slate-800/60'
+                                            : 'bg-slate-50 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between mb-3">
@@ -2804,7 +2804,7 @@ export default function Escalas() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="font-black text-lg text-white mb-1 group-hover:translate-x-1 transition-transform">{template.nome}</div>
+                                        <div className="font-black text-lg text-slate-900 mb-1 group-hover:translate-x-1 transition-transform">{template.nome}</div>
                                         <div className="flex items-center gap-2 text-xs text-slate-400">
                                             <Users className="w-3 h-3" />
                                             {escalaTemplateItems.filter(i => i.template_id === template.id).length} Serviços Registrados
@@ -2820,12 +2820,12 @@ export default function Escalas() {
                                         setShowTemplateModal(false);
                                         setShowManageTemplates(true);
                                     }}
-                                    className="p-5 rounded-2xl border border-dashed border-white/10 bg-slate-800/20 hover:bg-slate-800/40 transition-all text-center flex flex-col items-center justify-center gap-3 group min-h-[140px]"
+                                    className="p-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 hover:bg-slate-50 transition-all text-center flex flex-col items-center justify-center gap-3 group min-h-[140px]"
                                 >
                                     <div className="p-3 bg-slate-700/50 rounded-xl group-hover:scale-110 group-hover:bg-slate-700 transition-all">
-                                        <Settings className="w-6 h-6 text-slate-400 group-hover:text-white" />
+                                        <Settings className="w-6 h-6 text-slate-400 group-hover:text-slate-900" />
                                     </div>
-                                    <span className="text-sm font-black text-slate-400 group-hover:text-white uppercase tracking-widest">Painel de Gestão</span>
+                                    <span className="text-sm font-black text-slate-400 group-hover:text-slate-900 uppercase tracking-widest">Painel de Gestão</span>
                                 </button>
                             </div>
 
@@ -2834,22 +2834,22 @@ export default function Escalas() {
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Pré-visualização de Itens</h3>
                                     </div>
-                                    <div className="bg-slate-950/50 rounded-xl border border-white/5 overflow-hidden">
+                                    <div className="bg-white/90 rounded-xl border border-slate-100 overflow-hidden">
                                         <table className="w-full text-left text-xs">
                                             <thead>
-                                                <tr className="border-b border-white/5 bg-white/5">
+                                                <tr className="border-b border-slate-100 bg-white/5">
                                                     <th className="px-4 py-3 font-bold text-slate-300">Entrada</th>
                                                     <th className="px-4 py-3 font-bold text-slate-300">Saída</th>
                                                     <th className="px-4 py-3 font-bold text-slate-300">Passageiro</th>
                                                     <th className="px-4 py-3 font-bold text-slate-300">Local</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-white/5">
+                                            <tbody className="divide-y divide-slate-100">
                                                 {escalaTemplateItems.filter(i => i.template_id === selectedTemplateId).map(item => (
                                                     <tr key={item.id} className="hover:bg-white/5">
                                                         <td className="px-4 py-3 text-emerald-400 font-medium">{item.hora_entrada || '-'}</td>
                                                         <td className="px-4 py-3 text-amber-400 font-medium">{item.hora_saida || '-'}</td>
-                                                        <td className="px-4 py-3 text-white">{item.passageiro}</td>
+                                                        <td className="px-4 py-3 text-slate-900">{item.passageiro}</td>
                                                         <td className="px-4 py-3 text-slate-300">{item.local}</td>
                                                     </tr>
                                                 ))}
@@ -2860,10 +2860,10 @@ export default function Escalas() {
                             )}
                         </div>
 
-                        <div className="p-6 bg-slate-900/50 border-t border-white/5 flex gap-4">
+                        <div className="p-6 bg-white/90 border-t border-slate-100 flex gap-4">
                             <button
                                 onClick={() => setShowTemplateModal(false)}
-                                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                                className="flex-1 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 rounded-xl font-bold transition-all"
                             >
                                 Cancelar
                             </button>
@@ -2883,20 +2883,20 @@ export default function Escalas() {
             {/* Template Management Modal */}
             {showManageTemplates && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[80] flex items-center justify-center p-4">
-                    <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden h-[85vh]">
-                        <div className="p-6 bg-slate-900/50 border-b border-white/5 flex items-center justify-between">
+                    <div className="bg-white/90 border border-slate-200 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden h-[85vh]">
+                        <div className="p-6 bg-white/90 border-b border-slate-100 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
                                     <Settings className="w-5 h-5" />
                                 </div>
-                                <h2 className="text-xl font-bold text-white">Gestão de Modelos de Escala</h2>
+                                <h2 className="text-xl font-bold text-slate-900">Gestão de Modelos de Escala</h2>
                             </div>
                             <button
                                 onClick={() => {
                                     setShowManageTemplates(false);
                                     setShowTemplateModal(true);
                                 }}
-                                className="text-slate-400 hover:text-white transition-colors"
+                                className="text-slate-500 hover:text-slate-700 transition-colors"
                             >
                                 <Plus className="w-6 h-6 rotate-45" />
                             </button>
@@ -2904,12 +2904,12 @@ export default function Escalas() {
 
                         <div className="flex-1 flex overflow-hidden">
                             {/* Templates Lateral List */}
-                            <div className="w-64 border-r border-white/5 bg-slate-900/30 p-4 space-y-4 overflow-y-auto">
+                            <div className="w-64 border-r border-slate-100 bg-slate-50/60 p-4 space-y-4 overflow-y-auto">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Modelos</span>
                                     <button
                                         onClick={() => setIsCreatingTemplate(true)}
-                                        className="p-1 text-indigo-400 hover:text-white"
+                                        className="p-1 text-indigo-400 hover:text-slate-900"
                                     >
                                         <Plus className="w-4 h-4" />
                                     </button>
@@ -2919,7 +2919,7 @@ export default function Escalas() {
                                     <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/50 space-y-2">
                                         <input
                                             autoFocus
-                                            className="w-full bg-slate-950 border border-indigo-500/30 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                                            className="w-full bg-white border border-indigo-500/30 rounded-lg px-3 py-2 text-xs text-slate-900 outline-none"
                                             placeholder="Nome do Modelo..."
                                             value={newTemplateName}
                                             onChange={e => setNewTemplateName(e.target.value)}
@@ -2934,7 +2934,7 @@ export default function Escalas() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => setIsCreatingTemplate(false)}
-                                                className="flex-1 text-[10px] text-slate-400 hover:text-white font-bold"
+                                                className="flex-1 text-[10px] text-slate-500 hover:text-slate-700 font-bold"
                                             >
                                                 Cancelar
                                             </button>
@@ -2944,7 +2944,7 @@ export default function Escalas() {
                                                     setIsCreatingTemplate(false);
                                                     setNewTemplateName('');
                                                 }}
-                                                className="flex-1 text-[10px] text-indigo-400 hover:text-white font-bold"
+                                                className="flex-1 text-[10px] text-indigo-400 hover:text-slate-900 font-bold"
                                             >
                                                 Criar
                                             </button>
@@ -2958,7 +2958,7 @@ export default function Escalas() {
                                             onClick={() => setSelectedTemplateId(template.id)}
                                             className={`w-full p-3 rounded-xl text-left text-sm transition-all flex items-center justify-between ${selectedTemplateId === template.id
                                                 ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-900/40'
-                                                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                                                : 'text-slate-400 hover:bg-white/5 hover:text-slate-900'
                                                 }`}
                                         >
                                             <span className="truncate">{template.nome}</span>
@@ -2985,7 +2985,7 @@ export default function Escalas() {
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h3 className="text-xl font-bold text-white mb-1">
+                                                <h3 className="text-xl font-bold text-slate-900 mb-1">
                                                     {escalaTemplates.find(t => t.id === selectedTemplateId)?.nome}
                                                 </h3>
                                                 <p className="text-xs text-slate-400">Gerir funcionários e locais deste modelo permanente</p>
@@ -2996,12 +2996,12 @@ export default function Escalas() {
                                         </div>
 
                                         {/* New Item Form */}
-                                        <div className="bg-slate-800/20 rounded-2xl border border-white/5 p-4 space-y-4">
+                                        <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 space-y-4">
                                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Funcionário</label>
                                                     <input
-                                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 outline-none"
                                                         placeholder="Ex: João Silva"
                                                         value={templateItemForm.passageiro}
                                                         onChange={e => setTemplateItemForm({ ...templateItemForm, passageiro: e.target.value })}
@@ -3010,7 +3010,7 @@ export default function Escalas() {
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Local/Hotel</label>
                                                     <input
-                                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 outline-none"
                                                         placeholder="Ex: Hilton Vilamoura"
                                                         value={templateItemForm.local}
                                                         onChange={e => setTemplateItemForm({ ...templateItemForm, local: e.target.value })}
@@ -3020,7 +3020,7 @@ export default function Escalas() {
                                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Hora Entrada</label>
                                                     <input
                                                         type="time"
-                                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 outline-none"
                                                         value={templateItemForm.hora_entrada}
                                                         onChange={e => setTemplateItemForm({ ...templateItemForm, hora_entrada: e.target.value })}
                                                     />
@@ -3029,7 +3029,7 @@ export default function Escalas() {
                                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 ml-1">Hora Saída</label>
                                                     <input
                                                         type="time"
-                                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 outline-none"
                                                         value={templateItemForm.hora_saida}
                                                         onChange={e => setTemplateItemForm({ ...templateItemForm, hora_saida: e.target.value })}
                                                     />
@@ -3062,47 +3062,47 @@ export default function Escalas() {
                                         {/* Items List */}
                                         <div className="space-y-3">
                                             {escalaTemplateItems.filter(ti => ti.template_id === selectedTemplateId).length === 0 ? (
-                                                <div className="text-center py-20 bg-slate-900/40 rounded-3xl border border-dashed border-white/5 flex flex-col items-center justify-center">
+                                                <div className="text-center py-20 bg-white/90 rounded-3xl border border-dashed border-slate-100 flex flex-col items-center justify-center">
                                                     <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-4">
                                                         <FileText className="w-8 h-8 text-indigo-500/30" />
                                                     </div>
-                                                    <h4 className="text-white font-bold mb-1">Modelo Vazio</h4>
+                                                    <h4 className="text-slate-900 font-bold mb-1">Modelo Vazio</h4>
                                                     <p className="text-slate-500 text-xs max-w-[200px]">Adicione funcionários e locais acima para começar a construir este modelo.</p>
                                                 </div>
                                             ) : (
                                                 <div className="grid grid-cols-1 gap-2">
-                                                    <div className="grid grid-cols-12 px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
+                                                    <div className="grid grid-cols-12 px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-100">
                                                         <div className="col-span-3">Horários</div>
                                                         <div className="col-span-4">Funcionário / Passageiro</div>
                                                         <div className="col-span-4">Destino / Local</div>
                                                         <div className="col-span-1 text-right">Ações</div>
                                                     </div>
                                                     {escalaTemplateItems.filter(ti => ti.template_id === selectedTemplateId).map(item => (
-                                                        <div key={item.id} className="grid grid-cols-12 items-center bg-slate-800/30 border border-white/5 hover:border-indigo-500/40 hover:bg-slate-800/50 rounded-2xl px-6 py-4 group transition-all">
+                                                        <div key={item.id} className="grid grid-cols-12 items-center bg-slate-50 border border-slate-100 hover:border-indigo-500/40 hover:bg-slate-50 rounded-2xl px-6 py-4 group transition-all">
                                                             <div className="col-span-3 flex items-center gap-3">
                                                                 <div className="flex flex-col">
                                                                     <div className="flex items-center gap-1.5 mb-1">
                                                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
-                                                                        <span className="text-sm font-black text-white">{item.hora_entrada || '--:--'}</span>
+                                                                        <span className="text-sm font-black text-slate-900">{item.hora_entrada || '--:--'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50" />
-                                                                        <span className="text-sm font-black text-white">{item.hora_saida || '--:--'}</span>
+                                                                        <span className="text-sm font-black text-slate-900">{item.hora_saida || '--:--'}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                             <div className="col-span-4">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-indigo-500 group-hover:text-slate-900 transition-colors">
                                                                         {item.passageiro?.charAt(0) || 'S'}
                                                                     </div>
-                                                                    <span className="text-sm font-bold text-white group-hover:text-indigo-200 transition-colors truncate">
+                                                                    <span className="text-sm font-bold text-slate-900 group-hover:text-indigo-200 transition-colors truncate">
                                                                         {item.passageiro || 'Staff Geral'}
                                                                     </span>
                                                                 </div>
                                                             </div>
                                                             <div className="col-span-4 flex items-center gap-2">
-                                                                <div className="p-1.5 bg-slate-800 rounded-lg border border-white/5">
+                                                                <div className="p-1.5 bg-slate-100 rounded-lg border border-slate-100">
                                                                     <MapPin className="w-3 h-3 text-indigo-400" />
                                                                 </div>
                                                                 <span className="text-sm text-slate-300 font-medium truncate">{item.local}</span>
@@ -3126,7 +3126,7 @@ export default function Escalas() {
                                         <div className="p-4 bg-indigo-500/5 rounded-full mb-4">
                                             <FileText className="w-12 h-12 text-indigo-500/30" />
                                         </div>
-                                        <h3 className="text-lg font-bold text-white mb-2">Selecione um Modelo</h3>
+                                        <h3 className="text-lg font-bold text-[#1f2957] mb-2">Selecione um Modelo</h3>
                                         <p className="text-sm text-slate-400 max-w-xs">
                                             Escolha um modelo à esquerda ou crie um novo para gerir as escalas recorrentes.
                                         </p>

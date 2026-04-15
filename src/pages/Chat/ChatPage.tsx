@@ -736,15 +736,15 @@ export default function ChatPage() {
             </div>
 
             <div className="h-[calc(100vh-170px)] grid grid-cols-1 xl:grid-cols-12 gap-4">
-                <div className="xl:col-span-3 bg-[#1e293b]/45 border border-slate-700/50 rounded-2xl overflow-hidden flex flex-col">
-                    <div className="p-3 border-b border-slate-700/50 space-y-3">
+                <div className="xl:col-span-3 bg-[#1e293b]/45 border border-slate-200/50 rounded-2xl overflow-hidden flex flex-col">
+                    <div className="p-3 border-b border-slate-200/50 space-y-3">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Pesquisar conversas"
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:border-blue-500/60"
+                                className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:border-blue-500/60"
                             />
                         </div>
 
@@ -752,7 +752,7 @@ export default function ChatPage() {
                             <select
                                 value={privateTargetId}
                                 onChange={(e) => setPrivateTargetId(e.target.value)}
-                                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-xs"
+                                className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs"
                             >
                                 <option value="">Nova conversa privada</option>
                                 {operationalUsers
@@ -783,7 +783,7 @@ export default function ChatPage() {
                                 onClick={() => setSelectedConversationId(c.id)}
                                 className={`w-full text-left p-3 rounded-xl border transition-all ${selectedConversationId === c.id
                                     ? 'bg-blue-600/15 border-blue-500/50'
-                                    : 'bg-slate-800/30 border-transparent hover:bg-slate-800/55'
+                                    : 'bg-slate-50 border-transparent hover:bg-slate-100/55'
                                     }`}
                             >
                                 <div className="flex justify-between items-start gap-2">
@@ -802,17 +802,17 @@ export default function ChatPage() {
                     </div>
                 </div>
 
-                <div className="xl:col-span-6 bg-[#1e293b]/45 border border-slate-700/50 rounded-2xl overflow-hidden flex flex-col">
+                <div className="xl:col-span-6 bg-[#1e293b]/45 border border-slate-200/50 rounded-2xl overflow-hidden flex flex-col">
                     {selectedConversation ? (
                         <>
-                            <div className="p-4 border-b border-slate-700/50 flex items-center justify-between gap-3 bg-slate-900/55">
+                            <div className="p-4 border-b border-slate-200/50 flex items-center justify-between gap-3 bg-white/90/55">
                                 <div className="min-w-0">
                                     <h2 className="text-base font-bold truncate">{selectedConversation.name}</h2>
                                     <p className="text-xs text-slate-400 uppercase tracking-wider">{selectedConversation.type}</p>
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-slate-950/25">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-white/25">
                                 {selectedMessages.length === 0 && (
                                     <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-slate-500">
                                         <MessageSquare className="w-8 h-8 mb-2" />
@@ -830,7 +830,7 @@ export default function ChatPage() {
                                                 ? 'bg-blue-600/90 border-blue-500/70 text-white'
                                                 : m.source === 'system'
                                                     ? 'bg-amber-600/20 border-amber-500/40 text-amber-100'
-                                                    : 'bg-slate-800/70 border-slate-700/60 text-slate-100'
+                                                    : 'bg-slate-100/70 border-slate-200/60 text-slate-100'
                                                 }`}>
                                                 <div className="text-[10px] opacity-80 mb-1 font-semibold">{senderName(m)}</div>
                                                 {text && <p className="text-sm whitespace-pre-wrap break-words">{text}</p>}
@@ -838,7 +838,7 @@ export default function ChatPage() {
                                                 {m.attachment_url && (
                                                     <div className="mt-2">
                                                         {isImage ? (
-                                                            <img src={m.attachment_url} alt={m.attachment_name || 'imagem'} className="max-h-48 rounded-lg border border-slate-600/60" />
+                                                            <img src={m.attachment_url} alt={m.attachment_name || 'imagem'} className="max-h-48 rounded-lg border border-slate-300/60" />
                                                         ) : (
                                                             <a
                                                                 href={m.attachment_url}
@@ -860,16 +860,16 @@ export default function ChatPage() {
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            <form onSubmit={sendMessage} className="p-3 border-t border-slate-700/50 bg-slate-900/60 space-y-2">
+                            <form onSubmit={sendMessage} className="p-3 border-t border-slate-200/50 bg-white/90/60 space-y-2">
                                 {attachment && (
-                                    <div className="flex items-center justify-between text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1">
+                                    <div className="flex items-center justify-between text-xs bg-slate-100 border border-slate-200 rounded-lg px-2 py-1">
                                         <span className="truncate">{attachment.name}</span>
                                         <button type="button" onClick={() => setAttachment(null)} className="text-red-300">Remover</button>
                                     </div>
                                 )}
 
                                 <div className="flex items-end gap-2">
-                                    <button type="button" onClick={onPickAttachment} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700" title="Anexar ficheiro">
+                                    <button type="button" onClick={onPickAttachment} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-700" title="Anexar ficheiro">
                                         <Paperclip className="w-4 h-4" />
                                     </button>
 
@@ -879,17 +879,17 @@ export default function ChatPage() {
                                             onChange={(e) => onDraftChange(e.target.value)}
                                             rows={2}
                                             placeholder="Escrever mensagem... Use @ para mencionar"
-                                            className="w-full resize-none bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500/60"
+                                            className="w-full resize-none bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500/60"
                                         />
 
                                         {mentionQuery && mentionSuggestions.length > 0 && (
-                                            <div className="absolute bottom-full mb-2 left-0 w-full max-h-40 overflow-y-auto custom-scrollbar bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-20">
+                                            <div className="absolute bottom-full mb-2 left-0 w-full max-h-40 overflow-y-auto custom-scrollbar bg-white/90 border border-slate-200 rounded-lg shadow-2xl z-20">
                                                 {mentionSuggestions.map((u) => (
                                                     <button
                                                         key={u.id}
                                                         type="button"
                                                         onClick={() => insertMention(u)}
-                                                        className="w-full px-3 py-2 text-left text-xs hover:bg-slate-800 flex items-center gap-2"
+                                                        className="w-full px-3 py-2 text-left text-xs hover:bg-slate-100 flex items-center gap-2"
                                                     >
                                                         <AtSign className="w-3 h-3 text-blue-400" />
                                                         <span className="truncate">{u.name}</span>
@@ -916,30 +916,30 @@ export default function ChatPage() {
                     )}
                 </div>
 
-                <div className="xl:col-span-3 bg-[#1e293b]/45 border border-slate-700/50 rounded-2xl overflow-y-auto custom-scrollbar p-4">
+                <div className="xl:col-span-3 bg-[#1e293b]/45 border border-slate-200/50 rounded-2xl overflow-y-auto custom-scrollbar p-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Contexto Operacional</h3>
 
                     {!selectedConversation && <p className="text-sm text-slate-500">Sem conversa selecionada.</p>}
 
                     {selectedConversation?.type === 'vehicle' && selectedVehicleContext && (
                         <div className="space-y-3 text-sm">
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Matricula</p>
                                 <p className="font-bold">{selectedVehicleContext.vehicle.matricula}</p>
                             </div>
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Motorista atual</p>
                                 <p className="font-bold">{selectedVehicleContext.currentDriver?.nome || 'Nao atribuido'}</p>
                             </div>
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Ultimo abastecimento</p>
                                 <p className="font-bold">{selectedVehicleContext.lastTx ? `${selectedVehicleContext.lastTx.liters}L em ${new Date(selectedVehicleContext.lastTx.timestamp).toLocaleString()}` : 'Sem registo'}</p>
                             </div>
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Consumo medio</p>
                                 <p className="font-bold">{selectedVehicleContext.consumoMedio}</p>
                             </div>
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Proxima revisao</p>
                                 <p className="font-bold">{selectedVehicleContext.vehicle.estado === 'em_manutencao' ? 'Em manutencao' : 'N/D'}</p>
                             </div>
@@ -948,21 +948,21 @@ export default function ChatPage() {
 
                     {selectedConversation && selectedConversation.type !== 'vehicle' && selectedUserContext && (
                         <div className="space-y-3 text-sm">
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs mb-1">Nome</p>
                                 <p className="font-bold flex items-center gap-2">{roleIcon((selectedUserContext as any).role || 'admin')}{(selectedUserContext as any).name || 'Utilizador'}</p>
                             </div>
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Funcao</p>
                                 <p className="font-bold">{ROLE_LABEL[(selectedUserContext as any).role] || (selectedUserContext as any).role || 'N/D'}</p>
                             </div>
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs mb-2">Estado atual</p>
                                 {((selectedUserContext as any).role === 'motorista' || (selectedUserContext as any).estadoOperacional) ? (
                                     <select
                                         value={(selectedUserContext as any).estadoOperacional || 'disponivel'}
                                         onChange={(e) => updateSelectedDriverStatus(e.target.value as OperationalStatus)}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs"
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs"
                                     >
                                         {STATUS_OPTIONS.map((s) => (
                                             <option key={s.value} value={s.value}>{s.label}</option>
@@ -973,7 +973,7 @@ export default function ChatPage() {
                                 )}
                             </div>
 
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Notas</p>
                                 <p className="text-xs text-slate-300 mt-1">Conversa operacional sincronizada em tempo real.</p>
                             </div>
@@ -982,11 +982,11 @@ export default function ChatPage() {
 
                     {selectedConversation?.type === 'system' && (
                         <div className="space-y-3 text-sm">
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Canal</p>
                                 <p className="font-bold flex items-center gap-2"><Bell className="w-4 h-4 text-amber-400" /> Alertas do Sistema</p>
                             </div>
-                            <div className="bg-slate-800/45 border border-slate-700/50 rounded-xl p-3">
+                            <div className="bg-slate-100/45 border border-slate-200/50 rounded-xl p-3">
                                 <p className="text-slate-400 text-xs">Tipos de alerta</p>
                                 <ul className="text-xs text-slate-300 mt-1 space-y-1">
                                     <li>- Viatura sem abastecimento</li>

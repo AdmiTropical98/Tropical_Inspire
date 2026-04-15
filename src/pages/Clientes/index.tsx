@@ -186,7 +186,7 @@ export default function Clientes() {
                         placeholder={t('clients.search')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-slate-500"
+                        className="w-full bg-white/90 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-slate-500"
                     />
                 </div>
                 <button
@@ -202,16 +202,16 @@ export default function Clientes() {
                 </button>
             </div>
 
-            <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 space-y-6">
+            <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-6 space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h3 className="text-lg font-bold text-white">Dashboard de Custos por Cliente</h3>
+                        <h3 className="text-lg font-bold text-[#1f2957]">Dashboard de Custos por Cliente</h3>
                         <p className="text-sm text-slate-400">Acompanhe despesas de requisições por cliente.</p>
                     </div>
                     <select
                         value={selectedClientId}
                         onChange={(e) => setSelectedClientId(e.target.value)}
-                        className="w-full md:w-80 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500"
+                        className="w-full md:w-80 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500"
                     >
                         {clientes.map(c => (
                             <option key={c.id} value={c.id}>{c.nome}</option>
@@ -220,22 +220,22 @@ export default function Clientes() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-slate-900/50 border border-slate-700/60 rounded-xl p-4">
+                    <div className="bg-white/90 border border-slate-200/60 rounded-xl p-4">
                         <p className="text-xs uppercase tracking-wider text-slate-400">Total de Despesas</p>
                         <p className="text-2xl font-black text-emerald-400 mt-2">{dashboardLoading ? '...' : formatMoney(totalExpenses)}</p>
                     </div>
-                    <div className="bg-slate-900/50 border border-slate-700/60 rounded-xl p-4">
+                    <div className="bg-white/90 border border-slate-200/60 rounded-xl p-4">
                         <p className="text-xs uppercase tracking-wider text-slate-400">Requisições Ligadas</p>
                         <p className="text-2xl font-black text-blue-400 mt-2">{dashboardLoading ? '...' : clientRequisitions.length}</p>
                     </div>
-                    <div className="bg-slate-900/50 border border-slate-700/60 rounded-xl p-4">
+                    <div className="bg-white/90 border border-slate-200/60 rounded-xl p-4">
                         <p className="text-xs uppercase tracking-wider text-slate-400">Viaturas Associadas</p>
                         <p className="text-2xl font-black text-amber-400 mt-2">{dashboardLoading ? '...' : associatedVehicles.length}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                    <div className="xl:col-span-2 bg-slate-900/50 border border-slate-700/60 rounded-xl p-4">
+                    <div className="xl:col-span-2 bg-white/90 border border-slate-200/60 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-4 text-slate-200">
                             <BarChart3 className="w-4 h-4 text-blue-400" />
                             <span className="font-semibold">Despesas por Mês</span>
@@ -260,15 +260,15 @@ export default function Clientes() {
                         </div>
                     </div>
 
-                    <div className="bg-slate-900/50 border border-slate-700/60 rounded-xl p-4">
+                    <div className="bg-white/90 border border-slate-200/60 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-4 text-slate-200">
                             <Car className="w-4 h-4 text-amber-400" />
                             <span className="font-semibold">Viaturas Associadas</span>
                         </div>
                         <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
                             {associatedVehicles.length > 0 ? associatedVehicles.map(v => (
-                                <div key={v.id} className="bg-slate-950/70 border border-slate-800 rounded-lg p-3">
-                                    <p className="text-sm font-semibold text-white">{v.matricula}</p>
+                                <div key={v.id} className="bg-white/70 border border-slate-200 rounded-lg p-3">
+                                    <p className="text-sm font-semibold text-slate-900">{v.matricula}</p>
                                     <p className="text-xs text-slate-400">{v.marca} {v.modelo}</p>
                                 </div>
                             )) : (
@@ -278,7 +278,7 @@ export default function Clientes() {
                     </div>
                 </div>
 
-                <div className="bg-slate-900/50 border border-slate-700/60 rounded-xl p-4">
+                <div className="bg-white/90 border border-slate-200/60 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-4 text-slate-200">
                         <ClipboardList className="w-4 h-4 text-emerald-400" />
                         <span className="font-semibold">Requisições do Cliente</span>
@@ -286,7 +286,7 @@ export default function Clientes() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="text-left text-slate-400 border-b border-slate-800">
+                                <tr className="text-left text-slate-400 border-b border-slate-200">
                                     <th className="py-2 pr-3">Número</th>
                                     <th className="py-2 pr-3">Data</th>
                                     <th className="py-2 pr-3">Tipo</th>
@@ -298,7 +298,7 @@ export default function Clientes() {
                                 {clientRequisitions.slice(0, 10).map(req => {
                                     const val = Number(req.custo ?? req.approved_value ?? 0);
                                     return (
-                                        <tr key={req.id} className="border-b border-slate-800/60 text-slate-200">
+                                        <tr key={req.id} className="border-b border-slate-200/60 text-slate-200">
                                             <td className="py-2 pr-3 font-mono">{req.numero}</td>
                                             <td className="py-2 pr-3">{new Date(req.data).toLocaleDateString('pt-PT')}</td>
                                             <td className="py-2 pr-3">{req.tipo || '-'}</td>
@@ -318,14 +318,14 @@ export default function Clientes() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredClientes.map(cliente => (
-                    <div key={cliente.id} className="bg-[#1e293b]/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-700/50 hover:border-blue-500/30 transition-all hover:shadow-lg hover:shadow-blue-900/10 group">
+                    <div key={cliente.id} className="bg-[#1e293b]/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-200/50 hover:border-blue-500/30 transition-all hover:shadow-lg hover:shadow-blue-900/10 group">
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
                                     <Building2 className="w-6 h-6 text-blue-400" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-white leading-tight">{cliente.nome}</h3>
+                                    <h3 className="font-bold text-slate-900 leading-tight">{cliente.nome}</h3>
                                     <p className="text-xs text-slate-500 font-mono mt-0.5">NIF: {cliente.nif}</p>
                                 </div>
                             </div>
@@ -366,7 +366,7 @@ export default function Clientes() {
                             )}
                         </div>
 
-                        <div className="mt-4 pt-4 border-t border-slate-700/60">
+                        <div className="mt-4 pt-4 border-t border-slate-200/60">
                             <Link
                                 to={`/clientes/${cliente.id}`}
                                 className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/20"
@@ -388,12 +388,12 @@ export default function Clientes() {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-                    <div className="bg-[#1e293b] w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl overflow-hidden animate-in zoom-in-95">
-                        <div className="p-6 border-b border-slate-700 flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-white">
+                    <div className="bg-[#1e293b] w-full max-w-md rounded-2xl border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-[#1f2957]">
                                 {editingCliente ? t('clients.edit') : t('clients.new')}
                             </h3>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">
+                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-900">
                                 <span className="sr-only">Fechar</span>
                                 &times;
                             </button>
@@ -406,7 +406,7 @@ export default function Clientes() {
                                     type="text"
                                     value={formData.nome || ''}
                                     onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500"
                                     placeholder="Ex: Transportes Lda"
                                 />
                             </div>
@@ -417,7 +417,7 @@ export default function Clientes() {
                                     type="text"
                                     value={formData.nif || ''}
                                     onChange={e => setFormData({ ...formData, nif: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500"
                                     placeholder="Ex: 500123456"
                                 />
                             </div>
@@ -428,7 +428,7 @@ export default function Clientes() {
                                         type="tel"
                                         value={formData.telefone || ''}
                                         onChange={e => setFormData({ ...formData, telefone: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500"
                                         placeholder="923..."
                                     />
                                 </div>
@@ -438,7 +438,7 @@ export default function Clientes() {
                                         type="email"
                                         value={formData.email || ''}
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500"
                                         placeholder="email@exemplo.com"
                                     />
                                 </div>
@@ -448,7 +448,7 @@ export default function Clientes() {
                                 <textarea
                                     value={formData.morada || ''}
                                     onChange={e => setFormData({ ...formData, morada: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 resize-none h-20"
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 resize-none h-20"
                                     placeholder="Endereço completo..."
                                 />
                             </div>
@@ -457,7 +457,7 @@ export default function Clientes() {
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
-                                    className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+                                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-700 text-slate-900 rounded-lg transition-colors"
                                 >
                                     Cancelar
                                 </button>

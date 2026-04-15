@@ -51,7 +51,7 @@ export default function ChatWindow({
             case 'operacional':
                 return 'bg-blue-600/20 border border-blue-500/40 ring-1 ring-blue-500/20';
             case 'sistema':
-                return 'bg-slate-700/30 border border-slate-600/40 italic text-slate-300';
+                return 'bg-slate-700/30 border border-slate-300/40 italic text-slate-300';
             default:
                 return '';
         }
@@ -77,10 +77,10 @@ export default function ChatWindow({
     if (!conversation) {
         return (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
                     <MessageCircle className="w-10 h-10 text-slate-600" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">Selecione uma conversa</h2>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Selecione uma conversa</h2>
                 <p className="text-slate-400 text-sm max-w-xs">
                     Escolha um contacto da lista para iniciar um chat.
                 </p>
@@ -94,13 +94,13 @@ export default function ChatWindow({
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
             {/* Chat Header */}
-            <div className="shrink-0 bg-slate-900/80 backdrop-blur-md p-4 border-b border-slate-700/50 flex justify-between items-center z-10">
+            <div className="shrink-0 bg-white/90/80 backdrop-blur-md p-4 border-b border-slate-200/50 flex justify-between items-center z-10">
                 <div className="flex items-center gap-3">
                     {/* Mobile Back Button */}
                     {onBack && (
                         <button
                             onClick={onBack}
-                            className="lg:hidden p-1.5 -ml-1 text-slate-400 hover:text-white transition-colors"
+                            className="lg:hidden p-1.5 -ml-1 text-slate-400 hover:text-slate-900 transition-colors"
                         >
                             <ChevronLeft className="w-6 h-6" />
                         </button>
@@ -114,7 +114,7 @@ export default function ChatWindow({
 
                     {/* Info */}
                     <div>
-                        <h2 className="text-base font-bold text-white leading-tight">
+                        <h2 className="text-base font-bold text-slate-900 leading-tight">
                             {conversation.participantName}
                         </h2>
                         <div className="flex items-center gap-1.5">
@@ -137,10 +137,10 @@ export default function ChatWindow({
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2">
-                    <button className="p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors border border-slate-700/50 hover:border-slate-600">
+                    <button className="p-2 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-900 transition-colors border border-slate-200/50 hover:border-slate-300">
                         <Phone className="w-4 h-4" />
                     </button>
-                    <button className="p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors border border-slate-700/50 hover:border-slate-600">
+                    <button className="p-2 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-900 transition-colors border border-slate-200/50 hover:border-slate-300">
                         <Video className="w-4 h-4" />
                     </button>
                 </div>
@@ -169,7 +169,7 @@ export default function ChatWindow({
                                         <div className={`p-3 rounded-2xl shadow-md transition-all ${
                                             isOwn
                                                 ? 'bg-blue-600 text-white rounded-br-none'
-                                                : `bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700 ${typeStyles}`
+                                                : `bg-slate-100 text-slate-100 rounded-bl-none border border-slate-200 ${typeStyles}`
                                         }`}>
                                             {/* Message type badge for special messages */}
                                             {msg.type && msg.type !== 'normal' && (
@@ -203,9 +203,9 @@ export default function ChatWindow({
             </div>
 
             {/* Input Area */}
-            <div className="shrink-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50 relative z-10">
+            <div className="shrink-0 p-4 bg-white/90/80 backdrop-blur-md border-t border-slate-200/50 relative z-10">
                 <form onSubmit={handleSend} className="w-full min-w-0 flex gap-2">
-                    <div className="flex-1 bg-slate-950/50 border border-slate-800 rounded-xl flex items-center p-1 focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
+                    <div className="flex-1 bg-white/90 border border-slate-200 rounded-xl flex items-center p-1 focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
                         <input
                             type="text"
                             value={inputMessage}

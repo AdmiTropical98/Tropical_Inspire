@@ -249,9 +249,9 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 transition-all hover:bg-white/10 ${compact ? '' : ''}`}
+        className={`flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-3 py-2 transition-all hover:bg-white hover:border-slate-300 ${compact ? '' : ''}`}
       >
-        <div className="avatar-3d h-9 w-9 overflow-hidden rounded-full bg-blue-600 text-center text-white shadow-lg shadow-blue-900/30 ring-2 ring-white/10">
+        <div className="avatar-3d h-9 w-9 overflow-hidden rounded-full bg-blue-600 text-center text-white shadow-md ring-2 ring-slate-200">
           {isSpriteNavbarAvatar && spriteUrl ? (
             <div
               id="navbarAvatar"
@@ -277,23 +277,23 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
         </div>
         {showName && (
           <div className="text-left">
-            <p className="max-w-36 truncate text-sm font-bold text-white">{currentUser?.nome || 'Utilizador'}</p>
+            <p className="max-w-36 truncate text-sm font-bold text-slate-900">{currentUser?.nome || 'Utilizador'}</p>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{(currentUser as any)?.role || 'ADMIN MANAGER'}</p>
           </div>
         )}
       </button>
 
       {showMenu && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-white/10 bg-[#1e293b] p-2 shadow-2xl shadow-black/40 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/60 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
           <button
             onClick={() => { onNavigate('meu-perfil'); setShowMenu(false); }}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 transition-all hover:bg-white/5 hover:text-white"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900"
           >
             <UserCogIcon className="w-4 h-4" /> Perfil
           </button>
           <button
             onClick={logout}
-            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-400 transition-all hover:bg-red-500/10"
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-500 transition-all hover:bg-red-50"
           >
             <LogOut className="w-4 h-4" /> Sair
           </button>
@@ -304,7 +304,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
 };
 
 function App() {
-  const SIDEBAR_LOGO = '/LOGO_SIDEBAR.png';
+  const SIDEBAR_LOGO = '/LOGO.png';
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
@@ -509,7 +509,7 @@ function App() {
 
   return (
     <div className="app-root flex min-h-[100dvh] flex-col overflow-x-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
-      <nav className="navbar navbar-expand-lg navbar-dark custom-navbar sticky top-0 z-[5000]">
+      <nav className="navbar navbar-expand-lg custom-navbar sticky top-0 z-[5000]">
         <div className="container-fluid px-4 sm:px-6 lg:px-8">
           <a className="navbar-brand" href="/" onClick={(event) => navigateFromAnchor(event, '/dashboard')}>
             <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="navbar-logo-image" />
@@ -552,7 +552,7 @@ function App() {
                     >
                       {group.label}
                     </a>
-                    <ul className="dropdown-menu dropdown-menu-dark">
+                    <ul className="dropdown-menu">
                       {group.items.map(item => {
                         const Icon = item.icon;
                         return (

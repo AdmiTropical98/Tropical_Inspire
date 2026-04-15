@@ -447,7 +447,7 @@ export default function Carregamentos() {
                     <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg text-red-200 text-xs overflow-auto max-h-40">
                         <div className="flex justify-between items-center mb-2">
                             <strong>Debug Info (Erro):</strong>
-                            <button onClick={() => setLastError(null)} className="text-white hover:text-red-300">X</button>
+                            <button onClick={() => setLastError(null)} className="text-slate-900 hover:text-red-300">X</button>
                         </div>
                         <pre>{JSON.stringify(lastError, null, 2)}</pre>
                     </div>

@@ -215,18 +215,18 @@ export default function NavigationApp({
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col font-sans h-[100dvh] w-screen overflow-hidden">
+        <div className="fixed inset-0 z-[9999] bg-white flex flex-col font-sans h-[100dvh] w-screen overflow-hidden">
             <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[95%] md:w-[400px] z-[10000] pointer-events-none">
-                <div className={`bg-slate-900/95 backdrop-blur-xl border ${isNavigating ? 'border-emerald-500/50' : 'border-blue-500/30'} rounded-2xl p-3 shadow-2xl flex items-center gap-3 pointer-events-auto`}>
+                <div className={`bg-white/90/95 backdrop-blur-xl border ${isNavigating ? 'border-emerald-500/50' : 'border-blue-500/30'} rounded-2xl p-3 shadow-2xl flex items-center gap-3 pointer-events-auto`}>
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shrink-0 ${isNavigating ? 'bg-emerald-600 animate-pulse' : 'bg-blue-600'}`}>
-                        <Navigation className="w-5 h-5 text-white" />
+                        <Navigation className="w-5 h-5 text-slate-900" />
                     </div>
                     <div className="flex-1 min-w-0 text-left">
                         <p className={`${isNavigating ? 'text-emerald-400' : 'text-blue-400'} text-[10px] font-bold uppercase tracking-wider mb-0.5`}>{isNavigating ? 'Em Viagem' : 'Destino'}</p>
-                        <button disabled={isNavigating} onClick={() => setShowSelection(true)} className="text-white font-bold text-base leading-tight truncate hover:text-blue-400 transition-colors w-full text-left">{destinationName || 'Selecionar Destino...'}</button>
+                        <button disabled={isNavigating} onClick={() => setShowSelection(true)} className="text-slate-900 font-bold text-base leading-tight truncate hover:text-blue-400 transition-colors w-full text-left">{destinationName || 'Selecionar Destino...'}</button>
                     </div>
                     {!isNavigating && (
-                        <button onClick={onBack} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
+                        <button onClick={onBack} className="p-2 bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-colors">
                             <ChevronLeft className="w-5 h-5" />
                         </button>
                     )}
@@ -242,9 +242,9 @@ export default function NavigationApp({
                     {destCoords && <Marker position={destCoords} icon={destIcon} />}
                 </MapContainer>
                 {isNavigating && !hasGpsLock && (
-                    <div className="absolute inset-0 bg-slate-950 z-[10002] flex flex-col items-center justify-center p-6 text-center">
+                    <div className="absolute inset-0 bg-white z-[10002] flex flex-col items-center justify-center p-6 text-center">
                         <LocateFixed className="w-20 h-20 text-blue-500 mb-6 animate-bounce" />
-                        <h3 className="text-2xl font-bold text-white mb-2">A obter localização...</h3>
+                        <h3 className="text-2xl font-bold text-slate-900 mb-2">A obter localização...</h3>
                         <div className="flex gap-4">
                             <button onClick={stopNavigation} className="px-6 py-3 bg-red-500/10 text-red-400 border border-red-500/50 rounded-xl font-bold">Cancelar</button>
                             <button onClick={() => setHasGpsLock(true)} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold">Simular GPS</button>
@@ -252,25 +252,25 @@ export default function NavigationApp({
                     </div>
                 )}
                 <div className="absolute right-4 bottom-40 z-[1000]">
-                    <button onClick={() => setFollowMe(p => !p)} className={`p-3.5 rounded-full shadow-2xl transition-all ${followMe ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-400 border border-slate-700'}`}>
+                    <button onClick={() => setFollowMe(p => !p)} className={`p-3.5 rounded-full shadow-2xl transition-all ${followMe ? 'bg-blue-600 text-white' : 'bg-white/90 text-slate-400 border border-slate-200'}`}>
                         <LocateFixed className="w-6 h-6" />
                     </button>
                 </div>
             </div>
 
-            <div className="bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 p-4 pb-8 z-[10000] shrink-0">
+            <div className="bg-white/90/95 backdrop-blur-xl border-t border-slate-200 p-4 pb-8 z-[10000] shrink-0">
                 <div className="max-w-md mx-auto grid grid-cols-3 gap-2 mb-4">
-                    <div className="text-center p-2 rounded-xl bg-slate-800/50">
+                    <div className="text-center p-2 rounded-xl bg-slate-100">
                         <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-1"><Clock className="w-3 h-3" /><span className="text-[9px] font-bold uppercase tracking-widest">Tempo</span></div>
-                        <p className="text-white text-lg font-bold">{Math.round(stats.duration)} <span className="text-[10px] text-slate-500">min</span></p>
+                        <p className="text-slate-900 text-lg font-bold">{Math.round(stats.duration)} <span className="text-[10px] text-slate-500">min</span></p>
                     </div>
-                    <div className="text-center p-2 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                    <div className="text-center p-2 rounded-xl bg-slate-100 border border-slate-200/50">
                         <div className={`flex items-center justify-center gap-1.5 ${isNavigating ? 'text-emerald-400' : 'text-blue-400'} mb-1`}><Compass className="w-3 h-3" /><span className="text-[9px] font-bold uppercase tracking-widest">Chegada</span></div>
-                        <p className="text-white text-lg font-bold">{stats.eta || '--:--'}</p>
+                        <p className="text-slate-900 text-lg font-bold">{stats.eta || '--:--'}</p>
                     </div>
-                    <div className="text-center p-2 rounded-xl bg-slate-800/50">
+                    <div className="text-center p-2 rounded-xl bg-slate-100">
                         <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-1"><MapPin className="w-3 h-3" /><span className="text-[9px] font-bold uppercase tracking-widest">Dist</span></div>
-                        <p className="text-white text-lg font-bold">{stats.distance.toFixed(1)} <span className="text-[10px] text-slate-500">km</span></p>
+                        <p className="text-slate-900 text-lg font-bold">{stats.distance.toFixed(1)} <span className="text-[10px] text-slate-500">km</span></p>
                     </div>
                 </div>
                 <div className="max-w-md mx-auto w-full">
@@ -279,7 +279,7 @@ export default function NavigationApp({
                     ) : (
                         <div className="flex flex-col gap-3">
                             <div className="flex gap-3">
-                                <button onClick={() => setShowSelection(true)} className="px-5 bg-slate-800 text-white font-bold rounded-xl"><Search className="w-6 h-6" /></button>
+                                <button onClick={() => setShowSelection(true)} className="px-5 bg-slate-100 text-white font-bold rounded-xl"><Search className="w-6 h-6" /></button>
                                 <button onClick={startNavigation} disabled={!destCoords} className="flex-1 py-4 bg-blue-600 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2"><Navigation className="w-5 h-5" />Iniciar (App)</button>
                             </div>
                             <button onClick={openGoogleMaps} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2"><ExternalLink className="w-5 h-5" />Abrir no Google Maps</button>
@@ -289,19 +289,19 @@ export default function NavigationApp({
             </div>
 
             {showSelection && (
-                <div className="absolute inset-0 z-[10001] bg-slate-950 flex flex-col p-6">
+                <div className="absolute inset-0 z-[10001] bg-white flex flex-col p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold text-white">Onde queres ir?</h2>
+                        <h2 className="text-xl font-bold text-slate-900">Onde queres ir?</h2>
                         <button onClick={() => setShowSelection(false)} className="p-2 text-slate-400"><ChevronLeft className="w-6 h-6" /></button>
                     </div>
                     <div className="relative mb-6">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input type="text" placeholder="Pesquisar local ou zona..." className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-12 pr-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} autoFocus />
+                        <input type="text" placeholder="Pesquisar local ou zona..." className="w-full bg-white/90 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} autoFocus />
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-2">
                         {filteredGeofences.map(geo => (
-                            <button key={geo.id} onClick={() => handleSelectGeofence(geo)} className="w-full flex items-center justify-between p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:bg-slate-800 hover:border-blue-500/30 transition-all text-left">
-                                <div className="flex items-center gap-3"><div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><MapPin className="w-5 h-5" /></div><span className="font-bold text-white">{geo.name}</span></div>
+                            <button key={geo.id} onClick={() => handleSelectGeofence(geo)} className="w-full flex items-center justify-between p-4 bg-white/90 border border-slate-200 rounded-xl hover:bg-slate-100 hover:border-blue-500/30 transition-all text-left">
+                                <div className="flex items-center gap-3"><div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><MapPin className="w-5 h-5" /></div><span className="font-bold text-slate-900">{geo.name}</span></div>
                                 <ArrowRight className="w-4 h-4 text-slate-600" />
                             </button>
                         ))}

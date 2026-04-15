@@ -229,35 +229,35 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
         <div className="space-y-6">
             {/* Quick Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg">
+                <div className="bg-white/90 p-4 rounded-2xl border border-slate-200 shadow-lg">
                     <div className="flex items-center gap-2 text-slate-500 mb-1">
                         <Clock className="w-4 h-4" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">Total Horas</span>
                     </div>
-                    <div className="text-xl font-black text-white">{stats.totalHours}</div>
+                    <div className="text-xl font-black text-slate-900">{stats.totalHours}</div>
                 </div>
-                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg">
+                <div className="bg-white/90 p-4 rounded-2xl border border-slate-200 shadow-lg">
                     <div className="flex items-center gap-2 text-purple-400 mb-1">
                         <Moon className="w-4 h-4" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">Noturnas</span>
                     </div>
                     <div className="text-xl font-black text-purple-400">{stats.nightHours}</div>
                 </div>
-                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg">
+                <div className="bg-white/90 p-4 rounded-2xl border border-slate-200 shadow-lg">
                     <div className="flex items-center gap-2 text-amber-400 mb-1">
                         <Star className="w-4 h-4" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">Extra</span>
                     </div>
                     <div className="text-xl font-black text-amber-400">{stats.extraHours}</div>
                 </div>
-                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg">
+                <div className="bg-white/90 p-4 rounded-2xl border border-slate-200 shadow-lg">
                     <div className="flex items-center gap-2 text-emerald-400 mb-1">
                         <Euro className="w-4 h-4" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">Custo Est.</span>
                     </div>
                     <div className="text-xl font-black text-emerald-400">{stats.totalCost}</div>
                 </div>
-                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg col-span-2 md:col-span-1">
+                <div className="bg-white/90 p-4 rounded-2xl border border-slate-200 shadow-lg col-span-2 md:col-span-1">
                     <div className="flex items-center gap-2 text-blue-400 mb-1">
                         <Info className="w-4 h-4" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">Registos</span>
@@ -267,13 +267,13 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
             </div>
 
             {/* Toolbar */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/90/80 p-4 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-sm">
                 <div className="flex items-center gap-4">
                     <div className="p-2.5 bg-emerald-500/10 rounded-xl">
                         <Clock className="w-5 h-5 text-emerald-500" />
                     </div>
                     <div>
-                        <h2 className="text-white font-black uppercase tracking-tighter text-lg">Registos Diários</h2>
+                        <h2 className="text-slate-900 font-black uppercase tracking-tighter text-lg">Registos Diários</h2>
                         <p className="text-slate-500 text-xs font-mono">{selectedDate}</p>
                     </div>
                 </div>
@@ -281,7 +281,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     <div className="relative group flex-1 md:flex-none">
                         <input type="file" accept=".pdf" onChange={handleImport} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" disabled={isImporting} />
-                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-all">
+                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-700 text-slate-900 rounded-xl text-sm font-bold transition-all">
                             <Upload className="w-4 h-4 text-blue-400" />
                             Importar D103
                         </button>
@@ -291,10 +291,10 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                         Novo Registo
                     </button>
                     <div className="flex gap-2 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 md:pl-4 border-white/5">
-                        <button onClick={generateDailyExcel} className="flex-1 md:flex-none p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all" title="Exportar Excel">
+                        <button onClick={generateDailyExcel} className="flex-1 md:flex-none p-2.5 bg-slate-100 hover:bg-slate-700 text-slate-400 hover:text-slate-900 rounded-xl transition-all" title="Exportar Excel">
                             <FileSpreadsheet className="w-5 h-5" />
                         </button>
-                        <button onClick={generateDailyPDF} className="flex-1 md:flex-none p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all" title="Exportar PDF">
+                        <button onClick={generateDailyPDF} className="flex-1 md:flex-none p-2.5 bg-slate-100 hover:bg-slate-700 text-slate-400 hover:text-slate-900 rounded-xl transition-all" title="Exportar PDF">
                             <FileDown className="w-5 h-5" />
                         </button>
                     </div>
@@ -321,12 +321,12 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
             )}
 
             {/* Main Content (Table on Desktop, Cards on Mobile) */}
-            <div className="hidden md:block bg-slate-900/50 border border-white/5 rounded-3xl overflow-x-auto table-scroll shadow-2xl">
+            <div className="hidden md:block bg-white/90 border border-white/5 rounded-3xl overflow-x-auto table-scroll shadow-2xl">
                 <table className="w-full text-left text-sm border-collapse" style={{ minWidth: '1000px' }}>
                     <thead>
-                        <tr className="bg-slate-950/50 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-white/5">
+                        <tr className="bg-white/90 text-slate-500 uppercase text-[10px] font-black tracking-widest border-b border-white/5">
                             <th className="p-5 w-12 text-center">
-                                <input type="checkbox" className="rounded-md bg-slate-800 border-slate-700 w-4 h-4 checked:bg-blue-600" checked={selectedDrivers.size === motoristas.length && motoristas.length > 0} onChange={toggleAll} />
+                                <input type="checkbox" className="rounded-md bg-slate-100 border-slate-200 w-4 h-4 checked:bg-blue-600" checked={selectedDrivers.size === motoristas.length && motoristas.length > 0} onChange={toggleAll} />
                             </th>
                             <th className="p-5">Motorista</th>
                             <th className="p-5">Período</th>
@@ -351,7 +351,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                     return (
                                         <tr key={driver.id} className="hover:bg-white/[0.02] bg-transparent transition-colors">
                                             <td className="p-5 text-center">
-                                                <input type="checkbox" className="rounded-md bg-slate-800 border-slate-700 w-4 h-4" checked={isSelected} onChange={() => toggleDriver(driver.id)} />
+                                                <input type="checkbox" className="rounded-md bg-slate-100 border-slate-200 w-4 h-4" checked={isSelected} onChange={() => toggleDriver(driver.id)} />
                                             </td>
                                             <td className="p-5">
                                                 <div className="flex flex-col">
@@ -361,10 +361,10 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                             </td>
                                             <td colSpan={6} className="p-5 text-center text-slate-700 italic text-xs">Aguardando lançamento...</td>
                                             <td className="p-5 text-center">
-                                                <span className="px-2 py-1 bg-slate-800 text-slate-500 rounded-lg text-[10px] font-black uppercase">Vazio</span>
+                                                <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase">Vazio</span>
                                             </td>
                                             <td className="p-5 text-right">
-                                                <button onClick={() => { setNewData(d => ({ ...d, motoristaId: driver.id })); setShowAddModal(true); }} className="p-2 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-lg transition-all" title="Lançar Horas">
+                                                <button onClick={() => { setNewData(d => ({ ...d, motoristaId: driver.id })); setShowAddModal(true); }} className="p-2 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-slate-900 rounded-lg transition-all" title="Lançar Horas">
                                                     <Plus className="w-4 h-4" />
                                                 </button>
                                             </td>
@@ -382,11 +382,11 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                             {index === 0 ? (
                                                 <>
                                                     <td className="p-5 text-center" rowSpan={records.length}>
-                                                        <input type="checkbox" className="rounded-md bg-slate-800 border-slate-700 w-4 h-4" checked={isSelected} onChange={() => toggleDriver(driver.id)} />
+                                                        <input type="checkbox" className="rounded-md bg-slate-100 border-slate-200 w-4 h-4" checked={isSelected} onChange={() => toggleDriver(driver.id)} />
                                                     </td>
                                                     <td className="p-5" rowSpan={records.length}>
                                                         <div className="flex flex-col">
-                                                            <span className="text-white font-black uppercase tracking-tighter text-sm">{driver.nome}</span>
+                                                            <span className="text-slate-900 font-black uppercase tracking-tighter text-sm">{driver.nome}</span>
                                                             <span className="text-[10px] text-slate-500 font-mono">CC: {driver.centroCustoId || 'N/A'}</span>
                                                         </div>
                                                     </td>
@@ -401,7 +401,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                             </td>
                                             <td className="p-5 text-center font-mono text-slate-400">{record.breakDuration}m</td>
                                             <td className="p-5 text-center">
-                                                <div className="font-mono font-black text-white bg-slate-800 px-2 py-0.5 rounded-lg inline-block">{calc.totalHours}</div>
+                                                <div className="font-mono font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg inline-block">{calc.totalHours}</div>
                                             </td>
                                             <td className="p-5 text-center">
                                                 <span className={`font-mono font-bold ${calc.nightMinutes > 0 ? 'text-purple-400' : 'text-slate-600'}`}>{calc.nightHours}</span>
@@ -444,22 +444,22 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                 {motoristas.map(driver => {
                     const records = dailyRecords.filter(r => r.motoristaId === driver.id);
                     return (
-                        <div key={driver.id} className={`bg-slate-900/50 rounded-2xl border ${records.length > 0 ? 'border-emerald-500/20 shadow-lg shadow-emerald-500/5' : 'border-white/5 opacity-70'} p-4`}>
+                        <div key={driver.id} className={`bg-white/90 rounded-2xl border ${records.length > 0 ? 'border-emerald-500/20 shadow-lg shadow-emerald-500/5' : 'border-white/5 opacity-70'} p-4`}>
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex flex-col">
-                                    <h3 className="text-white font-black uppercase tracking-tighter text-base">{driver.nome}</h3>
+                                    <h3 className="text-slate-900 font-black uppercase tracking-tighter text-base">{driver.nome}</h3>
                                     <span className="text-[10px] text-slate-500 font-mono">CC: {driver.centroCustoId || 'N/A'}</span>
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => { setNewData(d => ({ ...d, motoristaId: driver.id })); setShowAddModal(true); }} className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg transition-all" title="Adicionar">
                                         <Plus className="w-4 h-4" />
                                     </button>
-                                    <input type="checkbox" className="rounded-md bg-slate-800 border-slate-700 w-6 h-6" checked={selectedDrivers.has(driver.id)} onChange={() => toggleDriver(driver.id)} />
+                                    <input type="checkbox" className="rounded-md bg-slate-100 border-slate-200 w-6 h-6" checked={selectedDrivers.has(driver.id)} onChange={() => toggleDriver(driver.id)} />
                                 </div>
                             </div>
 
                             {records.length === 0 ? (
-                                <p className="text-slate-600 text-xs italic text-center py-2 bg-slate-950/50 rounded-xl">Sem lançamentos para hoje</p>
+                                <p className="text-slate-600 text-xs italic text-center py-2 bg-white/90 rounded-xl">Sem lançamentos para hoje</p>
                             ) : (
                                 <div className="space-y-3">
                                     {records.map(record => {
@@ -467,7 +467,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                         const status = getStatus(record, records);
                                         const cost = driver.valorHora ? (calc.totalMinutes / 60) * driver.valorHora : 0;
                                         return (
-                                            <div key={record.id} className="bg-slate-950/50 p-3 rounded-xl border border-white/5 space-y-3">
+                                            <div key={record.id} className="bg-white/90 p-3 rounded-xl border border-white/5 space-y-3">
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2 font-mono text-xs">
                                                         <span className="text-emerald-400 font-black">{record.startTime}</span>
@@ -479,15 +479,15 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                                     </button>
                                                 </div>
                                                 <div className="grid grid-cols-3 gap-2">
-                                                    <div className="bg-slate-900 p-2 rounded-lg text-center">
+                                                    <div className="bg-white/90 p-2 rounded-lg text-center">
                                                         <div className="text-[8px] text-slate-500 uppercase font-black">Total</div>
-                                                        <div className="text-sm font-black text-white">{calc.totalHours}</div>
+                                                        <div className="text-sm font-black text-slate-900">{calc.totalHours}</div>
                                                     </div>
-                                                    <div className="bg-slate-900 p-2 rounded-lg text-center">
+                                                    <div className="bg-white/90 p-2 rounded-lg text-center">
                                                         <div className="text-[8px] text-purple-500 uppercase font-black">Notur.</div>
                                                         <div className="text-sm font-black text-purple-400">{calc.nightHours}</div>
                                                     </div>
-                                                    <div className="bg-slate-900 p-2 rounded-lg text-center">
+                                                    <div className="bg-white/90 p-2 rounded-lg text-center">
                                                         <div className="text-[8px] text-amber-500 uppercase font-black">Extra</div>
                                                         <div className="text-sm font-black text-amber-400">{calc.extraHours}</div>
                                                     </div>
@@ -513,13 +513,13 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
             {/* Manual Add Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-[#1e293b] w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl p-6">
-                        <h3 className="text-xl font-bold text-white mb-4">Novo Registo Manual</h3>
+                    <div className="bg-[#1e293b] w-full max-w-md rounded-2xl border border-slate-200 shadow-2xl p-6">
+                        <h3 className="text-xl font-bold text-slate-900 mb-4">Novo Registo Manual</h3>
                         <form onSubmit={handleManualSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Motorista</label>
                                 <select
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-lg p-3 text-slate-900 focus:outline-none focus:border-blue-500"
                                     required
                                     value={newData.motoristaId}
                                     onChange={e => setNewData({ ...newData, motoristaId: e.target.value })}
@@ -535,7 +535,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                     <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Início</label>
                                     <input
                                         type="time"
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"
+                                        className="w-full bg-white/90 border border-slate-200 rounded-lg p-3 text-slate-900"
                                         value={newData.startTime}
                                         onChange={e => setNewData({ ...newData, startTime: e.target.value })}
                                         required
@@ -545,7 +545,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                     <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Fim</label>
                                     <input
                                         type="time"
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"
+                                        className="w-full bg-white/90 border border-slate-200 rounded-lg p-3 text-slate-900"
                                         value={newData.endTime}
                                         onChange={e => setNewData({ ...newData, endTime: e.target.value })}
                                         required
@@ -556,7 +556,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                                 <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Pausa (min)</label>
                                 <input
                                     type="number"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-lg p-3 text-slate-900"
                                     value={newData.breakDuration}
                                     onChange={e => setNewData({ ...newData, breakDuration: Number(e.target.value) })}
                                     required
@@ -565,13 +565,13 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                             <div>
                                 <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Observações</label>
                                 <textarea
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white h-20"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-lg p-3 text-slate-900 h-20"
                                     value={newData.obs}
                                     onChange={e => setNewData({ ...newData, obs: e.target.value })}
                                 />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white p-3 rounded-lg">Cancelar</button>
+                                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 bg-slate-100 hover:bg-slate-700 text-slate-900 p-3 rounded-lg">Cancelar</button>
                                 <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-lg font-bold">Guardar</button>
                             </div>
                         </form>
@@ -581,8 +581,8 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
             {/* Driver Select Modal for PDF */}
             {showDriverSelectModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl border border-slate-700 shadow-2xl p-6">
-                        <h3 className="text-lg font-bold text-white mb-2">Selecione o Motorista</h3>
+                    <div className="bg-[#1e293b] w-full max-w-sm rounded-2xl border border-slate-200 shadow-2xl p-6">
+                        <h3 className="text-lg font-bold text-[#1f2957] mb-2">Selecione o Motorista</h3>
                         <p className="text-slate-400 text-sm mb-4">
                             O PDF contém {pendingTrips.length} dias de atividade.
                             A quem pertence este relatório?
@@ -591,7 +591,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                         <div className="mb-6">
                             <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Motorista</label>
                             <select
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white/90 border border-slate-200 rounded-lg p-3 text-slate-900 focus:outline-none focus:border-blue-500"
                                 value={targetDriverId}
                                 onChange={e => setTargetDriverId(e.target.value)}
                             >
@@ -605,7 +605,7 @@ export default function HoursDailyView({ selectedDate }: HoursDailyViewProps) {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => { setShowDriverSelectModal(false); setIsImporting(false); setPendingTrips([]); }}
-                                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white p-3 rounded-lg"
+                                className="flex-1 bg-slate-100 hover:bg-slate-700 text-slate-900 p-3 rounded-lg"
                             >
                                 Cancelar
                             </button>

@@ -113,7 +113,7 @@ export default function Supervisores() {
             )}
 
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
                         <UserCog className="w-6 h-6 text-blue-400" />
                     </div>
@@ -131,7 +131,7 @@ export default function Supervisores() {
                         </div>
                         <TrendingUp className="w-5 h-5 text-blue-400/50" />
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.total}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.total}</p>
                     <p className="text-sm text-slate-400">{t('supervisors.stats.total')}</p>
                 </div>
 
@@ -141,7 +141,7 @@ export default function Supervisores() {
                             <Users className="w-6 h-6 text-emerald-400" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.active}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.active}</p>
                     <p className="text-sm text-slate-400">{t('supervisors.stats.active')}</p>
                 </div>
 
@@ -151,7 +151,7 @@ export default function Supervisores() {
                             <Clock className="w-6 h-6 text-amber-400" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.pending}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.pending}</p>
                     <p className="text-sm text-slate-400">{t('supervisors.stats.pending')}</p>
                 </div>
 
@@ -161,19 +161,19 @@ export default function Supervisores() {
                             <UserX className="w-6 h-6 text-red-400" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.blocked}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.blocked}</p>
                     <p className="text-sm text-slate-400">{t('supervisors.stats.blocked')}</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Add Form */}
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
-                    <h3 className="font-bold text-white mb-6 text-lg">{t('supervisors.form.title')}</h3>
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-3xl p-6 lg:p-8 h-fit">
+                    <h3 className="font-bold text-slate-900 mb-6 text-lg">{t('supervisors.form.title')}</h3>
                     <form onSubmit={handleCreateSupervisor} className="space-y-4">
                         {/* Static Icon */}
                         <div className="flex justify-center mb-4">
-                            <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                            <div className="w-24 h-24 rounded-full bg-white/90 border-2 border-slate-200 flex items-center justify-center">
                                 <UserCog className="w-12 h-12 text-slate-600" />
                             </div>
                         </div>
@@ -185,7 +185,7 @@ export default function Supervisores() {
                                 required
                                 value={newSupervisor.nome}
                                 onChange={e => setNewSupervisor({ ...newSupervisor, nome: e.target.value })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200"
                                 placeholder="Ex: Ana Santos"
                             />
                         </div>
@@ -197,7 +197,7 @@ export default function Supervisores() {
                                     required
                                     value={newSupervisor.email}
                                     onChange={e => setNewSupervisor({ ...newSupervisor, email: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200"
                                     placeholder="email@algartempo.com"
                                 />
                             </div>
@@ -208,7 +208,7 @@ export default function Supervisores() {
                                     required
                                     value={newSupervisor.telemovel}
                                     onChange={e => setNewSupervisor({ ...newSupervisor, telemovel: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200"
                                     placeholder="910000000"
                                 />
                             </div>
@@ -221,7 +221,7 @@ export default function Supervisores() {
                                 <select
                                     value={newSupervisor.centroCustoId}
                                     onChange={e => setNewSupervisor({ ...newSupervisor, centroCustoId: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200"
                                 >
                                     <option value="">Selecionar...</option>
                                     {centrosCustos.map(cc => (
@@ -235,7 +235,7 @@ export default function Supervisores() {
                                     type="text"
                                     value={newSupervisor.cartrackKey}
                                     onChange={e => setNewSupervisor({ ...newSupervisor, cartrackKey: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700 font-mono"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-200 font-mono"
                                     placeholder="Chave Cartrack"
                                 />
                             </div>
@@ -248,9 +248,9 @@ export default function Supervisores() {
                 </div>
 
                 {/* List */}
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-3xl p-6 lg:p-8 h-fit">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-white text-lg">{t('supervisors.list.title')}</h3>
+                        <h3 className="font-bold text-slate-900 text-lg">{t('supervisors.list.title')}</h3>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setViewMode('list')}
@@ -278,7 +278,7 @@ export default function Supervisores() {
                                 placeholder={t('drivers.search')}
                                 value={filter}
                                 onChange={e => setFilter(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:border-blue-500 outline-none transition-all"
+                                className="w-full pl-9 pr-4 py-2 bg-white/90 border border-slate-200 rounded-lg text-sm text-slate-900 focus:border-blue-500 outline-none transition-all"
                             />
                         </div>
 
@@ -289,7 +289,7 @@ export default function Supervisores() {
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === status
                                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-100 hover:text-slate-300'
                                         }`}
                                 >
                                     {t(`supervisors.filter.${status}`)}
@@ -300,7 +300,7 @@ export default function Supervisores() {
                         <select
                             value={sortBy}
                             onChange={e => setSortBy(e.target.value as any)}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                            className="w-full bg-white/90 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-blue-500 outline-none"
                         >
                             <option value="name">{t('supervisors.sort.name')}</option>
                             <option value="date">{t('supervisors.sort.date')}</option>
@@ -309,15 +309,15 @@ export default function Supervisores() {
 
                     <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
                         {filteredItems.length === 0 ? (
-                            <div className="col-span-2 text-center py-12 bg-slate-800/20 rounded-2xl border border-slate-800 border-dashed">
+                            <div className="col-span-2 text-center py-12 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
                                 <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                                 <p className="text-slate-400">{t('supervisors.list.empty')}</p>
                             </div>
                         ) : (
                             filteredItems.map(supervisor => (
-                                <div key={supervisor.id} className={`flex ${viewMode === 'grid' ? 'flex-col items-center text-center' : 'items-center justify-between'} p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl group hover:border-blue-500/20 transition-all`}>
+                                <div key={supervisor.id} className={`flex ${viewMode === 'grid' ? 'flex-col items-center text-center' : 'items-center justify-between'} p-4 bg-slate-50 border border-slate-200/50 rounded-xl group hover:border-blue-500/20 transition-all`}>
                                     <div className={`flex items-center gap-3 ${viewMode === 'grid' ? 'flex-col' : 'flex-1'}`}>
-                                        <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                                        <div className="w-10 h-10 rounded-full bg-white/90 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                                             {supervisor.foto ? (
                                                 <img src={supervisor.foto} alt={supervisor.nome} className="w-full h-full object-cover" />
                                             ) : (
@@ -325,7 +325,7 @@ export default function Supervisores() {
                                             )}
                                         </div>
                                         <div className={viewMode === 'grid' ? 'w-full' : ''}>
-                                            <p className="text-white font-medium text-sm">{supervisor.nome}</p>
+                                            <p className="text-slate-900 font-medium text-sm">{supervisor.nome}</p>
                                             <p className="text-xs text-slate-500">{supervisor.email}</p>
                                             {viewMode === 'list' && (
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border w-fit mt-1
@@ -342,7 +342,7 @@ export default function Supervisores() {
                                     {viewMode === 'list' && (
                                         <div className="flex items-center gap-2">
                                             {supervisor.pin && (
-                                                <span className="font-mono text-xs bg-slate-950 px-2 py-1 rounded text-slate-400 border border-slate-800 mr-2">PIN: {supervisor.pin}</span>
+                                                <span className="font-mono text-xs bg-white px-2 py-1 rounded text-slate-400 border border-slate-200 mr-2">PIN: {supervisor.pin}</span>
                                             )}
                                             <button
                                                 onClick={() => handleSharePin(supervisor, 'sms')}

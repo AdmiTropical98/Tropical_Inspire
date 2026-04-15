@@ -83,7 +83,7 @@ export default function FleetStatusChart({ total, available, maintenance, active
                     {data.map((item, index) => (
                         <div key={index} className="flex items-center justify-between group">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-slate-50 text-white" style={{ backgroundColor: `${item.color}20`, color: item.color }}>
+                                <div className="p-2 rounded-lg bg-slate-50 text-slate-900" style={{ backgroundColor: `${item.color}20`, color: item.color }}>
                                     <item.icon className="w-4 h-4" />
                                 </div>
                                 <div>

@@ -153,9 +153,9 @@ export default function StockParts() {
             {/* Header Panel */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <div className="p-2 bg-blue-600 rounded-xl shadow-lg shadow-blue-600/20">
-                            <Box className="w-6 h-6 text-white" />
+                            <Box className="w-6 h-6 text-slate-900" />
                         </div>
                         Stock de Peças
                     </h1>
@@ -169,13 +169,13 @@ export default function StockParts() {
                     <button
                         onClick={refreshInventoryData}
                         title="Atualizar dados"
-                        className="h-11 w-11 inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-700"
+                        className="h-11 w-11 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-700 text-slate-300 rounded-xl transition-all border border-slate-200"
                     >
                         <History className="w-5 h-5" />
                     </button>
                     <button
                         onClick={() => generateStockPartsPDF(filteredItems)}
-                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-all border border-slate-700"
+                        className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-all border border-slate-200"
                     >
                         <FileText className="w-5 h-5" />
                         <span className="hidden sm:inline">Exportar Relatório</span>
@@ -218,12 +218,12 @@ export default function StockParts() {
                         color: 'indigo'
                     }
                 ].map((stat, idx) => (
-                    <div key={idx} className="bg-slate-900/50 backdrop-blur-md border border-slate-800/50 p-5 rounded-2xl relative overflow-hidden group">
+                    <div key={idx} className="bg-white/90 backdrop-blur-md border border-slate-200/50 p-5 rounded-2xl relative overflow-hidden group">
                         <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${stat.color}-600/10 rounded-full blur-2xl group-hover:bg-${stat.color}-600/20 transition-all`} />
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{stat.label}</p>
-                                <p className="text-2xl font-black text-white mt-1">{stat.count}</p>
+                                <p className="text-2xl font-black text-slate-900 mt-1">{stat.count}</p>
                             </div>
                             <div className={`p-2 bg-${stat.color}-600/10 rounded-lg text-${stat.color}-400`}>
                                 <stat.icon className="w-5 h-5" />
@@ -234,13 +234,13 @@ export default function StockParts() {
             </div>
 
             {/* Search & Filter Bar */}
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/60 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative flex-1 group w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="text"
                         placeholder="Procurar por nome, SKU ou categoria..."
-                        className="w-full bg-slate-950/50 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600/50 transition-all"
+                        className="w-full bg-white/90 border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600/50 transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -248,7 +248,7 @@ export default function StockParts() {
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <select
-                        className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-300 outline-none focus:ring-2 focus:ring-blue-600/40 min-w-[160px]"
+                        className="bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-slate-300 outline-none focus:ring-2 focus:ring-blue-600/40 min-w-[160px]"
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value)}
                     >
@@ -262,7 +262,7 @@ export default function StockParts() {
                         onClick={() => setShowLowStockOnly(!showLowStockOnly)}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all border ${showLowStockOnly
                             ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
-                            : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-800'
+                            : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-100'
                             }`}
                     >
                         <AlertTriangle className="w-4 h-4" />
@@ -276,12 +276,12 @@ export default function StockParts() {
                 <div className="space-y-10">
                     {sortedGroups.map(categoryName => (
                         <div key={categoryName} className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
-                            <h2 className="text-xl font-black text-white flex items-center gap-3">
-                                <div className="p-2 bg-slate-800/80 rounded-xl shadow-lg border border-slate-700/50">
+                            <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                                <div className="p-2 bg-slate-100 rounded-xl shadow-lg border border-slate-200/50">
                                     <Tag className="w-5 h-5 text-blue-500" />
                                 </div>
                                 {categoryName}
-                                <span className="mt-0.5 text-xs font-bold text-slate-400 bg-slate-800/50 px-2.5 py-1 rounded-lg border border-slate-700/50">
+                                <span className="mt-0.5 text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/50">
                                     {groupedItems[categoryName].length} {groupedItems[categoryName].length === 1 ? 'item' : 'itens'}
                                 </span>
                             </h2>
@@ -289,7 +289,7 @@ export default function StockParts() {
                                 {groupedItems[categoryName].map(item => (
                                     <div
                                         key={item.id}
-                                        className="group bg-slate-900/40 hover:bg-slate-900/60 border border-slate-800/50 hover:border-blue-600/30 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden"
+                                        className="group bg-white/90 hover:bg-white/90/60 border border-slate-200/50 hover:border-blue-600/30 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden"
                                     >
                                         {/* Visual Accents */}
                                         <div className={`absolute top-0 right-0 w-2 h-full ${item.stock_quantity <= item.minimum_stock ? 'bg-orange-600' : 'bg-blue-600/20'
@@ -297,32 +297,32 @@ export default function StockParts() {
 
                                         <div className="flex flex-col h-full">
                                             <div className="flex items-start justify-between mb-4">
-                                                <div className="p-3 bg-slate-800/80 rounded-2xl text-blue-400 group-hover:scale-110 transition-transform">
+                                                <div className="p-3 bg-slate-100 rounded-2xl text-blue-400 group-hover:scale-110 transition-transform">
                                                     <Box className="w-6 h-6" />
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-800/50 px-2 py-1 rounded-md">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
                                                         {item.sku || 'Sem SKU'}
                                                     </span>
                                                     <div className="relative" ref={openMenuId === item.id ? menuRef : null}>
                                                         <button
                                                             onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
-                                                            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+                                                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
                                                         >
                                                             <MoreHorizontal className="w-5 h-5" />
                                                         </button>
                                                         {openMenuId === item.id && (
-                                                            <div className="absolute right-0 top-8 z-20 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                                                            <div className="absolute right-0 top-8 z-20 w-40 bg-white/90 border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
                                                                 <button
                                                                     onClick={() => { setEditingItem(item); setOpenMenuId(null); }}
-                                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors"
+                                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-100 transition-colors"
                                                                 >
                                                                     <Pencil className="w-4 h-4 text-blue-400" />
                                                                     Editar
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleDelete(item.id)}
-                                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-800 transition-colors"
+                                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-100 transition-colors"
                                                                 >
                                                                     <Trash2 className="w-4 h-4" />
                                                                     Apagar
@@ -333,7 +333,7 @@ export default function StockParts() {
                                                 </div>
                                             </div>
 
-                                            <h3 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors line-clamp-1">
+                                            <h3 className="text-lg font-bold text-[#1f2957] mb-1 group-hover:text-blue-400 transition-colors line-clamp-1">
                                                 {item.name}
                                             </h3>
                                             <p className="text-slate-500 text-xs flex items-center gap-1.5 mb-6 uppercase font-bold tracking-tighter">
@@ -351,7 +351,7 @@ export default function StockParts() {
                                                             {item.stock_quantity}
                                                         </span>
                                                     </div>
-                                                    <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                         <div
                                                             className={`h-full transition-all duration-1000 ${item.stock_quantity <= item.minimum_stock ? 'bg-orange-500' : 'bg-blue-600'
                                                                 }`}
@@ -361,7 +361,7 @@ export default function StockParts() {
                                                 </div>
 
                                                 {/* Footer Info */}
-                                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800/50">
+                                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200/50">
                                                     <div>
                                                         <p className="text-slate-500 text-[9px] font-black uppercase tracking-wider mb-1">Custo Médio</p>
                                                         <p className="text-slate-200 text-sm font-bold">{formatCurrency(item.average_cost)}</p>
@@ -376,7 +376,7 @@ export default function StockParts() {
                                                 <div className="flex items-center gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
                                                     <button
                                                         onClick={() => setEditingItem(item)}
-                                                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold py-2 rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2"
+                                                        className="flex-1 bg-slate-100 hover:bg-slate-700 text-xs font-bold py-2 rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2"
                                                     >
                                                         <Settings className="w-3.5 h-3.5" />
                                                         Editar
@@ -385,7 +385,7 @@ export default function StockParts() {
                                                         onClick={() => setEditingItem(item)}
                                                         className="bg-blue-600 hover:bg-blue-500 p-2 rounded-xl transition-all shadow-lg shadow-blue-600/20"
                                                     >
-                                                        <ArrowUpRight className="w-4 h-4 text-white" />
+                                                        <ArrowUpRight className="w-4 h-4 text-slate-900" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -397,8 +397,8 @@ export default function StockParts() {
                     ))}
                 </div>
             ) : (
-                <div className="py-20 flex flex-col items-center justify-center text-slate-500 bg-slate-900/20 border border-slate-800/50 rounded-3xl border-dashed">
-                    <div className="w-20 h-20 bg-slate-900/80 rounded-full flex items-center justify-center mb-4 border border-slate-700 shadow-xl">
+                <div className="py-20 flex flex-col items-center justify-center text-slate-500 bg-white/90/20 border border-slate-200/50 rounded-3xl border-dashed">
+                    <div className="w-20 h-20 bg-white/90/80 rounded-full flex items-center justify-center mb-4 border border-slate-200 shadow-xl">
                         <Search className="w-10 h-10 text-slate-600" />
                     </div>
                     <p className="font-bold uppercase tracking-widest text-sm text-slate-400">Nenhuma peça encontrada</p>
@@ -416,16 +416,16 @@ export default function StockParts() {
 
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-4xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 shrink-0">
+                    <div className="w-full max-w-4xl bg-white/90 border border-slate-200 rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 shrink-0">
                             <div>
-                                <h3 className="text-xl font-black text-white">Adicionar Peças</h3>
+                                <h3 className="text-xl font-black text-slate-900">Adicionar Peças</h3>
                                 <p className="text-slate-500 text-xs mt-0.5">{newParts.length} {newParts.length === 1 ? 'peça' : 'peças'} para adicionar</p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => { setShowCreateModal(false); setNewParts([blankRow(0)]); setRowCounter(1); }}
-                                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -434,7 +434,7 @@ export default function StockParts() {
                         <form onSubmit={handleCreateParts} className="flex flex-col flex-1 overflow-hidden">
                             <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
                                 {newParts.map((row, idx) => (
-                                    <div key={row.id} className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 relative">
+                                    <div key={row.id} className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 relative">
                                         <div className="flex items-center justify-between mb-3">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Peça #{idx + 1}</span>
                                             {newParts.length > 1 && (
@@ -451,7 +451,7 @@ export default function StockParts() {
                                                     placeholder="Ex: Filtro de óleo"
                                                     value={row.name}
                                                     onChange={e => updateRow(row.id, 'name', e.target.value)}
-                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
                                                 />
                                             </div>
                                             <div className="space-y-1">
@@ -460,7 +460,7 @@ export default function StockParts() {
                                                     placeholder="Ex: FO-001"
                                                     value={row.sku}
                                                     onChange={e => updateRow(row.id, 'sku', e.target.value)}
-                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
                                                 />
                                             </div>
                                             <div className="space-y-1">
@@ -470,7 +470,7 @@ export default function StockParts() {
                                                     placeholder="Ex: Filtros"
                                                     value={row.category}
                                                     onChange={e => updateRow(row.id, 'category', e.target.value)}
-                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
                                                 />
                                             </div>
                                             <div className="space-y-1">
@@ -479,7 +479,7 @@ export default function StockParts() {
                                                     type="number" min="0" step="0.01"
                                                     value={row.stock_quantity}
                                                     onChange={e => updateRow(row.id, 'stock_quantity', Number(e.target.value) || 0)}
-                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
                                                 />
                                             </div>
                                             <div className="space-y-1">
@@ -488,7 +488,7 @@ export default function StockParts() {
                                                     type="number" min="0" step="0.01"
                                                     value={row.minimum_stock}
                                                     onChange={e => updateRow(row.id, 'minimum_stock', Number(e.target.value) || 0)}
-                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
                                                 />
                                             </div>
                                             <div className="space-y-1">
@@ -497,7 +497,7 @@ export default function StockParts() {
                                                     type="number" min="0" step="0.01"
                                                     value={row.average_cost}
                                                     onChange={e => updateRow(row.id, 'average_cost', Number(e.target.value) || 0)}
-                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
                                                 />
                                             </div>
                                             <div className="space-y-1">
@@ -507,7 +507,7 @@ export default function StockParts() {
                                                     placeholder="Ex: Prateleira A1"
                                                     value={row.location}
                                                     onChange={e => updateRow(row.id, 'location', e.target.value)}
-                                                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
                                                 />
                                             </div>
                                         </div>
@@ -517,18 +517,18 @@ export default function StockParts() {
                                 <button
                                     type="button"
                                     onClick={addRow}
-                                    className="w-full py-3 border-2 border-dashed border-slate-700 hover:border-blue-600/50 hover:bg-blue-600/5 text-slate-500 hover:text-blue-400 rounded-2xl transition-all text-sm font-bold flex items-center justify-center gap-2"
+                                    className="w-full py-3 border-2 border-dashed border-slate-300 hover:border-blue-600/50 hover:bg-blue-600/5 text-slate-500 hover:text-blue-400 rounded-2xl transition-all text-sm font-bold flex items-center justify-center gap-2"
                                 >
                                     <Plus className="w-4 h-4" />
                                     Adicionar outra peça
                                 </button>
                             </div>
 
-                            <div className="px-6 py-4 border-t border-slate-800 shrink-0 flex items-center justify-end gap-3">
+                            <div className="px-6 py-4 border-t border-slate-200 shrink-0 flex items-center justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => { setShowCreateModal(false); setNewParts([blankRow(0)]); setRowCounter(1); }}
-                                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
                                 >
                                     Cancelar
                                 </button>
@@ -548,13 +548,13 @@ export default function StockParts() {
             {/* Edit Modal */}
             {editingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-                            <h3 className="text-xl font-black text-white">Editar Peça</h3>
+                    <div className="w-full max-w-2xl bg-white/90 border border-slate-200 rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200">
+                            <h3 className="text-xl font-black text-slate-900">Editar Peça</h3>
                             <button
                                 type="button"
                                 onClick={() => setEditingItem(null)}
-                                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -568,7 +568,7 @@ export default function StockParts() {
                                         required
                                         value={editingItem.name}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, name: e.target.value } : null)}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
                                     />
                                 </div>
 
@@ -577,7 +577,7 @@ export default function StockParts() {
                                     <input
                                         value={editingItem.sku ?? ''}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, sku: e.target.value } : null)}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
                                     />
                                 </div>
 
@@ -587,7 +587,7 @@ export default function StockParts() {
                                         list="dl-categories"
                                         value={editingItem.category ?? ''}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, category: e.target.value } : null)}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
                                     />
                                 </div>
 
@@ -599,7 +599,7 @@ export default function StockParts() {
                                         step="0.01"
                                         value={editingItem.stock_quantity}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, stock_quantity: Number(e.target.value) || 0 } : null)}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
                                     />
                                 </div>
 
@@ -611,7 +611,7 @@ export default function StockParts() {
                                         step="0.01"
                                         value={editingItem.minimum_stock}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, minimum_stock: Number(e.target.value) || 0 } : null)}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
                                     />
                                 </div>
 
@@ -623,7 +623,7 @@ export default function StockParts() {
                                         step="0.01"
                                         value={editingItem.average_cost}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, average_cost: Number(e.target.value) || 0 } : null)}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
                                     />
                                 </div>
 
@@ -633,16 +633,16 @@ export default function StockParts() {
                                         list="dl-locations"
                                         value={editingItem.location ?? ''}
                                         onChange={(e) => setEditingItem(prev => prev ? { ...prev, location: e.target.value } : null)}
-                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/40"
                                     />
                                 </div>
                             </div>
 
-                            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                            <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setEditingItem(null)}
-                                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-colors"
                                 >
                                     Cancelar
                                 </button>

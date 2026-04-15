@@ -86,31 +86,31 @@ export default function ChatWidget() {
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
             {isOpen && (
-                <div className="mb-4 w-[90vw] sm:w-96 h-[500px] bg-[#1e293b] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto">
+                <div className="mb-4 w-[90vw] sm:w-96 h-[500px] bg-[#1e293b] border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto">
                     {/* Header */}
-                    <div className="bg-slate-900/50 p-4 border-b border-slate-700 flex items-center justify-between">
+                    <div className="bg-white/90 p-4 border-b border-slate-200 flex items-center justify-between">
                         {selectedUser ? (
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => setSelectedUser(null)}
-                                    className="p-1 hover:bg-slate-800 rounded-full transition-colors mr-1"
+                                    className="p-1 hover:bg-slate-100 rounded-full transition-colors mr-1"
                                 >
                                     <ChevronLeft className="w-5 h-5 text-slate-400" />
                                 </button>
                                 <div className="flex flex-col">
-                                    <h3 className="font-bold text-white text-sm">{selectedUser.name}</h3>
+                                    <h3 className="font-bold text-slate-900 text-sm">{selectedUser.name}</h3>
                                     <span className="text-[10px] text-slate-400 uppercase">{selectedUser.role}</span>
                                 </div>
                             </div>
                         ) : (
                             <div>
-                                <h3 className="font-bold text-white">Mensagens</h3>
+                                <h3 className="font-bold text-slate-900">Mensagens</h3>
                                 <p className="text-xs text-slate-400">Comunicação Interna</p>
                             </div>
                         )}
                         <button
                             onClick={() => setIsOpen(false)}
-                            className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white"
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-900"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -130,7 +130,7 @@ export default function ChatWidget() {
                                             <button
                                                 key={user.id}
                                                 onClick={() => setSelectedUser(user)}
-                                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-all border border-transparent hover:border-slate-700 group"
+                                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200 group"
                                             >
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border
                                                     ${user.role === 'admin' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
@@ -174,7 +174,7 @@ export default function ChatWidget() {
                                         >
                                             <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.senderId === myId
                                                 ? 'bg-blue-600 text-white rounded-br-none'
-                                                : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
+                                                : 'bg-slate-100 text-slate-200 rounded-bl-none border border-slate-200'
                                                 }`}>
                                                 <p>{msg.content}</p>
                                                 <p className={`text-[10px] mt-1 text-right ${msg.senderId === myId ? 'text-blue-200' : 'text-slate-500'}`}>
@@ -191,13 +191,13 @@ export default function ChatWidget() {
 
                     {/* Input Area */}
                     {selectedUser && (
-                        <form onSubmit={handleSend} className="p-4 bg-slate-900/50 border-t border-slate-700 flex gap-2">
+                        <form onSubmit={handleSend} className="p-4 bg-white/90 border-t border-slate-200 flex gap-2">
                             <input
                                 type="text"
                                 value={inputMessage}
                                 onChange={(e) => setInputMessage(e.target.value)}
                                 placeholder="Escreva uma mensagem..."
-                                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 outline-none"
                             />
                             <button
                                 type="submit"

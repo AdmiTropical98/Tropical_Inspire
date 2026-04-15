@@ -441,10 +441,10 @@ export default function Roteirizacao() {
                 <div className="p-6 border-b border-white/5 bg-[#0a0a0f]">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="p-2 bg-purple-600 rounded-lg shadow-[0_0_20px_rgba(147,51,234,0.3)]">
-                            <Navigation className="w-6 h-6 text-white" />
+                            <Navigation className="w-6 h-6 text-slate-900" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black text-white uppercase tracking-tight">Roteirização</h1>
+                            <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Roteirização</h1>
                             <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Otimizador de Rotas</p>
                         </div>
                     </div>
@@ -517,7 +517,7 @@ export default function Roteirizacao() {
                                                     {index + 1}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="text-xs font-bold text-white truncate">{stop.name}</div>
+                                                    <div className="text-xs font-bold text-slate-900 truncate">{stop.name}</div>
                                                     <div className="text-[9px] text-slate-500 uppercase tracking-wider">{stop.type}</div>
                                                 </div>
                                                 <button
@@ -542,7 +542,7 @@ export default function Roteirizacao() {
                                 className="flex items-center justify-center gap-2 p-3 bg-[#1e293b] hover:bg-[#2d3b55] border border-white/10 rounded-xl transition-all disabled:opacity-50 group"
                             >
                                 <RefreshCw className="w-4 h-4 text-purple-400 group-hover:rotate-180 transition-transform" />
-                                <span className="text-[10px] font-black text-white uppercase">Otimizar</span>
+                                <span className="text-[10px] font-black text-slate-900 uppercase">Otimizar</span>
                             </button>
 
                             <button
@@ -550,8 +550,8 @@ export default function Roteirizacao() {
                                 disabled={routeStops.length < 2 || isSaving}
                                 className="flex items-center justify-center gap-2 p-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all disabled:opacity-50"
                             >
-                                <Save className="w-4 h-4 text-white" />
-                                <span className="text-[10px] font-black text-white uppercase">{isSaving ? 'A guardar...' : 'Guardar'}</span>
+                                <Save className="w-4 h-4 text-slate-900" />
+                                <span className="text-[10px] font-black text-slate-900 uppercase">{isSaving ? 'A guardar...' : 'Guardar'}</span>
                             </button>
                         </div>
 
@@ -561,8 +561,8 @@ export default function Roteirizacao() {
                                 disabled={routeStops.length === 0}
                                 className="flex items-center justify-center gap-2 p-3 bg-blue-600 hover:bg-blue-500 rounded-xl transition-all disabled:opacity-50"
                             >
-                                <Navigation className="w-4 h-4 text-white" />
-                                <span className="text-[10px] font-black text-white uppercase">Google Maps</span>
+                                <Navigation className="w-4 h-4 text-slate-900" />
+                                <span className="text-[10px] font-black text-slate-900 uppercase">Google Maps</span>
                             </button>
 
                             <button
@@ -570,7 +570,7 @@ export default function Roteirizacao() {
                                 disabled={routeStops.length === 0}
                                 className="flex items-center justify-center gap-2 p-3 bg-[#33ccff] hover:bg-[#2bbbdd] rounded-xl transition-all disabled:opacity-50"
                             >
-                                <Navigation className="w-4 h-4 text-white rotate-45" />
+                                <Navigation className="w-4 h-4 text-slate-900 rotate-45" />
                                 <span className="text-[10px] font-black text-[#1e293b] uppercase">Waze</span>
                             </button>
                         </div>
@@ -582,13 +582,13 @@ export default function Roteirizacao() {
                     <div className="p-3 border-b border-white/5 flex gap-1">
                         <button
                             onClick={() => setActiveTab('locais')}
-                            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'locais' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
+                            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'locais' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-900'}`}
                         >
                             Locais
                         </button>
                         <button
                             onClick={() => setActiveTab('ativas')}
-                            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all relative ${activeTab === 'ativas' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
+                            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all relative ${activeTab === 'ativas' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-900'}`}
                         >
                             Ativas
                             {activeRoutes.length > 0 && (
@@ -633,7 +633,7 @@ export default function Roteirizacao() {
                                         >
                                             <span className="text-purple-400 text-[10px]">📍</span>
                                             <div>
-                                                <div className="text-xs text-white font-bold">{local.nome}</div>
+                                                <div className="text-xs text-slate-900 font-bold">{local.nome}</div>
                                                 <div className="text-[9px] text-slate-500">POI Guardado • {local.tipo}</div>
                                             </div>
                                         </button>
@@ -646,7 +646,7 @@ export default function Roteirizacao() {
                                         >
                                             <span className="text-blue-400 text-[10px]">🌍</span>
                                             <div className="min-w-0">
-                                                <div className="text-xs text-white font-bold truncate">{result.display_name.split(',').slice(0, 2).join(',')}</div>
+                                                <div className="text-xs text-slate-900 font-bold truncate">{result.display_name.split(',').slice(0, 2).join(',')}</div>
                                                 <div className="text-[9px] text-slate-500 truncate">{result.display_name.split(',').slice(2, 4).join(',')}</div>
                                             </div>
                                         </button>
@@ -663,10 +663,10 @@ export default function Roteirizacao() {
                                 className="w-full text-left p-3 rounded-xl bg-[#1e293b]/50 border border-white/5 hover:bg-[#1e293b] hover:border-purple-500/50 flex justify-between items-center group transition-all"
                             >
                                 <div className="min-w-0">
-                                    <div className="text-xs font-bold text-white truncate group-hover:text-purple-300">{local.nome}</div>
+                                    <div className="text-xs font-bold text-slate-900 truncate group-hover:text-purple-300">{local.nome}</div>
                                     <div className="text-[9px] text-slate-500 capitalize">{local.tipo}</div>
                                 </div>
-                                <div className="p-1.5 rounded-lg bg-white/5 text-slate-400 group-hover:bg-purple-500 group-hover:text-white transition-all">
+                                <div className="p-1.5 rounded-lg bg-white/5 text-slate-400 group-hover:bg-purple-500 group-hover:text-slate-900 transition-all">
                                     <ArrowRight className="w-3 h-3" />
                                 </div>
                             </button>
@@ -682,7 +682,7 @@ export default function Roteirizacao() {
                                 >
                                     <div className="flex justify-between items-start">
                                         <div className="min-w-0">
-                                            <div className="text-[10px] font-black text-white truncate uppercase tracking-tight">{route.data}</div>
+                                            <div className="text-[10px] font-black text-slate-900 truncate uppercase tracking-tight">{route.data}</div>
                                             <div className="text-[9px] text-slate-500 flex items-center gap-1">
                                                 <Car className="w-3 h-3" /> {viatura?.matricula || 'N/A'} • {motorista?.nome || 'N/A'}
                                             </div>
@@ -694,7 +694,7 @@ export default function Roteirizacao() {
 
                                     <button
                                         onClick={() => handleFinalizeRoute(route.id, route.distancia_estimada)}
-                                        className="w-full py-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                                        className="w-full py-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-600/20 transition-all flex items-center justify-center gap-2"
                                     >
                                         <CheckCircle2 className="w-3 h-3" />
                                         Concluir Rota
@@ -781,11 +781,11 @@ export default function Roteirizacao() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Distância</div>
-                                <div className="text-xl font-black text-white font-mono">{summary.distance.toFixed(1)}<span className="text-xs text-slate-500 ml-1">KM</span></div>
+                                <div className="text-xl font-black text-slate-900 font-mono">{summary.distance.toFixed(1)}<span className="text-xs text-slate-500 ml-1">KM</span></div>
                             </div>
                             <div>
                                 <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Tempo Est.</div>
-                                <div className="text-xl font-black text-white font-mono">{Math.round(summary.time)}<span className="text-xs text-slate-500 ml-1">MIN</span></div>
+                                <div className="text-xl font-black text-slate-900 font-mono">{Math.round(summary.time)}<span className="text-xs text-slate-500 ml-1">MIN</span></div>
                             </div>
                             <div className="pt-2 border-t border-white/5">
                                 <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Consumo</div>
@@ -801,12 +801,12 @@ export default function Roteirizacao() {
                             <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
                                 <div className="flex -space-x-2">
                                     {routeStops.slice(0, 3).map((s, i) => (
-                                        <div key={i} className="w-6 h-6 rounded-full bg-slate-800 border-2 border-black flex items-center justify-center text-[8px] font-black text-white uppercase">
+                                        <div key={i} className="w-6 h-6 rounded-full bg-slate-100 border-2 border-black flex items-center justify-center text-[8px] font-black text-slate-900 uppercase">
                                             {s.name.slice(0, 1)}
                                         </div>
                                     ))}
                                     {routeStops.length > 3 && (
-                                        <div className="w-6 h-6 rounded-full bg-slate-800 border-2 border-black flex items-center justify-center text-[8px] font-black text-white uppercase">
+                                        <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-black flex items-center justify-center text-[8px] font-black text-slate-900 uppercase">
                                             +{routeStops.length - 3}
                                         </div>
                                     )}

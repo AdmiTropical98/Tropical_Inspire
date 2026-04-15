@@ -984,7 +984,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
             {/* Import Modal */}
             {showImportModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/60 backdrop-blur-sm">
                     <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
                         <div className="p-6">
                             <h3 className="text-xl font-bold text-slate-900 mb-2">Importar Escala</h3>

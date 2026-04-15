@@ -47,7 +47,7 @@ export default function QuickShortcuts({
             {/* Collapsed/Expanded Toggle */}
             <button
                 onClick={() => onToggleExpand(!isExpanded)}
-                className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-800/30 border border-slate-700/50 text-slate-300 hover:text-white hover:border-slate-600 transition-colors group"
+                className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200/50 text-slate-300 hover:text-slate-900 hover:border-slate-300 transition-colors group"
             >
                 <span className="text-xs font-bold uppercase tracking-wider">⚡ Ações Rápidas</span>
                 {isExpanded ? (

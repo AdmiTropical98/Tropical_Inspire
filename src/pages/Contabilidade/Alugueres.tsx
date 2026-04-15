@@ -1371,23 +1371,23 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
         return (
             <div className="w-full min-w-0 space-y-6">
                 <div className="flex items-center justify-between">
-                    <button onClick={() => setView('list')} className="text-slate-400 hover:text-white transition-colors">
+                    <button onClick={() => setView('list')} className="text-slate-400 hover:text-slate-900 transition-colors">
                         &larr; Voltar
                     </button>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                         <Car className="w-6 h-6 text-amber-500" />
                         Registar Novo Aluguer
                     </h2>
                 </div>
 
-                <div className="bg-[#1e293b]/50 backdrop-blur-sm p-8 rounded-2xl border border-slate-700/50 space-y-8">
+                <div className="bg-[#1e293b]/50 backdrop-blur-sm p-8 rounded-2xl border border-slate-200/50 space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-slate-400">Cliente</label>
                             <select
                                 value={clienteId}
                                 onChange={(e) => setClienteId(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                                className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-500"
                             >
                                 <option value="">Selecione o Cliente</option>
                                 {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -1401,7 +1401,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                 type="month"
                                 value={periodoReferencia}
                                 onChange={(e) => setPeriodoReferencia(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                                className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-500"
                             />
                             <p className="text-xs text-slate-500">Opcional: Selecione manualmenente se diferente da data atual.</p>
                         </div>
@@ -1412,7 +1412,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                 <select
                                     value={tempViaturaId}
                                     onChange={(e) => setTempViaturaId(e.target.value)}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-500"
                                 >
                                     <option value="">Adicionar Viatura...</option>
                                     {filteredDisplayViaturas.map(v => <option key={v.id} value={v.id}>{v.marca} {v.modelo} - {v.matricula}</option>)}
@@ -1420,7 +1420,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                 <button
                                     onClick={handleAddViatura}
                                     disabled={!tempViaturaId}
-                                    className="bg-slate-800 hover:bg-slate-700 text-white px-4 rounded-lg border border-slate-700 disabled:opacity-50"
+                                    className="bg-slate-100 hover:bg-slate-700 text-slate-900 px-4 rounded-lg border border-slate-200 disabled:opacity-50"
                                 >
                                     <Plus className="w-5 h-5" />
                                 </button>
@@ -1428,7 +1428,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
 
                             <button
                                 onClick={() => setIsSelectionModalOpen(true)}
-                                className="w-full mt-2 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 py-2 rounded-lg border border-slate-700 border-dashed transition-all text-sm font-medium"
+                                className="w-full mt-2 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-700 text-blue-400 hover:text-blue-300 py-2 rounded-lg border border-slate-200 border-dashed transition-all text-sm font-medium"
                             >
                                 <Car className="w-4 h-4" />
                                 Escolher Viaturas
@@ -1440,14 +1440,14 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                     const v = viaturas.find(vi => vi.id === line.viaturaId);
 
                                     return (
-                                        <div key={line.id} className="flex flex-col gap-3 bg-slate-800/50 p-4 rounded-xl border border-slate-700 shadow-lg">
+                                        <div key={line.id} className="flex flex-col gap-3 bg-slate-100 p-4 rounded-xl border border-slate-200 shadow-lg">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center">
+                                                    <div className="w-10 h-10 rounded-lg bg-white/90 border border-slate-200 flex items-center justify-center">
                                                         <Car className="w-5 h-5 text-amber-500" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-white font-semibold">{v?.marca} {v?.modelo}</p>
+                                                        <p className="text-slate-900 font-semibold">{v?.marca} {v?.modelo}</p>
                                                         <div className="flex items-center gap-2">
                                                             <p className="text-xs text-slate-400">{v?.matricula} • {formatCurrency(line.precoDia || 0)}/dia</p>
                                                             {(() => {
@@ -1484,13 +1484,13 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-700/50">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-200/50">
                                                 <div className="col-span-2 sm:col-span-1">
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Centro de Custo</label>
                                                     <select
                                                         value={line.centroCustoId}
                                                         onChange={(e) => updateLineDetails(line.id, 'centroCustoId', e.target.value)}
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-lg px-2 py-2 text-slate-900 text-xs focus:ring-1 focus:ring-amber-500"
                                                     >
                                                         <option value="">Nenhum</option>
                                                         {centrosCustos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -1502,7 +1502,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                         type="date"
                                                         value={line.dataInicio}
                                                         onChange={(e) => updateLineDetails(line.id, 'dataInicio', e.target.value)}
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-lg px-2 py-2 text-slate-900 text-xs focus:ring-1 focus:ring-amber-500"
                                                     />
                                                 </div>
                                                 <div>
@@ -1512,7 +1512,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                         min="1"
                                                         value={line.dias}
                                                         onChange={(e) => updateLineDetails(line.id, 'dias', Number(e.target.value))}
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-lg px-2 py-2 text-slate-900 text-xs focus:ring-1 focus:ring-amber-500"
                                                     />
                                                 </div>
                                                 <div>
@@ -1523,12 +1523,12 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                         step="0.01"
                                                         value={line.precoDia}
                                                         onChange={(e) => updateLineDetails(line.id, 'precoDia', Number(e.target.value))}
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white text-xs focus:ring-1 focus:ring-amber-500"
+                                                        className="w-full bg-white/90 border border-slate-200 rounded-lg px-2 py-2 text-slate-900 text-xs focus:ring-1 focus:ring-amber-500"
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Total</label>
-                                                    <div className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-2 py-2 text-emerald-400 text-xs font-semibold">
+                                                    <div className="w-full bg-white/90 border border-slate-200 rounded-lg px-2 py-2 text-emerald-400 text-xs font-semibold">
                                                         {formatCurrency(calculateLineTotal(line))}
                                                     </div>
                                                 </div>
@@ -1539,12 +1539,12 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                             </div>
 
                             {/* Templates Control */}
-                            <div className="mt-4 pt-4 border-t border-slate-800">
+                            <div className="mt-4 pt-4 border-t border-slate-200">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Kits / Templates</label>
                                 <div className="flex gap-2 mb-2">
                                     <select
                                         onChange={handleLoadTemplate}
-                                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
+                                        className="flex-1 bg-white/90 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900"
                                     >
                                         <option value="">Carregar Kit Salvo...</option>
                                         <option value={BASE_TEMPLATE_KEY}>Template Base (rápido)</option>
@@ -1552,7 +1552,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                     </select>
                                     <button
                                         onClick={handleDownloadTemplateModel}
-                                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 text-sm"
+                                        className="bg-slate-100 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-200 text-sm"
                                         title="Baixar template base em Excel"
                                     >
                                         Baixar Excel
@@ -1560,7 +1560,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                     <button
                                         onClick={() => setShowSaveTemplate(!showSaveTemplate)}
                                         disabled={rentalLines.length === 0}
-                                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 text-sm disabled:opacity-50"
+                                        className="bg-slate-100 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-200 text-sm disabled:opacity-50"
                                     >
                                         {showSaveTemplate ? 'Cancelar' : 'Salvar Kit'}
                                     </button>
@@ -1573,7 +1573,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                             placeholder="Nome do Kit (ex: Frota Verão)"
                                             value={newTemplateName}
                                             onChange={(e) => setNewTemplateName(e.target.value)}
-                                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-blue-500"
+                                            className="flex-1 bg-white/90 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:ring-1 focus:ring-blue-500"
                                         />
                                         <button
                                             onClick={handleSaveTemplate}
@@ -1592,7 +1592,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                 type="date"
                                 value={dataInicio}
                                 onChange={(e) => setDataInicio(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                                className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-500"
                             />
                         </div>
 
@@ -1604,12 +1604,12 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                     min="1"
                                     value={dias}
                                     onChange={(e) => setDias(Number(e.target.value))}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                                    className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-500"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-slate-400">Total Diário (€)</label>
-                                <div className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-slate-300">
+                                <div className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-300">
                                     {formatCurrency(calculateTotalDaily())}
                                 </div>
                             </div>
@@ -1620,7 +1620,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                             <select
                                 value={centroCustoId}
                                 onChange={(e) => setCentroCustoId(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-amber-500"
+                                className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-amber-500"
                             >
                                 <option value="">Selecione o Centro de Custo</option>
                                 {centrosCustos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -1628,7 +1628,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                         </div>
                     </div>
 
-                    <div className="pt-6 border-t border-slate-700 flex justify-between items-center">
+                    <div className="pt-6 border-t border-slate-200 flex justify-between items-center">
                         <div className="text-right">
                             <p className="text-slate-400 text-sm">Total Estimado</p>
                             <p className="text-2xl font-bold text-amber-500">{formatCurrency((calculateGrandTotal()) * 1.23)}</p>
@@ -1676,7 +1676,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                         placeholder="Pesquisar alugueres..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all placeholder:text-slate-500"
+                        className="w-full bg-white/90 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all placeholder:text-slate-500"
                     />
                 </div>
                 <div className="flex gap-2">
@@ -1698,7 +1698,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                     </button>
                     <button
                         onClick={generateCostCenterReport}
-                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl font-medium border border-slate-700 transition-all shadow-sm"
+                        className="flex items-center gap-2 bg-slate-100 hover:bg-slate-700 text-slate-900 px-4 py-2.5 rounded-xl font-medium border border-slate-200 transition-all shadow-sm"
                     >
                         <Download className="w-5 h-5 text-slate-400" />
                         <span className="hidden sm:inline">Relatório Custos</span>
@@ -1713,9 +1713,9 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                 </div>
             </div>
 
-            <div className="bg-[#1e293b]/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
+            <div className="bg-[#1e293b]/50 backdrop-blur-sm rounded-2xl border border-slate-200/50 overflow-hidden">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-800/50 text-slate-400 uppercase text-xs font-semibold">
+                    <thead className="bg-slate-100 text-slate-400 uppercase text-xs font-semibold">
                         <tr>
                             <th className="px-6 py-4 w-12"></th>
                             <th className="px-6 py-4">Referência</th>
@@ -1757,23 +1757,23 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                 return (
                                     <>
                                         {/* GROUP ROW */}
-                                        <tr key={group.id} className="bg-slate-800/20 hover:bg-slate-800/40 transition-colors border-b border-slate-700/50">
+                                        <tr key={group.id} className="bg-slate-50 hover:bg-slate-50 transition-colors border-b border-slate-200/50">
                                             <td className="px-6 py-4 text-center">
                                                 <button
                                                     onClick={() => toggleGroup(group.id)}
-                                                    className="p-1 hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-white"
+                                                    className="p-1 hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-900"
                                                 >
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </button>
                                             </td>
-                                            <td className="px-6 py-4 font-bold text-white tracking-wide">
+                                            <td className="px-6 py-4 font-bold text-slate-900 tracking-wide">
                                                 {displayRef.charAt(0).toUpperCase() + displayRef.slice(1)}
                                             </td>
                                             <td className="px-6 py-4 text-slate-300 font-medium">
                                                 {clientName}
                                             </td>
                                             <td className="px-6 py-4 text-slate-300">
-                                                <span className="bg-slate-700/50 px-2 py-1 rounded text-xs border border-slate-600">
+                                                <span className="bg-slate-700/50 px-2 py-1 rounded text-xs border border-slate-300">
                                                     {ccName}
                                                 </span>
                                             </td>
@@ -1815,9 +1815,9 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                     <Fragment key={ccId}>
                                                         {/* COST CENTER SUB-HEADER */}
                                                         {invoicesByCC && Object.keys(invoicesByCC).length > 1 && (
-                                                            <tr className="bg-slate-800/40 border-b border-slate-700/50">
+                                                            <tr className="bg-slate-50 border-b border-slate-200/50">
                                                                 <td colSpan={7} className="px-6 py-2">
-                                                                    <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-wider pl-12 border-l-4 border-slate-700">
+                                                                    <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-wider pl-12 border-l-4 border-slate-200">
                                                                         <div className="bg-slate-700 w-2 h-2 rounded-full"></div>
                                                                         {ccName} ({ccInvoices.length})
                                                                     </div>
@@ -1834,8 +1834,8 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                                 ? detailsForCostCenter
                                                                 : (inv.aluguerDetails?.viaturas || inv.aluguerDetails?.detalhesViaturas || []);
                                                             return (
-                                                                <tr key={`${inv.id}-${ccId}`} className="bg-slate-900/30 hover:bg-slate-800/30 transition-colors animate-in fade-in slide-in-from-top-1 border-b border-slate-800/50">
-                                                                    <td className="px-6 py-4 pl-12 border-l-4 border-slate-800" colSpan={7}>
+                                                                <tr key={`${inv.id}-${ccId}`} className="bg-slate-50/60 hover:bg-slate-50 transition-colors animate-in fade-in slide-in-from-top-1 border-b border-slate-200/50">
+                                                                    <td className="px-6 py-4 pl-12 border-l-4 border-slate-200" colSpan={7}>
                                                                         <div className="grid grid-cols-12 items-center gap-4">
                                                                             <div className="col-span-4">
                                                                                 <div className="flex items-center gap-2">
@@ -1854,7 +1854,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                                                                 return v ? (
                                                                                                     <div key={`${inv.id}-${ccId}-${detail.viaturaId}-${detail.dataInicio}-${detailIndex}`} className="text-sm flex items-center gap-2">
                                                                                                         <span>{v.marca} {v.modelo}</span>
-                                                                                                        <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{v.matricula}</span>
+                                                                                                        <span className="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{v.matricula}</span>
                                                                                                     </div>
                                                                                                 ) : null;
                                                                                             })}
@@ -1862,7 +1862,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                                                     ) : (
                                                                                         <div className="text-sm flex items-center gap-2">
                                                                                             <span>{vehicle ? `${vehicle.marca} ${vehicle.modelo}` : 'Viatura N/A'}</span>
-                                                                                            {vehicle && <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{vehicle.matricula}</span>}
+                                                                                            {vehicle && <span className="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{vehicle.matricula}</span>}
                                                                                         </div>
                                                                                     )}
                                                                                 </div>
@@ -1891,21 +1891,21 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                                                 <button
                                                                                     title="Editar"
                                                                                     onClick={() => handleEdit(inv)}
-                                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
+                                                                                    className="p-2 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
                                                                                 >
                                                                                     <Edit className="w-4 h-4" />
                                                                                 </button>
                                                                                 <button
                                                                                     title="Fatura PDF"
                                                                                     onClick={() => generateRentalPDF(inv)}
-                                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                                                    className="p-2 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
                                                                                 >
                                                                                     <Download className="w-4 h-4" />
                                                                                 </button>
                                                                                 <button
                                                                                     title="Contrato PDF"
                                                                                     onClick={() => generateRentalContract(inv)}
-                                                                                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                                                    className="p-2 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
                                                                                 >
                                                                                     <Printer className="w-4 h-4" />
                                                                                 </button>
@@ -1913,7 +1913,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                                                     title="Enviar Fatura"
                                                                                     onClick={() => handleSendInvoiceEmail(inv)}
                                                                                     disabled={sendingInvoiceId === inv.id}
-                                                                                    className="p-2 bg-slate-800 hover:bg-cyan-900/30 rounded-lg text-slate-400 hover:text-cyan-400 transition-colors disabled:opacity-60"
+                                                                                    className="p-2 bg-slate-100 hover:bg-cyan-900/30 rounded-lg text-slate-400 hover:text-cyan-400 transition-colors disabled:opacity-60"
                                                                                 >
                                                                                     <Mail className="w-4 h-4" />
                                                                                 </button>
@@ -1924,7 +1924,7 @@ export default function Alugueres({ invoices, onSaveRental, onDelete, onRefresh 
                                                                                             onDelete(inv.id);
                                                                                         }
                                                                                     }}
-                                                                                    className="p-2 bg-slate-800 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                                                                                    className="p-2 bg-slate-100 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
                                                                                 >
                                                                                     <Trash2 className="w-4 h-4" />
                                                                                 </button>

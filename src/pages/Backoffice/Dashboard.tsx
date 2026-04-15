@@ -37,7 +37,7 @@ export default function BackofficeDashboard() {
     if (loading) return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-32 bg-slate-800/20 rounded-2xl animate-pulse" />
+                <div key={i} className="h-32 bg-slate-50 rounded-2xl animate-pulse" />
             ))}
         </div>
     );
@@ -87,9 +87,9 @@ export default function BackofficeDashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Operational Alerts */}
-                <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-6 backdrop-blur-md">
+                <div className="bg-white/90 border border-slate-200/60 rounded-3xl p-6 backdrop-blur-md">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-black text-white flex items-center gap-2">
+                        <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
                             <AlertCircle className="w-5 h-5 text-amber-500" />
                             Alertas Operacionais
                         </h2>
@@ -115,27 +115,27 @@ export default function BackofficeDashboard() {
                 </div>
 
                 {/* System Activity Hub */}
-                <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-6 backdrop-blur-md">
+                <div className="bg-white/90 border border-slate-200/60 rounded-3xl p-6 backdrop-blur-md">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-black text-white flex items-center gap-2">
+                        <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
                             <TrendingUp className="w-5 h-5 text-blue-500" />
                             Resumo Operacional
                         </h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/50">
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/50">
                             <p className="text-xs font-bold text-slate-500 uppercase mb-2">KPI Saúde Frota</p>
                             <div className="flex items-center gap-2">
-                                <span className="text-2xl font-black text-white">98.4%</span>
+                                <span className="text-2xl font-black text-slate-900">98.4%</span>
                                 <span className="flex items-center text-[10px] font-bold text-emerald-500">
                                     <ArrowUpRight className="w-3 h-3" /> +1.2%
                                 </span>
                             </div>
                         </div>
-                        <div className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/50">
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/50">
                             <p className="text-xs font-bold text-slate-500 uppercase mb-2">Tentativas Login Falhadas</p>
                             <div className="flex items-center gap-2">
-                                <span className="text-2xl font-black text-white">4</span>
+                                <span className="text-2xl font-black text-slate-900">4</span>
                                 <span className="flex items-center text-[10px] font-bold text-slate-500">
                                     <Clock className="w-3 h-3" /> ÚLTIMAS 12H
                                 </span>
@@ -161,13 +161,13 @@ function StatCard({ title, value, icon: Icon, color, warning }: { title: string,
     return (
         <div className={`p-5 rounded-2xl bg-gradient-to-br border shadow-lg ${colorMap[color]} ${warning ? 'ring-2 ring-red-500/50' : ''}`}>
             <div className="flex items-center justify-between mb-4">
-                <div className={`p-2 rounded-xl bg-slate-900/50 border border-current opacity-70`}>
+                <div className={`p-2 rounded-xl bg-white/90 border border-current opacity-70`}>
                     <Icon className="w-4 h-4" />
                 </div>
                 {warning && <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />}
             </div>
             <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{title}</p>
-            <h3 className="text-xl font-black text-white">{value}</h3>
+            <h3 className="text-xl font-black text-slate-900">{value}</h3>
         </div>
     );
 }
@@ -181,7 +181,7 @@ function AlertRow({ type, title, message, timestamp }: { type: 'warning' | 'info
 
     return (
         <div className={`flex items-start gap-4 p-4 rounded-2xl border ${styles[type]} transition-all hover:bg-opacity-10`}>
-            <div className="p-2 rounded-xl bg-slate-900/50">
+            <div className="p-2 rounded-xl bg-white/90">
                 <AlertCircle className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">

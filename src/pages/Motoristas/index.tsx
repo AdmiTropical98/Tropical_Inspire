@@ -196,69 +196,69 @@ export default function Motoristas() {
             )}
 
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                        <User className="w-6 h-6 text-blue-400" />
+                <h1 className="text-3xl font-extrabold text-[#1f2957] mb-2 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
+                        <User className="w-6 h-6 text-blue-600" />
                     </div>
                     {t('drivers.title')}
                 </h1>
-                <p className="text-slate-400">{t('drivers.subtitle')}</p>
+                <p className="text-slate-500">{t('drivers.subtitle')}</p>
             </div>
 
             {/* Statistics Dashboard */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 mb-8">
-                <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 hover:shadow-lg hover:shadow-blue-500/10 transition-all">
+                <div className="kpi-card hover:shadow-md hover:-translate-y-0.5 transition-all">
                     <div className="flex items-center justify-between mb-3">
-                        <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                            <User className="w-6 h-6 text-blue-400" />
+                        <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                            <User className="w-6 h-6 text-blue-600" />
                         </div>
                         <TrendingUp className="w-5 h-5 text-blue-400/50" />
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.total}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.total}</p>
                     <p className="text-sm text-slate-400">{t('drivers.stats.total')}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur-xl border border-purple-500/20 rounded-2xl p-6 hover:shadow-lg hover:shadow-purple-500/10 transition-all">
+                <div className="kpi-card hover:shadow-md hover:-translate-y-0.5 transition-all">
                     <div className="flex items-center justify-between mb-3">
-                        <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                            <Calendar className="w-6 h-6 text-purple-400" />
+                        <div className="w-12 h-12 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center">
+                            <Calendar className="w-6 h-6 text-purple-600" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.onLeave}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.onLeave}</p>
                     <p className="text-sm text-slate-400">{t('drivers.stats.on_leave')}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 backdrop-blur-xl border border-amber-500/20 rounded-2xl p-6 hover:shadow-lg hover:shadow-amber-500/10 transition-all">
+                <div className="kpi-card hover:shadow-md hover:-translate-y-0.5 transition-all">
                     <div className="flex items-center justify-between mb-3">
-                        <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                            <AlertTriangle className="w-6 h-6 text-amber-400" />
+                        <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+                            <AlertTriangle className="w-6 h-6 text-amber-600" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.pendingIssues}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.pendingIssues}</p>
                     <p className="text-sm text-slate-400">{t('drivers.stats.pending_issues')}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-6 hover:shadow-lg hover:shadow-emerald-500/10 transition-all">
+                <div className="kpi-card hover:shadow-md hover:-translate-y-0.5 transition-all">
                     <div className="flex items-center justify-between mb-3">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                            <Euro className="w-6 h-6 text-emerald-400" />
+                        <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                            <Euro className="w-6 h-6 text-emerald-600" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.monthlyCosts.toFixed(0)}€</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.monthlyCosts.toFixed(0)}€</p>
                     <p className="text-sm text-slate-400">{t('drivers.stats.monthly_costs')}</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                 {/* Add Form */}
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
-                    <h3 className="font-bold text-white mb-6 text-lg">{t('drivers.new')}</h3>
+                <div className="surface-card rounded-3xl p-6 lg:p-8 h-fit border border-slate-200/70">
+                    <h3 className="font-bold text-[#1f2957] mb-6 text-lg">{t('drivers.new')}</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
 
                         {/* Static Icon */}
                         <div className="flex justify-center mb-4">
-                            <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
-                                <User className="w-12 h-12 text-slate-600" />
+                            <div className="w-24 h-24 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center">
+                                <User className="w-12 h-12 text-slate-300" />
                             </div>
                         </div>
 
@@ -269,7 +269,7 @@ export default function Motoristas() {
                                 required
                                 value={formData.nome}
                                 onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none mt-1 transition-all hover:border-slate-300"
                                 placeholder="Ex: João Silva"
                             />
                         </div>
@@ -282,7 +282,7 @@ export default function Motoristas() {
                                     required
                                     value={formData.contacto}
                                     onChange={e => setFormData({ ...formData, contacto: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none mt-1 transition-all hover:border-slate-300"
                                     placeholder="912 345 678"
                                 />
                             </div>
@@ -292,7 +292,7 @@ export default function Motoristas() {
                                     type="text"
                                     value={formData.cartaConducao}
                                     onChange={e => setFormData({ ...formData, cartaConducao: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none mt-1 transition-all hover:border-slate-300"
                                     placeholder="L-1234567"
                                 />
                             </div>
@@ -304,7 +304,7 @@ export default function Motoristas() {
                                 type="email"
                                 value={formData.email}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none mt-1 transition-all hover:border-slate-300"
                                 placeholder="motorista@algartempo.com"
                             />
                         </div>
@@ -314,7 +314,7 @@ export default function Motoristas() {
                             <select
                                 value={formData.tipoUtilizador || 'motorista'}
                                 onChange={e => setFormData({ ...formData, tipoUtilizador: e.target.value as Motorista['tipoUtilizador'] })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none mt-1 transition-all hover:border-slate-300"
                             >
                                 <option value="motorista">Motorista</option>
                                 <option value="supervisor">Supervisor</option>
@@ -333,7 +333,7 @@ export default function Motoristas() {
                                     setFormData({ ...formData, centroCustoId: e.target.value })
                                 }
                                 required
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none mt-1 transition-all hover:border-slate-300"
                             >
                                 <option value="">Selecionar centro de custos</option>
 
@@ -351,7 +351,7 @@ export default function Motoristas() {
                                 type="text"
                                 value={formData.cartrackKey || ''}
                                 onChange={e => setFormData({ ...formData, cartrackKey: e.target.value })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700 font-mono"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none mt-1 transition-all hover:border-slate-300 font-mono"
                                 placeholder="Ex: A0000001666B8F01"
                             />
                         </div>
@@ -368,7 +368,7 @@ export default function Motoristas() {
                                     }}
                                     className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${contractType === 'monthly'
                                         ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
-                                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
                                         }`}
                                 >
                                     <span className="font-bold">Contrato Mensal</span>
@@ -382,7 +382,7 @@ export default function Motoristas() {
                                     }}
                                     className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${contractType === 'hourly'
                                         ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20'
-                                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
                                         }`}
                                 >
                                     <span className="font-bold">Contrato Hora</span>
@@ -403,10 +403,10 @@ export default function Motoristas() {
                                         required
                                         value={formData.vencimentoBase || ''}
                                         onChange={e => setFormData({ ...formData, vencimentoBase: parseFloat(e.target.value) })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none transition-all hover:border-slate-700 font-mono text-lg"
+                                        className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none transition-all hover:border-slate-300 font-mono text-lg"
                                         placeholder="0.00"
                                     />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">€</span>
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">€</span>
                                 </div>
                             </div>
                         )}
@@ -422,10 +422,10 @@ export default function Motoristas() {
                                         required
                                         value={formData.valorHora || ''}
                                         onChange={e => setFormData({ ...formData, valorHora: parseFloat(e.target.value) })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-purple-500 outline-none transition-all hover:border-slate-700 font-mono text-lg"
+                                        className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-purple-400/40 focus:border-purple-400 outline-none transition-all hover:border-slate-300 font-mono text-lg"
                                         placeholder="0.00"
                                     />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">€/h</span>
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">€/h</span>
                                 </div>
                             </div>
                         )}
@@ -435,13 +435,13 @@ export default function Motoristas() {
                             <textarea
                                 value={formData.obs}
                                 onChange={e => setFormData({ ...formData, obs: e.target.value })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none mt-1 transition-all hover:border-slate-700 resize-none"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none mt-1 transition-all hover:border-slate-300 resize-none"
                                 placeholder={t('req.obs')}
                                 rows={3}
                             />
                         </div>
 
-                        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2 mt-2">
+                        <button type="submit" className="w-full btn-primary py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 mt-2 font-bold">
                             <Plus className="w-5 h-5" />
                             {t('drivers.form.submit')}
                         </button>
@@ -449,9 +449,9 @@ export default function Motoristas() {
                 </div>
 
                 {/* List & Search */}
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
+                <div className="surface-card rounded-3xl p-6 lg:p-8 h-fit border border-slate-200/70">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-white text-lg">{t('drivers.list.title')}</h3>
+                        <h3 className="font-bold text-[#1f2957] text-lg">{t('drivers.list.title')}</h3>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setViewMode('list')}
@@ -473,13 +473,13 @@ export default function Motoristas() {
                     {/* Filters */}
                     <div className="space-y-3 mb-6">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 h-4 w-4" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                             <input
                                 type="text"
                                 placeholder={t('drivers.search')}
                                 value={filter}
                                 onChange={e => setFilter(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:border-blue-500 outline-none transition-all"
+                                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/40 outline-none transition-all placeholder:text-slate-400"
                             />
                         </div>
 
@@ -490,7 +490,7 @@ export default function Motoristas() {
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === status
                                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
                                         }`}
                                 >
                                     {t(`drivers.filter.${status}`)}
@@ -501,7 +501,7 @@ export default function Motoristas() {
                         <select
                             value={sortBy}
                             onChange={e => setSortBy(e.target.value as any)}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/40 outline-none"
                         >
                             <option value="name">{t('drivers.sort.name')}</option>
                             <option value="date">{t('drivers.sort.date')}</option>
@@ -511,8 +511,8 @@ export default function Motoristas() {
 
                     <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
                         {filteredItems.length === 0 ? (
-                            <div className="col-span-2 text-center py-12 bg-slate-800/20 rounded-2xl border border-slate-800 border-dashed">
-                                <p className="text-slate-400 text-sm">{t('drivers.empty')}</p>
+                            <div className="col-span-2 text-center py-12 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
+                                <p className="text-slate-500 text-sm">{t('drivers.empty')}</p>
                             </div>
                         ) : (
                             filteredItems.map(motorista => {
@@ -521,12 +521,12 @@ export default function Motoristas() {
                                     <div
                                         key={motorista.id}
                                         onClick={() => setSelectedDriver(motorista)}
-                                        className={`flex ${viewMode === 'grid' ? 'flex-col justify-center' : 'flex-col md:flex-row justify-between'} items-center p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl group hover:border-blue-500/20 transition-all hover:bg-slate-800/50 cursor-pointer hover:shadow-lg hover:shadow-blue-500/5`}
+                                        className={`flex ${viewMode === 'grid' ? 'flex-col justify-center' : 'flex-col md:flex-row justify-between'} items-center p-4 bg-white/90 border border-slate-200/70 rounded-2xl group hover:border-blue-300 transition-all hover:shadow-md cursor-pointer`}
                                     >
                                         <div className={`flex items-center gap-4 w-full ${viewMode === 'grid' ? 'flex-col text-center' : 'flex-row md:flex-1 min-w-0 mb-4 md:mb-0 md:mr-4'}`}>
                                             <div className="relative">
-                                                <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 overflow-hidden">
-                                                    <Truck className="w-6 h-6 text-blue-400" />
+                                                <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 overflow-hidden">
+                                                    <Truck className="w-6 h-6 text-blue-600" />
                                                 </div>
                                                 {status && (
                                                     <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold border shadow-sm whitespace-nowrap ${status.color}`}>
@@ -535,7 +535,7 @@ export default function Motoristas() {
                                                 )}
                                             </div>
                                             <div className={viewMode === 'grid' ? 'w-full' : 'min-w-0'}>
-                                                <p className={`text-white font-medium ${viewMode === 'grid' ? 'text-center' : 'truncate'} group-hover:text-blue-400 transition-colors`}>{motorista.nome}</p>
+                                                <p className={`text-slate-900 font-semibold ${viewMode === 'grid' ? 'text-center' : 'truncate'} group-hover:text-blue-700 transition-colors`}>{motorista.nome}</p>
                                                 {viewMode === 'list' && (
                                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-0.5">
                                                         <span className="flex items-center gap-1 shrink-0">
@@ -543,24 +543,24 @@ export default function Motoristas() {
                                                             {motorista.contacto}
                                                         </span>
                                                         {motorista.email && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-700 pl-3 truncate max-w-[150px] sm:max-w-[200px]">
+                                                            <span className="flex items-center gap-1 border-l border-slate-200 pl-3 truncate max-w-[150px] sm:max-w-[200px]">
                                                                 <Mail className="w-3 h-3 shrink-0" />
                                                                 <span className="truncate">{motorista.email}</span>
                                                             </span>
                                                         )}
                                                         {motorista.folgas && motorista.folgas.length > 0 && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-700 pl-3 shrink-0 text-slate-400">
+                                                            <span className="flex items-center gap-1 border-l border-slate-200 pl-3 shrink-0 text-slate-400">
                                                                 <Calendar className="w-3 h-3 text-slate-500" />
                                                                 <span className="text-[10px] uppercase font-bold">Folgas: {motorista.folgas.join(', ')}</span>
                                                             </span>
                                                         )}
                                                         {motorista.cartaConducao && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-700 pl-3 shrink-0">
+                                                            <span className="flex items-center gap-1 border-l border-slate-200 pl-3 shrink-0">
                                                                 <FileText className="w-3 h-3" />
                                                                 {motorista.cartaConducao}
                                                             </span>
                                                         )}
-                                                        <span className="flex items-center gap-1 border-l border-slate-700 pl-3 shrink-0 uppercase text-[10px] font-bold text-blue-300">
+                                                        <span className="flex items-center gap-1 border-l border-slate-200 pl-3 shrink-0 uppercase text-[10px] font-bold text-blue-700">
                                                             {getTipoUtilizador(motorista)}
                                                         </span>
                                                     </div>
@@ -571,15 +571,15 @@ export default function Motoristas() {
                                         {viewMode === 'list' && (
                                             <div className="flex w-full md:w-auto justify-between md:justify-end items-center gap-2 shrink-0">
                                                 {motorista.pin && (
-                                                    <div className="hidden xl:flex items-center gap-2 mr-2 bg-slate-950/50 px-3 py-1.5 rounded-lg border border-slate-800/50">
+                                                    <div className="hidden xl:flex items-center gap-2 mr-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
                                                         <span className="font-mono text-xs text-slate-400">PIN:</span>
-                                                        <span className="font-mono text-sm font-bold text-emerald-400 tracking-widest">{motorista.pin}</span>
+                                                        <span className="font-mono text-sm font-bold text-emerald-700 tracking-widest">{motorista.pin}</span>
                                                     </div>
                                                 )}
 
                                                 <button
                                                     onClick={(e) => sharePin(e, motorista, 'sms')}
-                                                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl border border-transparent hover:border-blue-100 transition-colors"
                                                     title="Enviar PIN por SMS"
                                                 >
                                                     <MessageSquare className="w-4 h-4" />
@@ -587,7 +587,7 @@ export default function Motoristas() {
 
                                                 <button
                                                     onClick={(e) => sharePin(e, motorista, 'whatsapp')}
-                                                    className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                    className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl border border-transparent hover:border-emerald-100 transition-colors"
                                                     title="Enviar PIN por WhatsApp"
                                                 >
                                                     <Share2 className="w-4 h-4" />
@@ -595,7 +595,7 @@ export default function Motoristas() {
 
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setPermissionUser(motorista); }}
-                                                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl border border-transparent hover:border-blue-100 transition-colors"
                                                     title="Gerir Permissões"
                                                 >
                                                     <Shield className="w-4 h-4" />

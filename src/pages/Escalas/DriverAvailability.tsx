@@ -106,7 +106,7 @@ export default function DriverAvailability() {
             {/* Sidebar: Driver List */}
             <div className="w-full md:w-80 border-r border-white/5 flex flex-col bg-[#0b1120]/50 h-full">
                 <div className="p-6 border-b border-white/5">
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-[#1f2957] flex items-center gap-2">
                         <User className="w-5 h-5 text-blue-400" />
                         Motoristas
                     </h2>
@@ -122,7 +122,7 @@ export default function DriverAvailability() {
                                 : 'hover:bg-white/5 border border-transparent text-slate-400 hover:text-slate-200'
                                 }`}
                         >
-                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border border-white/10 shrink-0">
                                 {driver.foto ? (
                                     <img src={driver.foto} alt={driver.nome} className="w-full h-full rounded-full object-cover" />
                                 ) : (
@@ -148,10 +148,10 @@ export default function DriverAvailability() {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                                    <User className="w-8 h-8 text-white" />
+                                    <User className="w-8 h-8 text-slate-900" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-bold text-white">{localDriver.nome}</h1>
+                                    <h1 className="text-2xl font-bold text-slate-900">{localDriver.nome}</h1>
                                     <div className="flex items-center gap-4 mt-1">
                                         <span className="text-sm text-slate-400 flex items-center gap-1.5">
                                             <ShieldAlert className="w-4 h-4 text-amber-500" />
@@ -172,7 +172,7 @@ export default function DriverAvailability() {
                             {/* 1. Turnos de Trabalho */}
                             <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
                                 <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
-                                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                         <Clock className="w-4 h-4 text-blue-400" />
                                         Turnos de Trabalho
                                     </h3>
@@ -198,7 +198,7 @@ export default function DriverAvailability() {
                                                             type="time"
                                                             value={shift.inicio}
                                                             onChange={e => updateShift(localDriver, shift.id, { inicio: e.target.value })}
-                                                            className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white"
+                                                            className="w-full bg-white/90 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-900"
                                                         />
                                                     </div>
                                                     <div>
@@ -207,7 +207,7 @@ export default function DriverAvailability() {
                                                             type="time"
                                                             value={shift.fim}
                                                             onChange={e => updateShift(localDriver, shift.id, { fim: e.target.value })}
-                                                            className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white"
+                                                            className="w-full bg-white/90 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-900"
                                                         />
                                                     </div>
                                                 </div>
@@ -226,7 +226,7 @@ export default function DriverAvailability() {
                             {/* 2. Zonas Permitidas */}
                             <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
                                 <div className="p-4 border-b border-white/10 bg-white/5">
-                                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                         <MapPin className="w-4 h-4 text-emerald-400" />
                                         Zonas Operacionais
                                     </h3>
@@ -278,7 +278,7 @@ export default function DriverAvailability() {
                             {/* 3. Períodos Bloqueados */}
                             <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
                                 <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
-                                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                         <AlertCircle className="w-4 h-4 text-red-400" />
                                         Períodos Bloqueados
                                     </h3>
@@ -303,13 +303,13 @@ export default function DriverAvailability() {
                                                             type="time"
                                                             value={block.inicio}
                                                             onChange={e => updateBlockedPeriod(localDriver, block.id, { inicio: e.target.value })}
-                                                            className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                            className="bg-white/90 border border-white/10 rounded-lg px-2 py-1 text-xs text-slate-900"
                                                         />
                                                         <input
                                                             type="time"
                                                             value={block.fim}
                                                             onChange={e => updateBlockedPeriod(localDriver, block.id, { fim: e.target.value })}
-                                                            className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                            className="bg-white/90 border border-white/10 rounded-lg px-2 py-1 text-xs text-slate-900"
                                                         />
                                                     </div>
                                                     <button
@@ -335,7 +335,7 @@ export default function DriverAvailability() {
                             {/* 4. Restrições e Carga */}
                             <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
                                 <div className="p-4 border-b border-white/10 bg-white/5">
-                                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                         <Info className="w-4 h-4 text-blue-400" />
                                         Restrições de Carga
                                     </h3>
@@ -358,7 +358,7 @@ export default function DriverAvailability() {
                                                 const val = parseInt(e.target.value);
                                                 handleSave({ ...localDriver, maxDailyServices: val === 0 ? undefined : val });
                                             }}
-                                            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                         />
                                     </div>
 
@@ -374,7 +374,7 @@ export default function DriverAvailability() {
                                                     onClick={() => handleSave({ ...localDriver, minIntervalMinutes: val })}
                                                     className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${(localDriver.minIntervalMinutes || 30) === val
                                                         ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
-                                                        : 'bg-slate-900 border-white/5 text-slate-500 hover:text-slate-300'
+                                                        : 'bg-white/90 border-white/5 text-slate-500 hover:text-slate-300'
                                                         }`}
                                                 >
                                                     {val}m
@@ -388,7 +388,7 @@ export default function DriverAvailability() {
                     </div>
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-4">
-                        <div className="w-20 h-20 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5 animate-pulse">
+                        <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center border border-white/5 animate-pulse">
                             <User className="w-10 h-10 opacity-20" />
                         </div>
                         <p className="text-sm font-medium">Selecione um motorista para configurar a disponibilidade operacional.</p>

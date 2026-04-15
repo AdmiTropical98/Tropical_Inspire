@@ -70,7 +70,7 @@ export default function ApprovalsModal({ isOpen, onClose }: ApprovalsModalProps)
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-50/60 backdrop-blur-sm p-4">
             <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
                 
                 {/* Header */}

@@ -12,10 +12,10 @@ export default function Relatorios() {
     return (
         <div className="flex flex-col space-y-8">
             {/* Header Section */}
-            <div className="pb-8 border-b border-slate-800/50 bg-[#0f172a]/50 backdrop-blur-xl z-10">
+            <div className="pb-8 border-b border-slate-200/50 bg-[#0f172a]/50 backdrop-blur-xl z-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
                             <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
                                 <BarChart3 className="w-8 h-8 text-blue-500" />
                             </div>
@@ -27,12 +27,12 @@ export default function Relatorios() {
                     </div>
 
                     {/* Navigation Tabs */}
-                    <div className="flex bg-slate-900/50 p-1.5 rounded-xl border border-slate-800/50">
+                    <div className="flex bg-white/90 p-1.5 rounded-xl border border-slate-200/50">
                         <button
                             onClick={() => setActiveTab('dashboard')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'dashboard'
                                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
                                 }`}
                         >
                             <PieChart className="w-4 h-4" />
@@ -42,7 +42,7 @@ export default function Relatorios() {
                             onClick={() => setActiveTab('presets')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'presets'
                                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
                                 }`}
                         >
                             <FileText className="w-4 h-4" />
@@ -52,7 +52,7 @@ export default function Relatorios() {
                             onClick={() => setActiveTab('custom')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'custom'
                                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
                                 }`}
                         >
                             <SlidersHorizontal className="w-4 h-4" />
@@ -62,7 +62,7 @@ export default function Relatorios() {
                             onClick={() => setActiveTab('transport')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'transport'
                                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
                                 }`}
                         >
                             <BusFront className="w-4 h-4" />
@@ -72,7 +72,7 @@ export default function Relatorios() {
                             onClick={() => setActiveTab('monthly')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === 'monthly'
                                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
                                 }`}
                         >
                             <FileText className="w-4 h-4" />

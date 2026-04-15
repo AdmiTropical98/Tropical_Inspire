@@ -122,14 +122,14 @@ export default function MonthlyReportsView() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-700/50 bg-slate-900/50 p-5">
+      <section className="rounded-2xl border border-slate-200/50 bg-white/90 p-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <label className="text-sm text-slate-300">
             <span className="mb-1 block text-xs uppercase text-slate-400">Mês</span>
             <select
               value={month}
               onChange={(event) => setMonth(Number(event.target.value))}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+              className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-900"
             >
               {MONTHS.map((item) => (
                 <option key={item.value} value={item.value}>{item.label}</option>
@@ -143,7 +143,7 @@ export default function MonthlyReportsView() {
               type="number"
               value={year}
               onChange={(event) => setYear(Number(event.target.value))}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+              className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-900"
             />
           </label>
 
@@ -193,14 +193,14 @@ export default function MonthlyReportsView() {
             <button
               type="button"
               onClick={() => exportReportToPdf(report)}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700"
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-900 hover:bg-slate-700"
             >
               <FileDown className="h-4 w-4" /> Exportar PDF
             </button>
             <button
               type="button"
               onClick={() => exportReportToExcel(report)}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700"
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-900 hover:bg-slate-700"
             >
               <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
             </button>
@@ -213,20 +213,20 @@ export default function MonthlyReportsView() {
 
 function MetricCard({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+    <div className="rounded-xl border border-slate-200 bg-white/90 p-4">
       <p className="text-xs uppercase text-slate-400">{title}</p>
-      <p className="mt-2 text-xl font-black text-white">{value}</p>
+      <p className="mt-2 text-xl font-black text-slate-900">{value}</p>
     </div>
   );
 }
 
 function DataTable({ title, headers, rows }: { title: string; headers: string[]; rows: string[][] }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+    <section className="rounded-2xl border border-slate-200 bg-white/90 p-4">
       <h3 className="mb-3 text-sm font-bold uppercase text-slate-300">{title}</h3>
-      <div className="max-h-72 overflow-auto rounded-lg border border-slate-800">
+      <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
         <table className="w-full text-sm">
-          <thead className="bg-slate-900 text-xs uppercase text-slate-400">
+          <thead className="bg-white/90 text-xs uppercase text-slate-400">
             <tr>
               {headers.map((header) => (
                 <th key={header} className="px-3 py-2 text-left">{header}</th>

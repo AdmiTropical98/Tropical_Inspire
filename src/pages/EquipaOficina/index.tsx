@@ -119,7 +119,7 @@ export default function EquipaOficina() {
             )}
 
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
                         <Wrench className="w-6 h-6 text-orange-400" />
                     </div>
@@ -137,7 +137,7 @@ export default function EquipaOficina() {
                         </div>
                         <TrendingUp className="w-5 h-5 text-orange-400/50" />
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.total}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.total}</p>
                     <p className="text-sm text-slate-400">{t('team.stats.total')}</p>
                 </div>
 
@@ -147,7 +147,7 @@ export default function EquipaOficina() {
                             <Users className="w-6 h-6 text-emerald-400" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.active}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.active}</p>
                     <p className="text-sm text-slate-400">{t('team.stats.active')}</p>
                 </div>
 
@@ -157,19 +157,19 @@ export default function EquipaOficina() {
                             <UserX className="w-6 h-6 text-red-400" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{stats.blocked}</p>
+                    <p className="text-3xl font-bold text-slate-900 mb-1">{stats.blocked}</p>
                     <p className="text-sm text-slate-400">{t('team.stats.blocked')}</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Add Form */}
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
-                    <h3 className="font-bold text-white mb-6 text-lg">{t('team.form.title')}</h3>
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-3xl p-6 lg:p-8 h-fit">
+                    <h3 className="font-bold text-slate-900 mb-6 text-lg">{t('team.form.title')}</h3>
                     <form onSubmit={handleCreateOficinaUser} className="space-y-4">
                         {/* Static Icon */}
                         <div className="flex justify-center mb-4">
-                            <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
+                            <div className="w-24 h-24 rounded-full bg-white/90 border-2 border-slate-200 flex items-center justify-center">
                                 <Wrench className="w-12 h-12 text-slate-600" />
                             </div>
                         </div>
@@ -181,7 +181,7 @@ export default function EquipaOficina() {
                                 required
                                 value={newOficinaUser.nome}
                                 onChange={e => setNewOficinaUser({ ...newOficinaUser, nome: e.target.value })}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-orange-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 outline-none mt-1 transition-all hover:border-slate-200"
                                 placeholder="Ex: Manuel Silva"
                             />
                         </div>
@@ -193,7 +193,7 @@ export default function EquipaOficina() {
                                     required
                                     value={newOficinaUser.telemovel}
                                     onChange={e => setNewOficinaUser({ ...newOficinaUser, telemovel: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-orange-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 outline-none mt-1 transition-all hover:border-slate-200"
                                     placeholder="912 345 678"
                                     pattern="[0-9]{9,}"
                                     title="Mínimo 9 dígitos"
@@ -204,7 +204,7 @@ export default function EquipaOficina() {
                                 <select
                                     value={newOficinaUser.centroCustoId}
                                     onChange={e => setNewOficinaUser({ ...newOficinaUser, centroCustoId: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:ring-1 focus:ring-orange-500 outline-none mt-1 transition-all hover:border-slate-700"
+                                    className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 outline-none mt-1 transition-all hover:border-slate-200"
                                 >
                                     <option value="">Selecionar...</option>
                                     {centrosCustos.map(cc => (
@@ -221,9 +221,9 @@ export default function EquipaOficina() {
                 </div>
 
                 {/* List */}
-                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 lg:p-8 h-fit">
+                <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-3xl p-6 lg:p-8 h-fit">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-white text-lg">{t('team.list.title')}</h3>
+                        <h3 className="font-bold text-slate-900 text-lg">{t('team.list.title')}</h3>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setViewMode('list')}
@@ -251,7 +251,7 @@ export default function EquipaOficina() {
                                 placeholder="Pesquisar..."
                                 value={filter}
                                 onChange={e => setFilter(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:border-orange-500 outline-none transition-all"
+                                className="w-full pl-9 pr-4 py-2 bg-white/90 border border-slate-200 rounded-lg text-sm text-slate-900 focus:border-orange-500 outline-none transition-all"
                             />
                         </div>
 
@@ -262,7 +262,7 @@ export default function EquipaOficina() {
                                     onClick={() => setStatusFilter(status)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === status
                                         ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/25'
-                                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-100 hover:text-slate-300'
                                         }`}
                                 >
                                     {t(`team.filter.${status}`)}
@@ -273,7 +273,7 @@ export default function EquipaOficina() {
                         <select
                             value={sortBy}
                             onChange={e => setSortBy(e.target.value as any)}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-500 outline-none"
+                            className="w-full bg-white/90 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-orange-500 outline-none"
                         >
                             <option value="name">{t('team.sort.name')}</option>
                             <option value="date">{t('team.sort.date')}</option>
@@ -282,14 +282,14 @@ export default function EquipaOficina() {
 
                     <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
                         {filteredItems.length === 0 ? (
-                            <div className="col-span-2 text-center py-12 bg-slate-800/20 rounded-2xl border border-slate-800 border-dashed">
+                            <div className="col-span-2 text-center py-12 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
                                 <p className="text-slate-400 text-sm">{t('team.list.empty')}</p>
                             </div>
                         ) : (
                             filteredItems.map(user => (
-                                <div key={user.id} className={`flex ${viewMode === 'grid' ? 'flex-col items-center text-center' : 'items-center justify-between'} p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl group hover:border-orange-500/20 transition-all`}>
+                                <div key={user.id} className={`flex ${viewMode === 'grid' ? 'flex-col items-center text-center' : 'items-center justify-between'} p-4 bg-slate-50 border border-slate-200/50 rounded-xl group hover:border-orange-500/20 transition-all`}>
                                     <div className={`flex items-center gap-3 ${viewMode === 'grid' ? 'flex-col' : 'flex-1'}`}>
-                                        <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                                        <div className="w-10 h-10 rounded-full bg-white/90 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                                             {user.foto ? (
                                                 <img src={user.foto} alt={user.nome} className="w-full h-full object-cover" />
                                             ) : (
@@ -297,13 +297,13 @@ export default function EquipaOficina() {
                                             )}
                                         </div>
                                         <div className={viewMode === 'grid' ? 'w-full' : ''}>
-                                            <p className="text-white font-medium text-sm">{user.nome}</p>
+                                            <p className="text-slate-900 font-medium text-sm">{user.nome}</p>
                                             <p className="text-xs text-slate-500">{user.telemovel || 'Sem contacto'}</p>
                                         </div>
                                     </div>
                                     {viewMode === 'list' && (
                                         <div className="flex items-center gap-2">
-                                            <span className="font-mono text-xs bg-slate-950 px-2 py-1 rounded text-slate-400 border border-slate-800 mr-2">PIN: {user.pin}</span>
+                                            <span className="font-mono text-xs bg-white px-2 py-1 rounded text-slate-400 border border-slate-200 mr-2">PIN: {user.pin}</span>
                                             <button
                                                 onClick={() => handleSharePin(user, 'sms')}
                                                 className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"

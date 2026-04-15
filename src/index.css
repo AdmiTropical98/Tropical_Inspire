@@ -33,13 +33,16 @@
     overflow-y: auto;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    background-image: url('/fundo_páginas.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 
   body {
     @apply antialiased selection:bg-amber-500/20;
-    background:
-      radial-gradient(circle at 8% 12%, rgba(30, 64, 175, 0.04), transparent 34%),
-      radial-gradient(circle at 92% 18%, rgba(148, 163, 184, 0.08), transparent 28%);
+    background-color: transparent;
     color: var(--sf-text-primary);
     font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.4;
@@ -63,21 +66,23 @@
 @layer components {
 
   .surface-card {
-    @apply bg-white/70 backdrop-blur-md border border-slate-200/50 rounded-2xl;
-    box-shadow: var(--sf-shadow-card);
+    @apply bg-white/90 backdrop-blur-md border border-slate-200/60 rounded-2xl;
+    box-shadow: 0 4px 20px -6px rgba(15, 23, 42, 0.10);
   }
 
   .surface-toolbar {
-    @apply bg-white/80 backdrop-blur-lg border-b border-slate-200/50;
+    @apply bg-white/90 backdrop-blur-lg border-b border-slate-200/60;
   }
 
   /* Glassmorphism Utilities - Light Theme Optimized */
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl rounded-2xl;
+    @apply bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl;
+    box-shadow: 0 4px 20px -6px rgba(15, 23, 42, 0.10);
   }
 
   .glass-card {
-    @apply bg-white/50 backdrop-blur-md border border-white/40 hover:bg-white/80 hover:border-blue-500/30 transition-all duration-300 rounded-xl shadow-lg hover:shadow-xl;
+    @apply bg-white/80 backdrop-blur-md border border-slate-200/60 hover:bg-white/95 hover:border-amber-200/60 transition-all duration-300 rounded-2xl;
+    box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.08);
   }
 
   .glass-button {
@@ -85,7 +90,26 @@
   }
 
   .glass-input {
-    @apply bg-white/50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all placeholder:text-slate-400;
+    @apply bg-white/90 border border-slate-200/80 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400/60 transition-all placeholder:text-slate-400;
+  }
+
+  /* Primary action button — yellow gradient like login */
+  .btn-primary {
+    @apply flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-extrabold text-white transition-all hover:brightness-105 active:scale-[0.98];
+    background: linear-gradient(90deg, #d59d31 0%, #e8b547 40%, #ffcc58 100%);
+    box-shadow: 0 6px 18px rgba(201, 163, 78, 0.30);
+  }
+
+  /* Secondary neutral button */
+  .btn-secondary {
+    @apply flex items-center justify-center rounded-2xl border border-slate-200 bg-white/90 px-6 py-3 text-sm font-semibold text-slate-600 backdrop-blur-sm transition-all hover:bg-white hover:border-slate-300 active:scale-[0.98];
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  }
+
+  /* Stat / KPI card */
+  .kpi-card {
+    @apply rounded-2xl border border-slate-200/60 bg-white/90 backdrop-blur-md p-5;
+    box-shadow: 0 4px 20px -6px rgba(15, 23, 42, 0.10);
   }
 }
 
@@ -93,9 +117,9 @@
 .app-root .bg-slate-50,
 .app-root .surface-card,
 .app-root .surface-toolbar {
-  background-color: rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
 }
 
 /* Legacy compatibility layer: keep original page palettes to preserve contrast. */
@@ -133,29 +157,21 @@ input::-webkit-credentials-auto-fill-button {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Login Page Specific Scrollbar - Pequeno, Discreto e Moderno */
+/* Login Page Specific Scrollbar - Invisible */
 .login-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+  scrollbar-width: none;
 }
 
 .login-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  display: none;
 }
 
-.login-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.login-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
-  border-radius: 20px;
-  transition: background 0.2s ease;
-}
-
-.login-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
+/* Lock scroll when login page is active */
+html.login-active,
+html.login-active body,
+html.login-active #root {
+  overflow: hidden !important;
+  height: 100% !important;
 }
 
 @layer utilities {
@@ -473,7 +489,7 @@ input::-webkit-credentials-auto-fill-button {
 
 /* Global App Content Background */
 .app-content-bg {
-  background-image: url('/APP_BACKGROUND.jpg');
+  background-image: url('/fundo_páginas.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -485,7 +501,7 @@ input::-webkit-credentials-auto-fill-button {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(241, 245, 249, 0.75); /* Reduced opacity for better map visibility */
+  background: rgba(248, 250, 252, 0.68);
   z-index: 0;
 }
 
@@ -494,15 +510,14 @@ input::-webkit-credentials-auto-fill-button {
   z-index: 1;
 }
 
-/* Bootstrap-compatible ERP top navbar */
+/* Bootstrap-compatible ERP top navbar — Light glass theme aligned with login */
 .custom-navbar {
-  min-height: 96px;
-  background:
-    repeating-linear-gradient(112deg, rgba(56, 189, 248, 0.14) 0 1px, transparent 1px 13px),
-    repeating-linear-gradient(112deg, rgba(59, 130, 246, 0.08) 0 2px, transparent 2px 42px),
-    linear-gradient(120deg, #031c44 0%, #032557 38%, #021b44 72%, #01163a 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.28);
+  min-height: 72px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.10), 0 1px 0 rgba(226, 232, 240, 0.6);
   position: relative;
   z-index: 5000 !important;
   overflow: visible !important;
@@ -563,7 +578,7 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 .custom-navbar .container-fluid {
-  min-height: 96px;
+  min-height: 72px;
   align-items: center;
 }
 
@@ -592,6 +607,10 @@ input::-webkit-credentials-auto-fill-button {
 
   .custom-navbar .navbar-collapse.show {
     display: block !important;
+    background: rgba(255, 255, 255, 0.97) !important;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    padding: 12px 0 16px;
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.12);
   }
 }
 
@@ -619,7 +638,7 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 .custom-navbar .navbar-brand img.navbar-logo-image {
-  transform: scale(4.35);
+  transform: scale(3.5);
   transform-origin: left center;
   margin-left: 24px;
   margin-right: 24px;
@@ -627,82 +646,88 @@ input::-webkit-credentials-auto-fill-button {
 
 @media (max-width: 991.98px) {
   .custom-navbar .navbar-brand img.navbar-logo-image {
-    transform: scale(3.2);
+    transform: scale(2.6);
     margin-left: 14px;
     margin-right: 14px;
   }
 }
 
 .custom-navbar .navbar-nav {
-  gap: 24px;
+  gap: 6px;
 }
 
 .custom-navbar .nav-link {
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: #475569 !important;
   font-weight: 600;
-  border-radius: 12px;
-  padding: 10px 14px !important;
+  border-radius: 10px;
+  padding: 8px 14px !important;
   position: relative;
-  transition: all 0.25s ease;
+  transition: all 0.22s ease;
+  font-size: 14px;
 }
 
 .custom-navbar .nav-link:hover {
-  color: #fff !important;
-  background: rgba(255, 255, 255, 0.06);
+  color: #1f2957 !important;
+  background: rgba(37, 99, 235, 0.07);
 }
 
 .custom-navbar .nav-link.active {
-  color: #fff !important;
-  background: #2563eb;
-  box-shadow: 0 10px 22px rgba(30, 58, 138, 0.45);
+  color: #1f2957 !important;
+  background: rgba(212, 158, 49, 0.13);
+  box-shadow: none;
 }
 
 .custom-navbar .nav-link.active::after {
   content: '';
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: -4px;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
   height: 2px;
   border-radius: 999px;
-  background: #93c5fd;
+  background: linear-gradient(90deg, #d59d31, #ffcc58);
 }
 
 .custom-navbar .dropdown-menu {
   margin-top: 10px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(30, 41, 59, 0.97);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px -8px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(15, 23, 42, 0.06);
   z-index: 9999 !important;
   position: absolute !important;
 }
 
 .custom-navbar .dropdown-item {
-  color: #cbd5e1;
+  color: #475569;
   border-radius: 10px;
   font-weight: 600;
   padding: 9px 12px;
 }
 
 .custom-navbar .dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: rgba(37, 99, 235, 0.07);
+  color: #1f2957;
 }
 
 .custom-navbar .dropdown-item.active {
-  background: #2563eb;
-  color: #fff;
+  background: rgba(212, 158, 49, 0.13);
+  color: #1f2957;
 }
 
 .custom-navbar .navbar-toggler {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(100, 116, 139, 0.3);
+  background: rgba(241, 245, 249, 0.8);
+}
+
+.custom-navbar .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(71, 85, 105, 0.9)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
 .custom-navbar .navbar-toggler:focus {
-  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 0 0.2rem rgba(212, 158, 49, 0.25);
 }
 
 .custom-navbar .navbar-user {

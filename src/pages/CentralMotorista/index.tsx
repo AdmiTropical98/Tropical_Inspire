@@ -102,7 +102,7 @@ export default function CentralMotorista() {
                         <div className="flex items-center gap-5">
                             <div className="relative">
                                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-2xl shadow-blue-900/40">
-                                    <Star className="w-8 h-8 md:w-10 md:h-10 text-white/90" />
+                                    <Star className="w-8 h-8 md:w-10 md:h-10 text-slate-900/90" />
                                 </div>
                                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
                                     <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>
@@ -178,7 +178,7 @@ export default function CentralMotorista() {
                                 onClick={() => setTagModalOpen(true)}
                                 className="w-full flex flex-col items-center gap-2 p-6 rounded-3xl bg-white border border-slate-200 hover:border-blue-300 transition-all text-center group shadow-sm"
                             >
-                                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-600 group-hover:text-slate-900 transition-all">
                                     <Settings2 className="w-6 h-6" />
                                 </div>
                                 <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mt-1">Configurar Tag</p>
@@ -197,7 +197,7 @@ export default function CentralMotorista() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm group hover:border-blue-300 transition-all">
                                             <div className="flex justify-between items-start mb-6">
-                                                <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-400 group-hover:bg-blue-600 group-hover:text-slate-900 transition-all">
                                                     <Clock className="w-6 h-6" />
                                                 </div>
                                                 <span className="text-[10px] font-black bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full uppercase tracking-tighter">Hoje</span>
@@ -208,7 +208,7 @@ export default function CentralMotorista() {
 
                                         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm group hover:border-emerald-300 transition-all">
                                             <div className="flex justify-between items-start mb-4">
-                                                <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                                                <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400 group-hover:bg-emerald-600 group-hover:text-slate-900 transition-all">
                                                     <Navigation className="w-6 h-6" />
                                                 </div>
                                                 <span className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full uppercase tracking-tighter">Total</span>
@@ -219,7 +219,7 @@ export default function CentralMotorista() {
 
                                         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm group hover:border-amber-300 transition-all">
                                             <div className="flex justify-between items-start mb-4">
-                                                <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-400 group-hover:bg-amber-600 group-hover:text-white transition-all">
+                                                <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-400 group-hover:bg-amber-600 group-hover:text-slate-900 transition-all">
                                                     <Fuel className="w-6 h-6" />
                                                 </div>
                                                 <span className="text-[10px] font-black bg-amber-500/10 text-amber-400 px-3 py-1 rounded-full uppercase tracking-tighter">Eco</span>

@@ -37,7 +37,7 @@ export default function OperationalControl() {
             <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-2">
                     <Terminal className="w-5 h-5 text-blue-500" />
-                    <h2 className="text-xl font-black text-white tracking-tight">Terminal de Comandos</h2>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Terminal de Comandos</h2>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
@@ -70,7 +70,7 @@ export default function OperationalControl() {
             </div>
 
             {/* Security Status Hub */}
-            <div className="bg-slate-900/60 border border-slate-800/60 rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden group">
+            <div className="bg-white/90/60 border border-slate-200/60 rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                     <ShieldAlert className="w-32 h-32 text-blue-500 transform rotate-12" />
                 </div>
@@ -81,7 +81,7 @@ export default function OperationalControl() {
                             <ShieldCheck className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-black text-white">Segurança do Núcleo</h3>
+                            <h3 className="text-xl font-black text-slate-900">Segurança do Núcleo</h3>
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Protocolos Activos: 14</p>
                         </div>
                     </div>
@@ -93,10 +93,10 @@ export default function OperationalControl() {
                         <SecurityStatus label="Integridade de Dados" status="Verificado (5m ago)" ok />
                     </div>
 
-                    <div className="mt-12 p-6 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+                    <div className="mt-12 p-6 rounded-2xl bg-slate-50 border border-slate-200/50">
                         <div className="flex items-center gap-4 mb-4">
                             <Zap className="w-5 h-5 text-blue-500" />
-                            <span className="text-xs font-black text-white uppercase tracking-widest">Quick Scan</span>
+                            <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Quick Scan</span>
                         </div>
                         <div className="relative h-2 w-full bg-slate-700 rounded-full overflow-hidden">
                             <div className="absolute top-0 left-0 h-full bg-blue-500 w-full animate-progress-slow" />
@@ -118,11 +118,11 @@ function CommandBox({ icon: Icon, title, desc, onClick, danger }: any) {
             onClick={onClick}
             className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left group ${danger
                     ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10 hover:border-red-500/40'
-                    : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600'
+                    : 'bg-slate-50 border-slate-200/50 hover:bg-slate-100 hover:border-slate-300'
                 }`}
         >
             <div className="flex items-center gap-4">
-                <div className={`p-2.5 rounded-xl bg-slate-900 shadow-inner ${danger ? 'text-red-500' : 'text-blue-500'}`}>
+                <div className={`p-2.5 rounded-xl bg-white/90 shadow-inner ${danger ? 'text-red-500' : 'text-blue-500'}`}>
                     <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </div>
                 <div>

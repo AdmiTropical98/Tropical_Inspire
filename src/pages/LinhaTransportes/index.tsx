@@ -777,7 +777,7 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
                             <span className="flex items-center gap-2 font-medium italic"><MapPin size={10} className="text-blue-500" /> Próxima</span>
                             <span className="text-blue-400 truncate max-w-[100px]">{nextStop}</span>
                           </div>
-                          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div className="h-full bg-blue-500 transition-all duration-1000 shadow-[0_0_15px_rgba(59,130,246,0.5)]" style={{ width: `${(progress.currentSegmentIndex / (stops.length - 1)) * 100}%` }} />
                           </div>
                         </div>

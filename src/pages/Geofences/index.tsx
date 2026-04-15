@@ -183,10 +183,10 @@ export default function Geofences() {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-600 rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.4)]">
-                        <MapPin className="w-8 h-8 text-white" />
+                        <MapPin className="w-8 h-8 text-slate-900" />
                     </div>
                     <div>
-                        <h1 className="text-4xl font-black text-white tracking-tighter leading-none">
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
                             FROTA LIVE
                         </h1>
                         <p className="text-blue-500/60 font-black mt-2 text-[10px] uppercase tracking-[0.3em] font-mono">Control System v4.0</p>
@@ -197,14 +197,14 @@ export default function Geofences() {
                     <div className="flex bg-[#161625] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
                         <button
                             onClick={() => setActiveTab('map')}
-                            className={`px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 uppercase tracking-widest ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                            className={`px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 uppercase tracking-widest ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-900'}`}
                         >
                             <Layers className="w-4 h-4" />
                             Mapa Principal
                         </button>
                         <button
                             onClick={() => setActiveTab('history')}
-                            className={`px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 uppercase tracking-widest ${activeTab === 'history' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                            className={`px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 uppercase tracking-widest ${activeTab === 'history' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-900'}`}
                         >
                             <History className="w-4 h-4" />
                             Histórico
@@ -261,7 +261,7 @@ export default function Geofences() {
                     {/* SIDEBAR - DEFINITIVE WIDTH & SCROLL */}
                     <div className="w-full xl:w-[320px] h-[400px] xl:h-auto bg-[#161625] rounded-[32px] border border-white/5 shadow-2xl flex flex-col overflow-hidden shrink-0">
                         <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                            <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.25em] flex items-center gap-2">
+                            <h3 className="text-[10px] font-black text-slate-900/50 uppercase tracking-[0.25em] flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                 Lista de Viaturas
                             </h3>
@@ -281,13 +281,13 @@ export default function Geofences() {
                                 >
                                     <div className="flex justify-between items-center">
                                         <div className="min-w-0">
-                                            <div className="font-mono font-black text-xl text-white group-hover:text-blue-400 transition-colors uppercase leading-none tracking-tighter">{vehicle.registration}</div>
+                                            <div className="font-mono font-black text-xl text-slate-900 group-hover:text-blue-400 transition-colors uppercase leading-none tracking-tighter">{vehicle.registration}</div>
                                             <div className="flex items-center gap-1.5 mt-2">
-                                                <div className="p-1 bg-slate-800 rounded text-slate-400 group-hover:text-blue-400 transition-colors">
+                                                <div className="p-1 bg-slate-100 rounded text-slate-400 group-hover:text-blue-400 transition-colors">
                                                     <Car className="w-2.5 h-2.5" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <p className="text-[10px] text-white font-black uppercase truncate tracking-widest leading-tight">{vehicle.driverName || 'Sem Motorista'}</p>
+                                                    <p className="text-[10px] text-slate-900 font-black uppercase truncate tracking-widest leading-tight">{vehicle.driverName || 'Sem Motorista'}</p>
                                                     {vehicle.tagId && (
                                                         <p className="text-[8px] text-blue-400 font-mono font-bold mt-1 uppercase tracking-tighter bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 w-fit">
                                                             Tag: {vehicle.tagId}
@@ -308,7 +308,7 @@ export default function Geofences() {
                                                 }`}>
                                                 {vehicle.status === 'moving' ? 'ANDAR' : vehicle.status === 'idle' ? 'RELANTI' : 'STOP'}
                                             </div>
-                                            <div className="font-mono font-black text-[10px] text-white/80">
+                                            <div className="font-mono font-black text-[10px] text-slate-900/80">
                                                 {Math.round(vehicle.speed)}<span className="text-[8px] text-slate-700 ml-0.5 uppercase">km/h</span>
                                             </div>
                                         </div>
@@ -336,7 +336,7 @@ export default function Geofences() {
                                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Status do Sinal</span>
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                        <span className="text-white font-mono font-black text-xs">ENCRIPTADO / SEGURO</span>
+                                        <span className="text-slate-900 font-mono font-black text-xs">ENCRIPTADO / SEGURO</span>
                                     </div>
                                 </div>
                             </div>
@@ -348,7 +348,7 @@ export default function Geofences() {
                     <div className="bg-[#161625] rounded-[40px] border border-white/5 p-10 shadow-2xl">
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-12">
                             <div>
-                                <h3 className="text-4xl font-black text-white flex items-center gap-4 tracking-tighter">
+                                <h3 className="text-4xl font-black text-slate-900 flex items-center gap-4 tracking-tighter">
                                     <History className="w-10 h-10 text-blue-500" />
                                     REGISTO DE LOGÍSTICA
                                 </h3>
@@ -386,14 +386,14 @@ export default function Geofences() {
                                                     <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                                                         <Car className="w-6 h-6" />
                                                     </div>
-                                                    <span className="font-mono font-black text-white text-xl uppercase tracking-tighter">{visit.registration}</span>
+                                                    <span className="font-mono font-black text-slate-900 text-xl uppercase tracking-tighter">{visit.registration}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 bg-black/30 border-y border-white/5 group-hover:bg-blue-600/10 transition-colors">
-                                                <span className="text-white font-black text-xs uppercase tracking-widest">{visit.driverName}</span>
+                                                <span className="text-slate-900 font-black text-xs uppercase tracking-widest">{visit.driverName}</span>
                                             </td>
                                             <td className="px-8 py-6 bg-black/30 border-y border-white/5 group-hover:bg-blue-600/10 transition-colors">
-                                                <div className="flex items-center gap-3 text-white font-bold">
+                                                <div className="flex items-center gap-3 text-slate-900 font-bold">
                                                     <MapPin className="w-4 h-4 text-blue-500" />
                                                     <span className="uppercase text-sm tracking-tight">{visit.geofenceName}</span>
                                                 </div>
@@ -415,7 +415,7 @@ export default function Geofences() {
                                                 )}
                                             </td>
                                             <td className="px-8 py-6 bg-black/30 rounded-r-3xl border-y border-r border-white/5 group-hover:bg-blue-600/10 transition-colors">
-                                                <span className="text-white/60 font-black text-sm tracking-tighter font-mono">
+                                                <span className="text-slate-900/60 font-black text-sm tracking-tighter font-mono">
                                                     {visit.durationSeconds ? `${Math.floor(visit.durationSeconds / 60)}m ${visit.durationSeconds % 60}s` : '--'}
                                                 </span>
                                             </td>
@@ -458,10 +458,10 @@ export default function Geofences() {
                     <div className="bg-[#161625] w-full max-w-2xl rounded-[40px] border border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
                         <div className="p-8 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-transparent">
                             <div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Mapeamento de Geofences</h3>
+                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Mapeamento de Geofences</h3>
                                 <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">Vincule geofences da Cartrack a Centros de Custo</p>
                             </div>
-                            <button onClick={() => setIsMappingModalOpen(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all text-slate-400 hover:text-white">
+                            <button onClick={() => setIsMappingModalOpen(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all text-slate-400 hover:text-slate-900">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
@@ -478,7 +478,7 @@ export default function Geofences() {
                                         <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
                                             <MapPin className="w-4 h-4" />
                                         </div>
-                                        <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{geo.name}</span>
+                                        <span className="text-sm font-bold text-slate-900 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{geo.name}</span>
                                     </div>
                                     <select
                                         value={geofenceMappings[geo.name] || ''}

@@ -320,7 +320,7 @@ function ScoreBadge({ score }: { score: number }) {
                     </linearGradient>
                 </defs>
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-white">{score}</span>
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-slate-900">{score}</span>
         </div>
     );
 }
@@ -412,7 +412,7 @@ export default function EficienciaFrota() {
                 subtitle="Custo operacional por quilómetro · Análise automática"
                 icon={Gauge}
                 actions={
-                    <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-2 border border-slate-200/50">
                         <Activity className="w-3.5 h-3.5 text-blue-400" />
                         <span>{segments.length} segmentos analisados</span>
                     </div>
@@ -476,14 +476,14 @@ export default function EficienciaFrota() {
                 )}
 
                 {/* ── TABS ── */}
-                <div className="flex items-center gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-800/60 w-fit">
+                <div className="flex items-center gap-1 bg-white/90/60 rounded-xl p-1 border border-slate-200/60 w-fit">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${activeTab === tab.id
                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                : 'text-slate-400 hover:text-slate-900 hover:bg-white/5'
                                 }`}
                         >
                             <tab.icon className="w-4 h-4" />
@@ -499,8 +499,8 @@ export default function EficienciaFrota() {
                             <EmptyState message="Sem dados de abastecimento suficientes para calcular eficiência. São necessários pelo menos 2 abastecimentos por viatura com KM registados." />
                         ) : (
                             vehicleStats.map(v => (
-                                <div key={v.vehicleId} className={`bg-slate-900/60 border rounded-xl overflow-hidden transition-all duration-300 hover:border-slate-600/60
-                                ${v.alerta === 'critico' ? 'border-red-500/40' : v.alerta === 'alto' ? 'border-amber-500/30' : 'border-slate-800/60'}`}>
+                                <div key={v.vehicleId} className={`bg-white/90/60 border rounded-xl overflow-hidden transition-all duration-300 hover:border-slate-300/60
+                                ${v.alerta === 'critico' ? 'border-red-500/40' : v.alerta === 'alto' ? 'border-amber-500/30' : 'border-slate-200/60'}`}>
 
                                     {/* Vehicle Row */}
                                     <button
@@ -513,7 +513,7 @@ export default function EficienciaFrota() {
                                         {/* Vehicle Info */}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-black text-white text-base">{v.matricula}</span>
+                                                <span className="font-black text-slate-900 text-base">{v.matricula}</span>
                                                 <span className="text-slate-400 text-xs">{v.marca} {v.modelo}</span>
                                                 <AlertBadge level={v.alerta} />
                                             </div>
@@ -566,12 +566,12 @@ export default function EficienciaFrota() {
 
                                     {/* Expanded: Segments table */}
                                     {expandedVehicle === v.vehicleId && (
-                                        <div className="border-t border-slate-800/60 bg-slate-950/40 p-4">
+                                        <div className="border-t border-slate-200/60 bg-white/40 p-4">
                                             <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-3">Histórico de Abastecimentos ({v.segmentos.length})</p>
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-xs">
                                                     <thead>
-                                                        <tr className="text-slate-500 text-left border-b border-slate-800/60">
+                                                        <tr className="text-slate-500 text-left border-b border-slate-200/60">
                                                             <th className="pb-2 pr-4 font-semibold">Data</th>
                                                             <th className="pb-2 pr-4 font-semibold">KM Percorridos</th>
                                                             <th className="pb-2 pr-4 font-semibold">Litros</th>
@@ -618,8 +618,8 @@ export default function EficienciaFrota() {
                             <EmptyState message="Sem dados de motoristas nos abastecimentos. Verifique se os abastecimentos têm motoristas associados." />
                         ) : (
                             driverStats.map((d, idx) => (
-                                <div key={d.driverId} className={`bg-slate-900/60 border rounded-xl overflow-hidden transition-all hover:border-slate-600/60
-                                ${d.alerta === 'critico' ? 'border-red-500/40' : d.alerta === 'alto' ? 'border-amber-500/30' : 'border-slate-800/60'}`}>
+                                <div key={d.driverId} className={`bg-white/90/60 border rounded-xl overflow-hidden transition-all hover:border-slate-300/60
+                                ${d.alerta === 'critico' ? 'border-red-500/40' : d.alerta === 'alto' ? 'border-amber-500/30' : 'border-slate-200/60'}`}>
                                     <button
                                         className="w-full flex items-center gap-4 p-4 hover:bg-white/2 transition-colors text-left"
                                         onClick={() => setExpandedDriver(expandedDriver === d.driverId ? null : d.driverId)}
@@ -628,13 +628,13 @@ export default function EficienciaFrota() {
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0
                                         ${idx === 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
                                                 idx === driverStats.length - 1 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                                                    'bg-slate-800 text-slate-400 border border-slate-700'}`}>
+                                                    'bg-slate-100 text-slate-400 border border-slate-200'}`}>
                                             {idx === driverStats.length - 1 ? <Award className="w-5 h-5" /> : idx + 1}
                                         </div>
 
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-bold text-white">{d.nome}</span>
+                                                <span className="font-bold text-slate-900">{d.nome}</span>
                                                 <AlertBadge level={d.alerta} />
                                             </div>
                                             <p className="text-slate-500 text-xs mt-0.5">
@@ -656,7 +656,7 @@ export default function EficienciaFrota() {
                                                 <p className="text-slate-500 text-[10px]">€/km médio</p>
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-sm font-black text-white">{fmtEur(d.custoTotal)}</p>
+                                                <p className="text-sm font-black text-slate-900">{fmtEur(d.custoTotal)}</p>
                                                 <p className="text-slate-500 text-[10px]">Custo Total</p>
                                             </div>
                                         </div>
@@ -669,7 +669,7 @@ export default function EficienciaFrota() {
                                     {/* Mobile */}
                                     <div className="md:hidden grid grid-cols-3 gap-2 px-4 pb-3">
                                         <div className="text-center">
-                                            <p className="text-xs font-bold text-white">{d.kmConduzidos.toLocaleString('pt-PT')}</p>
+                                            <p className="text-xs font-bold text-slate-900">{d.kmConduzidos.toLocaleString('pt-PT')}</p>
                                             <p className="text-slate-500 text-[10px]">km</p>
                                         </div>
                                         <div className="text-center">
@@ -684,7 +684,7 @@ export default function EficienciaFrota() {
 
                                     {/* Expanded: consumption bar */}
                                     {expandedDriver === d.driverId && (
-                                        <div className="border-t border-slate-800/60 bg-slate-950/40 p-4 space-y-3">
+                                        <div className="border-t border-slate-200/60 bg-white/40 p-4 space-y-3">
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                                 {[
                                                     { label: 'KM Conduzidos', value: `${d.kmConduzidos.toLocaleString('pt-PT')} km` },
@@ -692,8 +692,8 @@ export default function EficienciaFrota() {
                                                     { label: 'Custo Total', value: fmtEur(d.custoTotal) },
                                                     { label: '€/km Médio', value: `${fmt(d.custoKmMedio, 3)} €/km` },
                                                 ].map(item => (
-                                                    <div key={item.label} className="bg-slate-900/60 rounded-lg p-3 border border-slate-800/60">
-                                                        <p className="text-white font-bold">{item.value}</p>
+                                                    <div key={item.label} className="bg-white/90/60 rounded-lg p-3 border border-slate-200/60">
+                                                        <p className="text-slate-900 font-bold">{item.value}</p>
                                                         <p className="text-slate-500 text-xs">{item.label}</p>
                                                     </div>
                                                 ))}
@@ -702,7 +702,7 @@ export default function EficienciaFrota() {
                                                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Viaturas utilizadas</p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {d.veiculosUsados.map(vid => (
-                                                        <span key={vid} className="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-2 py-1 rounded-lg">{vid}</span>
+                                                        <span key={vid} className="text-xs bg-slate-100 border border-slate-200 text-slate-300 px-2 py-1 rounded-lg">{vid}</span>
                                                     ))}
                                                 </div>
                                             </div>
@@ -746,7 +746,7 @@ export default function EficienciaFrota() {
                                         color: monthTrend > 3 ? 'text-red-400' : monthTrend < -3 ? 'text-emerald-400' : 'text-slate-400'
                                     },
                                 ].map(card => (
-                                    <div key={card.label} className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-4">
+                                    <div key={card.label} className="bg-white/90/60 border border-slate-200/60 rounded-xl p-4">
                                         <div className="flex items-center gap-2 mb-2">
                                             <card.icon className={`w-4 h-4 ${card.color}`} />
                                             <p className="text-slate-500 text-xs">{card.label}</p>
@@ -759,10 +759,10 @@ export default function EficienciaFrota() {
                         )}
 
                         {/* Bar chart */}
-                        <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-6">
+                        <div className="bg-white/90/60 border border-slate-200/60 rounded-xl p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <p className="text-white font-bold">Evolução Custo/km da Frota</p>
+                                    <p className="text-slate-900 font-bold">Evolução Custo/km da Frota</p>
                                     <p className="text-slate-500 text-xs">€/km médio por mês · últimos 12 meses</p>
                                 </div>
                                 <div className="flex items-center gap-3 text-[10px] text-slate-500">
@@ -775,14 +775,14 @@ export default function EficienciaFrota() {
                         </div>
 
                         {/* Monthly table */}
-                        <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl overflow-hidden">
-                            <div className="p-4 border-b border-slate-800/60">
-                                <p className="text-white font-bold text-sm">Detalhe Mensal</p>
+                        <div className="bg-white/90/60 border border-slate-200/60 rounded-xl overflow-hidden">
+                            <div className="p-4 border-b border-slate-200/60">
+                                <p className="text-slate-900 font-bold text-sm">Detalhe Mensal</p>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
                                     <thead>
-                                        <tr className="text-slate-500 bg-slate-950/40 text-left">
+                                        <tr className="text-slate-500 bg-white/40 text-left">
                                             {['Mês', 'KM Total', 'Litros', 'Custo Total', '€/km Médio', 'Abastecimentos', 'Tendência'].map(h => (
                                                 <th key={h} className="px-4 py-3 font-semibold">{h}</th>
                                             ))}
@@ -790,8 +790,8 @@ export default function EficienciaFrota() {
                                     </thead>
                                     <tbody>
                                         {[...monthStats].reverse().map(m => (
-                                            <tr key={m.mes} className="border-t border-slate-800/40 hover:bg-white/2 transition-colors">
-                                                <td className="px-4 py-3 text-white font-bold">{m.label.toUpperCase()}</td>
+                                            <tr key={m.mes} className="border-t border-slate-200/40 hover:bg-white/2 transition-colors">
+                                                <td className="px-4 py-3 text-slate-900 font-bold">{m.label.toUpperCase()}</td>
                                                 <td className="px-4 py-3 text-slate-300">{m.kmTotal.toLocaleString('pt-PT')} km</td>
                                                 <td className="px-4 py-3 text-slate-300">{fmt(m.litrosTotal)} L</td>
                                                 <td className="px-4 py-3 text-emerald-400 font-bold">{fmtEur(m.custoTotal)}</td>
@@ -808,7 +808,7 @@ export default function EficienciaFrota() {
                 )}
 
                 {/* ── FOOTER INFO ── */}
-                <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-900/30 rounded-lg p-3 border border-slate-800/40">
+                <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50/60 rounded-lg p-3 border border-slate-200/40">
                     <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                     <p>Os cálculos são baseados nos abastecimentos confirmados e importados BP registados no sistema. O Score de Eficiência varia entre 0 (muito ineficiente) e 100 (excelente). Abastecimentos sem KM registados não são incluídos nos cálculos de consumo.</p>
                 </div>
@@ -820,7 +820,7 @@ export default function EficienciaFrota() {
 function EmptyState({ message }: { message: string }) {
     return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="p-4 rounded-full bg-slate-800/60 border border-slate-700/60 mb-4">
+            <div className="p-4 rounded-full bg-slate-100 border border-slate-200/60 mb-4">
                 <Gauge className="w-8 h-8 text-slate-500" />
             </div>
             <p className="text-slate-400 font-semibold mb-2">Sem dados disponíveis</p>

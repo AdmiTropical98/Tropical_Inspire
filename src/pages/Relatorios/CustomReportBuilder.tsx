@@ -364,8 +364,8 @@ export default function CustomReportBuilder() {
         <div className="space-y-6 animate-fade-in pb-12">
 
             {/* BUILDER PANEL */}
-            <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6 shadow-xl">
-                <div className="flex items-center gap-2 mb-6 text-white">
+            <div className="bg-slate-100 rounded-xl border border-slate-200/50 p-6 shadow-xl">
+                <div className="flex items-center gap-2 mb-6 text-slate-900">
                     <Search className="w-5 h-5 text-blue-400" />
                     <h2 className="text-xl font-bold">Construtor de Consultas Avançado</h2>
                 </div>
@@ -379,7 +379,7 @@ export default function CustomReportBuilder() {
                             <select
                                 value={selectedTable}
                                 onChange={(e) => handleTableChange(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                                className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
                             >
                                 {SCHEMA.map(t => (
                                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -391,7 +391,7 @@ export default function CustomReportBuilder() {
                         {/* Column Selector Toggle */}
                         <button
                             onClick={() => setShowColumnSelector(!showColumnSelector)}
-                            className="w-full mt-2 flex items-center justify-between px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition-colors border border-slate-600/50"
+                            className="w-full mt-2 flex items-center justify-between px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition-colors border border-slate-300/50"
                         >
                             <div className="flex items-center gap-2">
                                 <TableIcon className="w-4 h-4" />
@@ -402,15 +402,15 @@ export default function CustomReportBuilder() {
 
                         {/* Dropdown Columns */}
                         {showColumnSelector && (
-                            <div className="mt-2 bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar shadow-2xl z-20 absolute w-[300px]">
+                            <div className="mt-2 bg-white/90 border border-slate-200 rounded-lg p-3 space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar shadow-2xl z-20 absolute w-[300px]">
                                 <div className="flex justify-between items-center mb-2 px-1">
                                     <span className="text-xs font-bold text-slate-400 uppercase">Campos Disponíveis</span>
                                     <button onClick={() => setShowColumnSelector(false)}><X className="w-4 h-4 text-slate-400" /></button>
                                 </div>
                                 {currentTableDef.columns.map(col => (
-                                    <label key={col.key} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded cursor-pointer group">
-                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedColumns.includes(col.key) ? 'bg-blue-500 border-blue-500' : 'border-slate-600 bg-transparent group-hover:border-slate-500'}`}>
-                                            {selectedColumns.includes(col.key) && <CheckSquare className="w-3 h-3 text-white" />}
+                                    <label key={col.key} className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded cursor-pointer group">
+                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedColumns.includes(col.key) ? 'bg-blue-500 border-blue-500' : 'border-slate-300 bg-transparent group-hover:border-slate-500'}`}>
+                                            {selectedColumns.includes(col.key) && <CheckSquare className="w-3 h-3 text-slate-900" />}
                                         </div>
                                         <div className="flex flex-col">
                                             <span className={`text-sm ${selectedColumns.includes(col.key) ? 'text-white' : 'text-slate-400'}`}>{col.label}</span>
@@ -437,7 +437,7 @@ export default function CustomReportBuilder() {
                             </button>
                         </div>
 
-                        <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 min-h-[120px] space-y-3">
+                        <div className="bg-white/90 border border-slate-200/50 rounded-lg p-4 min-h-[120px] space-y-3">
                             {filters.length === 0 ? (
                                 <div className="text-center text-slate-500 py-4 flex flex-col items-center gap-2">
                                     <Filter className="w-8 h-8 opacity-20" />
@@ -450,7 +450,7 @@ export default function CustomReportBuilder() {
                                         <select
                                             value={filter.column}
                                             onChange={(e) => updateFilter(filter.id, 'column', e.target.value)}
-                                            className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-slate-300 focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                            className="bg-slate-100 border border-slate-300 rounded px-3 py-2 text-slate-300 focus:outline-none focus:border-blue-500 w-full md:w-auto"
                                         >
                                             {currentTableDef.columns
                                                 .filter(c => !c.select.includes('(')) // Only allow filtering on local columns for now
@@ -463,7 +463,7 @@ export default function CustomReportBuilder() {
                                         <select
                                             value={filter.operator}
                                             onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
-                                            className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-slate-300 focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                            className="bg-slate-100 border border-slate-300 rounded px-3 py-2 text-slate-300 focus:outline-none focus:border-blue-500 w-full md:w-auto"
                                         >
                                             {OPERATORS.map(op => (
                                                 <option key={op.value} value={op.value}>{op.label}</option>
@@ -477,7 +477,7 @@ export default function CustomReportBuilder() {
                                                 value={filter.value}
                                                 onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
                                                 placeholder="Valor..."
-                                                className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500 w-full md:w-auto"
+                                                className="flex-1 bg-slate-100 border border-slate-300 rounded px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-500 w-full md:w-auto"
                                             />
                                         )}
                                         {filter.operator === 'is' && (
@@ -518,13 +518,13 @@ export default function CustomReportBuilder() {
                 <div className="space-y-4 animate-fade-in-up">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2 text-slate-400">
-                            <span className="font-mono text-white font-bold">{data.length}</span>
+                            <span className="font-mono text-slate-900 font-bold">{data.length}</span>
                             <span className="text-sm">resultados encontrados</span>
                         </div>
                         <div className="flex gap-2">
                             <button
                                 onClick={exportPDF}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-colors border border-slate-700"
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-colors border border-slate-200"
                             >
                                 <Download className="w-4 h-4" /> PDF
                             </button>
@@ -537,15 +537,15 @@ export default function CustomReportBuilder() {
                         </div>
                     </div>
 
-                    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-x-auto shadow-2xl">
+                    <div className="bg-slate-100 rounded-xl border border-slate-200/50 overflow-x-auto shadow-2xl">
                         <div className="overflow-x-auto custom-scrollbar max-h-[600px]">
                             <table className="w-full text-sm text-left text-slate-300">
-                                <thead className="bg-slate-900/90 text-xs uppercase font-medium text-slate-400 sticky top-0 backdrop-blur-sm z-10">
+                                <thead className="bg-white/90/90 text-xs uppercase font-medium text-slate-400 sticky top-0 backdrop-blur-sm z-10">
                                     <tr>
                                         {selectedColumns.map(colKey => {
                                             const colDef = currentTableDef.columns.find(c => c.key === colKey);
                                             return (
-                                                <th key={colKey} className="px-6 py-4 whitespace-nowrap font-semibold border-b border-slate-700/50">
+                                                <th key={colKey} className="px-6 py-4 whitespace-nowrap font-semibold border-b border-slate-200/50">
                                                     {colDef?.label || colKey}
                                                 </th>
                                             );
@@ -571,7 +571,7 @@ export default function CustomReportBuilder() {
                                                 }
 
                                                 return (
-                                                    <td key={colKey} className="px-6 py-3 whitespace-nowrap border-b border-slate-800/50">
+                                                    <td key={colKey} className="px-6 py-3 whitespace-nowrap border-b border-slate-200/50">
                                                         {displayVal ?? <span className="text-slate-600">-</span>}
                                                     </td>
                                                 );
@@ -579,7 +579,7 @@ export default function CustomReportBuilder() {
                                         </tr>
                                     ))}
                                     {/* Totals Row */}
-                                    <tr className="bg-slate-900/80 font-bold border-t border-slate-600">
+                                    <tr className="bg-white/90/80 font-bold border-t border-slate-300">
                                         {selectedColumns.map(colKey => {
                                             const colDef = currentTableDef.columns.find(c => c.key === colKey);
 
@@ -602,7 +602,7 @@ export default function CustomReportBuilder() {
                                             // First column shows label TOTAL
                                             if (colKey === selectedColumns[0]) {
                                                 return (
-                                                    <td key={colKey} className="px-6 py-3 text-white uppercase tracking-wide">
+                                                    <td key={colKey} className="px-6 py-3 text-slate-900 uppercase tracking-wide">
                                                         TOTAL
                                                     </td>
                                                 );

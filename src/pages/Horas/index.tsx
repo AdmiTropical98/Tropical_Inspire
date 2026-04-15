@@ -14,29 +14,29 @@ export default function Horas() {
     return (
         <div className="flex flex-col">
             {/* Header Toolbar */}
-            <div className="h-16 border-b border-slate-800 flex items-center justify-between bg-[#0f172a]/95 backdrop-blur z-10 shrink-0">
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <div className="h-16 border-b border-slate-200 flex items-center justify-between bg-[#0f172a]/95 backdrop-blur z-10 shrink-0">
+                <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                     <Clock className="w-5 h-5 text-emerald-500" />
                     Gestão de Horas
                 </h1>
 
                 {/* Tabs */}
-                <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
+                <div className="flex bg-white/90 p-1 rounded-lg border border-slate-200">
                     <button
                         onClick={() => setActiveTab('daily')}
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'daily' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'daily' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-900'}`}
                     >
                         Registo Diário
                     </button>
                     <button
                         onClick={() => setActiveTab('batch')}
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'batch' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'batch' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-900'}`}
                     >
                         Lançamento em Massa
                     </button>
                     <button
                         onClick={() => setActiveTab('monthly')}
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'monthly' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'monthly' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-900'}`}
                     >
                         Relatório Mensal
                     </button>
@@ -45,7 +45,7 @@ export default function Horas() {
                 {/* Date Controls */}
                 <div className="flex items-center gap-4">
                     {activeTab === 'daily' && (
-                        <div className="flex items-center gap-2 text-sm bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700/50">
+                        <div className="flex items-center gap-2 text-sm bg-white/90 px-4 py-2 rounded-lg border border-slate-200/50">
                             <Calendar className="w-4 h-4 text-slate-400" />
                             <input
                                 type="date"
@@ -56,7 +56,7 @@ export default function Horas() {
                         </div>
                     )}
                     {activeTab === 'monthly' && (
-                        <div className="flex items-center gap-2 text-sm bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700/50">
+                        <div className="flex items-center gap-2 text-sm bg-white/90 px-4 py-2 rounded-lg border border-slate-200/50">
                             <FileText className="w-4 h-4 text-slate-400" />
                             <input
                                 type="month"

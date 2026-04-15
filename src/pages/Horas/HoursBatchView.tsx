@@ -114,22 +114,22 @@ export default function HoursBatchView() {
 
     return (
         <div className="w-full min-w-0 space-y-6">
-            <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
-                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200">
+                <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-blue-400" />
                     Lançamento em Massa
                 </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {/* 1. Time Range */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-white/90 rounded-xl border border-slate-200">
                         <div>
                             <label className="block text-xs uppercase text-slate-500 font-bold mb-2">Período</label>
                             <div className="flex gap-4">
                                 <input
                                     type="date"
                                     required
-                                    className="bg-slate-800 border-slate-600 rounded-lg p-2 text-white w-full"
+                                    className="bg-slate-100 border-slate-300 rounded-lg p-2 text-slate-900 w-full"
                                     value={startDate}
                                     onChange={e => setStartDate(e.target.value)}
                                 />
@@ -137,7 +137,7 @@ export default function HoursBatchView() {
                                 <input
                                     type="date"
                                     required
-                                    className="bg-slate-800 border-slate-600 rounded-lg p-2 text-white w-full"
+                                    className="bg-slate-100 border-slate-300 rounded-lg p-2 text-slate-900 w-full"
                                     value={endDate}
                                     onChange={e => setEndDate(e.target.value)}
                                 />
@@ -152,7 +152,7 @@ export default function HoursBatchView() {
                                         key={day.id}
                                         type="button"
                                         onClick={() => toggleWeekday(day.id)}
-                                        className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${selectedWeekdays.has(day.id) ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}
+                                        className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${selectedWeekdays.has(day.id) ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-slate-100 text-slate-500 hover:bg-slate-700'}`}
                                     >
                                         {day.label}
                                     </button>
@@ -162,7 +162,7 @@ export default function HoursBatchView() {
                     </div>
 
                     {/* 2. Drivers */}
-                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <div className="p-4 bg-white/90 rounded-xl border border-slate-200">
                         <div className="flex justify-between items-center mb-4">
                             <label className="block text-xs uppercase text-slate-500 font-bold flex items-center gap-2">
                                 <Users className="w-4 h-4" />
@@ -179,12 +179,12 @@ export default function HoursBatchView() {
 
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                             {motoristas.map(m => (
-                                <label key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedDrivers.has(m.id) ? 'bg-blue-900/20 border-blue-500/50' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}`}>
+                                <label key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedDrivers.has(m.id) ? 'bg-blue-900/20 border-blue-500/50' : 'bg-slate-100 border-slate-200 hover:border-slate-300'}`}>
                                     <input
                                         type="checkbox"
                                         checked={selectedDrivers.has(m.id)}
                                         onChange={() => toggleDriver(m.id)}
-                                        className="rounded bg-slate-700 border-slate-600 text-blue-500 focus:ring-offset-slate-900"
+                                        className="rounded bg-slate-700 border-slate-300 text-blue-500 focus:ring-offset-0"
                                     />
                                     <span className={`text-sm ${selectedDrivers.has(m.id) ? 'text-white font-medium' : 'text-slate-400'}`}>
                                         {m.nome}
@@ -195,13 +195,13 @@ export default function HoursBatchView() {
                     </div>
 
                     {/* 3. Time Data */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 bg-white/90 rounded-xl border border-slate-200">
                         <div>
                             <label className="block text-xs uppercase text-slate-500 font-bold mb-2">Entrada</label>
                             <input
                                 type="time"
                                 required
-                                className="bg-slate-800 border-slate-600 rounded-lg p-2 text-white w-full"
+                                className="bg-slate-100 border-slate-300 rounded-lg p-2 text-slate-900 w-full"
                                 value={startTime}
                                 onChange={e => setStartTime(e.target.value)}
                             />
@@ -211,7 +211,7 @@ export default function HoursBatchView() {
                             <input
                                 type="time"
                                 required
-                                className="bg-slate-800 border-slate-600 rounded-lg p-2 text-white w-full"
+                                className="bg-slate-100 border-slate-300 rounded-lg p-2 text-slate-900 w-full"
                                 value={endTime}
                                 onChange={e => setEndTime(e.target.value)}
                             />
@@ -221,7 +221,7 @@ export default function HoursBatchView() {
                             <input
                                 type="number"
                                 required
-                                className="bg-slate-800 border-slate-600 rounded-lg p-2 text-white w-full"
+                                className="bg-slate-100 border-slate-300 rounded-lg p-2 text-slate-900 w-full"
                                 value={breakDuration}
                                 onChange={e => setBreakDuration(Number(e.target.value))}
                             />
@@ -230,7 +230,7 @@ export default function HoursBatchView() {
                             <label className="block text-xs uppercase text-slate-500 font-bold mb-2">Obs</label>
                             <input
                                 type="text"
-                                className="bg-slate-800 border-slate-600 rounded-lg p-2 text-white w-full"
+                                className="bg-slate-100 border-slate-300 rounded-lg p-2 text-slate-900 w-full"
                                 value={obs}
                                 onChange={e => setObs(e.target.value)}
                             />
@@ -238,7 +238,7 @@ export default function HoursBatchView() {
                     </div>
 
                     {/* Submit */}
-                    <div className="pt-4 border-t border-slate-700 flex justify-end">
+                    <div className="pt-4 border-t border-slate-200 flex justify-end">
                         <button
                             type="submit"
                             disabled={isProcessing || !startDate || !endDate || selectedDrivers.size === 0}

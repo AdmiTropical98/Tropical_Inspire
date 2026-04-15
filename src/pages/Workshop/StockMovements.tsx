@@ -44,9 +44,9 @@ export default function StockMovements() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <div className="p-2 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-600/20">
-                            <History className="w-6 h-6 text-white" />
+                            <History className="w-6 h-6 text-slate-900" />
                         </div>
                         Movimentos de Stock
                     </h1>
@@ -59,7 +59,7 @@ export default function StockMovements() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={refreshInventoryData}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl font-bold border border-slate-700 transition-all flex items-center gap-2"
+                        className="bg-slate-100 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl font-bold border border-slate-200 transition-all flex items-center gap-2"
                     >
                         <Download className="w-5 h-5" />
                         Exportar CSV
@@ -68,13 +68,13 @@ export default function StockMovements() {
             </div>
 
             {/* Filters */}
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/60 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative flex-1 group w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-indigo-500 transition-colors" />
                     <input
                         type="text"
                         placeholder="Procurar por item ou observações..."
-                        className="w-full bg-slate-950/50 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-indigo-600/40 focus:border-indigo-600/50 transition-all"
+                        className="w-full bg-white/90 border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-indigo-600/40 focus:border-indigo-600/50 transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -87,7 +87,7 @@ export default function StockMovements() {
                             onClick={() => setTypeFilter(type)}
                             className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${typeFilter === type
                                 ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20'
-                                : 'bg-slate-800/50 border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+                                : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-300 hover:bg-slate-100'
                                 }`}
                         >
                             {type === 'all' ? 'Todos' :
@@ -99,25 +99,25 @@ export default function StockMovements() {
             </div>
 
             {/* Movements Table */}
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/60 rounded-3xl overflow-hidden">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-3xl overflow-hidden">
                 <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-950/50">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">Data</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">Tipo</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">Item</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 text-right">Qtd</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 text-right">Cuto Médio</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">Origem</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">Notas</th>
+                            <tr className="bg-white/90">
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Data</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Tipo</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Item</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 text-right">Qtd</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 text-right">Cuto Médio</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Origem</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">Notas</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/50">
                             {filteredMovements.map((mov) => {
                                 const item = stockItems.find(i => i.id === mov.item_id);
                                 return (
-                                    <tr key={mov.id} className="hover:bg-slate-800/30 transition-colors group">
+                                    <tr key={mov.id} className="hover:bg-slate-50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-slate-200">
@@ -143,11 +143,11 @@ export default function StockMovements() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
                                                     <Box className="w-4 h-4" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">
+                                                    <span className="text-sm font-bold text-slate-900 group-hover:text-blue-400 transition-colors">
                                                         {item?.name || 'Item Removido'}
                                                     </span>
                                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
@@ -169,7 +169,7 @@ export default function StockMovements() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded-lg border border-slate-700/50 w-fit">
+                                            <div className="flex items-center gap-2 px-2 py-1 bg-slate-100 rounded-lg border border-slate-200/50 w-fit">
                                                 <div className="text-slate-500">
                                                     {getSourceIcon(mov.source_document)}
                                                 </div>

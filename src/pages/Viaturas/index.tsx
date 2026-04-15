@@ -108,7 +108,7 @@ export default function Viaturas() {
     );
 
     return (
-        <div className="flex flex-col text-slate-100">
+        <div className="flex flex-col text-slate-900">
             {/* Full Page Container */}
             <div className="flex flex-col">
                 {/* Scrollable Content Area */}
@@ -117,15 +117,15 @@ export default function Viaturas() {
                     {/* Header Section */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
-                            <h1 className="text-4xl font-black text-white tracking-tight mb-2 flex items-center gap-4">
+                            <h1 className="text-3xl font-extrabold text-[#1f2957] tracking-tight mb-2 flex items-center gap-4">
                                 <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
                                     {t('vehicles.title')}
                                 </span>
-                                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-sm font-bold border border-blue-500/20">
+                                <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-bold border border-blue-200">
                                     {stats.total}
                                 </span>
                             </h1>
-                            <p className="text-slate-400 text-lg font-medium max-w-2xl">
+                            <p className="text-slate-500 text-base font-medium max-w-2xl">
                                 {t('subtitle.vehicles')}
                             </p>
                         </div>
@@ -133,19 +133,19 @@ export default function Viaturas() {
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={handleDownloadTemplate}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white rounded-xl font-medium transition-all shadow-sm"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm"
                             >
                                 <Download className="w-4 h-4" />
                                 <span className="hidden md:inline">Template</span>
                             </button>
-                            <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white rounded-xl font-medium transition-all shadow-sm cursor-pointer">
+                            <label className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm cursor-pointer">
                                 <Upload className="w-4 h-4" />
                                 <span className="hidden md:inline">Importar</span>
                                 <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} className="hidden" />
                             </label>
                             <button
                                 onClick={() => setActiveTab('create')}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                                className="flex items-center gap-2 px-6 py-2.5 btn-primary rounded-xl font-bold transition-all"
                             >
                                 <PlusCircle className="w-5 h-5" />
                                 <span>Nova Viatura</span>
@@ -154,7 +154,7 @@ export default function Viaturas() {
                     </div>
 
                     {/* Navigation Tabs */}
-                    <div className="flex items-center gap-2 border-b border-slate-800">
+                    <div className="flex items-center gap-2 border-b border-slate-200">
                         {[
                             { id: 'overview', label: 'Dashboard Geral', icon: LayoutTemplate },
                             { id: 'list', label: 'Lista de Frota', icon: List },
@@ -165,8 +165,8 @@ export default function Viaturas() {
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all
                                 ${activeTab === tab.id
-                                        ? 'border-blue-500 text-blue-400 bg-blue-500/5'
-                                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+                                        ? 'border-[#d59d31] text-[#1f2957] bg-amber-50/60'
+                                        : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}
                             >
                                 <tab.icon className="w-4 h-4" />
                                 {tab.label}
@@ -182,7 +182,7 @@ export default function Viaturas() {
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 {/* KPI Cards */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-visible group hover:border-blue-500/30 transition-all">
+                                    <div className="kpi-card relative overflow-visible group hover:shadow-md hover:-translate-y-0.5 transition-all">
                                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                             <Car className="w-32 h-32 text-blue-500" />
                                         </div>
@@ -190,9 +190,9 @@ export default function Viaturas() {
                                             <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-4 border border-blue-500/20">
                                                 <Car className="w-6 h-6" />
                                             </div>
-                                            <h3 className="text-slate-400 font-medium text-sm uppercase tracking-wider">Total de Viaturas</h3>
+                                            <h3 className="text-slate-500 font-semibold text-xs uppercase tracking-wider">Total de Viaturas</h3>
                                             <div className="flex items-baseline gap-2 mt-2">
-                                                <span className="text-4xl font-black text-white">{stats.total}</span>
+                                                <span className="text-4xl font-black text-slate-900">{stats.total}</span>
                                                 <span className="text-sm font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center gap-1">
                                                     <CheckCircle className="w-3 h-3" />
                                                     {stats.active} Ativas
@@ -201,7 +201,7 @@ export default function Viaturas() {
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-visible group hover:border-amber-500/30 transition-all">
+                                    <div className="kpi-card relative overflow-visible group hover:shadow-md hover:-translate-y-0.5 transition-all">
                                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                             <Wrench className="w-32 h-32 text-amber-500" />
                                         </div>
@@ -209,9 +209,9 @@ export default function Viaturas() {
                                             <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 mb-4 border border-amber-500/20">
                                                 <Wrench className="w-6 h-6" />
                                             </div>
-                                            <h3 className="text-slate-400 font-medium text-sm uppercase tracking-wider">Em Manutenção</h3>
+                                            <h3 className="text-slate-500 font-semibold text-xs uppercase tracking-wider">Em Manutenção</h3>
                                             <div className="flex items-baseline gap-2 mt-2">
-                                                <span className="text-4xl font-black text-white">{stats.maintenance}</span>
+                                                <span className="text-4xl font-black text-slate-900">{stats.maintenance}</span>
                                                 {stats.maintenance > 0 && (
                                                     <span className="text-sm font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded flex items-center gap-1">
                                                         Requer Atenção
@@ -221,7 +221,7 @@ export default function Viaturas() {
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-visible group hover:border-purple-500/30 transition-all">
+                                    <div className="kpi-card relative overflow-visible group hover:shadow-md hover:-translate-y-0.5 transition-all">
                                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                             <Fuel className="w-32 h-32 text-purple-500" />
                                         </div>
@@ -229,10 +229,10 @@ export default function Viaturas() {
                                             <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 mb-4 border border-purple-500/20">
                                                 <Fuel className="w-6 h-6" />
                                             </div>
-                                            <h3 className="text-slate-400 font-medium text-sm uppercase tracking-wider">Consumo Médio</h3>
+                                            <h3 className="text-slate-500 font-semibold text-xs uppercase tracking-wider">Consumo Médio</h3>
                                             <div className="flex items-baseline gap-2 mt-2">
-                                                <span className="text-4xl font-black text-white">7.8</span>
-                                                <span className="text-lg text-slate-500 font-medium">L/100km</span>
+                                                <span className="text-4xl font-black text-slate-900">7.8</span>
+                                                <span className="text-base text-slate-400 font-medium">L/100km</span>
                                             </div>
                                         </div>
                                     </div>
@@ -240,8 +240,8 @@ export default function Viaturas() {
 
                                 {/* Alerts Section */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                    <div className="surface-card p-6">
+                                        <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
                                             <AlertTriangle className="w-5 h-5 text-amber-500" />
                                             Alertas de Manutenção
                                         </h3>
@@ -254,8 +254,8 @@ export default function Viaturas() {
                                                                 <Car className="w-5 h-5" />
                                                             </div>
                                                             <div>
-                                                                <p className="font-bold text-white">{v.matricula}</p>
-                                                                <p className="text-sm text-slate-400">{v.marca} {v.modelo}</p>
+                                                                <p className="font-bold text-slate-900">{v.matricula}</p>
+                                                                <p className="text-sm text-slate-500">{v.marca} {v.modelo}</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2 text-amber-500 text-sm font-medium">
@@ -274,17 +274,17 @@ export default function Viaturas() {
                                     </div>
 
                                     {/* Quick Actions */}
-                                    <div className="bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border border-blue-500/10 rounded-2xl p-6 flex flex-col justify-center">
-                                        <h3 className="text-lg font-bold text-white mb-6">Ações Rápidas</h3>
+                                    <div className="surface-card p-6 flex flex-col justify-center">
+                                        <h3 className="text-base font-bold text-slate-800 mb-6">Ações Rápidas</h3>
                                         <div className="space-y-4">
-                                            <button onClick={() => setActiveTab('create')} className="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-blue-600 hover:text-white text-slate-300 rounded-xl transition-all group border border-slate-700 hover:border-blue-500">
+                                            <button onClick={() => setActiveTab('create')} className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-xl transition-all group shadow-sm">
                                                 <span className="flex items-center gap-3 font-medium">
                                                     <PlusCircle className="w-5 h-5" />
                                                     Adicionar Nova Viatura
                                                 </span>
                                                 <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </button>
-                                            <button onClick={() => setActiveTab('list')} className="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all group border border-slate-700">
+                                            <button onClick={() => setActiveTab('list')} className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 rounded-xl transition-all group shadow-sm">
                                                 <span className="flex items-center gap-3 font-medium">
                                                     <List className="w-5 h-5" />
                                                     Ver Inventário Completo
@@ -300,24 +300,24 @@ export default function Viaturas() {
                         {/* VIEW: LIST */}
                         {activeTab === 'list' && (
                             <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
-                                <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900 p-4 rounded-xl border border-slate-800">
+                                <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-sm">
                                     <div className="relative w-full md:w-96">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 h-4 w-4" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                                         <input
                                             type="text"
                                             placeholder="Pesquisar por matrícula, marca ou modelo..."
-                                            className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-200"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-700 placeholder:text-slate-400"
                                             value={filter}
                                             onChange={e => setFilter(e.target.value)}
                                         />
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
+                                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-colors">
                                             <Filter className="w-4 h-4" />
                                             Filtros
                                         </button>
-                                        <div className="h-6 w-px bg-slate-700 mx-2"></div>
-                                        <span className="text-sm text-slate-500 font-medium">
+                                        <div className="h-6 w-px bg-slate-200 mx-2"></div>
+                                        <span className="text-sm text-slate-400 font-medium">
                                             Showing {filteredItems.length} results
                                         </span>
                                     </div>
@@ -330,12 +330,12 @@ export default function Viaturas() {
                                             <div
                                                 key={viatura.id}
                                                 onClick={() => navigate(`/vehicles/${viatura.id}`)}
-                                                className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/10 transition-all cursor-pointer group relative overflow-visible"
+                                                className="bg-white/90 border border-slate-200/70 rounded-2xl p-5 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group relative overflow-visible"
                                             >
                                                 <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); deleteViatura(viatura.id); }}
-                                                        className="p-2 bg-slate-950 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                        className="p-2 bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 rounded-xl transition-colors shadow-sm"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
@@ -348,13 +348,13 @@ export default function Viaturas() {
                                                             <Car className="w-6 h-6" />
                                                         </div>
                                                         <div>
-                                                            <h3 className="font-bold text-white text-lg tracking-wide">{viatura.matricula}</h3>
-                                                            <p className="text-sm text-slate-400">{viatura.marca} {viatura.modelo}</p>
+                                                            <h3 className="font-bold text-slate-900 text-lg tracking-wide">{viatura.matricula}</h3>
+                                                            <p className="text-sm text-slate-500">{viatura.marca} {viatura.modelo}</p>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="space-y-3 pt-4 border-t border-slate-800">
+                                                <div className="space-y-3 pt-4 border-t border-slate-100">
                                                     <div className="flex items-center justify-between text-sm">
                                                         <span className="text-slate-500 flex items-center gap-2">
                                                             <Calendar className="w-4 h-4" /> {viatura.ano || 'N/A'}
@@ -365,8 +365,8 @@ export default function Viaturas() {
                                                         </span>
                                                     </div>
                                                     {viatura.obs && (
-                                                        <div className="p-2 bg-slate-950 rounded-lg text-xs text-slate-400 italic line-clamp-1 flex items-start gap-2">
-                                                            <Info className="w-3 h-3 shrink-0 mt-0.5 text-slate-600" />
+                                                        <div className="p-2 bg-slate-50 rounded-lg text-xs text-slate-500 italic line-clamp-1 flex items-start gap-2">
+                                                            <Info className="w-3 h-3 shrink-0 mt-0.5 text-slate-400" />
                                                             {viatura.obs}
                                                         </div>
                                                     )}
@@ -381,16 +381,16 @@ export default function Viaturas() {
                         {/* VIEW: CREATE */}
                         {activeTab === 'create' && (
                             <div className="w-full animate-in slide-in-from-bottom-8 duration-500">
-                                <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-visible">
+                                <div className="surface-card p-8 rounded-3xl relative overflow-visible">
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                                     <div className="flex items-center gap-6 mb-8 relative z-10">
                                         <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-                                            <PlusCircle className="w-8 h-8 text-white" />
+                                            <PlusCircle className="w-8 h-8 text-slate-900" />
                                         </div>
                                         <div>
-                                            <h2 className="text-2xl font-bold text-white mb-1">Nova Viatura</h2>
-                                            <p className="text-slate-400">Preencha os dados abaixo para adicionar um novo veículo à frota.</p>
+                                            <h2 className="text-2xl font-bold text-[#1f2957] mb-1">Nova Viatura</h2>
+                                            <p className="text-slate-500">Preencha os dados abaixo para adicionar um novo veículo à frota.</p>
                                         </div>
                                     </div>
 
@@ -398,21 +398,21 @@ export default function Viaturas() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                             <div className="space-y-6">
                                                 <div>
-                                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Matrícula</label>
+                                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Matrícula</label>
                                                     <input
                                                         required
                                                         maxLength={8}
-                                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white text-lg font-mono tracking-widest uppercase placeholder-slate-700 transition-all"
+                                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 text-lg font-mono tracking-widest uppercase placeholder:text-slate-300 transition-all"
                                                         value={formData.matricula}
                                                         onChange={e => setFormData({ ...formData, matricula: e.target.value.toUpperCase() })}
                                                         placeholder="AA-00-BB"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Ano</label>
+                                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Ano</label>
                                                     <input
                                                         type="number"
-                                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all"
+                                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all"
                                                         value={formData.ano}
                                                         onChange={e => setFormData({ ...formData, ano: e.target.value })}
                                                         placeholder="Ex: 2023"
@@ -422,20 +422,20 @@ export default function Viaturas() {
 
                                             <div className="space-y-6">
                                                 <div>
-                                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Marca</label>
+                                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Marca</label>
                                                     <input
                                                         required
-                                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all"
+                                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all"
                                                         value={formData.marca}
                                                         onChange={e => setFormData({ ...formData, marca: e.target.value })}
                                                         placeholder="Ex: Mercedes-Benz"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Modelo</label>
+                                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Modelo</label>
                                                     <input
                                                         required
-                                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all"
+                                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all"
                                                         value={formData.modelo}
                                                         onChange={e => setFormData({ ...formData, modelo: e.target.value })}
                                                         placeholder="Ex: Sprinter"
@@ -444,10 +444,10 @@ export default function Viaturas() {
                                             </div>
 
                                             <div className="md:col-span-2">
-                                                <label className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Observações</label>
+                                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Observações</label>
                                                 <textarea
                                                     rows={4}
-                                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all resize-none placeholder-slate-700"
+                                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 outline-none text-slate-900 transition-all resize-none placeholder:text-slate-300"
                                                     value={formData.obs}
                                                     onChange={e => setFormData({ ...formData, obs: e.target.value })}
                                                     placeholder="Informações adicionais, estado da viatura, etc..."
@@ -455,11 +455,11 @@ export default function Viaturas() {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-800">
+                                        <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
                                             <button
                                                 type="button"
                                                 onClick={() => setActiveTab('list')}
-                                                className="px-6 py-3 text-slate-400 hover:text-white font-bold transition-colors"
+                                                className="px-6 py-3 text-slate-400 hover:text-slate-900 font-bold transition-colors"
                                             >
                                                 Cancelar
                                             </button>

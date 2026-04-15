@@ -758,7 +758,7 @@ export default function ViaVerde() {
                         />
                         <button
                             onClick={handleDownloadTemplate}
-                            className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 px-5 py-3 rounded-xl font-medium transition-all border border-slate-700 hover:border-slate-600 shadow-lg"
+                            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-700/80 text-slate-300 px-5 py-3 rounded-xl font-medium transition-all border border-slate-200 hover:border-slate-300 shadow-lg"
                         >
                             <TrendingUp className="w-4 h-4 rotate-180" />
                             <span className="hidden sm:inline">Template</span>
@@ -793,13 +793,13 @@ export default function ViaVerde() {
                             placeholder="Pesquisar por trajeto ou viatura..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all"
+                            className="w-full pl-12 pr-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-slate-900 transition-all"
                         />
                     </div>
                     <select
                         value={filterVehicle}
                         onChange={(e) => setFilterVehicle(e.target.value)}
-                        className="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-white transition-all"
+                        className="px-4 py-3 bg-white/90 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 outline-none text-slate-900 transition-all"
                     >
                         <option value="all">Todas as Viaturas</option>
                         {viaturas.map(v => (
@@ -816,7 +816,7 @@ export default function ViaVerde() {
                     <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg text-red-200 text-xs overflow-auto max-h-40">
                         <div className="flex justify-between items-center mb-2">
                             <strong>Debug Info (Erro):</strong>
-                            <button onClick={() => setLastError(null)} className="text-white hover:text-red-300">X</button>
+                            <button onClick={() => setLastError(null)} className="text-slate-900 hover:text-red-300">X</button>
                         </div>
                         <pre>{JSON.stringify(lastError, null, 2)}</pre>
                     </div>
@@ -840,7 +840,7 @@ export default function ViaVerde() {
                         <div className="flex justify-between items-start relative z-10">
                             <div>
                                 <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Custo Total</p>
-                                <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-emerald-400 transition-colors">{totalCost.toFixed(2)} <span className="text-lg text-slate-500">€</span></h3>
+                                <h3 className="text-3xl font-bold text-slate-900 mt-1 group-hover:text-emerald-400 transition-colors">{totalCost.toFixed(2)} <span className="text-lg text-slate-500">€</span></h3>
                                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400">
                                     <TrendingUp className="w-3 h-3" />
                                     <span>Vista Atual</span>
@@ -859,7 +859,7 @@ export default function ViaVerde() {
                         <div className="flex justify-between items-start relative z-10">
                             <div>
                                 <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Distância Total</p>
-                                <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-blue-400 transition-colors">{totalDistance.toFixed(1)} <span className="text-lg text-slate-500">km</span></h3>
+                                <h3 className="text-3xl font-bold text-slate-900 mt-1 group-hover:text-blue-400 transition-colors">{totalDistance.toFixed(1)} <span className="text-lg text-slate-500">km</span></h3>
                                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400">
                                     <Truck className="w-3 h-3" />
                                     <span>Km Percorridos</span>
@@ -878,7 +878,7 @@ export default function ViaVerde() {
                         <div className="flex justify-between items-start relative z-10">
                             <div>
                                 <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Passagens</p>
-                                <h3 className="text-3xl font-bold text-white mt-1 group-hover:text-purple-400 transition-colors">{filteredTolls.length}</h3>
+                                <h3 className="text-3xl font-bold text-slate-900 mt-1 group-hover:text-purple-400 transition-colors">{filteredTolls.length}</h3>
                                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs font-medium text-purple-400">
                                     <Ticket className="w-3 h-3" />
                                     <span>Registos</span>
@@ -892,10 +892,10 @@ export default function ViaVerde() {
                 </div>
 
                 {/* Monthly Report by Cost Center */}
-                <div className="bg-slate-900/50 rounded-2xl border border-white/5 p-5 md:p-6 backdrop-blur-sm shadow-xl space-y-4">
+                <div className="bg-white/90 rounded-2xl border border-white/5 p-5 md:p-6 backdrop-blur-sm shadow-xl space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h3 className="text-white text-lg font-semibold flex items-center gap-2">
+                            <h3 className="text-slate-900 text-lg font-semibold flex items-center gap-2">
                                 <Calendar className="w-5 h-5 text-emerald-400" />
                                 Relatório Mensal por Centro de Custo
                             </h3>
@@ -908,7 +908,7 @@ export default function ViaVerde() {
                             <select
                                 value={reportMonth}
                                 onChange={(e) => setReportMonth(e.target.value)}
-                                className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                className="bg-white/90 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                             >
                                 {availableMonths.map(month => (
                                     <option key={month} value={month}>{month}</option>
@@ -934,23 +934,23 @@ export default function ViaVerde() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="bg-slate-950/60 border border-white/5 rounded-xl p-4">
+                        <div className="bg-white/60 border border-white/5 rounded-xl p-4">
                             <p className="text-xs uppercase tracking-wider text-slate-500">Custo Total do Mês</p>
                             <p className="text-xl font-bold text-emerald-400 mt-1">{monthlyTotal.toFixed(2)} €</p>
                         </div>
-                        <div className="bg-slate-950/60 border border-white/5 rounded-xl p-4">
+                        <div className="bg-white/60 border border-white/5 rounded-xl p-4">
                             <p className="text-xs uppercase tracking-wider text-slate-500">Centros de Custo</p>
-                            <p className="text-xl font-bold text-white mt-1">{monthlyRows.length}</p>
+                            <p className="text-xl font-bold text-slate-900 mt-1">{monthlyRows.length}</p>
                         </div>
-                        <div className="bg-slate-950/60 border border-white/5 rounded-xl p-4">
+                        <div className="bg-white/60 border border-white/5 rounded-xl p-4">
                             <p className="text-xs uppercase tracking-wider text-slate-500">Registos no Mês</p>
-                            <p className="text-xl font-bold text-white mt-1">{monthlyRows.reduce((a, r) => a + r.records, 0)}</p>
+                            <p className="text-xl font-bold text-slate-900 mt-1">{monthlyRows.reduce((a, r) => a + r.records, 0)}</p>
                         </div>
                     </div>
 
                     <div className="overflow-x-auto rounded-xl border border-white/5">
                         <table className="w-full text-sm" style={{ minWidth: '680px' }}>
-                            <thead className="bg-slate-950/60 text-slate-400 uppercase text-xs">
+                            <thead className="bg-white/60 text-slate-400 uppercase text-xs">
                                 <tr>
                                     <th className="px-4 py-3 text-left">Centro de Custo</th>
                                     <th className="px-4 py-3 text-center">Registos</th>
@@ -969,8 +969,8 @@ export default function ViaVerde() {
                                     </tr>
                                 ) : (
                                     monthlyRows.map(row => (
-                                        <tr key={row.ccId} className="hover:bg-slate-800/40 transition-colors">
-                                            <td className="px-4 py-3 text-white font-medium">{row.ccName}</td>
+                                        <tr key={row.ccId} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-4 py-3 text-slate-900 font-medium">{row.ccName}</td>
                                             <td className="px-4 py-3 text-center text-slate-300">{row.records}</td>
                                             <td className="px-4 py-3 text-center text-slate-300">{row.tolls}</td>
                                             <td className="px-4 py-3 text-center text-slate-300">{row.parking}</td>
@@ -985,7 +985,7 @@ export default function ViaVerde() {
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-col md:flex-row gap-4 bg-slate-800/30 p-1.5 rounded-2xl border border-white/5 backdrop-blur-sm">
+                <div className="flex flex-col md:flex-row gap-4 bg-slate-50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-sm">
                     <div className="relative flex-1 group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
                         <input
@@ -993,14 +993,14 @@ export default function ViaVerde() {
                             placeholder="Pesquisar entrada, saída ou matrícula..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-slate-900/50 border border-transparent rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:bg-slate-900 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                            className="w-full bg-white/90 border border-transparent rounded-xl pl-11 pr-4 py-3 text-slate-900 placeholder-slate-500 focus:outline-none focus:bg-white/90 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                         />
                     </div>
                     <div className="w-full md:w-72">
                         <select
                             value={filterVehicle}
                             onChange={(e) => setFilterVehicle(e.target.value)}
-                            className="w-full bg-slate-900/50 border border-transparent rounded-xl px-4 py-3 text-white focus:outline-none focus:bg-slate-900 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 appearance-none cursor-pointer transition-all"
+                            className="w-full bg-white/90 border border-transparent rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:bg-white/90 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 appearance-none cursor-pointer transition-all"
                         >
                             <option value="all">Todas as Viaturas</option>
                             {viaturas.map(v => (
@@ -1011,16 +1011,16 @@ export default function ViaVerde() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-slate-900/50 rounded-2xl border border-white/5 overflow-x-auto backdrop-blur-sm shadow-xl">
+                <div className="bg-white/90 rounded-2xl border border-white/5 overflow-x-auto backdrop-blur-sm shadow-xl">
                     <table className="w-full text-left text-sm" style={{ minWidth: '700px' }}>
-                        <thead className="bg-slate-950/50 text-slate-400 uppercase font-medium border-b border-white/5">
+                        <thead className="bg-white/90 text-slate-400 uppercase font-medium border-b border-white/5">
                             <tr>
                                 <th className="px-6 py-5 w-10">
                                     <input
                                         type="checkbox"
                                         checked={filteredTolls.length > 0 && selectedIds.size === filteredTolls.length}
                                         onChange={toggleAll}
-                                        className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
+                                        className="rounded border-slate-200 bg-slate-100 text-emerald-500 focus:ring-emerald-500/50"
                                     />
                                 </th>
                                 <th className="px-6 py-5 tracking-wider text-xs">Data/Hora</th>
@@ -1055,7 +1055,7 @@ export default function ViaVerde() {
                                 filteredTolls.map((toll) => (
                                     <tr
                                         key={toll.id}
-                                        className={`group transition-all duration-200 ${selectedIds.has(toll.id) ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-slate-800/30'}`}
+                                        className={`group transition-all duration-200 ${selectedIds.has(toll.id) ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-slate-50'}`}
                                         onClick={(e) => {
                                             // Toggle selection when clicking row (unless clicking button/link)
                                             if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
@@ -1067,13 +1067,13 @@ export default function ViaVerde() {
                                                 type="checkbox"
                                                 checked={selectedIds.has(toll.id)}
                                                 onChange={() => toggleSelection(toll.id)}
-                                                className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
+                                                className="rounded border-slate-200 bg-slate-100 text-emerald-500 focus:ring-emerald-500/50"
                                                 onClick={(e) => e.stopPropagation()}
                                             />
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
-                                                <span className="text-white font-medium">
+                                                <span className="text-slate-900 font-medium">
                                                     {new Date(toll.entry_time).toLocaleDateString()}
                                                 </span>
                                                 <span className="text-slate-500 text-xs font-mono">
@@ -1083,11 +1083,11 @@ export default function ViaVerde() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5 group-hover:border-emerald-500/20 transition-colors">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center border border-white/5 group-hover:border-emerald-500/20 transition-colors">
                                                     <Truck className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
                                                 </div>
                                                 <div>
-                                                    <span className="block text-white font-medium bg-slate-800 px-2 py-0.5 rounded text-xs w-fit mb-0.5 border border-white/5">{toll.vehicle?.matricula}</span>
+                                                    <span className="block text-slate-900 font-medium bg-slate-100 px-2 py-0.5 rounded text-xs w-fit mb-0.5 border border-white/5">{toll.vehicle?.matricula}</span>
                                                     <span className="text-slate-500 text-xs">{toll.vehicle?.marca} {toll.vehicle?.modelo}</span>
                                                 </div>
                                             </div>
@@ -1096,7 +1096,7 @@ export default function ViaVerde() {
                                             <div className="space-y-1">
                                                 {toll.driver ? (
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center">
+                                                        <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
                                                             <User className="w-3 h-3 text-slate-400" />
                                                         </div>
                                                         <span className="text-slate-300 text-sm">{toll.driver.nome}</span>
@@ -1128,9 +1128,9 @@ export default function ViaVerde() {
                                                         <div className="p-1 rounded bg-emerald-500/10 text-emerald-400">
                                                             <Ticket className="w-4 h-4" />
                                                         </div>
-                                                        <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.entry_point || 'N/A'}</span>
+                                                        <span className="font-medium bg-slate-100 px-2 py-1 rounded text-xs border border-white/5">{toll.entry_point || 'N/A'}</span>
                                                         <span className="text-slate-600">→</span>
-                                                        <span className="font-medium bg-slate-800/50 px-2 py-1 rounded text-xs border border-white/5">{toll.exit_point || 'N/A'}</span>
+                                                        <span className="font-medium bg-slate-100 px-2 py-1 rounded text-xs border border-white/5">{toll.exit_point || 'N/A'}</span>
                                                     </>
                                                 )}
                                             </div>
@@ -1168,9 +1168,9 @@ export default function ViaVerde() {
                 {
                     showModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                            <div className="bg-slate-900 rounded-3xl border border-white/10 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
-                                <div className="p-6 border-b border-white/5 bg-slate-950/50 flex justify-between items-center">
-                                    <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                            <div className="bg-white/90 rounded-3xl border border-white/10 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
+                                <div className="p-6 border-b border-white/5 bg-white/90 flex justify-between items-center">
+                                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
                                         <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                                             <Ticket className="w-5 h-5 text-emerald-500" />
                                         </div>
@@ -1187,7 +1187,7 @@ export default function ViaVerde() {
                                         </button>
                                         <button
                                             onClick={() => setShowModal(false)}
-                                            className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
+                                            className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-slate-900 transition-colors"
                                         >
                                             <Trash2 className="w-5 h-5 rotate-45" /> {/* Close icon */}
                                         </button>
@@ -1196,18 +1196,18 @@ export default function ViaVerde() {
 
                                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                                     {/* Type Toggle */}
-                                    <div className="bg-slate-950/50 p-1 rounded-lg flex gap-1 border border-white/5">
+                                    <div className="bg-white/90 p-1 rounded-lg flex gap-1 border border-white/5">
                                         <button
                                             type="button"
                                             onClick={() => setFormData({ ...formData, type: 'toll' })}
-                                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'toll' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'toll' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-900 hover:bg-white/5'}`}
                                         >
                                             <Ticket className="w-4 h-4" /> Portagem
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setFormData({ ...formData, type: 'parking' })}
-                                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'parking' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.type === 'parking' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-900 hover:bg-white/5'}`}
                                         >
                                             <ParkingCircle className="w-4 h-4" /> Estacionamento
                                         </button>
@@ -1221,7 +1221,7 @@ export default function ViaVerde() {
                                                 required
                                                 value={formData.vehicle_id}
                                                 onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-emerald-500"
                                             >
                                                 <option value="">Selecione Viatura...</option>
                                                 {viaturas.map(v => (
@@ -1236,7 +1236,7 @@ export default function ViaVerde() {
                                             <select
                                                 value={formData.driver_id}
                                                 onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-emerald-500"
                                             >
                                                 <option value="">Sem Motorista</option>
                                                 {motoristas.map(m => (
@@ -1251,7 +1251,7 @@ export default function ViaVerde() {
                                             <select
                                                 value={formData.cost_center_id}
                                                 onChange={e => setFormData({ ...formData, cost_center_id: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-emerald-500"
                                             >
                                                 <option value="">Nenhum</option>
                                                 {centrosCustos.map(c => (
@@ -1268,7 +1268,7 @@ export default function ViaVerde() {
                                                 required
                                                 value={formData.entry_time}
                                                 onChange={e => setFormData({ ...formData, entry_time: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-emerald-500"
                                             />
                                         </div>
 
@@ -1283,7 +1283,7 @@ export default function ViaVerde() {
                                                     required
                                                     value={formData.amount}
                                                     onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                    className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-emerald-500"
                                                     placeholder="0.00"
                                                 />
                                             </div>
@@ -1301,7 +1301,7 @@ export default function ViaVerde() {
                                                     required
                                                     value={formData.entry_point}
                                                     onChange={e => setFormData({ ...formData, entry_point: e.target.value })}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                    className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-emerald-500"
                                                     placeholder={formData.type === 'toll' ? "Ex: Lisboa" : "Ex: Parque do Aeroporto"}
                                                 />
                                             </div>
@@ -1318,7 +1318,7 @@ export default function ViaVerde() {
                                                         required
                                                         value={formData.exit_point}
                                                         onChange={e => setFormData({ ...formData, exit_point: e.target.value })}
-                                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                        className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-emerald-500"
                                                         placeholder="Ex: Porto"
                                                     />
                                                 </div>
@@ -1333,17 +1333,17 @@ export default function ViaVerde() {
                                                 step="0.1"
                                                 value={formData.distance}
                                                 onChange={e => setFormData({ ...formData, distance: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500"
+                                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-emerald-500"
                                                 placeholder="Opcional"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-800 mt-6">
+                                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-200 mt-6">
                                         <button
                                             type="button"
                                             onClick={() => setShowModal(false)}
-                                            className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                                            className="px-4 py-2 text-slate-400 hover:text-slate-900 transition-colors"
                                         >
                                             Cancelar
                                         </button>

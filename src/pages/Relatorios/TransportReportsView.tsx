@@ -115,21 +115,21 @@ export default function TransportReportsView() {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                <div className="rounded-xl border border-slate-200 bg-white/90 p-4">
                     <div className="mb-2 flex items-center gap-2 text-xs uppercase text-slate-400"><BusFront className="h-4 w-4" />Transportes</div>
-                    <div className="text-2xl font-black text-white">{totals.totalTransportes}</div>
+                    <div className="text-2xl font-black text-slate-900">{totals.totalTransportes}</div>
                 </div>
-                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                <div className="rounded-xl border border-slate-200 bg-white/90 p-4">
                     <div className="mb-2 flex items-center gap-2 text-xs uppercase text-slate-400"><Users className="h-4 w-4" />Funcionários</div>
-                    <div className="text-2xl font-black text-white">{totals.funcionarios}</div>
+                    <div className="text-2xl font-black text-slate-900">{totals.funcionarios}</div>
                 </div>
-                <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                <div className="rounded-xl border border-slate-200 bg-white/90 p-4">
                     <div className="mb-2 flex items-center gap-2 text-xs uppercase text-slate-400"><Building2 className="h-4 w-4" />Viagens</div>
-                    <div className="text-2xl font-black text-white">{totals.viagens}</div>
+                    <div className="text-2xl font-black text-slate-900">{totals.viagens}</div>
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-5">
                 <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                     <label className="text-sm text-slate-300">
                         <span className="mb-1 flex items-center gap-2 text-xs uppercase text-slate-400"><CalendarDays className="h-4 w-4" />Mês</span>
@@ -140,7 +140,7 @@ export default function TransportReportsView() {
                                 const [y, m] = e.target.value.split('-').map(Number);
                                 if (y && m) setBaseDate(new Date(y, m - 1, 1));
                             }}
-                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                            className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-900"
                         />
                     </label>
                     <label className="text-sm text-slate-300">
@@ -148,7 +148,7 @@ export default function TransportReportsView() {
                         <select
                             value={selectedHotel}
                             onChange={(e) => setSelectedHotel(e.target.value)}
-                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                            className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-900"
                         >
                             {hotelOptions.map(option => (
                                 <option key={option} value={option}>{option === 'all' ? 'Todos os hotéis' : option}</option>
@@ -162,10 +162,10 @@ export default function TransportReportsView() {
                 ) : (
                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                         <div>
-                            <h3 className="mb-2 text-sm font-bold text-white">Estatísticas por Hotel</h3>
-                            <div className="max-h-72 overflow-auto rounded-lg border border-slate-800">
+                            <h3 className="mb-2 text-sm font-bold text-slate-900">Estatísticas por Hotel</h3>
+                            <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
                                 <table className="w-full text-xs">
-                                    <thead className="bg-slate-900 text-slate-400">
+                                    <thead className="bg-white/90 text-slate-400">
                                         <tr>
                                             <th className="px-3 py-2 text-left">Hotel</th>
                                             <th className="px-3 py-2 text-right">Transportes</th>
@@ -177,9 +177,9 @@ export default function TransportReportsView() {
                                         {hotels.map((row) => (
                                             <tr key={`${row.month}-${row.hotel}`}>
                                                 <td className="px-3 py-2 text-slate-200">{row.hotel}</td>
-                                                <td className="px-3 py-2 text-right text-white">{row.total_transportes}</td>
-                                                <td className="px-3 py-2 text-right text-white">{row.funcionarios_transportados}</td>
-                                                <td className="px-3 py-2 text-right text-white">{row.viagens_realizadas}</td>
+                                                <td className="px-3 py-2 text-right text-slate-900">{row.total_transportes}</td>
+                                                <td className="px-3 py-2 text-right text-slate-900">{row.funcionarios_transportados}</td>
+                                                <td className="px-3 py-2 text-right text-slate-900">{row.viagens_realizadas}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -188,10 +188,10 @@ export default function TransportReportsView() {
                         </div>
 
                         <div>
-                            <h3 className="mb-2 text-sm font-bold text-white">Custo por Funcionário</h3>
-                            <div className="max-h-72 overflow-auto rounded-lg border border-slate-800">
+                            <h3 className="mb-2 text-sm font-bold text-slate-900">Custo por Funcionário</h3>
+                            <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
                                 <table className="w-full text-xs">
-                                    <thead className="bg-slate-900 text-slate-400">
+                                    <thead className="bg-white/90 text-slate-400">
                                         <tr>
                                             <th className="px-3 py-2 text-left">Funcionário</th>
                                             <th className="px-3 py-2 text-right">Dias</th>
@@ -202,8 +202,8 @@ export default function TransportReportsView() {
                                         {employeeRows.map((row) => (
                                             <tr key={row.employeeId}>
                                                 <td className="px-3 py-2 text-slate-200">{row.employeeName}</td>
-                                                <td className="px-3 py-2 text-right text-white">{row.transportDays}</td>
-                                                <td className="px-3 py-2 text-right text-white">{new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(row.totalCost)}</td>
+                                                <td className="px-3 py-2 text-right text-slate-900">{row.transportDays}</td>
+                                                <td className="px-3 py-2 text-right text-slate-900">{new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(row.totalCost)}</td>
                                             </tr>
                                         ))}
                                     </tbody>

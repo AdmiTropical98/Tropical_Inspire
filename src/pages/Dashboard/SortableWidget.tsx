@@ -41,13 +41,13 @@ export function SortableWidget({ id, children, editing, className }: SortableWid
             <div
               {...listeners}
               {...attributes}
-              className="absolute top-2 right-2 p-2 bg-slate-800/90 text-slate-400 rounded-lg cursor-grab active:cursor-grabbing z-50 hover:text-white hover:bg-slate-700 transition-all shadow-lg border border-slate-700"
+              className="absolute top-2 right-2 p-2 bg-slate-100/90 text-slate-400 rounded-lg cursor-grab active:cursor-grabbing z-50 hover:text-slate-900 hover:bg-slate-700 transition-all shadow-lg border border-slate-200"
             >
               <GripVertical className="w-5 h-5" />
             </div>
             
             {/* Visual Border for Edit Mode */}
-            <div className="absolute inset-0 border-2 border-dashed border-slate-600/50 rounded-2xl pointer-events-none bg-slate-900/10 z-40" />
+            <div className="absolute inset-0 border-2 border-dashed border-slate-300/50 rounded-2xl pointer-events-none bg-white/90/10 z-40" />
           </>
         )}
         

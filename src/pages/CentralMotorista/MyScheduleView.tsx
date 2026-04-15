@@ -160,7 +160,7 @@ export default function MyScheduleView({ services, onBack, complianceStats, onUp
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 relative">
             {failureModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-50/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white border border-slate-200 p-6 rounded-2xl w-full max-w-sm shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3 text-red-500 mb-4">
                             <div className="p-3 bg-red-500/10 rounded-full">

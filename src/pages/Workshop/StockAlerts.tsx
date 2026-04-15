@@ -18,9 +18,9 @@ export default function StockAlerts() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <div className="p-2 bg-orange-600 rounded-xl shadow-lg shadow-orange-600/20">
-                            <BellRing className="w-6 h-6 text-white" />
+                            <BellRing className="w-6 h-6 text-slate-900" />
                         </div>
                         Alertas de Stock
                     </h1>
@@ -41,7 +41,7 @@ export default function StockAlerts() {
                         </div>
                         <div>
                             <p className="text-red-400 text-xs font-black uppercase tracking-widest">Stock Esgotado</p>
-                            <p className="text-2xl font-black text-white">{criticalItems.length}</p>
+                            <p className="text-2xl font-black text-slate-900">{criticalItems.length}</p>
                         </div>
                     </div>
                     <p className="text-red-400/60 text-xs font-medium leading-relaxed">
@@ -57,7 +57,7 @@ export default function StockAlerts() {
                         </div>
                         <div>
                             <p className="text-orange-400 text-xs font-black uppercase tracking-widest">Aviso de Nível</p>
-                            <p className="text-2xl font-black text-white">{warningItems.length}</p>
+                            <p className="text-2xl font-black text-slate-900">{warningItems.length}</p>
                         </div>
                     </div>
                     <p className="text-orange-400/60 text-xs font-medium leading-relaxed">
@@ -73,7 +73,7 @@ export default function StockAlerts() {
                         </div>
                         <div>
                             <p className="text-blue-400 text-xs font-black uppercase tracking-widest">Valor de Reposição</p>
-                            <p className="text-2xl font-black text-white">
+                            <p className="text-2xl font-black text-slate-900">
                                 {formatCurrency(lowStockItems.reduce((acc, i) => acc + (i.minimum_stock * 2 * i.average_cost), 0))}
                             </p>
                         </div>
@@ -87,11 +87,11 @@ export default function StockAlerts() {
             {/* Item List */}
             <div className="space-y-4">
                 {lowStockItems.length === 0 ? (
-                    <div className="bg-slate-900/40 border border-slate-800/60 p-20 rounded-3xl flex flex-col items-center justify-center text-center">
+                    <div className="bg-white/90 border border-slate-200/60 p-20 rounded-3xl flex flex-col items-center justify-center text-center">
                         <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-6">
                             <ShieldAlert className="w-10 h-10 text-green-500 opacity-50" />
                         </div>
-                        <h3 className="text-xl font-black text-white uppercase tracking-tight">Stock Seguro</h3>
+                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Stock Seguro</h3>
                         <p className="text-slate-500 mt-2 max-w-sm">
                             Não existem alertas de stock ativos neste momento. Todos os itens estão acima do nível mínimo definido.
                         </p>
@@ -100,7 +100,7 @@ export default function StockAlerts() {
                     lowStockItems.map(item => (
                         <div
                             key={item.id}
-                            className="group bg-slate-900/40 hover:bg-slate-900/60 border border-slate-800/60 p-6 rounded-3xl transition-all duration-300 flex flex-col md:flex-row md:items-center gap-6"
+                            className="group bg-white/90 hover:bg-white/90/60 border border-slate-200/60 p-6 rounded-3xl transition-all duration-300 flex flex-col md:flex-row md:items-center gap-6"
                         >
                             <div className={`p-4 rounded-2xl flex-shrink-0 ${item.stock_quantity === 0 ? 'bg-red-500/20 text-red-500' : 'bg-orange-500/20 text-orange-500'
                                 }`}>
@@ -109,7 +109,7 @@ export default function StockAlerts() {
 
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-3 mb-1">
-                                    <h3 className="text-lg font-black text-white truncate">{item.name}</h3>
+                                    <h3 className="text-lg font-black text-slate-900 truncate">{item.name}</h3>
                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${item.stock_quantity === 0
                                         ? 'bg-red-500/10 border-red-500/30 text-red-500'
                                         : 'bg-orange-500/10 border-orange-500/30 text-orange-500'
@@ -129,7 +129,7 @@ export default function StockAlerts() {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col md:items-end gap-1 px-6 border-l border-slate-800">
+                            <div className="flex flex-col md:items-end gap-1 px-6 border-l border-slate-200">
                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Stock / Mínimo</p>
                                 <div className="flex items-baseline gap-1">
                                     <span className={`text-2xl font-black ${item.stock_quantity === 0 ? 'text-red-500' : 'text-orange-500'
@@ -146,10 +146,10 @@ export default function StockAlerts() {
                                     </p>
                                     {item.supplier && (
                                         <div className="flex items-center gap-2">
-                                            <button className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition-all border border-slate-700">
+                                            <button className="p-1.5 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 transition-all border border-slate-200">
                                                 <Phone className="w-3 h-3" />
                                             </button>
-                                            <button className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition-all border border-slate-700">
+                                            <button className="p-1.5 bg-slate-100 hover:bg-slate-700 rounded-lg text-slate-400 transition-all border border-slate-200">
                                                 <Mail className="w-3 h-3" />
                                             </button>
                                         </div>
@@ -161,7 +161,7 @@ export default function StockAlerts() {
                                 <button className="p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all">
                                     <ShoppingCart className="w-5 h-5" />
                                 </button>
-                                <button className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-2xl border border-slate-700 transition-all">
+                                <button className="p-3 bg-slate-100 hover:bg-slate-700 text-slate-400 rounded-2xl border border-slate-200 transition-all">
                                     <ArrowRight className="w-5 h-5" />
                                 </button>
                             </div>
@@ -177,7 +177,7 @@ export default function StockAlerts() {
                         <Info className="w-5 h-5" />
                     </div>
                     <div>
-                        <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Como funcionam os alertas?</h4>
+                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Como funcionam os alertas?</h4>
                         <p className="text-xs text-slate-500 leading-relaxed font-medium">
                             Os alertas são gerados automaticamente sempre que a quantidade em stock é igual ou inferior ao <span className="text-indigo-400 font-bold">Stock Mínimo</span> definido na ficha do item.
                             Para itens críticos (quantidade zero), o sistema prioriza o destaque visual. Recomendamos a revisão semanal deste painel.

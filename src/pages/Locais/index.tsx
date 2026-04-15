@@ -292,19 +292,19 @@ export default function Locais() {
             {/* Header */}
             <div className="relative z-50 h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a]/80 backdrop-blur-md shrink-0">
                 <div className="flex items-center gap-6">
-                    <h1 className="text-xl font-bold text-white whitespace-nowrap">Gestão de Locais</h1>
+                    <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">Gestão de Locais</h1>
 
                     <div className="flex bg-[#1e293b] p-1 rounded-xl border border-white/5 shrink-0">
                         <button
                             onClick={() => setActiveTab('map')}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-900'}`}
                         >
                             <MapIcon className="w-4 h-4" />
                             Mapa (POIs)
                         </button>
                         <button
                             onClick={() => setActiveTab('zones')}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'zones' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'zones' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-900'}`}
                         >
                             <LayoutGrid className="w-4 h-4" />
                             Zonas Operacionais
@@ -408,7 +408,7 @@ export default function Locais() {
                                                     {getIconForType(local.tipo)}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <h3 className="font-bold text-white text-sm truncate">{local.nome}</h3>
+                                                    <h3 className="font-bold text-slate-900 text-sm truncate">{local.nome}</h3>
                                                     <p className="text-xs text-slate-400 capitalize">{local.tipo} • {local.raio}m</p>
                                                 </div>
                                             </div>
@@ -427,7 +427,7 @@ export default function Locais() {
                         </div>
 
                         {/* Map Area */}
-                        <div className="flex-1 relative bg-slate-900 z-0">
+                        <div className="flex-1 relative bg-white/90 z-0">
                             <MapContainer
                                 center={defaultCenter}
                                 zoom={11}
@@ -476,11 +476,11 @@ export default function Locais() {
                             {isCreating && (
                                 <div className="absolute top-4 right-4 w-80 bg-[#1e293b] border border-white/10 rounded-2xl shadow-2xl p-4 z-[1000] animate-in slide-in-from-right">
                                     <div className="flex justify-between items-center mb-4">
-                                        <h3 className="font-bold text-white flex items-center gap-2">
+                                        <h3 className="font-bold text-slate-900 flex items-center gap-2">
                                             <Plus className="w-4 h-4 text-blue-400" />
                                             Novo Local
                                         </h3>
-                                        <button onClick={() => { setIsCreating(false); setNewLocalPos(null); }} className="text-slate-400 hover:text-white">
+                                        <button onClick={() => { setIsCreating(false); setNewLocalPos(null); }} className="text-slate-400 hover:text-slate-900">
                                             <X className="w-5 h-5" />
                                         </button>
                                     </div>
@@ -557,7 +557,7 @@ export default function Locais() {
                         {/* Zones Sidebar - Add/Edit */}
                         <div className="w-full md:w-96 bg-[#1e293b]/50 border border-white/5 rounded-3xl p-6 flex flex-col gap-6 shrink-0 h-fit">
                             <div>
-                                <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                                <h2 className="text-lg font-bold text-[#1f2957] mb-2 flex items-center gap-2">
                                     <Plus className="w-5 h-5 text-emerald-400" />
                                     Atribuir Local a Zona
                                 </h2>
@@ -588,7 +588,7 @@ export default function Locais() {
                                                 {/* Local POIs */}
                                                 {locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).length > 0 && (
                                                     <div className="border-b border-white/5 last:border-0">
-                                                        <div className="p-2 text-[10px] font-bold text-slate-500 uppercase bg-slate-800/50 flex items-center gap-1">
+                                                        <div className="p-2 text-[10px] font-bold text-slate-500 uppercase bg-slate-100 flex items-center gap-1">
                                                             <MapIcon className="w-3 h-3" />
                                                             POIs Guardados
                                                         </div>
@@ -612,7 +612,7 @@ export default function Locais() {
 
                                                 {/* Global Results */}
                                                 {isSearchingZone && (
-                                                    <div className="p-4 flex items-center justify-center gap-2 text-xs text-slate-500 bg-slate-900/10">
+                                                    <div className="p-4 flex items-center justify-center gap-2 text-xs text-slate-500 bg-white/90/10">
                                                         <Loader2 className="w-3 h-3 animate-spin" />
                                                         <span>A pesquisar localizações globais...</span>
                                                     </div>
@@ -620,7 +620,7 @@ export default function Locais() {
 
                                                 {zoneGeoResults.length > 0 && (
                                                     <div>
-                                                        <div className="p-2 text-[10px] font-bold text-slate-500 uppercase bg-slate-800/50 flex items-center gap-1">
+                                                        <div className="p-2 text-[10px] font-bold text-slate-500 uppercase bg-slate-100 flex items-center gap-1">
                                                             <Globe className="w-3 h-3" />
                                                             Localizações Globais
                                                         </div>
@@ -648,9 +648,9 @@ export default function Locais() {
                                                 )}
 
                                                 {zoneFormData.nome_local.length >= 3 && !isSearchingZone && zoneGeoResults.length === 0 && locais.filter(l => l.nome.toLowerCase().includes(zoneFormData.nome_local.toLowerCase())).length === 0 && (
-                                                    <div className="p-4 bg-slate-900/40 rounded-b-xl border-t border-white/5">
+                                                    <div className="p-4 bg-white/90 rounded-b-xl border-t border-white/5">
                                                         <div className="flex flex-col items-center gap-2 animate-in fade-in zoom-in duration-300">
-                                                            <div className="p-2 bg-slate-800 rounded-lg text-slate-500">
+                                                            <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
                                                                 <Search className="w-4 h-4" />
                                                             </div>
                                                             <p className="text-[10px] text-slate-400 text-center px-4 leading-relaxed">
@@ -660,7 +660,7 @@ export default function Locais() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setShowZoneSuggestions(false)}
-                                                                className="mt-1 text-[9px] text-slate-500 hover:text-white underline underline-offset-2 transition-colors uppercase font-bold tracking-wider"
+                                                                className="mt-1 text-[9px] text-slate-500 hover:text-slate-900 underline underline-offset-2 transition-colors uppercase font-bold tracking-wider"
                                                             >
                                                                 Fechar Sugestões
                                                             </button>
@@ -680,14 +680,14 @@ export default function Locais() {
                                         <button
                                             type="button"
                                             onClick={() => setIsManagingAreas(!isManagingAreas)}
-                                            className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md transition-all ${isManagingAreas ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-slate-800 text-slate-400 hover:text-white border border-white/5'}`}
+                                            className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md transition-all ${isManagingAreas ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-slate-100 text-slate-400 hover:text-slate-900 border border-white/5'}`}
                                         >
                                             {isManagingAreas ? 'Voltar' : 'Gerir Áreas'}
                                         </button>
                                     </div>
 
                                     {isManagingAreas ? (
-                                        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="bg-white/90 border border-white/5 rounded-xl p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                             <div className="flex gap-2">
                                                 <input
                                                     type="text"
@@ -700,7 +700,7 @@ export default function Locais() {
                                                     type="button"
                                                     onClick={handleAddArea}
                                                     disabled={!newAreaName.trim()}
-                                                    className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white p-2 rounded-lg transition-all"
+                                                    className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-100 disabled:text-slate-600 text-white p-2 rounded-lg transition-all"
                                                 >
                                                     <Plus className="w-4 h-4" />
                                                 </button>
@@ -708,8 +708,8 @@ export default function Locais() {
 
                                             <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-1">
                                                 {areasOperacionais.length > 0 ? areasOperacionais.map(area => (
-                                                    <div key={area.id} className="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg border border-white/5 group">
-                                                        <span className="text-xs text-white truncate">{area.nome}</span>
+                                                    <div key={area.id} className="flex items-center justify-between p-2 bg-slate-100 rounded-lg border border-white/5 group">
+                                                        <span className="text-xs text-slate-900 truncate">{area.nome}</span>
                                                         <button
                                                             type="button"
                                                             onClick={() => deleteAreaOperacional(area.id)}
@@ -751,7 +751,7 @@ export default function Locais() {
                                     type="submit"
                                     disabled={isManagingAreas || areasOperacionais.length === 0 || !zoneFormData.nome_local}
                                     className={`w-full font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 ${(isManagingAreas || areasOperacionais.length === 0 || !zoneFormData.nome_local)
-                                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed opacity-50'
                                         : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20 active:scale-[0.98]'
                                         }`}
                                 >
@@ -766,7 +766,7 @@ export default function Locais() {
                         {/* Zones List */}
                         <div className="flex-1 bg-[#1e293b]/30 border border-white/5 rounded-3xl overflow-hidden flex flex-col min-h-[400px]">
                             <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                                     <LayoutGrid className="w-5 h-5 text-blue-400" />
                                     Mapeamentos Ativos
                                 </h2>
@@ -775,13 +775,13 @@ export default function Locais() {
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
                                 {zonasOperacionais.length > 0 ? zonasOperacionais.map(zona => (
-                                    <div key={zona.id} className="group flex items-center justify-between p-4 bg-slate-900/50 border border-white/5 rounded-2xl hover:border-emerald-500/30 transition-all">
+                                    <div key={zona.id} className="group flex items-center justify-between p-4 bg-white/90 border border-white/5 rounded-2xl hover:border-emerald-500/30 transition-all">
                                         <div className="flex items-center gap-4 min-w-0">
-                                            <div className="p-3 bg-slate-800 rounded-xl text-slate-400 group-hover:text-emerald-400 transition-colors shrink-0">
+                                            <div className="p-3 bg-slate-100 rounded-xl text-slate-400 group-hover:text-emerald-400 transition-colors shrink-0">
                                                 <Hotel className="w-5 h-5" />
                                             </div>
                                             <div className="min-w-0">
-                                                <div className="text-white font-bold truncate">{zona.nome_local}</div>
+                                                <div className="text-slate-900 font-bold truncate">{zona.nome_local}</div>
                                                 <div className="flex items-center gap-1.5 text-xs text-slate-500">
                                                     <span className="shrink-0">Zona:</span>
                                                     <span className="text-emerald-400 font-bold uppercase tracking-wider truncate">{zona.area_operacional}</span>

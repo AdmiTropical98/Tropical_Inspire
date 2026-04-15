@@ -254,7 +254,7 @@ export default function EscalasHistory() {
                         placeholder="Pesquisar histórico..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full bg-[#1e293b] text-slate-200 pl-10 pr-4 py-2.5 rounded-xl border border-slate-700/50 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all placeholder:text-slate-500 text-sm font-medium"
+                        className="w-full bg-[#1e293b] text-slate-200 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200/50 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all placeholder:text-slate-500 text-sm font-medium"
                     />
                 </div>
 
@@ -265,7 +265,7 @@ export default function EscalasHistory() {
                             type="date"
                             value={filterDate}
                             onChange={e => setFilterDate(e.target.value)}
-                            className="w-full bg-[#1e293b] text-slate-200 pl-10 pr-4 py-2.5 rounded-xl border border-slate-700/50 focus:border-blue-500/50 outline-none transition-all text-sm font-medium"
+                            className="w-full bg-[#1e293b] text-slate-200 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200/50 focus:border-blue-500/50 outline-none transition-all text-sm font-medium"
                         />
                     </div>
                 </div>
@@ -274,7 +274,7 @@ export default function EscalasHistory() {
             {/* List */}
             <div className="grid grid-cols-1 gap-4">
                 {filteredBatches.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-3xl bg-slate-900/50">
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-200 rounded-3xl bg-white/90">
                         <Calendar className="w-12 h-12 mb-4 opacity-20" />
                         <span className="text-lg font-medium">Nenhum histórico encontrado</span>
                     </div>
@@ -287,7 +287,7 @@ export default function EscalasHistory() {
                         return (
                             <div key={batch.id} className={`
                                 bg-[#1e293b]/50 border rounded-2xl p-5 hover:bg-[#1e293b] transition-all group shadow-lg shadow-black/20
-                                ${isCancelled ? 'border-red-900/30 opacity-75' : 'border-slate-700/50 hover:border-blue-500/30'}
+                                ${isCancelled ? 'border-red-900/30 opacity-75' : 'border-slate-200/50 hover:border-blue-500/30'}
                             `}>
                                 <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
                                     {/* Icon & ID */}
@@ -333,26 +333,26 @@ export default function EscalasHistory() {
 
                                     {/* Stats */}
                                     <div className="flex-1 flex gap-4 justify-center md:justify-end w-full md:w-auto">
-                                        <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-lg border border-slate-800 min-w-[80px]">
+                                        <div className="flex flex-col items-center p-2 bg-white/90 rounded-lg border border-slate-200 min-w-[80px]">
                                             <span className="text-xs text-slate-500 font-bold uppercase">Total</span>
-                                            <span className="text-xl font-black text-white">{stats.total}</span>
+                                            <span className="text-xl font-black text-slate-900">{stats.total}</span>
                                         </div>
-                                        <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-lg border border-slate-800 min-w-[80px]">
+                                        <div className="flex flex-col items-center p-2 bg-white/90 rounded-lg border border-slate-200 min-w-[80px]">
                                             <span className="text-xs text-slate-500 font-bold uppercase text-emerald-500">Atrib.</span>
                                             <span className="text-xl font-black text-emerald-400">{stats.assigned}</span>
                                         </div>
-                                        <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-lg border border-slate-800 min-w-[80px]">
+                                        <div className="flex flex-col items-center p-2 bg-white/90 rounded-lg border border-slate-200 min-w-[80px]">
                                             <span className="text-xs text-slate-500 font-bold uppercase text-amber-500">Pend.</span>
                                             <span className="text-xl font-black text-amber-400">{stats.pending}</span>
                                         </div>
                                     </div>
 
                                     {/* ACTIONS */}
-                                    <div className="flex items-center gap-2 pl-4 border-l border-slate-700/50">
+                                    <div className="flex items-center gap-2 pl-4 border-l border-slate-200/50">
                                         {/* 1. PDF - Always visible */}
                                         <button
                                             onClick={() => generatePDF(batch)}
-                                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors relative group/btn"
+                                            className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-700 rounded-lg transition-colors relative group/btn"
                                             title="Baixar PDF"
                                         >
                                             <FileDown className="w-5 h-5" />

@@ -346,11 +346,11 @@ export default function VehicleProfile() {
             <div className="space-y-6">
                 <button
                     onClick={() => navigate('/viaturas')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 border border-slate-200 text-slate-300 rounded-lg"
                 >
                     <ArrowLeft className="w-4 h-4" /> Voltar à Frota
                 </button>
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400">
+                <div className="bg-white/90 border border-slate-200 rounded-2xl p-8 text-center text-slate-400">
                     Viatura não encontrada.
                 </div>
             </div>
@@ -364,26 +364,26 @@ export default function VehicleProfile() {
             <div className="flex items-center justify-between">
                 <button
                     onClick={() => navigate('/viaturas')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 text-slate-300 hover:text-white rounded-lg"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 border border-slate-200 text-slate-300 hover:text-slate-900 rounded-lg"
                 >
                     <ArrowLeft className="w-4 h-4" /> Voltar à Frota
                 </button>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <div className="bg-white/90 border border-slate-200 rounded-2xl p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <div className="text-slate-400 text-sm">Perfil da Viatura</div>
-                        <h1 className="text-3xl font-black text-white mt-1">{viatura.marca} {viatura.modelo}</h1>
+                        <h1 className="text-3xl font-black text-slate-900 mt-1">{viatura.marca} {viatura.modelo}</h1>
                         <div className="mt-3 flex items-center gap-3 text-sm">
-                            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-200 font-mono">{viatura.matricula}</span>
+                            <span className="px-2 py-1 rounded bg-slate-100 border border-slate-200 text-slate-200 font-mono">{viatura.matricula}</span>
                             <span className="text-slate-400">Ano {viatura.ano || 'N/A'}</span>
                             <span className={`px-2 py-1 rounded border ${statusColor}`}>{vehicleStatus}</span>
                         </div>
                     </div>
                     <div className="text-right">
                         <div className="text-xs uppercase tracking-wider text-slate-500">Quilometragem Atual</div>
-                        <div className="text-2xl font-black text-white">{currentKm.toLocaleString('pt-PT')} km</div>
+                        <div className="text-2xl font-black text-slate-900">{currentKm.toLocaleString('pt-PT')} km</div>
                     </div>
                 </div>
             </div>
@@ -399,11 +399,11 @@ export default function VehicleProfile() {
                     { label: 'Nº requisições', value: String(totalRequisitionsCount), icon: ClipboardList, color: 'text-fuchsia-400' },
                     { label: 'Nº abastecimentos', value: String(totalRefuelsCount), icon: Fuel, color: 'text-cyan-400' }
                 ].map(card => (
-                    <div key={card.label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div key={card.label} className="bg-white/90 border border-slate-200 rounded-xl p-4">
                         <div className="flex items-center justify-between">
                             <div>
                                 <div className="text-xs uppercase text-slate-500 font-bold tracking-wider">{card.label}</div>
-                                <div className="text-xl font-black text-white mt-1">{card.value}</div>
+                                <div className="text-xl font-black text-slate-900 mt-1">{card.value}</div>
                             </div>
                             <card.icon className={`w-5 h-5 ${card.color}`} />
                         </div>
@@ -411,14 +411,14 @@ export default function VehicleProfile() {
                 ))}
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <h2 className="text-lg font-bold text-white mb-4">Alertas Automáticos</h2>
+            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                <h2 className="text-lg font-bold text-[#1f2957] mb-4">Alertas Automáticos</h2>
                 <div className="space-y-3">
                     {profileAlerts.map(alert => (
                         <div key={alert.id} className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
                             <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-400" />
                             <div>
-                                <div className="text-sm font-semibold text-white">{alert.title}</div>
+                                <div className="text-sm font-semibold text-slate-900">{alert.title}</div>
                                 <div className="text-xs text-slate-400">{alert.description}</div>
                             </div>
                         </div>
@@ -428,12 +428,12 @@ export default function VehicleProfile() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h2 className="text-lg font-bold text-white mb-4">Histórico de Requisições</h2>
+                <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                    <h2 className="text-lg font-bold text-[#1f2957] mb-4">Histórico de Requisições</h2>
                     <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
                             <thead>
-                                <tr className="text-slate-500 border-b border-slate-800">
+                                <tr className="text-slate-500 border-b border-slate-200">
                                     <th className="text-left py-2">Nº</th>
                                     <th className="text-left py-2">Data</th>
                                     <th className="text-left py-2">Peça/Material</th>
@@ -449,7 +449,7 @@ export default function VehicleProfile() {
                                     const cost = requisitionCost(req);
 
                                     return (
-                                        <tr key={req.id} className="border-b border-slate-800/60 text-slate-300">
+                                        <tr key={req.id} className="border-b border-slate-200/60 text-slate-300">
                                             <td className="py-2 font-mono">{req.numero}</td>
                                             <td className="py-2">{new Date(req.data).toLocaleDateString('pt-PT')}</td>
                                             <td className="py-2 max-w-[260px] truncate" title={itemsText}>{itemsText}</td>
@@ -469,12 +469,12 @@ export default function VehicleProfile() {
                     </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h2 className="text-lg font-bold text-white mb-4">Histórico de Combustível</h2>
+                <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                    <h2 className="text-lg font-bold text-[#1f2957] mb-4">Histórico de Combustível</h2>
                     <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
                             <thead>
-                                <tr className="text-slate-500 border-b border-slate-800">
+                                <tr className="text-slate-500 border-b border-slate-200">
                                     <th className="text-left py-2">Data/Hora</th>
                                     <th className="text-left py-2">Litros</th>
                                     <th className="text-left py-2">€/L</th>
@@ -488,7 +488,7 @@ export default function VehicleProfile() {
                                     const motorista = motoristas.find(m => m.id === tx.driverId);
                                     const { date, time } = formatDateTime(tx.timestamp);
                                     return (
-                                        <tr key={tx.id} className="border-b border-slate-800/60 text-slate-300">
+                                        <tr key={tx.id} className="border-b border-slate-200/60 text-slate-300">
                                             <td className="py-2">
                                                 <div className="flex flex-col leading-tight">
                                                     <span>{date}</span>
@@ -508,32 +508,32 @@ export default function VehicleProfile() {
                         {vehicleFuelTransactions.length === 0 && <p className="text-slate-500 py-6 text-center">Sem abastecimentos associados.</p>}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-                        <div className="bg-slate-800/60 rounded-lg p-3">
+                        <div className="bg-slate-100 rounded-lg p-3">
                             <div className="text-xs text-slate-500 uppercase">Total Litros</div>
-                            <div className="text-white font-bold">{totalLiters.toFixed(2)} L</div>
+                            <div className="text-slate-900 font-bold">{totalLiters.toFixed(2)} L</div>
                         </div>
-                        <div className="bg-slate-800/60 rounded-lg p-3">
+                        <div className="bg-slate-100 rounded-lg p-3">
                             <div className="text-xs text-slate-500 uppercase">Consumo Médio</div>
-                            <div className="text-white font-bold">{averageConsumption.toFixed(2)} L/100km</div>
+                            <div className="text-slate-900 font-bold">{averageConsumption.toFixed(2)} L/100km</div>
                         </div>
-                        <div className="bg-slate-800/60 rounded-lg p-3">
+                        <div className="bg-slate-100 rounded-lg p-3">
                             <div className="text-xs text-slate-500 uppercase">Total Combustível</div>
-                            <div className="text-white font-bold">{totalFuelCost.toFixed(2)}€</div>
+                            <div className="text-slate-900 font-bold">{totalFuelCost.toFixed(2)}€</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <h2 className="text-lg font-bold text-white mb-4">Cronograma / Timeline</h2>
+            <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                <h2 className="text-lg font-bold text-[#1f2957] mb-4">Cronograma / Timeline</h2>
                 <div className="space-y-3">
                     {timeline.map(event => (
-                        <div key={event.id} className="flex items-start gap-3 p-3 bg-slate-800/40 border border-slate-800 rounded-xl">
+                        <div key={event.id} className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
                             <div className={`mt-0.5 ${event.type === 'alert' ? 'text-amber-400' : 'text-blue-400'}`}>
                                 {event.type === 'alert' ? <AlertTriangle className="w-4 h-4" /> : <CalendarClock className="w-4 h-4" />}
                             </div>
                             <div className="flex-1">
-                                <div className="text-white font-semibold text-sm">{event.title}</div>
+                                <div className="text-slate-900 font-semibold text-sm">{event.title}</div>
                                 <div className="text-slate-400 text-xs">{event.subtitle}</div>
                             </div>
                             <div className="text-slate-500 text-xs whitespace-nowrap">{new Date(event.date).toLocaleDateString('pt-PT')}</div>
@@ -544,8 +544,8 @@ export default function VehicleProfile() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h3 className="text-white font-bold mb-4">Combustível por mês</h3>
+                <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                    <h3 className="text-slate-900 font-bold mb-4">Combustível por mês</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={monthlyFuel}>
@@ -559,8 +559,8 @@ export default function VehicleProfile() {
                     </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h3 className="text-white font-bold mb-4">Custos de manutenção por mês</h3>
+                <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                    <h3 className="text-slate-900 font-bold mb-4">Custos de manutenção por mês</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={monthlyMaintenance}>
@@ -574,8 +574,8 @@ export default function VehicleProfile() {
                     </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h3 className="text-white font-bold mb-4">Consumo médio ao longo do tempo</h3>
+                <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                    <h3 className="text-slate-900 font-bold mb-4">Consumo médio ao longo do tempo</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart
@@ -593,8 +593,8 @@ export default function VehicleProfile() {
                     </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                    <h3 className="text-white font-bold mb-4">Litros abastecidos</h3>
+                <div className="bg-white/90 border border-slate-200 rounded-2xl p-5">
+                    <h3 className="text-slate-900 font-bold mb-4">Litros abastecidos</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={monthlyFuel}>

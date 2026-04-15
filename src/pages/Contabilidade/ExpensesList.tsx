@@ -205,7 +205,7 @@ export default function ExpensesList() {
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="fixed inset-0 bg-slate-50/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl border border-slate-200 w-full max-w-md p-6 shadow-2xl">
                         <h3 className="text-xl font-bold text-slate-900 mb-4">Nova Despesa</h3>
                         <div className="space-y-4">

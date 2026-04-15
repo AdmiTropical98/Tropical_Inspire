@@ -30,13 +30,13 @@ export default function SystemMonitor() {
     return (
         <div className="space-y-8">
             {/* Monitoring Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-slate-900/60 border border-slate-800/60 rounded-3xl backdrop-blur-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-white/90/60 border border-slate-200/60 rounded-3xl backdrop-blur-xl">
                 <div className="flex items-center gap-4 mb-4 md:mb-0">
                     <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center ring-4 ring-emerald-500/10">
                         <Activity className="w-6 h-6 text-emerald-400 animate-pulse" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black text-white">Estado do Sistema</h2>
+                        <h2 className="text-xl font-black text-slate-900">Estado do Sistema</h2>
                         <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Normal - 0.23ms latency</span>
@@ -58,7 +58,7 @@ export default function SystemMonitor() {
             </div>
 
             {/* Core Services pulse */}
-            <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-8 backdrop-blur-md">
+            <div className="bg-white/90 border border-slate-200/60 rounded-3xl p-8 backdrop-blur-md">
                 <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-8">Conectividade de Serviços</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     <ServiceRow name="Database Realtime" status="Healthy" uptime="99.99%" />
@@ -84,13 +84,13 @@ function MetricCard({ icon: Icon, label, value, subValue, color }: any) {
     return (
         <div className={`p-6 rounded-3xl bg-gradient-to-br border shadow-xl ${colors[color]}`}>
             <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-xl bg-slate-900/50">
+                <div className="p-2 rounded-xl bg-white/90">
                     <Icon className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{label}</span>
             </div>
             <div className="space-y-1">
-                <div className="text-3xl font-black text-white">{value}</div>
+                <div className="text-3xl font-black text-slate-900">{value}</div>
                 <div className="text-[10px] font-bold opacity-60 uppercase">{subValue}</div>
             </div>
         </div>
@@ -113,7 +113,7 @@ function MetricSmall({ icon: Icon, label, value, color }: any) {
 
 function ServiceRow({ name, status, uptime, warning }: { name: string, status: string, uptime: string, warning?: boolean }) {
     return (
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/30 border border-slate-700/40 relative overflow-hidden group hover:border-slate-500/40 transition-all">
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200/40 relative overflow-hidden group hover:border-slate-500/40 transition-all">
             <div className="flex items-center gap-4">
                 <div className={`w-2 h-2 rounded-full ${warning ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'}`} />
                 <div>
@@ -123,7 +123,7 @@ function ServiceRow({ name, status, uptime, warning }: { name: string, status: s
             </div>
             <div className="text-right">
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Uptime</p>
-                <p className="text-xs font-black text-white">{uptime}</p>
+                <p className="text-xs font-black text-slate-900">{uptime}</p>
             </div>
             <div className={`absolute bottom-0 left-0 h-1 bg-${warning ? 'amber' : 'emerald'}-500 opacity-20 w-full transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500`} />
         </div>

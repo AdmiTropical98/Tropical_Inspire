@@ -36,7 +36,7 @@ export default function ExternalServices() {
 
     return (
         <div className="w-full">
-            <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
                     <ExternalLink className="w-6 h-6 text-indigo-500" />
                 </div>
@@ -51,15 +51,15 @@ export default function ExternalServices() {
                         href={platform.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group relative bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 hover:border-slate-600 transition-all hover:-translate-y-1 shadow-2xl overflow-hidden"
+                        className="group relative bg-[#1e293b]/50 backdrop-blur-xl border border-slate-200/50 rounded-3xl p-8 hover:border-slate-300 transition-all hover:-translate-y-1 shadow-2xl overflow-hidden"
                     >
                         <div className={`absolute top-0 right-0 w-32 h-32 ${platform.color} opacity-10 rounded-bl-[100px] transition-all group-hover:scale-110`}></div>
 
                         <div className={`w-14 h-14 rounded-2xl ${platform.color} flex items-center justify-center mb-6 shadow-lg shadow-black/20 group-hover:scale-110 transition-transform duration-300`}>
-                            <platform.icon className="w-8 h-8 text-white" />
+                            <platform.icon className="w-8 h-8 text-slate-900" />
                         </div>
 
-                        <h3 className="text-2xl font-bold text-white mb-2">{platform.name}</h3>
+                        <h3 className="text-2xl font-bold text-slate-900 mb-2">{platform.name}</h3>
                         <p className="text-slate-400 mb-6 min-h-[48px]">{platform.description}</p>
 
                         <div className={`flex items-center gap-2 font-bold ${platform.textColor} group-hover:translate-x-2 transition-transform`}>
