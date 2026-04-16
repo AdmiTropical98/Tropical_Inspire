@@ -99,11 +99,12 @@ function formatHereWaypoint(point: RoutePoint) {
 }
 
 function getHereBaseLayer(layers: any) {
+    // Prefer raster tiles – always available with a standard API key
     return layers?.raster?.normal?.map
-        || layers?.vector?.normal?.map
-        || layers?.normal?.map
-        || layers?.raster?.satellite?.map
-        || null;
+        ?? layers?.raster?.normal?.mapnight
+        ?? layers?.vector?.normal?.map
+        ?? layers?.normal?.map
+        ?? null;
 }
 
 function isNativeMobileApp() {
@@ -312,9 +313,12 @@ export default function Roteirizacao() {
                 platformRef.current = platform;
 
                 const layers = platform.createDefaultLayers();
+                console.log('[Roteirização] HERE layers:', JSON.stringify(Object.keys(layers || {})));
+                console.log('[Roteirização] raster keys:', JSON.stringify(Object.keys(layers?.raster || {})));
                 const baseLayer = getHereBaseLayer(layers);
+                console.log('[Roteirização] baseLayer:', baseLayer);
                 if (!baseLayer) {
-                    console.error('[Roteirização] HERE base layer indisponível.');
+                    console.error('[Roteirização] HERE base layer indisponível. Layers:', layers);
                     return;
                 }
 

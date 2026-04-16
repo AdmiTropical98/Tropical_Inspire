@@ -508,7 +508,7 @@ function App() {
   const desktopGroups = [operationsGroup, fleetGroup, fuelGroup, moreGroup].filter(group => group.items.length > 0);
 
   return (
-    <div className="app-root flex min-h-[100dvh] flex-col overflow-x-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
+    <div className={`app-root flex flex-col overflow-x-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20 ${isFullScreenPage ? 'h-[100dvh]' : 'min-h-[100dvh]'}`}>
       <nav className="navbar navbar-expand-lg custom-navbar sticky top-0 z-[5000]">
         <div className="container-fluid px-4 sm:px-6 lg:px-8">
           <a className="navbar-brand" href="/" onClick={(event) => navigateFromAnchor(event, '/dashboard')}>
