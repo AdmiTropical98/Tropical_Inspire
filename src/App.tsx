@@ -307,7 +307,6 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
 
 function App() {
   const MOBILE_MAX_WIDTH = 768;
-  const TABLET_MAX_WIDTH = 1024;
   const SIDEBAR_LOGO = '/LOGO.png';
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
@@ -326,8 +325,8 @@ function App() {
   }, []);
 
   const isCapacitorNative = Capacitor.isNativePlatform();
-  const isTabletViewport = viewportWidth <= TABLET_MAX_WIDTH;
-  const isMobileLayout = isCapacitorNative || viewportWidth <= MOBILE_MAX_WIDTH || isTabletViewport;
+  const isMobileViewport = viewportWidth < MOBILE_MAX_WIDTH;
+  const isMobileLayout = isCapacitorNative || isMobileViewport;
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
@@ -560,10 +559,18 @@ function App() {
       key: 'bottom-mais',
       label: 'Mais',
       icon: Settings2,
-      active: ['utilizadores', 'meu-perfil', 'permissoes', 'mensagens'].includes(activeTab),
-      onClick: () => handleNavigate('/mensagens'),
+      active: moreGroup.items.some(item => item.active),
+      onClick: () => undefined,
     },
   ];
+
+  const moreMenuItems = moreGroup.items.map(item => ({
+    key: `more-${item.key}`,
+    label: item.label,
+    icon: item.icon,
+    active: item.active,
+    onClick: () => handleNavigate(item.path),
+  }));
 
   const appRoutes = (
     <Suspense fallback={
@@ -712,6 +719,7 @@ function App() {
         userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
         isMapPage={isMapPage}
         bottomNavItems={bottomNavItems}
+        moreMenuItems={moreMenuItems}
       >
         {appRoutes}
       </LayoutMobile>

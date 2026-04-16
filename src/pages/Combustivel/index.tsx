@@ -1241,13 +1241,13 @@ export default function Combustivel() {
     };
 
     return (
-        <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-500">
+        <div className="combustivel-page w-full min-w-0 space-y-6 animate-in fade-in duration-500">
             <PageHeader
                 title={t('fuel.title')}
                 subtitle={t('fuel.subtitle')}
                 icon={Fuel}
             >
-                <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
+                <div className="combustivel-tabs flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
                     {[
                         { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
                         { id: 'abastecer', icon: Fuel, label: 'Abastecer' },

@@ -1,0 +1,184 @@
+html.capacitor-android-mobile,
+body.capacitor-android-mobile,
+html.capacitor-android-mobile #root,
+body.capacitor-android-mobile #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  html.capacitor-android-mobile body {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  /* 2) Remove desktop sidebar/top nav on mobile */
+  html.capacitor-android-mobile .navbar,
+  html.capacitor-android-mobile .custom-navbar,
+  html.capacitor-android-mobile [class*='sidebar'],
+  html.capacitor-android-mobile [id*='sidebar'] {
+    display: none !important;
+  }
+
+  /* 3) Bottom tab nav defaults */
+  html.capacitor-android-mobile .mobile-bottom-nav {
+    display: grid !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 7000;
+  }
+
+  /* 4) Full-width cards */
+  html.capacitor-android-mobile .surface-card,
+  html.capacitor-android-mobile .kpi-card,
+  html.capacitor-android-mobile .glass-card,
+  html.capacitor-android-mobile .glass-panel,
+  html.capacitor-android-mobile [class*='rounded-2xl'],
+  html.capacitor-android-mobile [class*='rounded-3xl'] {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* 5) Fix overlapping menus in Combustivel */
+  html.capacitor-android-mobile .combustivel-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: visible;
+    padding: 8px;
+  }
+
+  html.capacitor-android-mobile .combustivel-tabs button {
+    width: 100%;
+    justify-content: flex-start;
+    min-height: 44px;
+  }
+
+  html.capacitor-android-mobile .combustivel-page select,
+  html.capacitor-android-mobile .combustivel-page input,
+  html.capacitor-android-mobile .combustivel-page button {
+    min-height: 44px;
+  }
+
+  /* 6) Mais pages access sheet */
+  html.capacitor-android-mobile .mobile-more-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 7100;
+    border: 0;
+    background: rgba(15, 23, 42, 0.45);
+  }
+
+  html.capacitor-android-mobile .mobile-more-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    z-index: 7200;
+    background: rgba(255, 255, 255, 0.98);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-bottom: 0;
+    padding: 12px;
+    max-height: min(62vh, 560px);
+    overflow-y: auto;
+  }
+
+  html.capacitor-android-mobile .mobile-more-title {
+    margin: 0 0 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #475569;
+    font-weight: 800;
+  }
+
+  html.capacitor-android-mobile .mobile-more-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  html.capacitor-android-mobile .mobile-more-item {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    border-radius: 12px;
+    min-height: 46px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  html.capacitor-android-mobile .mobile-more-item.active {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  /* 7) Login spacing and typography */
+  html.capacitor-android-mobile .login-scrollbar {
+    padding: 0 !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar .max-w-\[1440px\] {
+    max-width: none !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar h1,
+  html.capacitor-android-mobile .login-scrollbar h2 {
+    font-size: clamp(1.25rem, 6vw, 1.55rem) !important;
+    line-height: 1.25 !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar p,
+  html.capacitor-android-mobile .login-scrollbar label {
+    font-size: 0.92rem !important;
+  }
+
+  /* 8) Full-screen map pages */
+  html.capacitor-android-mobile .mobile-map-content,
+  html.capacitor-android-mobile .mobile-map-page {
+    height: calc(100dvh - 64px - 74px - env(safe-area-inset-bottom)) !important;
+    min-height: calc(100dvh - 64px - 74px - env(safe-area-inset-bottom)) !important;
+  }
+
+  /* 9) Horizontal lists -> stacked buttons */
+  html.capacitor-android-mobile .overflow-x-auto {
+    overflow-x: visible !important;
+  }
+
+  html.capacitor-android-mobile .overflow-x-auto > .flex,
+  html.capacitor-android-mobile .overflow-x-auto.flex,
+  html.capacitor-android-mobile .combustivel-tabs,
+  html.capacitor-android-mobile [class*='tabs'] {
+    flex-wrap: wrap;
+  }
+
+  html.capacitor-android-mobile .overflow-x-auto button {
+    white-space: normal;
+  }
+
+  /* 10) Prevent fixed/sticky containers from overflowing viewport */
+  html.capacitor-android-mobile .fixed,
+  html.capacitor-android-mobile [class*='sticky'] {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  html.capacitor-android-mobile [class*='max-h-\[90vh\]'],
+  html.capacitor-android-mobile [class*='max-h-\[80vh\]'] {
+    max-height: calc(100dvh - 92px) !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content {
+    padding: 8px 10px 12px;
+  }
+}

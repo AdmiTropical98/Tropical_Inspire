@@ -41,6 +41,7 @@ window.onunhandledrejection = function (event) {
 console.log('--- MAIN.TSX EXECUTING ---');
 
 import { createRoot } from 'react-dom/client'
+import { Capacitor } from '@capacitor/core'
 import './index.css'
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
@@ -69,6 +70,13 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
 async function bootstrapApp() {
   try {
+    const isCapacitorAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+    if (isCapacitorAndroid) {
+      await import('./mobile.css');
+      document.documentElement.classList.add('capacitor-android-mobile');
+      document.body.classList.add('capacitor-android-mobile');
+    }
+
     const [
       ReactModule,
       RouterModule,

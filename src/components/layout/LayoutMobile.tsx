@@ -14,6 +14,13 @@ interface LayoutMobileProps {
   userMenu: React.ReactNode;
   isMapPage: boolean;
   bottomNavItems: BottomNavItem[];
+  moreMenuItems?: Array<{
+    key: string;
+    label: string;
+    icon: React.ElementType;
+    active: boolean;
+    onClick: () => void;
+  }>;
   children: React.ReactNode;
 }
 
@@ -23,8 +30,11 @@ export default function LayoutMobile({
   userMenu,
   isMapPage,
   bottomNavItems,
+  moreMenuItems = [],
   children,
 }: LayoutMobileProps) {
+  const [showMoreMenu, setShowMoreMenu] = React.useState(false);
+
   return (
     <div className="layout-mobile app-root h-[100dvh] flex flex-col overflow-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
       <nav className="mobile-topbar">
@@ -43,12 +53,20 @@ export default function LayoutMobile({
       <nav className="mobile-bottom-nav" aria-label="Navegação principal">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
+          const isMoreTab = item.key === 'bottom-mais';
           return (
             <button
               key={item.key}
               type="button"
               className={`mobile-bottom-nav-item ${item.active ? 'active' : ''}`}
-              onClick={item.onClick}
+              onClick={() => {
+                if (isMoreTab) {
+                  setShowMoreMenu((prev) => !prev);
+                  return;
+                }
+                setShowMoreMenu(false);
+                item.onClick();
+              }}
             >
               <Icon className="h-5 w-5" />
               <span>{item.label}</span>
@@ -56,6 +74,39 @@ export default function LayoutMobile({
           );
         })}
       </nav>
+
+      {showMoreMenu && (
+        <>
+          <button
+            type="button"
+            aria-label="Fechar menu Mais"
+            className="mobile-more-backdrop"
+            onClick={() => setShowMoreMenu(false)}
+          />
+          <section className="mobile-more-sheet" aria-label="Menu Mais">
+            <h3 className="mobile-more-title">Mais</h3>
+            <div className="mobile-more-list">
+              {moreMenuItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`mobile-more-item ${item.active ? 'active' : ''}`}
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      item.onClick();
+                    }}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
