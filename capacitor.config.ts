@@ -5,6 +5,8 @@ const config: CapacitorConfig = {
   appName: 'AlgarTempo Frota',
   webDir: 'dist',
   server: {
+    url: 'https://algartempo-frota.com',
+    cleartext: true,
     androidScheme: 'https',
     iosScheme: 'https',
     allowNavigation: [
