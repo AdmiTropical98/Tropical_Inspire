@@ -99,9 +99,10 @@ function formatHereWaypoint(point: RoutePoint) {
 }
 
 function getHereBaseLayer(layers: any) {
-    // Prefer raster tiles – always available with a standard API key
+    // Prefer raster tiles – always available without HARP engine
     return layers?.raster?.normal?.map
         ?? layers?.raster?.normal?.mapnight
+        ?? layers?.raster?.terrain?.map
         ?? layers?.vector?.normal?.map
         ?? layers?.normal?.map
         ?? null;
@@ -312,7 +313,7 @@ export default function Roteirizacao() {
                 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
                 platformRef.current = platform;
 
-                const layers = platform.createDefaultLayers();
+                const layers = platform.createDefaultLayers({ tileSize: 512, ppi: 320 });
                 console.log('[Roteirização] HERE layers:', JSON.stringify(Object.keys(layers || {})));
                 console.log('[Roteirização] raster keys:', JSON.stringify(Object.keys(layers?.raster || {})));
                 const baseLayer = getHereBaseLayer(layers);
@@ -1151,14 +1152,14 @@ export default function Roteirizacao() {
                 </div>
             </div>
 
-            <div className="flex-1 relative overflow-hidden bg-slate-100">
+            <div className="flex-1 relative overflow-hidden bg-slate-100" style={{ minHeight: 0 }}>
                 {!HERE_API_KEY && (
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-xs text-red-600 font-semibold">
                         HERE_API_KEY em falta.
                     </div>
                 )}
 
-                <div ref={mapContainerRef} className="h-full w-full" />
+                <div ref={mapContainerRef} className="absolute inset-0" />
 
                 <div className="absolute top-4 right-4 z-[1000] flex gap-2">
                     <button
