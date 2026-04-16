@@ -10,6 +10,16 @@ body.capacitor-android-mobile #root {
   html.capacitor-android-mobile body {
     font-size: 14px;
     line-height: 1.45;
+    background: #f8fafc !important;
+  }
+
+  html.capacitor-android-mobile .app-content-bg {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    background-image: none !important;
+  }
+
+  html.capacitor-android-mobile .app-content-bg::before {
+    display: none !important;
   }
 
   /* 2) Remove desktop sidebar/top nav on mobile */
@@ -306,13 +316,29 @@ body.capacitor-android-mobile #root {
   }
 
   html.capacitor-android-mobile .mobile-page-content {
-    padding: 10px 10px calc(102px + env(safe-area-inset-bottom)) !important;
+    padding: 0 0 calc(92px + env(safe-area-inset-bottom)) !important;
+    background: transparent !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > div,
+  html.capacitor-android-mobile .mobile-page-content > section,
+  html.capacitor-android-mobile .combustivel-page,
+  html.capacitor-android-mobile .android-native-fuel,
+  html.capacitor-android-mobile .route-planner-shell {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
   }
 
   html.capacitor-android-mobile .mobile-page-content > *,
   html.capacitor-android-mobile .mobile-page-content [class*='max-w-'] {
     min-width: 0 !important;
     max-width: 100% !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > * {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
   html.capacitor-android-mobile .mobile-page-content .sticky {
@@ -335,13 +361,39 @@ body.capacitor-android-mobile #root {
   html.capacitor-android-mobile .mobile-page-content .rounded-3xl {
     width: 100% !important;
     overflow: hidden;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > .surface-card,
+  html.capacitor-android-mobile .mobile-page-content > .glass-card,
+  html.capacitor-android-mobile .mobile-page-content > .kpi-card,
+  html.capacitor-android-mobile .mobile-page-content > .rounded-3xl,
+  html.capacitor-android-mobile .mobile-page-content > div[class*='space-y'] > .surface-card:first-child,
+  html.capacitor-android-mobile .mobile-page-content > div[class*='space-y'] > .glass-card:first-child,
+  html.capacitor-android-mobile .mobile-page-content > div[class*='space-y'] > .rounded-3xl:first-child,
+  html.capacitor-android-mobile .combustivel-page > .surface-card,
+  html.capacitor-android-mobile .combustivel-page > div > .surface-card:first-child {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   html.capacitor-android-mobile .page-header-shell {
     position: relative !important;
     top: auto !important;
-    border-radius: 18px;
-    overflow: hidden;
+    border-radius: 0 !important;
+    overflow: visible;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   html.capacitor-android-mobile .page-header-shell > div:first-child,
@@ -367,17 +419,19 @@ body.capacitor-android-mobile #root {
   }
 
   html.capacitor-android-mobile .mobile-bottom-nav {
-    left: 8px;
-    right: 8px;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    border-radius: 18px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 0;
     height: auto;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.12);
+    background: rgba(255, 255, 255, 0.98);
   }
 
   html.capacitor-android-mobile .mobile-bottom-nav-item {
-    min-height: 52px;
+    min-height: 50px;
     gap: 2px;
+    border-radius: 10px;
   }
 
   html.capacitor-android-mobile .mobile-bottom-nav-item span {

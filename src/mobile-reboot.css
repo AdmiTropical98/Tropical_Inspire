@@ -398,12 +398,11 @@ html.capacitor-android-mobile .mobile-reboot-sheet-item.active {
 
 html.capacitor-android-mobile .android-native-dashboard .surface-card,
 html.capacitor-android-mobile .android-native-fuel .surface-card,
-html.capacitor-android-mobile .android-native-vehicles .surface-card,
-html.capacitor-android-mobile .android-native-vehicles .kpi-card {
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+html.capacitor-android-mobile .android-native-vehicles .surface-card {
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 html.capacitor-android-mobile .android-native-dashboard .kpi-card,
@@ -411,26 +410,27 @@ html.capacitor-android-mobile .android-native-fuel .kpi-card,
 html.capacitor-android-mobile .android-native-fuel .surface-card.p-4,
 html.capacitor-android-mobile .android-native-fuel .surface-card.p-5,
 html.capacitor-android-mobile .android-native-vehicles .kpi-card {
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: none;
 }
 
 html.capacitor-android-mobile .android-native-dashboard .p-3.md\:p-8,
 html.capacitor-android-mobile .android-native-fuel .p-3.md\:p-8,
 html.capacitor-android-mobile .android-native-vehicles .space-y-10 {
-  padding: 8px;
+  padding: 4px;
 }
 
 html.capacitor-android-mobile .android-native-fuel .combustivel-tabs {
   position: static;
   top: auto;
   z-index: 1;
-  padding: 8px;
-  background: rgba(241, 245, 249, 0.92);
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  backdrop-filter: blur(8px);
+  padding: 4px 0 8px;
+  background: transparent;
+  border-radius: 0;
+  border: 0;
+  backdrop-filter: none;
   overflow-x: auto;
 }
 
@@ -445,11 +445,11 @@ html.capacitor-android-mobile .android-native-vehicles .android-native-vehicles-
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(248, 250, 252, 0.94);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 16px;
-  padding: 4px;
+  background: rgba(248, 250, 252, 0.96);
+  backdrop-filter: none;
+  border: 0;
+  border-radius: 0;
+  padding: 2px 0 6px;
   overflow-x: auto;
 }
 
@@ -462,9 +462,9 @@ html.capacitor-android-mobile .android-native-vehicles .android-native-vehicles-
 }
 
 html.capacitor-android-mobile .android-native-vehicles .android-native-vehicles-grid > div {
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: none;
 }
 
 html.capacitor-android-mobile .android-native-dashboard button,
