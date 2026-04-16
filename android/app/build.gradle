@@ -1,12 +1,19 @@
 apply plugin: 'com.android.application'
 
+def releaseStoreFilePath = System.getenv("RELEASE_STORE_FILE") ?: "../release-key.keystore"
+def releaseStorePasswordValue = System.getenv("RELEASE_STORE_PASSWORD") ?: (project.findProperty("RELEASE_STORE_PASSWORD") ?: "PASSWORD_DA_KEYSTORE")
+def releaseKeyAliasValue = System.getenv("RELEASE_KEY_ALIAS") ?: (project.findProperty("RELEASE_KEY_ALIAS") ?: "algartempo-key")
+def releaseKeyPasswordValue = System.getenv("RELEASE_KEY_PASSWORD") ?: (project.findProperty("RELEASE_KEY_PASSWORD") ?: releaseStorePasswordValue)
+
 android {
     signingConfigs {
         release {
-            storeFile file("../release-key.keystore")
-            storePassword System.getenv("RELEASE_STORE_PASSWORD") ?: "PASSWORD_DA_KEYSTORE"
-            keyAlias "algartempo-key"
-            keyPassword System.getenv("RELEASE_STORE_PASSWORD") ?: "PASSWORD_DA_KEYSTORE"
+            storeFile file(releaseStoreFilePath)
+            storePassword releaseStorePasswordValue
+            keyAlias releaseKeyAliasValue
+            keyPassword releaseKeyPasswordValue
+            enableV1Signing true
+            enableV2Signing true
         }
     }
 
@@ -28,6 +35,7 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            debuggable false
             minifyEnabled false
             shrinkResources false
         }

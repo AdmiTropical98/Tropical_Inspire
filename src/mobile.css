@@ -3,6 +3,10 @@ body.capacitor-android-mobile,
 html.capacitor-android-mobile #root,
 body.capacitor-android-mobile #root {
   height: 100%;
+  width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   overflow: hidden;
 }
 
@@ -307,15 +311,31 @@ body.capacitor-android-mobile #root {
     max-width: 110px;
   }
 
+  html.capacitor-android-mobile .layout-mobile,
+  html.capacitor-android-mobile .app-root,
+  html.capacitor-android-mobile .app-content-bg,
   html.capacitor-android-mobile .mobile-main-content {
-    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .mobile-main-content {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
   }
 
   html.capacitor-android-mobile .mobile-page-scroll {
     min-height: 100%;
+    width: 100% !important;
+    max-width: none !important;
   }
 
   html.capacitor-android-mobile .mobile-page-content {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
     padding: 0 0 calc(92px + env(safe-area-inset-bottom)) !important;
     background: transparent !important;
   }
@@ -336,7 +356,12 @@ body.capacitor-android-mobile #root {
     max-width: 100% !important;
   }
 
-  html.capacitor-android-mobile .mobile-page-content > * {
+  html.capacitor-android-mobile .mobile-page-content > *,
+  html.capacitor-android-mobile .mobile-page-content > .container,
+  html.capacitor-android-mobile .mobile-page-content > div[class*='mx-auto'],
+  html.capacitor-android-mobile .mobile-page-content > section[class*='mx-auto'] {
+    width: 100% !important;
+    max-width: none !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
   }
