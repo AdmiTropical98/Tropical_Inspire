@@ -175,7 +175,17 @@ body.capacitor-android-mobile #root {
   }
 
   html.capacitor-android-mobile .colaborador-dashboard {
-    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+    min-height: 100dvh;
+    overflow-y: auto !important;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard main {
+    max-width: none !important;
+    justify-content: flex-start !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important;
   }
 
   html.capacitor-android-mobile .colaborador-dashboard .colaborador-tabs {
@@ -188,10 +198,42 @@ body.capacitor-android-mobile #root {
     min-height: 44px;
     padding-left: 6px;
     padding-right: 6px;
+    white-space: normal;
+    line-height: 1.15;
   }
 
   html.capacitor-android-mobile .colaborador-dashboard .colaborador-stats {
     grid-template-columns: 1fr !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-shell {
+    min-height: 100%;
+    height: 100%;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-config-grid,
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-nav-grid,
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-footer-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel .route-poi-panel {
+    height: 170px !important;
+  }
+
+  html.capacitor-android-mobile .route-planner-mobile-panel select,
+  html.capacitor-android-mobile .route-planner-mobile-panel input,
+  html.capacitor-android-mobile .route-planner-mobile-panel button {
+    min-height: 44px;
   }
 
   /* 8) Full-screen map pages */

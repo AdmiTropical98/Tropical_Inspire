@@ -224,7 +224,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
 
   return (
     <div
-      className="colaborador-dashboard relative min-h-screen overflow-x-hidden bg-[#d8e8f8] text-slate-900"
+      className="colaborador-dashboard relative min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#d8e8f8] text-slate-900"
       style={{
         backgroundImage:
           "radial-gradient(140% 100% at 50% 100%, rgba(96,165,250,0.45) 0%, rgba(96,165,250,0) 55%), radial-gradient(120% 95% at 50% 0%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0) 70%), url('/grid-pattern.svg'), linear-gradient(180deg, #cfdff1 0%, #dce8f6 45%, #e5eef9 100%)",
@@ -258,7 +258,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 w-full max-w-3xl mx-auto px-3 sm:px-6 pb-8 flex flex-col justify-center">
+      <main className="relative z-10 flex-1 w-full max-w-3xl mx-auto px-3 sm:px-6 pb-8 flex flex-col justify-start md:justify-center">
 
         {/* Feedback Banner */}
         {feedback && (

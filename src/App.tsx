@@ -718,7 +718,7 @@ function App() {
       <LayoutMobileReboot
         logoSrc={`${SIDEBAR_LOGO}?v=3`}
         onLogoClick={() => handleNavigate('/dashboard')}
-        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
+        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact showName={false} />}
         isMapPage={isMapPage}
         bottomNavItems={bottomNavItems}
         moreMenuItems={moreMenuItems}
@@ -733,7 +733,7 @@ function App() {
       <LayoutMobile
         logoSrc={`${SIDEBAR_LOGO}?v=3`}
         onLogoClick={() => handleNavigate('/dashboard')}
-        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
+        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact showName={false} />}
         isMapPage={isMapPage}
         bottomNavItems={bottomNavItems}
         moreMenuItems={moreMenuItems}

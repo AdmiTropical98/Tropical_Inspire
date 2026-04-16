@@ -275,6 +275,16 @@ export default function Roteirizacao() {
     const [summary, setSummary] = useState<RouteSummary>({ distance: 0, time: 0, fuel: 0, cost: 0 });
 
     const isMobileMapLayout = Capacitor.isNativePlatform() || viewportWidth <= 768;
+    const isAndroidNativeApp = isNativeMobileApp() && Capacitor.getPlatform() === 'android';
+
+    useEffect(() => {
+        if (isMobileMapLayout) {
+            setShowMobilePanel(true);
+            return;
+        }
+
+        setShowMobilePanel(false);
+    }, [isMobileMapLayout]);
 
     useEffect(() => {
         const onResize = () => setViewportWidth(window.innerWidth);
@@ -875,11 +885,14 @@ export default function Roteirizacao() {
     };
 
     return (
-        <div className="flex h-full w-full overflow-hidden relative">
+        <div className="route-planner-shell flex h-full w-full overflow-hidden relative">
             <div className={`${isMobileMapLayout
-                ? `absolute left-0 top-0 bottom-0 w-[92vw] max-w-[380px] z-[1200] bg-white border-r border-slate-200 shadow-2xl transition-transform duration-300 ${showMobilePanel ? 'translate-x-0' : '-translate-x-full'}`
+                ? `route-planner-mobile-panel absolute inset-x-0 bottom-0 top-auto h-[min(72vh,640px)] w-full max-w-none z-[1200] bg-white/98 backdrop-blur-xl border-t border-slate-200 shadow-[0_-18px_40px_rgba(15,23,42,0.24)] transition-transform duration-300 rounded-t-[26px] ${showMobilePanel ? 'translate-y-0' : 'translate-y-[calc(100%-84px)]'}`
                 : 'w-[380px] shrink-0 flex flex-col bg-white border-r border-slate-200 shadow-lg z-10 overflow-hidden'}`}>
                 <div className="px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
+                    {isMobileMapLayout && (
+                        <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-3" />
+                    )}
                     <div className="flex items-center gap-3 mb-4 justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0">
@@ -901,7 +914,7 @@ export default function Roteirizacao() {
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="route-config-grid grid grid-cols-2 gap-2 mb-2">
                         <div>
                             <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Motorista</label>
                             <select
@@ -943,7 +956,7 @@ export default function Roteirizacao() {
                                     ))}
                             </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="route-nav-grid grid grid-cols-2 gap-2">
                             <button
                                 onClick={handleNavigationToggle}
                                 disabled={!trackedVehicleId || routeStops.length < 2}
@@ -1085,7 +1098,7 @@ export default function Roteirizacao() {
 
                 {routePath.length > 1 && (
                     <div className="mx-4 mb-3 p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shrink-0">
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="route-summary-grid grid grid-cols-4 gap-2">
                             <div className="text-center"><div className="text-[8px] font-bold text-blue-200 uppercase">KM</div><div className="text-sm font-black text-white">{summary.distance.toFixed(1)}</div></div>
                             <div className="text-center"><div className="text-[8px] font-bold text-blue-200 uppercase">Tempo</div><div className="text-sm font-black text-white">{formatTime(summary.time)}</div></div>
                             <div className="text-center"><div className="text-[8px] font-bold text-blue-200 uppercase">Litros</div><div className="text-sm font-black text-amber-300">{summary.fuel.toFixed(1)}</div></div>
@@ -1110,7 +1123,7 @@ export default function Roteirizacao() {
                 )}
 
                 <div className="px-4 pb-4 space-y-2 shrink-0">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="route-footer-actions grid grid-cols-2 gap-2">
                         <button onClick={handleOptimize} disabled={routeStops.length < 3}
                             className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 uppercase transition-all disabled:opacity-40 group">
                             <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
@@ -1124,7 +1137,7 @@ export default function Roteirizacao() {
                     </div>
                 </div>
 
-                <div className="border-t border-slate-100 flex flex-col shrink-0" style={{ height: '220px' }}>
+                <div className="route-poi-panel border-t border-slate-100 flex flex-col shrink-0" style={{ height: isMobileMapLayout ? '180px' : '220px' }}>
                     <div className="flex gap-1 px-4 pt-3 pb-2">
                         {(['locais', 'ativas'] as const).map(tab => (
                             <button key={tab} onClick={() => setActiveTab(tab)}
@@ -1196,12 +1209,12 @@ export default function Roteirizacao() {
 
                 <div ref={mapContainerRef} className="absolute inset-0" />
 
-                <div className="absolute top-4 left-4 z-[1000] flex gap-2">
+                <div className={`absolute ${isAndroidNativeApp ? 'top-3 left-3' : 'top-4 left-4'} z-[1000] flex gap-2`}>
                     {isMobileMapLayout && (
                         <button
                             type="button"
                             onClick={() => setShowMobilePanel(true)}
-                            className="px-3 py-2 rounded-xl text-[11px] font-bold border bg-white text-slate-700 border-slate-200"
+                            className="h-11 px-3 rounded-2xl text-[11px] font-bold border bg-white/95 text-slate-700 border-slate-200 shadow-lg shadow-slate-300/30 backdrop-blur"
                         >
                             <Menu className="w-4 h-4 inline mr-1" />
                             Painel
@@ -1209,27 +1222,29 @@ export default function Roteirizacao() {
                     )}
                 </div>
 
-                <div className="absolute top-4 right-4 z-[1000] flex gap-2">
+                <div className={`absolute ${isAndroidNativeApp ? 'top-3 right-3' : 'top-4 right-4'} z-[1000] ${isMobileMapLayout ? 'flex flex-col gap-2' : 'flex gap-2'}`}>
                     <button
                         onClick={() => setAutoCenterNav(v => !v)}
                         disabled={!navigationEnabled}
-                        className={`px-3 py-2 rounded-xl text-[11px] font-bold border ${autoCenterNav ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200'} disabled:opacity-40`}
+                        className={`${isMobileMapLayout ? 'h-11 w-11 flex items-center justify-center rounded-2xl' : 'px-3 py-2 rounded-xl text-[11px]'} font-bold border shadow-lg shadow-slate-300/20 ${autoCenterNav ? 'bg-blue-600 text-white border-blue-600' : 'bg-white/95 text-slate-700 border-slate-200'} disabled:opacity-40`}
+                        title="Seguir viatura"
                     >
-                        <Crosshair className="w-4 h-4 inline mr-1" />
-                        Seguir Viatura
+                        <Crosshair className="w-4 h-4" />
+                        {!isMobileMapLayout && <span className="ml-1">Seguir Viatura</span>}
                     </button>
                     <button
                         onClick={handleNavigationToggle}
                         disabled={!trackedVehicleId || routeStops.length < 2}
-                        className={`px-3 py-2 rounded-xl text-[11px] font-bold border ${navigationEnabled ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-700 border-slate-200'} disabled:opacity-40`}
+                        className={`${isMobileMapLayout ? 'h-11 w-11 flex items-center justify-center rounded-2xl' : 'px-3 py-2 rounded-xl text-[11px]'} font-bold border shadow-lg shadow-slate-300/20 ${navigationEnabled ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white/95 text-slate-700 border-slate-200'} disabled:opacity-40`}
+                        title={navigationEnabled ? 'Navegação ativa' : 'Iniciar navegação'}
                     >
-                        <Navigation className="w-4 h-4 inline mr-1" />
-                        {navigationEnabled ? 'Navegação Ativa' : 'Iniciar Navegação'}
+                        <Navigation className="w-4 h-4" />
+                        {!isMobileMapLayout && <span className="ml-1">{navigationEnabled ? 'Navegação Ativa' : 'Iniciar Navegação'}</span>}
                     </button>
                 </div>
 
-                {routeStops.length === 0 && (
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000]">
+                {routeStops.length === 0 && (!isAndroidNativeApp || !showMobilePanel) && (
+                    <div className={`absolute ${isAndroidNativeApp ? 'bottom-24' : 'bottom-8'} left-1/2 -translate-x-1/2 z-[1000]`}>
                         <div className="bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-slate-200 shadow-lg text-center">
                             <p className="text-xs font-semibold text-slate-600">Clique no mapa para adicionar paragens rapidamente</p>
                             <p className="text-[10px] text-slate-400 mt-0.5">A rota HERE é recalculada automaticamente ao alterar paragens</p>
