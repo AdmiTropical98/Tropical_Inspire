@@ -1271,7 +1271,7 @@ export default function Combustivel() {
                 </div>
             </PageHeader>
 
-            <div className="p-4 md:p-8 space-y-8">
+            <div className="p-3 md:p-8 space-y-5 md:space-y-8">
 
                 {/* Content Area */}
 
@@ -1285,13 +1285,13 @@ export default function Combustivel() {
                                     <p className="text-slate-500 font-medium">Painel operacional para consumo, stock e eficiência</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
                                     <div className="relative">
                                         <Car className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <select
                                             value={selectedViaturaId}
                                             onChange={(e) => setSelectedViaturaId(e.target.value)}
-                                            className="w-full sm:w-[210px] bg-white border border-slate-200 rounded-xl pl-10 pr-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
                                         >
                                             <option value="">Todas as viaturas</option>
                                             {viaturas.map(v => (
@@ -1303,7 +1303,7 @@ export default function Combustivel() {
                                     <select
                                         value={filters.driverId}
                                         onChange={(e) => setFilters(prev => ({ ...prev, driverId: e.target.value }))}
-                                        className="w-full sm:w-[210px] bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
                                     >
                                         <option value="">Todos os motoristas</option>
                                         {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
@@ -1313,13 +1313,13 @@ export default function Combustivel() {
                                         type="date"
                                         value={filters.startDate}
                                         onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                                        className="w-full sm:w-[180px] bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
                                     />
 
                                     <select
                                         value={fuelSourceFilter}
                                         onChange={(e) => setFuelSourceFilter(e.target.value as any)}
-                                        className="w-full sm:w-[180px] bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 outline-none"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base md:text-sm text-slate-700 focus:border-blue-400 outline-none"
                                     >
                                         <option value="all">Fonte: todas</option>
                                         <option value="internal">Fonte: tanque interno</option>

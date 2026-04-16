@@ -90,10 +90,10 @@ export default function Dashboard({
                 }
             />
 
-            <div className="p-4 md:p-8 space-y-8">
+            <div className="p-3 md:p-8 space-y-5 md:space-y-8">
 
                 {/* DASHBOARD GRID */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 auto-rows-min">
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6 auto-rows-min">
 
                     {/* 1. KPIs Row */}
                     {hasAccess(userRole, 'requisicoes') && (
@@ -171,7 +171,7 @@ export default function Dashboard({
                     {/* 2. Charts & Widgets Row */}
 
                     {/* Quick Actions - 1 Col */}
-                    <div className="w-full min-w-0 xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+                    <div className="w-full min-w-0 xl:col-span-1 h-full min-h-[220px] md:min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
                         <QuickActions
                             onNewService={() => setActiveTab('requisicoes')}
                             onNewClient={() => setActiveTab('clientes')}
@@ -181,7 +181,7 @@ export default function Dashboard({
 
                     {/* Fleet Status Chart - 1 Col */}
                     {hasAccess(userRole, 'viaturas') && (
-                        <div className="w-full min-w-0 xl:col-span-1 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+                        <div className="w-full min-w-0 xl:col-span-1 h-full min-h-[220px] md:min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
                             <FleetStatusChart
                                 total={totalVehicles}
                                 available={availableVehicles}
@@ -192,12 +192,12 @@ export default function Dashboard({
                     )}
 
                     {/* Revenue Chart - 2 Cols */}
-                    <div className="w-full min-w-0 xl:col-span-2 h-full min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
+                    <div className="w-full min-w-0 xl:col-span-2 h-full min-h-[220px] md:min-h-[300px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
                         <RevenueChart services={servicos} />
                     </div>
 
                     {/* 3. Activity Table - Full Width */}
-                    <div className="w-full min-w-0 col-span-1 xl:col-span-3 h-full min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
+                    <div className="w-full min-w-0 col-span-1 xl:col-span-3 h-full min-h-[260px] md:min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
                         <ActivityTable items={activityItems} />
                     </div>
 

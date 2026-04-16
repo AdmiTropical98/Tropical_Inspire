@@ -293,6 +293,17 @@ html.login-active #root {
   height: 100dvh;
 }
 
+.mobile-page-content {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  padding: 0.5rem 0.6rem;
+}
+
+.mobile-map-content {
+  height: 100%;
+}
+
 .mobile-topbar {
   position: sticky;
   top: 0;
@@ -411,59 +422,59 @@ html.login-active #root {
     line-height: 1.45;
   }
 
-  .app-root [class*='p-8'],
-  .app-root [class*='p-7'],
-  .app-root [class*='p-6'] {
+  .layout-mobile [class*='p-8'],
+  .layout-mobile [class*='p-7'],
+  .layout-mobile [class*='p-6'] {
     padding: 1rem !important;
   }
 
-  .app-root [class*='px-8'],
-  .app-root [class*='px-7'],
-  .app-root [class*='px-6'] {
+  .layout-mobile [class*='px-8'],
+  .layout-mobile [class*='px-7'],
+  .layout-mobile [class*='px-6'] {
     padding-left: 0.9rem !important;
     padding-right: 0.9rem !important;
   }
 
-  .app-root [class*='py-8'],
-  .app-root [class*='py-7'],
-  .app-root [class*='py-6'] {
+  .layout-mobile [class*='py-8'],
+  .layout-mobile [class*='py-7'],
+  .layout-mobile [class*='py-6'] {
     padding-top: 0.9rem !important;
     padding-bottom: 0.9rem !important;
   }
 
-  .app-root .surface-card,
-  .app-root .kpi-card,
-  .app-root .glass-card,
-  .app-root .glass-panel {
+  .layout-mobile .surface-card,
+  .layout-mobile .kpi-card,
+  .layout-mobile .glass-card,
+  .layout-mobile .glass-panel {
     width: 100%;
     max-width: none;
   }
 
-  .app-root button,
-  .app-root [role='button'],
-  .app-root .btn-primary,
-  .app-root .btn-secondary {
+  .layout-mobile button,
+  .layout-mobile [role='button'],
+  .layout-mobile .btn-primary,
+  .layout-mobile .btn-secondary {
     min-height: 44px;
   }
 
-  .app-root input,
-  .app-root select,
-  .app-root textarea {
+  .layout-mobile input,
+  .layout-mobile select,
+  .layout-mobile textarea {
     min-height: 42px;
     border-radius: 12px;
   }
 
-  .app-root h1 {
+  .layout-mobile h1 {
     font-size: clamp(1.3rem, 2.8vw, 1.75rem);
     line-height: 1.25;
   }
 
-  .app-root h2 {
+  .layout-mobile h2 {
     font-size: clamp(1.15rem, 2.4vw, 1.5rem);
     line-height: 1.3;
   }
 
-  .app-root h3 {
+  .layout-mobile h3 {
     font-size: clamp(1rem, 2vw, 1.25rem);
     line-height: 1.35;
   }
@@ -476,29 +487,24 @@ html.login-active #root {
     line-height: 1.5;
   }
 
-  .app-root [class*='md:p-8'],
-  .app-root [class*='md:p-6'],
-  .app-root [class*='md:px-8'],
-  .app-root [class*='md:px-6'],
-  .app-root [class*='md:py-8'],
-  .app-root [class*='md:py-6'] {
+  .layout-mobile [class*='md:p-8'],
+  .layout-mobile [class*='md:p-6'],
+  .layout-mobile [class*='md:px-8'],
+  .layout-mobile [class*='md:px-6'],
+  .layout-mobile [class*='md:py-8'],
+  .layout-mobile [class*='md:py-6'] {
     padding: 0.75rem !important;
   }
 
-  .app-root .surface-card,
-  .app-root .kpi-card,
-  .app-root .glass-card,
-  .app-root .glass-panel {
+  .layout-mobile .surface-card,
+  .layout-mobile .kpi-card,
+  .layout-mobile .glass-card,
+  .layout-mobile .glass-panel {
     border-radius: 16px;
   }
 
-  .app-root .grid {
+  .layout-mobile .grid {
     gap: 0.75rem;
-  }
-
-  .app-root .navbar,
-  .app-root .custom-navbar {
-    display: none !important;
   }
 }
 

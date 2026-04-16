@@ -5,7 +5,7 @@ import {
     MapPin, Search, Navigation,
     GripVertical, Trash2, ArrowRight,
     Save, RefreshCw, Car, CheckCircle2,
-    AlertCircle, X, Route, Crosshair
+    AlertCircle, X, Route, Crosshair, Menu
 } from 'lucide-react';
 import {
     DndContext,
@@ -266,9 +266,22 @@ export default function Roteirizacao() {
     const [navigationEnabled, setNavigationEnabled] = useState(false);
     const [autoCenterNav, setAutoCenterNav] = useState(true);
     const [isOffRoute, setIsOffRoute] = useState(false);
+    const [viewportWidth, setViewportWidth] = useState(
+        typeof window === 'undefined' ? 1440 : window.innerWidth
+    );
+    const [showMobilePanel, setShowMobilePanel] = useState(false);
 
     const [routePath, setRoutePath] = useState<RoutePoint[]>([]);
     const [summary, setSummary] = useState<RouteSummary>({ distance: 0, time: 0, fuel: 0, cost: 0 });
+
+    const isMobileMapLayout = Capacitor.isNativePlatform() || viewportWidth <= 768;
+
+    useEffect(() => {
+        const onResize = () => setViewportWidth(window.innerWidth);
+        onResize();
+        window.addEventListener('resize', onResize, { passive: true });
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -862,17 +875,30 @@ export default function Roteirizacao() {
     };
 
     return (
-        <div className="flex h-full w-full overflow-hidden">
-            <div className="w-[380px] shrink-0 flex flex-col bg-white border-r border-slate-200 shadow-lg z-10 overflow-hidden">
+        <div className="flex h-full w-full overflow-hidden relative">
+            <div className={`${isMobileMapLayout
+                ? `absolute left-0 top-0 bottom-0 w-[92vw] max-w-[380px] z-[1200] bg-white border-r border-slate-200 shadow-2xl transition-transform duration-300 ${showMobilePanel ? 'translate-x-0' : '-translate-x-full'}`
+                : 'w-[380px] shrink-0 flex flex-col bg-white border-r border-slate-200 shadow-lg z-10 overflow-hidden'}`}>
                 <div className="px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0">
-                            <Route className="w-5 h-5 text-white" />
+                    <div className="flex items-center gap-3 mb-4 justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0">
+                                <Route className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-sm font-extrabold text-slate-900 uppercase tracking-tight leading-none">Roteirização</h1>
+                                <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mt-0.5">HERE Navigation Mode</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-sm font-extrabold text-slate-900 uppercase tracking-tight leading-none">Roteirização</h1>
-                            <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mt-0.5">HERE Navigation Mode</p>
-                        </div>
+                        {isMobileMapLayout && (
+                            <button
+                                type="button"
+                                onClick={() => setShowMobilePanel(false)}
+                                className="w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-500 flex items-center justify-center"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 mb-2">
@@ -1152,6 +1178,15 @@ export default function Roteirizacao() {
                 </div>
             </div>
 
+            {isMobileMapLayout && showMobilePanel && (
+                <button
+                    type="button"
+                    aria-label="Fechar painel"
+                    onClick={() => setShowMobilePanel(false)}
+                    className="absolute inset-0 z-[1100] bg-slate-900/35"
+                />
+            )}
+
             <div className="flex-1 relative overflow-hidden bg-slate-100" style={{ minHeight: 0 }}>
                 {!HERE_API_KEY && (
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-xs text-red-600 font-semibold">
@@ -1160,6 +1195,19 @@ export default function Roteirizacao() {
                 )}
 
                 <div ref={mapContainerRef} className="absolute inset-0" />
+
+                <div className="absolute top-4 left-4 z-[1000] flex gap-2">
+                    {isMobileMapLayout && (
+                        <button
+                            type="button"
+                            onClick={() => setShowMobilePanel(true)}
+                            className="px-3 py-2 rounded-xl text-[11px] font-bold border bg-white text-slate-700 border-slate-200"
+                        >
+                            <Menu className="w-4 h-4 inline mr-1" />
+                            Painel
+                        </button>
+                    )}
+                </div>
 
                 <div className="absolute top-4 right-4 z-[1000] flex gap-2">
                     <button

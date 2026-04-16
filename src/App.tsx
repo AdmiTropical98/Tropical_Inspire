@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import {
@@ -51,6 +51,8 @@ import StockMovements from './pages/Workshop/StockMovements';
 import StockAlerts from './pages/Workshop/StockAlerts';
 import WorkshopAssets from './pages/Workshop/WorkshopAssets';
 import AssignedTools from './pages/Workshop/AssignedTools';
+import LayoutMobile from './components/layout/LayoutMobile';
+import LayoutDesktop from './components/layout/LayoutDesktop';
 
 // Lazy loading backoffice
 const Backoffice = lazy(() => import('./pages/Backoffice/index'));
@@ -312,7 +314,6 @@ function App() {
   const { unreadCount } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
-  const routeViewportRef = useRef<HTMLDivElement | null>(null);
   const [viewportWidth, setViewportWidth] = useState(
     typeof window === 'undefined' ? 1440 : window.innerWidth
   );
@@ -325,9 +326,8 @@ function App() {
   }, []);
 
   const isCapacitorNative = Capacitor.isNativePlatform();
-  const isMobileViewport = viewportWidth <= MOBILE_MAX_WIDTH;
   const isTabletViewport = viewportWidth <= TABLET_MAX_WIDTH;
-  const isMobileLayout = isCapacitorNative || isTabletViewport;
+  const isMobileLayout = isCapacitorNative || viewportWidth <= MOBILE_MAX_WIDTH || isTabletViewport;
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
@@ -346,17 +346,6 @@ function App() {
 
   const isMapPage = location.pathname === '/roteirizacao' || location.pathname === '/geofences';
   const isFullScreenPage = isMapPage;
-
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    html.classList.toggle('mobile-layout-active', isMobileLayout);
-    body.classList.toggle('mobile-layout-active', isMobileLayout);
-    return () => {
-      html.classList.remove('mobile-layout-active');
-      body.classList.remove('mobile-layout-active');
-    };
-  }, [isMobileLayout]);
 
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
@@ -538,298 +527,201 @@ function App() {
 
   const desktopGroups = [operationsGroup, fleetGroup, fuelGroup, moreGroup].filter(group => group.items.length > 0);
 
-  const bottomNavItems: NavItem[] = [
+  const bottomNavItems = [
     {
       key: 'bottom-dashboard',
       label: 'Dashboard',
       icon: LayoutDashboard,
-      path: '/dashboard',
       active: activeTab === 'dashboard',
+      onClick: () => handleNavigate('/dashboard'),
     },
     {
       key: 'bottom-roteirizacao',
       label: 'Roteirização',
       icon: Navigation,
-      path: '/roteirizacao',
       active: activeTab === 'roteirizacao',
+      onClick: () => handleNavigate('/roteirizacao'),
     },
     {
       key: 'bottom-frota',
       label: 'Frota',
       icon: Car,
-      path: '/viaturas',
       active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers'].includes(activeTab),
+      onClick: () => handleNavigate('/viaturas'),
     },
     {
       key: 'bottom-combustivel',
       label: 'Combustível',
       icon: Fuel,
-      path: '/combustivel',
       active: activeTab === 'combustivel',
+      onClick: () => handleNavigate('/combustivel'),
     },
     {
-      key: 'bottom-definicoes',
-      label: 'Definições',
+      key: 'bottom-mais',
+      label: 'Mais',
       icon: Settings2,
-      path: hasAccess(userRole, 'utilizadores') ? '/utilizadores' : '/meu-perfil',
-      active: ['utilizadores', 'meu-perfil', 'permissoes'].includes(activeTab),
+      active: ['utilizadores', 'meu-perfil', 'permissoes', 'mensagens'].includes(activeTab),
+      onClick: () => handleNavigate('/mensagens'),
     },
   ];
 
-  useEffect(() => {
-    if (!isMobileLayout || !routeViewportRef.current) return;
+  const appRoutes = (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
+        <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
+      </div>
+    }>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
+        <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
+        <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
+        <Route path="/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
+        <Route path="/public_html_api/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
+        <Route path="/alerts" element={<AlertsPage />} />
+        <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
+        <Route path="/viaturas" element={<Viaturas />} />
+        <Route path="/viaturas/:viaturaId" element={<VehicleProfile />} />
+        <Route path="/vehicles/:viaturaId" element={<VehicleProfile />} />
+        <Route path="/motoristas" element={<Drivers />} />
+        <Route path="/requisicoes" element={<Requisicoes />} />
+        <Route path="/escalas" element={<Escalas />} />
+        <Route path="/escalas-history" element={<EscalasHistory />} />
+        <Route path="/horas" element={<Horas />} />
+        <Route path="/combustivel" element={<FuelManager />} />
+        <Route path="/utilizadores" element={<UserManagementTab />} />
+        <Route path="/colaboradores" element={<Suspense fallback={<div>Loading Colaboradores...</div>}><ColaboradoresPage /></Suspense>} />
+        <Route path="/gestores" element={<GestoresTab />} />
+        <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
+        <Route path="/meu-perfil" element={<Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>} />
+        <Route path="/permissoes" element={<PermissoesTab />} />
+        <Route path="/roteirizacao" element={<RoteirizacaoTab />} />
+        <Route path="/geofences" element={<GeofencesTab />} />
+        <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
+        <Route path="/contabilidade" element={<ContabilidadeTab />} />
+        <Route path="/finance/faturas/nova" element={<NovaFaturaPage />} />
+        <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
+        <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
+        <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
+        <Route path="/linha-transportes" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar Linha de Transportes...</div>}><LinhaTransportes /></Suspense>} />
+        <Route path="/fornecedores" element={<Fornecedores />} />
+        <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
+        <Route path="/via-verde" element={<ViaVerde />} />
+        <Route path="/carregamentos" element={<Carregamentos />} />
+        <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
+        <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
+        <Route path="/central-motorista" element={<Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>} />
+        <Route path="/supervisores" element={<Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>} />
+        <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
+        <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
+        <Route path="/clientes/:clientId" element={<ClientProfile />} />
+        <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
+        <Route path="/workshop-stock" element={<StockParts />} />
+        <Route path="/workshop-movements" element={<StockMovements />} />
+        <Route path="/workshop-assets" element={<WorkshopAssets />} />
+        <Route path="/assigned-tools" element={<AssignedTools />} />
+        <Route path="/workshop-alerts" element={<StockAlerts />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
+  );
 
-    const root = routeViewportRef.current;
+  const desktopNavbar = (
+    <nav className="navbar navbar-expand-lg custom-navbar sticky top-0 z-[5000]">
+      <div className="container-fluid px-4 sm:px-6 lg:px-8">
+        <a className="navbar-brand" href="/" onClick={(event) => navigateFromAnchor(event, '/dashboard')}>
+          <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="navbar-logo-image" />
+        </a>
 
-    const clearEnhancements = () => {
-      root.querySelectorAll('[data-mobile-filter-toggle="true"]').forEach((toggle) => toggle.remove());
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNavbar"
+          aria-controls="mainNavbar"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span className="navbar-toggler-icon" />
+        </button>
 
-      root.querySelectorAll('[data-mobile-filter-panel="true"]').forEach((panel) => {
-        if (!(panel instanceof HTMLElement)) return;
-        panel.classList.remove('mobile-filter-panel', 'mobile-filter-collapsed', 'mobile-filter-expanded');
-        panel.removeAttribute('data-mobile-filter-panel');
-      });
-    };
+        <div className="collapse navbar-collapse" id="mainNavbar">
+          <ul className="navbar-nav mx-auto align-items-lg-center">
+            <li className="nav-item">
+              <a
+                className={`nav-link ${dashboardItem.active ? 'active' : ''}`}
+                href={dashboardItem.path}
+                onClick={(event) => navigateFromAnchor(event, dashboardItem.path)}
+              >
+                Dashboard
+              </a>
+            </li>
 
-    const enhanceFilterPanels = () => {
-      clearEnhancements();
+            {desktopGroups.map(group => {
+              const isActiveGroup = group.items.some(item => item.active);
+              return (
+                <li key={group.key} className="nav-item dropdown">
+                  <a
+                    className={`nav-link dropdown-toggle ${isActiveGroup ? 'active' : ''}`}
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    {group.label}
+                  </a>
+                  <ul className="dropdown-menu">
+                    {group.items.map(item => {
+                      const Icon = item.icon;
+                      return (
+                        <li key={item.key}>
+                          <a
+                            className={`dropdown-item d-flex align-items-center gap-2 ${item.active ? 'active' : ''}`}
+                            href={item.path}
+                            onClick={(event) => navigateFromAnchor(event, item.path)}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                            {item.badge && item.badge > 0 && (
+                              <span className="ms-auto rounded-pill bg-primary px-2 py-0 text-[10px] fw-bold text-white">{item.badge}</span>
+                            )}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
 
-      const rootTop = root.getBoundingClientRect().top;
-      const candidates = Array.from(root.querySelectorAll('section, form, div')).filter((node) => {
-        if (!(node instanceof HTMLElement)) return false;
-        if (node.closest('[role="dialog"], .modal, [data-mobile-filter-panel="true"]')) return false;
+          <div className="navbar-user ms-lg-3 mt-3 mt-lg-0">
+            <UserProfileMenu onNavigate={handleNavigate} showName compact />
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
 
-        const offsetTop = node.getBoundingClientRect().top - rootTop;
-        if (offsetTop < 0 || offsetTop > 420) return false;
-
-        const inputs = node.querySelectorAll('input, select, textarea').length;
-        const buttons = node.querySelectorAll('button').length;
-        const labels = node.querySelectorAll('label').length;
-        const classHint = /filter|filtro|toolbar/i.test(node.className || '');
-        const textHint = /filtro|filtros|pesquisa|search/i.test((node.textContent || '').slice(0, 200).toLowerCase());
-        const smallishBlock = node.children.length > 0 && node.children.length <= 20;
-
-        return smallishBlock && (classHint || textHint || (inputs >= 1 && buttons >= 1)) && (inputs + buttons + labels >= 3);
-      });
-
-      candidates.slice(0, 2).forEach((panel, index) => {
-        if (!(panel instanceof HTMLElement)) return;
-
-        panel.setAttribute('data-mobile-filter-panel', 'true');
-        panel.classList.add('mobile-filter-panel', 'mobile-filter-collapsed');
-
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'mobile-filter-toggle';
-        toggle.setAttribute('data-mobile-filter-toggle', 'true');
-        toggle.setAttribute('aria-expanded', 'false');
-        toggle.setAttribute('aria-controls', `mobile-filter-panel-${index}`);
-        toggle.innerHTML = '<span>Filtros</span><span class="mobile-filter-toggle-icon">▾</span>';
-        panel.id = `mobile-filter-panel-${index}`;
-
-        toggle.addEventListener('click', () => {
-          const expanded = panel.classList.contains('mobile-filter-expanded');
-          panel.classList.toggle('mobile-filter-expanded', !expanded);
-          panel.classList.toggle('mobile-filter-collapsed', expanded);
-          toggle.setAttribute('aria-expanded', String(!expanded));
-        });
-
-        panel.parentElement?.insertBefore(toggle, panel);
-      });
-    };
-
-    const timer = window.setTimeout(enhanceFilterPanels, 150);
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(enhanceFilterPanels);
-    });
-
-    observer.observe(root, { childList: true, subtree: true });
-
-    return () => {
-      window.clearTimeout(timer);
-      observer.disconnect();
-      clearEnhancements();
-    };
-  }, [isMobileLayout, location.pathname, location.search]);
+  if (isMobileLayout) {
+    return (
+      <LayoutMobile
+        logoSrc={`${SIDEBAR_LOGO}?v=3`}
+        onLogoClick={() => handleNavigate('/dashboard')}
+        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
+        isMapPage={isMapPage}
+        bottomNavItems={bottomNavItems}
+      >
+        {appRoutes}
+      </LayoutMobile>
+    );
+  }
 
   return (
-    <div className={`app-root ${isMobileLayout ? 'mobile-shell' : ''} flex flex-col overflow-x-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20 ${isFullScreenPage ? 'h-[100dvh]' : 'min-h-[100dvh]'}`}>
-      {!isMobileLayout && (
-        <nav className="navbar navbar-expand-lg custom-navbar sticky top-0 z-[5000]">
-          <div className="container-fluid px-4 sm:px-6 lg:px-8">
-            <a className="navbar-brand" href="/" onClick={(event) => navigateFromAnchor(event, '/dashboard')}>
-              <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="navbar-logo-image" />
-            </a>
-
-            <button
-              className="navbar-toggler"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#mainNavbar"
-              aria-controls="mainNavbar"
-              aria-expanded="false"
-              aria-label="Toggle navigation"
-            >
-              <span className="navbar-toggler-icon" />
-            </button>
-
-            <div className="collapse navbar-collapse" id="mainNavbar">
-              <ul className="navbar-nav mx-auto align-items-lg-center">
-                <li className="nav-item">
-                  <a
-                    className={`nav-link ${dashboardItem.active ? 'active' : ''}`}
-                    href={dashboardItem.path}
-                    onClick={(event) => navigateFromAnchor(event, dashboardItem.path)}
-                  >
-                    Dashboard
-                  </a>
-                </li>
-
-                {desktopGroups.map(group => {
-                  const isActiveGroup = group.items.some(item => item.active);
-                  return (
-                    <li key={group.key} className="nav-item dropdown">
-                      <a
-                        className={`nav-link dropdown-toggle ${isActiveGroup ? 'active' : ''}`}
-                        href="#"
-                        role="button"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        {group.label}
-                      </a>
-                      <ul className="dropdown-menu">
-                        {group.items.map(item => {
-                          const Icon = item.icon;
-                          return (
-                            <li key={item.key}>
-                              <a
-                                className={`dropdown-item d-flex align-items-center gap-2 ${item.active ? 'active' : ''}`}
-                                href={item.path}
-                                onClick={(event) => navigateFromAnchor(event, item.path)}
-                              >
-                                <Icon className="h-4 w-4" />
-                                <span>{item.label}</span>
-                                {item.badge && item.badge > 0 && (
-                                  <span className="ms-auto rounded-pill bg-primary px-2 py-0 text-[10px] fw-bold text-white">{item.badge}</span>
-                                )}
-                              </a>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <div className="navbar-user ms-lg-3 mt-3 mt-lg-0">
-                <UserProfileMenu onNavigate={handleNavigate} showName compact />
-              </div>
-            </div>
-          </div>
-        </nav>
-      )}
-
-      {isMobileLayout && (
-        <nav className="mobile-topbar">
-          <button
-            type="button"
-            onClick={() => handleNavigate('/dashboard')}
-            className="mobile-topbar-logo"
-            aria-label="Ir para dashboard"
-          >
-            <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="h-8 w-auto object-contain" />
-          </button>
-          <UserProfileMenu onNavigate={handleNavigate} compact />
-        </nav>
-      )}
-
-      <main className={`app-content-bg flex-1 min-h-0 ${isFullScreenPage ? 'overflow-hidden' : 'overflow-visible'} ${isMobileLayout ? 'mobile-main-content' : ''}`}>
-        <div ref={routeViewportRef} className={`relative z-10 bg-transparent ${isFullScreenPage ? 'h-full w-full overflow-hidden' : isMobileLayout ? 'h-full w-full overflow-x-hidden overflow-y-auto custom-scrollbar' : 'flex h-full min-h-0 w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto custom-scrollbar'}`}>
-          <Suspense fallback={
-            <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
-              <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
-            </div>
-          }>
-            <div className={isFullScreenPage ? (isMobileLayout ? 'mobile-map-page h-full w-full' : 'h-full w-full') : isMobileLayout ? 'flex-1 w-full max-w-none px-3 py-3 min-w-0' : 'flex-1 w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0'}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
-                <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
-                <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
-                <Route path="/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
-                <Route path="/public_html_api/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />
-                <Route path="/alerts" element={<AlertsPage />} />
-                <Route path="/backoffice" element={<Suspense fallback={<div className="p-8 text-slate-400">Loading Backoffice...</div>}><Backoffice /></Suspense>} />
-                <Route path="/viaturas" element={<Viaturas />} />
-                <Route path="/viaturas/:viaturaId" element={<VehicleProfile />} />
-                <Route path="/vehicles/:viaturaId" element={<VehicleProfile />} />
-                <Route path="/motoristas" element={<Drivers />} />
-                <Route path="/requisicoes" element={<Requisicoes />} />
-                <Route path="/escalas" element={<Escalas />} />
-                <Route path="/escalas-history" element={<EscalasHistory />} />
-                <Route path="/horas" element={<Horas />} />
-                <Route path="/combustivel" element={<FuelManager />} />
-                <Route path="/utilizadores" element={<UserManagementTab />} />
-                <Route path="/colaboradores" element={<Suspense fallback={<div>Loading Colaboradores...</div>}><ColaboradoresPage /></Suspense>} />
-                <Route path="/gestores" element={<GestoresTab />} />
-                <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
-                <Route path="/meu-perfil" element={<Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>} />
-                <Route path="/permissoes" element={<PermissoesTab />} />
-                <Route path="/roteirizacao" element={<RoteirizacaoTab />} />
-                <Route path="/geofences" element={<GeofencesTab />} />
-                <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
-                <Route path="/contabilidade" element={<ContabilidadeTab />} />
-                <Route path="/finance/faturas/nova" element={<NovaFaturaPage />} />
-                <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
-                <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
-                <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
-                <Route path="/linha-transportes" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar Linha de Transportes...</div>}><LinhaTransportes /></Suspense>} />
-                <Route path="/fornecedores" element={<Fornecedores />} />
-                <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
-                <Route path="/via-verde" element={<ViaVerde />} />
-                <Route path="/carregamentos" element={<Carregamentos />} />
-                <Route path="/eficiencia-frota" element={<EficienciaFrota />} />
-                <Route path="/mensagens" element={<Suspense fallback={<div>Loading Chat...</div>}><Mensagens /></Suspense>} />
-                <Route path="/central-motorista" element={<Suspense fallback={<div>Loading Central...</div>}><CentralMotorista /></Suspense>} />
-                <Route path="/supervisores" element={<Suspense fallback={<div>Loading Supervisores...</div>}><Supervisores /></Suspense>} />
-                <Route path="/centros-custos" element={<Suspense fallback={<div>Loading Centros Custos...</div>}><CentrosCustos /></Suspense>} />
-                <Route path="/clientes" element={<Suspense fallback={<div>Loading Clientes...</div>}><Clientes /></Suspense>} />
-                <Route path="/clientes/:clientId" element={<ClientProfile />} />
-                <Route path="/relatorios" element={<Suspense fallback={<div>Loading Relatórios...</div>}><Relatorios /></Suspense>} />
-                <Route path="/workshop-stock" element={<StockParts />} />
-                <Route path="/workshop-movements" element={<StockMovements />} />
-                <Route path="/workshop-assets" element={<WorkshopAssets />} />
-                <Route path="/assigned-tools" element={<AssignedTools />} />
-                <Route path="/workshop-alerts" element={<StockAlerts />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </div>
-          </Suspense>
-        </div>
-      </main>
-
-      {isMobileLayout && (
-        <nav className="mobile-bottom-nav" aria-label="Navegação principal">
-          {bottomNavItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                className={`mobile-bottom-nav-item ${item.active ? 'active' : ''}`}
-                onClick={() => handleNavigate(item.path)}
-              >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      )}
-    </div>
+    <LayoutDesktop isFullScreenPage={isFullScreenPage} navbar={desktopNavbar}>
+      {appRoutes}
+    </LayoutDesktop>
   );
 }
 

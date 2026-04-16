@@ -1,0 +1,61 @@
+import React from 'react';
+
+interface BottomNavItem {
+  key: string;
+  label: string;
+  icon: React.ElementType;
+  active: boolean;
+  onClick: () => void;
+}
+
+interface LayoutMobileProps {
+  logoSrc: string;
+  onLogoClick: () => void;
+  userMenu: React.ReactNode;
+  isMapPage: boolean;
+  bottomNavItems: BottomNavItem[];
+  children: React.ReactNode;
+}
+
+export default function LayoutMobile({
+  logoSrc,
+  onLogoClick,
+  userMenu,
+  isMapPage,
+  bottomNavItems,
+  children,
+}: LayoutMobileProps) {
+  return (
+    <div className="layout-mobile app-root h-[100dvh] flex flex-col overflow-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
+      <nav className="mobile-topbar">
+        <button type="button" onClick={onLogoClick} className="mobile-topbar-logo" aria-label="Ir para dashboard">
+          <img src={logoSrc} alt="Algartempo Frota" className="h-8 w-auto object-contain" />
+        </button>
+        {userMenu}
+      </nav>
+
+      <main className={`app-content-bg flex-1 min-h-0 overflow-hidden ${isMapPage ? '' : 'mobile-main-content'}`}>
+        <div className={`relative z-10 bg-transparent h-full w-full overflow-x-hidden overflow-y-auto custom-scrollbar ${isMapPage ? 'mobile-map-content' : ''}`}>
+          <div className={isMapPage ? 'h-full w-full' : 'mobile-page-content'}>{children}</div>
+        </div>
+      </main>
+
+      <nav className="mobile-bottom-nav" aria-label="Navegação principal">
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className={`mobile-bottom-nav-item ${item.active ? 'active' : ''}`}
+              onClick={item.onClick}
+            >
+              <Icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+}
