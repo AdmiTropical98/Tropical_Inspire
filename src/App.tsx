@@ -1,5 +1,6 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import {
   LayoutDashboard, Car, MessageSquare, Menu,
   Truck, Calendar, Clock, Wallet, Building2, Briefcase, Shield,
@@ -303,12 +304,30 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
 };
 
 function App() {
+  const MOBILE_MAX_WIDTH = 768;
+  const TABLET_MAX_WIDTH = 1024;
   const SIDEBAR_LOGO = '/LOGO.png';
   const { isAuthenticated, userRole } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
+  const routeViewportRef = useRef<HTMLDivElement | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window === 'undefined' ? 1440 : window.innerWidth
+  );
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isCapacitorNative = Capacitor.isNativePlatform();
+  const isMobileViewport = viewportWidth <= MOBILE_MAX_WIDTH;
+  const isTabletViewport = viewportWidth <= TABLET_MAX_WIDTH;
+  const isMobileLayout = isCapacitorNative || isTabletViewport;
 
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
@@ -325,7 +344,19 @@ function App() {
     handleNavigate(target);
   };
 
-  const isFullScreenPage = location.pathname === '/roteirizacao';
+  const isMapPage = location.pathname === '/roteirizacao' || location.pathname === '/geofences';
+  const isFullScreenPage = isMapPage;
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    html.classList.toggle('mobile-layout-active', isMobileLayout);
+    body.classList.toggle('mobile-layout-active', isMobileLayout);
+    return () => {
+      html.classList.remove('mobile-layout-active');
+      body.classList.remove('mobile-layout-active');
+    };
+  }, [isMobileLayout]);
 
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
@@ -507,92 +538,222 @@ function App() {
 
   const desktopGroups = [operationsGroup, fleetGroup, fuelGroup, moreGroup].filter(group => group.items.length > 0);
 
+  const bottomNavItems: NavItem[] = [
+    {
+      key: 'bottom-dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      path: '/dashboard',
+      active: activeTab === 'dashboard',
+    },
+    {
+      key: 'bottom-roteirizacao',
+      label: 'Roteirização',
+      icon: Navigation,
+      path: '/roteirizacao',
+      active: activeTab === 'roteirizacao',
+    },
+    {
+      key: 'bottom-frota',
+      label: 'Frota',
+      icon: Car,
+      path: '/viaturas',
+      active: ['viaturas', 'vehicles', 'motoristas', 'avaliacao-drivers'].includes(activeTab),
+    },
+    {
+      key: 'bottom-combustivel',
+      label: 'Combustível',
+      icon: Fuel,
+      path: '/combustivel',
+      active: activeTab === 'combustivel',
+    },
+    {
+      key: 'bottom-definicoes',
+      label: 'Definições',
+      icon: Settings2,
+      path: hasAccess(userRole, 'utilizadores') ? '/utilizadores' : '/meu-perfil',
+      active: ['utilizadores', 'meu-perfil', 'permissoes'].includes(activeTab),
+    },
+  ];
+
+  useEffect(() => {
+    if (!isMobileLayout || !routeViewportRef.current) return;
+
+    const root = routeViewportRef.current;
+
+    const clearEnhancements = () => {
+      root.querySelectorAll('[data-mobile-filter-toggle="true"]').forEach((toggle) => toggle.remove());
+
+      root.querySelectorAll('[data-mobile-filter-panel="true"]').forEach((panel) => {
+        if (!(panel instanceof HTMLElement)) return;
+        panel.classList.remove('mobile-filter-panel', 'mobile-filter-collapsed', 'mobile-filter-expanded');
+        panel.removeAttribute('data-mobile-filter-panel');
+      });
+    };
+
+    const enhanceFilterPanels = () => {
+      clearEnhancements();
+
+      const rootTop = root.getBoundingClientRect().top;
+      const candidates = Array.from(root.querySelectorAll('section, form, div')).filter((node) => {
+        if (!(node instanceof HTMLElement)) return false;
+        if (node.closest('[role="dialog"], .modal, [data-mobile-filter-panel="true"]')) return false;
+
+        const offsetTop = node.getBoundingClientRect().top - rootTop;
+        if (offsetTop < 0 || offsetTop > 420) return false;
+
+        const inputs = node.querySelectorAll('input, select, textarea').length;
+        const buttons = node.querySelectorAll('button').length;
+        const labels = node.querySelectorAll('label').length;
+        const classHint = /filter|filtro|toolbar/i.test(node.className || '');
+        const textHint = /filtro|filtros|pesquisa|search/i.test((node.textContent || '').slice(0, 200).toLowerCase());
+        const smallishBlock = node.children.length > 0 && node.children.length <= 20;
+
+        return smallishBlock && (classHint || textHint || (inputs >= 1 && buttons >= 1)) && (inputs + buttons + labels >= 3);
+      });
+
+      candidates.slice(0, 2).forEach((panel, index) => {
+        if (!(panel instanceof HTMLElement)) return;
+
+        panel.setAttribute('data-mobile-filter-panel', 'true');
+        panel.classList.add('mobile-filter-panel', 'mobile-filter-collapsed');
+
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'mobile-filter-toggle';
+        toggle.setAttribute('data-mobile-filter-toggle', 'true');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-controls', `mobile-filter-panel-${index}`);
+        toggle.innerHTML = '<span>Filtros</span><span class="mobile-filter-toggle-icon">▾</span>';
+        panel.id = `mobile-filter-panel-${index}`;
+
+        toggle.addEventListener('click', () => {
+          const expanded = panel.classList.contains('mobile-filter-expanded');
+          panel.classList.toggle('mobile-filter-expanded', !expanded);
+          panel.classList.toggle('mobile-filter-collapsed', expanded);
+          toggle.setAttribute('aria-expanded', String(!expanded));
+        });
+
+        panel.parentElement?.insertBefore(toggle, panel);
+      });
+    };
+
+    const timer = window.setTimeout(enhanceFilterPanels, 150);
+    const observer = new MutationObserver(() => {
+      window.requestAnimationFrame(enhanceFilterPanels);
+    });
+
+    observer.observe(root, { childList: true, subtree: true });
+
+    return () => {
+      window.clearTimeout(timer);
+      observer.disconnect();
+      clearEnhancements();
+    };
+  }, [isMobileLayout, location.pathname, location.search]);
+
   return (
-    <div className={`app-root flex flex-col overflow-x-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20 ${isFullScreenPage ? 'h-[100dvh]' : 'min-h-[100dvh]'}`}>
-      <nav className="navbar navbar-expand-lg custom-navbar sticky top-0 z-[5000]">
-        <div className="container-fluid px-4 sm:px-6 lg:px-8">
-          <a className="navbar-brand" href="/" onClick={(event) => navigateFromAnchor(event, '/dashboard')}>
-            <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="navbar-logo-image" />
-          </a>
+    <div className={`app-root ${isMobileLayout ? 'mobile-shell' : ''} flex flex-col overflow-x-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20 ${isFullScreenPage ? 'h-[100dvh]' : 'min-h-[100dvh]'}`}>
+      {!isMobileLayout && (
+        <nav className="navbar navbar-expand-lg custom-navbar sticky top-0 z-[5000]">
+          <div className="container-fluid px-4 sm:px-6 lg:px-8">
+            <a className="navbar-brand" href="/" onClick={(event) => navigateFromAnchor(event, '/dashboard')}>
+              <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="navbar-logo-image" />
+            </a>
 
-          <button
-            className="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#mainNavbar"
-            aria-controls="mainNavbar"
-            aria-expanded="false"
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon" />
-          </button>
+            <button
+              className="navbar-toggler"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#mainNavbar"
+              aria-controls="mainNavbar"
+              aria-expanded="false"
+              aria-label="Toggle navigation"
+            >
+              <span className="navbar-toggler-icon" />
+            </button>
 
-          <div className="collapse navbar-collapse" id="mainNavbar">
-            <ul className="navbar-nav mx-auto align-items-lg-center">
-              <li className="nav-item">
-                <a
-                  className={`nav-link ${dashboardItem.active ? 'active' : ''}`}
-                  href={dashboardItem.path}
-                  onClick={(event) => navigateFromAnchor(event, dashboardItem.path)}
-                >
-                  Dashboard
-                </a>
-              </li>
+            <div className="collapse navbar-collapse" id="mainNavbar">
+              <ul className="navbar-nav mx-auto align-items-lg-center">
+                <li className="nav-item">
+                  <a
+                    className={`nav-link ${dashboardItem.active ? 'active' : ''}`}
+                    href={dashboardItem.path}
+                    onClick={(event) => navigateFromAnchor(event, dashboardItem.path)}
+                  >
+                    Dashboard
+                  </a>
+                </li>
 
-              {desktopGroups.map(group => {
-                const isActiveGroup = group.items.some(item => item.active);
-                return (
-                  <li key={group.key} className="nav-item dropdown">
-                    <a
-                      className={`nav-link dropdown-toggle ${isActiveGroup ? 'active' : ''}`}
-                      href="#"
-                      role="button"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      {group.label}
-                    </a>
-                    <ul className="dropdown-menu">
-                      {group.items.map(item => {
-                        const Icon = item.icon;
-                        return (
-                          <li key={item.key}>
-                            <a
-                              className={`dropdown-item d-flex align-items-center gap-2 ${item.active ? 'active' : ''}`}
-                              href={item.path}
-                              onClick={(event) => navigateFromAnchor(event, item.path)}
-                            >
-                              <Icon className="h-4 w-4" />
-                              <span>{item.label}</span>
-                              {item.badge && item.badge > 0 && (
-                                <span className="ms-auto rounded-pill bg-primary px-2 py-0 text-[10px] fw-bold text-white">{item.badge}</span>
-                              )}
-                            </a>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </li>
-                );
-              })}
-            </ul>
+                {desktopGroups.map(group => {
+                  const isActiveGroup = group.items.some(item => item.active);
+                  return (
+                    <li key={group.key} className="nav-item dropdown">
+                      <a
+                        className={`nav-link dropdown-toggle ${isActiveGroup ? 'active' : ''}`}
+                        href="#"
+                        role="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                      >
+                        {group.label}
+                      </a>
+                      <ul className="dropdown-menu">
+                        {group.items.map(item => {
+                          const Icon = item.icon;
+                          return (
+                            <li key={item.key}>
+                              <a
+                                className={`dropdown-item d-flex align-items-center gap-2 ${item.active ? 'active' : ''}`}
+                                href={item.path}
+                                onClick={(event) => navigateFromAnchor(event, item.path)}
+                              >
+                                <Icon className="h-4 w-4" />
+                                <span>{item.label}</span>
+                                {item.badge && item.badge > 0 && (
+                                  <span className="ms-auto rounded-pill bg-primary px-2 py-0 text-[10px] fw-bold text-white">{item.badge}</span>
+                                )}
+                              </a>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </li>
+                  );
+                })}
+              </ul>
 
-            <div className="navbar-user ms-lg-3 mt-3 mt-lg-0">
-              <UserProfileMenu onNavigate={handleNavigate} showName compact />
+              <div className="navbar-user ms-lg-3 mt-3 mt-lg-0">
+                <UserProfileMenu onNavigate={handleNavigate} showName compact />
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
-      <main className={`app-content-bg flex-1 min-h-0 ${isFullScreenPage ? 'overflow-hidden' : 'overflow-visible'}`}>
-        <div className={`relative z-10 bg-transparent ${isFullScreenPage ? 'h-full w-full overflow-hidden' : 'flex h-full min-h-0 w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto custom-scrollbar'}`}>
+      {isMobileLayout && (
+        <nav className="mobile-topbar">
+          <button
+            type="button"
+            onClick={() => handleNavigate('/dashboard')}
+            className="mobile-topbar-logo"
+            aria-label="Ir para dashboard"
+          >
+            <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="h-8 w-auto object-contain" />
+          </button>
+          <UserProfileMenu onNavigate={handleNavigate} compact />
+        </nav>
+      )}
+
+      <main className={`app-content-bg flex-1 min-h-0 ${isFullScreenPage ? 'overflow-hidden' : 'overflow-visible'} ${isMobileLayout ? 'mobile-main-content' : ''}`}>
+        <div ref={routeViewportRef} className={`relative z-10 bg-transparent ${isFullScreenPage ? 'h-full w-full overflow-hidden' : isMobileLayout ? 'h-full w-full overflow-x-hidden overflow-y-auto custom-scrollbar' : 'flex h-full min-h-0 w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto custom-scrollbar'}`}>
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
               <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
               <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">A carregar módulo...</p>
             </div>
           }>
-            <div className={isFullScreenPage ? 'h-full w-full' : 'flex-1 w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0'}>
+            <div className={isFullScreenPage ? (isMobileLayout ? 'mobile-map-page h-full w-full' : 'h-full w-full') : isMobileLayout ? 'flex-1 w-full max-w-none px-3 py-3 min-w-0' : 'flex-1 w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 min-w-0'}>
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
@@ -649,6 +810,25 @@ function App() {
           </Suspense>
         </div>
       </main>
+
+      {isMobileLayout && (
+        <nav className="mobile-bottom-nav" aria-label="Navegação principal">
+          {bottomNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={`mobile-bottom-nav-item ${item.active ? 'active' : ''}`}
+                onClick={() => handleNavigate(item.path)}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }

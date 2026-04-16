@@ -283,6 +283,225 @@ html.login-active #root {
   animation-delay: 2.5s;
 }
 
+/* Mobile shell variables */
+:root {
+  --mobile-topbar-h: 64px;
+  --mobile-bottom-nav-h: 74px;
+}
+
+.mobile-shell {
+  height: 100dvh;
+}
+
+.mobile-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 6000;
+  height: var(--mobile-topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: env(safe-area-inset-top) 12px 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.mobile-topbar-logo {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.mobile-main-content {
+  padding-bottom: calc(var(--mobile-bottom-nav-h) + env(safe-area-inset-bottom));
+}
+
+.mobile-map-page {
+  height: calc(100dvh - var(--mobile-topbar-h) - var(--mobile-bottom-nav-h) - env(safe-area-inset-bottom));
+}
+
+.mobile-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6500;
+  height: calc(var(--mobile-bottom-nav-h) + env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+  gap: 4px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.mobile-bottom-nav-item {
+  border: 0;
+  background: transparent;
+  min-height: 56px;
+  border-radius: 12px;
+  color: #475569;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mobile-bottom-nav-item.active {
+  color: #1d4ed8;
+  background: #eaf1ff;
+}
+
+.mobile-filter-toggle {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mobile-filter-panel {
+  overflow: hidden;
+  transition: max-height 220ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+.mobile-filter-panel.mobile-filter-collapsed {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  margin-bottom: 0;
+}
+
+.mobile-filter-panel.mobile-filter-expanded {
+  max-height: 560px;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  margin-bottom: 12px;
+}
+
+/* Tablet and down */
+@media (max-width: 1024px) {
+  html,
+  body,
+  #root {
+    background-attachment: scroll;
+  }
+
+  body {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .app-root [class*='p-8'],
+  .app-root [class*='p-7'],
+  .app-root [class*='p-6'] {
+    padding: 1rem !important;
+  }
+
+  .app-root [class*='px-8'],
+  .app-root [class*='px-7'],
+  .app-root [class*='px-6'] {
+    padding-left: 0.9rem !important;
+    padding-right: 0.9rem !important;
+  }
+
+  .app-root [class*='py-8'],
+  .app-root [class*='py-7'],
+  .app-root [class*='py-6'] {
+    padding-top: 0.9rem !important;
+    padding-bottom: 0.9rem !important;
+  }
+
+  .app-root .surface-card,
+  .app-root .kpi-card,
+  .app-root .glass-card,
+  .app-root .glass-panel {
+    width: 100%;
+    max-width: none;
+  }
+
+  .app-root button,
+  .app-root [role='button'],
+  .app-root .btn-primary,
+  .app-root .btn-secondary {
+    min-height: 44px;
+  }
+
+  .app-root input,
+  .app-root select,
+  .app-root textarea {
+    min-height: 42px;
+    border-radius: 12px;
+  }
+
+  .app-root h1 {
+    font-size: clamp(1.3rem, 2.8vw, 1.75rem);
+    line-height: 1.25;
+  }
+
+  .app-root h2 {
+    font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+    line-height: 1.3;
+  }
+
+  .app-root h3 {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    line-height: 1.35;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .app-root [class*='md:p-8'],
+  .app-root [class*='md:p-6'],
+  .app-root [class*='md:px-8'],
+  .app-root [class*='md:px-6'],
+  .app-root [class*='md:py-8'],
+  .app-root [class*='md:py-6'] {
+    padding: 0.75rem !important;
+  }
+
+  .app-root .surface-card,
+  .app-root .kpi-card,
+  .app-root .glass-card,
+  .app-root .glass-panel {
+    border-radius: 16px;
+  }
+
+  .app-root .grid {
+    gap: 0.75rem;
+  }
+
+  .app-root .navbar,
+  .app-root .custom-navbar {
+    display: none !important;
+  }
+}
+
 /* Mobile Drawer Slide In */
 @keyframes slideInLeft {
   from {
