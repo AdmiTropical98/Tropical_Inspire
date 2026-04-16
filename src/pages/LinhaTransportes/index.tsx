@@ -31,6 +31,7 @@ function getActiveService(services: Servico[]) {
   return validServices[0].service;
 }
 import { useState, useEffect, useMemo } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { RefreshCcw, Navigation, MapPin, Truck as TruckIcon, Activity } from 'lucide-react';
 import { CartrackService, cleanTagId } from '../../services/cartrack';
 import type { CartrackGeofence, CartrackVehicle } from '../../services/cartrack';
@@ -240,6 +241,16 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoProgress, setDemoProgress] = useState(0);
   const [stops, setStops] = useState<RouteStop[]>([]);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const useCompactLayout = compact || Capacitor.isNativePlatform() || viewportWidth <= 1024;
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const todayServices = useMemo(() => (servicos || []).filter(s => s.data === todayStr), [servicos, todayStr]);
@@ -480,13 +491,13 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
     ) || null;
   }, [vehicles, colaboradorParagem, collaboratorDriver, collaboratorAssignedVehicleRegistration]);
 
-  const trackedVehicleId = selectedVehicleId || (compact ? collaboratorVehicle?.id ?? null : (colaboradorParagem ? collaboratorVehicle?.id ?? null : null));
+  const trackedVehicleId = selectedVehicleId || (useCompactLayout ? collaboratorVehicle?.id ?? null : (colaboradorParagem ? collaboratorVehicle?.id ?? null : null));
 
   const vehicleMarkers = useMemo(() => {
     const list: VehicleMarker[] = [];
     const realDisplayList = trackedVehicleId
       ? vehicles.filter(v => v.id === trackedVehicleId)
-      : compact && colaboradorParagem
+      : useCompactLayout && colaboradorParagem
         ? []
         : vehicles;
 
@@ -494,12 +505,12 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
       const progress = calculateRouteProgress({ lat: v.latitude, lng: v.longitude }, stops);
       list.push({ id: v.id, label: v.registration || v.label, currentSegmentIndex: progress.currentSegmentIndex, progressInSegment: progress.progressInSegment, status: v.status });
     });
-    if (isDemoMode && !compact) {
+    if (isDemoMode && !useCompactLayout) {
       const currentIndex = Math.floor(demoProgress);
       list.push({ id: 'demo-vehicle', label: 'DEMO-01', currentSegmentIndex: currentIndex, progressInSegment: demoProgress - currentIndex, status: 'moving' });
     }
     return list;
-  }, [vehicles, stops, trackedVehicleId, isDemoMode, demoProgress, compact, colaboradorParagem]);
+  }, [vehicles, stops, trackedVehicleId, isDemoMode, demoProgress, useCompactLayout, colaboradorParagem]);
 
   const selectedVehicle = useMemo(
     () => (trackedVehicleId ? vehicles.find(v => v.id === trackedVehicleId) ?? null : null),
@@ -575,10 +586,10 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
   }, [colaboradorParagem, selectedVehicle, stops, collaboratorDriver, collaboratorService, collaboratorAssignedVehicleRegistration]);
 
   return (
-    <div className={compact ? 'w-full animate-in fade-in duration-500' : 'min-h-screen bg-[#F5F7FA] p-4 sm:p-6 lg:p-8 animate-in fade-in duration-700'}>
-      <div className={compact ? 'space-y-5' : 'max-w-[1600px] mx-auto space-y-8'}>
+    <div className={useCompactLayout ? 'w-full animate-in fade-in duration-500' : 'min-h-screen bg-[#F5F7FA] p-4 sm:p-6 lg:p-8 animate-in fade-in duration-700'}>
+      <div className={useCompactLayout ? 'space-y-5' : 'max-w-[1600px] mx-auto space-y-8'}>
         
-        {compact ? (
+        {useCompactLayout ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -681,7 +692,7 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {!compact && (
+                  {!useCompactLayout && (
                     <button 
                       onClick={() => setIsDemoMode(!isDemoMode)}
                       className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
@@ -700,11 +711,11 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
             </div>
 
             {/* Timeline — scrollable on mobile to show upcoming stops */}
-            <div className={compact ? 'overflow-y-auto max-h-72 overscroll-contain' : ''}>
+            <div className={useCompactLayout ? 'overflow-y-auto max-h-72 overscroll-contain' : ''}>
               <MetroLine stops={stops} vehicles={vehicleMarkers} />
             </div>
 
-            {!compact && (
+            {!useCompactLayout && (
               <>
                 {/* Legend Section */}
                 <div className="mt-12 pt-8 border-t border-slate-200 flex flex-wrap gap-8 items-center justify-center sm:justify-start">
@@ -725,7 +736,7 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
             )}
           </div>
 
-          {!compact && (
+          {!useCompactLayout && (
             <div className="p-8 border-t border-slate-200 bg-slate-50/70 backdrop-blur-xl">
               <div className="flex items-center gap-3 mb-10">
                 <div className="w-1 h-6 bg-blue-500 rounded-full" />

@@ -39,11 +39,11 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
   
   const horizontalSvgWidth = Math.max(900, numStops * 220);
   const horizontalSvgHeight = 220;
-  const verticalSvgWidth = 340;
-  const verticalSvgHeight = numStops * 120 + 80;
+  const verticalSvgWidth = Math.max(280, Math.min(336, windowWidth - 24));
+  const verticalSvgHeight = numStops * 108 + 72;
 
-  const paddingX = isMobile ? 80 : 100;
-  const paddingY = isMobile ? 60 : 110;
+  const paddingX = isMobile ? 52 : 100;
+  const paddingY = isMobile ? 42 : 110;
   
   const usableLength = isMobile 
     ? (verticalSvgHeight - paddingY * 2) 
@@ -180,7 +180,7 @@ const MetroLine: React.FC<MetroLineProps> = ({ stops, vehicles }) => {
                    <text 
                     textAnchor={isMobile ? "start" : "middle"}
                     fill={isPassed || isCurrent ? "#0f172a" : "#64748b"}
-                    fontSize="10" 
+                    fontSize={isMobile ? "8" : "10"} 
                     fontWeight={isPassed || isCurrent ? "800" : "500"}
                     className={`font-sans tracking-widest uppercase transition-all duration-500 ${isCurrent ? 'scale-110' : ''}`}
                   >

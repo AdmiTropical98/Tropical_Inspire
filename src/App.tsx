@@ -52,7 +52,6 @@ import StockAlerts from './pages/Workshop/StockAlerts';
 import WorkshopAssets from './pages/Workshop/WorkshopAssets';
 import AssignedTools from './pages/Workshop/AssignedTools';
 import LayoutMobile from './components/layout/LayoutMobile';
-import LayoutMobileReboot from './components/layout/LayoutMobileReboot';
 import LayoutDesktop from './components/layout/LayoutDesktop';
 
 // Lazy loading backoffice
@@ -190,6 +189,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
   const { currentUser, userPhoto, logout } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const [navbarAvatarSrc, setNavbarAvatarSrc] = useState('');
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [spriteUrl, setSpriteUrl] = useState<string | null>(null);
   const avatarSrc = userPhoto || (currentUser as any)?.avatar || (currentUser as any)?.avatar_url || (currentUser as any)?.foto || '';
 
@@ -248,13 +248,30 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
     };
   }, []);
 
+  useEffect(() => {
+    if (!showMenu) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (containerRef.current.contains(event.target as Node)) return;
+      setShowMenu(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showMenu]);
+
+  const isAvatarOnly = compact && !showName;
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className={`flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-3 py-2 transition-all hover:bg-white hover:border-slate-300 ${compact ? '' : ''}`}
+        className={isAvatarOnly
+          ? 'flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200/80 bg-white/90 p-0 shadow-sm transition-all hover:bg-white hover:border-slate-300'
+          : 'flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-3 py-2 transition-all hover:bg-white hover:border-slate-300'}
       >
-        <div className="avatar-3d h-9 w-9 overflow-hidden rounded-full bg-blue-600 text-center text-white shadow-md ring-2 ring-slate-200">
+        <div className={`avatar-3d overflow-hidden rounded-full bg-blue-600 text-center text-white shadow-md ring-2 ring-slate-200 ${isAvatarOnly ? 'h-8 w-8' : 'h-9 w-9'}`}>
           {isSpriteNavbarAvatar && spriteUrl ? (
             <div
               id="navbarAvatar"
@@ -287,7 +304,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
       </button>
 
       {showMenu && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/60 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
+        <div className={`absolute right-0 top-full z-50 mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/60 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200 ${isAvatarOnly ? 'w-36' : 'w-56'}`}>
           <button
             onClick={() => { onNavigate('meu-perfil'); setShowMenu(false); }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900"
@@ -715,7 +732,7 @@ function App() {
 
   if (isCapacitorAndroid) {
     return (
-      <LayoutMobileReboot
+      <LayoutMobile
         logoSrc={`${SIDEBAR_LOGO}?v=3`}
         onLogoClick={() => handleNavigate('/dashboard')}
         userMenu={<UserProfileMenu onNavigate={handleNavigate} compact showName={false} />}
@@ -724,7 +741,7 @@ function App() {
         moreMenuItems={moreMenuItems}
       >
         {appRoutes}
-      </LayoutMobileReboot>
+      </LayoutMobile>
     );
   }
 

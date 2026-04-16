@@ -21,7 +21,7 @@ export default function PageHeader({
     breadcrumbs
 }: PageHeaderProps) {
     return (
-        <div className={`flex flex-col bg-white/90 backdrop-blur-md border-b border-slate-200/70 sticky top-0 z-30 transition-all duration-300 ${className}`} style={{ boxShadow: '0 4px 16px -6px rgba(15,23,42,0.10)' }}>
+        <div className={`page-header-shell flex flex-col bg-white/90 backdrop-blur-md border-b border-slate-200/70 sticky top-0 z-30 transition-all duration-300 ${className}`} style={{ boxShadow: '0 4px 16px -6px rgba(15,23,42,0.10)' }}>
             <div className="px-4 md:px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
 
                 {/* Left: Title & Info */}

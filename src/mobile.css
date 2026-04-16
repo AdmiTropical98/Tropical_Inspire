@@ -265,7 +265,123 @@ body.capacitor-android-mobile #root {
     max-height: calc(100dvh - 92px) !important;
   }
 
+  html.capacitor-android-mobile .mobile-topbar {
+    min-height: 54px;
+    height: auto;
+    padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
+    background: rgba(255, 255, 255, 0.98);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    gap: 8px;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar-logo {
+    display: inline-flex;
+    align-items: center;
+    max-width: 126px;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar-logo img {
+    height: 28px !important;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar .avatar-3d {
+    height: 32px !important;
+    width: 32px !important;
+  }
+
+  html.capacitor-android-mobile .mobile-topbar .text-left p:first-child,
+  html.capacitor-android-mobile .mobile-topbar .text-left p:last-child {
+    max-width: 110px;
+  }
+
+  html.capacitor-android-mobile .mobile-main-content {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+
+  html.capacitor-android-mobile .mobile-page-scroll {
+    min-height: 100%;
+  }
+
   html.capacitor-android-mobile .mobile-page-content {
-    padding: 8px 10px 12px;
+    padding: 10px 10px calc(102px + env(safe-area-inset-bottom)) !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > *,
+  html.capacitor-android-mobile .mobile-page-content [class*='max-w-'] {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content .sticky {
+    position: relative !important;
+    top: auto !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content h1,
+  html.capacitor-android-mobile .mobile-page-content h2,
+  html.capacitor-android-mobile .mobile-page-content h3,
+  html.capacitor-android-mobile .mobile-page-content p,
+  html.capacitor-android-mobile .mobile-page-content span {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content .surface-card,
+  html.capacitor-android-mobile .mobile-page-content .glass-card,
+  html.capacitor-android-mobile .mobile-page-content .kpi-card,
+  html.capacitor-android-mobile .mobile-page-content .rounded-3xl {
+    width: 100% !important;
+    overflow: hidden;
+  }
+
+  html.capacitor-android-mobile .page-header-shell {
+    position: relative !important;
+    top: auto !important;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  html.capacitor-android-mobile .page-header-shell > div:first-child,
+  html.capacitor-android-mobile .page-header-shell > div:last-child {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  html.capacitor-android-mobile .page-header-shell h1 {
+    white-space: normal !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content .grid {
+    min-width: 0;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content .overflow-x-auto {
+    overflow-x: auto !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content table {
+    min-width: 640px;
+  }
+
+  html.capacitor-android-mobile .mobile-bottom-nav {
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    border-radius: 18px;
+    height: auto;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  }
+
+  html.capacitor-android-mobile .mobile-bottom-nav-item {
+    min-height: 52px;
+    gap: 2px;
+  }
+
+  html.capacitor-android-mobile .mobile-bottom-nav-item span {
+    font-size: 10px;
+    line-height: 1.05;
   }
 }

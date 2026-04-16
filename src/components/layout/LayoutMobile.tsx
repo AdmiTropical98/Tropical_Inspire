@@ -44,9 +44,9 @@ export default function LayoutMobile({
         {userMenu}
       </nav>
 
-      <main className={`app-content-bg flex-1 min-h-0 overflow-hidden ${isMapPage ? '' : 'mobile-main-content'}`}>
-        <div className={`relative z-10 bg-transparent h-full w-full overflow-x-hidden overflow-y-auto custom-scrollbar ${isMapPage ? 'mobile-map-content' : ''}`}>
-          <div className={isMapPage ? 'h-full w-full' : 'mobile-page-content'}>{children}</div>
+      <main className={`app-content-bg flex-1 min-h-0 ${isMapPage ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden mobile-main-content'}`}>
+        <div className={`relative z-10 bg-transparent w-full overflow-x-hidden ${isMapPage ? 'h-full overflow-y-auto custom-scrollbar mobile-map-content' : ''}`}>
+          <div className={isMapPage ? 'h-full w-full' : 'mobile-page-content mobile-page-scroll'}>{children}</div>
         </div>
       </main>
 
