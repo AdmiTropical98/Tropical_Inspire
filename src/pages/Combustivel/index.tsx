@@ -1247,7 +1247,7 @@ export default function Combustivel() {
                 subtitle={t('fuel.subtitle')}
                 icon={Fuel}
             >
-                <div className="combustivel-tabs flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
+                <div className="combustivel-tabs flex flex-wrap md:flex-nowrap bg-slate-100 p-1.5 rounded-2xl border border-slate-200 backdrop-blur-md shadow-lg overflow-x-auto max-w-full scrollbar-none">
                     {[
                         { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
                         { id: 'abastecer', icon: Fuel, label: 'Abastecer' },
@@ -1271,7 +1271,7 @@ export default function Combustivel() {
                 </div>
             </PageHeader>
 
-            <div className="p-3 md:p-8 space-y-5 md:space-y-8">
+            <div className="fuel-content p-3 md:p-8 space-y-5 md:space-y-8">
 
                 {/* Content Area */}
 
@@ -1412,7 +1412,7 @@ export default function Combustivel() {
                                     <div className="surface-card p-5">
                                         <div className="flex items-center justify-between mb-4">
                                             <h3 className="text-lg font-black text-slate-900">Tendência de Consumo</h3>
-                                            <div className="flex gap-1">
+                                            <div className="flex flex-wrap gap-1">
                                                 {(['daily', 'weekly', 'monthly'] as const).map(mode => (
                                                     <button
                                                         key={mode}
@@ -1512,9 +1512,9 @@ export default function Combustivel() {
                                         </div>
 
                                         <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
-                                            <button onClick={exportAuditReport} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Export report</button>
-                                            <button onClick={() => setActiveTab('historico')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">View history</button>
-                                            <button onClick={() => setActiveTab('historico')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Open anomalies</button>
+                                            <button onClick={exportAuditReport} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Exportar auditoria</button>
+                                            <button onClick={() => setActiveTab('historico')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Ver histórico</button>
+                                            <button onClick={() => setActiveTab('historico')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700">Ver anomalias</button>
                                         </div>
                                     </div>
 
@@ -1550,19 +1550,19 @@ export default function Combustivel() {
                                     </div>
 
                                     <div className="surface-card p-5">
-                                        <h3 className="text-lg font-black text-slate-900 mb-4">Pump Monitoring</h3>
+                                        <h3 className="text-lg font-black text-slate-900 mb-4">Monitorização da bomba</h3>
                                         <div className="space-y-2 text-sm text-slate-700">
-                                            <p><span className="text-slate-500">Last pump activity:</span> {lastPumpActivity ? `${formatDateTime(lastPumpActivity.timestamp).date} ${formatDateTime(lastPumpActivity.timestamp).time}` : '--'}</p>
-                                            <p><span className="text-slate-500">Total pumped today:</span> {pumpToday.toFixed(1)}L</p>
-                                            <p><span className="text-slate-500">Pump health status:</span> {pumpHealthStatus}</p>
-                                            <p><span className="text-slate-500">Last calibration date:</span> {latestRefill ? formatDateTime(latestRefill.timestamp).date : '--'}</p>
+                                            <p><span className="text-slate-500">Última atividade:</span> {lastPumpActivity ? `${formatDateTime(lastPumpActivity.timestamp).date} ${formatDateTime(lastPumpActivity.timestamp).time}` : '--'}</p>
+                                            <p><span className="text-slate-500">Total bombeado hoje:</span> {pumpToday.toFixed(1)}L</p>
+                                            <p><span className="text-slate-500">Estado da bomba:</span> {pumpHealthStatus}</p>
+                                            <p><span className="text-slate-500">Última calibração:</span> {latestRefill ? formatDateTime(latestRefill.timestamp).date : '--'}</p>
                                         </div>
                                     </div>
 
                                     <div className="surface-card p-5">
                                         <h3 className="text-lg font-black text-slate-900 mb-2">Previsão</h3>
                                         <p className="text-sm text-slate-600">
-                                            Fuel will reach minimum level in {daysToMinimum > 0 ? `${daysToMinimum.toFixed(1)} days` : '--'}
+                                            O tanque atinge o nível mínimo em {daysToMinimum > 0 ? `${daysToMinimum.toFixed(1)} dias` : '--'}
                                         </p>
                                         <p className="text-xs text-slate-500 mt-1">
                                             Baseado no consumo médio recente de {avgDailyConsumption.toFixed(1)}L/dia.
@@ -1720,7 +1720,7 @@ export default function Combustivel() {
                                         </div>
                                     )}
 
-                                    <div className="flex gap-3 pt-3 border-t border-slate-200">
+                                    <div className="fuel-form-actions flex gap-3 pt-3 border-t border-slate-200">
                                         <button
                                             type="button"
                                             onClick={() => setActiveTab('overview')}
@@ -1749,9 +1749,9 @@ export default function Combustivel() {
                                         <p><span className="text-slate-500">Consumo mensal:</span> <span className="font-semibold text-slate-800">{selectedVehicleMonthlyConsumption.toFixed(1)}L</span></p>
                                         <p><span className="text-slate-500">Consumo médio:</span> <span className="font-semibold text-slate-800">{avgVehicleConsumption > 0 ? `${avgVehicleConsumption.toFixed(1)} L/100km` : '--'}</span></p>
                                         <p><span className="text-slate-500">Último KM:</span> <span className="font-semibold text-slate-800">{lastKm > 0 ? lastKm.toLocaleString('pt-PT') : '--'}</span></p>
-                                        <p><span className="text-slate-500">Salto de KM:</span> <span className={`font-semibold ${mileageJump < 0 ? 'text-red-600' : mileageJump > 1200 ? 'text-amber-600' : 'text-emerald-600'}`}>{mileageJump ? `${mileageJump > 0 ? '+' : ''}${mileageJump} km` : '--'}</span></p>
-                                        <p><span className="text-slate-500">Expected fuel range:</span> <span className="font-semibold text-slate-800">{expectedLitersForJump > 0 ? `${expectedLitersForJump.toFixed(1)}L` : '--'}</span></p>
-                                        <p><span className="text-slate-500">Efficiency score:</span> <span className="font-semibold text-slate-800">{efficiencyScore}%</span></p>
+                                        <p><span className="text-slate-500">Variação de KM:</span> <span className={`font-semibold ${mileageJump < 0 ? 'text-red-600' : mileageJump > 1200 ? 'text-amber-600' : 'text-emerald-600'}`}>{mileageJump ? `${mileageJump > 0 ? '+' : ''}${mileageJump} km` : '--'}</span></p>
+                                        <p><span className="text-slate-500">Litros esperados:</span> <span className="font-semibold text-slate-800">{expectedLitersForJump > 0 ? `${expectedLitersForJump.toFixed(1)}L` : '--'}</span></p>
+                                        <p><span className="text-slate-500">Índice de eficiência:</span> <span className="font-semibold text-slate-800">{efficiencyScore}%</span></p>
                                     </div>
                                 </div>
 
@@ -1766,14 +1766,14 @@ export default function Combustivel() {
 
                 {/* SUPPLY TAB */}
                 {activeTab === 'tanque' && (
-                    <div className="w-full min-w-0 bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-right-4">
-                        <div className="flex items-center gap-6 mb-10 pb-8 border-b border-slate-100">
-                            <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-900/20 rotate-3">
-                                <Truck className="w-8 h-8" />
+                    <div className="surface-card fuel-panel w-full min-w-0 p-5 md:p-6 lg:p-8 animate-in slide-in-from-right-4 duration-300">
+                        <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-200">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                                <Truck className="w-6 h-6" />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Reabastecer Tanque</h2>
-                                <p className="text-slate-400 text-lg mt-1">Registo de entrada de combustível (Cisterna)</p>
+                                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Reabastecer Tanque</h2>
+                                <p className="text-sm text-slate-500">Entrada de combustível no depósito interno</p>
                             </div>
                         </div>
 
@@ -1853,7 +1853,7 @@ export default function Combustivel() {
                                     />
                                 </div>
                             </div>
-                            <div className="flex gap-4 pt-4 border-t border-slate-200">
+                            <div className="fuel-form-actions flex gap-4 pt-4 border-t border-slate-200">
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('overview')}
@@ -1875,13 +1875,13 @@ export default function Combustivel() {
 
                 {/* HISTORY TAB */}
                 {activeTab === 'historico' && (
-                    <div className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
+                    <div className="surface-card fuel-panel p-4 md:p-6 lg:p-8 animate-in slide-in-from-right-4 duration-300">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                             <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                                 <History className="w-6 h-6 text-blue-600" />
                                 Histórico de Transações
                             </h2>
-                            <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-2xl border border-slate-200">
+                            <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-200 w-full md:w-auto">
                                 <Filter className="w-4 h-4 text-slate-500 ml-2" />
                                 <select
                                     value={filters.vehicleId}
@@ -2016,13 +2016,13 @@ export default function Combustivel() {
 
                 {/* BP TAB */}
                 {activeTab === 'bp' && (
-                    <div className="bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 animate-in slide-in-from-right-4">
+                    <div className="surface-card fuel-panel p-4 md:p-6 lg:p-8 animate-in slide-in-from-right-4 duration-300">
                         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                             <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                                 <FileSpreadsheet className="w-6 h-6 text-green-400" />
                                 Importar BP
                             </h2>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2 w-full md:w-auto">
                                 {bpTransactions.length > 0 && (
                                     <button
                                         onClick={handleConfirmBPImport}
@@ -2062,7 +2062,7 @@ export default function Combustivel() {
                                 <Upload className="w-12 h-12 text-slate-600 group-hover:text-blue-500 transition-colors" />
                             </div>
                             <p className="text-xl font-bold text-slate-500 group-hover:text-slate-900 transition-colors">Arraste um ficheiro ou clique para upload</p>
-                            <div className="flex gap-4 mt-3">
+                            <div className="flex flex-wrap gap-3 mt-3 justify-center">
                                 <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                                     <FileText className="w-3.5 h-3.5 text-red-400" />
                                     Fatura BP (.pdf)

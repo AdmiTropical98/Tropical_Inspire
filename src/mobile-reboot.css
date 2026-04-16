@@ -413,24 +413,26 @@ html.capacitor-android-mobile .android-native-vehicles .kpi-card {
 html.capacitor-android-mobile .android-native-dashboard .p-3.md\:p-8,
 html.capacitor-android-mobile .android-native-fuel .p-3.md\:p-8,
 html.capacitor-android-mobile .android-native-vehicles .space-y-10 {
-  padding: 2px;
+  padding: 8px;
 }
 
 html.capacitor-android-mobile .android-native-fuel .combustivel-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  position: static;
+  top: auto;
+  z-index: 1;
   padding: 8px;
-  background: rgba(241, 245, 249, 0.9);
+  background: rgba(241, 245, 249, 0.92);
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.26);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px);
+  overflow-x: auto;
 }
 
 html.capacitor-android-mobile .android-native-fuel .combustivel-tabs button {
-  min-height: 44px;
+  min-height: 46px;
   border-radius: 12px;
   font-size: 12px;
+  line-height: 1.2;
 }
 
 html.capacitor-android-mobile .android-native-vehicles .android-native-vehicles-tabs {

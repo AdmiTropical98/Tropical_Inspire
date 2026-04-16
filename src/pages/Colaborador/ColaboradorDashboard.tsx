@@ -224,7 +224,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-[#d8e8f8] text-slate-900"
+      className="colaborador-dashboard relative min-h-screen overflow-x-hidden bg-[#d8e8f8] text-slate-900"
       style={{
         backgroundImage:
           "radial-gradient(140% 100% at 50% 100%, rgba(96,165,250,0.45) 0%, rgba(96,165,250,0) 55%), radial-gradient(120% 95% at 50% 0%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0) 70%), url('/grid-pattern.svg'), linear-gradient(180deg, #cfdff1 0%, #dce8f6 45%, #e5eef9 100%)",
@@ -258,7 +258,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 w-full max-w-2xl mx-auto px-3 sm:px-6 pb-8 flex flex-col justify-center">
+      <main className="relative z-10 flex-1 w-full max-w-3xl mx-auto px-3 sm:px-6 pb-8 flex flex-col justify-center">
 
         {/* Feedback Banner */}
         {feedback && (
@@ -273,7 +273,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
         )}
 
         {/* Main Card Container */}
-        <div className="bg-white/95 rounded-3xl shadow-2xl overflow-hidden border border-white/90 backdrop-blur-sm">
+        <div className="colaborador-main-card bg-white/95 rounded-3xl shadow-2xl overflow-hidden border border-white/90 backdrop-blur-sm">
           
           {/* Greeting Section — hidden on mobile (shown in header instead) */}
           <div className="hidden md:flex bg-gradient-to-r from-blue-50 to-blue-100 px-8 py-6 border-b border-slate-200 justify-between items-start">
@@ -292,7 +292,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
 
           {/* Tabs — segmented control compact */}
           <div className="p-2 border-b border-slate-200 bg-slate-50/50">
-            <div className="flex rounded-xl bg-slate-200/60 p-0.5 h-11">
+            <div className="colaborador-tabs flex rounded-xl bg-slate-200/60 p-0.5 h-auto min-h-11">
               <button
                 type="button"
                 onClick={() => setActiveTab('resumo')}
@@ -381,7 +381,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
             </div>
 
             {/* Statistics */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="colaborador-stats grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 p-4">
                 <p className="text-[10px] text-slate-600 uppercase font-bold tracking-widest flex items-center gap-1.5">
                   <Bus className="w-3.5 h-3.5" /> Total de Utilizações

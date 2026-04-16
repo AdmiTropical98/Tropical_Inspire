@@ -41,19 +41,40 @@ body.capacitor-android-mobile #root {
     max-width: none;
   }
 
-  /* 5) Fix overlapping menus in Combustivel */
+  /* 5) Fuel manager mobile layout */
+  html.capacitor-android-mobile .combustivel-page {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+
   html.capacitor-android-mobile .combustivel-tabs {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    overflow: visible;
-    padding: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px;
+    align-items: stretch;
   }
 
   html.capacitor-android-mobile .combustivel-tabs button {
     width: 100%;
-    justify-content: flex-start;
-    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+    min-height: 46px;
+  }
+
+  html.capacitor-android-mobile .combustivel-page .table-scroll,
+  html.capacitor-android-mobile .combustivel-page .overflow-x-auto {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.capacitor-android-mobile .combustivel-page .fuel-form-actions {
+    flex-direction: column;
+  }
+
+  html.capacitor-android-mobile .combustivel-page .fuel-form-actions > * {
+    width: 100%;
   }
 
   html.capacitor-android-mobile .combustivel-page select,
@@ -125,6 +146,8 @@ body.capacitor-android-mobile #root {
   /* 7) Login spacing and typography */
   html.capacitor-android-mobile .login-scrollbar {
     padding: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
   html.capacitor-android-mobile .login-scrollbar .max-w-\[1440px\] {
@@ -144,6 +167,33 @@ body.capacitor-android-mobile #root {
     font-size: 0.92rem !important;
   }
 
+  html.capacitor-android-mobile .login-scrollbar .auth-card,
+  html.capacitor-android-mobile .login-scrollbar .colaborador-login-card,
+  html.capacitor-android-mobile .colaborador-dashboard .colaborador-main-card {
+    border-radius: 22px !important;
+    width: 100%;
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard .colaborador-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard .colaborador-tabs button {
+    min-height: 44px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  html.capacitor-android-mobile .colaborador-dashboard .colaborador-stats {
+    grid-template-columns: 1fr !important;
+  }
+
   /* 8) Full-screen map pages */
   html.capacitor-android-mobile .mobile-map-content,
   html.capacitor-android-mobile .mobile-map-page {
@@ -151,14 +201,9 @@ body.capacitor-android-mobile #root {
     min-height: calc(100dvh - 64px - 74px - env(safe-area-inset-bottom)) !important;
   }
 
-  /* 9) Horizontal lists -> stacked buttons */
-  html.capacitor-android-mobile .overflow-x-auto {
-    overflow-x: visible !important;
-  }
-
+  /* 9) Horizontal lists -> wrap without overflowing cards */
   html.capacitor-android-mobile .overflow-x-auto > .flex,
   html.capacitor-android-mobile .overflow-x-auto.flex,
-  html.capacitor-android-mobile .combustivel-tabs,
   html.capacitor-android-mobile [class*='tabs'] {
     flex-wrap: wrap;
   }

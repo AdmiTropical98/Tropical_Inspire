@@ -178,7 +178,7 @@ export default function Login() {
 
 
     return (
-        <div className="fixed inset-0 overflow-hidden" style={{ backgroundImage: "url('/fundo_páginas.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+        <div className="login-scrollbar relative min-h-[100dvh] overflow-x-hidden overflow-y-auto" style={{ backgroundImage: "url('/fundo_páginas.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
             <div className="absolute inset-0 z-0" style={{ background: 'rgba(255, 255, 255, 0.55)' }} />
             <div className="absolute left-[-8%] top-[18%] h-px w-[52%] rotate-[-16deg] bg-gradient-to-r from-transparent via-blue-200/80 to-transparent opacity-70" />
             <div className="absolute left-[2%] top-[38%] h-px w-[46%] rotate-[8deg] bg-gradient-to-r from-transparent via-blue-100/90 to-transparent opacity-80" />
@@ -196,7 +196,7 @@ export default function Login() {
                 <MapPin className="absolute inset-0 m-auto h-7 w-7 text-blue-100" />
             </div>
 
-            <div className="relative z-10 mx-auto flex h-full w-full max-w-[1440px] items-center justify-center px-6 lg:px-16 xl:px-20">
+            <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1440px] items-start justify-center px-4 py-6 sm:px-6 lg:items-center lg:px-16 xl:px-20">
                 <div className="grid w-full grid-cols-1 items-center gap-6 lg:grid-cols-[1.05fr_0.72fr] xl:gap-16">
                     <section className="relative hidden items-center justify-center lg:flex lg:justify-start">
                         <div className="relative flex w-full items-center justify-center lg:justify-center">
@@ -205,7 +205,16 @@ export default function Login() {
                     </section>
 
                     <section className="flex items-center justify-center lg:justify-end">
-                        <div className="w-full max-w-[424px] rounded-[1.9rem] border border-white/85 bg-white/94 p-7 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-9">
+                        <div className="auth-card w-full max-w-[424px] rounded-[1.9rem] border border-white/85 bg-white/94 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-9">
+                            <div className="mb-4 flex items-center gap-3 sm:hidden">
+                                <div className="rounded-2xl bg-slate-50 px-3 py-2 shadow-sm border border-slate-200">
+                                    <img src="/LOGO.png" alt="Algartempo Frota" className="h-8 w-auto" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Acesso Seguro</p>
+                                    <p className="text-sm font-semibold text-slate-700">Plataforma interna</p>
+                                </div>
+                            </div>
                             <div className="mb-5 flex items-center justify-start">
                                 <div className="relative w-full max-w-[190px]">
                                     <select

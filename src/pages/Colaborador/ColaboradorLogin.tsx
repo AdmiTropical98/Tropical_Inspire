@@ -38,7 +38,7 @@ const ColaboradorLogin: React.FC<ColaboradorLoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-[#f7fafd] login-scrollbar">
+    <div className="relative min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-[#f7fafd] login-scrollbar">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(147,197,253,0.24),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(191,219,254,0.34),_transparent_30%),linear-gradient(135deg,_#edf4ff_0%,_#fafcff_55%,_#edf4ff_100%)]" />
       <div className="absolute inset-0 pointer-events-none opacity-28" style={{ backgroundImage: 'url(/grid-pattern.svg)', backgroundRepeat: 'no-repeat', backgroundPosition: 'center 6%', backgroundSize: '40rem auto' }} />
       <div className="absolute left-[-8%] top-[18%] h-px w-[52%] rotate-[-16deg] bg-gradient-to-r from-transparent via-blue-200/80 to-transparent opacity-70" />
@@ -57,16 +57,25 @@ const ColaboradorLogin: React.FC<ColaboradorLoginProps> = ({ onLogin }) => {
         <MapPin className="absolute inset-0 m-auto h-7 w-7 text-blue-100" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1440px] items-center px-6 py-8 lg:px-16 xl:px-20">
+      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1440px] items-start px-4 py-5 sm:px-6 sm:py-8 lg:items-center lg:px-16 xl:px-20">
         <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-[1.05fr_0.72fr] xl:gap-16">
-          <section className="relative flex min-h-[320px] items-center justify-center lg:min-h-[720px] lg:justify-start">
+          <section className="relative flex min-h-[150px] items-center justify-center sm:min-h-[220px] lg:min-h-[720px] lg:justify-start">
             <div className="relative flex w-full items-center justify-center lg:justify-center">
               <img src="/LOGO.png" alt="Algartempo Frota" className="w-full max-w-[360px] object-contain drop-shadow-[0_20px_40px_rgba(37,99,235,0.08)] sm:max-w-[430px] lg:max-w-[520px]" />
             </div>
           </section>
 
           <section className="flex items-center justify-center lg:justify-end">
-            <div className="w-full max-w-[424px] rounded-[1.9rem] border border-white/85 bg-white/94 p-7 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-9">
+            <div className="colaborador-login-card w-full max-w-[424px] rounded-[1.9rem] border border-white/85 bg-white/94 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-9">
+              <div className="mb-4 flex items-center gap-3 sm:hidden">
+                <div className="rounded-2xl bg-slate-50 px-3 py-2 shadow-sm border border-slate-200">
+                  <img src="/LOGO.png" alt="Algartempo Frota" className="h-8 w-auto" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Transporte interno</p>
+                  <p className="text-sm font-semibold text-slate-700">Acesso do colaborador</p>
+                </div>
+              </div>
               <div className="mb-6">
                 <h1 className="text-[2rem] font-extrabold tracking-[-0.04em] text-[#1f2957] sm:text-[2.2rem]">Área do Colaborador</h1>
                 <p className="mt-2 text-[1.02rem] text-slate-500">Introduza o seu número para continuar.</p>
