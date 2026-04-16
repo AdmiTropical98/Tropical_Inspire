@@ -52,6 +52,7 @@ import StockAlerts from './pages/Workshop/StockAlerts';
 import WorkshopAssets from './pages/Workshop/WorkshopAssets';
 import AssignedTools from './pages/Workshop/AssignedTools';
 import LayoutMobile from './components/layout/LayoutMobile';
+import LayoutMobileReboot from './components/layout/LayoutMobileReboot';
 import LayoutDesktop from './components/layout/LayoutDesktop';
 
 // Lazy loading backoffice
@@ -325,6 +326,7 @@ function App() {
   }, []);
 
   const isCapacitorNative = Capacitor.isNativePlatform();
+  const isCapacitorAndroid = isCapacitorNative && Capacitor.getPlatform() === 'android';
   const isMobileViewport = viewportWidth < MOBILE_MAX_WIDTH;
   const isMobileLayout = isCapacitorNative || isMobileViewport;
 
@@ -710,6 +712,21 @@ function App() {
       </div>
     </nav>
   );
+
+  if (isCapacitorAndroid) {
+    return (
+      <LayoutMobileReboot
+        logoSrc={`${SIDEBAR_LOGO}?v=3`}
+        onLogoClick={() => handleNavigate('/dashboard')}
+        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
+        isMapPage={isMapPage}
+        bottomNavItems={bottomNavItems}
+        moreMenuItems={moreMenuItems}
+      >
+        {appRoutes}
+      </LayoutMobileReboot>
+    );
+  }
 
   if (isMobileLayout) {
     return (

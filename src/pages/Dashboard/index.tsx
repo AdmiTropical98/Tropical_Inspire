@@ -1,6 +1,7 @@
 import ApprovalsModal from './modals/ApprovalsModal';
 import PageHeader from '../../components/common/PageHeader';
 import { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
@@ -63,12 +64,32 @@ export default function Dashboard({
 
     // --- Modals ---
     const [showApprovalsModal, setShowApprovalsModal] = useState(false);
+    const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 
     return (
-        <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-700">
+        <div className="android-native-dashboard w-full min-w-0 space-y-6 animate-in fade-in duration-700">
             {/* ... Modal ... */}
             {hasAccess(userRole, 'equipa-oficina') && (
                 <ApprovalsModal isOpen={showApprovalsModal} onClose={() => setShowApprovalsModal(false)} />
+            )}
+
+            {isAndroidNative && (
+                <section className="android-native-dashboard-brand">
+                    <div className="android-native-dashboard-brand-head">
+                        <img src="/LOGO.png?v=3" alt="Algartempo Frota" className="android-native-dashboard-brand-logo" />
+                        <div>
+                            <p className="android-native-dashboard-brand-kicker">Aplicação Operacional</p>
+                            <h2 className="android-native-dashboard-brand-title">Centro de Comando</h2>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => setActiveTab('requisicoes')}
+                        className="android-native-dashboard-brand-cta"
+                    >
+                        Novo Serviço
+                    </button>
+                </section>
             )}
 
             <PageHeader

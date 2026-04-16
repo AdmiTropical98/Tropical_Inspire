@@ -1241,7 +1241,7 @@ export default function Combustivel() {
     };
 
     return (
-        <div className="combustivel-page w-full min-w-0 space-y-6 animate-in fade-in duration-500">
+        <div className="combustivel-page android-native-fuel w-full min-w-0 space-y-6 animate-in fade-in duration-500">
             <PageHeader
                 title={t('fuel.title')}
                 subtitle={t('fuel.subtitle')}

@@ -108,7 +108,7 @@ export default function Viaturas() {
     );
 
     return (
-        <div className="flex flex-col text-slate-900">
+        <div className="android-native-vehicles flex flex-col text-slate-900">
             {/* Full Page Container */}
             <div className="flex flex-col">
                 {/* Scrollable Content Area */}
@@ -154,7 +154,7 @@ export default function Viaturas() {
                     </div>
 
                     {/* Navigation Tabs */}
-                    <div className="flex items-center gap-2 border-b border-slate-200">
+                    <div className="android-native-vehicles-tabs flex items-center gap-2 border-b border-slate-200">
                         {[
                             { id: 'overview', label: 'Dashboard Geral', icon: LayoutTemplate },
                             { id: 'list', label: 'Lista de Frota', icon: List },
@@ -181,7 +181,7 @@ export default function Viaturas() {
                         {activeTab === 'overview' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 {/* KPI Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                                <div className="android-native-vehicles-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                                     <div className="kpi-card relative overflow-visible group hover:shadow-md hover:-translate-y-0.5 transition-all">
                                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                             <Car className="w-32 h-32 text-blue-500" />
@@ -323,7 +323,7 @@ export default function Viaturas() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                                <div className="android-native-vehicles-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                                     {filteredItems.map(viatura => {
                                         const status = getVehicleStatus(viatura);
                                         return (

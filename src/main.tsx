@@ -73,8 +73,18 @@ async function bootstrapApp() {
     const isCapacitorAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
     if (isCapacitorAndroid) {
       await import('./mobile.css');
+      await import('./mobile-reboot.css');
       document.documentElement.classList.add('capacitor-android-mobile');
       document.body.classList.add('capacitor-android-mobile');
+
+      try {
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        await StatusBar.setStyle({ style: Style.Light });
+        await StatusBar.setBackgroundColor({ color: '#0b2239' });
+      } catch (statusBarError) {
+        console.warn('Unable to configure Android status bar:', statusBarError);
+      }
     }
 
     const [
