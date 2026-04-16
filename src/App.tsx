@@ -733,7 +733,7 @@ function App() {
       <LayoutMobile
         logoSrc={`${SIDEBAR_LOGO}?v=3`}
         onLogoClick={() => handleNavigate('/dashboard')}
-        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact showName={false} />}
+        userMenu={<UserProfileMenu onNavigate={handleNavigate} compact />}
         isMapPage={isMapPage}
         bottomNavItems={bottomNavItems}
         moreMenuItems={moreMenuItems}

@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import type { Fatura, Requisicao, Servico } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -42,7 +43,11 @@ class EmailService {
     private readonly apiBaseUrl: string;
 
     constructor() {
-        this.apiBaseUrl = import.meta.env.VITE_EMAIL_API_URL || '/api/email';
+        const nativeDefaultBaseUrl = Capacitor.isNativePlatform()
+            ? 'https://algartempo-frota.com/api/email'
+            : '/api/email';
+
+        this.apiBaseUrl = import.meta.env.VITE_EMAIL_API_URL || nativeDefaultBaseUrl;
     }
 
     private async getCurrentUserId(): Promise<string | null> {

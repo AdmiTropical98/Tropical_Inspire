@@ -47,11 +47,16 @@ html.capacitor-android-mobile .mobile-reboot-background {
 }
 
 html.capacitor-android-mobile .mobile-reboot-header {
-  padding: calc(10px + env(safe-area-inset-top)) 12px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 7600;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 10px;
+  background: rgba(11, 34, 57, 0.96);
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.22);
   animation: rebootSlideDown 360ms ease-out both;
 }
 
@@ -178,7 +183,7 @@ html.capacitor-android-mobile .mobile-reboot-chip.active {
 html.capacitor-android-mobile .mobile-reboot-main {
   flex: 1;
   min-height: 0;
-  padding: 0 10px;
+  padding: 0 12px;
 }
 
 html.capacitor-android-mobile .mobile-reboot-content {
@@ -186,10 +191,10 @@ html.capacitor-android-mobile .mobile-reboot-content {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  border-radius: 26px 26px 0 0;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.95));
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.99), rgba(241, 245, 249, 0.96));
   box-shadow: 0 -4px 22px rgba(2, 6, 23, 0.22);
-  padding: 12px 10px calc(94px + env(safe-area-inset-bottom));
+  padding: 14px 12px calc(96px + env(safe-area-inset-bottom));
   animation: rebootLift 360ms ease-out both;
 }
 
@@ -205,6 +210,7 @@ html.capacitor-android-mobile .mobile-reboot-main.map-mode {
 html.capacitor-android-mobile .mobile-reboot-content.map-content {
   border-radius: 0;
   padding: 0 0 calc(88px + env(safe-area-inset-bottom));
+  background: #e2e8f0;
 }
 
 html.capacitor-android-mobile .mobile-reboot-dock {

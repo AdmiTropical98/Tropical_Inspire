@@ -71,11 +71,20 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 async function bootstrapApp() {
   try {
     const isCapacitorAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+    let nativeSplashScreen: { hide: () => Promise<void> } | null = null;
+
     if (isCapacitorAndroid) {
       await import('./mobile.css');
       await import('./mobile-reboot.css');
       document.documentElement.classList.add('capacitor-android-mobile');
       document.body.classList.add('capacitor-android-mobile');
+
+      try {
+        const { SplashScreen } = await import('@capacitor/splash-screen');
+        nativeSplashScreen = SplashScreen;
+      } catch (splashError) {
+        console.warn('Unable to access Android splash screen plugin:', splashError);
+      }
 
       try {
         const { StatusBar, Style } = await import('@capacitor/status-bar');
@@ -136,6 +145,16 @@ async function bootstrapApp() {
         </WorkshopProvider>
       </ErrorBoundary>,
     );
+
+    if (nativeSplashScreen) {
+      window.requestAnimationFrame(() => {
+        window.setTimeout(() => {
+          nativeSplashScreen?.hide().catch((error) => {
+            console.warn('Unable to hide Android splash screen:', error);
+          });
+        }, 180);
+      });
+    }
   } catch (error: any) {
     console.error('Bootstrap failure:', error);
     const root = document.getElementById('root');

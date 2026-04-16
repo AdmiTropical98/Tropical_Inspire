@@ -1,36 +1,39 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const liveReloadUrl = process.env.CAP_SERVER_URL?.trim();
+
 const config: CapacitorConfig = {
   appId: 'com.algartempo.frota',
   appName: 'AlgarTempo Frota',
   webDir: 'dist',
   server: {
-    url: 'https://algartempo-frota.com',
     cleartext: true,
     androidScheme: 'https',
     iosScheme: 'https',
+    hostname: 'app.algartempo.local',
     allowNavigation: [
       'js.api.here.com',
       '*.hereapi.com',
       '*.supabase.co',
       'fleetapi-pt.cartrack.com',
       'algartempo-frota.com'
-    ]
+    ],
+    ...(liveReloadUrl ? { url: liveReloadUrl } : {})
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1800,
-      launchAutoHide: true,
-      backgroundColor: '#0f172a',
+      launchShowDuration: 2200,
+      launchAutoHide: false,
+      backgroundColor: '#0b2239',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
       splashFullScreen: true,
-      splashImmersive: true
+      splashImmersive: false
     },
     StatusBar: {
-      style: 'DARK',
-      backgroundColor: '#0f172a',
+      style: 'LIGHT',
+      backgroundColor: '#0b2239',
       overlaysWebView: false
     }
   }
