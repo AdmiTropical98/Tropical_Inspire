@@ -82,6 +82,7 @@ interface DailyDriverConfigMap {
 }
 
 const getDailyDistributionStorageKey = (date: string, centroCusto: string) => `auto_driver_config:${date}:${centroCusto || 'all'}`;
+const getDailyBusScheduleStorageKey = (date: string, centroCusto: string) => `auto_bus_schedule:${date}:${centroCusto || 'all'}`;
 
 const normalizeTimeInput = (value?: string | null, fallback = '08:00') => {
     const str = String(value || '').trim();
@@ -111,9 +112,44 @@ const buildDefaultDailyDriverConfig = (driver: any): DailyDriverConfig => {
         driverId: driver.id,
         ativo: true,
         usaAutocarro: false,
+        zonaBase: (() => {
+            const zones = driver.zones || [];
+            if (zones.length >= 2) return 'Ambos';
+            if (zones[0] === 'albufeira') return 'Albufeira';
+            if (zones[0] === 'quarteira') return 'Quarteira';
+            return undefined;
+        })(),
+        permitirForaDaZona: false,
         turnos: fallbackTurnos.slice(0, 2),
         indisponibilidades: []
     };
+};
+
+const parseBusUsageWindows = (value: string) => {
+    const normalizeWindowTime = (raw: string) => {
+        const trimmed = String(raw || '').trim();
+        const match = trimmed.match(/^(\d{1,2})(?::(\d{2}))?$/);
+        if (!match) return null;
+        const hh = Math.max(0, Math.min(23, Number(match[1])));
+        const mm = Math.max(0, Math.min(59, Number(match[2] || '00')));
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    };
+
+    const windows: Array<{ inicio: string; fim?: string }> = [];
+
+    String(value || '')
+        .split(',')
+        .map(token => token.trim())
+        .filter(Boolean)
+        .forEach(token => {
+            const [startRaw, endRaw] = token.split('-').map(part => part.trim());
+            const inicio = normalizeWindowTime(startRaw);
+            if (!inicio) return;
+            const fim = endRaw ? normalizeWindowTime(endRaw) : undefined;
+            windows.push({ inicio, fim: fim || undefined });
+        });
+
+    return windows;
 };
 
 // Sortable Driver Card Component
@@ -312,6 +348,7 @@ export default function Escalas() {
     const [sendingScheduleServiceId, setSendingScheduleServiceId] = useState<string | null>(null);
     const [showDailyDriversPanel, setShowDailyDriversPanel] = useState(false);
     const [dailyDriverConfigs, setDailyDriverConfigs] = useState<DailyDriverConfigMap>({});
+    const [dailyBusUsageSchedule, setDailyBusUsageSchedule] = useState('');
     const [autoSettings, setAutoSettings] = useState({
         albufeiraUrl: localStorage.getItem('auto_sheet_albufeira') || '',
         quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || ''
@@ -388,6 +425,8 @@ export default function Escalas() {
     useEffect(() => {
         const key = getDailyDistributionStorageKey(selectedDate, selectedCentroCusto);
         const raw = localStorage.getItem(key);
+        const busKey = getDailyBusScheduleStorageKey(selectedDate, selectedCentroCusto);
+        setDailyBusUsageSchedule(localStorage.getItem(busKey) || '');
 
         const defaults: DailyDriverConfigMap = {};
         displayMotoristas.forEach(driver => {
@@ -432,6 +471,11 @@ export default function Escalas() {
         const key = getDailyDistributionStorageKey(selectedDate, selectedCentroCusto);
         localStorage.setItem(key, JSON.stringify(dailyDriverConfigs));
     }, [dailyDriverConfigs, selectedDate, selectedCentroCusto]);
+
+    useEffect(() => {
+        const key = getDailyBusScheduleStorageKey(selectedDate, selectedCentroCusto);
+        localStorage.setItem(key, dailyBusUsageSchedule || '');
+    }, [dailyBusUsageSchedule, selectedDate, selectedCentroCusto]);
 
     const syncVehicleAssignmentInFlight = useRef<Set<string>>(new Set());
 
@@ -866,6 +910,7 @@ export default function Escalas() {
                         ['volta golfs', 'golfs', 'golf'],
                         ['volta quinta do lago', 'quinta do lago']
                     ],
+                    busUsageWindows: parseBusUsageWindows(dailyBusUsageSchedule),
                     defaultVanCapacity: 8,
                     defaultBusCapacity: 30
                 }
@@ -2648,6 +2693,21 @@ export default function Escalas() {
                                 <p className="text-xs text-slate-500 mt-1">
                                     Configure disponibilidade, turnos e autocarro para {selectedDate}.
                                 </p>
+                                <div className="mt-3">
+                                    <label className="block text-[11px] font-black uppercase tracking-wide text-slate-500 mb-1">
+                                        Horarios do autocarro (forcar)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={dailyBusUsageSchedule}
+                                        onChange={(e) => setDailyBusUsageSchedule(e.target.value)}
+                                        placeholder="Ex: 08:00, 12:30-13:30, 18:00"
+                                        className="w-full md:w-[420px] bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
+                                    />
+                                    <p className="mt-1 text-[11px] text-slate-500">
+                                        Nesses horarios, a distribuicao tenta autocarro mesmo com menos de 8 passageiros.
+                                    </p>
+                                </div>
                             </div>
                             <button
                                 onClick={() => setShowDailyDriversPanel(false)}

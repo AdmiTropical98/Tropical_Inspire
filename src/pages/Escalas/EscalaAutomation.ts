@@ -45,6 +45,7 @@ export interface AutomaticDistributionOptions {
     opposingDestinationGroups?: string[][];
     defaultVanCapacity?: number;
     defaultBusCapacity?: number;
+    busUsageWindows?: Array<{ inicio: string; fim?: string }>;
 }
 
 const toMinutes = (value: string) => {
@@ -436,6 +437,14 @@ const isInsideTimeWindow = (minute: number, start: number, end: number) => {
 const resolveDriverConfig = (driver: Motorista, dailyConfigByDriver: Record<string, DailyDriverConfig>): DailyDriverConfig => {
     const fromDaily = dailyConfigByDriver[driver.id];
 
+    const fallbackZoneBase: ZonaBase | undefined = (() => {
+        const zones = driver.zones || [];
+        if (zones.length >= 2) return 'Ambos';
+        if (zones[0] === 'albufeira') return 'Albufeira';
+        if (zones[0] === 'quarteira') return 'Quarteira';
+        return undefined;
+    })();
+
     const fallbackShifts =
         driver.shifts && driver.shifts.length > 0
             ? driver.shifts.map(s => ({ inicio: s.inicio, fim: s.fim }))
@@ -448,8 +457,19 @@ const resolveDriverConfig = (driver: Motorista, dailyConfigByDriver: Record<stri
         ativo: fromDaily?.ativo ?? true,
         usaAutocarro: fromDaily?.usaAutocarro ?? false,
         turnos: fromDaily?.turnos?.length ? fromDaily.turnos : fallbackShifts,
-        indisponibilidades: fromDaily?.indisponibilidades || []
+        indisponibilidades: fromDaily?.indisponibilidades || [],
+        zonaBase: fromDaily?.zonaBase ?? fallbackZoneBase,
+        permitirForaDaZona: fromDaily?.permitirForaDaZona ?? false
     };
+};
+
+const isMinuteInsideConfiguredBusWindow = (minute: number, windows: Array<{ inicio: string; fim?: string }>) => {
+    if (!windows || windows.length === 0) return false;
+    return windows.some(window => {
+        const start = timeToMinutes(window.inicio);
+        const end = timeToMinutes(window.fim || window.inicio);
+        return isInsideTimeWindow(minute, start, end);
+    });
 };
 
 const isDriverAvailableForMinute = (driver: Motorista, config: DailyDriverConfig, minute: number) => {
@@ -544,6 +564,7 @@ export function generateAutomaticDistributionTrips(params: {
 
     const defaultVanCapacity = Number(options?.defaultVanCapacity || 8);
     const defaultBusCapacity = Number(options?.defaultBusCapacity || 30);
+    const busUsageWindows = options?.busUsageWindows || [];
     const opposingGroups = options?.opposingDestinationGroups || [
         ['volta golfs', 'golfs', 'golf'],
         ['volta quinta do lago', 'quinta do lago']
@@ -659,9 +680,10 @@ export function generateAutomaticDistributionTrips(params: {
         const minute = toMinutes(trip.hora);
         let remainingServices = [...trip.servicos];
         const tripZone = detectTripZone(trip.origem, trip.destino);
+        const forceBusBySchedule = isMinuteInsideConfiguredBusWindow(minute, busUsageWindows);
 
         while (remainingServices.length > 0) {
-            const requiresBus = remainingServices.length > defaultVanCapacity;
+            const requiresBus = remainingServices.length > defaultVanCapacity || forceBusBySchedule;
 
             const candidates = motoristas
                 .filter(driver => {
@@ -678,7 +700,10 @@ export function generateAutomaticDistributionTrips(params: {
                     const config = resolveDriverConfig(driver, dailyDriverConfigs);
                     const vehicle = pickVehicleForDriverAndMinute(driver, minute, requiresBus || config.usaAutocarro);
                     const vehicleCapacity = Number(vehicle?.vehicleCapacity || (config.usaAutocarro ? defaultBusCapacity : defaultVanCapacity));
-                    const effectiveCapacity = config.usaAutocarro ? Math.max(vehicleCapacity, defaultBusCapacity) : Math.min(vehicleCapacity, defaultVanCapacity);
+                    // Vans are always treated as 8 seats (excluding driver); split only when > 8 passengers.
+                    const effectiveCapacity = (requiresBus || config.usaAutocarro)
+                        ? Math.max(vehicleCapacity, defaultBusCapacity)
+                        : defaultVanCapacity;
                     const zonePriority = driverMatchesZone(config, tripZone);
 
                     return {
