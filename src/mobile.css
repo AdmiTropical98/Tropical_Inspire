@@ -10,7 +10,7 @@ body.capacitor-android-mobile #root {
   overflow: hidden;
 }
 
-@media (max-width: 767px) {
+@media all {
   html.capacitor-android-mobile body {
     font-size: 14px;
     line-height: 1.45;
@@ -351,19 +351,35 @@ body.capacitor-android-mobile #root {
   }
 
   html.capacitor-android-mobile .mobile-page-content > *,
-  html.capacitor-android-mobile .mobile-page-content [class*='max-w-'] {
+  html.capacitor-android-mobile .mobile-page-content [class*='max-w-'],
+  html.capacitor-android-mobile .mobile-page-content [class*='mx-auto'],
+  html.capacitor-android-mobile .mobile-page-content [class*='container'],
+  html.capacitor-android-mobile .mobile-page-content [class*='w-fit'] {
+    width: 100% !important;
     min-width: 0 !important;
-    max-width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
-  html.capacitor-android-mobile .mobile-page-content > *,
   html.capacitor-android-mobile .mobile-page-content > .container,
   html.capacitor-android-mobile .mobile-page-content > div[class*='mx-auto'],
-  html.capacitor-android-mobile .mobile-page-content > section[class*='mx-auto'] {
+  html.capacitor-android-mobile .mobile-page-content > section[class*='mx-auto'],
+  html.capacitor-android-mobile .mobile-page-content > main,
+  html.capacitor-android-mobile .mobile-page-content > div,
+  html.capacitor-android-mobile .mobile-page-content > section {
     width: 100% !important;
     max-width: none !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content [class*='px-4'],
+  html.capacitor-android-mobile .mobile-page-content [class*='px-5'],
+  html.capacitor-android-mobile .mobile-page-content [class*='px-6'],
+  html.capacitor-android-mobile .mobile-page-content [class*='px-8'] {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   html.capacitor-android-mobile .mobile-page-content .sticky {
