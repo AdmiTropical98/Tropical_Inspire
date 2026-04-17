@@ -371,7 +371,7 @@ function App() {
 
   if (isColaboradorArea) {
     return (
-      <div className="app-root min-h-screen bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
+      <div className="app-root w-full min-h-screen bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
             <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />

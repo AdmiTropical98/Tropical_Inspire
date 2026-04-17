@@ -36,7 +36,7 @@ export default function LayoutMobile({
   const [showMoreMenu, setShowMoreMenu] = React.useState(false);
 
   return (
-    <div className="layout-mobile app-root h-[100dvh] flex flex-col overflow-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
+    <div className="layout-mobile app-root w-full h-[100dvh] flex flex-col overflow-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
       <nav className="mobile-topbar">
         <button type="button" onClick={onLogoClick} className="mobile-topbar-logo" aria-label="Ir para dashboard">
           <img src={logoSrc} alt="Algartempo Frota" className="h-8 w-auto object-contain" />
