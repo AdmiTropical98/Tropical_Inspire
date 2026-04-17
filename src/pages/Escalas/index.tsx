@@ -987,7 +987,7 @@ export default function Escalas() {
 
         const batchData = {
             notes: `Escala Permanente: ${template.nome}`,
-            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : (template.centro_custo_id || ''),
+            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : (template.centro_custo_id || undefined),
             referenceDate: selectedDate
         };
 
@@ -1055,7 +1055,7 @@ export default function Escalas() {
 
         const batchData = {
             notes: `Automação: ${selectedDate}`,
-            centroCustoId: selectedCentroCusto,
+            centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : undefined,
             referenceDate: selectedDate
         };
 
@@ -1361,7 +1361,7 @@ export default function Escalas() {
                     // Create a Batch for this upload
                     const batchData = {
                         notes: `Importado via Excel (${file.name})`,
-                        centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : mappedServicos[0].centroCustoId || '',
+                        centroCustoId: selectedCentroCusto !== 'all' ? selectedCentroCusto : (mappedServicos[0].centroCustoId || undefined),
                         referenceDate: selectedDate
                     };
 

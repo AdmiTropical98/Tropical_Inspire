@@ -255,7 +255,7 @@ interface WorkshopContextType {
     checkRouteValidation: (serviceId: string) => Promise<Record<string, { status: 'success' | 'failed'; time?: string; distance?: number }>>;
 
     // Scale Batch Actions
-    createScaleBatch: (batchData: { notes?: string, centroCustoId: string, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; data?: any; error?: any }>;
+    createScaleBatch: (batchData: { notes?: string, centroCustoId?: string | null, referenceDate: string }, services: Servico[]) => Promise<{ success: boolean; data?: any; error?: any }>;
     cancelScaleBatch: (batchId: string) => Promise<{ success: boolean; error?: any }>;
     publishBatch: (batchId: string) => Promise<{ success: boolean; error?: any }>;
 
@@ -5082,7 +5082,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                 }
             },
             createScaleBatch: async (
-                batchData: { notes?: string; centroCustoId: string; referenceDate: string },
+                batchData: { notes?: string; centroCustoId?: string | null; referenceDate: string },
                 services: Servico[]
             ): Promise<{ success: boolean; data?: any; error?: any }> => {
 
@@ -5093,12 +5093,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     let user = null;
                     if (storedUser) user = JSON.parse(storedUser);
 
+                    const isUuid = (value?: string | null) => !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+                    const batchCentroCustoId = isUuid(batchData.centroCustoId) ? batchData.centroCustoId : null;
+
                     const { data: batch, error: batchError } = await supabase
                         .from('scale_batches')
                         .insert({
                             created_by: user?.nome || 'Sistema',
                             created_by_role: storedRole || null,
-                            centro_custo_id: batchData.centroCustoId,
+                            centro_custo_id: batchCentroCustoId,
                             reference_date: batchData.referenceDate,
                             notes: batchData.notes,
                             status: 'active'
@@ -5111,6 +5114,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     const servicesToInsert = services.map(s => {
+                        const serviceCentroCustoId = isUuid(s.centroCustoId) ? s.centroCustoId : batchCentroCustoId;
                         const urgent = s.isUrgent ?? isServiceUrgent(s.data || batchData.referenceDate, s.hora);
                         const isCompleted = Boolean(s.concluido || s.destinationConfirmed || s.destinationArrivalTime);
                         const origemLocation = resolveLocationByName(s.origem, s.originLocationId);
@@ -5127,7 +5131,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
                             obs: s.obs,
                             tipo: s.tipo || 'outro',
                             concluido: isCompleted,
-                            centro_custo_id: batchData.centroCustoId,
+                            centro_custo_id: serviceCentroCustoId,
                             batch_id: batch.id,
                             departamento: s.departamento,
                             status: normalizeStatusForDb(deriveServiceLifecycleStatus({
@@ -5206,7 +5210,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
 
                     const urgentCreatedServices = servicesToInsert.filter(s => s.is_urgent || s.status === 'URGENTE');
                     if (urgentCreatedServices.length > 0) {
-                        const centro = centrosCustos.find(c => c.id === batchData.centroCustoId);
+                        const centro = centrosCustos.find(c => c.id === batchCentroCustoId);
 
                         await addNotification({
                             id: crypto.randomUUID(),
