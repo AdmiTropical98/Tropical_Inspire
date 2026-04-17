@@ -18,6 +18,35 @@ export interface GroupedTrip {
     conflict?: string;
 }
 
+export interface DailyDriverShift {
+    inicio: string;
+    fim: string;
+}
+
+export interface DailyDriverBlock {
+    inicio: string;
+    fim: string;
+    reason?: string;
+}
+
+export type ZonaBase = 'Albufeira' | 'Quarteira' | 'Ambos';
+
+export interface DailyDriverConfig {
+    driverId: string;
+    ativo: boolean;
+    usaAutocarro: boolean;
+    turnos: DailyDriverShift[];
+    indisponibilidades?: DailyDriverBlock[];
+    zonaBase?: ZonaBase;
+    permitirForaDaZona?: boolean;
+}
+
+export interface AutomaticDistributionOptions {
+    opposingDestinationGroups?: string[][];
+    defaultVanCapacity?: number;
+    defaultBusCapacity?: number;
+}
+
 const toMinutes = (value: string) => {
     const [h, m] = String(value || '00:00').split(':').map(Number);
     return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
@@ -389,6 +418,335 @@ export function suggestDrivers(
 function timeToMinutes(time: string): number {
     const [h, m] = time.split(':').map(Number);
     return h * 60 + m;
+}
+
+const normalizeComparableText = (value?: string | null) => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+const isInsideTimeWindow = (minute: number, start: number, end: number) => {
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return false;
+    if (start === end) return true;
+    if (start < end) return minute >= start && minute <= end;
+    return minute >= start || minute <= end;
+};
+
+const resolveDriverConfig = (driver: Motorista, dailyConfigByDriver: Record<string, DailyDriverConfig>): DailyDriverConfig => {
+    const fromDaily = dailyConfigByDriver[driver.id];
+
+    const fallbackShifts =
+        driver.shifts && driver.shifts.length > 0
+            ? driver.shifts.map(s => ({ inicio: s.inicio, fim: s.fim }))
+            : driver.turnoInicio && driver.turnoFim
+                ? [{ inicio: driver.turnoInicio, fim: driver.turnoFim }]
+                : [];
+
+    return {
+        driverId: driver.id,
+        ativo: fromDaily?.ativo ?? true,
+        usaAutocarro: fromDaily?.usaAutocarro ?? false,
+        turnos: fromDaily?.turnos?.length ? fromDaily.turnos : fallbackShifts,
+        indisponibilidades: fromDaily?.indisponibilidades || []
+    };
+};
+
+const isDriverAvailableForMinute = (driver: Motorista, config: DailyDriverConfig, minute: number) => {
+    if (!config.ativo) return false;
+
+    if (config.turnos.length > 0) {
+        const inShift = config.turnos.some(shift => {
+            const start = timeToMinutes(shift.inicio);
+            const end = timeToMinutes(shift.fim);
+            return isInsideTimeWindow(minute, start, end);
+        });
+        if (!inShift) return false;
+    }
+
+    const blocked = (config.indisponibilidades || []).some(block => {
+        const start = timeToMinutes(block.inicio);
+        const end = timeToMinutes(block.fim);
+        return isInsideTimeWindow(minute, start, end);
+    });
+
+    if (blocked) return false;
+
+    if (driver.blockedPeriods && driver.blockedPeriods.length > 0) {
+        const blockedByDriver = driver.blockedPeriods.some(block => {
+            const start = timeToMinutes(block.inicio);
+            const end = timeToMinutes(block.fim);
+            return isInsideTimeWindow(minute, start, end);
+        });
+        if (blockedByDriver) return false;
+    }
+
+    return true;
+};
+
+const destinationGroupIndex = (destination: string, groups: string[][]) => {
+    const normalized = normalizeComparableText(destination);
+    for (let i = 0; i < groups.length; i += 1) {
+        const match = groups[i].some(alias => normalized.includes(normalizeComparableText(alias)));
+        if (match) return i;
+    }
+    return -1;
+};
+
+const hasOpposingDestinationConflict = (destinationA: string, destinationB: string, groups: string[][]) => {
+    const groupA = destinationGroupIndex(destinationA, groups);
+    const groupB = destinationGroupIndex(destinationB, groups);
+    return groupA >= 0 && groupB >= 0 && groupA !== groupB;
+};
+
+// Detects zone from origin/destination text
+const detectTripZone = (origem: string, destino: string): ZonaBase | undefined => {
+    const text = normalizeComparableText(`${origem} ${destino}`);
+    const albufeiraKeywords = ['albufeira', 'aeroporto', 'faro'];
+    const quarteiraKeywords = ['quarteira', 'vilamoura', 'loule', 'loulé', 'almancil'];
+    const hasAlbufeira = albufeiraKeywords.some(kw => text.includes(kw));
+    const hasQuarteira = quarteiraKeywords.some(kw => text.includes(kw));
+    if (hasAlbufeira && !hasQuarteira) return 'Albufeira';
+    if (hasQuarteira && !hasAlbufeira) return 'Quarteira';
+    return undefined;
+};
+
+const driverMatchesZone = (config: DailyDriverConfig, tripZone: ZonaBase | undefined): 0 | 1 | 2 => {
+    // Returns 0 = same zone (best), 1 = Ambos, 2 = out-of-zone with permit
+    if (!tripZone) return 0; // no zone constraint
+    const driverZone = config.zonaBase;
+    if (!driverZone || driverZone === 'Ambos') return 1;
+    if (driverZone === tripZone) return 0;
+    if (config.permitirForaDaZona) return 2;
+    return Infinity as unknown as 2; // blocked
+};
+
+export function generateAutomaticDistributionTrips(params: {
+    services: Servico[];
+    motoristas: Motorista[];
+    viaturas: Viatura[];
+    existingServicos: Servico[];
+    selectedDate: string;
+    selectedCentroCusto: string;
+    dailyDriverConfigs: Record<string, DailyDriverConfig>;
+    options?: AutomaticDistributionOptions;
+}): GroupedTrip[] {
+    const {
+        services,
+        motoristas,
+        viaturas,
+        existingServicos,
+        selectedDate,
+        selectedCentroCusto,
+        dailyDriverConfigs,
+        options
+    } = params;
+
+    const defaultVanCapacity = Number(options?.defaultVanCapacity || 8);
+    const defaultBusCapacity = Number(options?.defaultBusCapacity || 30);
+    const opposingGroups = options?.opposingDestinationGroups || [
+        ['volta golfs', 'golfs', 'golf'],
+        ['volta quinta do lago', 'quinta do lago']
+    ];
+
+    const vehicleById = new Map<string, Viatura>(viaturas.map(v => [v.id, v]));
+
+    const groupedMap = new Map<string, Servico[]>();
+    services
+        .filter(s => !s.motoristaId)
+        .forEach(service => {
+            const key = `${service.hora}::${normalizeComparableText(service.origem)}::${normalizeComparableText(service.destino)}`;
+            const current = groupedMap.get(key) || [];
+            current.push(service);
+            groupedMap.set(key, current);
+        });
+
+    const initialTrips = Array.from(groupedMap.values())
+        .map(group => {
+            const sample = group[0];
+            return {
+                id: crypto.randomUUID(),
+                hora: sample.hora,
+                origem: sample.origem,
+                destino: sample.destino,
+                servicos: group,
+                passengerCount: group.length
+            } as GroupedTrip;
+        })
+        .sort((a, b) => toMinutes(a.hora) - toMinutes(b.hora));
+
+    const assignedCountByDriver: Record<string, number> = {};
+    const occupiedSlotsByDriver: Record<string, Set<number>> = {};
+    const destinationsByDriverAndMinute: Record<string, Record<number, string[]>> = {};
+
+    const registerDriverMinute = (driverId: string, minute: number, destination: string, increaseLoad: boolean) => {
+        if (!occupiedSlotsByDriver[driverId]) occupiedSlotsByDriver[driverId] = new Set<number>();
+        occupiedSlotsByDriver[driverId].add(minute);
+
+        if (!destinationsByDriverAndMinute[driverId]) destinationsByDriverAndMinute[driverId] = {};
+        if (!destinationsByDriverAndMinute[driverId][minute]) destinationsByDriverAndMinute[driverId][minute] = [];
+        destinationsByDriverAndMinute[driverId][minute].push(destination);
+
+        if (increaseLoad) {
+            assignedCountByDriver[driverId] = (assignedCountByDriver[driverId] || 0) + 1;
+        }
+    };
+
+    existingServicos
+        .filter(s => (s.data || selectedDate) === selectedDate)
+        .forEach(s => {
+            if (!s.motoristaId) return;
+            const minute = toMinutes(s.hora);
+            registerDriverMinute(s.motoristaId, minute, s.destino, true);
+        });
+
+    const isDriverBusyAtMinute = (driverId: string, minute: number) => occupiedSlotsByDriver[driverId]?.has(minute) || false;
+
+    const hasDriverOpposingConflictAtMinute = (driverId: string, minute: number, destination: string) => {
+        const existingDestinations = destinationsByDriverAndMinute[driverId]?.[minute] || [];
+        return existingDestinations.some(existingDestination => hasOpposingDestinationConflict(existingDestination, destination, opposingGroups));
+    };
+
+    const assignedVehicleByDriver = new Map<string, string>();
+    motoristas.forEach(driver => {
+        if (driver.viaturaId && vehicleById.has(driver.viaturaId)) {
+            assignedVehicleByDriver.set(driver.id, driver.viaturaId);
+        }
+    });
+
+    const usedVehicleByMinute: Record<number, Set<string>> = {};
+    const reserveVehicleMinute = (minute: number, vehicleId?: string) => {
+        if (!vehicleId) return;
+        if (!usedVehicleByMinute[minute]) usedVehicleByMinute[minute] = new Set<string>();
+        usedVehicleByMinute[minute].add(vehicleId);
+    };
+
+    existingServicos
+        .filter(s => (s.data || selectedDate) === selectedDate)
+        .forEach(s => reserveVehicleMinute(toMinutes(s.hora), s.vehicleId || undefined));
+
+    const pickVehicleForDriverAndMinute = (driver: Motorista, minute: number, needsBus: boolean) => {
+        const preferredVehicleId = assignedVehicleByDriver.get(driver.id);
+        const usedAtMinute = usedVehicleByMinute[minute] || new Set<string>();
+
+        const vehicleMeetsBus = (vehicle?: Viatura) => {
+            const capacity = Number(vehicle?.vehicleCapacity || defaultVanCapacity);
+            if (!needsBus) return true;
+            return capacity > defaultVanCapacity;
+        };
+
+        if (preferredVehicleId) {
+            const preferred = vehicleById.get(preferredVehicleId);
+            if (preferred && !usedAtMinute.has(preferred.id) && vehicleMeetsBus(preferred)) {
+                return preferred;
+            }
+        }
+
+        const pool = viaturas.filter(v => {
+            if (selectedCentroCusto !== 'all' && v.centro_custo_id && v.centro_custo_id !== selectedCentroCusto) return false;
+            if (usedAtMinute.has(v.id)) return false;
+            return vehicleMeetsBus(v);
+        });
+
+        if (pool.length === 0) return undefined;
+        pool.sort((a, b) => Number(b.vehicleCapacity || defaultVanCapacity) - Number(a.vehicleCapacity || defaultVanCapacity));
+        return pool[0];
+    };
+
+    const result: GroupedTrip[] = [];
+
+    initialTrips.forEach(trip => {
+        const minute = toMinutes(trip.hora);
+        let remainingServices = [...trip.servicos];
+        const tripZone = detectTripZone(trip.origem, trip.destino);
+
+        while (remainingServices.length > 0) {
+            const requiresBus = remainingServices.length > defaultVanCapacity;
+
+            const candidates = motoristas
+                .filter(driver => {
+                    if (selectedCentroCusto !== 'all' && driver.centroCustoId !== selectedCentroCusto) return false;
+                    const config = resolveDriverConfig(driver, dailyDriverConfigs);
+                    if (!isDriverAvailableForMinute(driver, config, minute)) return false;
+                    if (isDriverBusyAtMinute(driver.id, minute)) return false;
+                    if (hasDriverOpposingConflictAtMinute(driver.id, minute, trip.destino)) return false;
+                    const zonePriority = driverMatchesZone(config, tripZone);
+                    if ((zonePriority as number) === Infinity) return false; // zone blocked
+                    return true;
+                })
+                .map(driver => {
+                    const config = resolveDriverConfig(driver, dailyDriverConfigs);
+                    const vehicle = pickVehicleForDriverAndMinute(driver, minute, requiresBus || config.usaAutocarro);
+                    const vehicleCapacity = Number(vehicle?.vehicleCapacity || (config.usaAutocarro ? defaultBusCapacity : defaultVanCapacity));
+                    const effectiveCapacity = config.usaAutocarro ? Math.max(vehicleCapacity, defaultBusCapacity) : Math.min(vehicleCapacity, defaultVanCapacity);
+                    const zonePriority = driverMatchesZone(config, tripZone);
+
+                    return {
+                        driver,
+                        config,
+                        vehicle,
+                        capacity: Math.max(1, effectiveCapacity),
+                        load: assignedCountByDriver[driver.id] || 0,
+                        zonePriority
+                    };
+                })
+                .filter(candidate => {
+                    if (!requiresBus) return true;
+                    return candidate.capacity > defaultVanCapacity;
+                })
+                .sort((a, b) => {
+                    // 1. Zone priority: same zone (0) > Ambos (1) > out-of-zone permitted (2)
+                    if (a.zonePriority !== b.zonePriority) return (a.zonePriority as number) - (b.zonePriority as number);
+                    if (requiresBus) {
+                        const aBus = a.capacity > defaultVanCapacity ? 1 : 0;
+                        const bBus = b.capacity > defaultVanCapacity ? 1 : 0;
+                        if (aBus !== bBus) return bBus - aBus;
+                    }
+                    if (a.load !== b.load) return a.load - b.load;
+                    return b.capacity - a.capacity;
+                });
+
+            const best = candidates[0];
+
+            if (!best) {
+                result.push({
+                    id: crypto.randomUUID(),
+                    hora: trip.hora,
+                    origem: trip.origem,
+                    destino: trip.destino,
+                    servicos: remainingServices,
+                    passengerCount: remainingServices.length,
+                    conflict: 'Sem motorista disponível para este horário/rota com as regras atuais.'
+                });
+                break;
+            }
+
+            const chunkSize = Math.min(best.capacity, remainingServices.length);
+            const chunk = remainingServices.slice(0, chunkSize);
+            remainingServices = remainingServices.slice(chunkSize);
+
+            const passengerCount = chunk.length;
+            const occupancyRate = Number(((passengerCount / Math.max(best.capacity, 1)) * 100).toFixed(2));
+
+            result.push({
+                id: crypto.randomUUID(),
+                hora: trip.hora,
+                origem: trip.origem,
+                destino: trip.destino,
+                servicos: chunk,
+                motoristaId: best.driver.id,
+                vehicleId: best.vehicle?.id,
+                vehicleCapacity: best.capacity,
+                passengerCount,
+                occupancyRate
+            });
+
+            registerDriverMinute(best.driver.id, minute, trip.destino, true);
+            reserveVehicleMinute(minute, best.vehicle?.id);
+        }
+    });
+
+    return result;
 }
 
 export function generateAutoDispatchTrips(params: {

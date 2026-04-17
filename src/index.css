@@ -72,6 +72,14 @@
   margin: 0;
 }
 
+/* Prevent Bootstrap or any 3rd-party style from constraining #root */
+#root {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 @layer components {
 
   .surface-card {

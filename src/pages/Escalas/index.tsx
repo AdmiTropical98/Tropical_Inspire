@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
-    Send, MapPin, Clock, Users, Car,
+    Send, MapPin, Clock, Users, Car, Bus,
     Search, LayoutList, AlertTriangle, Edit,
     Table as TableIcon, LayoutGrid, CloudLightning, FileText, CheckCircle
 } from 'lucide-react';
@@ -37,7 +37,17 @@ import { usePermissions } from '../../contexts/PermissionsContext';
 import type { Servico, Notification } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { supabase } from '../../lib/supabase';
-import { fetchSheetCSV, parseSheetToServices, groupServicesIntoTrips, suggestDrivers, autoGroupTripsByZone, generateAutoDispatchTrips, type GroupedTrip } from './EscalaAutomation';
+import {
+    fetchSheetCSV,
+    parseSheetToServices,
+    groupServicesIntoTrips,
+    suggestDrivers,
+    autoGroupTripsByZone,
+    generateAutomaticDistributionTrips,
+    type GroupedTrip,
+    type DailyDriverConfig,
+    type ZonaBase
+} from './EscalaAutomation';
 import { emailService } from '../../services/emailService';
 import { cleanTagId } from '../../services/cartrack';
 import { ColaboradorService } from '../../services/colaboradorService';
@@ -66,6 +76,45 @@ interface MotoristaViaturaAssoc {
     fim: string | null;
     origem: string;
 }
+
+interface DailyDriverConfigMap {
+    [driverId: string]: DailyDriverConfig;
+}
+
+const getDailyDistributionStorageKey = (date: string, centroCusto: string) => `auto_driver_config:${date}:${centroCusto || 'all'}`;
+
+const normalizeTimeInput = (value?: string | null, fallback = '08:00') => {
+    const str = String(value || '').trim();
+    if (!str) return fallback;
+    const match = str.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return fallback;
+    const hh = Math.max(0, Math.min(23, Number(match[1])));
+    const mm = Math.max(0, Math.min(59, Number(match[2])));
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+};
+
+const buildDefaultDailyDriverConfig = (driver: any): DailyDriverConfig => {
+    const fallbackTurnos =
+        driver.shifts && driver.shifts.length > 0
+            ? driver.shifts.map((shift: any) => ({
+                inicio: normalizeTimeInput(shift.inicio, '08:00'),
+                fim: normalizeTimeInput(shift.fim, '17:00')
+            }))
+            : driver.turnoInicio && driver.turnoFim
+                ? [{
+                    inicio: normalizeTimeInput(driver.turnoInicio, '08:00'),
+                    fim: normalizeTimeInput(driver.turnoFim, '17:00')
+                }]
+                : [{ inicio: '08:00', fim: '17:00' }];
+
+    return {
+        driverId: driver.id,
+        ativo: true,
+        usaAutocarro: false,
+        turnos: fallbackTurnos.slice(0, 2),
+        indisponibilidades: []
+    };
+};
 
 // Sortable Driver Card Component
 function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, activeDriverMenuId, onClick, onDragOver, onDragLeave, onDrop }: any) {
@@ -261,6 +310,8 @@ export default function Escalas() {
     const [automationTrips, setAutomationTrips] = useState<GroupedTrip[]>([]);
     const [automationMode, setAutomationMode] = useState<'import' | 'auto-dispatch'>('import');
     const [sendingScheduleServiceId, setSendingScheduleServiceId] = useState<string | null>(null);
+    const [showDailyDriversPanel, setShowDailyDriversPanel] = useState(false);
+    const [dailyDriverConfigs, setDailyDriverConfigs] = useState<DailyDriverConfigMap>({});
     const [autoSettings, setAutoSettings] = useState({
         albufeiraUrl: localStorage.getItem('auto_sheet_albufeira') || '',
         quarteiraUrl: localStorage.getItem('auto_sheet_quarteira') || ''
@@ -333,6 +384,54 @@ export default function Escalas() {
                 : driver;
         });
     }, [motoristas, cartrackVehicles, viaturas]);
+
+    useEffect(() => {
+        const key = getDailyDistributionStorageKey(selectedDate, selectedCentroCusto);
+        const raw = localStorage.getItem(key);
+
+        const defaults: DailyDriverConfigMap = {};
+        displayMotoristas.forEach(driver => {
+            defaults[driver.id] = buildDefaultDailyDriverConfig(driver);
+        });
+
+        if (!raw) {
+            setDailyDriverConfigs(defaults);
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(raw) as DailyDriverConfigMap;
+            const merged: DailyDriverConfigMap = { ...defaults };
+
+            Object.keys(parsed || {}).forEach(driverId => {
+                if (!merged[driverId]) return;
+                merged[driverId] = {
+                    ...merged[driverId],
+                    ...parsed[driverId],
+                    driverId,
+                    turnos: (parsed[driverId]?.turnos || merged[driverId].turnos || []).slice(0, 2).map(turno => ({
+                        inicio: normalizeTimeInput(turno?.inicio, '08:00'),
+                        fim: normalizeTimeInput(turno?.fim, '17:00')
+                    })),
+                    indisponibilidades: (parsed[driverId]?.indisponibilidades || []).map(block => ({
+                        inicio: normalizeTimeInput(block?.inicio, '12:00'),
+                        fim: normalizeTimeInput(block?.fim, '13:00'),
+                        reason: block?.reason || ''
+                    }))
+                };
+            });
+
+            setDailyDriverConfigs(merged);
+        } catch {
+            setDailyDriverConfigs(defaults);
+        }
+    }, [displayMotoristas, selectedDate, selectedCentroCusto]);
+
+    useEffect(() => {
+        if (!dailyDriverConfigs || Object.keys(dailyDriverConfigs).length === 0) return;
+        const key = getDailyDistributionStorageKey(selectedDate, selectedCentroCusto);
+        localStorage.setItem(key, JSON.stringify(dailyDriverConfigs));
+    }, [dailyDriverConfigs, selectedDate, selectedCentroCusto]);
 
     const syncVehicleAssignmentInFlight = useRef<Set<string>>(new Set());
 
@@ -750,23 +849,30 @@ export default function Escalas() {
             });
 
             if (plannedPassengers.length === 0) {
-                alert('Sem passageiros planeados pendentes para gerar serviços automáticos nesta data.');
+                alert('Sem passageiros planeados pendentes para distribuir nesta data.');
                 return;
             }
 
-            const generated = generateAutoDispatchTrips({
+            const generated = generateAutomaticDistributionTrips({
                 services: plannedPassengers,
                 motoristas,
                 viaturas,
                 existingServicos: servicos,
-                locais,
-                cartrackVehicles,
                 selectedDate,
-                selectedCentroCusto
+                selectedCentroCusto,
+                dailyDriverConfigs,
+                options: {
+                    opposingDestinationGroups: [
+                        ['volta golfs', 'golfs', 'golf'],
+                        ['volta quinta do lago', 'quinta do lago']
+                    ],
+                    defaultVanCapacity: 8,
+                    defaultBusCapacity: 30
+                }
             });
 
             if (generated.length === 0) {
-                alert('Não foi possível gerar serviços automáticos com os critérios atuais.');
+                alert('Não foi possível gerar distribuição automática com os critérios atuais.');
                 return;
             }
 
@@ -776,6 +882,64 @@ export default function Escalas() {
         } finally {
             setIsAutoLoading(false);
         }
+    };
+
+    const updateDailyDriverConfig = (driverId: string, updater: (current: DailyDriverConfig) => DailyDriverConfig) => {
+        setDailyDriverConfigs(prev => {
+            const fallbackDriver = displayMotoristas.find(d => d.id === driverId);
+            const base = prev[driverId] || (fallbackDriver ? buildDefaultDailyDriverConfig(fallbackDriver) : {
+                driverId,
+                ativo: true,
+                usaAutocarro: false,
+                turnos: [{ inicio: '08:00', fim: '17:00' }],
+                indisponibilidades: []
+            });
+
+            return {
+                ...prev,
+                [driverId]: updater(base)
+            };
+        });
+    };
+
+    const updateDailyShift = (driverId: string, shiftIndex: number, field: 'inicio' | 'fim', value: string) => {
+        updateDailyDriverConfig(driverId, current => {
+            const turnos = [...(current.turnos || [])];
+            while (turnos.length <= shiftIndex) {
+                turnos.push({ inicio: '08:00', fim: '17:00' });
+            }
+            turnos[shiftIndex] = {
+                ...turnos[shiftIndex],
+                [field]: normalizeTimeInput(value, field === 'inicio' ? '08:00' : '17:00')
+            };
+            return { ...current, turnos: turnos.slice(0, 2) };
+        });
+    };
+
+    const toggleSecondShift = (driverId: string, enabled: boolean) => {
+        updateDailyDriverConfig(driverId, current => {
+            const turnos = [...(current.turnos || [])];
+            if (enabled) {
+                if (turnos.length < 2) turnos.push({ inicio: '17:00', fim: '22:00' });
+            } else {
+                while (turnos.length > 1) turnos.pop();
+            }
+            return { ...current, turnos };
+        });
+    };
+
+    const updateDailyUnavailable = (driverId: string, value: string) => {
+        const cleanValue = value.trim();
+        updateDailyDriverConfig(driverId, current => {
+            if (!cleanValue) return { ...current, indisponibilidades: [] };
+
+            const block = {
+                inicio: '00:00',
+                fim: '23:59',
+                reason: cleanValue
+            };
+            return { ...current, indisponibilidades: [block] };
+        });
     };
 
     const handleLaunchTemplate = async (templateId: string) => {
@@ -1549,12 +1713,20 @@ export default function Escalas() {
                                     </button>
 
                                     <button
+                                        onClick={() => setShowDailyDriversPanel(true)}
+                                        className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-amber-800/20 active:scale-95 transition-all"
+                                    >
+                                        <Users className="w-4 h-4" />
+                                        <span>Motoristas de hoje</span>
+                                    </button>
+
+                                    <button
                                         onClick={handleGenerateAutoDispatch}
                                         disabled={isAutoLoading}
                                         className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-fuchsia-900/20 active:scale-95 transition-all"
                                     >
                                         {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
-                                        <span>Gerar Serviços Automaticamente</span>
+                                        <span>Distribuir escalas automaticamente</span>
                                     </button>
 
                                     <button
@@ -2465,6 +2637,169 @@ export default function Escalas() {
 
 
 
+
+            {/* MODAL: DAILY DRIVER CONFIG */}
+            {showDailyDriversPanel && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white/90 border border-slate-200 rounded-2xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+                        <div className="px-6 py-5 border-b border-slate-200 bg-white/90 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900">Motoristas de hoje</h2>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Configure disponibilidade, turnos e autocarro para {selectedDate}.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowDailyDriversPanel(false)}
+                                className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold"
+                            >
+                                Fechar
+                            </button>
+                        </div>
+
+                        <div className="overflow-auto p-4 md:p-6">
+                            <div className="min-w-[1200px] grid grid-cols-14 gap-2 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-500 border-b border-slate-200" style={{gridTemplateColumns:'repeat(14,minmax(0,1fr))' }}>
+                                <div className="col-span-2">Nome</div>
+                                <div className="col-span-1">Ativo</div>
+                                <div className="col-span-2">Turno 1</div>
+                                <div className="col-span-2">Turno 2</div>
+                                <div className="col-span-1">Auto.</div>
+                                <div className="col-span-2">Zona Base</div>
+                                <div className="col-span-1">Fora Zona</div>
+                                <div className="col-span-3">Indisponibilidades</div>
+                            </div>
+
+                            <div className="space-y-2 mt-2">
+                                {displayMotoristas.map(driver => {
+                                    const cfg = dailyDriverConfigs[driver.id] || buildDefaultDailyDriverConfig(driver);
+                                    const shift1 = cfg.turnos[0] || { inicio: '08:00', fim: '17:00' };
+                                    const shift2Enabled = (cfg.turnos?.length || 0) > 1;
+                                    const shift2 = cfg.turnos[1] || { inicio: '17:00', fim: '22:00' };
+                                    const unavailableText = cfg.indisponibilidades?.[0]?.reason || '';
+
+                                    return (
+                                        <div key={driver.id} className="min-w-[1200px] grid gap-2 items-center p-3 rounded-xl border border-slate-200 bg-white/90" style={{gridTemplateColumns:'repeat(14,minmax(0,1fr))' }}>
+                                            <div className="col-span-2">
+                                                <p className="text-sm font-bold text-slate-900 truncate">{driver.nome}</p>
+                                                <p className="text-[11px] text-slate-500 truncate">{driver.currentVehicle || 'Sem viatura'}</p>
+                                            </div>
+
+                                            <div className="col-span-1 flex justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cfg.ativo}
+                                                    onChange={(e) => updateDailyDriverConfig(driver.id, current => ({ ...current, ativo: e.target.checked }))}
+                                                    className="h-4 w-4"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2 grid grid-cols-2 gap-2">
+                                                <input
+                                                    type="time"
+                                                    value={shift1.inicio}
+                                                    onChange={(e) => updateDailyShift(driver.id, 0, 'inicio', e.target.value)}
+                                                    className="bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                />
+                                                <input
+                                                    type="time"
+                                                    value={shift1.fim}
+                                                    onChange={(e) => updateDailyShift(driver.id, 0, 'fim', e.target.value)}
+                                                    className="bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2 space-y-1">
+                                                <label className="flex items-center gap-2 text-[11px] text-slate-600 font-semibold">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={shift2Enabled}
+                                                        onChange={(e) => toggleSecondShift(driver.id, e.target.checked)}
+                                                        className="h-3.5 w-3.5"
+                                                    />
+                                                    2º turno
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <input
+                                                        type="time"
+                                                        disabled={!shift2Enabled}
+                                                        value={shift2.inicio}
+                                                        onChange={(e) => updateDailyShift(driver.id, 1, 'inicio', e.target.value)}
+                                                        className="bg-white border border-slate-200 disabled:opacity-50 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                    />
+                                                    <input
+                                                        type="time"
+                                                        disabled={!shift2Enabled}
+                                                        value={shift2.fim}
+                                                        onChange={(e) => updateDailyShift(driver.id, 1, 'fim', e.target.value)}
+                                                        className="bg-white border border-slate-200 disabled:opacity-50 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="col-span-1 flex justify-center">
+                                                <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={cfg.usaAutocarro}
+                                                        onChange={(e) => updateDailyDriverConfig(driver.id, current => ({ ...current, usaAutocarro: e.target.checked }))}
+                                                        className="h-4 w-4"
+                                                    />
+                                                    <Bus className="w-3.5 h-3.5" />
+                                                </label>
+                                            </div>
+
+                                            <div className="col-span-2">
+                                                <select
+                                                    value={cfg.zonaBase || ''}
+                                                    onChange={(e) => updateDailyDriverConfig(driver.id, current => ({ ...current, zonaBase: (e.target.value || undefined) as ZonaBase | undefined }))}
+                                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900"
+                                                >
+                                                    <option value="">Qualquer</option>
+                                                    <option value="Albufeira">Albufeira</option>
+                                                    <option value="Quarteira">Quarteira</option>
+                                                    <option value="Ambos">Ambos</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="col-span-1 flex justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    title="Permitir fora da zona base"
+                                                    checked={cfg.permitirForaDaZona || false}
+                                                    onChange={(e) => updateDailyDriverConfig(driver.id, current => ({ ...current, permitirForaDaZona: e.target.checked }))}
+                                                    className="h-4 w-4"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-3">
+                                                <input
+                                                    type="text"
+                                                    value={unavailableText}
+                                                    onChange={(e) => updateDailyUnavailable(driver.id, e.target.value)}
+                                                    placeholder="Opcional (ex: folga, férias, manutenção)"
+                                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-slate-200 bg-white/90 flex items-center justify-between">
+                            <p className="text-xs text-slate-500">
+                                Estas regras diárias são usadas pelo botão “Distribuir escalas automaticamente”.
+                            </p>
+                            <button
+                                onClick={() => setShowDailyDriversPanel(false)}
+                                className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm"
+                            >
+                                Guardar e fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL: AUTO SETTINGS */}
             {showAutoSettings && (

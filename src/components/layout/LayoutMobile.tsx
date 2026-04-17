@@ -36,7 +36,7 @@ export default function LayoutMobile({
   const [showMoreMenu, setShowMoreMenu] = React.useState(false);
 
   return (
-    <div className="layout-mobile app-root w-full h-[100dvh] flex flex-col overflow-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
+    <div style={{ width: '100%', maxWidth: 'none', margin: 0 }} className="layout-mobile app-root w-full h-[100dvh] flex flex-col overflow-hidden bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
       <nav className="mobile-topbar">
         <button type="button" onClick={onLogoClick} className="mobile-topbar-logo" aria-label="Ir para dashboard">
           <img src={logoSrc} alt="Algartempo Frota" className="h-8 w-auto object-contain" />
@@ -44,9 +44,9 @@ export default function LayoutMobile({
         {userMenu}
       </nav>
 
-      <main className={`app-content-bg flex-1 min-h-0 ${isMapPage ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden mobile-main-content'}`}>
-        <div className={`relative z-10 bg-transparent w-full overflow-x-hidden ${isMapPage ? 'h-full overflow-y-auto custom-scrollbar mobile-map-content' : ''}`}>
-          <div className={isMapPage ? 'h-full w-full' : 'mobile-page-content mobile-page-scroll'}>{children}</div>
+      <main style={{ width: '100%', maxWidth: 'none', margin: 0 }} className={`app-content-bg flex-1 min-h-0 ${isMapPage ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden mobile-main-content'}`}>
+        <div style={{ width: '100%', maxWidth: 'none' }} className={`relative z-10 bg-transparent w-full overflow-x-hidden ${isMapPage ? 'h-full overflow-y-auto custom-scrollbar mobile-map-content' : ''}`}>
+          <div style={{ width: '100%', maxWidth: 'none' }} className={isMapPage ? 'h-full w-full' : 'mobile-page-content mobile-page-scroll'}>{children}</div>
         </div>
       </main>
 

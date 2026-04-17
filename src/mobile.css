@@ -362,6 +362,14 @@ body.capacitor-android-mobile #root {
     margin-right: 0 !important;
   }
 
+  /* Remove lateral padding from top-level page wrapper divs on Android */
+  html.capacitor-android-mobile .mobile-page-content > div,
+  html.capacitor-android-mobile .mobile-page-content > section,
+  html.capacitor-android-mobile .mobile-page-content > main {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
   html.capacitor-android-mobile .mobile-page-content > .container,
   html.capacitor-android-mobile .mobile-page-content > div[class*='mx-auto'],
   html.capacitor-android-mobile .mobile-page-content > section[class*='mx-auto'],
