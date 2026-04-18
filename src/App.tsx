@@ -53,6 +53,8 @@ import WorkshopAssets from './pages/Workshop/WorkshopAssets';
 import AssignedTools from './pages/Workshop/AssignedTools';
 import LayoutMobile from './components/layout/LayoutMobile';
 import LayoutDesktop from './components/layout/LayoutDesktop';
+import DriverMode from './pages/DriverMode';
+import { isAndroidAuto } from './utils/isAndroidAuto';
 
 // Lazy loading backoffice
 const Backoffice = lazy(() => import('./pages/Backoffice/index'));
@@ -344,6 +346,7 @@ function App() {
 
   const isCapacitorNative = Capacitor.isNativePlatform();
   const isCapacitorAndroid = isCapacitorNative && Capacitor.getPlatform() === 'android';
+  const androidAutoMode = isAndroidAuto();
   const isMobileViewport = viewportWidth < MOBILE_MAX_WIDTH;
   const isMobileLayout = isCapacitorNative || isMobileViewport;
 
@@ -404,6 +407,27 @@ function App() {
     };
   }, [isCapacitorAndroid]);
 
+  useEffect(() => {
+    const root = document.getElementById('root');
+
+    if (!androidAutoMode) {
+      document.documentElement.classList.remove('android-auto-root');
+      document.body.classList.remove('android-auto-root');
+      root?.classList.remove('android-auto-root');
+      return;
+    }
+
+    document.documentElement.classList.add('android-auto-root');
+    document.body.classList.add('android-auto-root');
+    root?.classList.add('android-auto-root');
+
+    return () => {
+      document.documentElement.classList.remove('android-auto-root');
+      document.body.classList.remove('android-auto-root');
+      root?.classList.remove('android-auto-root');
+    };
+  }, [androidAutoMode]);
+
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
   const isFleetRoute = activeTab === 'viaturas' || activeTab === 'vehicles';
@@ -425,6 +449,10 @@ function App() {
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
     location.pathname.startsWith('/colaborador/');
+
+  if (androidAutoMode) {
+    return <DriverMode />;
+  }
 
   if (isColaboradorArea) {
     return (

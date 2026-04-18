@@ -43,6 +43,13 @@ console.log('--- MAIN.TSX EXECUTING ---');
 import { createRoot } from 'react-dom/client'
 import { Capacitor } from '@capacitor/core'
 import './index.css'
+import { isAndroidAuto } from './utils/isAndroidAuto'
+
+if (isAndroidAuto()) {
+  void import('./styles/android-auto.css')
+  document.documentElement.classList.add('android-auto-root')
+  document.body.classList.add('android-auto-root')
+}
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations()
@@ -71,6 +78,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 async function bootstrapApp() {
   try {
     const isCapacitorAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+    const androidAutoRuntime = isAndroidAuto();
     let nativeSplashScreen: { hide: () => Promise<void> } | null = null;
 
     if (isCapacitorAndroid) {
@@ -83,6 +91,9 @@ async function bootstrapApp() {
 
       const rootElement = document.getElementById('root');
       rootElement?.classList.add('android-native-root');
+      if (androidAutoRuntime) {
+        rootElement?.classList.add('android-auto-root');
+      }
       document.documentElement.style.width = '100vw';
       document.documentElement.style.maxWidth = '100vw';
       document.documentElement.style.overflowX = 'hidden';
