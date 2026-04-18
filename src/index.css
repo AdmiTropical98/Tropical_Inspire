@@ -27,6 +27,7 @@
   body,
   #root {
     width: 100%;
+    max-width: 100%;
     height: 100%;
     margin: 0;
     padding: 0;
@@ -70,6 +71,29 @@
   width: 100%;
   max-width: none;
   margin: 0;
+}
+
+html.capacitor-android-mobile,
+html.capacitor-android-mobile body,
+html.capacitor-android-mobile #root,
+html.android-native-root,
+html.android-native-root body,
+html.android-native-root #root,
+body.android-native-root,
+#root.android-native-root {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+
+.android-native-shell {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Prevent Bootstrap or any 3rd-party style from constraining #root */

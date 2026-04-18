@@ -1,18 +1,50 @@
 import { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { Lock, Mail, ChevronRight, AlertCircle, Eye, EyeOff, User, Users, ShieldCheck, UserCog, Send, CheckCircle, X, Wrench, UserCheck, MapPin } from 'lucide-react';
 import type { Notification } from '../../types';
 
 export default function Login() {
+    const isCapacitorAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+
     // Lock scroll synchronously before paint
     document.documentElement.classList.add('login-active');
 
     useEffect(() => {
+        const root = document.getElementById('root');
+
+        if (isCapacitorAndroid) {
+            document.documentElement.classList.add('android-native-root');
+            document.body.classList.add('android-native-root');
+            root?.classList.add('android-native-root');
+            document.documentElement.style.width = '100vw';
+            document.documentElement.style.maxWidth = '100vw';
+            document.body.style.width = '100vw';
+            document.body.style.maxWidth = '100vw';
+            root?.style.setProperty('width', '100vw');
+            root?.style.setProperty('max-width', '100vw');
+            root?.style.setProperty('margin', '0');
+            root?.style.setProperty('padding', '0');
+        }
+
         return () => {
             document.documentElement.classList.remove('login-active');
+            if (isCapacitorAndroid) {
+                document.documentElement.classList.remove('android-native-root');
+                document.body.classList.remove('android-native-root');
+                root?.classList.remove('android-native-root');
+                document.documentElement.style.removeProperty('width');
+                document.documentElement.style.removeProperty('max-width');
+                document.body.style.removeProperty('width');
+                document.body.style.removeProperty('max-width');
+                root?.style.removeProperty('width');
+                root?.style.removeProperty('max-width');
+                root?.style.removeProperty('margin');
+                root?.style.removeProperty('padding');
+            }
         };
-    }, []);
+    }, [isCapacitorAndroid]);
 
     const { login } = useAuth();
     const { addNotification, updateNotification, notifications, addSupervisor, addGestor } = useWorkshop();
@@ -196,7 +228,7 @@ export default function Login() {
                 <MapPin className="absolute inset-0 m-auto h-7 w-7 text-blue-100" />
             </div>
 
-            <div className="android-page-shell relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1440px] items-start justify-center px-4 py-6 sm:px-6 lg:items-center lg:px-16 xl:px-20">
+            <div className={`android-page-shell relative z-10 flex min-h-[100dvh] w-full items-start ${isCapacitorAndroid ? 'android-native-shell mx-0 max-w-[100vw] justify-start px-0 py-0 lg:items-start lg:px-0 xl:px-0' : 'mx-auto max-w-[1440px] justify-center px-4 py-6 sm:px-6 lg:items-center lg:px-16 xl:px-20'}`}>
                 <div className="grid w-full grid-cols-1 items-center gap-6 lg:grid-cols-[1.05fr_0.72fr] xl:gap-16">
                     <section className="relative hidden items-center justify-center lg:flex lg:justify-start">
                         <div className="relative flex w-full items-center justify-center lg:justify-center">

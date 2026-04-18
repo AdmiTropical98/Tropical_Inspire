@@ -3,11 +3,12 @@ body.capacitor-android-mobile,
 html.capacitor-android-mobile #root,
 body.capacitor-android-mobile #root {
   height: 100%;
-  width: 100%;
-  max-width: none !important;
+  width: 100vw;
+  max-width: 100vw !important;
   margin: 0 !important;
   padding: 0 !important;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 @media all {
@@ -355,7 +356,7 @@ body.capacitor-android-mobile #root {
     width: 100vw !important;
     min-width: 100vw !important;
     min-height: 100dvh !important;
-    max-width: none !important;
+    max-width: 100vw !important;
     margin: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
@@ -380,15 +381,15 @@ body.capacitor-android-mobile #root {
 
   html.capacitor-android-mobile .mobile-page-scroll {
     min-height: 100%;
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: none !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
   }
 
   html.capacitor-android-mobile .mobile-page-content {
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: none !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
     margin: 0 !important;
     padding: 0 0 calc(92px + env(safe-area-inset-bottom)) !important;
     background: transparent !important;

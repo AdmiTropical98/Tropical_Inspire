@@ -347,6 +347,63 @@ function App() {
   const isMobileViewport = viewportWidth < MOBILE_MAX_WIDTH;
   const isMobileLayout = isCapacitorNative || isMobileViewport;
 
+  useEffect(() => {
+    const root = document.getElementById('root');
+
+    if (!isCapacitorAndroid) {
+      document.documentElement.classList.remove('android-native-root');
+      document.body.classList.remove('android-native-root');
+      root?.classList.remove('android-native-root');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('max-width');
+      document.documentElement.style.removeProperty('overflow-x');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('max-width');
+      document.body.style.removeProperty('overflow-x');
+      root?.style.removeProperty('width');
+      root?.style.removeProperty('max-width');
+      root?.style.removeProperty('margin');
+      root?.style.removeProperty('padding');
+      root?.style.removeProperty('overflow-x');
+      return;
+    }
+
+    document.documentElement.classList.add('android-native-root');
+    document.body.classList.add('android-native-root');
+    root?.classList.add('android-native-root');
+    document.documentElement.style.width = '100vw';
+    document.documentElement.style.maxWidth = '100vw';
+    document.documentElement.style.overflowX = 'hidden';
+    document.body.style.width = '100vw';
+    document.body.style.maxWidth = '100vw';
+    document.body.style.overflowX = 'hidden';
+
+    if (root) {
+      root.style.width = '100vw';
+      root.style.maxWidth = '100vw';
+      root.style.margin = '0';
+      root.style.padding = '0';
+      root.style.overflowX = 'hidden';
+    }
+
+    return () => {
+      document.documentElement.classList.remove('android-native-root');
+      document.body.classList.remove('android-native-root');
+      root?.classList.remove('android-native-root');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('max-width');
+      document.documentElement.style.removeProperty('overflow-x');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('max-width');
+      document.body.style.removeProperty('overflow-x');
+      root?.style.removeProperty('width');
+      root?.style.removeProperty('max-width');
+      root?.style.removeProperty('margin');
+      root?.style.removeProperty('padding');
+      root?.style.removeProperty('overflow-x');
+    };
+  }, [isCapacitorAndroid]);
+
   // Derive activeTab from current path
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
   const isFleetRoute = activeTab === 'viaturas' || activeTab === 'vehicles';
@@ -371,7 +428,7 @@ function App() {
 
   if (isColaboradorArea) {
     return (
-      <div className="app-root w-full min-h-screen bg-transparent text-slate-900 font-sans selection:bg-amber-500/20">
+      <div className={`app-root min-h-screen bg-transparent text-slate-900 font-sans selection:bg-amber-500/20 ${isCapacitorAndroid ? 'android-native-shell w-screen max-w-[100vw] m-0 p-0' : 'w-full'}`}>
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-[60vh] flex-col gap-4">
             <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />

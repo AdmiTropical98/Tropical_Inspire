@@ -77,7 +77,25 @@ async function bootstrapApp() {
       await import('./mobile.css');
       await import('./mobile-reboot.css');
       document.documentElement.classList.add('capacitor-android-mobile');
+      document.documentElement.classList.add('android-native-root');
       document.body.classList.add('capacitor-android-mobile');
+      document.body.classList.add('android-native-root');
+
+      const rootElement = document.getElementById('root');
+      rootElement?.classList.add('android-native-root');
+      document.documentElement.style.width = '100vw';
+      document.documentElement.style.maxWidth = '100vw';
+      document.documentElement.style.overflowX = 'hidden';
+      document.body.style.width = '100vw';
+      document.body.style.maxWidth = '100vw';
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+      document.body.style.overflowX = 'hidden';
+      rootElement?.style.setProperty('width', '100vw');
+      rootElement?.style.setProperty('max-width', '100vw');
+      rootElement?.style.setProperty('margin', '0');
+      rootElement?.style.setProperty('padding', '0');
+      rootElement?.style.setProperty('overflow-x', 'hidden');
 
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen');

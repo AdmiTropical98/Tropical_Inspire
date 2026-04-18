@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Capacitor } from '@capacitor/core';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Navigation, MapPin, Compass, Clock, ChevronLeft, LocateFixed, Search, ArrowRight, ExternalLink, X } from 'lucide-react';
@@ -36,6 +37,7 @@ export default function NavigationApp({
     onBack,
     onLocationUpdate
 }: NavigationAppProps) {
+    const isCapacitorAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
     const [isNavigating, setIsNavigating] = useState(false);
     const [currentPos, setCurrentPos] = useState<[number, number]>(initialLocation);
     const [gpsAccuracy, setGpsAccuracy] = useState<number>(0);
@@ -215,8 +217,8 @@ export default function NavigationApp({
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] bg-white flex flex-col font-sans h-[100dvh] w-screen overflow-hidden">
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[95%] md:w-[400px] z-[10000] pointer-events-none">
+        <div className="fixed inset-0 z-[9999] bg-white flex flex-col font-sans h-[100dvh] w-screen max-w-[100vw] overflow-hidden m-0">
+            <div className={`absolute top-4 z-[10000] pointer-events-none ${isCapacitorAndroid ? 'left-0 right-0 px-3' : 'left-1/2 w-[95%] -translate-x-1/2 md:w-[400px]'}`}>
                 <div className={`bg-white/90/95 backdrop-blur-xl border ${isNavigating ? 'border-emerald-500/50' : 'border-blue-500/30'} rounded-2xl p-3 shadow-2xl flex items-center gap-3 pointer-events-auto`}>
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shrink-0 ${isNavigating ? 'bg-emerald-600 animate-pulse' : 'bg-blue-600'}`}>
                         <Navigation className="w-5 h-5 text-slate-900" />
