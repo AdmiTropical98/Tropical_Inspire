@@ -57,7 +57,7 @@ const ColaboradorLogin: React.FC<ColaboradorLoginProps> = ({ onLogin }) => {
         <MapPin className="absolute inset-0 m-auto h-7 w-7 text-blue-100" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1440px] items-start px-4 py-5 sm:px-6 sm:py-8 lg:items-center lg:px-16 xl:px-20">
+      <div className="android-page-shell relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1440px] items-start px-4 py-5 sm:px-6 sm:py-8 lg:items-center lg:px-16 xl:px-20">
         <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-[1.05fr_0.72fr] xl:gap-16">
           <section className="relative flex min-h-[150px] items-center justify-center sm:min-h-[220px] lg:min-h-[720px] lg:justify-start">
             <div className="relative flex w-full items-center justify-center lg:justify-center">
@@ -66,7 +66,7 @@ const ColaboradorLogin: React.FC<ColaboradorLoginProps> = ({ onLogin }) => {
           </section>
 
           <section className="flex items-center justify-center lg:justify-end">
-            <div className="colaborador-login-card w-full max-w-[424px] rounded-[1.9rem] border border-white/85 bg-white/94 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-9">
+            <div className="android-page-card colaborador-login-card w-full max-w-[424px] rounded-[1.9rem] border border-white/85 bg-white/94 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-9">
               <div className="mb-4 flex items-center gap-3 sm:hidden">
                 <div className="rounded-2xl bg-slate-50 px-3 py-2 shadow-sm border border-slate-200">
                   <img src="/LOGO.png" alt="Algartempo Frota" className="h-8 w-auto" />

@@ -33,13 +33,13 @@ export default function VerifyEmail() {
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-black p-6 relative overflow-hidden">
+        <div className="android-page-shell min-h-screen w-full flex items-center justify-center bg-black p-6 relative overflow-hidden">
             {/* Background elements */}
             <div className="absolute inset-0 pointer-events-none z-0">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
             </div>
 
-            <div className="w-full max-w-md bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 relative z-10 shadow-2xl">
+            <div className="android-page-card w-full max-w-md bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 relative z-10 shadow-2xl">
                 <div className="text-center space-y-4">
                     <div className="w-20 h-20 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
                         <Mail className="w-10 h-10 text-blue-400" />

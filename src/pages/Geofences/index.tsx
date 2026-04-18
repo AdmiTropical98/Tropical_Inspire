@@ -178,7 +178,7 @@ export default function Geofences() {
     }, [servicos, motoristas, cartrackVehicles, locais]);
 
     return (
-        <div className="p-4 md:p-8 w-full mx-auto space-y-6 min-h-screen bg-[#0a0a0f]">
+        <div className="android-page-shell p-4 md:p-8 w-full space-y-6 min-h-screen bg-[#0a0a0f]">
             {/* Header - Stretches with screen */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-4">
                 <div className="flex items-center gap-4">

@@ -258,7 +258,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 w-full max-w-3xl mx-auto px-3 sm:px-6 pb-8 flex flex-col justify-start md:justify-center">
+      <main className="android-page-shell relative z-10 flex-1 w-full max-w-3xl mx-auto px-3 sm:px-6 pb-8 flex flex-col justify-start md:justify-center">
 
         {/* Feedback Banner */}
         {feedback && (

@@ -587,7 +587,7 @@ export default function LinhaTransportes({ colaboradorParagem, colaboradorNome, 
 
   return (
     <div className={useCompactLayout ? 'w-full animate-in fade-in duration-500' : 'min-h-screen bg-[#F5F7FA] p-4 sm:p-6 lg:p-8 animate-in fade-in duration-700'}>
-      <div className={useCompactLayout ? 'space-y-5' : 'max-w-[1600px] mx-auto space-y-8'}>
+      <div className={useCompactLayout ? 'android-page-shell space-y-5' : 'android-page-shell max-w-[1600px] mx-auto space-y-8'}>
         
         {useCompactLayout ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)]">

@@ -164,10 +164,45 @@ body.capacitor-android-mobile #root {
     -webkit-overflow-scrolling: touch;
   }
 
+  html.capacitor-android-mobile .android-page-shell {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .android-page-card {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .android-page-shell[class*='items-center'] {
+    align-items: stretch !important;
+  }
+
+  html.capacitor-android-mobile .android-page-shell[class*='justify-center'] {
+    justify-content: flex-start !important;
+  }
+
+  html.capacitor-android-mobile .android-page-shell > * {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
   html.capacitor-android-mobile .login-scrollbar .max-w-\[1440px\] {
     max-width: none !important;
     padding-left: 14px !important;
     padding-right: 14px !important;
+  }
+
+  html.capacitor-android-mobile .login-scrollbar > .android-page-shell {
+    justify-content: flex-start !important;
+    align-items: stretch !important;
   }
 
   html.capacitor-android-mobile .login-scrollbar h1,
@@ -186,6 +221,7 @@ body.capacitor-android-mobile #root {
   html.capacitor-android-mobile .colaborador-dashboard .colaborador-main-card {
     border-radius: 22px !important;
     width: 100%;
+    max-width: none !important;
   }
 
   html.capacitor-android-mobile .colaborador-dashboard {
@@ -195,7 +231,10 @@ body.capacitor-android-mobile #root {
   }
 
   html.capacitor-android-mobile .colaborador-dashboard main {
+    width: 100% !important;
     max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     justify-content: flex-start !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
@@ -386,6 +425,7 @@ body.capacitor-android-mobile #root {
   }
 
   html.capacitor-android-mobile .mobile-page-content > .container,
+  html.capacitor-android-mobile .mobile-page-content > .android-page-shell,
   html.capacitor-android-mobile .mobile-page-content > div[class*='mx-auto'],
   html.capacitor-android-mobile .mobile-page-content > section[class*='mx-auto'],
   html.capacitor-android-mobile .mobile-page-content > main,
@@ -395,6 +435,20 @@ body.capacitor-android-mobile #root {
     max-width: none !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > div[class*='items-center'],
+  html.capacitor-android-mobile .mobile-page-content > section[class*='items-center'],
+  html.capacitor-android-mobile .mobile-page-content > main[class*='items-center'],
+  html.capacitor-android-mobile .mobile-page-content > .android-page-shell[class*='items-center'] {
+    align-items: stretch !important;
+  }
+
+  html.capacitor-android-mobile .mobile-page-content > div[class*='justify-center'],
+  html.capacitor-android-mobile .mobile-page-content > section[class*='justify-center'],
+  html.capacitor-android-mobile .mobile-page-content > main[class*='justify-center'],
+  html.capacitor-android-mobile .mobile-page-content > .android-page-shell[class*='justify-center'] {
+    justify-content: flex-start !important;
   }
 
   html.capacitor-android-mobile .mobile-page-content [class*='px-4'],

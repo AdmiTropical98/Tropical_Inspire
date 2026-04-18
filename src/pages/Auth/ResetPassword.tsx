@@ -50,8 +50,8 @@ export default function ResetPassword() {
 
     if (success) {
         return (
-            <div className="min-h-screen bg-[#F5F7FA] flex flex-col items-center justify-center p-4">
-                <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-xl p-8 text-center space-y-6">
+            <div className="android-page-shell min-h-screen bg-[#F5F7FA] flex flex-col items-center justify-center p-4">
+                <div className="android-page-card w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-xl p-8 text-center space-y-6">
                     <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border border-emerald-200">
                         <CheckCircle className="w-8 h-8 text-emerald-500" />
                     </div>
@@ -69,13 +69,13 @@ export default function ResetPassword() {
     }
 
     return (
-        <div className="h-[100dvh] bg-[#F5F7FA] flex flex-col items-center px-4 pt-0 pb-4 relative login-scrollbar overflow-y-auto app-content-bg">
+        <div className="android-page-shell h-[100dvh] bg-[#F5F7FA] flex flex-col items-center px-4 pt-0 pb-4 relative login-scrollbar overflow-y-auto app-content-bg">
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-100/30 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-100/30 blur-[120px] rounded-full"></div>
             </div>
 
-            <div className="w-full max-w-md relative z-10 -mt-8">
+            <div className="android-page-card w-full max-w-md relative z-10 -mt-8">
                 <div className="text-center mb-2">
                     <img
                         src="/LOGO.png"
