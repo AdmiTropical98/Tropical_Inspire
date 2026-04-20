@@ -316,7 +316,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const phoneMatch = (cleanPhone !== '' && cleanIdentifier !== '') &&
                     (cleanPhone.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanPhone));
                 const emailMatch = g.email && g.email.toLowerCase() === identifier.toLowerCase();
-                return (phoneMatch || emailMatch) && g.pin === credential && g.status === 'active';
+                const credentialMatch = (g.pin && g.pin === credential) || (g.password && g.password === credential);
+                return (phoneMatch || emailMatch) && credentialMatch && g.status === 'active';
             });
 
             if (gestor) {
@@ -355,7 +356,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const phoneMatch = (cleanPhone !== '' && cleanIdentifier !== '') &&
                     (cleanPhone.endsWith(cleanIdentifier) || cleanIdentifier.endsWith(cleanPhone));
                 const emailMatch = s.email && s.email.toLowerCase() === identifier.toLowerCase();
-                return (phoneMatch || emailMatch) && s.pin === credential && s.status === 'active';
+                const credentialMatch = (s.pin && s.pin === credential) || (s.password && s.password === credential);
+                return (phoneMatch || emailMatch) && credentialMatch && s.status === 'active';
             });
 
             if (supervisor) {

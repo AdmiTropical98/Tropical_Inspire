@@ -86,7 +86,15 @@ export default function Login() {
         setError('');
         const success = await login(role, email, password);
         if (!success) {
-            setError(role === 'motorista' ? 'Dados de acesso incorretos.' : 'Email ou palavra-passe incorretos.');
+            if (role === 'motorista') {
+                setError('Dados de acesso incorretos.');
+            } else if (role === 'supervisor' || role === 'gestor') {
+                setError('Email/telemóvel ou PIN/palavra-passe incorretos.');
+            } else if (role === 'oficina') {
+                setError('Telemóvel ou PIN incorretos.');
+            } else {
+                setError('Email ou palavra-passe incorretos.');
+            }
         }
     };
 
