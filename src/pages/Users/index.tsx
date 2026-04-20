@@ -191,8 +191,17 @@ export default function UsersPage() {
                     <p className="text-slate-400 text-sm">Gerencie todos os membros da equipa e suas funções.</p>
                 </div>
 
-
-                {/* Actions removed as per request */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            setSelectedUser(null);
+                            setIsModalOpen(true);
+                        }}
+                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors text-sm font-semibold"
+                    >
+                        Novo Utilizador
+                    </button>
+                </div>
 
             </div>
 
@@ -305,7 +314,10 @@ export default function UsersPage() {
 
             <UserFormModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedUser(null);
+                }}
                 user={selectedUser}
             />
         </div >
