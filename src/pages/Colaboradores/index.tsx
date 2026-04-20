@@ -25,6 +25,8 @@ const EMPTY_FORM: ColaboradorForm = {
 export default function ColaboradoresPage() {
   const { currentUser, userRole } = useAuth();
   const { supervisors } = useWorkshop();
+  const isSupervisorUser = String(userRole || '').toLowerCase() === 'supervisor';
+  const currentSupervisorId = isSupervisorUser ? String(currentUser?.id || '') : '';
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,9 +44,6 @@ export default function ColaboradoresPage() {
   const [scannerMessage, setScannerMessage] = useState<string | null>(null);
   const [checkinPreview, setCheckinPreview] = useState<TransporteCheckinLookup | null>(null);
   const [isLookingUpToken, setIsLookingUpToken] = useState(false);
-
-  const isSupervisorUser = String(userRole || '').toLowerCase() === 'supervisor';
-  const currentSupervisorId = isSupervisorUser ? String(currentUser?.id || '') : '';
 
   const buildInitialForm = (): ColaboradorForm => ({
     ...EMPTY_FORM,

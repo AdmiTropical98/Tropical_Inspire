@@ -89,6 +89,16 @@ const isMissingSupervisorColumnError = (error: any): boolean => {
   );
 };
 
+const isInvalidSupervisorReferenceError = (error: any): boolean => {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.details || '').toLowerCase();
+  return code === '23503' && (
+    message.includes('supervisor_id') ||
+    message.includes('supervisores') ||
+    message.includes('foreign key')
+  );
+};
+
 const isMissingColaboradoresTableError = (error: any): boolean => {
   const message = String(error?.message || error?.details || '').toLowerCase();
   return message.includes("could not find the table 'public.colaboradores'") ||
@@ -99,6 +109,10 @@ const isMissingColaboradoresTableError = (error: any): boolean => {
 const mapColaboradorErrorMessage = (error: any, fallback: string): string => {
   if (isMissingColaboradoresTableError(error)) {
     return 'Tabela de colaboradores em falta na base de dados. Execute o script supabase/create_colaboradores_tables.sql no Supabase.';
+  }
+
+  if (isInvalidSupervisorReferenceError(error)) {
+    return 'Supervisor inválido para este colaborador. Atualize a lista de supervisores ou deixe o supervisor em branco.';
   }
 
   const message = String(error?.message || '').trim();
@@ -418,6 +432,23 @@ export const ColaboradorService = {
         error = retryError;
       }
 
+      if (error && isInvalidSupervisorReferenceError(error)) {
+        const fallbackPayload: Record<string, any> = {
+          numero,
+          nome,
+          status: 'active',
+        };
+        if (input.paragem) fallbackPayload.paragem = input.paragem;
+
+        const { data: retryData, error: retryError } = await supabase
+          .from('colaboradores')
+          .insert(fallbackPayload)
+          .select('*')
+          .single();
+        data = retryData;
+        error = retryError;
+      }
+
       if (error) {
         console.error('Erro ao criar colaborador:', error);
         if (String(error.code) === '23505' || String(error.message || '').toLowerCase().includes('duplicate')) {
@@ -494,6 +525,21 @@ export const ColaboradorService = {
       }
 
       if (error && isMissingSupervisorColumnError(error)) {
+        const fallbackPayload: Record<string, any> = {
+          numero,
+          nome,
+          status: input.status || 'active',
+        };
+        if (input.paragem) fallbackPayload.paragem = input.paragem;
+
+        const { error: retryError } = await supabase
+          .from('colaboradores')
+          .update(fallbackPayload)
+          .eq('id', id);
+        error = retryError;
+      }
+
+      if (error && isInvalidSupervisorReferenceError(error)) {
         const fallbackPayload: Record<string, any> = {
           numero,
           nome,

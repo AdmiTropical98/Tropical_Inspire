@@ -8,6 +8,12 @@ import UserPermissionsModal from '../Permissoes/UserPermissionsModal';
 import DoubleActionConfirmModal from '../../components/common/DoubleActionConfirmModal';
 import { supabase } from '../../lib/supabase';
 
+const normalizeRole = (role?: string | null): UserRole => {
+    const normalized = String(role || 'GESTOR').trim().toUpperCase();
+    const allowed: UserRole[] = ['ADMIN_MASTER', 'ADMIN', 'GESTOR', 'SUPERVISOR', 'OFICINA', 'MOTORISTA'];
+    return allowed.includes(normalized as UserRole) ? (normalized as UserRole) : 'GESTOR';
+};
+
 export default function Gestores() {
     const { gestores, addGestor, updateGestor, deleteGestor, notifications, updateNotification, centrosCustos } = useWorkshop();
     const { userRole } = useAuth();
@@ -42,13 +48,14 @@ export default function Gestores() {
         return notifications.filter(n =>
             n.type === 'registration_request' &&
             n.status === 'pending' &&
-            (!n.data.role || n.data.role === 'gestor')
+            normalizeRole(n.data.role) === 'GESTOR'
         );
     }, [notifications]);
 
     const handleApproveRequest = async (notification: Notification) => {
         const userData = notification.data;
         const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+        const invitedRole = normalizeRole(userData.role);
 
         try {
             if (userData.email) {
@@ -64,7 +71,7 @@ export default function Gestores() {
                     },
                     body: JSON.stringify({
                         email: userData.email,
-                        role: userData.role || 'GESTOR',
+                        role: invitedRole,
                         nome: userData.nome || 'Novo Gestor'
                     })
                 });
@@ -76,7 +83,7 @@ export default function Gestores() {
             }
 
             // Still add to legacy table if role is GESTOR
-            if (userData.role === 'GESTOR' || !userData.role) {
+            if (invitedRole === 'GESTOR') {
                 await addGestor({
                     id: crypto.randomUUID(),
                     nome: userData.nome || 'Novo Gestor',
@@ -131,7 +138,7 @@ export default function Gestores() {
                 },
                 body: JSON.stringify({
                     email: newGestor.email,
-                    role: newGestor.role,
+                    role: normalizeRole(newGestor.role),
                     nome: newGestor.nome
                 })
             });
