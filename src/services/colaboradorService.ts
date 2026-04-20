@@ -6,6 +6,7 @@ export interface Colaborador {
   nome: string;
   paragem?: string;
   centro_custo_id?: string;
+  supervisor_id?: string;
   status?: 'active' | 'inactive';
 }
 
@@ -64,12 +65,23 @@ const normalizeColaborador = (row: any): Colaborador => ({
   nome: String(row?.nome ?? '').trim() || 'Sem nome',
   paragem: row?.paragem || undefined,
   centro_custo_id: row?.centro_custo_id || undefined,
+  supervisor_id: row?.supervisor_id || undefined,
   status: row?.status === 'inactive' ? 'inactive' : 'active',
 });
 
 const isMissingCentroCustoColumnError = (error: any): boolean => {
   const message = String(error?.message || error?.details || '').toLowerCase();
   return message.includes('centro_custo_id') && (
+    message.includes('does not exist') ||
+    message.includes('schema cache') ||
+    message.includes('could not find') ||
+    message.includes('column')
+  );
+};
+
+const isMissingSupervisorColumnError = (error: any): boolean => {
+  const message = String(error?.message || error?.details || '').toLowerCase();
+  return message.includes('supervisor_id') && (
     message.includes('does not exist') ||
     message.includes('schema cache') ||
     message.includes('could not find') ||
@@ -263,13 +275,27 @@ export const ColaboradorService = {
   /**
    * Obtém todos os colaboradores ativos
    */
-  async listarTodos(): Promise<Colaborador[]> {
+  async listarTodos(filters?: { supervisorId?: string }): Promise<Colaborador[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('colaboradores')
         .select('*')
         .eq('status', 'active')
         .order('nome');
+
+      if (filters?.supervisorId) {
+        query = query.eq('supervisor_id', filters.supervisorId);
+      }
+
+      let { data, error } = await query;
+
+      if (error && filters?.supervisorId && isMissingSupervisorColumnError(error)) {
+        ({ data, error } = await supabase
+          .from('colaboradores')
+          .select('*')
+          .eq('status', 'active')
+          .order('nome'));
+      }
 
       if (error) {
         console.error('Erro ao listar colaboradores:', error);
@@ -286,12 +312,25 @@ export const ColaboradorService = {
   /**
    * Obtém todos os colaboradores (ativos e inativos)
    */
-  async listarTodosIncluindoInativos(): Promise<Colaborador[]> {
+  async listarTodosIncluindoInativos(filters?: { supervisorId?: string }): Promise<Colaborador[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('colaboradores')
         .select('*')
         .order('nome');
+
+      if (filters?.supervisorId) {
+        query = query.eq('supervisor_id', filters.supervisorId);
+      }
+
+      let { data, error } = await query;
+
+      if (error && filters?.supervisorId && isMissingSupervisorColumnError(error)) {
+        ({ data, error } = await supabase
+          .from('colaboradores')
+          .select('*')
+          .order('nome'));
+      }
 
       if (error) {
         console.error('Erro ao listar todos os colaboradores:', error);
@@ -312,6 +351,7 @@ export const ColaboradorService = {
     numero: string;
     nome: string;
     paragem?: string;
+    supervisorId?: string;
   }): Promise<{ success: boolean; data?: Colaborador; error?: string }> {
     try {
       const numero = input.numero.trim();
@@ -341,6 +381,9 @@ export const ColaboradorService = {
       if (input.paragem) {
         insertPayload.paragem = input.paragem;
       }
+      if (input.supervisorId) {
+        insertPayload.supervisor_id = input.supervisorId;
+      }
 
       let { data, error } = await supabase
         .from('colaboradores')
@@ -352,6 +395,23 @@ export const ColaboradorService = {
         const { data: retryData, error: retryError } = await supabase
           .from('colaboradores')
           .insert({ numero, nome, status: 'active' })
+          .select('*')
+          .single();
+        data = retryData;
+        error = retryError;
+      }
+
+      if (error && isMissingSupervisorColumnError(error)) {
+        const fallbackPayload: Record<string, any> = {
+          numero,
+          nome,
+          status: 'active',
+        };
+        if (input.paragem) fallbackPayload.paragem = input.paragem;
+
+        const { data: retryData, error: retryError } = await supabase
+          .from('colaboradores')
+          .insert(fallbackPayload)
           .select('*')
           .single();
         data = retryData;
@@ -382,6 +442,7 @@ export const ColaboradorService = {
       numero: string;
       nome: string;
       paragem?: string;
+      supervisorId?: string;
       status?: 'active' | 'inactive';
     }
   ): Promise<{ success: boolean; error?: string }> {
@@ -413,6 +474,7 @@ export const ColaboradorService = {
       if (input.paragem) {
         updatePayload.paragem = input.paragem;
       }
+      updatePayload.supervisor_id = input.supervisorId || null;
 
       let { error } = await supabase
         .from('colaboradores')
@@ -427,6 +489,21 @@ export const ColaboradorService = {
             nome,
             status: input.status || 'active',
           })
+          .eq('id', id);
+        error = retryError;
+      }
+
+      if (error && isMissingSupervisorColumnError(error)) {
+        const fallbackPayload: Record<string, any> = {
+          numero,
+          nome,
+          status: input.status || 'active',
+        };
+        if (input.paragem) fallbackPayload.paragem = input.paragem;
+
+        const { error: retryError } = await supabase
+          .from('colaboradores')
+          .update(fallbackPayload)
           .eq('id', id);
         error = retryError;
       }

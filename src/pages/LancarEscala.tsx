@@ -38,7 +38,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
     const { centrosCustos, createScaleBatch, locais, geofences } = useWorkshop();
     const { hasAccess } = usePermissions();
-    const { userRole } = useAuth();
+    const { userRole, currentUser } = useAuth();
 
     // Combined list of suggestions (Locais + Cartrack Geofences)
     const locationSuggestions = useMemo(() => {
@@ -70,13 +70,18 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
     const [notes, setNotes] = useState('');
     const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
 
+    const isSupervisorUser = String(userRole || '').toLowerCase() === 'supervisor';
+    const currentSupervisorId = isSupervisorUser ? String(currentUser?.id || '') : '';
+
     useEffect(() => {
         const loadColabs = async () => {
-            const list = await ColaboradorService.listarTodos();
+            const list = await ColaboradorService.listarTodos(
+                currentSupervisorId ? { supervisorId: currentSupervisorId } : undefined
+            );
             setColaboradores(list);
         };
         loadColabs();
-    }, []);
+    }, [currentSupervisorId]);
 
     const normalizeColaboradorName = (value?: string | null) =>
         String(value ?? '')

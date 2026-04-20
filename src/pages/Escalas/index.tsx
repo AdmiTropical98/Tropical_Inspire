@@ -208,7 +208,7 @@ export default function Escalas() {
         const localNames = locais.map(l => l.nome);
         return Array.from(new Set([...localNames, ...cartrackNames])).sort();
     }, [geofences, locais]);
-    const { userRole } = useAuth();
+    const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
 
     const { t } = useTranslation();
@@ -247,13 +247,18 @@ export default function Escalas() {
     const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'busy'>('all');
     const [colaboradores, setColaboradores] = useState<ColaboradorType[]>([]);
 
+    const isSupervisorUser = String(userRole || '').toLowerCase() === 'supervisor';
+    const currentSupervisorId = isSupervisorUser ? String(currentUser?.id || '') : '';
+
     useEffect(() => {
         const loadColaboradores = async () => {
-            const list = await ColaboradorService.listarTodos();
+            const list = await ColaboradorService.listarTodos(
+                currentSupervisorId ? { supervisorId: currentSupervisorId } : undefined
+            );
             setColaboradores(list);
         };
         loadColaboradores();
-    }, []);
+    }, [currentSupervisorId]);
 
     const normalizeColaboradorName = (value?: string | null) =>
         String(value ?? '')

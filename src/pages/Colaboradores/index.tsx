@@ -3,12 +3,14 @@ import { CheckCircle2, Edit3, IdCard, Plus, QrCode, RefreshCcw, ScanLine, Search
 import { ColaboradorService } from '../../services/colaboradorService';
 import type { Colaborador, TransporteCheckinLookup } from '../../services/colaboradorService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkshop } from '../../contexts/WorkshopContext';
 
 interface ColaboradorForm {
   id?: string;
   numero: string;
   nome: string;
   paragem: string;
+  supervisorId: string;
   status: 'active' | 'inactive';
 }
 
@@ -16,17 +18,22 @@ const EMPTY_FORM: ColaboradorForm = {
   numero: '',
   nome: '',
   paragem: '',
+  supervisorId: '',
   status: 'active',
 };
 
 export default function ColaboradoresPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
+  const { supervisors } = useWorkshop();
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [formData, setFormData] = useState<ColaboradorForm>(EMPTY_FORM);
+  const [formData, setFormData] = useState<ColaboradorForm>(() => ({
+    ...EMPTY_FORM,
+    supervisorId: currentSupervisorId,
+  }));
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [activeView, setActiveView] = useState<'colaboradores' | 'leitor'>('colaboradores');
   const [tokenInput, setTokenInput] = useState('');
@@ -36,6 +43,14 @@ export default function ColaboradoresPage() {
   const [checkinPreview, setCheckinPreview] = useState<TransporteCheckinLookup | null>(null);
   const [isLookingUpToken, setIsLookingUpToken] = useState(false);
 
+  const isSupervisorUser = String(userRole || '').toLowerCase() === 'supervisor';
+  const currentSupervisorId = isSupervisorUser ? String(currentUser?.id || '') : '';
+
+  const buildInitialForm = (): ColaboradorForm => ({
+    ...EMPTY_FORM,
+    supervisorId: currentSupervisorId,
+  });
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanFrameRef = useRef<number | null>(null);
@@ -44,14 +59,22 @@ export default function ColaboradoresPage() {
 
   const carregar = async () => {
     setIsLoading(true);
-    const lista = await ColaboradorService.listarTodosIncluindoInativos();
+    const lista = await ColaboradorService.listarTodosIncluindoInativos(
+      currentSupervisorId ? { supervisorId: currentSupervisorId } : undefined
+    );
     setColaboradores(lista);
     setIsLoading(false);
   };
 
   useEffect(() => {
     carregar();
-  }, []);
+  }, [currentSupervisorId]);
+
+  useEffect(() => {
+    if (!formData.id) {
+      setFormData((prev) => ({ ...prev, supervisorId: currentSupervisorId }));
+    }
+  }, [currentSupervisorId, formData.id]);
 
   useEffect(() => {
     isScannerOpenRef.current = isScannerOpen;
@@ -80,7 +103,7 @@ export default function ColaboradoresPage() {
   }, []);
 
   const resetForm = () => {
-    setFormData(EMPTY_FORM);
+    setFormData(buildInitialForm());
   };
 
   const colaboradoresFiltrados = useMemo(() => {
@@ -120,6 +143,7 @@ export default function ColaboradoresPage() {
         numero: formData.numero,
         nome: formData.nome,
         paragem: formData.paragem || undefined,
+        supervisorId: currentSupervisorId || formData.supervisorId || undefined,
         status: formData.status,
       });
 
@@ -135,6 +159,7 @@ export default function ColaboradoresPage() {
         numero: formData.numero,
         nome: formData.nome,
         paragem: formData.paragem || undefined,
+        supervisorId: currentSupervisorId || formData.supervisorId || undefined,
       });
 
       if (!result.success) {
@@ -157,6 +182,7 @@ export default function ColaboradoresPage() {
       numero: String(colaborador.numero || ''),
       nome: String(colaborador.nome || ''),
       paragem: String(colaborador.paragem || ''),
+      supervisorId: String(colaborador.supervisor_id || currentSupervisorId || ''),
       status: colaborador.status || 'active',
     });
   };
@@ -381,6 +407,35 @@ export default function ColaboradoresPage() {
                 <p className="text-[11px] text-slate-500 mt-1">Campo opcional.</p>
               </div>
 
+              <div>
+                <label className="block text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Supervisor</label>
+                {currentSupervisorId ? (
+                  <div className="w-full bg-slate-100 border border-slate-300 rounded-xl px-3 py-2.5 text-slate-700">
+                    Associado ao seu perfil de supervisor
+                  </div>
+                ) : (
+                  <select
+                    value={formData.supervisorId}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, supervisorId: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Sem supervisor associado</option>
+                    {supervisors
+                      .filter((s) => s.status !== 'blocked')
+                      .map((supervisor) => (
+                        <option key={supervisor.id} value={supervisor.id}>
+                          {supervisor.nome}
+                        </option>
+                      ))}
+                  </select>
+                )}
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {currentSupervisorId
+                    ? 'Novos colaboradores ficam ligados automaticamente a si.'
+                    : 'Defina a quem pertence o colaborador para facilitar a escala por equipa.'}
+                </p>
+              </div>
+
               {formData.id && (
                 <div>
                   <label className="block text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Estado</label>
@@ -456,6 +511,7 @@ export default function ColaboradoresPage() {
                   <tr>
                     <th className="px-4 py-3">Colaborador</th>
                     <th className="px-4 py-3">Nº</th>
+                    {!currentSupervisorId && <th className="px-4 py-3">Supervisor</th>}
                     <th className="px-4 py-3">Paragem</th>
                     <th className="px-4 py-3">Estado</th>
                     <th className="px-4 py-3 text-right">Ações</th>
@@ -464,15 +520,16 @@ export default function ColaboradoresPage() {
                 <tbody className="divide-y divide-slate-200">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-slate-500">A carregar colaboradores...</td>
+                      <td colSpan={currentSupervisorId ? 5 : 6} className="px-4 py-10 text-center text-slate-500">A carregar colaboradores...</td>
                     </tr>
                   ) : colaboradoresFiltrados.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-slate-500">Sem resultados para os filtros aplicados.</td>
+                      <td colSpan={currentSupervisorId ? 5 : 6} className="px-4 py-10 text-center text-slate-500">Sem resultados para os filtros aplicados.</td>
                     </tr>
                   ) : (
                     colaboradoresFiltrados.map((colaborador) => {
                       const status = colaborador.status || 'active';
+                      const supervisorNome = supervisors.find((s) => s.id === colaborador.supervisor_id)?.nome || 'Sem supervisor';
 
                       return (
                         <tr key={colaborador.id} className="hover:bg-slate-50">
@@ -487,6 +544,9 @@ export default function ColaboradoresPage() {
                           <td className="px-4 py-3">
                             <span className="font-mono text-blue-300">{String(colaborador.numero || '-')}</span>
                           </td>
+                          {!currentSupervisorId && (
+                            <td className="px-4 py-3 text-slate-600">{supervisorNome}</td>
+                          )}
                           <td className="px-4 py-3 text-slate-600">
                             {colaborador.paragem || 'Sem paragem definida'}
                           </td>

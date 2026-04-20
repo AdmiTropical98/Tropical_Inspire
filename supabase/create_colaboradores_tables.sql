@@ -9,6 +9,7 @@ create table if not exists public.colaboradores (
   nome text not null,
   paragem text,
   centro_custo_id uuid references public.centros_custos(id) on delete set null,
+  supervisor_id uuid references public.supervisores(id) on delete set null,
   status text not null default 'active' check (status in ('active', 'inactive')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -19,6 +20,9 @@ create unique index if not exists idx_colaboradores_numero_unique
 
 create index if not exists idx_colaboradores_status
   on public.colaboradores (status);
+
+create index if not exists idx_colaboradores_supervisor
+  on public.colaboradores (supervisor_id);
 
 create table if not exists public.presencas_transporte (
   id uuid primary key default gen_random_uuid(),
