@@ -201,6 +201,16 @@ const isMissingTipoUtilizadorColumnError = (error: any) => {
     );
 };
 
+const isMissingPasswordColumnError = (error: any) => {
+    const message = String(error?.message || error?.details || '').toLowerCase();
+    return message.includes('password') && (
+        message.includes('schema cache') ||
+        message.includes('column') ||
+        message.includes('does not exist') ||
+        message.includes('could not find')
+    );
+};
+
 interface WorkshopContextType {
     fornecedores: Fornecedor[];
     setFornecedores: React.Dispatch<React.SetStateAction<Fornecedor[]>>;
@@ -3865,7 +3875,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addSupervisor = async (s: Supervisor) => {
-        const { error } = await supabase.from('supervisores').insert({
+        const payloadWithPassword = {
             id: s.id,
             nome: s.nome,
             foto: s.foto,
@@ -3875,12 +3885,20 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             password: s.password,
             status: s.status,
             blocked_permissions: s.blockedPermissions
-        });
+        };
+
+        let { error } = await supabase.from('supervisores').insert(payloadWithPassword);
+
+        if (error && isMissingPasswordColumnError(error)) {
+            const { password, ...payloadWithoutPassword } = payloadWithPassword;
+            ({ error } = await supabase.from('supervisores').insert(payloadWithoutPassword));
+        }
+
         if (error) throw error; // Propagate error
         setSupervisors(prev => [...prev, s]);
     };
     const updateSupervisor = async (s: Supervisor) => {
-        const { error } = await supabase.from('supervisores').update({
+        const payloadWithPassword = {
             nome: s.nome,
             foto: s.foto,
             email: s.email,
@@ -3889,7 +3907,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             password: s.password,
             status: s.status,
             blocked_permissions: s.blockedPermissions
-        }).eq('id', s.id);
+        };
+
+        let { error } = await supabase.from('supervisores').update(payloadWithPassword).eq('id', s.id);
+
+        if (error && isMissingPasswordColumnError(error)) {
+            const { password, ...payloadWithoutPassword } = payloadWithPassword;
+            ({ error } = await supabase.from('supervisores').update(payloadWithoutPassword).eq('id', s.id));
+        }
+
         if (!error) setSupervisors(prev => prev.map(curr => curr.id === s.id ? s : curr));
     };
     const deleteSupervisor = async (id: string) => {
@@ -3898,7 +3924,7 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addGestor = async (g: Gestor) => {
-        const { error } = await supabase.from('gestores').insert({
+        const payloadWithPassword = {
             id: g.id,
             nome: g.nome,
             foto: g.foto,
@@ -3909,13 +3935,21 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             status: g.status,
             blocked_permissions: g.blockedPermissions,
             data_registo: new Date().toISOString()
-        });
+        };
+
+        let { error } = await supabase.from('gestores').insert(payloadWithPassword);
+
+        if (error && isMissingPasswordColumnError(error)) {
+            const { password, ...payloadWithoutPassword } = payloadWithPassword;
+            ({ error } = await supabase.from('gestores').insert(payloadWithoutPassword));
+        }
+
         if (error) throw error; // Propagate error
         setGestores(prev => [...prev, g]);
     };
 
     const updateGestor = async (g: Gestor) => {
-        const { error } = await supabase.from('gestores').update({
+        const payloadWithPassword = {
             nome: g.nome,
             foto: g.foto,
             email: g.email,
@@ -3924,7 +3958,15 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
             password: g.password,
             status: g.status,
             blocked_permissions: g.blockedPermissions
-        }).eq('id', g.id);
+        };
+
+        let { error } = await supabase.from('gestores').update(payloadWithPassword).eq('id', g.id);
+
+        if (error && isMissingPasswordColumnError(error)) {
+            const { password, ...payloadWithoutPassword } = payloadWithPassword;
+            ({ error } = await supabase.from('gestores').update(payloadWithoutPassword).eq('id', g.id));
+        }
+
         if (!error) setGestores(prev => prev.map(curr => curr.id === g.id ? g : curr));
     };
     const deleteGestor = async (id: string) => {

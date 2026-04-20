@@ -226,8 +226,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white/90 border border-slate-200 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white border border-slate-200 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
 
                 {/* Header */}
                 <div className="p-6 border-b border-slate-200 flex justify-between items-center">
@@ -261,8 +261,8 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         onClick={() => setRole(r.id as UserRole)}
                                         className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all
                                             ${role === r.id
-                                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                                : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-700'
+                                                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                                             }`}
                                     >
                                         <span className="font-bold text-sm">{r.label}</span>
@@ -279,7 +279,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">Nome Completo *</label>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Nome Completo *</label>
                                     <input
                                         className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={formData.nome}
@@ -289,7 +289,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                 </div>
                                 {(role === 'admin' || role === 'supervisor' || role === 'gestor') && (
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Email {role === 'admin' && '*'}</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Email {role === 'admin' && '*'}</label>
                                         <input
                                             type="email"
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -303,7 +303,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
 
                                 {(role === 'supervisor' || role === 'motorista' || role === 'oficina' || role === 'gestor') && (
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Telemóvel * {role === 'oficina' && '(Login)'}</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Telemóvel * {role === 'oficina' && '(Login)'}</label>
                                         <input
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.telemovel}
@@ -325,7 +325,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">PIN de Acesso *</label>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">PIN de Acesso *</label>
                                     <input
                                         className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 font-mono focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={formData.pin}
@@ -337,7 +337,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                 </div>
                                 {(role === 'supervisor' || role === 'admin' || role === 'gestor') && (
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
                                         <input
                                             type="password"
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -358,7 +358,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Função</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Função</label>
                                         <select
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.tipoUtilizador || 'motorista'}
@@ -370,7 +370,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Vencimento Base</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Vencimento Base</label>
                                         <input
                                             type="number"
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -379,7 +379,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Valor Hora Extra</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Valor Hora Extra</label>
                                         <input
                                             type="number"
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -388,7 +388,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Carta Condução</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Carta Condução</label>
                                         <input
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={formData.cartaConducao}
@@ -397,7 +397,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     </div>
                                 </div>
                                 <div className="mt-4">
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">Centro de Custo</label>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Centro de Custo</label>
                                     <select
                                         className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={formData.centroCustoId || ''}
@@ -415,7 +415,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Início Turno</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Início Turno</label>
                                         <input
                                             type="time"
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -424,7 +424,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Fim Turno</label>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Fim Turno</label>
                                         <input
                                             type="time"
                                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -446,14 +446,14 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                     {availableModules.map(module => {
                                         const isBlocked = formData.blockedPermissions.includes(module);
                                         return (
-                                            <label key={module} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/90 cursor-pointer transition-colors group">
+                                            <label key={module} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group">
                                                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors
                                                     ${!isBlocked
-                                                        ? 'bg-blue-600 border-blue-500'
+                                                        ? 'bg-blue-600 border-blue-600'
                                                         : 'bg-white/90 border-slate-300'
                                                     }`}
                                                 >
-                                                    {!isBlocked && <Save className="w-3 h-3 text-slate-900" />}
+                                                    {!isBlocked && <Save className="w-3 h-3 text-white" />}
                                                 </div>
                                                 <input
                                                     type="checkbox"
@@ -461,7 +461,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                                                     checked={!isBlocked}
                                                     onChange={() => togglePermission(module)}
                                                 />
-                                                <span className={`text-sm ${!isBlocked ? 'text-white' : 'text-slate-500'}`}>
+                                                <span className={`text-sm ${!isBlocked ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
                                                     {PERMISSION_LABELS[module] || module}
                                                 </span>
                                             </label>
@@ -473,7 +473,7 @@ export default function UserFormModal({ isOpen, onClose, user, initialRole = 'mo
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-slate-200 bg-white/90 flex justify-end gap-3 rounded-b-2xl">
+                    <div className="p-6 border-t border-slate-200 bg-white flex justify-end gap-3 rounded-b-2xl">
                         <button type="button" onClick={onClose} className="px-5 py-2.5 text-slate-400 hover:text-slate-900 transition-colors font-medium">
                             Cancelar
                         </button>
