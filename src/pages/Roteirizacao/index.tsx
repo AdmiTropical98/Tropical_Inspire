@@ -407,12 +407,14 @@ export default function Roteirizacao() {
             try {
                 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
                 platformRef.current = platform;
-const defaultLayers = platform.createDefaultLayers();
+const layers = platform.createDefaultLayers({
+    engineType: H.Map.EngineType.P2D
+});
 
-const baseLayer = defaultLayers.raster.normal.map;
+const baseLayer = layers.raster.normal.map;
 
 if (!baseLayer) {
-    setMapError('Raster layer HERE indisponível.');
+    setMapError('HERE raster tiles não disponíveis.');
     return;
 }
 
