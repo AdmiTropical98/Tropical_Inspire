@@ -29,8 +29,65 @@ import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const HERE_API_KEY = String(
-    import.meta.env.VITE_HERE_API_KEY || (import.meta.env as any).HERE_API_KEY || ''
+    import.meta.env.VITE_HERE_API_KEY
+    || (import.meta.env as any).HERE_API_KEY
+    || (window as any).__HERE_API_KEY__
+    || ''
 ).trim();
+
+const HERE_SCRIPT_URLS = [
+    'https://js.api.here.com/v3/3.1/mapsjs-core.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-service.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-vector.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-clustering.js'
+] as const;
+
+function loadScript(src: string) {
+    return new Promise<void>((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
+        if (existing?.dataset.loaded === 'true') {
+            resolve();
+            return;
+        }
+
+        if (existing) {
+            existing.dataset.loaded = 'true';
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+
+        const onLoad = () => {
+            script.dataset.loaded = 'true';
+            script.removeEventListener('load', onLoad);
+            script.removeEventListener('error', onError);
+            resolve();
+        };
+
+        const onError = () => {
+            script.removeEventListener('load', onLoad);
+            script.removeEventListener('error', onError);
+            reject(new Error(`Failed to load HERE script: ${src}`));
+        };
+
+        script.addEventListener('load', onLoad);
+        script.addEventListener('error', onError);
+        document.head.appendChild(script);
+    });
+}
+
+async function ensureHereSdkLoaded() {
+    if (window.H) return;
+    await HERE_SCRIPT_URLS.reduce(
+        (chain, src) => chain.then(() => loadScript(src)),
+        Promise.resolve()
+    );
+}
 
 interface RouteStop {
     id: string;
@@ -245,6 +302,7 @@ export default function Roteirizacao() {
     const routeGroupRef = useRef<any>(null);
     const stopMarkerGroupRef = useRef<any>(null);
     const navMarkerRef = useRef<any>(null);
+    const resizeObserverRef = useRef<ResizeObserver | null>(null);
     const routePathRef = useRef<RoutePoint[]>([]);
     const lastRerouteAtRef = useRef(0);
 
@@ -273,6 +331,7 @@ export default function Roteirizacao() {
 
     const [routePath, setRoutePath] = useState<RoutePoint[]>([]);
     const [summary, setSummary] = useState<RouteSummary>({ distance: 0, time: 0, fuel: 0, cost: 0 });
+    const [mapError, setMapError] = useState<string | null>(null);
 
     const isMobileMapLayout = Capacitor.isNativePlatform() || viewportWidth <= 768;
     const isAndroidNativeApp = isNativeMobileApp() && Capacitor.getPlatform() === 'android';
@@ -318,17 +377,31 @@ export default function Roteirizacao() {
     }, [selectedViatura, trackedVehicleId, viaturas, cartrackVehicles]);
 
     const initializeMap = useCallback(() => {
-        if (mapRef.current || !mapContainerRef.current || !HERE_API_KEY) return undefined;
+        if (mapRef.current || !mapContainerRef.current) return undefined;
 
         let cancelled = false;
         let resizeHandler: (() => void) | null = null;
 
-        const tryInit = () => {
+        const tryInit = async () => {
+            if (cancelled || mapRef.current || !mapContainerRef.current) return;
+
+            if (!HERE_API_KEY) {
+                setMapError('HERE API key em falta (VITE_HERE_API_KEY).');
+                return;
+            }
+
+            try {
+                await ensureHereSdkLoaded();
+            } catch (error) {
+                setMapError(error instanceof Error ? error.message : 'Falha ao carregar HERE SDK.');
+                return;
+            }
+
             if (cancelled || mapRef.current || !mapContainerRef.current) return;
 
             const H = window.H;
             if (!H) {
-                window.setTimeout(tryInit, 150);
+                setMapError('HERE SDK indisponível após carregamento.');
                 return;
             }
 
@@ -337,12 +410,9 @@ export default function Roteirizacao() {
                 platformRef.current = platform;
 
                 const layers = platform.createDefaultLayers({ tileSize: 512, ppi: 320 });
-                console.log('[Roteirização] HERE layers:', JSON.stringify(Object.keys(layers || {})));
-                console.log('[Roteirização] raster keys:', JSON.stringify(Object.keys(layers?.raster || {})));
                 const baseLayer = getHereBaseLayer(layers);
-                console.log('[Roteirização] baseLayer:', baseLayer);
                 if (!baseLayer) {
-                    console.error('[Roteirização] HERE base layer indisponível. Layers:', layers);
+                    setMapError('Não foi possível criar camada base do mapa HERE.');
                     return;
                 }
 
@@ -351,6 +421,7 @@ export default function Roteirizacao() {
                     zoom: 11,
                     pixelRatio: window.devicePixelRatio || 1
                 });
+                setMapError(null);
 
                 mapRef.current = map;
                 new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
@@ -405,21 +476,29 @@ export default function Roteirizacao() {
                 resizeHandler = () => resizeMap();
                 window.addEventListener('resize', resizeHandler);
 
+                if ('ResizeObserver' in window) {
+                    resizeObserverRef.current = new ResizeObserver(() => resizeMap());
+                    resizeObserverRef.current.observe(mapContainerRef.current);
+                }
+
                 window.setTimeout(resizeMap, 120);
                 window.setTimeout(resizeMap, 600);
                 window.setTimeout(resizeMap, 1200);
             } catch (error) {
                 console.error('[Roteirização] Falha ao inicializar HERE map:', error);
+                setMapError('Erro ao inicializar o mapa HERE.');
             }
         };
 
-        tryInit();
+        void tryInit();
 
         return () => {
             cancelled = true;
             if (resizeHandler) {
                 window.removeEventListener('resize', resizeHandler);
             }
+            resizeObserverRef.current?.disconnect();
+            resizeObserverRef.current = null;
         };
     }, []);
 
@@ -427,6 +506,8 @@ export default function Roteirizacao() {
         const cleanupInit = initializeMap();
         return () => {
             cleanupInit?.();
+            resizeObserverRef.current?.disconnect();
+            resizeObserverRef.current = null;
             if (mapRef.current) {
                 mapRef.current.dispose();
                 mapRef.current = null;
@@ -560,7 +641,7 @@ export default function Roteirizacao() {
 
         const bounds = routeGroup.getBoundingBox();
         if (bounds) {
-            mapRef.current.setLookAtData({ bounds }, true);
+            mapRef.current.getViewModel().setLookAtData({ bounds }, true);
         }
     }, [routePath]);
 
@@ -1204,6 +1285,14 @@ export default function Roteirizacao() {
                 {!HERE_API_KEY && (
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-xs text-red-600 font-semibold">
                         HERE_API_KEY em falta.
+                    </div>
+                )}
+
+                {mapError && (
+                    <div className="absolute inset-0 z-[1001] bg-slate-950/75 flex items-center justify-center p-4">
+                        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-xs text-red-700 font-semibold text-center max-w-md">
+                            {mapError}
+                        </div>
                     </div>
                 )}
 

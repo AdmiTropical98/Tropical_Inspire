@@ -376,7 +376,7 @@ export default function GeofenceMap({
         if (!selectedVehicle) {
             const bounds = computeBounds(validVehicles);
             if (bounds) {
-                map.setLookAtData({ bounds }, true);
+                map.getViewModel().setLookAtData({ bounds }, true);
             }
         }
     }, [vehicles, selectedVehicle, activeServiceByVehicle]);

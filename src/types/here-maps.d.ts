@@ -27,6 +27,9 @@ declare namespace H {
     dispose(): void;
     getObjects(recursive?: boolean): any[];
     setLookAtData(data: { bounds?: geo.Rect; position?: { lat: number; lng: number }; zoom?: number }, animate?: boolean): void;
+    getViewModel(): {
+      setLookAtData(data: { bounds?: geo.Rect; position?: { lat: number; lng: number }; zoom?: number }, animate?: boolean): void;
+    };
     addEventListener(event: string, handler: (evt: any) => void): void;
     removeEventListener(event: string, handler: (evt: any) => void): void;
     screenToGeo(x: number, y: number): { lat: number; lng: number };
