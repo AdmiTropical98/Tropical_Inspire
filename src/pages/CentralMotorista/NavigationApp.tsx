@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Navigation, MapPin, Compass, Clock, ChevronLeft, LocateFixed, Search, ArrowRight, ExternalLink, X } from 'lucide-react';
@@ -216,6 +217,34 @@ export default function NavigationApp({
         }
     };
 
+    const buildHereWebRouteUrl = () => {
+        if (destCoords) {
+            return `https://wego.here.com/directions/drive/${currentPos[0]},${currentPos[1]}/${destCoords[0]},${destCoords[1]}`;
+        }
+
+        if (destinationName) {
+            return `https://wego.here.com/directions/drive//${encodeURIComponent(destinationName + ', Portugal')}`;
+        }
+
+        return '';
+    };
+
+    const openHereWeGo = async () => {
+        const webUrl = buildHereWebRouteUrl();
+        if (!webUrl) return;
+
+        if (Capacitor.isNativePlatform()) {
+            try {
+                await CapacitorApp.openUrl({ url: webUrl });
+                return;
+            } catch {
+                // Fallback to browser tab inside web runtime if external open fails.
+            }
+        }
+
+        window.open(webUrl, '_blank');
+    };
+
     return createPortal(
         <div className="fixed inset-0 z-[9999] bg-white flex flex-col font-sans h-[100dvh] w-screen max-w-[100vw] overflow-hidden m-0">
             <div className={`absolute top-4 z-[10000] pointer-events-none ${isCapacitorAndroid ? 'left-0 right-0 px-3' : 'left-1/2 w-[95%] -translate-x-1/2 md:w-[400px]'}`}>
@@ -284,6 +313,7 @@ export default function NavigationApp({
                                 <button onClick={() => setShowSelection(true)} className="px-5 bg-slate-100 text-white font-bold rounded-xl"><Search className="w-6 h-6" /></button>
                                 <button onClick={startNavigation} disabled={!destCoords} className="flex-1 py-4 bg-blue-600 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2"><Navigation className="w-5 h-5" />Iniciar (App)</button>
                             </div>
+                            <button onClick={openHereWeGo} disabled={!destCoords && !destinationName} className="w-full py-4 bg-cyan-600 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2"><ExternalLink className="w-5 h-5" />Abrir no HERE WeGo</button>
                             <button onClick={openGoogleMaps} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2"><ExternalLink className="w-5 h-5" />Abrir no Google Maps</button>
                         </div>
                     )}
