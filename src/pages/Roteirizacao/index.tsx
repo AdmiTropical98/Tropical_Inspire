@@ -409,18 +409,14 @@ export default function Roteirizacao() {
             try {
                 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
                 platformRef.current = platform;
-const defaultLayers = platform.createDefaultLayers({
-    engineType: H.Map.EngineType.P2D
-});
+const defaultLayers = platform.createDefaultLayers();
 
-const baseLayer =
-    defaultLayers.raster.normal.map ||
-    defaultLayers.raster.terrain.map ||
-    defaultLayers.vector.normal.map;
-                if (!baseLayer) {
-                    setMapError('Não foi possível criar a vector base layer (HARP) do HERE Maps.');
-                    return;
-                }
+const baseLayer = defaultLayers.raster.normal.map;
+
+if (!baseLayer) {
+    setMapError('Raster layer HERE indisponível.');
+    return;
+}
 
                const map = new H.Map(mapContainerRef.current, baseLayer, {
     center: defaultCenter,
