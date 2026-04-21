@@ -90,7 +90,7 @@ declare namespace H {
       pushLatLngAlt(lat: number, lng: number, alt: number): void;
       getPointCount(): number;
       extractPoint(idx: number): { lat: number; lng: number; alt: number };
-      static fromFlexPolyline(encoded: string): LineString;
+      static fromFlexiblePolyline(encoded: string): LineString;
     }
     class Rect {
       constructor(top: number, left: number, bottom: number, right: number);

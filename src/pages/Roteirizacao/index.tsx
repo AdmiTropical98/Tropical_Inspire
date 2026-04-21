@@ -271,7 +271,7 @@ function decodeSectionPolyline(polyline: string): RoutePoint[] {
     const H = window.H;
     if (!H || !polyline) return [];
 
-    const line = H.geo.LineString.fromFlexPolyline(polyline);
+    const line = H.geo.LineString.fromFlexiblePolyline(polyline);
     const points: RoutePoint[] = [];
 
     for (let i = 0; i < line.getPointCount(); i += 1) {
