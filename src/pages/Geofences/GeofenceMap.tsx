@@ -1,10 +1,68 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CartrackGeofence, CartrackVehicle } from '../../services/cartrack';
 import type { Local } from '../../types';
 
 const HERE_API_KEY = String(
-    import.meta.env.VITE_HERE_API_KEY || (import.meta.env as any).HERE_API_KEY || ''
+    import.meta.env.VITE_HERE_API_KEY
+    || (import.meta.env as any).HERE_API_KEY
+    || (window as any).__HERE_API_KEY__
+    || ''
 ).trim();
+
+const HERE_SCRIPT_URLS = [
+    'https://js.api.here.com/v3/3.1/mapsjs-core.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-service.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-vector.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-clustering.js'
+] as const;
+
+function loadScript(src: string) {
+    return new Promise<void>((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
+        if (existing?.dataset.loaded === 'true') {
+            resolve();
+            return;
+        }
+
+        if (existing) {
+            existing.dataset.loaded = 'true';
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+
+        const onLoad = () => {
+            script.dataset.loaded = 'true';
+            script.removeEventListener('load', onLoad);
+            script.removeEventListener('error', onError);
+            resolve();
+        };
+
+        const onError = () => {
+            script.removeEventListener('load', onLoad);
+            script.removeEventListener('error', onError);
+            reject(new Error(`Failed to load HERE script: ${src}`));
+        };
+
+        script.addEventListener('load', onLoad);
+        script.addEventListener('error', onError);
+
+        document.head.appendChild(script);
+    });
+}
+
+async function ensureHereSdkLoaded() {
+    if (window.H) return;
+    await HERE_SCRIPT_URLS.reduce(
+        (chain, src) => chain.then(() => loadScript(src)),
+        Promise.resolve()
+    );
+}
 
 function getHereBaseLayer(layers: any) {
     return layers?.raster?.normal?.map
@@ -87,6 +145,8 @@ export default function GeofenceMap({
     const geofenceGroupRef = useRef<any>(null);
     const clusterLayerRef = useRef<any>(null);
     const initializedRef = useRef(false);
+    const resizeObserverRef = useRef<ResizeObserver | null>(null);
+    const [mapError, setMapError] = useState<string | null>(null);
 
     const onSelectVehicleRef = useRef(onSelectVehicle);
     onSelectVehicleRef.current = onSelectVehicle;
@@ -94,10 +154,26 @@ export default function GeofenceMap({
     useEffect(() => {
         if (!containerRef.current || initializedRef.current) return;
 
-        const tryInit = () => {
+        let canceled = false;
+
+        const tryInit = async () => {
+            if (!HERE_API_KEY) {
+                setMapError('HERE API key em falta (VITE_HERE_API_KEY).');
+                return;
+            }
+
+            try {
+                await ensureHereSdkLoaded();
+            } catch (error) {
+                setMapError(error instanceof Error ? error.message : 'Falha ao carregar HERE SDK.');
+                return;
+            }
+
+            if (canceled) return;
+
             const H = window.H;
-            if (!H || !HERE_API_KEY) {
-                setTimeout(tryInit, 120);
+            if (!H) {
+                setMapError('HERE SDK indisponível após carregamento.');
                 return;
             }
 
@@ -106,6 +182,7 @@ export default function GeofenceMap({
             const layers = platform.createDefaultLayers();
             const baseLayer = getHereBaseLayer(layers);
             if (!baseLayer) {
+                setMapError('Não foi possível criar camada base do mapa HERE.');
                 initializedRef.current = false;
                 return;
             }
@@ -115,6 +192,8 @@ export default function GeofenceMap({
                 center: { lat: 37.1, lng: -8.0 },
                 pixelRatio: window.devicePixelRatio || 1
             });
+
+            setMapError(null);
 
             mapRef.current = map;
             new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
@@ -135,17 +214,31 @@ export default function GeofenceMap({
             const onResize = () => resizeMap();
             window.addEventListener('resize', onResize);
 
+            if ('ResizeObserver' in window) {
+                resizeObserverRef.current = new ResizeObserver(() => resizeMap());
+                resizeObserverRef.current.observe(containerRef.current!);
+            }
+
             window.setTimeout(resizeMap, 120);
             window.setTimeout(resizeMap, 600);
 
             return () => {
                 window.removeEventListener('resize', onResize);
+                resizeObserverRef.current?.disconnect();
+                resizeObserverRef.current = null;
             };
         };
 
-        const cleanup = tryInit();
+        let cleanup: (() => void) | void;
+        void tryInit().then((fn) => {
+            cleanup = fn;
+        });
+
         return () => {
+            canceled = true;
             cleanup?.();
+            resizeObserverRef.current?.disconnect();
+            resizeObserverRef.current = null;
             if (mapRef.current) {
                 mapRef.current.dispose();
                 mapRef.current = null;
@@ -294,5 +387,26 @@ export default function GeofenceMap({
         mapRef.current.setZoom(16, true);
     }, [selectedVehicle?.id]);
 
-    return <div ref={containerRef} style={{ width: '100%', height: '100%', borderRadius: 'inherit' }} />;
+    return (
+        <div ref={containerRef} style={{ width: '100%', height: '100%', borderRadius: 'inherit', position: 'relative' }}>
+            {mapError && (
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(10,10,15,0.82)',
+                    color: '#fca5a5',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    textAlign: 'center',
+                    padding: '20px',
+                    zIndex: 5
+                }}>
+                    {mapError}
+                </div>
+            )}
+        </div>
+    );
 }
