@@ -156,11 +156,12 @@ function formatHereWaypoint(point: RoutePoint) {
 }
 
 function getHereBaseLayer(layers: any) {
-    // Prefer raster tiles – always available without HARP engine
-    return layers?.raster?.normal?.map
+    // Prefer vector tiles first; some setups return blank raster tiles.
+    return layers?.vector?.normal?.map
+        ?? layers?.vector?.normal?.truck
+        ?? layers?.raster?.normal?.map
         ?? layers?.raster?.normal?.mapnight
         ?? layers?.raster?.terrain?.map
-        ?? layers?.vector?.normal?.map
         ?? layers?.normal?.map
         ?? null;
 }
@@ -409,7 +410,7 @@ export default function Roteirizacao() {
                 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
                 platformRef.current = platform;
 
-                const layers = platform.createDefaultLayers({ tileSize: 512, ppi: 320 });
+                const layers = platform.createDefaultLayers();
                 const baseLayer = getHereBaseLayer(layers);
                 if (!baseLayer) {
                     setMapError('Não foi possível criar camada base do mapa HERE.');
