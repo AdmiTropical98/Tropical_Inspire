@@ -16,6 +16,10 @@ declare namespace H {
   }
 
   class Map {
+    static EngineType: {
+      HARP: string;
+      P2D: string;
+    };
     constructor(element: HTMLElement, layer: any, options?: { zoom?: number; center?: { lat: number; lng: number }; pixelRatio?: number });
     setCenter(pos: { lat: number; lng: number }, animate?: boolean): void;
     setZoom(zoom: number, animate?: boolean): void;

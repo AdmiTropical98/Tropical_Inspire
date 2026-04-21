@@ -39,6 +39,7 @@ const HERE_SCRIPT_URLS = [
     'https://js.api.here.com/v3/3.1/mapsjs-core.js',
     'https://js.api.here.com/v3/3.1/mapsjs-service.js',
     'https://js.api.here.com/v3/3.1/mapsjs-vector.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-harp.js',
     'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
     'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js',
     'https://js.api.here.com/v3/3.1/mapsjs-clustering.js'
@@ -409,10 +410,12 @@ export default function Roteirizacao() {
                 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
                 platformRef.current = platform;
 
-                const layers = platform.createDefaultLayers();
-                const baseLayer = getHereBaseLayer(layers);
+                const defaultLayers = platform.createDefaultLayers({
+                    engineType: H.Map.EngineType.HARP
+                });
+                const baseLayer = defaultLayers?.vector?.normal?.map;
                 if (!baseLayer) {
-                    setMapError('Não foi possível criar camada base do mapa HERE.');
+                    setMapError('Não foi possível criar a vector base layer (HARP) do HERE Maps.');
                     return;
                 }
 
@@ -425,7 +428,7 @@ export default function Roteirizacao() {
 
                 mapRef.current = map;
                 new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-                H.ui.UI.createDefault(map, layers, 'pt-PT');
+                H.ui.UI.createDefault(map, defaultLayers, 'pt-PT');
 
                 routeGroupRef.current = new H.map.Group();
                 stopMarkerGroupRef.current = new H.map.Group();

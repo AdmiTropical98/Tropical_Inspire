@@ -13,6 +13,7 @@ const HERE_SCRIPT_URLS = [
     'https://js.api.here.com/v3/3.1/mapsjs-core.js',
     'https://js.api.here.com/v3/3.1/mapsjs-service.js',
     'https://js.api.here.com/v3/3.1/mapsjs-vector.js',
+    'https://js.api.here.com/v3/3.1/mapsjs-harp.js',
     'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
     'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js',
     'https://js.api.here.com/v3/3.1/mapsjs-clustering.js'
