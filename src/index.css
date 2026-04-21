@@ -73,6 +73,11 @@
   margin: 0;
 }
 
+#mapContainer {
+  width: 100%;
+  height: 100%;
+}
+
 html.capacitor-android-mobile,
 html.capacitor-android-mobile body,
 html.capacitor-android-mobile #root,

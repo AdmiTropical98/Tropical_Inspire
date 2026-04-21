@@ -156,12 +156,11 @@ function formatHereWaypoint(point: RoutePoint) {
 }
 
 function getHereBaseLayer(layers: any) {
-    // Prefer vector tiles first; some setups return blank raster tiles.
-    return layers?.vector?.normal?.map
-        ?? layers?.vector?.normal?.truck
-        ?? layers?.raster?.normal?.map
+    // Prefer raster tiles first to avoid blank maps when vector engine support is limited.
+    return layers?.raster?.normal?.map
         ?? layers?.raster?.normal?.mapnight
         ?? layers?.raster?.terrain?.map
+        ?? layers?.vector?.normal?.map
         ?? layers?.normal?.map
         ?? null;
 }
@@ -553,12 +552,38 @@ export default function Roteirizacao() {
             params.set('apikey', HERE_API_KEY);
             viaStops.forEach(coords => params.append('via', formatHereWaypoint(coords)));
 
-            const response = await fetch(`https://router.hereapi.com/v8/routes?${params.toString()}`);
-            const data = await response.json();
+            const endpoint = `https://router.hereapi.com/v8/routes?${params.toString()}`;
+            const response = await fetch(endpoint, {
+                method: 'GET',
+                headers: { Accept: 'application/json' }
+            });
+
+            const rawBody = await response.text();
+            let data: any = null;
+            try {
+                data = rawBody ? JSON.parse(rawBody) : null;
+            } catch {
+                data = null;
+            }
 
             if (!response.ok) {
-                console.error('[HERE Routing] API error:', data);
-                throw new Error(data?.error_description || data?.error || data?.title || 'HERE routing failed');
+                const apiMessage = data?.error_description || data?.error || data?.title || rawBody || 'HERE routing failed';
+                console.error('[HERE Routing] API error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    endpoint,
+                    origin,
+                    destination,
+                    via: viaStops,
+                    apiMessage,
+                    body: data || rawBody
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error(`HERE Routing devolveu ${response.status}. Verifica permissões da API key para Routing v8.`);
+                }
+
+                throw new Error(`HERE Routing ${response.status}: ${apiMessage}`);
             }
 
             const route = data?.routes?.[0];
@@ -591,7 +616,12 @@ export default function Roteirizacao() {
             setRoutePath(points);
         } catch (error) {
             console.error('[HERE Routing] Route calculation failed:', error);
-            setRouteError('Erro ao contactar o serviço HERE Routing.');
+            const message = error instanceof Error ? error.message : String(error);
+            if (/Failed to fetch|NetworkError|CORS/i.test(message)) {
+                setRouteError('Falha de rede/CORS ao contactar HERE Routing. Verifica F12 > Network/Console.');
+            } else {
+                setRouteError(message || 'Erro ao contactar o serviço HERE Routing.');
+            }
             setRoutePath([]);
             setSummary({ distance: 0, time: 0, fuel: 0, cost: 0 });
         } finally {
@@ -1297,7 +1327,7 @@ export default function Roteirizacao() {
                     </div>
                 )}
 
-                <div ref={mapContainerRef} className="absolute inset-0" />
+                <div id="mapContainer" ref={mapContainerRef} className="absolute inset-0" style={{ width: '100%', height: '100%' }} />
 
                 <div className={`absolute ${isAndroidNativeApp ? 'top-3 left-3' : 'top-4 left-4'} z-[1000] flex gap-2`}>
                     {isMobileMapLayout && (
