@@ -39,7 +39,6 @@ const HERE_SCRIPT_URLS = [
     'https://js.api.here.com/v3/3.1/mapsjs-core.js',
     'https://js.api.here.com/v3/3.1/mapsjs-service.js',
     'https://js.api.here.com/v3/3.1/mapsjs-vector.js',
-    'https://js.api.here.com/v3/3.1/mapsjs-harp.js',
     'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
     'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js',
     'https://js.api.here.com/v3/3.1/mapsjs-clustering.js'
@@ -409,13 +408,14 @@ export default function Roteirizacao() {
             try {
                 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
                 platformRef.current = platform;
-const defaultLayers = platform.createDefaultLayers();
+const defaultLayers = platform.createDefaultLayers({
+    engineType: H.Map.EngineType.P2D
+});
 
 const baseLayer =
-    defaultLayers?.raster?.normal?.map ||
-    defaultLayers?.vector?.normal?.map ||
-    defaultLayers?.raster?.terrain?.map ||
-    defaultLayers?.normal?.map;
+    defaultLayers.raster.normal.map ||
+    defaultLayers.raster.terrain.map ||
+    defaultLayers.vector.normal.map;
                 if (!baseLayer) {
                     setMapError('Não foi possível criar a vector base layer (HARP) do HERE Maps.');
                     return;
