@@ -410,19 +410,22 @@ export default function Roteirizacao() {
                 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
                 platformRef.current = platform;
 const defaultLayers = platform.createDefaultLayers();
-                const baseLayer =
+
+const baseLayer =
     defaultLayers?.raster?.normal?.map ||
-    defaultLayers?.vector?.normal?.map;
+    defaultLayers?.vector?.normal?.map ||
+    defaultLayers?.raster?.terrain?.map ||
+    defaultLayers?.normal?.map;
                 if (!baseLayer) {
                     setMapError('Não foi possível criar a vector base layer (HARP) do HERE Maps.');
                     return;
                 }
 
-                const map = new H.Map(mapContainerRef.current, baseLayer, {
-                    center: defaultCenter,
-                    zoom: 11,
-                    pixelRatio: window.devicePixelRatio || 1
-                });
+               const map = new H.Map(mapContainerRef.current, baseLayer, {
+    center: defaultCenter,
+    zoom: 12,
+    pixelRatio: window.devicePixelRatio || 1
+});
                 setMapError(null);
 
                 mapRef.current = map;
