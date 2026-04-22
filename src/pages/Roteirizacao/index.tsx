@@ -39,8 +39,7 @@ const HERE_SCRIPT_URLS = [
   'https://js.api.here.com/v3/3.1/mapsjs-core.js',
   'https://js.api.here.com/v3/3.1/mapsjs-service.js',
   'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
-  'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js',
-  'https://js.api.here.com/v3/3.1/mapsjs-data.js'
+  'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'
 ];
 function loadScript(src: string) {
     return new Promise<void>((resolve, reject) => {
@@ -410,11 +409,19 @@ try {
 
   platformRef.current = platform;
 
-  const defaultLayers = platform.createDefaultLayers({
-    lg: 'pt-PT'
-  });
+ const rasterTileService = platform.getRasterTileService({
+  queryParams: {
+    style: 'explore.day',
+    lang: 'pt-PT'
+  }
+});
 
-  const baseLayer = defaultLayers.raster.normal.map;
+const rasterTileProvider = new H.service.rasterTile.Provider(
+  rasterTileService,
+  { tileSize: 256 }
+);
+
+const baseLayer = new H.map.layer.TileLayer(rasterTileProvider);
 
   if (!baseLayer) {
     setMapError('HERE raster tiles não disponíveis.');
@@ -439,7 +446,7 @@ try {
     new H.mapevents.MapEvents(map)
   );
 
-  const ui = H.ui.UI.createDefault(map, defaultLayers, 'pt-PT');
+  const ui = H.ui.UI.createDefault(map);
 
   routeGroupRef.current = new H.map.Group();
   stopMarkerGroupRef.current = new H.map.Group();
