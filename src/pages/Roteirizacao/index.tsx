@@ -374,12 +374,12 @@ export default function Roteirizacao() {
 
    const initializeMap = useCallback(() => {
 
-  if (!mapContainerRef.current) return undefined;
+if (!mapContainerRef.current) return undefined;
 
-  if (mapRef.current) {
-    mapRef.current.dispose();
-    mapRef.current = null;
-  }
+if (mapRef.current) {
+  mapRef.current.dispose();
+  mapRef.current = null;
+}
         let cancelled = false;
         let resizeHandler: (() => void) | null = null;
 
@@ -701,9 +701,7 @@ window.setTimeout(resizeMap, 1200);
         }
     }, [routePath]);
 
-    useEffect(() => {
-        const H = window.H;
-        if (!H || !mapRef.current || !stopMarkerGroupRef.current) return;
+
 
         const group = stopMarkerGroupRef.current;
         group.removeObjects(group.getObjects(true));
