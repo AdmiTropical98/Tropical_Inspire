@@ -402,34 +402,42 @@ export default function Roteirizacao() {
             }
 
 try {
-  const platform = new H.service.Platform({
-    apikey: HERE_API_KEY
-  });
-
-  platformRef.current = platform;
-
-const defaultLayers = platform.createDefaultLayers({
-  lg: 'pt-PT'
+ const platform = new H.service.Platform({
+  apikey: HERE_API_KEY
 });
 
-const baseLayer = getHereBaseLayer(defaultLayers);
+platformRef.current = platform;
 
-  if (!baseLayer) {
-    setMapError('HERE raster tiles não disponíveis.');
-    return;
+const defaultLayers = platform.createDefaultLayers();
+
+const baseLayer =
+  defaultLayers.raster.normal.map ||
+  defaultLayers.vector.normal.map;
+
+if (!baseLayer) {
+  setMapError('HERE base layer não disponível.');
+  return;
+}
+
+const map = new H.Map(
+  mapContainerRef.current,
+  baseLayer,
+  {
+    center: defaultCenter,
+    zoom: 12,
+    pixelRatio: window.devicePixelRatio || 1
   }
+);
 
-  const map = new H.Map(
-    mapContainerRef.current,
-    baseLayer,
-    {
-      center: defaultCenter,
-      zoom: 12,
-      pixelRatio: window.devicePixelRatio || 1
-    }
-  );
+mapRef.current = map;
 
-  setMapError(null);
+new H.mapevents.Behavior(
+  new H.mapevents.MapEvents(map)
+);
+
+H.ui.UI.createDefault(map, defaultLayers);
+
+setMapError(null);
 
   mapRef.current = map;
 
