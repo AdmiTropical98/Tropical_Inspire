@@ -404,48 +404,53 @@ export default function Roteirizacao() {
             }
 
 try {
-   const platform = new H.service.Platform({
-  apikey: HERE_API_KEY
-});
+  const platform = new H.service.Platform({
+    apikey: HERE_API_KEY
+  });
 
-platformRef.current = platform;
+  platformRef.current = platform;
 
-const defaultLayers = platform.createDefaultLayers({
-  lg: 'pt-PT'
-});
+  const defaultLayers = platform.createDefaultLayers({
+    lg: 'pt-PT'
+  });
 
-const baseLayer = defaultLayers.raster.normal.map;
+  const baseLayer = defaultLayers.raster.normal.map;
 
-if (!baseLayer) {
-  setMapError('HERE raster tiles não disponíveis.');
-  return;
-}
-
-const map = new H.Map(
-  mapContainerRef.current,
-  baseLayer,
-  {
-    center: defaultCenter,
-    zoom: 12,
-    pixelRatio: window.devicePixelRatio || 1
+  if (!baseLayer) {
+    setMapError('HERE raster tiles não disponíveis.');
+    return;
   }
-);
 
-setMapError(null);
+  const map = new H.Map(
+    mapContainerRef.current,
+    baseLayer,
+    {
+      center: defaultCenter,
+      zoom: 12,
+      pixelRatio: window.devicePixelRatio || 1
+    }
+  );
 
-mapRef.current = map;
+  setMapError(null);
 
-new H.mapevents.Behavior(
-  new H.mapevents.MapEvents(map)
-);
+  mapRef.current = map;
 
-H.ui.UI.createDefault(map, defaultLayers);
+  const behavior = new H.mapevents.Behavior(
+    new H.mapevents.MapEvents(map)
+  );
 
-    routeGroupRef.current = new H.map.Group();
-    stopMarkerGroupRef.current = new H.map.Group();
+  const ui = H.ui.UI.createDefault(map, defaultLayers, 'pt-PT');
 
-    map.addObject(routeGroupRef.current);
-    map.addObject(stopMarkerGroupRef.current);
+  routeGroupRef.current = new H.map.Group();
+  stopMarkerGroupRef.current = new H.map.Group();
+
+  map.addObject(routeGroupRef.current);
+  map.addObject(stopMarkerGroupRef.current);
+
+} catch (err) {
+  console.error(err);
+  setMapError('Erro ao inicializar o mapa HERE.');
+}
 
                 map.addEventListener('tap', async (evt: any) => {
                     const target = evt.target;
