@@ -372,9 +372,14 @@ export default function Roteirizacao() {
         if (match) setTrackedVehicleId(match.id);
     }, [selectedViatura, trackedVehicleId, viaturas, cartrackVehicles]);
 
-    const initializeMap = useCallback(() => {
-        if (mapRef.current || !mapContainerRef.current) return undefined;
+   const initializeMap = useCallback(() => {
 
+  if (!mapContainerRef.current) return undefined;
+
+  if (mapRef.current) {
+    mapRef.current.dispose();
+    mapRef.current = null;
+  }
         let cancelled = false;
         let resizeHandler: (() => void) | null = null;
 
@@ -410,9 +415,7 @@ platformRef.current = platform;
 
 const defaultLayers = platform.createDefaultLayers();
 
-const baseLayer =
-  defaultLayers.raster?.normal?.map ||
-  defaultLayers.vector?.normal?.map;
+const baseLayer = defaultLayers.raster?.normal?.map;
 
 if (!baseLayer) {
   setMapError('HERE base layer não disponível.');
