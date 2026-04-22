@@ -39,7 +39,8 @@ const HERE_SCRIPT_URLS = [
   'https://js.api.here.com/v3/3.1/mapsjs-core.js',
   'https://js.api.here.com/v3/3.1/mapsjs-service.js',
   'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
-  'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'
+  'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js',
+  'https://js.api.here.com/v3/3.1/mapsjs-data.js'
 ];
 function loadScript(src: string) {
     return new Promise<void>((resolve, reject) => {
@@ -403,31 +404,42 @@ export default function Roteirizacao() {
             }
 
 try {
-    const platform = new H.service.Platform({ apikey: HERE_API_KEY });
-    platformRef.current = platform;
+   const platform = new H.service.Platform({
+  apikey: HERE_API_KEY
+});
 
-    const layers = platform.createDefaultLayers();
+platformRef.current = platform;
 
-const baseLayer = layers.raster.normal.map;
+const defaultLayers = platform.createDefaultLayers({
+  lg: 'pt-PT'
+});
+
+const baseLayer = defaultLayers.raster.normal.map;
 
 if (!baseLayer) {
-    setMapError('HERE raster tiles não disponíveis.');
-    return;
+  setMapError('HERE raster tiles não disponíveis.');
+  return;
 }
 
-    const map = new H.Map(mapContainerRef.current, baseLayer, {
-        center: defaultCenter,
-        zoom: 12,
-        pixelRatio: window.devicePixelRatio || 1
-    });
+const map = new H.Map(
+  mapContainerRef.current,
+  baseLayer,
+  {
+    center: defaultCenter,
+    zoom: 12,
+    pixelRatio: window.devicePixelRatio || 1
+  }
+);
 
-    setMapError(null);
+setMapError(null);
 
-    mapRef.current = map;
+mapRef.current = map;
 
-    new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+new H.mapevents.Behavior(
+  new H.mapevents.MapEvents(map)
+);
 
-   H.ui.UI.createDefault(map, layers, 'pt-PT');
+H.ui.UI.createDefault(map, defaultLayers);
 
     routeGroupRef.current = new H.map.Group();
     stopMarkerGroupRef.current = new H.map.Group();
