@@ -508,11 +508,9 @@ const baseLayer = new H.map.layer.TileLayer(rasterTileProvider);
                 }
 
                 window.setTimeout(resizeMap, 120);
-                window.setTimeout(resizeMap, 600);
-                window.setTimeout(resizeMap, 1200);
-            } catch (error) {
-                console.error('[Roteirização] Falha ao inicializar HERE map:', error);
-                setMapError('Erro ao inicializar o mapa HERE.');
+              window.setTimeout(resizeMap, 600);
+window.setTimeout(resizeMap, 1200);
+            
             }
         };
 
