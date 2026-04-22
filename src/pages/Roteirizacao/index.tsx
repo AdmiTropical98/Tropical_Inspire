@@ -411,7 +411,7 @@ try {
 
  const rasterTileService = platform.getRasterTileService({
   queryParams: {
-    style: 'explore.day',
+    style: 'lite.day',
     lang: 'pt-PT'
   }
 });
