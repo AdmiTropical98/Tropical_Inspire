@@ -153,13 +153,13 @@ function formatHereWaypoint(point: RoutePoint) {
 }
 
 function getHereBaseLayer(layers: any) {
-    // Prefer raster tiles first to avoid blank maps when vector engine support is limited.
-    return layers?.raster?.normal?.map
-        ?? layers?.raster?.normal?.mapnight
-        ?? layers?.raster?.terrain?.map
-        ?? layers?.vector?.normal?.map
-        ?? layers?.normal?.map
-        ?? null;
+  return layers?.raster?.normal?.map
+    ?? layers?.raster?.normal?.mapnight
+    ?? layers?.raster?.terrain?.map
+    ?? layers?.vector?.normal?.map
+    ?? layers?.normal?.map
+    ?? null;
+}
 }
 
 function isNativeMobileApp() {
@@ -409,19 +409,11 @@ try {
 
   platformRef.current = platform;
 
- const rasterTileService = platform.getRasterTileService({
-  queryParams: {
-    style: 'lite.day',
-    lang: 'pt-PT'
-  }
+const defaultLayers = platform.createDefaultLayers({
+  lg: 'pt-PT'
 });
 
-const rasterTileProvider = new H.service.rasterTile.Provider(
-  rasterTileService,
-  { tileSize: 256 }
-);
-
-const baseLayer = new H.map.layer.TileLayer(rasterTileProvider);
+const baseLayer = getHereBaseLayer(defaultLayers);
 
   if (!baseLayer) {
     setMapError('HERE raster tiles não disponíveis.');
