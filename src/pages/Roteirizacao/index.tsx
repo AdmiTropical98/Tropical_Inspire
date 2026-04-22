@@ -160,7 +160,6 @@ function getHereBaseLayer(layers: any) {
     ?? layers?.normal?.map
     ?? null;
 }
-}
 
 function isNativeMobileApp() {
     return Capacitor.isNativePlatform();
