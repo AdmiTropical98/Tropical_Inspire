@@ -408,16 +408,14 @@ try {
     const platform = new H.service.Platform({ apikey: HERE_API_KEY });
     platformRef.current = platform;
 
-    const layers = platform.createDefaultLayers({
-        engineType: H.Map.EngineType.HARP
-    });
+    const layers = platform.createDefaultLayers();
 
-    const baseLayer = layers.vector.normal.map;
+const baseLayer = layers.raster.normal.map;
 
-    if (!baseLayer) {
-        setMapError('HERE vector tiles não disponíveis.');
-        return;
-    }
+if (!baseLayer) {
+    setMapError('HERE raster tiles não disponíveis.');
+    return;
+}
 
     const map = new H.Map(mapContainerRef.current, baseLayer, {
         center: defaultCenter,
@@ -431,7 +429,7 @@ try {
 
     new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
 
-    H.ui.UI.createDefault(map, layers, 'pt-PT');
+   H.ui.UI.createDefault(map, layers, 'pt-PT');
 
     routeGroupRef.current = new H.map.Group();
     stopMarkerGroupRef.current = new H.map.Group();
