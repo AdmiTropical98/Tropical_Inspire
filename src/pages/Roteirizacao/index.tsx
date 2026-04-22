@@ -40,8 +40,8 @@ const HERE_SCRIPT_URLS = [
   'https://js.api.here.com/v3/3.1/mapsjs-core-legacy.js',
   'https://js.api.here.com/v3/3.1/mapsjs-service.js',
   'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
-  'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'
-    'https://js.api.here.com/v3/3.1/mapsjs-data.js'
+  'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js',
+  'https://js.api.here.com/v3/3.1/mapsjs-data.js'
 ];
 
 function loadScript(src: string) {
