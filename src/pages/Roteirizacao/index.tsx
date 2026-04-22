@@ -52,7 +52,10 @@ export default function Roteirizacao() {
           pixelRatio: window.devicePixelRatio || 1
         }
       );
-
+setTimeout(() => {
+  map.getViewPort().resize();
+}, 300);
+      
       new H.mapevents.Behavior(
         new H.mapevents.MapEvents(map)
       );
