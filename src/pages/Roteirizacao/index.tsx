@@ -36,12 +36,12 @@ const HERE_API_KEY = String(
 ).trim();
 
 const HERE_SCRIPT_URLS = [
-    'https://js.api.here.com/v3/3.1/mapsjs-core.js',
-    'https://js.api.here.com/v3/3.1/mapsjs-core-legacy.js',
-    'https://js.api.here.com/v3/3.1/mapsjs-service.js',
-    'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
-    'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'
-] as const;
+  'https://js.api.here.com/v3/3.1/mapsjs-core.js',
+  'https://js.api.here.com/v3/3.1/mapsjs-core-legacy.js',
+  'https://js.api.here.com/v3/3.1/mapsjs-service.js',
+  'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
+  'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'
+];
 
 function loadScript(src: string) {
     return new Promise<void>((resolve, reject) => {
@@ -407,9 +407,7 @@ export default function Roteirizacao() {
             try {
                 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
                 platformRef.current = platform;
-const layers = platform.createDefaultLayers({
-    engineType: H.Map.EngineType.P2D
-});
+const layers = platform.createDefaultLayers();
 
 const baseLayer = layers.raster.normal.map;
 
