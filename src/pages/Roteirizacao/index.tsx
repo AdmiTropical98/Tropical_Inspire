@@ -512,7 +512,6 @@ const baseLayer = new H.map.layer.TileLayer(rasterTileProvider);
 window.setTimeout(resizeMap, 1200);
             
             }
-        };
 
         void tryInit();
 
