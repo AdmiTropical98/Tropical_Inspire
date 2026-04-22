@@ -402,7 +402,7 @@ export default function Roteirizacao() {
             }
 
 try {
- const platform = new H.service.Platform({
+const platform = new H.service.Platform({
   apikey: HERE_API_KEY
 });
 
@@ -411,8 +411,8 @@ platformRef.current = platform;
 const defaultLayers = platform.createDefaultLayers();
 
 const baseLayer =
-  defaultLayers.raster.normal.map ||
-  defaultLayers.vector.normal.map;
+  defaultLayers.raster?.normal?.map ||
+  defaultLayers.vector?.normal?.map;
 
 if (!baseLayer) {
   setMapError('HERE base layer não disponível.');
