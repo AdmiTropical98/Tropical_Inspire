@@ -1,3 +1,5 @@
+import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkshop } from "../../contexts/WorkshopContext";
 import type { CartrackGeofence } from "../../services/cartrack";
@@ -164,6 +166,8 @@ const sumRouteMetrics = (sections: HereSection[]) =>
     },
     { distanceMeters: 0, durationSeconds: 0, baseDurationSeconds: 0 }
   );
+
+const formatHereCoordinate = (value: number) => Number(value).toFixed(6);
 
 export default function Roteirizacao() {
   const { geofences, viaturas } = useWorkshop();
@@ -575,6 +579,7 @@ export default function Roteirizacao() {
       });
 
       const baseLayer = layers.vector?.normal?.map;
+      const satelliteLayer = layers.raster?.satellite?.map || layers.vector?.satellite?.map || null;
 
       if (!baseLayer) {
         setMapError("Vector layer não disponível.");
@@ -599,6 +604,44 @@ export default function Roteirizacao() {
       );
 
       const ui = H.ui.UI.createDefault(map, layers, "pt-PT");
+
+      const baseLayers: Array<{ label: string; layer: any }> = [
+        { label: "Vista do mapa", layer: baseLayer }
+      ];
+
+      if (satelliteLayer) {
+        baseLayers.push({ label: "Satélite", layer: satelliteLayer });
+      }
+
+      const overlayLayers: Array<{ label: string; layer: any }> = [];
+      try {
+        const trafficService = platform.getTrafficService?.();
+        const trafficFlowLayer = trafficService?.createTrafficFlowLayer?.();
+        const trafficIncidentsLayer = trafficService?.createTrafficIncidentsLayer?.();
+
+        if (trafficFlowLayer) {
+          overlayLayers.push({ label: "Condições de trânsito", layer: trafficFlowLayer });
+        }
+
+        if (trafficIncidentsLayer) {
+          overlayLayers.push({ label: "Mostrar incidentes de trânsito", layer: trafficIncidentsLayer });
+        }
+      } catch (trafficError) {
+        console.warn("HERE Traffic layers indisponíveis para esta API key/projeto:", trafficError);
+      }
+
+      try {
+        ui.removeControl("mapsettings");
+        ui.addControl(
+          "mapsettings",
+          new H.ui.MapSettingsControl({
+            baseLayers,
+            layers: overlayLayers
+          })
+        );
+      } catch (uiError) {
+        console.warn("Falha ao configurar selector de camadas HERE:", uiError);
+      }
 
       uiRef.current = ui;
       mapRef.current = map;
@@ -726,6 +769,41 @@ export default function Roteirizacao() {
   }, [drawIncidents, drawMarkers, drawRoutes]);
 
   const canCalculateRoute = Boolean(origin && destination && !isRouting);
+  const canOpenHereWeGo = Boolean(destination);
+
+  const buildHereWeGoUrl = useCallback(() => {
+    if (!destination) return "";
+
+    const destinationSegment = `${formatHereCoordinate(destination.lat)},${formatHereCoordinate(destination.lng)}`;
+
+    if (!origin) {
+      return `https://wego.here.com/directions/mix//${destinationSegment}`;
+    }
+
+    const segments = [
+      `${formatHereCoordinate(origin.lat)},${formatHereCoordinate(origin.lng)}`,
+      ...orderedStops.map((stop) => `${formatHereCoordinate(stop.lat)},${formatHereCoordinate(stop.lng)}`),
+      destinationSegment
+    ];
+
+    return `https://wego.here.com/directions/drive/${segments.join("/")}`;
+  }, [destination, orderedStops, origin]);
+
+  const openHereWeGo = useCallback(async () => {
+    const webUrl = buildHereWeGoUrl();
+    if (!webUrl) return;
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await CapacitorApp.openUrl({ url: webUrl });
+        return;
+      } catch {
+        // Fall back to a regular tab when native handoff is unavailable.
+      }
+    }
+
+    window.open(webUrl, "_blank", "noopener,noreferrer");
+  }, [buildHereWeGoUrl]);
 
   const liveTrackingReady = {
     enabled: false,
@@ -908,6 +986,18 @@ export default function Roteirizacao() {
             {activeRoute && (
               <p className="text-xs text-amber-300 mt-1">Atraso por trafego: {formatDuration(Math.max(activeRoute.durationSeconds - activeRoute.baseDurationSeconds, 0))}</p>
             )}
+
+            <button
+              type="button"
+              onClick={() => void openHereWeGo()}
+              disabled={!canOpenHereWeGo}
+              className="mt-3 w-full rounded-xl bg-cyan-500 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+            >
+              Navegar com HERE WeGo
+            </button>
+            <p className="mt-2 text-[11px] text-slate-300">
+              Abre navegacao externa turn-by-turn sem consumir quota adicional da Routing API na aplicacao.
+            </p>
           </div>
 
           <div className="mt-4">
