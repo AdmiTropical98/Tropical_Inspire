@@ -438,7 +438,7 @@ export default function Roteirizacao() {
       destination: `${destination.lat},${destination.lng}`,
       routingMode: routeMode,
       alternatives: "1",
-      departureTime: "now",
+      departureTime: new Date().toISOString(),
       return: "polyline,summary,travelSummary",
       apikey: HERE_API_KEY
     });
