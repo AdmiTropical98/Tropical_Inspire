@@ -13,6 +13,7 @@ declare global {
 const HERE_API_KEY = import.meta.env.VITE_HERE_API_KEY;
 const DEFAULT_CONSUMPTION = 8.5;
 const DEFAULT_FUEL_PRICE = 1.65;
+const ROUTE_CALC_COOLDOWN_MS = 60_000;
 
 type RouteMode = "fast" | "short";
 
@@ -178,6 +179,7 @@ export default function Roteirizacao() {
   const uiRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const resizeListenerRef = useRef<(() => void) | null>(null);
+  const lastRouteCalculationRef = useRef(0);
 
   const [routeMode, setRouteMode] = useState<RouteMode>("fast");
   const [avoidTolls, setAvoidTolls] = useState(false);
@@ -199,6 +201,7 @@ export default function Roteirizacao() {
   const [routeRequestCount, setRouteRequestCount] = useState(0);
   const [routeRequestHistory, setRouteRequestHistory] = useState<RouteRequestAudit[]>([]);
   const [lastTrafficUpdate, setLastTrafficUpdate] = useState<Date | null>(null);
+  const [cooldownRemainingSec, setCooldownRemainingSec] = useState(0);
 
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -441,7 +444,21 @@ export default function Roteirizacao() {
 
   const recalculateRoute = useCallback(async (force = false) => {
     if (!origin || !destination || !HERE_API_KEY) return;
+
+    const now = Date.now();
+    const elapsed = now - lastRouteCalculationRef.current;
+    if (lastRouteCalculationRef.current > 0 && elapsed < ROUTE_CALC_COOLDOWN_MS) {
+      const remainingMs = ROUTE_CALC_COOLDOWN_MS - elapsed;
+      const remainingSec = Math.ceil(remainingMs / 1000);
+      setCooldownRemainingSec(remainingSec);
+      setMapError(`Aguarde ${remainingSec}s antes de novo cálculo para proteger a quota HERE.`);
+      return;
+    }
+
     if (routeCalculated && !force) return;
+
+    lastRouteCalculationRef.current = now;
+    setCooldownRemainingSec(Math.ceil(ROUTE_CALC_COOLDOWN_MS / 1000));
 
     const orderedVia = orderedStops;
     const avoidFeatures: string[] = [];
@@ -579,7 +596,12 @@ export default function Roteirizacao() {
       });
 
       const baseLayer = layers.vector?.normal?.map;
-      const satelliteLayer = layers.raster?.satellite?.map || layers.vector?.satellite?.map || null;
+      // Prefer vector satellite to stay aligned with modern v3.1 vector setup.
+      const satelliteLayer =
+        layers.vector?.satellite?.map ||
+        layers.raster?.satellite?.map ||
+        layers.raster?.satellite?.xbase ||
+        null;
 
       if (!baseLayer) {
         setMapError("Vector layer não disponível.");
@@ -715,6 +737,15 @@ export default function Roteirizacao() {
   }, [originId, destinationId, stopIds, optimizeOrder, avoidTolls, avoidFerries, routeMode]);
 
   useEffect(() => {
+    if (cooldownRemainingSec <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldownRemainingSec((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [cooldownRemainingSec]);
+
+  useEffect(() => {
     if (!activeRouteId || routes.length === 0) return;
     drawRoutes(routes, activeRouteId);
     const picked = routes.find((r) => r.id === activeRouteId);
@@ -762,13 +793,15 @@ export default function Roteirizacao() {
     setActiveRouteId("");
     setIncidents([]);
     setRouteCalculated(false);
+    lastRouteCalculationRef.current = 0;
+    setCooldownRemainingSec(0);
     setRouteRequestCount(0);
     setRouteRequestHistory([]);
     setLastTrafficUpdate(null);
     setMapError(null);
   }, [drawIncidents, drawMarkers, drawRoutes]);
 
-  const canCalculateRoute = Boolean(origin && destination && !isRouting);
+  const canCalculateRoute = Boolean(origin && destination && !isRouting && cooldownRemainingSec === 0);
   const canOpenHereWeGo = Boolean(destination);
 
   const buildHereWeGoUrl = useCallback(() => {
@@ -1051,7 +1084,7 @@ export default function Roteirizacao() {
               disabled={!canCalculateRoute}
               className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-semibold shadow"
             >
-              Calcular rota
+              {cooldownRemainingSec > 0 ? `Calcular rota (${cooldownRemainingSec}s)` : "Calcular rota"}
             </button>
             <button
               type="button"
