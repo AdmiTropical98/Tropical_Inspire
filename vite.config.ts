@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      injectRegister: false,
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png', 'favicon.png', 'grid-pattern.svg'],
       manifest: {
