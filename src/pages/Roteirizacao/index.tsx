@@ -52,6 +52,7 @@ type RouteRequestAudit = {
   originName: string;
   destinationName: string;
   stopsCount: number;
+  note: string;
 };
 
 const formatKm = (meters: number) => `${(meters / 1000).toFixed(1)} km`;
@@ -443,39 +444,41 @@ export default function Roteirizacao() {
     if (avoidTolls) avoidFeatures.push("tollRoad");
     if (avoidFerries) avoidFeatures.push("ferry");
 
-    const params = new URLSearchParams({
-      transportMode: "car",
-      origin: `${origin.lat},${origin.lng}`,
-      destination: `${destination.lat},${destination.lng}`,
-      routingMode: routeMode,
-      alternatives: "1",
-      departureTime: new Date().toISOString(),
-      return: "polyline,summary,travelSummary",
-      apikey: HERE_API_KEY
-    });
-
-    if (avoidFeatures.length > 0) {
-      params.set("avoid[features]", avoidFeatures.join(","));
-    }
-
-    orderedVia.forEach((stop) => params.append("via", `${stop.lat},${stop.lng}`));
-
     setIsRouting(true);
     setMapError(null);
     drawMarkers(origin, destination, orderedVia);
-    setRouteRequestCount((prev) => prev + 1);
-    setRouteRequestHistory((prev) => {
-      const nextItem: RouteRequestAudit = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        time: new Date(),
-        originName: origin.name,
-        destinationName: destination.name,
-        stopsCount: orderedVia.length
-      };
-      return [nextItem, ...prev].slice(0, 8);
-    });
 
-    try {
+    const performRoutingRequest = async (includeAvoidFeatures: boolean, note: string) => {
+      const params = new URLSearchParams({
+        transportMode: "car",
+        origin: `${origin.lat},${origin.lng}`,
+        destination: `${destination.lat},${destination.lng}`,
+        routingMode: routeMode,
+        alternatives: "1",
+        departureTime: new Date().toISOString(),
+        return: "polyline,summary,travelSummary",
+        apikey: HERE_API_KEY
+      });
+
+      if (includeAvoidFeatures && avoidFeatures.length > 0) {
+        params.set("avoid[features]", avoidFeatures.join(","));
+      }
+
+      orderedVia.forEach((stop) => params.append("via", `${stop.lat},${stop.lng}`));
+
+      setRouteRequestCount((prev) => prev + 1);
+      setRouteRequestHistory((prev) => {
+        const nextItem: RouteRequestAudit = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          time: new Date(),
+          originName: origin.name,
+          destinationName: destination.name,
+          stopsCount: orderedVia.length,
+          note
+        };
+        return [nextItem, ...prev].slice(0, 8);
+      });
+
       const response = await fetch(`https://router.hereapi.com/v8/routes?${params.toString()}`);
       if (!response.ok) {
         const detail = await response.text();
@@ -483,7 +486,19 @@ export default function Roteirizacao() {
       }
 
       const payload = await response.json();
-      const routeItems = Array.isArray(payload?.routes) ? payload.routes : [];
+      return Array.isArray(payload?.routes) ? payload.routes : [];
+    };
+
+    try {
+      let routeItems = await performRoutingRequest(true, "normal");
+      let fallbackInfo: string | null = null;
+
+      if (routeItems.length === 0 && avoidFeatures.length > 0) {
+        routeItems = await performRoutingRequest(false, "fallback sem restricoes");
+        if (routeItems.length > 0) {
+          fallbackInfo = "Rota calculada sem evitar portagens/ferries para garantir cobertura dos POIs.";
+        }
+      }
 
       if (routeItems.length === 0) {
         throw new Error("HERE Routing não devolveu rotas para os pontos selecionados.");
@@ -506,6 +521,7 @@ export default function Roteirizacao() {
       setActiveRouteId(nextActiveId);
       drawRoutes(mappedRoutes, nextActiveId);
       await fetchIncidents(mappedRoutes.find((r) => r.id === nextActiveId) || mappedRoutes[0]);
+      setMapError(fallbackInfo);
       setRouteCalculated(true);
       setLastTrafficUpdate(new Date());
     } catch (error) {
@@ -980,7 +996,7 @@ export default function Roteirizacao() {
               )}
               {routeRequestHistory.map((item) => (
                 <p key={item.id} className="text-[11px] text-slate-600 py-0.5">
-                  {item.time.toLocaleTimeString("pt-PT")} · {item.originName} → {item.destinationName} · {item.stopsCount} paragens
+                  {item.time.toLocaleTimeString("pt-PT")} · {item.originName} → {item.destinationName} · {item.stopsCount} paragens · {item.note}
                 </p>
               ))}
             </div>
