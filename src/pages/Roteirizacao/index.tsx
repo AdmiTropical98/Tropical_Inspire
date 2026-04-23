@@ -11,7 +11,6 @@ declare global {
 const HERE_API_KEY = import.meta.env.VITE_HERE_API_KEY;
 const DEFAULT_CONSUMPTION = 8.5;
 const DEFAULT_FUEL_PRICE = 1.65;
-const ROUTE_REFRESH_MS = 90_000;
 
 type RouteMode = "fast" | "short";
 
@@ -45,6 +44,14 @@ type RouteIncident = {
   criticality: string;
   lat: number;
   lng: number;
+};
+
+type RouteRequestAudit = {
+  id: string;
+  time: Date;
+  originName: string;
+  destinationName: string;
+  stopsCount: number;
 };
 
 const formatKm = (meters: number) => `${(meters / 1000).toFixed(1)} km`;
@@ -183,6 +190,9 @@ export default function Roteirizacao() {
   const [activeRouteId, setActiveRouteId] = useState<string>("");
   const [incidents, setIncidents] = useState<RouteIncident[]>([]);
   const [isRouting, setIsRouting] = useState(false);
+  const [routeCalculated, setRouteCalculated] = useState(false);
+  const [routeRequestCount, setRouteRequestCount] = useState(0);
+  const [routeRequestHistory, setRouteRequestHistory] = useState<RouteRequestAudit[]>([]);
   const [lastTrafficUpdate, setLastTrafficUpdate] = useState<Date | null>(null);
 
   const [mapError, setMapError] = useState<string | null>(null);
@@ -424,8 +434,9 @@ export default function Roteirizacao() {
     }
   }, [drawIncidents]);
 
-  const recalculateRoute = useCallback(async () => {
+  const recalculateRoute = useCallback(async (force = false) => {
     if (!origin || !destination || !HERE_API_KEY) return;
+    if (routeCalculated && !force) return;
 
     const orderedVia = orderedStops;
     const avoidFeatures: string[] = [];
@@ -452,6 +463,17 @@ export default function Roteirizacao() {
     setIsRouting(true);
     setMapError(null);
     drawMarkers(origin, destination, orderedVia);
+    setRouteRequestCount((prev) => prev + 1);
+    setRouteRequestHistory((prev) => {
+      const nextItem: RouteRequestAudit = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        time: new Date(),
+        originName: origin.name,
+        destinationName: destination.name,
+        stopsCount: orderedVia.length
+      };
+      return [nextItem, ...prev].slice(0, 8);
+    });
 
     try {
       const response = await fetch(`https://router.hereapi.com/v8/routes?${params.toString()}`);
@@ -484,12 +506,14 @@ export default function Roteirizacao() {
       setActiveRouteId(nextActiveId);
       drawRoutes(mappedRoutes, nextActiveId);
       await fetchIncidents(mappedRoutes.find((r) => r.id === nextActiveId) || mappedRoutes[0]);
+      setRouteCalculated(true);
       setLastTrafficUpdate(new Date());
     } catch (error) {
       console.error(error);
       setMapError(error instanceof Error ? error.message : "Erro ao calcular rota HERE.");
       setRoutes([]);
       setIncidents([]);
+      setRouteCalculated(false);
       drawRoutes([], "");
       drawIncidents([]);
     } finally {
@@ -506,6 +530,7 @@ export default function Roteirizacao() {
     fetchIncidents,
     origin,
     orderedStops,
+    routeCalculated,
     routeMode
   ]);
 
@@ -599,12 +624,6 @@ export default function Roteirizacao() {
   }, []);
 
   useEffect(() => {
-    if (poiList.length < 2) return;
-    if (!originId) setOriginId(poiList[0].id);
-    if (!destinationId) setDestinationId(poiList[1]?.id || poiList[0].id);
-  }, [destinationId, originId, poiList]);
-
-  useEffect(() => {
     if (!selectedVehicleId) return;
     const raw = window.localStorage.getItem("routing.vehicleProfiles");
     if (!raw) return;
@@ -633,14 +652,8 @@ export default function Roteirizacao() {
   }, [consumptionPer100, fuelPrice, selectedVehicleId]);
 
   useEffect(() => {
-    if (!origin || !destination) return;
-    void recalculateRoute();
-    const timer = window.setInterval(() => {
-      void recalculateRoute();
-    }, ROUTE_REFRESH_MS);
-
-    return () => window.clearInterval(timer);
-  }, [recalculateRoute, origin, destination]);
+    setRouteCalculated(false);
+  }, [originId, destinationId, stopIds, optimizeOrder, avoidTolls, avoidFerries, routeMode]);
 
   useEffect(() => {
     if (!activeRouteId || routes.length === 0) return;
@@ -678,6 +691,25 @@ export default function Roteirizacao() {
       return copy;
     });
   };
+
+  const clearRoute = useCallback(() => {
+    drawRoutes([], "");
+    drawIncidents([]);
+    drawMarkers(null, null, []);
+    setOriginId("");
+    setDestinationId("");
+    setStopIds([]);
+    setRoutes([]);
+    setActiveRouteId("");
+    setIncidents([]);
+    setRouteCalculated(false);
+    setRouteRequestCount(0);
+    setRouteRequestHistory([]);
+    setLastTrafficUpdate(null);
+    setMapError(null);
+  }, [drawIncidents, drawMarkers, drawRoutes]);
+
+  const canCalculateRoute = Boolean(origin && destination && !isRouting);
 
   const liveTrackingReady = {
     enabled: false,
@@ -903,15 +935,24 @@ export default function Roteirizacao() {
 
           <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
             <div className="px-3 py-2 rounded-xl bg-white/95 border border-slate-200 text-xs text-slate-700 shadow">
-              Trafego: {isRouting ? "a atualizar..." : "ativo"}
+              Trafego: {isRouting ? "a atualizar..." : routeCalculated ? "ativo" : "aguarda calculo"}
+              <span className="block text-[10px] text-slate-500">Requests HERE (sessao): {routeRequestCount}</span>
               {lastTrafficUpdate && <span className="block text-[10px] text-slate-500">{lastTrafficUpdate.toLocaleTimeString("pt-PT")}</span>}
             </div>
             <button
               type="button"
-              onClick={() => void recalculateRoute()}
-              className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow"
+              onClick={() => void recalculateRoute(true)}
+              disabled={!canCalculateRoute}
+              className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-semibold shadow"
             >
-              Recalcular
+              Calcular rota
+            </button>
+            <button
+              type="button"
+              onClick={clearRoute}
+              className="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow"
+            >
+              Limpar rota
             </button>
           </div>
 
@@ -931,6 +972,18 @@ export default function Roteirizacao() {
                 ⚠ {incident.title} <span className="text-slate-500">({incident.criticality})</span>
               </p>
             ))}
+
+            <div className="mt-3 border-t border-slate-200 pt-2">
+              <p className="text-xs font-semibold text-slate-700 mb-1">Historico de requests HERE</p>
+              {routeRequestHistory.length === 0 && (
+                <p className="text-xs text-slate-500">Sem chamadas nesta sessao.</p>
+              )}
+              {routeRequestHistory.map((item) => (
+                <p key={item.id} className="text-[11px] text-slate-600 py-0.5">
+                  {item.time.toLocaleTimeString("pt-PT")} · {item.originName} → {item.destinationName} · {item.stopsCount} paragens
+                </p>
+              ))}
+            </div>
           </div>
         </section>
       </div>
