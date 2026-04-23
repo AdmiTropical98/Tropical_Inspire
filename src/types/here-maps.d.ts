@@ -17,6 +17,7 @@ declare namespace H {
 
   class Map {
     static EngineType: {
+      VECTOR: string;
       HARP: string;
       P2D: string;
     };

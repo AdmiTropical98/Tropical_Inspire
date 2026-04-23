@@ -34,12 +34,14 @@ export default function Roteirizacao() {
         apikey: HERE_API_KEY
       });
 
-      const layers = platform.createDefaultLayers();
+      const layers = platform.createDefaultLayers({
+        engineType: H.Map.EngineType.VECTOR
+      });
 
-      const baseLayer = layers.raster.normal.map;
+      const baseLayer = layers.vector?.normal?.map;
 
       if (!baseLayer) {
-        setMapError("Raster layer não disponível.");
+        setMapError("Vector layer não disponível.");
         return;
       }
 
@@ -60,7 +62,7 @@ setTimeout(() => {
         new H.mapevents.MapEvents(map)
       );
 
-      H.ui.UI.createDefault(map, layers);
+      H.ui.UI.createDefault(map, layers, "pt-PT");
 
       mapRef.current = map;
 
