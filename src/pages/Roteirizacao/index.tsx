@@ -378,7 +378,7 @@ export default function Roteirizacao() {
     const maxLng = Math.max(...lngs) + 0.08;
 
     const query = new URLSearchParams({
-      in: `bbox:${maxLat},${minLng},${minLat},${maxLng}`,
+      in: `bbox:${minLng},${minLat},${maxLng},${maxLat}`,
       lang: "pt-PT",
       locationReferencing: "shape",
       apikey: HERE_API_KEY
