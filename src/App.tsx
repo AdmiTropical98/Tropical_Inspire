@@ -1,3 +1,24 @@
+  // Grupo próprio para Clientes e Fornecedores
+  const clientesFornecedoresGroup: NavGroup = {
+    key: 'clientes-fornecedores',
+    label: 'Clientes & Fornecedores',
+    items: [
+      {
+        key: 'clientes',
+        label: 'Clientes',
+        icon: Building2,
+        path: '/clientes',
+        active: activeTab === 'clientes',
+      },
+      {
+        key: 'fornecedores',
+        label: 'Fornecedores',
+        icon: Briefcase,
+        path: '/fornecedores',
+        active: activeTab === 'fornecedores',
+      },
+    ],
+  };
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
@@ -628,7 +649,7 @@ function App() {
     ],
   };
 
-  const desktopGroups = [operationsGroup, fleetGroup, fuelGroup, moreGroup].filter(group => group.items.length > 0);
+  const desktopGroups = [operationsGroup, fleetGroup, clientesFornecedoresGroup, fuelGroup, moreGroup].filter(group => group.items.length > 0);
 
   const bottomNavItems = [
     {
