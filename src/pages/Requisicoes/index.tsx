@@ -1163,41 +1163,18 @@ import { useNavigate } from 'react-router-dom';
         return parseInt(numB) - parseInt(numA);
     });
 
-    return (
-        <div className="w-full min-w-0 space-y-6 animate-in fade-in duration-500 relative">
-            <div className="pointer-events-none absolute inset-0 -z-10 rounded-[2rem] bg-[radial-gradient(120%_90%_at_20%_0%,rgba(37,99,235,0.22)_0%,rgba(2,6,23,0)_50%),radial-gradient(110%_90%_at_85%_100%,rgba(16,185,129,0.16)_0%,rgba(2,6,23,0)_52%)]" />
-            <PageHeader
-                title={t('req.title')}
-                subtitle={t('req.subtitle')}
-                icon={ClipboardCheck}
-            >
-                <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-                    <div className="flex bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/70 shadow-sm overflow-x-auto max-w-full scrollbar-none">
-                        {[
-                            { id: 'overview', icon: LayoutTemplate, label: 'Geral' },
-                            { id: 'list', icon: List, label: 'Lista' },
-                            { id: 'create', icon: PlusCircle, label: 'Nova' },
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex items-center gap-2 px-3 md:px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm
-                            ${activeTab === tab.id
-                                        ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/30'
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-                            >
-                                <tab.icon className="w-4 h-4" />
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </PageHeader>
-
-            <div className="p-4 md:p-8 space-y-8">
-
-                {/* OVERVIEW TAB */}
-                {activeTab === 'overview' && (
+    // ...existing code...
+    // Certifique-se de que este bloco está dentro de um componente React (ex: function RequisicoesPage() { ... })
+    // Se não houver um componente, crie um:
+    // function RequisicoesPage() {
+    //   ...
+    //   return (
+    //     <div>...</div>
+    //   );
+    // }
+    // export default RequisicoesPage;
+    // ...
+    // O importante é que o return esteja dentro de um componente React.
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Content ... */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
