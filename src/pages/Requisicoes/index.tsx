@@ -1,76 +1,25 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Plus,
-    Search,
-    FileText,
-    Trash2,
-    Printer,
-    Package,
-    CheckCircle,
-    LayoutTemplate,
-    List,
-    PlusCircle,
-    TrendingUp,
-    Clock,
-    AlertCircle,
-    Calendar,
-    ArrowRight,
-    Box,
-    User,
-    Building,
-    Truck,
-    X,
-    Pencil,
-    Settings2,
-    Mail,
-    RotateCcw
-} from 'lucide-react';
-import { useWorkshop } from '../../contexts/WorkshopContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { usePermissions } from '../../contexts/PermissionsContext';
-import { useTranslation } from '../../hooks/useTranslation';
-import type { Requisicao, ItemRequisicao } from '../../types';
-import { useFinancial } from '../../contexts/FinancialContext';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import PageHeader from '../../components/common/PageHeader';
-import { ClipboardCheck } from 'lucide-react';
-import { emailService } from '../../services/emailService';
-
-export default function Requisicoes() {
-    const SENDER_EMAIL = 'frota@tropicalinspire.pt';
-    const DOWNLOAD_LINK_PLACEHOLDER = '__REQUISICAO_DOWNLOAD_URL__';
-    const EMAIL_LOGO_URL = `${window.location.origin}/logo-new.png`;
-    const navigate = useNavigate();
-    const { requisicoes, fornecedores, viaturas, clientes, addRequisicao, updateRequisicao, deleteRequisicao, toggleRequisicaoStatus, centrosCustos } = useWorkshop();
-    const { supplierInvoices } = useFinancial();
-    const { currentUser, userRole } = useAuth();
-    const { hasAccess } = usePermissions();
-    const { t } = useTranslation();
-    const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-    const [sendingEmailReqId, setSendingEmailReqId] = useState<string | null>(null);
-    const [showEmailModal, setShowEmailModal] = useState(false);
-    const [showEmailPreview, setShowEmailPreview] = useState(false);
-    const [emailModalReqId, setEmailModalReqId] = useState<string | null>(null);
-    const [emailTo, setEmailTo] = useState('');
-    const [emailCc, setEmailCc] = useState('');
-    const [emailSubject, setEmailSubject] = useState('');
-    const [emailMessage, setEmailMessage] = useState('');
-    const [isSubmittingRequisition, setIsSubmittingRequisition] = useState(false);
-
-    // Edit Request State
-    const [editingId, setEditingId] = useState<string | null>(null);
-
-    const editarItem = (item: ItemRequisicao) => {
-        setItemEmEdicao(item);
-        setNewItemDesc(item.descricao);
-        setNewItemQtd(item.quantidade);
-        setShowEditModal(true);
-    };
-
+                {activeTab === 'create' && (
+                    <div className="w-full min-w-0 animate-in slide-in-from-bottom-8 fade-in pb-10">
+                        <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200/50 shadow-2xl relative">
+                            <RequisicaoForm
+                                clientes={clientes}
+                                fornecedores={fornecedores}
+                                viaturas={viaturas}
+                                stockItems={[]}
+                                onSubmit={async (data) => {
+                                    await addRequisicao({
+                                        ...data,
+                                        criadoPor: currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Staff'),
+                                        data: new Date().toISOString(),
+                                    });
+                                    setActiveTab('list');
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
 
     // Navigation State
     const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'create'>('overview');
