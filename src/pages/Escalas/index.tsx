@@ -3,13 +3,11 @@ import {
     Upload, Plus, Calendar,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, Car, Bus,
-    Search, LayoutList, AlertTriangle, Edit,
-    Table as TableIcon, LayoutGrid, CloudLightning, FileText, CheckCircle
+    Search, AlertTriangle,
+    Table as TableIcon, LayoutGrid, CloudLightning, FileText, CheckCircle, Settings
 } from 'lucide-react';
 
 import {
-    DndContext,
-    closestCenter,
     KeyboardSensor,
     PointerSensor,
     useSensor,
@@ -18,9 +16,7 @@ import {
 } from '@dnd-kit/core';
 import {
     arrayMove,
-    SortableContext,
     sortableKeyboardCoordinates,
-    rectSortingStrategy,
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -153,50 +149,13 @@ const parseBusUsageWindows = (value: string) => {
 };
 
 // Sortable Driver Card Component
-function SortableDriverCard({ driver, children, isDistributeMode, activeDriverId, activeDriverMenuId, onClick, onDragOver, onDragLeave, onDrop }: any) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({ id: driver.id, disabled: isDistributeMode }); // Disable drag if in Quick Distribute Mode
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 100 : 'auto',
-        opacity: isDragging ? 0.3 : 1
-    };
-
-    return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            className={`bg-white/90 rounded-2xl shadow-lg flex flex-col group transition-all duration-200 min-h-[420px] max-h-[calc(100vh-280px)]
-                ${isDistributeMode && activeDriverId === driver.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0f172a]' : ''}
-                border border-slate-100 hover:border-slate-200
-                ${activeDriverMenuId === driver.id ? 'relative z-50' : ''}
-            `}
-            onClick={onClick}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-        >
-            {/* Handle for Dragging (Optional: could handle on whole card, but let's use header) */}
-            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-                {children}
-            </div>
-        </div>
-    );
-}
 
 export default function Escalas() {
     const {
-        motoristas, servicos, addNotification, notifications, updateNotification, centrosCustos,
-        updateServico, deleteServico, deleteMotorista, updateMotorista, geofences,
-        complianceStats, locais, checkRouteValidation, scaleBatches, createScaleBatch,
+        motoristas, servicos, addNotification, updateNotification, centrosCustos,
+        updateServico, deleteServico, geofences,
+        locais, scaleBatches, createScaleBatch,
         zonasOperacionais, refreshData, viaturas, cartrackVehicles,
         escalaTemplates, escalaTemplateItems, addEscalaTemplate, deleteEscalaTemplate, addTemplateItem, deleteTemplateItem,
         publishBatch
@@ -241,7 +200,7 @@ export default function Escalas() {
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
     // Grouping State
-    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
 
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'busy'>('all');
@@ -277,12 +236,12 @@ export default function Escalas() {
 
     // Quick Distribution Mode State
     const [isDistributeMode] = useState(false);
-    const [activeDriverId, setActiveDriverId] = useState<string | null>(null);
+
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Driver Menu State
-    const [activeDriverMenuId, setActiveDriverMenuId] = useState<string | null>(null);
+
 
     // New Manual Service State
     const [showNewServiceModal, setShowNewServiceModal] = useState(false);
@@ -352,6 +311,7 @@ export default function Escalas() {
     const [automationMode, setAutomationMode] = useState<'import' | 'auto-dispatch'>('import');
     const [sendingScheduleServiceId, setSendingScheduleServiceId] = useState<string | null>(null);
     const [showDailyDriversPanel, setShowDailyDriversPanel] = useState(false);
+    const [showAutoSettings, setShowAutoSettings] = useState(false);
     const [dailyDriverConfigs, setDailyDriverConfigs] = useState<DailyDriverConfigMap>({});
     const [dailyBusUsageSchedule, setDailyBusUsageSchedule] = useState('');
     const [autoSettings, setAutoSettings] = useState({
@@ -498,33 +458,6 @@ export default function Escalas() {
         obs: ''
     });
     const [activeAssociations, setActiveAssociations] = useState<MotoristaViaturaAssoc[]>([]);
-    const [associationHistory, setAssociationHistory] = useState<MotoristaViaturaAssoc[]>([]);
-    const [selectedBindingDriverId, setSelectedBindingDriverId] = useState<string>('');
-    const [selectedBindingVehicleId, setSelectedBindingVehicleId] = useState<string>('');
-    const [bindingStart, setBindingStart] = useState<string>('08:00');
-    const [bindingEnd, setBindingEnd] = useState<string>('16:00');
-    const [selectedOperationalLine, setSelectedOperationalLine] = useState<string>('Linha Almancil');
-    const [isSavingBinding, setIsSavingBinding] = useState(false);
-
-    const operationalLines = [
-        'Linha Almancil',
-        'Linha Quinta do Lago',
-        'Linha Hotel Conrad',
-        'Linha Portimão'
-    ];
-
-    const parseAssociationMetadata = (origem?: string | null) => {
-        const raw = String(origem || '');
-        const chunks = raw.split('|').map(x => x.trim());
-        const source = chunks[0] || 'manual';
-        const lineChunk = chunks.find(c => c.startsWith('linha:'));
-        const shiftChunk = chunks.find(c => c.startsWith('turno:'));
-        return {
-            source,
-            line: lineChunk ? lineChunk.replace('linha:', '').trim() : null,
-            shift: shiftChunk ? shiftChunk.replace('turno:', '').trim() : null
-        };
-    };
 
     const loadAssociations = async () => {
         const { data: activeData, error: activeError } = await supabase
@@ -540,163 +473,11 @@ export default function Escalas() {
 
         setActiveAssociations((activeData || []) as MotoristaViaturaAssoc[]);
 
-        const { data: historyData, error: historyError } = await supabase
-            .from('motorista_viatura_assoc')
-            .select('*')
-            .order('inicio', { ascending: false })
-            .limit(80);
-
-        if (historyError) {
-            console.warn('Falha ao carregar histórico de associações:', historyError);
-            return;
-        }
-
-        setAssociationHistory((historyData || []) as MotoristaViaturaAssoc[]);
     };
 
     useEffect(() => {
         void loadAssociations();
     }, []);
-
-    const activeAssocByDriver = useMemo(() => {
-        const map = new Map<string, MotoristaViaturaAssoc>();
-        activeAssociations.forEach(a => {
-            if (!map.has(a.motorista_id)) map.set(a.motorista_id, a);
-        });
-        return map;
-    }, [activeAssociations]);
-
-    const activeAssocByVehicle = useMemo(() => {
-        const map = new Map<string, MotoristaViaturaAssoc>();
-        activeAssociations.forEach(a => {
-            if (!map.has(a.viatura_id)) map.set(a.viatura_id, a);
-        });
-        return map;
-    }, [activeAssociations]);
-
-    const availableVehicles = useMemo(() => {
-        return viaturas.filter(v => !activeAssocByVehicle.has(v.id));
-    }, [viaturas, activeAssocByVehicle]);
-
-    const hasLiveVehicleSignal = (driverId: string) => {
-        const driver = motoristas.find(m => m.id === driverId);
-        if (!driver) return false;
-        return cartrackVehicles.some(v =>
-            (driver.cartrackKey && v.tagId && cleanTagId(driver.cartrackKey) === cleanTagId(v.tagId)) ||
-            (driver.cartrackId && v.driverId && String(driver.cartrackId) === String(v.driverId)) ||
-            (driver.nome && v.driverName && normalizeDriverName(driver.nome) === normalizeDriverName(v.driverName))
-        );
-    };
-
-    const getDriverOperationalStatus = (driverId: string): 'em_rota' | 'standby' | 'offline' | 'sem_viatura' | 'disponivel' => {
-        const driver = motoristas.find(m => m.id === driverId);
-        if (!driver) return 'offline';
-
-        const vehicle = resolveDetectedVehicleForDriver(driverId);
-        if (!vehicle) return 'sem_viatura';
-
-        const hasActiveService = assigned.some(s => s.motoristaId === driverId && !s.concluido);
-        if (hasActiveService) return 'em_rota';
-
-        const liveSignal = hasLiveVehicleSignal(driverId);
-        if (!liveSignal && (driver.cartrackId || driver.cartrackKey)) return 'offline';
-
-        if (liveSignal) return 'standby';
-        return 'disponivel';
-    };
-
-    const saveManualBinding = async () => {
-        if (!selectedBindingDriverId || !selectedBindingVehicleId) {
-            alert('Selecione motorista e viatura para fixar o turno.');
-            return;
-        }
-
-        setIsSavingBinding(true);
-        try {
-            const metadata = `manual|linha:${selectedOperationalLine}|turno:${bindingStart}-${bindingEnd}`;
-            const nowIso = new Date().toISOString();
-            const activeSameDriver = activeAssocByDriver.get(selectedBindingDriverId);
-            const activeSameVehicle = activeAssocByVehicle.get(selectedBindingVehicleId);
-            const idsToClose = [activeSameDriver?.id, activeSameVehicle?.id].filter(Boolean) as string[];
-
-            if (idsToClose.length > 0) {
-                const { error: closeError } = await supabase
-                    .from('motorista_viatura_assoc')
-                    .update({ fim: nowIso })
-                    .in('id', idsToClose);
-
-                if (closeError) throw closeError;
-            }
-
-            const { error: insertError } = await supabase
-                .from('motorista_viatura_assoc')
-                .insert({
-                    motorista_id: selectedBindingDriverId,
-                    viatura_id: selectedBindingVehicleId,
-                    inicio: nowIso,
-                    origem: metadata
-                });
-
-            if (insertError) throw insertError;
-
-            const vehicle = viaturaById.get(selectedBindingVehicleId);
-            const { error: updateDriverError } = await supabase
-                .from('motoristas')
-                .update({
-                    viatura_id: selectedBindingVehicleId,
-                    current_vehicle: vehicle?.matricula || null,
-                    status: 'ocupado',
-                    estado_operacional: 'em_servico'
-                })
-                .eq('id', selectedBindingDriverId);
-
-            if (updateDriverError) throw updateDriverError;
-
-            await loadAssociations();
-            await refreshData();
-            alert('Viatura fixada ao motorista com sucesso para o turno ativo.');
-        } catch (error: any) {
-            console.error('Erro ao fixar viatura por turno:', error);
-            alert(`Falha ao fixar viatura: ${error?.message || 'erro desconhecido'}`);
-        } finally {
-            setIsSavingBinding(false);
-        }
-    };
-
-    const clearDriverBinding = async (driverId: string) => {
-        const assoc = activeAssocByDriver.get(driverId);
-        if (!assoc) return;
-
-        if (!confirm('Remover fixação ativa deste motorista?')) return;
-
-        const nowIso = new Date().toISOString();
-        const { error: closeError } = await supabase
-            .from('motorista_viatura_assoc')
-            .update({ fim: nowIso })
-            .eq('id', assoc.id);
-
-        if (closeError) {
-            alert(`Falha ao remover associação: ${closeError.message}`);
-            return;
-        }
-
-        const { error: updateDriverError } = await supabase
-            .from('motoristas')
-            .update({ viatura_id: null, current_vehicle: null, status: 'disponivel', estado_operacional: 'disponivel' })
-            .eq('id', driverId);
-
-        if (updateDriverError) {
-            alert(`Associação removida, mas falhou atualização do motorista: ${updateDriverError.message}`);
-        }
-
-        await loadAssociations();
-        await refreshData();
-    };
-
-    const selectedDriverHistory = useMemo(() => {
-        if (!selectedBindingDriverId) return [];
-        return associationHistory.filter(a => a.motorista_id === selectedBindingDriverId).slice(0, 8);
-    }, [associationHistory, selectedBindingDriverId]);
 
     const isUrgentService = (service: Partial<Servico>) => {
         if (service.isUrgent || service.status === 'URGENTE') return true;
@@ -713,13 +494,6 @@ export default function Escalas() {
 
         const diffMinutes = (serviceDateTime.getTime() - Date.now()) / 60000;
         return diffMinutes >= 0 && diffMinutes < 60;
-    };
-
-    const formatCheckpointTime = (value?: string | null) => {
-        if (!value) return '--';
-        const parsed = new Date(value);
-        if (Number.isNaN(parsed.getTime())) return '--';
-        return parsed.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     };
 
     const getServiceVisualState = (service: Servico): 'urgent' | 'completed' | 'active' | 'delayed' | 'scheduled' => {
@@ -743,15 +517,6 @@ export default function Escalas() {
     const handlePendingDragStart = (serviceId: string) => (e: React.DragEvent) => {
         e.dataTransfer.setData('text/plain', serviceId);
         e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDropServiceOnDriver = async (driverId: string, e: React.DragEvent) => {
-        e.preventDefault();
-        const serviceId = e.dataTransfer.getData('text/plain');
-        if (!serviceId) return;
-        const service = servicos.find(s => s.id === serviceId);
-        if (!service) return;
-        await assignDriverToService(service, driverId);
     };
 
     const notifyUrgentAssignment = async (service: Servico, driverId: string) => {
@@ -1128,20 +893,16 @@ export default function Escalas() {
         }
     };
     // Layout & Filter State
-    const [showAutoSettings, setShowAutoSettings] = useState(false);
-    const [layoutCols, setLayoutCols] = useState<number>(() => {
+    const [layoutCols] = useState<number>(() => {
         const saved = localStorage.getItem('escalas_layout_cols');
         return saved ? parseInt(saved) : 3;
     });
-    const [driverOrder, setDriverOrder] = useState<string[]>(() => {
+
+    const [driverOrder] = useState<string[]>(() => {
         const saved = localStorage.getItem('escalas_driver_order');
         return saved ? JSON.parse(saved) : [];
     });
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
 
 
     // Save Layout Effects
@@ -1180,29 +941,6 @@ export default function Escalas() {
         alert(t('schedule.alerts.urgent_request_sent'));
     };
 
-    const handleSupervisorCancel = async (notification: Notification) => {
-        if (!confirm(t('schedule.alerts.cancel_confirm'))) return;
-
-        if (notification.status === 'assigned' && notification.response?.driverId) {
-            addNotification({
-                id: crypto.randomUUID(),
-                type: 'transport_cancelled',
-                data: {
-                    origin: notification.data.origin,
-                    destination: notification.data.destination
-                },
-                status: 'pending',
-                response: { driverId: notification.response.driverId },
-                timestamp: new Date().toISOString()
-            });
-
-            if (notification.response.serviceId) {
-                await deleteServico(notification.response.serviceId);
-            }
-        }
-
-        updateNotification({ ...notification, status: 'rejected' });
-    };
 
     // Advanced Filtering
     const filteredServicos = servicos.filter(s => {
@@ -1576,12 +1314,6 @@ export default function Escalas() {
         }
     };
 
-    const unassignService = async (id: string) => {
-        const service = servicos.find(s => s.id === id);
-        if (service) {
-            await assignDriverToService(service, null);
-        }
-    };
 
     const handleDeleteService = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -1642,20 +1374,6 @@ export default function Escalas() {
         }
     };
 
-    const handleDeleteDriver = async (driverId: string, driverName: string) => {
-        if (confirm(`Tem a certeza que deseja eliminar o motorista ${driverName}?`)) {
-            await deleteMotorista(driverId);
-            setActiveDriverMenuId(null);
-        }
-    };
-
-    const handleEditDriver = async (driver: any) => {
-        const newName = prompt("Novo nome para o motorista:", driver.nome);
-        if (newName && newName !== driver.nome) {
-            await updateMotorista({ ...driver, nome: newName });
-            setActiveDriverMenuId(null);
-        }
-    };
 
     const processedMotoristas = useMemo(() => {
         if (driverOrder.length === 0) return filteredMotoristas;
@@ -1669,33 +1387,6 @@ export default function Escalas() {
         });
     }, [filteredMotoristas, driverOrder]);
 
-    const handleDragDriverEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (!over || active.id === over.id) return;
-
-        setDriverOrder((items) => {
-            // Ensure we have a complete list of IDs including new ones if not present
-            const currentIds = items.length > 0 ? items : processedMotoristas.map(m => m.id);
-            // If the list is still empty (edge case), use processed
-            const baseList = currentIds.length === 0 ? processedMotoristas.map(m => m.id) : currentIds;
-
-            const oldIndex = baseList.indexOf(active.id as string);
-            const newIndex = baseList.indexOf(over.id as string);
-
-            if (oldIndex !== -1 && newIndex !== -1) {
-                return arrayMove(baseList, oldIndex, newIndex);
-            }
-            return baseList;
-        });
-    };
-
-
-
-
-    useEffect(() => {
-        if (driverOrder.length > 0)
-            localStorage.setItem('escalas_driver_order', JSON.stringify(driverOrder));
-    }, [driverOrder]);
 
 
     return (
@@ -1753,14 +1444,23 @@ export default function Escalas() {
                                         <span>Emergência</span>
                                     </button>
 
-                                    <button
-                                        onClick={handleRunAutomation}
-                                        disabled={isAutoLoading || selectedCentroCusto === 'all'}
-                                        className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
-                                    >
-                                        {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                        <span>Automação</span>
-                                    </button>
+                                    <div className="flex items-center">
+                                        <button
+                                            onClick={handleRunAutomation}
+                                            disabled={isAutoLoading || selectedCentroCusto === 'all'}
+                                            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-l-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
+                                        >
+                                            {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                            <span>Automação</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setShowAutoSettings(true)}
+                                            className="bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-2 rounded-r-lg border-l border-emerald-500/30 transition-all active:scale-95 shadow-lg shadow-emerald-900/20"
+                                            title="Configurações de Automação"
+                                        >
+                                            <Settings className="w-4 h-4" />
+                                        </button>
+                                    </div>
 
                                     <button
                                         onClick={() => setShowDailyDriversPanel(true)}

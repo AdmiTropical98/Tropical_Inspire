@@ -219,7 +219,6 @@ function ServiceCard({
         <div
             ref={setNodeRef}
             style={style}
-            tabIndex={0}
             onKeyDown={handleKeyDown}
             onClick={() => onSelect(service.id)}
             {...listeners}
@@ -364,7 +363,6 @@ function BoardColumn({
     const { setNodeRef, isOver } = useDroppable({ id });
     const isPendingColumn = id === 'pending';
     const driverBadge = getDriverStateBadge(driver);
-    const vehicleLabel = getVehicleLabel(driver);
     const workload = getWorkloadLevel(count);
     const workloadPercent = getWorkloadPercent(count);
     const canPreviewDrop = Boolean(activeDragService && isOver && isDropAllowed);
@@ -497,7 +495,6 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
         const status = String(driver.status || '').toLowerCase();
         return status === 'ocupado' || status === 'em_servico';
     }), [withVehicle]);
-    const available = useMemo(() => withVehicle.filter(driver => !inRoute.includes(driver)), [withVehicle, inRoute]);
 
     const workshopDrivers = useMemo(() => withVehicle.filter(driver => String(driver.estadoOperacional || '').toLowerCase() === 'em_oficina'), [withVehicle]);
     const activeDrivers = useMemo(() => withVehicle.filter(driver => !workshopDrivers.includes(driver)), [withVehicle, workshopDrivers]);

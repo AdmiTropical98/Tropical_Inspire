@@ -1,35 +1,14 @@
-  // Grupo próprio para Clientes e Fornecedores
-  const clientesFornecedoresGroup: NavGroup = {
-    key: 'clientes-fornecedores',
-    label: 'Clientes & Fornecedores',
-    items: [
-      {
-        key: 'clientes',
-        label: 'Clientes',
-        icon: Building2,
-        path: '/clientes',
-        active: activeTab === 'clientes',
-      },
-      {
-        key: 'fornecedores',
-        label: 'Fornecedores',
-        icon: Briefcase,
-        path: '/fornecedores',
-        active: activeTab === 'fornecedores',
-      },
-    ],
-  };
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import {
-  LayoutDashboard, Car, MessageSquare, Menu,
-  Truck, Calendar, Clock, Wallet, Building2, Briefcase, Shield,
-  BarChart3, MapPin, Hammer, Award, LayoutTemplate,
-  ChevronDown, ChevronRight, UserCheck, Activity,
-  Gauge, Settings2, UserCog as UserCogIcon, LogOut,
-  Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging, Ticket,
-  Box, History, BellRing, Wrench, UserPlus, IdCard
+  LayoutDashboard, Car, MessageSquare,
+  Calendar, Building2, Briefcase,
+  BarChart3, MapPin, Award, LayoutTemplate,
+  UserCheck, Activity,
+  Settings2, UserCog as UserCogIcon, LogOut,
+  Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging,
+  History, IdCard, Settings
 } from 'lucide-react';
 
 import { useAuth } from './contexts/AuthContext';
@@ -133,80 +112,8 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const TopNavItem: React.FC<{ item: NavItem; onNavigate: (path: string) => void; mobile?: boolean }> = ({ item, onNavigate, mobile = false }) => {
-  const Icon = item.icon;
-  return (
-    <button
-      onClick={() => onNavigate(item.path)}
-      className={`group relative flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-[14px] transition-all duration-300 ${item.active
-        ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/40'
-        : mobile
-          ? 'text-white/80 hover:bg-white/10 hover:text-white'
-          : 'text-white/70 hover:bg-white/5 hover:text-white'
-        }`}
-    >
-      <Icon className={`h-[18px] w-[18px] transition-transform duration-300 ${item.active ? 'scale-110 text-white' : 'text-slate-400 group-hover:scale-110 group-hover:text-white'}`} />
-      <span>{item.label}</span>
-      {item.badge && item.badge > 0 && (
-        <span className="ml-1 rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white ring-1 ring-white/20">{item.badge}</span>
-      )}
-      {item.active && !mobile && <span className="absolute -bottom-1 left-3 right-3 h-0.5 rounded-full bg-blue-300" />}
-    </button>
-  );
-};
 
-const TopNavDropdown: React.FC<{
-  group: NavGroup;
-  onNavigate: (path: string) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-  onOpen: () => void;
-  onClose: () => void;
-}> = ({ group, onNavigate, isOpen, onToggle, onOpen, onClose }) => {
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const hasActiveChild = group.items.some(item => item.active);
 
-  React.useEffect(() => {
-    if (!isOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (!containerRef.current) return;
-      if (containerRef.current.contains(event.target as Node)) return;
-      onClose();
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isOpen, onClose]);
-
-  return (
-    <div
-      ref={containerRef}
-      className="relative overflow-visible"
-      onMouseEnter={onOpen}
-    >
-      <button
-        onClick={onToggle}
-        className={`group relative flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-[14px] transition-all duration-300 ${hasActiveChild
-          ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/40'
-          : 'text-white/70 hover:bg-white/5 hover:text-white'
-          }`}
-      >
-        <span>{group.label}</span>
-        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        {hasActiveChild && <span className="absolute -bottom-1 left-3 right-3 h-0.5 rounded-full bg-blue-300" />}
-      </button>
-
-      <div
-        className={`absolute left-1/2 top-full z-[9999] mt-3 w-72 -translate-x-1/2 rounded-2xl border border-white/10 bg-[#1e293b]/95 p-2 shadow-xl shadow-black/40 backdrop-blur-sm transition-all duration-200 ${isOpen ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'}`}
-      >
-        {group.items.map(item => (
-          <TopNavItem key={item.key} item={item} onNavigate={onNavigate} mobile />
-        ))}
-      </div>
-    </div>
-  );
-};
 
 const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?: boolean; compact?: boolean }> = ({ onNavigate, showName = true, compact = false }) => {
   const { currentUser, userPhoto, logout } = useAuth();
@@ -626,6 +533,28 @@ function App() {
         icon: BarChart3,
         path: '/combustivel?tab=relatorios',
         active: activeTab === 'combustivel' && fuelTab === 'relatorios',
+      },
+    ],
+  };
+
+  // Grupo próprio para Clientes e Fornecedores
+  const clientesFornecedoresGroup: NavGroup = {
+    key: 'clientes-fornecedores',
+    label: 'Clientes & Fornecedores',
+    items: [
+      {
+        key: 'clientes',
+        label: 'Clientes',
+        icon: Building2,
+        path: '/clientes',
+        active: activeTab === 'clientes',
+      },
+      {
+        key: 'fornecedores',
+        label: 'Fornecedores',
+        icon: Briefcase,
+        path: '/fornecedores',
+        active: activeTab === 'fornecedores',
       },
     ],
   };

@@ -1,25 +1,54 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-                {activeTab === 'create' && (
-                    <div className="w-full min-w-0 animate-in slide-in-from-bottom-8 fade-in pb-10">
-                        <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200/50 shadow-2xl relative">
-                            <RequisicaoForm
-                                clientes={clientes}
-                                fornecedores={fornecedores}
-                                viaturas={viaturas}
-                                stockItems={[]}
-                                onSubmit={async (data) => {
-                                    await addRequisicao({
-                                        ...data,
-                                        criadoPor: currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Staff'),
-                                        data: new Date().toISOString(),
-                                    });
-                                    setActiveTab('list');
-                                }}
-                            />
-                        </div>
-                    </div>
-                )}
+import { useAuth } from '../../contexts/AuthContext';
+import { useWorkshop } from '../../contexts/WorkshopContext';
+import { usePermissions } from '../../contexts/PermissionsContext';
+import { 
+  Building2, Briefcase, ClipboardCheck, AlertTriangle, 
+  Trash2, Mail, Download, Check, X, MoreVertical, 
+  Edit2, RotateCcw, Plus, Calculator, History, Activity,
+  LayoutDashboard, FileText, Clock, AlertCircle, TrendingUp,
+  Package, ArrowRight, CheckCircle, Search, Pencil, Settings2,
+  List, Building, User, PlusCircle, Printer, UserPlus, IdCard,
+  ChevronDown, ChevronRight, Menu, Wallet, Shield, MapPin, Hammer, Award,
+  LayoutTemplate, Gauge, LogOut, Navigation, Fuel, BatteryCharging, Ticket, Box, 
+  BellRing, Wrench
+} from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Requisicao } from '../../types';
+import RequisicaoForm from './RequisicaoForm';
+
+export default function Requisicoes() {
+    const navigate = useNavigate();
+    const { currentUser, userRole } = useAuth();
+    const { hasAccess } = usePermissions();
+    const { 
+        requisicoes, addRequisicao, updateRequisicao, deleteRequisicao, 
+        toggleRequisicaoStatus, clientes, fornecedores, viaturas, 
+        centrosCustos, isRefreshing, refreshData 
+    } = useWorkshop();
+
+    const t = (key: string) => {
+        const labels: Record<string, string> = {
+            'req.valid.invoice_required': 'Pela menos uma fatura é obrigatória para concluir a requisição.',
+            'req.form.title': 'Nova Requisição de Material',
+            'req.form.date': 'Data da Requisição',
+            'req.form.type': 'Tipo de Requisição',
+            'req.form.vehicle': 'Viatura / Equipamento',
+            'req.form.vehicle_select': 'Selecione a viatura...',
+            'req.form.supplier': 'Fornecedor Sugerido',
+            'req.form.supplier_select': 'Selecione o fornecedor...',
+            'req.form.items': 'Itens da Requisição',
+            'req.form.desc_placeholder': 'Descrição do material ou serviço...',
+            'req.card.unknown_supplier': 'Fornecedor não identificado'
+        };
+        return labels[key] || key;
+    };
+
+    const EMAIL_LOGO_URL = '/LOGO.png';
+    const DOWNLOAD_LINK_PLACEHOLDER = '{download_link}';
+    const SENDER_EMAIL = 'frota@algartempo.pt';
 
     // Navigation State
     const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'create'>('overview');
@@ -1163,18 +1192,82 @@ import { useNavigate } from 'react-router-dom';
         return parseInt(numB) - parseInt(numA);
     });
 
-    // ...existing code...
-    // Certifique-se de que este bloco está dentro de um componente React (ex: function RequisicoesPage() { ... })
-    // Se não houver um componente, crie um:
-    // function RequisicoesPage() {
-    //   ...
-    //   return (
-    //     <div>...</div>
-    //   );
-    // }
-    // export default RequisicoesPage;
-    // ...
-    // O importante é que o return esteja dentro de um componente React.
+    return (
+        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
+            <div className="max-w-[1600px] mx-auto space-y-8">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
+                                <ClipboardCheck className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                                    Gestão de Requisições
+                                </h1>
+                                <p className="text-slate-500 font-medium flex items-center gap-2">
+                                    Controlo e acompanhamento de pedidos de material
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => refreshData()}
+                            className={`p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+                            title="Atualizar dados"
+                        >
+                            <RotateCcw className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('create')}
+                            className="flex items-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-200"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Nova Requisição
+                        </button>
+                    </div>
+                </div>
+
+                {/* Main Navigation Tabs */}
+                <div className="flex p-1.5 bg-slate-100/80 rounded-[2rem] w-fit backdrop-blur-sm border border-slate-200/50">
+                    <button
+                        onClick={() => setActiveTab('overview')}
+                        className={`flex items-center gap-2 px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all ${
+                            activeTab === 'overview'
+                                ? 'bg-white text-blue-600 shadow-md ring-1 ring-slate-200'
+                                : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                        }`}
+                    >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Visão Geral
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('list')}
+                        className={`flex items-center gap-2 px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all ${
+                            activeTab === 'list'
+                                ? 'bg-white text-blue-600 shadow-md ring-1 ring-slate-200'
+                                : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                        }`}
+                    >
+                        <List className="w-4 h-4" />
+                        Listagem
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('create')}
+                        className={`flex items-center gap-2 px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all ${
+                            activeTab === 'create'
+                                ? 'bg-white text-blue-600 shadow-md ring-1 ring-slate-200'
+                                : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                        }`}
+                    >
+                        <PlusCircle className="w-4 h-4" />
+                        Criar Pedido
+                    </button>
+                </div>
+                { activeTab === 'overview' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Content ... */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1254,11 +1347,10 @@ import { useNavigate } from 'react-router-dom';
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-2 bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 relative overflow-hidden">
                                 <div className="flex items-center justify-between mb-8">
+                                    <h3 className="text-xl font-bold text-slate-900">Evolução Mensal</h3>
+                                    <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-blue-400">
+                                        Auto-Gerado
                                     </div>
-                                </div>
-                                <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-blue-400">
-                                    Auto-Gerado
-                                </div>
                                 </div>
 
                                 <div className="flex items-end justify-between gap-4 h-48 mt-4">
@@ -2399,4 +2491,4 @@ import { useNavigate } from 'react-router-dom';
             </div>
         </div>
     );
-// Removido fechamento extra
+}
