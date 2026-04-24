@@ -1254,11 +1254,9 @@ import { useNavigate } from 'react-router-dom';
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-2 bg-white/90 backdrop-blur-md border border-slate-200/70 rounded-[2.5rem] p-8 relative overflow-hidden">
                                 <div className="flex items-center justify-between mb-8">
-                                    <div>
-                                        <h3 className="text-xl font-bold text-slate-900 mb-1">Volume de Requisições</h3>
-                                        <p className="text-slate-500 text-sm font-medium uppercase tracking-widest flex items-center gap-2">
-                                            <TrendingUp className="w-4 h-4 text-emerald-500" />
-                                            Últimos meses
+                                    </div>
+                                </div>
+                            )
                                         </p>
                                     </div>
                                     <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-blue-400">
