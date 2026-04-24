@@ -2427,4 +2427,4 @@ import { useNavigate } from 'react-router-dom';
             </div>
         </div>
     );
-}
+// Removido fechamento extra
