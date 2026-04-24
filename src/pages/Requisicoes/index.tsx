@@ -1256,8 +1256,6 @@ import { useNavigate } from 'react-router-dom';
                                 <div className="flex items-center justify-between mb-8">
                                     </div>
                                 </div>
-                            )
-                                </div>
                                 <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-blue-400">
                                     Auto-Gerado
                                 </div>
