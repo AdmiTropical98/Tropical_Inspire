@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-    Upload, Plus, Calendar,
+    Upload, Plus, Calendar as CalendarIcon,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
     Send, MapPin, Clock, Users, Car, Bus,
     Search, AlertTriangle,
@@ -1404,7 +1404,7 @@ export default function Escalas() {
             <PageHeader
                 title="Gestão de Escalas"
                 subtitle="Mapas, Escalas e Distribuição"
-                icon={Calendar}
+                icon={CalendarIcon}
                 breadcrumbs={[]}
                 actions={
                     <>
@@ -1422,7 +1422,7 @@ export default function Escalas() {
                                     }}
                                     className="bg-white/90 text-slate-900 text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-slate-200 outline-none focus:border-blue-500 transition-colors shadow-sm"
                                 />
-                                <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                             </div>
 
                             {hasAccess(userRole, 'escalas_create') && (
@@ -2294,7 +2294,7 @@ export default function Escalas() {
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex items-center gap-2 text-xs text-slate-400">
-                                                                    <Calendar className="w-3.5 h-3.5" />
+                                                                    <CalendarIcon className="w-3.5 h-3.5" />
                                                                     <span className="font-mono">{batch?.reference_date || selectedDate}</span>
                                                                     {batch?.is_published && (
                                                                         <span className="ml-auto text-[10px] text-emerald-400 flex items-center gap-1">

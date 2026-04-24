@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-
 import { Capacitor } from '@capacitor/core';
 import {
   LayoutDashboard, Car, MessageSquare,
-  Calendar, Building2, Briefcase,
+  Calendar as CalendarIcon, Building2, Briefcase,
   BarChart3, MapPin, Award, LayoutTemplate,
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
@@ -436,7 +436,7 @@ function App() {
           {
             key: 'escalas',
             label: 'Escalas',
-            icon: Calendar,
+            icon: CalendarIcon,
             path: '/escalas',
             active: activeTab === 'escalas',
           },
