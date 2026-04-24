@@ -466,6 +466,7 @@ function App() {
 
   const isMapPage = location.pathname === '/roteirizacao' || location.pathname === '/geofences';
   const isFullScreenPage = isMapPage;
+  const useDesktopLayoutForNativeRouting = isCapacitorAndroid && location.pathname === '/roteirizacao';
 
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
@@ -635,6 +636,11 @@ function App() {
     items: [
       ...(hasAccess(userRole, 'roteirizacao') ? [{ key: 'roteirizacao', label: 'Roteirização', icon: Navigation, path: '/roteirizacao', active: activeTab === 'roteirizacao' } as NavItem] : []),
       { key: 'linha-transportes', label: 'Linha Transportes', icon: Navigation, path: '/linha-transportes', active: activeTab === 'linha-transportes' },
+      // Sempre mostrar Clientes e Fornecedores para ADMINISTRADOR
+      ...((userRole && String(userRole).toLowerCase().includes('admin')) ? [
+        { key: 'clientes', label: 'Clientes', icon: Building2, path: '/clientes', active: activeTab === 'clientes' },
+        { key: 'fornecedores', label: 'Fornecedores', icon: Briefcase, path: '/fornecedores', active: activeTab === 'fornecedores' },
+      ] : []),
       ...(hasAccess(userRole, 'geofences') ? [{ key: 'geofences', label: 'Cercas Geográficas', icon: MapPin, path: '/geofences', active: activeTab === 'geofences' } as NavItem] : []),
       ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'utilizadores', label: 'Perfis', icon: UserCheck, path: '/utilizadores', active: activeTab === 'utilizadores' } as NavItem] : []),
       ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'colaboradores', label: 'Colaboradores', icon: IdCard, path: '/colaboradores', active: activeTab === 'colaboradores' } as NavItem] : []),
@@ -835,6 +841,14 @@ function App() {
       </div>
     </nav>
   );
+
+  if (useDesktopLayoutForNativeRouting) {
+    return (
+      <LayoutDesktop isFullScreenPage={isFullScreenPage} navbar={desktopNavbar}>
+        {appRoutes}
+      </LayoutDesktop>
+    );
+  }
 
   if (isCapacitorAndroid) {
     return (
