@@ -1257,11 +1257,10 @@ import { useNavigate } from 'react-router-dom';
                                     </div>
                                 </div>
                             )
-                                        </p>
-                                    </div>
-                                    <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-blue-400">
-                                        Auto-Gerado
-                                    </div>
+                                </div>
+                                <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-blue-400">
+                                    Auto-Gerado
+                                </div>
                                 </div>
 
                                 <div className="flex items-end justify-between gap-4 h-48 mt-4">
