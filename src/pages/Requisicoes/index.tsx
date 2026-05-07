@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Requisicao } from '../../types';
+import { Requisicao, ItemRequisicao } from '../../types';
 import RequisicaoForm from './RequisicaoForm';
 
 export default function Requisicoes() {
@@ -28,6 +28,20 @@ export default function Requisicoes() {
         toggleRequisicaoStatus, clientes, fornecedores, viaturas, 
         centrosCustos, isRefreshing, refreshData 
     } = useWorkshop();
+    const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [sendingEmailReqId, setSendingEmailReqId] = useState<string | null>(null);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [showEmailPreview, setShowEmailPreview] = useState(false);
+    const [emailModalReqId, setEmailModalReqId] = useState<string | null>(null);
+    const [emailTo, setEmailTo] = useState('');
+    const [emailCc, setEmailCc] = useState('');
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailMessage, setEmailMessage] = useState('');
+    const [isSubmittingRequisition, setIsSubmittingRequisition] = useState(false);
+    const [numberMode, setNumberMode] = useState<'auto' | 'manual'>('auto');
+    const [manualNumberInput, setManualNumberInput] = useState('');
 
     const t = (key: string) => {
         const labels: Record<string, string> = {
@@ -293,6 +307,40 @@ export default function Requisicoes() {
         return raw;
     };
 
+    const getCurrentRequisitionYear = () => new Date().getFullYear().toString().slice(-2);
+
+    const parseRequisitionNumber = (rawValue: string, defaultYear?: string): { year: string; seq: number } | null => {
+        const value = String(rawValue || '').trim();
+        if (!value) return null;
+
+        if (/^\d+$/.test(value)) {
+            const seq = parseInt(value, 10);
+            const year = (defaultYear || getCurrentRequisitionYear()).trim();
+            if (!year || Number.isNaN(seq) || seq <= 0) return null;
+            return { year, seq };
+        }
+
+        const match = value.match(/^(\d{2})\s*\/\s*(\d{1,6})$/);
+        if (!match) return null;
+
+        const year = match[1];
+        const seq = parseInt(match[2], 10);
+        if (Number.isNaN(seq) || seq <= 0) return null;
+
+        return { year, seq };
+    };
+
+    const findRequisitionByYearAndSeq = (year: string, seq: number, excludeId?: string) => {
+        return requisicoes.find((req) => {
+            if (excludeId && req.id === excludeId) return false;
+            const parsed = parseRequisitionNumber(String(req.numero || ''));
+            return Boolean(parsed && parsed.year === year && parsed.seq === seq);
+        });
+    };
+
+    const formatRequisitionNumber = (year: string, seq: number) => `${year}/${seq.toString().padStart(4, '0')}`;
+    const currentRequisitionYear = getCurrentRequisitionYear();
+
     const formatCurrency = (value: number) => new Intl.NumberFormat('pt-PT', {
         style: 'currency',
         currency: 'EUR'
@@ -469,6 +517,8 @@ export default function Requisicoes() {
         setCentroCustoId(req.centroCustoId);
         setObs(req.obs || '');
         setItems(req.itens || []);
+        setNumberMode('auto');
+        setManualNumberInput('');
         setActiveTab('create');
     };
 
@@ -589,6 +639,8 @@ export default function Requisicoes() {
         setCentroCustoId(undefined);
         setObs('');
         setItems([]);
+        setNumberMode('auto');
+        setManualNumberInput('');
         setActiveTab('list');
     };
 
@@ -654,8 +706,7 @@ export default function Requisicoes() {
 
         setIsSubmittingRequisition(true);
 
-        const currentYear = new Date().getFullYear().toString().slice(-2);
-        const prefix = `${currentYear}/`;
+        const currentYear = getCurrentRequisitionYear();
 
         try {
             if (editingId) {
@@ -680,23 +731,44 @@ export default function Requisicoes() {
                 await updateRequisicao(updatedReq);
                 setEditingId(null);
             } else {
-                const yearRequisicoes = requisicoes.filter(r => {
-                    const numStr = String(r.numero || '');
-                    return numStr.startsWith(prefix);
-                });
+                let targetYear = currentYear;
+                let targetSeq = 0;
 
-                const maxSeq = yearRequisicoes.reduce((max, r) => {
-                    const parts = String(r.numero).split('/');
-                    if (parts.length === 2) {
-                        const seq = parseInt(parts[1], 10);
-                        return !isNaN(seq) && seq > max ? seq : max;
+                if (numberMode === 'manual') {
+                    const parsedManualNumber = parseRequisitionNumber(manualNumberInput, currentYear);
+                    if (!parsedManualNumber) {
+                        alert('Número inválido. Use apenas sequência (ex.: 380) ou formato AA/NNNN (ex.: 24/0380).');
+                        return;
                     }
-                    return max;
-                }, 0);
+
+                    const duplicatedReq = findRequisitionByYearAndSeq(parsedManualNumber.year, parsedManualNumber.seq);
+                    if (duplicatedReq) {
+                        alert(`O número ${duplicatedReq.numero} já existe. Escolha outro número disponível.`);
+                        return;
+                    }
+
+                    targetYear = parsedManualNumber.year;
+                    targetSeq = parsedManualNumber.seq;
+                } else {
+                    const maxSeq = requisicoes.reduce((max, req) => {
+                        const parsed = parseRequisitionNumber(String(req.numero || ''));
+                        if (!parsed || parsed.year !== currentYear) return max;
+                        return parsed.seq > max ? parsed.seq : max;
+                    }, 0);
+
+                    targetSeq = maxSeq + 1;
+                }
+
+                const targetNumero = formatRequisitionNumber(targetYear, targetSeq);
+
+                if (requisicoes.some(req => String(req.numero || '').trim() === targetNumero)) {
+                    alert(`O número ${targetNumero} já existe. Escolha outro número disponível.`);
+                    return;
+                }
 
                 const newReq: Requisicao = {
                     id: crypto.randomUUID(),
-                    numero: `${prefix}${(maxSeq + 1).toString().padStart(4, '0')}`,
+                    numero: targetNumero,
                     data,
                     tipo,
                     clienteId: clienteId || undefined,
@@ -723,9 +795,16 @@ export default function Requisicoes() {
             setCentroCustoId(undefined);
             setObs('');
             setItems([]);
+            setNumberMode('auto');
+            setManualNumberInput('');
         } catch (error) {
             console.error('Erro ao gravar requisição:', error);
-            alert('Ocorreu um erro ao gravar a requisição. Tente novamente.');
+            const message = error instanceof Error ? error.message : '';
+            if (/duplicate|duplicado|already exists|já existe/i.test(message)) {
+                alert('O número de requisição selecionado já existe. Escolha outro número.');
+            } else {
+                alert('Ocorreu um erro ao gravar a requisição. Tente novamente.');
+            }
         } finally {
             setIsSubmittingRequisition(false);
         }
@@ -1836,6 +1915,54 @@ export default function Requisicoes() {
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 {/* Form Fields Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {!editingId && (
+                                        <div className="space-y-2 md:col-span-2 lg:col-span-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Numeração da Requisição</label>
+                                            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+                                                <div className="flex flex-wrap items-center gap-5">
+                                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="requisition-number-mode"
+                                                            checked={numberMode === 'auto'}
+                                                            onChange={() => setNumberMode('auto')}
+                                                            className="text-blue-600"
+                                                        />
+                                                        Automático
+                                                    </label>
+                                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="requisition-number-mode"
+                                                            checked={numberMode === 'manual'}
+                                                            onChange={() => setNumberMode('manual')}
+                                                            className="text-blue-600"
+                                                        />
+                                                        Manual
+                                                    </label>
+                                                </div>
+
+                                                {numberMode === 'manual' ? (
+                                                    <input
+                                                        type="text"
+                                                        value={manualNumberInput}
+                                                        onChange={(e) => setManualNumberInput(e.target.value)}
+                                                        placeholder={`Ex.: ${currentRequisitionYear}/0380 ou 380`}
+                                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none text-slate-700 transition-all font-mono shadow-sm"
+                                                    />
+                                                ) : (
+                                                    <p className="text-xs text-slate-500">
+                                                        O sistema usa automaticamente o próximo número disponível do ano atual ({currentRequisitionYear}).
+                                                    </p>
+                                                )}
+
+                                                <p className="text-xs text-slate-500">
+                                                    O sistema valida automaticamente se o número escolhido já existe e não permite duplicados.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">{t('req.form.date')}</label>
                                         <div className="relative group">

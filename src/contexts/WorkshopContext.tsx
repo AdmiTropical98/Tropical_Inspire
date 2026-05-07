@@ -3325,9 +3325,68 @@ export function WorkshopProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addRequisicao = async (r: Requisicao) => {
+        const parseReqNumber = (rawValue: string): { year: string; seq: number } | null => {
+            const value = String(rawValue || '').trim();
+            const match = value.match(/^(\d{2})\/(\d{1,6})$/);
+            if (!match) return null;
+
+            const seq = parseInt(match[2], 10);
+            if (Number.isNaN(seq) || seq <= 0) return null;
+
+            return { year: match[1], seq };
+        };
+
+        const normalizedNumber = String(r.numero || '').trim();
+        const parsedTargetNumber = parseReqNumber(normalizedNumber);
+
+        if (!normalizedNumber) {
+            throw new Error('Número de requisição inválido.');
+        }
+
+        const { data: exactMatches, error: exactCheckError } = await supabase
+            .from('requisicoes')
+            .select('id, numero')
+            .eq('numero', normalizedNumber)
+            .limit(1);
+
+        if (exactCheckError) {
+            console.error('Error checking requisition number duplication:', exactCheckError);
+            throw exactCheckError;
+        }
+
+        if ((exactMatches || []).length > 0) {
+            throw new Error(`Já existe uma requisição com o número ${normalizedNumber}.`);
+        }
+
+        if (parsedTargetNumber) {
+            const { data: yearMatches, error: yearCheckError } = await supabase
+                .from('requisicoes')
+                .select('id, numero')
+                .like('numero', `${parsedTargetNumber.year}/%`)
+                .limit(5000);
+
+            if (yearCheckError) {
+                console.error('Error checking requisition number sequence duplication:', yearCheckError);
+                throw yearCheckError;
+            }
+
+            const hasSemanticDuplicate = (yearMatches || []).some((existingReq: { numero: string }) => {
+                const parsedExisting = parseReqNumber(String(existingReq.numero || '').trim());
+                return Boolean(
+                    parsedExisting
+                    && parsedExisting.year === parsedTargetNumber.year
+                    && parsedExisting.seq === parsedTargetNumber.seq
+                );
+            });
+
+            if (hasSemanticDuplicate) {
+                throw new Error(`Já existe uma requisição com o número ${normalizedNumber}.`);
+            }
+        }
+
         const { error } = await supabase.from('requisicoes').insert({
             id: r.id,
-            numero: r.numero,
+            numero: normalizedNumber,
             data: r.data,
             tipo: r.tipo,
             cliente_id: r.clienteId || null,
