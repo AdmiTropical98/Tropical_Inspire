@@ -379,6 +379,13 @@ export default function Login() {
                                 >
                                     É um colaborador? Aceder à Área
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => window.location.href = '/inventario'}
+                                    className="w-full rounded-2xl border border-emerald-200 bg-emerald-50 py-3 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 hover:border-emerald-300"
+                                >
+                                    📦 Aceder ao Sistema de Inventário
+                                </button>
                             </form>
                         </div>
                     </section>

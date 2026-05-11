@@ -13,6 +13,7 @@ interface UserPermissionsModalProps {
 const MODULES: { id: SystemModule; label: string }[] = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'frota', label: 'Gestão de Frota' },
+    { id: 'inventario', label: 'Gestão de Inventário' },
     { id: 'escalas', label: 'Escalas e Operações' },
     { id: 'horas', label: 'Registo de Horas' },
     { id: 'combustivel', label: 'Combustível / Via Verde' },

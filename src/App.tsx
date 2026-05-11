@@ -17,6 +17,7 @@ import { useChat } from './contexts/ChatContext';
 
 // Components
 import Login from './pages/Auth/Login';
+import InventoryLogin from './pages/Auth/InventoryLogin';
 import ResetPassword from './pages/Auth/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import AlertsPage from './pages/Alerts';
@@ -54,6 +55,7 @@ import AssignedTools from './pages/Workshop/AssignedTools';
 import LayoutMobile from './components/layout/LayoutMobile';
 import LayoutDesktop from './components/layout/LayoutDesktop';
 import DriverMode from './pages/DriverMode';
+import InventoryModule from './pages/Inventario/InventoryModule';
 import { isAndroidAuto } from './utils/isAndroidAuto';
 
 // Lazy loading backoffice
@@ -256,7 +258,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
 function App() {
   const MOBILE_MAX_WIDTH = 768;
   const SIDEBAR_LOGO = '/LOGO.png';
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, logout } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
   const navigate = useNavigate();
@@ -378,6 +380,17 @@ function App() {
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
     location.pathname.startsWith('/colaborador/');
+  const isInventoryArea =
+    location.pathname === '/inventario' ||
+    location.pathname.startsWith('/inventario/');
+  const normalizedRole = String(userRole || '').toUpperCase();
+  const isAdminRole = normalizedRole === 'ADMIN' || normalizedRole === 'ADMIN_MASTER';
+  const canAccessInventoryModule = isAdminRole || hasAccess(userRole, 'inventario', 'ver');
+  const canAccessFleetModule =
+    isAdminRole ||
+    hasAccess(userRole, 'frota', 'ver') ||
+    hasAccess(userRole, 'dashboard', 'ver') ||
+    ['GESTOR', 'SUPERVISOR', 'MOTORISTA', 'OFICINA'].includes(normalizedRole);
 
   if (androidAutoMode) {
     return <DriverMode />;
@@ -402,8 +415,46 @@ function App() {
 
   if (!isAuthenticated) {
     if (location.pathname === '/reset-password') return <ResetPassword />;
+    if (isInventoryArea) return <InventoryLogin />;
     return <Login />;
   }
+
+  if (isInventoryArea) {
+    if (!canAccessInventoryModule) {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-slate-100">
+          <div className="max-w-lg w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sem acesso ao Inventário</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              A sua conta não tem permissões para o módulo de Inventário. Contacte o administrador para ativar acesso.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {canAccessFleetModule && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+                >
+                  Ir para Frota
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100"
+              >
+                Terminar sessão
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return <InventoryModule />;
+  }
+
+
 
   const dashboardItem: NavItem = {
     key: 'dashboard',
@@ -573,6 +624,7 @@ function App() {
       ...(hasAccess(userRole, 'geofences') ? [{ key: 'geofences', label: 'Cercas Geográficas', icon: MapPin, path: '/geofences', active: activeTab === 'geofences' } as NavItem] : []),
       ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'utilizadores', label: 'Perfis', icon: UserCheck, path: '/utilizadores', active: activeTab === 'utilizadores' } as NavItem] : []),
       ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'colaboradores', label: 'Colaboradores', icon: IdCard, path: '/colaboradores', active: activeTab === 'colaboradores' } as NavItem] : []),
+
       {
         key: 'mensagens',
         label: 'Central de Mensagens',

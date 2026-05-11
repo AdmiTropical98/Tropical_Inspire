@@ -12,12 +12,41 @@ import {
   List, Building, User, PlusCircle, Printer, UserPlus, IdCard,
   ChevronDown, ChevronRight, Menu, Wallet, Shield, MapPin, Hammer, Award,
   LayoutTemplate, Gauge, LogOut, Navigation, Fuel, BatteryCharging, Ticket, Box, 
-  BellRing, Wrench
+  BellRing, Wrench, Calendar, Truck
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Requisicao, ItemRequisicao } from '../../types';
+import type { Requisicao, ItemRequisicao } from '../../types';
 import RequisicaoForm from './RequisicaoForm';
+import { emailService } from '../../services/emailService';
+import { useFinancial } from '../../contexts/FinancialContext';
+
+type BulkPreviewRow = {
+    lineNumber: number;
+    numero: string;
+    data: string;
+    clienteLabel: string;
+    clienteId?: string;
+    descricao: string;
+    valor: number;
+    observacoes: string;
+    errors: string[];
+};
+
+type EditableBulkRow = {
+    id: string;
+    numero: string;
+    data: string;
+    viatura: string;
+    departamento: string;
+    descricao: string;
+    quantidade: string;
+    valor: string;
+    observacoes: string;
+    errors: string[];
+    warnings: string[];
+    status: 'idle' | 'valid' | 'warning' | 'error';
+};
 
 export default function Requisicoes() {
     const navigate = useNavigate();
@@ -28,6 +57,8 @@ export default function Requisicoes() {
         toggleRequisicaoStatus, clientes, fornecedores, viaturas, 
         centrosCustos, isRefreshing, refreshData 
     } = useWorkshop();
+    const { supplierInvoices } = useFinancial();
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [itemEmEdicao, setItemEmEdicao] = useState<ItemRequisicao | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -42,6 +73,15 @@ export default function Requisicoes() {
     const [isSubmittingRequisition, setIsSubmittingRequisition] = useState(false);
     const [numberMode, setNumberMode] = useState<'auto' | 'manual'>('auto');
     const [manualNumberInput, setManualNumberInput] = useState('');
+    const [bulkInput, setBulkInput] = useState('');
+    const [bulkTipo, setBulkTipo] = useState<Requisicao['tipo']>('Oficina');
+    const [bulkFornecedorId, setBulkFornecedorId] = useState('');
+    const [bulkCentroCustoId, setBulkCentroCustoId] = useState<string>('');
+    const [bulkRows, setBulkRows] = useState<BulkPreviewRow[]>([]);
+    const [bulkImporting, setBulkImporting] = useState(false);
+    const [bulkGridRows, setBulkGridRows] = useState<EditableBulkRow[]>([]);
+    const [bulkAutoNumber, setBulkAutoNumber] = useState(false);
+    const [bulkImportSummary, setBulkImportSummary] = useState<{success: number; duplicates: number; total: number; totalValue: number} | null>(null);
 
     const t = (key: string) => {
         const labels: Record<string, string> = {
@@ -340,6 +380,542 @@ export default function Requisicoes() {
 
     const formatRequisitionNumber = (year: string, seq: number) => `${year}/${seq.toString().padStart(4, '0')}`;
     const currentRequisitionYear = getCurrentRequisitionYear();
+
+    const parseBulkDateToIso = (rawDate: string): string | null => {
+        const value = String(rawDate || '').trim();
+        if (!value) return null;
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+        const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (!match) return null;
+
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10);
+        const year = parseInt(match[3], 10);
+        const date = new Date(year, month - 1, day);
+
+        if (
+            date.getFullYear() !== year
+            || date.getMonth() !== month - 1
+            || date.getDate() !== day
+        ) {
+            return null;
+        }
+
+        return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    };
+
+    const parseBulkValue = (rawValue: string): number | null => {
+        const source = String(rawValue || '').trim().replace(/\s+/g, '').replace(/€/g, '');
+        if (!source) return null;
+
+        let normalized = source;
+
+        if (normalized.includes(',') && normalized.includes('.')) {
+            normalized = normalized.replace(/\./g, '').replace(',', '.');
+        } else {
+            normalized = normalized.replace(',', '.');
+        }
+
+        const value = Number.parseFloat(normalized);
+        if (!Number.isFinite(value) || value <= 0) return null;
+        return value;
+    };
+
+    const detectBulkDelimiter = (line: string): string => {
+        if (line.includes('|')) return '|';
+        if (line.includes('\t')) return '\t';
+        if (line.includes(';')) return ';';
+        return '|';
+    };
+
+    const parseBulkRows = (): BulkPreviewRow[] => {
+        const lines = bulkInput
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean);
+
+        if (lines.length === 0) {
+            return [];
+        }
+
+        const parsedRows: BulkPreviewRow[] = lines.map((line, index) => {
+            const delimiter = detectBulkDelimiter(line);
+            const cols = line.split(delimiter).map(col => col.trim());
+            const [numeroRaw, dataRaw, clienteRaw, descricaoRaw, valorRaw, obsRaw = ''] = cols;
+            const errors: string[] = [];
+
+            if (cols.length < 5) {
+                errors.push('Linha incompleta: use pelo menos 5 colunas.');
+            }
+
+            const parsedNumero = parseRequisitionNumber(numeroRaw || '', currentRequisitionYear);
+            if (!parsedNumero) {
+                errors.push('Número de requisição inválido.');
+            }
+
+            const numero = parsedNumero
+                ? formatRequisitionNumber(parsedNumero.year, parsedNumero.seq)
+                : String(numeroRaw || '');
+
+            const existingNumber = parsedNumero
+                ? findRequisitionByYearAndSeq(parsedNumero.year, parsedNumero.seq)
+                : null;
+
+            if (existingNumber) {
+                errors.push(`Número já existe (${existingNumber.numero}).`);
+            }
+
+            const isoDate = parseBulkDateToIso(dataRaw || '');
+            if (!isoDate) {
+                errors.push('Data inválida. Use DD/MM/AAAA ou AAAA-MM-DD.');
+            }
+
+            const descricao = String(descricaoRaw || '').trim();
+            if (!descricao) {
+                errors.push('Descrição é obrigatória.');
+            }
+
+            const parsedValor = parseBulkValue(valorRaw || '');
+            if (parsedValor === null) {
+                errors.push('Valor inválido.');
+            }
+
+            const clienteLabel = String(clienteRaw || '').trim();
+            const matchedClient = clienteLabel
+                ? clientes.find(c => c.nome.trim().toLowerCase() === clienteLabel.toLowerCase())
+                : undefined;
+
+            return {
+                lineNumber: index + 1,
+                numero,
+                data: isoDate || '',
+                clienteLabel,
+                clienteId: matchedClient?.id,
+                descricao,
+                valor: parsedValor ?? 0,
+                observacoes: String(obsRaw || '').trim(),
+                errors
+            };
+        });
+
+        const numberCount = new Map<string, number>();
+
+        parsedRows.forEach(row => {
+            const key = String(row.numero || '').trim();
+            if (!key) return;
+            numberCount.set(key, (numberCount.get(key) || 0) + 1);
+        });
+
+        return parsedRows.map(row => {
+            const duplicateInBatch = (numberCount.get(String(row.numero || '').trim()) || 0) > 1;
+            if (duplicateInBatch) {
+                return {
+                    ...row,
+                    errors: [...row.errors, 'Número duplicado dentro do lote colado.']
+                };
+            }
+            return row;
+        });
+    };
+
+    const handleValidateBulkRows = () => {
+        const rows = parseBulkRows();
+        setBulkRows(rows);
+
+        if (rows.length === 0) {
+            alert('Cole pelo menos uma linha para validar.');
+            return;
+        }
+
+        const invalidRows = rows.filter(row => row.errors.length > 0).length;
+        if (invalidRows > 0) {
+            alert(`Validação concluída: ${invalidRows} linha(s) com erro.`);
+            return;
+        }
+
+        alert(`Validação concluída: ${rows.length} linha(s) pronta(s) para importar.`);
+    };
+
+    const handleImportBulkRows = async () => {
+        if (bulkImporting) return;
+
+        if (!bulkFornecedorId) {
+            alert('Selecione um fornecedor para a importação em massa.');
+            return;
+        }
+
+        if (bulkTipo === 'Viatura') {
+            alert('A importação rápida suporta apenas tipos Oficina ou Stock.');
+            return;
+        }
+
+        const rows = bulkRows.length > 0 ? bulkRows : parseBulkRows();
+        setBulkRows(rows);
+
+        if (rows.length === 0) {
+            alert('Não existem linhas para importar.');
+            return;
+        }
+
+        const rowsWithErrors = rows.filter(row => row.errors.length > 0);
+        if (rowsWithErrors.length > 0) {
+            alert(`Existem ${rowsWithErrors.length} linha(s) com erro. Corrija antes de importar.`);
+            return;
+        }
+
+        setBulkImporting(true);
+
+        let successCount = 0;
+        const failedRows: Array<{ lineNumber: number; reason: string }> = [];
+
+        try {
+            for (const row of rows) {
+                try {
+                    const item: ItemRequisicao = {
+                        id: crypto.randomUUID(),
+                        descricao: row.descricao,
+                        quantidade: 1,
+                        valor_unitario: row.valor,
+                        valor_total: row.valor
+                    };
+
+                    const newReq: Requisicao = {
+                        id: crypto.randomUUID(),
+                        numero: row.numero,
+                        data: row.data,
+                        tipo: bulkTipo,
+                        clienteId: row.clienteId,
+                        fornecedorId: bulkFornecedorId,
+                        centroCustoId: bulkCentroCustoId || undefined,
+                        itens: [item],
+                        obs: row.observacoes,
+                        criadoPor: currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Staff')
+                    };
+
+                    await addRequisicao(newReq);
+                    successCount += 1;
+                } catch (error) {
+                    const reason = error instanceof Error ? error.message : 'Erro inesperado';
+                    failedRows.push({ lineNumber: row.lineNumber, reason });
+                }
+            }
+
+            if (successCount > 0) {
+                setBulkInput('');
+                setBulkRows([]);
+                setActiveTab('list');
+                setListFilter('pendentes');
+            }
+
+            if (failedRows.length > 0) {
+                const firstFailures = failedRows.slice(0, 3).map(f => `L${f.lineNumber}: ${f.reason}`).join(' | ');
+                alert(`Importação parcial: ${successCount} criada(s), ${failedRows.length} falha(s). ${firstFailures}`);
+                return;
+            }
+
+            alert(`Importação concluída com sucesso: ${successCount} requisição(ões) criada(s).`);
+        } finally {
+            setBulkImporting(false);
+        }
+    };
+
+    // ---- Grid Bulk Import helpers ----
+    const makeEmptyGridRow = (): EditableBulkRow => ({
+        id: crypto.randomUUID(),
+        numero: '',
+        data: new Date().toLocaleDateString('pt-PT'),
+        viatura: '',
+        departamento: '',
+        descricao: '',
+        quantidade: '1',
+        valor: '',
+        observacoes: '',
+        errors: [],
+        warnings: [],
+        status: 'idle'
+    });
+
+    const validateGridRow = (row: EditableBulkRow, allRows: EditableBulkRow[]): EditableBulkRow => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        if (!row.descricao.trim()) errors.push('Descrição obrigatória');
+
+        const isoDate = parseBulkDateToIso(row.data);
+        if (!isoDate) errors.push('Data inválida (use DD/MM/AAAA)');
+
+        const parsedVal = parseBulkValue(row.valor);
+        if (parsedVal === null) errors.push('Valor inválido');
+
+        const parsedQty = parseFloat(row.quantidade.replace(',', '.'));
+        if (isNaN(parsedQty) || parsedQty <= 0) errors.push('Quantidade inválida');
+
+        if (row.numero.trim()) {
+            const parsed = parseRequisitionNumber(row.numero.trim(), currentRequisitionYear);
+            if (!parsed) errors.push('Número inválido');
+            else {
+                const existing = findRequisitionByYearAndSeq(parsed.year, parsed.seq);
+                if (existing) errors.push(`Número já existe (${existing.numero})`);
+                // only check for dupes on first occurrence of this number in the grid
+                const firstOccurrence = allRows.find(r => r.numero.trim() === row.numero.trim());
+                if (firstOccurrence && firstOccurrence.id !== row.id) {
+                    // this is a continuation row – ok
+                }
+            }
+        }
+
+        const status: EditableBulkRow['status'] = errors.length > 0 ? 'error' : warnings.length > 0 ? 'warning' : 'valid';
+        return { ...row, errors, warnings, status };
+    };
+
+    const validateAllGridRows = (rows: EditableBulkRow[]) =>
+        rows.map(row => validateGridRow(row, rows));
+
+    const updateGridRow = (id: string, field: keyof EditableBulkRow, value: string) => {
+        setBulkGridRows(prev => {
+            const updated = prev.map(r => r.id === id ? { ...r, [field]: value, status: 'idle' as const } : r);
+            return updated;
+        });
+    };
+
+    const addGridRow = () => setBulkGridRows(prev => {
+        const last = prev.length > 0 ? prev[prev.length - 1] : null;
+        const inherited: Partial<EditableBulkRow> = last
+            ? { numero: last.numero, data: last.data, viatura: last.viatura, departamento: last.departamento }
+            : {};
+        return [...prev, { ...makeEmptyGridRow(), ...inherited }];
+    });
+
+    const removeGridRow = (id: string) => setBulkGridRows(prev => prev.filter(r => r.id !== id));
+
+    const handleGridPaste = (e: React.ClipboardEvent) => {
+        const text = e.clipboardData.getData('text/plain');
+        if (!text.trim()) return;
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length === 0) return;
+        e.preventDefault();
+
+        const newRows: EditableBulkRow[] = lines.map(line => {
+            const delimiter = line.includes('\t') ? '\t' : line.includes(';') ? ';' : '|';
+            const cols = line.split(delimiter).map(c => c.trim());
+            // cols: Nº | Data | Viatura | Departamento | Descrição | Qtd | Valor | Obs (8 cols)
+            // fallback without viatura: Nº | Data | Departamento | Descrição | Qtd | Valor | Obs (7 cols)
+            const hasViatura = cols.length >= 8;
+            const hasQty = cols.length >= 7;
+            return {
+                id: crypto.randomUUID(),
+                numero: cols[0] || '',
+                data: cols[1] || new Date().toLocaleDateString('pt-PT'),
+                viatura: hasViatura ? (cols[2] || '') : '',
+                departamento: hasViatura ? (cols[3] || '') : (cols[2] || ''),
+                descricao: hasViatura ? (cols[4] || '') : (cols[3] || ''),
+                quantidade: hasViatura ? (cols[5] || '1') : hasQty ? (cols[4] || '1') : '1',
+                valor: hasViatura ? (cols[6] || '') : hasQty ? (cols[5] || '') : (cols[4] || ''),
+                observacoes: hasViatura ? (cols[7] || '') : hasQty ? (cols[6] || '') : (cols[5] || ''),
+                errors: [],
+                warnings: [],
+                status: 'idle' as const
+            };
+        });
+
+        setBulkGridRows(prev => {
+            const base = prev.filter(r => r.descricao.trim() || r.numero.trim());
+            return [...base, ...newRows];
+        });
+    };
+
+    const handleGridImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const text = ev.target?.result as string;
+            if (!text) return;
+            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+            const dataLines = lines[0]?.toLowerCase().includes('req') || lines[0]?.toLowerCase().includes('nº') || lines[0]?.toLowerCase().includes('data')
+                ? lines.slice(1) : lines;
+            const newRows: EditableBulkRow[] = dataLines.map(line => {
+                const delimiter = line.includes('\t') ? '\t' : line.includes(';') ? ';' : ',';
+                const cols = line.split(delimiter).map(c => c.replace(/^["']|["']$/g, '').trim());
+                const hasViatura = cols.length >= 8;
+                const hasQty = cols.length >= 7;
+                return {
+                    id: crypto.randomUUID(),
+                    numero: cols[0] || '',
+                    data: cols[1] || new Date().toLocaleDateString('pt-PT'),
+                    viatura: hasViatura ? (cols[2] || '') : '',
+                    departamento: hasViatura ? (cols[3] || '') : (cols[2] || ''),
+                    descricao: hasViatura ? (cols[4] || '') : (cols[3] || ''),
+                    quantidade: hasViatura ? (cols[5] || '1') : hasQty ? (cols[4] || '1') : '1',
+                    valor: hasViatura ? (cols[6] || '') : hasQty ? (cols[5] || '') : (cols[4] || ''),
+                    observacoes: hasViatura ? (cols[7] || '') : hasQty ? (cols[6] || '') : (cols[5] || ''),
+                    errors: [],
+                    warnings: [],
+                    status: 'idle' as const
+                };
+            });
+            setBulkGridRows(prev => [...prev, ...newRows]);
+        };
+        reader.readAsText(file, 'utf-8');
+        e.target.value = '';
+    };
+
+    const duplicateGridRow = (id: string) => {
+        setBulkGridRows(prev => {
+            const idx = prev.findIndex(r => r.id === id);
+            if (idx === -1) return prev;
+            const copy: EditableBulkRow = { ...prev[idx], id: crypto.randomUUID(), status: 'idle', errors: [], warnings: [] };
+            return [...prev.slice(0, idx + 1), copy, ...prev.slice(idx + 1)];
+        });
+    };
+
+    const copyFromPrevGridRow = (id: string) => {
+        setBulkGridRows(prev => {
+            const idx = prev.findIndex(r => r.id === id);
+            if (idx <= 0) return prev;
+            const prev_row = prev[idx - 1];
+            return prev.map((r, i) => i === idx
+                ? { ...r, numero: prev_row.numero, data: prev_row.data, viatura: prev_row.viatura, departamento: prev_row.departamento, status: 'idle' as const, errors: [], warnings: [] }
+                : r
+            );
+        });
+    };
+
+    const handleValidateGridRows = () => {
+        const validated = validateAllGridRows(bulkGridRows);
+        setBulkGridRows(validated);
+        // count unique effective requisicoes
+        let lastNr = '';
+        let reqCount = 0;
+        validated.forEach(r => {
+            const eff = r.numero.trim() || lastNr;
+            if (eff !== lastNr) { reqCount++; lastNr = eff; }
+            else if (!r.numero.trim() && lastNr) { /* continuation */ }
+            else { reqCount++; lastNr = r.id; } // no number, each is its own
+        });
+        const duplicates = validated.filter(r => r.warnings.some(w => w.includes('uplica'))).length;
+        const total = validated.reduce((s, r) => {
+            const qty = parseFloat(r.quantidade.replace(',', '.')) || 1;
+            return s + (parseBulkValue(r.valor) ?? 0) * qty;
+        }, 0);
+        setBulkImportSummary({
+            success: validated.filter(r => r.status === 'valid').length,
+            duplicates,
+            total: validated.length,
+            totalValue: total
+        });
+    };
+
+    const handleImportGridRows = async () => {
+        if (bulkImporting) return;
+        if (!bulkFornecedorId) { alert('Selecione um fornecedor antes de importar.'); return; }
+
+        const validated = validateAllGridRows(bulkGridRows);
+        setBulkGridRows(validated);
+        const withErrors = validated.filter(r => r.status === 'error');
+        if (withErrors.length > 0) { alert(`Corrija ${withErrors.length} linha(s) com erro antes de importar.`); return; }
+        if (validated.length === 0) { alert('Adicione pelo menos uma linha.'); return; }
+
+        setBulkImporting(true);
+
+        // compute next sequence
+        const usedSeqs = requisicoes
+            .map(r => parseRequisitionNumber(String(r.numero || ''), currentRequisitionYear))
+            .filter((p): p is {year: string; seq: number} => p !== null && p.year === currentRequisitionYear)
+            .map(p => p.seq);
+        let nextSeq = usedSeqs.length > 0 ? Math.max(...usedSeqs) + 1 : 1;
+
+        // Resolve effective numero for each row (empty = inherit from previous)
+        let lastNumero = '';
+        let lastData = new Date().toLocaleDateString('pt-PT');
+        let lastViatura = '';
+        let lastDepartamento = '';
+        const resolvedRows = validated.map(row => {
+            if (row.numero.trim()) {
+                lastNumero = row.numero.trim();
+                lastData = row.data || lastData;
+                lastViatura = row.viatura || lastViatura;
+                lastDepartamento = row.departamento || lastDepartamento;
+            }
+            return {
+                ...row,
+                _effectiveNumero: lastNumero,
+                _effectiveData: row.data.trim() || lastData,
+                _effectiveViatura: row.viatura.trim() || lastViatura,
+                _effectiveDept: row.departamento.trim() || lastDepartamento,
+            };
+        });
+
+        // Group by effective numero
+        type ResolvedRow = (typeof resolvedRows)[number];
+        const groups = new Map<string, ResolvedRow[]>();
+        resolvedRows.forEach(row => {
+            const key = row._effectiveNumero || `__auto__${row.id}`;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key)!.push(row);
+        });
+
+        let successCount = 0;
+        try {
+            for (const [, groupRows] of groups) {
+                const firstRow = groupRows[0];
+                const isoDate = parseBulkDateToIso(firstRow._effectiveData) || new Date().toISOString().slice(0, 10);
+                let numero = firstRow._effectiveNumero;
+                if (!numero || bulkAutoNumber) {
+                    numero = formatRequisitionNumber(currentRequisitionYear, nextSeq++);
+                }
+                const matchedClient = firstRow._effectiveDept
+                    ? clientes.find(c => c.nome.trim().toLowerCase() === firstRow._effectiveDept.toLowerCase())
+                    : undefined;
+                const matchedViatura = firstRow._effectiveViatura
+                    ? viaturas.find(v => v.matricula.trim().toUpperCase() === firstRow._effectiveViatura.toUpperCase())
+                    : undefined;
+
+                const itens: ItemRequisicao[] = groupRows.map(row => {
+                    const parsedVal = parseBulkValue(row.valor) ?? 0;
+                    const parsedQty = parseFloat(row.quantidade.replace(',', '.')) || 1;
+                    return {
+                        id: crypto.randomUUID(),
+                        descricao: row.descricao,
+                        quantidade: parsedQty,
+                        valor_unitario: parsedVal,
+                        valor_total: parsedVal * parsedQty
+                    };
+                });
+
+                const totalValue = itens.reduce((s, i) => s + (i.valor_total ?? 0), 0);
+
+                const newReq: Requisicao = {
+                    id: crypto.randomUUID(),
+                    numero,
+                    data: isoDate,
+                    tipo: bulkTipo,
+                    clienteId: matchedClient?.id,
+                    viaturaId: matchedViatura?.id,
+                    fornecedorId: bulkFornecedorId,
+                    centroCustoId: bulkCentroCustoId || undefined,
+                    itens,
+                    obs: groupRows.map(r => r.observacoes).filter(Boolean).join(' | '),
+                    custo: totalValue,
+                    criadoPor: currentUser?.nome || (userRole === 'admin' ? 'Administrador' : 'Staff')
+                };
+                await addRequisicao(newReq);
+                successCount++;
+            }
+            setBulkGridRows([]);
+            setBulkImportSummary(null);
+            setActiveTab('list');
+            setListFilter('pendentes');
+            alert(`✅ ${successCount} requisição(ões) importada(s) com sucesso!`);
+        } catch (err) {
+            alert(`Erro durante importação: ${err instanceof Error ? err.message : 'Erro inesperado'}`);
+        } finally {
+            setBulkImporting(false);
+        }
+    };
+    // ---- End Grid Bulk Import helpers ----
 
     const formatCurrency = (value: number) => new Intl.NumberFormat('pt-PT', {
         style: 'currency',
@@ -695,6 +1271,14 @@ export default function Requisicoes() {
 
     const removeItem = (id: string) => {
         setItems(items.filter(i => i.id !== id));
+    };
+
+    const editarItem = (item: ItemRequisicao) => {
+        setItemEmEdicao(item);
+        setNewItemDesc(item.descricao);
+        setNewItemQtd(item.quantidade);
+        setNewItemValorUnitario(item.valor_unitario ? String(item.valor_unitario) : '');
+        setNewItemValorTotal(item.valor_total ? String(item.valor_total) : '');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -1909,6 +2493,323 @@ export default function Requisicoes() {
                                     >
                                         Cancelar Edição
                                     </button>
+                                </div>
+                            )}
+
+                            {!editingId && (
+                                <div className="mb-8 bg-slate-50 rounded-3xl p-6 border border-slate-200/60 space-y-5">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                                        <div>
+                                            <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                                <Package className="w-5 h-5 text-blue-600" />
+                                                Importação em Massa
+                                            </h3>
+                                            <p className="text-sm text-slate-500 mt-0.5">Grelha editável tipo Excel — cole do Excel com Ctrl+V ou adicione linhas manualmente.</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">Excel-like</span>
+                                            <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
+                                                <input type="checkbox" checked={bulkAutoNumber} onChange={e => setBulkAutoNumber(e.target.checked)} className="rounded" />
+                                                Numeração automática
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Config selects */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fornecedor <span className="text-red-500">*</span></label>
+                                            <select
+                                                value={bulkFornecedorId}
+                                                onChange={(e) => setBulkFornecedorId(e.target.value)}
+                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 outline-none text-slate-700 font-medium text-sm"
+                                            >
+                                                <option value="">Selecione o fornecedor...</option>
+                                                {fornecedores.map(f => (
+                                                    <option key={f.id} value={f.id}>{f.nome}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo</label>
+                                            <select
+                                                value={bulkTipo}
+                                                onChange={(e) => setBulkTipo(e.target.value as Requisicao['tipo'])}
+                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 outline-none text-slate-700 font-medium text-sm"
+                                            >
+                                                <option value="Oficina">Oficina</option>
+                                                <option value="Stock">Stock</option>
+                                                <option value="CentroCusto">Centro de Custo</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Centro de Custos</label>
+                                            <select
+                                                value={bulkCentroCustoId}
+                                                onChange={(e) => setBulkCentroCustoId(e.target.value)}
+                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 outline-none text-slate-700 font-medium text-sm"
+                                            >
+                                                <option value="">Sem centro de custos</option>
+                                                {centrosCustos.map(cc => (
+                                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Tip bar */}
+                                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-xs font-medium">
+                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                        <span>Copie linhas do Excel e faça <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono text-[11px]">Ctrl+V</kbd> na tabela. Colunas: Nº Req | Data | Departamento | Descrição | Valor | Observações</span>
+                                    </div>
+
+                                    {/* Excel-like grid */}
+                                    <div
+                                        className="overflow-x-auto border border-slate-200 rounded-2xl bg-white shadow-sm"
+                                        onPaste={handleGridPaste}
+                                        tabIndex={0}
+                                    >
+                                        <table className="w-full text-sm border-collapse" style={{ minWidth: '1020px' }}>
+                                            <thead className="sticky top-0 z-10">
+                                                <tr className="bg-slate-100 border-b-2 border-slate-200 text-slate-600 uppercase text-[11px] tracking-wider font-bold">
+                                                    <th className="px-2 py-2.5 w-8 text-center border-r border-slate-200">#</th>
+                                                    <th className="px-3 py-2.5 text-left border-r border-slate-200 w-28">Nº Req</th>
+                                                    <th className="px-3 py-2.5 text-left border-r border-slate-200 w-44">Data</th>
+                                                    <th className="px-3 py-2.5 text-left border-r border-slate-200 w-36">Viatura</th>
+                                                    <th className="px-3 py-2.5 text-left border-r border-slate-200 w-36">Departamento</th>
+                                                    <th className="px-3 py-2.5 text-left border-r border-slate-200">Descrição do Material</th>
+                                                    <th className="px-3 py-2.5 text-center border-r border-slate-200 w-20">Qtd</th>
+                                                    <th className="px-3 py-2.5 text-right border-r border-slate-200 w-28">Valor unit. (€)</th>
+                                                    <th className="px-3 py-2.5 text-right border-r border-slate-200 w-24">Total</th>
+                                                    <th className="px-3 py-2.5 text-left border-r border-slate-200 w-36">Observações</th>
+                                                    <th className="px-3 py-2.5 text-center w-20">Estado</th>
+                                                    <th className="px-2 py-2.5 w-16 text-center">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {bulkGridRows.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={12} className="text-center py-12 text-slate-400 text-sm">
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <Package className="w-8 h-8 text-slate-300" />
+                                                                <span>Clique em <strong>Adicionar Linha</strong> ou cole dados do Excel com <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded font-mono text-[11px]">Ctrl+V</kbd></span>
+                                                                <span className="text-xs text-slate-300">Colunas: Nº Req | Data | Viatura | Departamento | Descrição | Quantidade | Valor | Observações</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                {(() => {
+                                                    // compute visual grouping
+                                                    let lastGroupNr = '';
+                                                    let groupColor = false;
+                                                    return bulkGridRows.map((row, idx) => {
+                                                        const isContinuation = !row.numero.trim() && lastGroupNr !== '';
+                                                        if (!isContinuation) {
+                                                            if (row.numero.trim() && row.numero.trim() !== lastGroupNr) {
+                                                                groupColor = !groupColor;
+                                                                lastGroupNr = row.numero.trim();
+                                                            } else if (!row.numero.trim()) {
+                                                                lastGroupNr = '';
+                                                            }
+                                                        }
+
+                                                        const rowBg = row.status === 'error'
+                                                            ? 'bg-rose-50/70'
+                                                            : row.status === 'warning'
+                                                            ? 'bg-amber-50/70'
+                                                            : row.status === 'valid'
+                                                            ? (isContinuation ? 'bg-emerald-50/30' : 'bg-emerald-50/60')
+                                                            : isContinuation
+                                                            ? (groupColor ? 'bg-blue-50/30' : 'bg-slate-50/30')
+                                                            : (groupColor ? 'bg-blue-50/20' : 'bg-white');
+
+                                                        const cellBorder = row.status === 'error' ? 'border-rose-100' : 'border-slate-100';
+                                                        const inputCls = `w-full px-2 py-1.5 bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-400 focus:bg-white rounded-lg outline-none text-slate-700 text-sm transition-all`;
+
+                                                        const parsedQty = parseFloat(row.quantidade.replace(',', '.')) || 1;
+                                                        const parsedUnitVal = parseBulkValue(row.valor) ?? 0;
+                                                        const lineTotal = parsedUnitVal * parsedQty;
+
+                                                        const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                addGridRow();
+                                                            }
+                                                        };
+
+                                                        return (
+                                                            <tr key={row.id} className={`${rowBg} border-b ${cellBorder} transition-colors group`}>
+                                                                <td className="px-2 py-1 text-center text-xs text-slate-400 font-mono border-r border-slate-100 select-none">
+                                                                    {isContinuation
+                                                                        ? <span className="text-blue-300">↳</span>
+                                                                        : <span>{idx + 1}</span>
+                                                                    }
+                                                                </td>
+                                                                <td className="px-1 py-1 border-r border-slate-100">
+                                                                    {isContinuation
+                                                                        ? <span className="px-2 text-slate-300 text-xs italic font-mono">↑ mesmo</span>
+                                                                        : bulkAutoNumber
+                                                                        ? <span className="px-2 py-1.5 text-slate-400 text-sm font-mono italic">Auto</span>
+                                                                        : <input className={`${inputCls} font-mono`} value={row.numero} onChange={e => updateGridRow(row.id, 'numero', e.target.value)} onKeyDown={handleEnter} placeholder={`${currentRequisitionYear}/0001`} />
+                                                                    }
+                                                                </td>
+                                                                <td className="px-1 py-1 border-r border-slate-100">
+                                                                    {isContinuation
+                                                                        ? <span className="px-2 text-slate-300 text-xs italic">↑ mesmo</span>
+                                                                        : <input
+                                                                            className={`${inputCls} font-mono text-center`}
+                                                                            value={row.data}
+                                                                            onChange={e => updateGridRow(row.id, 'data', e.target.value)}
+                                                                            onKeyDown={handleEnter}
+                                                                            placeholder="DD/MM/AAAA"
+                                                                            type="text"
+                                                                        />
+                                                                    }
+                                                                </td>
+                                                                <td className="px-1 py-1 border-r border-slate-100">
+                                                                    {isContinuation
+                                                                        ? <span className="px-2 text-slate-300 text-xs italic">↑ mesmo</span>
+                                                                        : <>
+                                                                            <input className={`${inputCls} font-mono uppercase`} list={`viatura-list-${row.id}`} value={row.viatura} onChange={e => updateGridRow(row.id, 'viatura', e.target.value.toUpperCase())} onKeyDown={handleEnter} placeholder="00-AA-00" />
+                                                                            <datalist id={`viatura-list-${row.id}`}>
+                                                                                {viaturas.map(v => <option key={v.id} value={v.matricula}>{v.matricula} – {v.marca} {v.modelo}</option>)}
+                                                                            </datalist>
+                                                                        </>
+                                                                    }
+                                                                </td>
+                                                                <td className="px-1 py-1 border-r border-slate-100">
+                                                                    {isContinuation
+                                                                        ? <span className="px-2 text-slate-300 text-xs italic">↑ mesmo</span>
+                                                                        : <>
+                                                                            <input className={`${inputCls} font-sans`} list={`dept-list-${row.id}`} value={row.departamento} onChange={e => updateGridRow(row.id, 'departamento', e.target.value)} onKeyDown={handleEnter} placeholder="Departamento..." />
+                                                                            <datalist id={`dept-list-${row.id}`}>
+                                                                                {clientes.map(c => <option key={c.id} value={c.nome} />)}
+                                                                            </datalist>
+                                                                        </>
+                                                                    }
+                                                                </td>
+                                                                <td className="px-1 py-1 border-r border-slate-100">
+                                                                    <input className={`${inputCls} font-sans`} value={row.descricao} onChange={e => updateGridRow(row.id, 'descricao', e.target.value)} onKeyDown={handleEnter} placeholder="Descrição do material..." />
+                                                                </td>
+                                                                <td className="px-1 py-1 border-r border-slate-100 text-center">
+                                                                    <input className={`${inputCls} text-center font-mono`} value={row.quantidade} onChange={e => updateGridRow(row.id, 'quantidade', e.target.value)} onKeyDown={handleEnter} placeholder="1" />
+                                                                </td>
+                                                                <td className="px-1 py-1 border-r border-slate-100 text-right">
+                                                                    <input className={`${inputCls} text-right font-mono`} value={row.valor} onChange={e => updateGridRow(row.id, 'valor', e.target.value)} onKeyDown={handleEnter} placeholder="0.00" />
+                                                                </td>
+                                                                <td className="px-3 py-1 border-r border-slate-100 text-right text-sm font-mono text-slate-600 select-none whitespace-nowrap">
+                                                                    {lineTotal > 0 ? `${lineTotal.toFixed(2)}€` : '—'}
+                                                                </td>
+                                                                <td className="px-1 py-1 border-r border-slate-100">
+                                                                    <input className={`${inputCls} font-sans`} value={row.observacoes} onChange={e => updateGridRow(row.id, 'observacoes', e.target.value)} onKeyDown={handleEnter} placeholder="Obs..." />
+                                                                </td>
+                                                                <td className="px-2 py-1 text-center border-r border-slate-100 select-none">
+                                                                    {row.status === 'idle' && <span className="text-slate-300">—</span>}
+                                                                    {row.status === 'valid' && <span className="text-emerald-500 font-bold" title="Válido">✓</span>}
+                                                                    {row.status === 'warning' && <span className="text-amber-500 font-bold cursor-help" title={row.warnings.join(' | ')}>⚠</span>}
+                                                                    {row.status === 'error' && <span className="text-rose-500 font-bold cursor-help" title={row.errors.join(' | ')}>✕</span>}
+                                                                </td>
+                                                                <td className="px-1 py-1 text-center">
+                                                                    <div className="flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <button type="button" title="Duplicar linha" onClick={() => duplicateGridRow(row.id)} className="p-1 text-slate-400 hover:text-blue-500 transition-colors rounded">
+                                                                            <Plus className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        {idx > 0 && (
+                                                                            <button type="button" title="Copiar Nº/Data/Dept. da linha anterior" onClick={() => copyFromPrevGridRow(row.id)} className="p-1 text-slate-400 hover:text-emerald-500 transition-colors rounded">
+                                                                                <ArrowRight className="w-3.5 h-3.5 rotate-[-90deg]" />
+                                                                            </button>
+                                                                        )}
+                                                                        <button type="button" title="Apagar linha" onClick={() => removeGridRow(row.id)} className="p-1 text-slate-400 hover:text-rose-400 transition-colors rounded">
+                                                                            <X className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    });
+                                                })()}
+                                            </tbody>
+                                            {bulkGridRows.length > 0 && (
+                                                <tfoot>
+                                                    <tr className="bg-slate-100 border-t-2 border-slate-200 font-bold text-slate-700">
+                                                        <td colSpan={8} className="px-4 py-2.5 text-right text-xs uppercase tracking-wider text-slate-500">
+                                                            Total ({bulkGridRows.length} {bulkGridRows.length === 1 ? 'linha' : 'linhas'})
+                                                        </td>
+                                                        <td className="px-3 py-2.5 text-right font-mono text-slate-800">
+                                                            {formatCurrency(bulkGridRows.reduce((s, r) => {
+                                                                const qty = parseFloat(r.quantidade.replace(',', '.')) || 1;
+                                                                return s + (parseBulkValue(r.valor) ?? 0) * qty;
+                                                            }, 0))}
+                                                        </td>
+                                                        <td colSpan={4} />
+                                                    </tr>
+                                                </tfoot>
+                                            )}
+                                        </table>
+                                    </div>
+
+                                    {/* Error details for rows with errors */}
+                                    {bulkGridRows.some(r => r.status === 'error') && (
+                                        <div className="space-y-1.5 p-4 bg-rose-50 border border-rose-200 rounded-2xl">
+                                            <p className="text-xs font-bold text-rose-700 uppercase tracking-wider mb-2">Erros encontrados</p>
+                                            {bulkGridRows.filter(r => r.status === 'error').map((r) => (
+                                                <div key={r.id} className="text-xs text-rose-600 flex gap-2">
+                                                    <span className="font-mono font-bold shrink-0">Linha {bulkGridRows.indexOf(r) + 1}:</span>
+                                                    <span>{r.errors.join(' · ')}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Summary after validation */}
+                                    {bulkImportSummary && (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center shadow-sm">
+                                                <div className="text-2xl font-black text-slate-800">{bulkImportSummary.total}</div>
+                                                <div className="text-xs text-slate-500 font-medium mt-1">Total de linhas</div>
+                                            </div>
+                                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center shadow-sm">
+                                                <div className="text-2xl font-black text-emerald-700">{bulkImportSummary.success}</div>
+                                                <div className="text-xs text-emerald-600 font-medium mt-1">Prontas</div>
+                                            </div>
+                                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center shadow-sm">
+                                                <div className="text-2xl font-black text-amber-700">{bulkImportSummary.duplicates}</div>
+                                                <div className="text-xs text-amber-600 font-medium mt-1">Duplicados</div>
+                                            </div>
+                                            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center shadow-sm">
+                                                <div className="text-xl font-black text-blue-700">{formatCurrency(bulkImportSummary.totalValue)}</div>
+                                                <div className="text-xs text-blue-600 font-medium mt-1">Valor total</div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Action buttons */}
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <button type="button" onClick={addGridRow}
+                                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
+                                            <Plus className="w-4 h-4" /> Adicionar Linha
+                                        </button>
+                                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm cursor-pointer">
+                                            <Download className="w-4 h-4 rotate-180" /> Importar CSV/Excel
+                                            <input type="file" accept=".csv,.tsv,.txt,.xlsx" onChange={handleGridImportCSV} className="hidden" />
+                                        </label>
+                                        <button type="button" onClick={handleValidateGridRows}
+                                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-sm shadow-blue-900/20">
+                                            <CheckCircle className="w-4 h-4" /> Validar
+                                        </button>
+                                        <button type="button" onClick={handleImportGridRows} disabled={bulkImporting}
+                                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold text-sm transition-all shadow-sm shadow-emerald-900/20">
+                                            <ArrowRight className="w-4 h-4" />
+                                            {bulkImporting ? 'A importar...' : `Importar ${bulkGridRows.length > 0 ? `(${bulkGridRows.length})` : ''}`}
+                                        </button>
+                                        {bulkGridRows.length > 0 && (
+                                            <button type="button" onClick={() => { setBulkGridRows([]); setBulkImportSummary(null); }}
+                                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-rose-200 text-rose-500 font-bold text-sm hover:bg-rose-50 transition-all">
+                                                <X className="w-4 h-4" /> Limpar Tudo
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 

@@ -879,6 +879,7 @@ export interface UserProfile {
 export type SystemModule =
     | 'dashboard'
     | 'frota'
+    | 'inventario'
     | 'escalas'
     | 'horas'
     | 'combustivel'

@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase';
 const MODULES: { id: SystemModule; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'frota', label: 'Gestão de Frota', icon: Car },
+    { id: 'inventario', label: 'Gestão de Inventário', icon: LayoutDashboard },
     { id: 'escalas', label: 'Escalas e Operações', icon: MapPin },
     { id: 'horas', label: 'Registo de Horas', icon: Users },
     { id: 'combustivel', label: 'Combustível / Via Verde', icon: Wrench },

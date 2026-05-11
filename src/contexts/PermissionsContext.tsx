@@ -7,6 +7,7 @@ import type { UserRole, SystemModule, PermissionAction, DetailedPermissions, Use
 export type PermissionModule = 'requisicoes' | 'requisicoes_edit' | 'requisicoes_delete' |
     'viaturas' |
     'motoristas' |
+    'inventario' | 'inventario_stock' | 'inventario_materiais' | 'inventario_equipamentos' | 'inventario_movimentos' | 'inventario_relatorios' |
     'fornecedores' |
     'escalas' | 'escalas_import' | 'escalas_print' | 'escalas_create' | 'escalas_urgent' | 'escalas_view_pending' |
     'horas' | 'hours_view_costs' |
@@ -135,6 +136,12 @@ const LEGACY_MAP: Record<string, { module: SystemModule, action: PermissionActio
     'relatorios': { module: 'relatorios', action: 'ver' },
     'centros_custos': { module: 'financeiro', action: 'ver' },
     'contabilidade': { module: 'financeiro', action: 'ver' },
+    'inventario': { module: 'inventario', action: 'ver' },
+    'inventario_stock': { module: 'inventario', action: 'ver' },
+    'inventario_materiais': { module: 'inventario', action: 'ver' },
+    'inventario_equipamentos': { module: 'inventario', action: 'ver' },
+    'inventario_movimentos': { module: 'inventario', action: 'ver' },
+    'inventario_relatorios': { module: 'inventario', action: 'ver' },
     'geofences': { module: 'frota', action: 'ver' },
     'locais': { module: 'frota', action: 'ver' },
     'avaliacao_drivers': { module: 'frota', action: 'ver' },
