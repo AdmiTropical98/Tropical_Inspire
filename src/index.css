@@ -1040,13 +1040,13 @@ html.login-active #root {
 }
 
 .dispatch-column {
-  height: calc(100vh - 310px);
+  height: calc(100vh - 332px);
   overflow-y: auto;
   overflow-x: hidden;
-  background: #f8fafc;
-  padding-top: 4px;
-  padding-right: 10px;
-  padding-left: 2px;
+  background: #ffffff;
+  padding-top: 12px;
+  padding-right: 16px;
+  padding-left: 8px;
   border-right: 1px solid #e2e8f0;
   min-width: 0;
 }
@@ -1059,10 +1059,10 @@ html.login-active #root {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 6px 6px 8px;
-  background: #f8fafc;
+  padding: 12px 10px 12px;
+  background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 6px;
+  margin-bottom: 12px;
 }
 
 .column-title {
@@ -1073,9 +1073,9 @@ html.login-active #root {
 
 .dispatch-board {
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(500px, 1.45fr) minmax(320px, 1fr);
-  gap: 14px;
-  padding: 0 10px;
+  grid-template-columns: minmax(280px, 0.86fr) minmax(660px, 1.92fr) minmax(250px, 0.78fr);
+  gap: 24px;
+  padding: 0 18px 16px;
   background: #f8fafc;
   max-width: 100%;
 }
@@ -1086,39 +1086,39 @@ html.login-active #root {
 
 .driver-drop-lane {
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 8px;
-  margin-bottom: 8px;
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 12px;
   background: #ffffff;
 }
 
 .service-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 14px;
+  padding: 12px;
   font-size: 13px;
   color: #0f172a;
-  line-height: 1.35;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  line-height: 1.45;
+  box-shadow: 0 4px 14px -10px rgba(15, 23, 42, 0.12);
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
 .service-item {
   background: #ffffff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 6px;
+  border-left: 4px solid #f59e0b;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
 }
 
 .service-card.scheduled {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #f59e0b;
 }
 
 .service-card.pending {
-  border-left: 4px solid #eab308;
+  border-left: 4px solid #d97706;
 }
 
 .service-card.conflict {
@@ -1127,7 +1127,7 @@ html.login-active #root {
 
 .driver-name {
   color: #020617;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 15px;
   white-space: normal;
   word-break: break-word;
@@ -1135,7 +1135,7 @@ html.login-active #root {
 
 .driver-meta {
   color: #334155;
-  font-size: 13px;
+  font-size: 11px;
   white-space: normal;
   word-break: break-word;
 }
@@ -1148,11 +1148,15 @@ html.login-active #root {
   border-left: 1px solid #e2e8f0;
 }
 
+.center-assignment-column .dispatch-column-label {
+  background: #fffaf3;
+}
+
 .center-assignment-column .drop-zone {
   border: 1px dashed #cbd5e1;
-  border-radius: 10px;
-  padding: 10px;
-  background: #f8fafc;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fffaf3;
 }
 
 .center-assignment-column .service-card {
@@ -1167,16 +1171,17 @@ html.login-active #root {
 .dispatch-lane-actions {
   position: static;
   background: #ffffff;
-  padding-top: 6px;
+  padding-top: 12px;
   display: grid;
-  gap: 4px;
+  gap: 8px;
   border-top: 1px solid #e2e8f0;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .dispatch-lane-actions button {
   white-space: normal;
-  line-height: 1.2;
+  line-height: 1.3;
+  min-height: 42px;
 }
 
 .status-route {
@@ -1193,13 +1198,13 @@ html.login-active #root {
 
 @media (max-width: 1280px) {
   .dispatch-board {
-    grid-template-columns: minmax(300px, 1fr) minmax(460px, 1.3fr) minmax(300px, 1fr);
+    grid-template-columns: minmax(290px, 0.95fr) minmax(560px, 1.55fr) minmax(240px, 0.8fr);
     overflow-x: auto;
-    padding: 0 8px;
+    padding: 0 12px 12px;
   }
 
   .dispatch-column {
-    height: calc(100vh - 320px);
+    height: calc(100vh - 345px);
   }
 }
 

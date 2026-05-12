@@ -223,12 +223,12 @@ function ServiceCard({
             onClick={() => onSelect(service.id)}
             {...listeners}
             {...attributes}
-            className={`service-item service-card ${serviceCardClass} border border-slate-200 bg-white p-2.5 cursor-grab active:cursor-grabbing transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500/35' : ''} ${isDragging ? 'scale-[1.01]' : 'scale-100'}`}
+            className={`service-item service-card ${serviceCardClass} border border-slate-200 bg-white p-3.5 cursor-grab active:cursor-grabbing transition-all duration-200 ${isSelected ? 'ring-2 ring-amber-500/25' : ''} ${isDragging ? 'scale-[1.01]' : 'scale-100'}`}
         >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3 gap-3">
                 <div className="inline-flex items-center gap-1.5 text-xs text-slate-700 font-bold">
-                    <Clock3 className="w-3.5 h-3.5 text-blue-600" />
-                    <span className="font-mono text-blue-700">{service.hora}</span>
+                    <Clock3 className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="font-mono text-amber-700">{service.hora}</span>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${styles.badge}`}>{stageLabel}</span>
             </div>
@@ -240,7 +240,7 @@ function ServiceCard({
                 </div>
             )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
                 <div className="flex flex-col">
                     <div className="flex items-center gap-1.5 text-[11px] text-slate-700">
                         <MapPin className="w-3.5 h-3.5 text-slate-500" />
@@ -267,7 +267,7 @@ function ServiceCard({
                 </div>
             </div>
 
-            <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
+            <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
                 <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{passengerCount} passageiro{passengerCount > 1 ? 's' : ''}</span>
                 <span className="inline-flex items-center gap-1.5 text-slate-500">
                     <span className={`w-2 h-2 rounded-full ${styles.accent}`} />
@@ -275,7 +275,7 @@ function ServiceCard({
                 </span>
             </div>
 
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                     type="button"
                     onClick={(event) => {
@@ -283,7 +283,7 @@ function ServiceCard({
                         if (!suggestedDriverId) return;
                         onAssign(service, suggestedDriverId, 'button');
                     }}
-                    className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-semibold transition-colors ${suggestedDriverId ? 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100' : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'}`}
+                    className={`inline-flex min-h-8 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold transition-colors ${suggestedDriverId ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'}`}
                     disabled={!suggestedDriverId}
                 >
                     <Wand2 className="h-3 w-3" />
@@ -299,7 +299,7 @@ function ServiceCard({
                         void onAssign(service, value, 'button');
                         event.target.value = '';
                     }}
-                    className="ml-auto rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700 focus:border-blue-400 focus:outline-none"
+                    className="ml-auto min-h-8 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] text-slate-700 focus:border-amber-400 focus:outline-none"
                 >
                     <option value="">Assign to driver</option>
                     {drivers.map(driver => (
@@ -367,7 +367,7 @@ function BoardColumn({
     const workloadPercent = getWorkloadPercent(count);
     const canPreviewDrop = Boolean(activeDragService && isOver && isDropAllowed);
     const columnWidthClass = compact ? 'w-full' : 'w-full';
-    const dropZoneHeightClass = compact ? 'min-h-[42px]' : 'min-h-[120px]';
+    const dropZoneHeightClass = compact ? 'min-h-[56px]' : 'min-h-[136px]';
     const laneStateClass = isOver && isDropAllowed ? 'bg-blue-50/60' : isOver && !isDropAllowed ? 'bg-red-50/70' : '';
 
     return (
@@ -376,34 +376,30 @@ function BoardColumn({
             className={`driver-drop-lane ${columnWidthClass} flex flex-col transition-all duration-200 ${laneStateClass} ${highlighted ? 'bg-emerald-50/50' : ''} ${isPendingColumn ? 'pending-column' : ''} ${warning ? 'driver-warning-card' : ''}`}
         >
             {!hideHeader && (
-            <header className="pb-1 mb-2">
-                <div className="space-y-1">
+            <header className="pb-2.5 mb-3 border-b border-slate-100">
+                <div className="space-y-2">
                     <h3 className="driver-name break-words whitespace-normal flex items-center gap-1.5">
-                        {isPendingColumn ? <Clock3 className="w-4 h-4 text-red-500" /> : <Car className="w-4 h-4 text-indigo-500" />}
+                        {isPendingColumn ? <Clock3 className="w-4 h-4 text-red-500" /> : <Car className="w-4 h-4 text-amber-500" />}
                         {title}
                     </h3>
 
-                    {!isPendingColumn && (
-                        <p className={`status-badge inline-flex items-center gap-2 ${driverBadge.className}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${driverBadge.dotClass}`} />
-                            {driverBadge.label}
-                        </p>
-                    )}
-
-                    {subtitle && <p className="driver-meta break-words whitespace-normal">{subtitle}</p>}
-                    {!isPendingColumn && <p className="driver-meta break-words whitespace-normal inline-flex items-center gap-1"><Car className="w-3 h-3" />{vehicle || 'Sem viatura associada'}</p>}
-
-                    {!isPendingColumn && telemetry && (
-                        <div className="space-y-0.5">
-                            <p className={`driver-meta inline-flex items-center gap-1.5 ${telemetry.hasSignal ? 'text-emerald-700' : 'text-amber-700 font-semibold'}`}>
-                                {telemetry.hasSignal ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                                {telemetry.hasSignal ? 'GPS ativo' : 'Sem sinal Cartrack'}
-                            </p>
-                            <p className="driver-meta">Última posição: {telemetry.lastSeenLabel}</p>
+                    {!isPendingColumn && compact ? (
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                            <span className={`status-badge inline-flex items-center gap-2 ${driverBadge.className}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${driverBadge.dotClass}`} />
+                                {driverBadge.label}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-600">
+                                <Car className="w-3 h-3" />
+                                {vehicle || 'Sem viatura'}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700">
+                                {count} serviço{count === 1 ? '' : 's'}
+                            </span>
                         </div>
-                    )}
+                    ) : null}
 
-                    {!isPendingColumn && (
+                    {!isPendingColumn && !compact && (
                         <div className="space-y-1">
                             <div className="flex items-center justify-between text-[10px] text-slate-600 font-semibold uppercase tracking-wide">
                                 <span>Carga operacional</span>
@@ -412,7 +408,7 @@ function BoardColumn({
                             <div className="h-[6px] rounded-[6px] bg-slate-200 overflow-hidden">
                                 <div className="load-bar" style={{ width: `${workloadPercent}%` }} />
                             </div>
-                            <p className="driver-meta">Serviços atribuídos: {count}</p>
+                            <p className="driver-meta">{count} serviço(s) atribuídos</p>
                         </div>
                     )}
 
@@ -421,9 +417,9 @@ function BoardColumn({
             </header>
             )}
 
-            <div className={`drop-zone p-0.5 space-y-0 ${dropZoneHeightClass} transition-colors duration-200 ${isOver && isDropAllowed ? 'drag-over' : ''}`}>
+            <div className={`drop-zone p-1.5 space-y-2.5 ${dropZoneHeightClass} transition-colors duration-200 ${isOver && isDropAllowed ? 'drag-over' : ''}`}>
                 {canPreviewDrop && activeDragService && (
-                    <div className="border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
                         <p className="font-semibold">Pré-visualização de drop</p>
                         <p className="truncate">{activeDragService.hora} • {activeDragService.origem}</p>
                     </div>
@@ -664,15 +660,15 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
 
     return (
         <div className="h-full flex flex-col min-h-0">
-            <div className="dispatch-header mb-2 px-1 flex items-center justify-between text-xs text-slate-600">
+            <div className="dispatch-header mb-3 px-1 flex items-center justify-between text-xs text-slate-500 uppercase tracking-wide">
                 <div className="flex items-center gap-2">
-                    <Clock3 className="w-4 h-4" />
+                    <Clock3 className="w-4 h-4 text-amber-600" />
                     Dispatch Board
                 </div>
             </div>
 
             {selectedServiceId && (
-                <div className="mb-1 border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] text-blue-700">
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
                     Serviço selecionado para teclado. Atalhos: <span className="font-semibold">A</span> para sugestão, <span className="font-semibold">1..9</span> para motorista.
                 </div>
             )}
@@ -686,7 +682,7 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
             >
                 <div className="flex-1 min-h-0">
                     <div className="dispatch-board h-full">
-                        <div className="dispatch-column">
+                        <div className="dispatch-column side-column">
                             <div className="dispatch-column-label column-title">Motoristas Ativos <span className="text-slate-500">{activeDrivers.length}</span></div>
                             {activeDrivers.length === 0 ? (
                                 <div className="text-[11px] text-slate-500 py-2">Sem motoristas ativos.</div>
@@ -752,7 +748,7 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
                             />
                         </div>
 
-                        <div className="dispatch-column oficina-column">
+                        <div className="dispatch-column side-column oficina-column">
                             <div className="dispatch-column-label column-title">Oficina <span className="text-slate-500">{officeLaneDrivers.length}</span></div>
                             {officeLaneDrivers.length === 0 ? (
                                 <div className="text-[11px] text-slate-500 py-2">Sem motoristas nesta secção.</div>

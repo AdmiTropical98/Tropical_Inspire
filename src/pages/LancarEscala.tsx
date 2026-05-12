@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useWorkshop } from '../contexts/WorkshopContext';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +35,9 @@ interface LancarEscalaProps {
 }
 
 export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
+    const location = useLocation();
+    const isOperacoesContext = location.pathname.startsWith('/operacoes');
+
     // const { isEditMode, toggleEditMode, saveChanges, cancelEditMode } = useLayout(); // Removed
 
     const { centrosCustos, createScaleBatch, locais, geofences } = useWorkshop();
@@ -683,10 +687,10 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                             {/* Date Picker */}
                             <div className="group relative">
-                                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-blue-600 transition-colors z-10">
+                                <label className={`absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 transition-colors z-10 ${isOperacoesContext ? 'group-focus-within:text-amber-600' : 'group-focus-within:text-blue-600'}`}>
                                     Data da Escala
                                 </label>
-                                <div className="relative flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden group-focus-within:border-blue-400 group-focus-within:ring-2 ring-blue-500/10 transition-all w-36">
+                                <div className={`relative flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden group-focus-within:ring-2 transition-all w-36 ${isOperacoesContext ? 'group-focus-within:border-amber-400 ring-amber-500/10' : 'group-focus-within:border-blue-400 ring-blue-500/10'}`}>
                                     <input
                                         type="date"
                                         className="bg-transparent border-none text-sm font-medium text-slate-900 px-3 py-2.5 w-full outline-none [color-scheme:light] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
@@ -698,10 +702,10 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                             {/* Cost Center */}
                             <div className="group relative flex-1 max-w-xs min-w-[200px]">
-                                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-blue-600 transition-colors z-10">
+                                <label className={`absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 transition-colors z-10 ${isOperacoesContext ? 'group-focus-within:text-amber-600' : 'group-focus-within:text-blue-600'}`}>
                                     Centro de Custo
                                 </label>
-                                <div className="relative bg-white border border-slate-300 rounded-xl overflow-hidden group-focus-within:border-blue-400 group-focus-within:ring-2 ring-blue-500/10 transition-all">
+                                <div className={`relative bg-white border border-slate-300 rounded-xl overflow-hidden group-focus-within:ring-2 transition-all ${isOperacoesContext ? 'group-focus-within:border-amber-400 ring-amber-500/10' : 'group-focus-within:border-blue-400 ring-blue-500/10'}`}>
                                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                                         <Building2 className="w-4 h-4" />
                                     </div>
@@ -723,12 +727,12 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                             {/* Notes */}
                             <div className="group relative flex-[1.5] min-w-[300px]">
-                                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 group-focus-within:text-blue-600 transition-colors z-10">
+                                <label className={`absolute -top-2.5 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 transition-colors z-10 ${isOperacoesContext ? 'group-focus-within:text-amber-600' : 'group-focus-within:text-blue-600'}`}>
                                     Observações desta Escala
                                 </label>
-                                <div className="flex items-center bg-white border border-slate-300 rounded-xl overflow-visible group-focus-within:border-blue-400 transition-all relative">
+                                <div className={`flex items-center bg-white border border-slate-300 rounded-xl overflow-visible transition-all relative ${isOperacoesContext ? 'group-focus-within:border-amber-400' : 'group-focus-within:border-blue-400'}`}>
                                     <div className="pl-3 text-slate-400 group/info cursor-help relative flex items-center h-full py-2.5">
-                                        <Info className="w-4 h-4 hover:text-blue-400 transition-colors" />
+                                        <Info className={`w-4 h-4 transition-colors ${isOperacoesContext ? 'hover:text-amber-500' : 'hover:text-blue-400'}`} />
                                         {/* Tooltip */}
                                         <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-white border border-slate-200 rounded-xl shadow-2xl text-xs text-slate-600 opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-50 translate-y-[-10px] group-hover/info:translate-y-0">
                                             Use este campo para observações gerais que se aplicam a todo o lote de escalas.
@@ -773,7 +777,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="bg-white hover:bg-blue-50 text-blue-700 px-4 py-2.5 rounded-xl border border-slate-200 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12 shadow-sm"
+                                className={`bg-white px-4 py-2.5 rounded-xl border border-slate-200 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wide h-12 shadow-sm ${isOperacoesContext ? 'hover:bg-amber-50 text-amber-700' : 'hover:bg-blue-50 text-blue-700'}`}
                                 title="Importar Excel"
                             >
                                 <FileSpreadsheet className="w-4 h-4" />
@@ -791,7 +795,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
                                 relative overflow-hidden group px-6 py-2 rounded-xl font-bold text-sm tracking-wide transition-all h-12
                                 ${isLoading
                                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:-translate-y-0.5'
+                                        : (isOperacoesContext ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm hover:-translate-y-0.5' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:-translate-y-0.5')
                                     }
                             `}
                             >

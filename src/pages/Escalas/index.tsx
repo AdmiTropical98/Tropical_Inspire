@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
     Upload, Plus, Calendar as CalendarIcon,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
@@ -25,7 +26,6 @@ import PageHeader from '../../components/common/PageHeader';
 import DispatchBoard from './DispatchBoard';
 import EscalaTimelineModal from './EscalaTimelineModal';
 import { coerceServiceStatus, updateServiceStatus } from '../../services/serviceStatus';
-
 import * as XLSX from 'xlsx';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -148,10 +148,10 @@ const parseBusUsageWindows = (value: string) => {
     return windows;
 };
 
-// Sortable Driver Card Component
-
-
 export default function Escalas() {
+    const location = useLocation();
+    const isOperacoesContext = location.pathname.startsWith('/operacoes');
+
     const {
         motoristas, servicos, addNotification, updateNotification, centrosCustos,
         updateServico, deleteServico, geofences,
@@ -161,7 +161,6 @@ export default function Escalas() {
         publishBatch
     } = useWorkshop();
 
-    // Combined list of suggestions (Locais + Cartrack Geofences)
     const locationSuggestions = useMemo(() => {
         const cartrackNames = geofences.map(g => g.name);
         const localNames = locais.map(l => l.nome);
@@ -169,16 +168,8 @@ export default function Escalas() {
     }, [geofences, locais]);
     const { userRole, currentUser } = useAuth();
     const { hasAccess } = usePermissions();
-
     const { t } = useTranslation();
     const autoEmailEnabled = String(import.meta.env.VITE_EMAIL_AUTO_SEND ?? 'false') === 'true';
-
-
-    // ... (lines skipped)
-
-    // ... (lines skipped)
-
-
 
     // Core State
     const [selectedPendentes, setSelectedPendentes] = useState<string[]>([]);
@@ -187,14 +178,10 @@ export default function Escalas() {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
-
-
     // Mobile sidebar state
     // const [isPendingSidebarOpen, setIsPendingSidebarOpen] = useState(false); // Removed: Use layout directly
     // Desktop sidebar state
     // const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Removed: Use layout directly
-
-
 
     // View Mode State
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -1390,7 +1377,7 @@ export default function Escalas() {
 
 
     return (
-        <div className="flex flex-col w-full h-full bg-slate-50 relative overflow-y-auto">
+        <div className={`flex flex-col w-full h-full relative overflow-y-auto ${isOperacoesContext ? 'bg-amber-50/40' : 'bg-slate-50'}`}>
 
             {/* HEADER TOOLBAR */}
             <input
@@ -1407,178 +1394,59 @@ export default function Escalas() {
                 icon={CalendarIcon}
                 breadcrumbs={[]}
                 actions={
-                    <>
-
-
-
-                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300 overflow-x-auto pb-1">
-                            <div className="relative shrink-0">
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => {
-                                        setSelectedDate(e.target.value);
-                                        setSelectedBatchId(null);
-                                    }}
-                                    className="bg-white/90 text-slate-900 text-sm font-bold px-3 py-2 pl-9 rounded-lg border border-slate-200 outline-none focus:border-blue-500 transition-colors shadow-sm"
-                                />
-                                <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            </div>
-
-                            {hasAccess(userRole, 'escalas_create') && (
-                                <div className="flex items-center gap-2 min-w-max">
-                                    <button
-                                        onClick={() => setShowNewServiceModal(true)}
-                                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transition-all"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        <span>Novo Serviço</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setShowUrgentModal(true)}
-                                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-red-900/20 active:scale-95 transition-all"
-                                        title="Transporte de Emergência"
-                                    >
-                                        <Siren className="w-4 h-4" />
-                                        <span>Emergência</span>
-                                    </button>
-
-                                    <div className="flex items-center">
-                                        <button
-                                            onClick={handleRunAutomation}
-                                            disabled={isAutoLoading || selectedCentroCusto === 'all'}
-                                            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-l-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
-                                        >
-                                            {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                            <span>Automação</span>
-                                        </button>
-                                        <button
-                                            onClick={() => setShowAutoSettings(true)}
-                                            className="bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-2 rounded-r-lg border-l border-emerald-500/30 transition-all active:scale-95 shadow-lg shadow-emerald-900/20"
-                                            title="Configurações de Automação"
-                                        >
-                                            <Settings className="w-4 h-4" />
-                                        </button>
-                                    </div>
-
-                                    <button
-                                        onClick={() => setShowDailyDriversPanel(true)}
-                                        className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-amber-800/20 active:scale-95 transition-all"
-                                    >
-                                        <Users className="w-4 h-4" />
-                                        <span>Motoristas de hoje</span>
-                                    </button>
-
-                                    <button
-                                        onClick={handleGenerateAutoDispatch}
-                                        disabled={isAutoLoading}
-                                        className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-fuchsia-900/20 active:scale-95 transition-all"
-                                    >
-                                        {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <CloudLightning className="w-4 h-4" />}
-                                        <span>Distribuir escalas automaticamente</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setShowTemplateModal(true)}
-                                        className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/40 active:scale-95 transition-all"
-                                    >
-                                        <CloudLightning className="w-4 h-4 text-amber-300" />
-                                        <span>Modelos</span>
-                                    </button>
-
-                                    <button
-                                        onClick={handleDownloadTemplate}
-                                        className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border border-slate-200 shadow-lg active:scale-95 transition-all"
-                                        title="Descarregar ou Atualizar Modelo Excel com locais atuais"
-                                    >
-                                        <FileText className="w-4 h-4 text-emerald-400" />
-                                        <span>Modelo Excel</span>
-                                    </button>
-
-                                </div>
-                            )}
+                    <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="relative w-full lg:w-[220px]">
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => {
+                                    setSelectedDate(e.target.value);
+                                    setSelectedBatchId(null);
+                                }}
+                                className={`h-11 w-full bg-white text-slate-900 text-sm font-bold px-3 py-2 pl-9 rounded-xl border border-slate-200 outline-none transition-colors shadow-sm ${isOperacoesContext ? 'focus:border-amber-500' : 'focus:border-blue-500'}`}
+                            />
+                            <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
 
-                    </>
-                }
-            >
-                {/* Header Children (Filters & Stats) */}
-                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 w-full">
-
-                    {/* Stats Group */}
-                    <div className="flex items-center gap-4 md:gap-8 overflow-x-auto pb-2 xl:pb-0 w-full xl:w-auto">
-                        <div className="flex items-center gap-4 shrink-0">
-                            <div className="flex flex-col items-center">
-                                <span className="text-[10px] uppercase text-slate-500 font-bold">Total</span>
-                                <span className="text-xl font-bold text-slate-900">{totalServices}</span>
-                            </div>
-                            <div className="w-px h-8 bg-white/5"></div>
-                            <div className="flex flex-col items-center">
-                                <span className="text-[10px] uppercase text-red-400 font-bold">Urgentes</span>
-                                <div className="flex items-center gap-1">
-                                    <span className={`text-xl font-bold ${urgentServices.length > 0 ? 'text-red-400' : 'text-slate-500'}`}>{urgentServices.length}</span>
-                                    {urgentServices.length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
-                                </div>
-                            </div>
-                            <div className="w-px h-8 bg-white/5"></div>
-                            <div className="flex flex-col items-center">
-                                <span className="text-[10px] uppercase text-slate-500 font-bold">Atribuídos</span>
-                                <span className="text-xl font-bold text-blue-400">{assigned.length}</span>
-                            </div>
-                            <div className="w-px h-8 bg-white/5"></div>
-
-                            {/* Pendentes Indicator */}
-                            <div
-                                className="flex flex-col items-center group relative"
-                            >
-                                <span className="text-[10px] uppercase text-slate-500 font-bold group-hover:text-amber-400 transition-colors">Pendentes</span>
-                                <div className="flex items-center gap-1">
-                                    <span className={`text-xl font-bold ${pendentes.length > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                                        {pendentes.length}
-                                    </span>
-                                    {pendentes.length > 0 && (
-                                        <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="hidden md:flex flex-col gap-1 min-w-[120px]">
-                            <div className="flex justify-between text-[10px] font-medium text-slate-400">
-                                <span>Progresso</span>
-                                <span>{progressPercentage}%</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500"
-                                    style={{ width: `${progressPercentage}%` }}
-                                ></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Filters & Tools */}
-                    <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-                        {/* Search */}
-                        <div className="relative flex-1 xl:flex-none min-w-[200px]">
+                        <div className="relative w-full lg:min-w-[280px] lg:max-w-[420px] lg:flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
                                 type="text"
-                                placeholder="Procurar serviço..."
+                                placeholder="Procurar serviço ou motorista..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-white/90 border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-sm text-slate-900 focus:outline-none focus:border-blue-500/50 placeholder:text-slate-600"
+                                className={`h-11 w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-sm text-slate-900 focus:outline-none placeholder:text-slate-500 ${isOperacoesContext ? 'focus:border-amber-500/60' : 'focus:border-blue-500/60'}`}
                             />
                         </div>
+                    </div>
+                }
+            >
+                <div className="flex flex-col gap-5 w-full">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Total</p>
+                            <p className="mt-1 text-lg font-black text-slate-900">{totalServices}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Urgentes</p>
+                            <p className={`mt-1 text-lg font-black ${urgentServices.length > 0 ? 'text-red-600' : 'text-slate-900'}`}>{urgentServices.length}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Atribuídos</p>
+                            <p className={`mt-1 text-lg font-black ${isOperacoesContext ? 'text-amber-600' : 'text-blue-600'}`}>{assigned.length}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Pendentes</p>
+                            <p className={`mt-1 text-lg font-black ${pendentes.length > 0 ? 'text-amber-600' : 'text-slate-900'}`}>{pendentes.length}</p>
+                        </div>
+                    </div>
 
-                        {/* Cost Center Filter */}
-                        <div className="hidden md:block w-40">
+                    <div className="grid gap-3 xl:grid-cols-[minmax(220px,280px)_1fr_auto] xl:items-center">
+                        <div className="w-full xl:max-w-[260px]">
                             <select
                                 value={selectedCentroCusto}
                                 onChange={(e) => setSelectedCentroCusto(e.target.value)}
-                                className="w-full bg-white/90 border border-slate-200 rounded-xl py-2 px-3 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
+                                className={`h-11 w-full bg-white border border-slate-200 rounded-xl px-3 text-sm text-slate-700 focus:outline-none appearance-none cursor-pointer shadow-sm ${isOperacoesContext ? 'focus:border-amber-500/50' : 'focus:border-blue-500/50'}`}
                             >
                                 <option value="all">Todos Centros</option>
                                 {centrosCustos.map(cc => (
@@ -1587,22 +1455,88 @@ export default function Escalas() {
                             </select>
                         </div>
 
-                        {/* View Mode Toggle */}
+                        <div className="flex flex-col gap-2">
+                            <div className="flex justify-between text-[11px] font-semibold text-slate-500">
+                                <span>Progresso operacional</span>
+                                <span>{progressPercentage}% atribuído</span>
+                            </div>
+                            <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/70">
+                                <div
+                                    className={`h-full transition-all duration-500 ${isOperacoesContext ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-500 to-emerald-500'}`}
+                                    style={{ width: `${progressPercentage}%` }}
+                                />
+                            </div>
+                        </div>
+
                         {hasAccess(userRole, 'escalas_create') && (
-                            <div className="flex bg-white/90 rounded-lg p-1 border border-slate-100 shrink-0">
+                            <div className="flex flex-wrap items-center gap-3 xl:justify-end">
                                 <button
-                                    onClick={() => setViewMode('cards')}
-                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                                    title="Cartões"
+                                    onClick={() => setShowNewServiceModal(true)}
+                                    className={`h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-all ${isOperacoesContext ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-blue-600 text-white hover:bg-blue-500'}`}
                                 >
-                                    <LayoutGrid className="w-4 h-4" />
+                                    <Plus className="w-4 h-4" />
+                                    <span>Novo Serviço</span>
                                 </button>
+
                                 <button
-                                    onClick={() => setViewMode('table')}
-                                    className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                                    title="Lista"
+                                    onClick={() => setShowUrgentModal(true)}
+                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-red-600 text-white shadow-sm transition-all hover:bg-red-500"
+                                    title="Transporte de Emergência"
                                 >
-                                    <TableIcon className="w-4 h-4" />
+                                    <Siren className="w-4 h-4" />
+                                    <span>Emergência</span>
+                                </button>
+
+                                <div className="flex h-11 overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm">
+                                    <button
+                                        onClick={handleRunAutomation}
+                                        disabled={isAutoLoading || selectedCentroCusto === 'all'}
+                                        className="flex-1 px-4 text-sm font-bold flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 transition-all hover:bg-emerald-100 disabled:opacity-50"
+                                    >
+                                        {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                        <span>Automação</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowAutoSettings(true)}
+                                        className="w-11 border-l border-emerald-200 bg-emerald-100 text-emerald-700 transition-all hover:bg-emerald-200"
+                                        title="Configurações de Automação"
+                                    >
+                                        <Settings className="w-4 h-4 mx-auto" />
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowDailyDriversPanel(true)}
+                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+                                >
+                                    <Users className="w-4 h-4 text-amber-500" />
+                                    <span>Motoristas de hoje</span>
+                                </button>
+
+                                <button
+                                    onClick={handleGenerateAutoDispatch}
+                                    disabled={isAutoLoading}
+                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
+                                >
+                                    {isAutoLoading ? <Clock className="w-4 h-4 animate-spin text-emerald-600" /> : <CloudLightning className="w-4 h-4 text-emerald-600" />}
+                                    <span>Distribuição automática</span>
+                                </button>
+
+                                <button
+                                    onClick={() => setShowTemplateModal(true)}
+                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+                                >
+                                    <CloudLightning className="w-4 h-4 text-amber-500" />
+                                    <span>Modelos</span>
+                                </button>
+
+                                <button
+                                    onClick={handleDownloadTemplate}
+                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+                                    title="Descarregar ou Atualizar Modelo Excel com locais atuais"
+                                >
+                                    <FileText className="w-4 h-4 text-slate-500" />
+                                    <span>Modelo Excel</span>
                                 </button>
                             </div>
                         )}
@@ -1629,7 +1563,7 @@ export default function Escalas() {
                         {/* Status Tabs (Stick to top of widget) */}
 
                         {viewMode === 'cards' && (
-                            <div className="flex-1 min-h-0 p-3 md:p-4 overflow-hidden">
+                            <div className="flex-1 min-h-0 p-4 md:p-6 overflow-hidden">
                                 <DispatchBoard
                                     motoristas={processedMotoristas}
                                     pendentes={pendentes}

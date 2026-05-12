@@ -3,8 +3,8 @@ import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-
 import { Capacitor } from '@capacitor/core';
 import {
   LayoutDashboard, Car, MessageSquare,
-  Calendar as CalendarIcon, Building2, Briefcase,
-  BarChart3, MapPin, Award, LayoutTemplate,
+  Building2, Briefcase,
+  BarChart3, MapPin, Award,
   UserCheck, Activity,
   Settings2, UserCog as UserCogIcon, LogOut,
   Navigation, AlertTriangle, ClipboardCheck, Fuel, BatteryCharging,
@@ -18,6 +18,7 @@ import { useChat } from './contexts/ChatContext';
 // Components
 import Login from './pages/Auth/Login';
 import InventoryLogin from './pages/Auth/InventoryLogin';
+import SystemSelector from './pages/Auth/SystemSelector';
 import ResetPassword from './pages/Auth/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import AlertsPage from './pages/Alerts';
@@ -25,7 +26,6 @@ import Viaturas from './pages/Viaturas';
 import VehicleProfile from './pages/Viaturas/VehicleProfile';
 import Drivers from './pages/Motoristas';
 import Requisicoes from './pages/Requisicoes';
-import Escalas from './pages/Escalas';
 import EscalasHistory from './pages/Escalas/EscalasHistory';
 import Horas from './pages/Horas';
 import FuelManager from './pages/Combustivel';
@@ -33,13 +33,10 @@ import UserManagementTab from './pages/Users';
 import GestoresTab from './pages/Gestores';
 import EquipaOficinaTab from './pages/EquipaOficina';
 import PermissoesTab from './pages/Permissoes';
-import RoteirizacaoTab from './pages/Roteirizacao';
-import GeofencesTab from './pages/Geofences';
 import AvaliacaoDriversTab from './pages/Avaliacao';
 import ContabilidadeTab from './pages/Contabilidade';
 import SupplierInvoiceDocumentPage from './pages/Contabilidade/SupplierInvoiceDocumentPage';
 import NovaFaturaPage from './pages/Finance/NovaFaturaPage';
-import LancarEscalaTab from './pages/LancarEscala';
 import ControloOperacionalTab from './pages/ControloOperacional';
 import Fornecedores from './pages/Fornecedores';
 import SupplierProfile from './pages/Fornecedores/SupplierProfile';
@@ -56,6 +53,8 @@ import LayoutMobile from './components/layout/LayoutMobile';
 import LayoutDesktop from './components/layout/LayoutDesktop';
 import DriverMode from './pages/DriverMode';
 import InventoryModule from './pages/Inventario/InventoryModule';
+import OperacoesModule from './pages/Operacoes/OperacoesModule';
+import OperacoesLogin from './pages/Auth/OperacoesLogin';
 import { isAndroidAuto } from './utils/isAndroidAuto';
 
 // Lazy loading backoffice
@@ -67,9 +66,7 @@ const Clientes = lazy(() => import('./pages/Clientes'));
 const Relatorios = lazy(() => import('./pages/Relatorios'));
 const Mensagens = lazy(() => import('./pages/Chat'));
 const Profile = lazy(() => import('./pages/Profile/MyProfile'));
-const LinhaTransportes = lazy(() => import('./pages/LinhaTransportes'));
 const ColaboradorApp = lazy(() => import('./pages/Colaborador'));
-const ColaboradoresPage = lazy(() => import('./pages/Colaboradores'));
 
 const LegacySupplierActionRedirect: React.FC = () => {
   const location = useLocation();
@@ -379,13 +376,28 @@ function App() {
 
   const isColaboradorArea =
     location.pathname === '/colaborador' ||
-    location.pathname.startsWith('/colaborador/');
+    location.pathname.startsWith('/colaborador/') ||
+    location.pathname === '/operacoes/colaborador' ||
+    location.pathname.startsWith('/operacoes/colaborador/');
+  const isFrotaLoginArea =
+    location.pathname === '/frota/login' ||
+    location.pathname.startsWith('/frota/login/');
+  const isInventoryLoginArea =
+    location.pathname === '/inventario/login' ||
+    location.pathname.startsWith('/inventario/login/');
+  const isOperacoesLoginArea =
+    location.pathname === '/operacoes/login' ||
+    location.pathname.startsWith('/operacoes/login/');
   const isInventoryArea =
     location.pathname === '/inventario' ||
     location.pathname.startsWith('/inventario/');
+    const isOperacoesArea =
+      location.pathname === '/operacoes' ||
+      location.pathname.startsWith('/operacoes/');
   const normalizedRole = String(userRole || '').toUpperCase();
   const isAdminRole = normalizedRole === 'ADMIN' || normalizedRole === 'ADMIN_MASTER';
   const canAccessInventoryModule = isAdminRole || hasAccess(userRole, 'inventario', 'ver');
+    const canAccessOperacoesModule = isAdminRole || hasAccess(userRole, 'operacoes', 'ver');
   const canAccessFleetModule =
     isAdminRole ||
     hasAccess(userRole, 'frota', 'ver') ||
@@ -397,6 +409,10 @@ function App() {
   }
 
   if (isColaboradorArea) {
+    if (location.pathname === '/colaborador' || location.pathname.startsWith('/colaborador/')) {
+      return <Navigate to={location.pathname.replace('/colaborador', '/operacoes/colaborador')} replace />;
+    }
+
     return (
       <div className={`app-root min-h-screen bg-transparent text-slate-900 font-sans selection:bg-amber-500/20 ${isCapacitorAndroid ? 'android-native-shell w-screen max-w-[100vw] m-0 p-0' : 'w-full'}`}>
         <Suspense fallback={
@@ -406,7 +422,7 @@ function App() {
           </div>
         }>
           <Routes>
-            <Route path="/colaborador/*" element={<ColaboradorApp />} />
+            <Route path="/operacoes/colaborador/*" element={<ColaboradorApp />} />
           </Routes>
         </Suspense>
       </div>
@@ -415,8 +431,11 @@ function App() {
 
   if (!isAuthenticated) {
     if (location.pathname === '/reset-password') return <ResetPassword />;
-    if (isInventoryArea) return <InventoryLogin />;
-    return <Login />;
+    if (location.pathname === '/') return <SystemSelector />;
+    if (isFrotaLoginArea) return <Login />;
+    if (isOperacoesLoginArea || isOperacoesArea) return <OperacoesLogin />;
+    if (isInventoryLoginArea || isInventoryArea) return <InventoryLogin />;
+    return <SystemSelector />;
   }
 
   if (isInventoryArea) {
@@ -454,6 +473,40 @@ function App() {
     return <InventoryModule />;
   }
 
+    if (isOperacoesArea) {
+      if (!canAccessOperacoesModule) {
+        return (
+          <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-slate-100">
+            <div className="max-w-lg w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sem acesso às Operações</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                A sua conta não tem permissões para o módulo de Operações. Contacte o administrador para ativar acesso.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                {canAccessFleetModule && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard')}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Ir para Frota
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100"
+                >
+                  Terminar sessão
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return <OperacoesModule />;
+    }
 
 
   const dashboardItem: NavItem = {
@@ -482,24 +535,6 @@ function App() {
         path: '/alerts',
         active: activeTab === 'alerts',
       },
-      ...(hasAccess(userRole, 'escalas')
-        ? [
-          {
-            key: 'escalas',
-            label: 'Escalas',
-            icon: CalendarIcon,
-            path: '/escalas',
-            active: activeTab === 'escalas',
-          },
-          {
-            key: 'lancar-escalas',
-            label: 'Planear Escala',
-            icon: LayoutTemplate,
-            path: '/lancar-escalas',
-            active: activeTab === 'lancar-escalas',
-          },
-        ] as NavItem[]
-        : []),
       ...(hasAccess(userRole, 'requisicoes')
         ? [{
           key: 'requisicoes',
@@ -614,16 +649,12 @@ function App() {
     key: 'mais',
     label: 'Mais',
     items: [
-      ...(hasAccess(userRole, 'roteirizacao') ? [{ key: 'roteirizacao', label: 'Roteirização', icon: Navigation, path: '/roteirizacao', active: activeTab === 'roteirizacao' } as NavItem] : []),
-      { key: 'linha-transportes', label: 'Linha Transportes', icon: Navigation, path: '/linha-transportes', active: activeTab === 'linha-transportes' },
       // Sempre mostrar Clientes e Fornecedores para ADMINISTRADOR
       ...((userRole && String(userRole).toLowerCase().includes('admin')) ? [
         { key: 'clientes', label: 'Clientes', icon: Building2, path: '/clientes', active: activeTab === 'clientes' },
         { key: 'fornecedores', label: 'Fornecedores', icon: Briefcase, path: '/fornecedores', active: activeTab === 'fornecedores' },
       ] : []),
-      ...(hasAccess(userRole, 'geofences') ? [{ key: 'geofences', label: 'Cercas Geográficas', icon: MapPin, path: '/geofences', active: activeTab === 'geofences' } as NavItem] : []),
       ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'utilizadores', label: 'Perfis', icon: UserCheck, path: '/utilizadores', active: activeTab === 'utilizadores' } as NavItem] : []),
-      ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'colaboradores', label: 'Colaboradores', icon: IdCard, path: '/colaboradores', active: activeTab === 'colaboradores' } as NavItem] : []),
 
       {
         key: 'mensagens',
@@ -645,13 +676,6 @@ function App() {
       icon: LayoutDashboard,
       active: activeTab === 'dashboard',
       onClick: () => handleNavigate('/dashboard'),
-    },
-    {
-      key: 'bottom-roteirizacao',
-      label: 'Roteirização',
-      icon: Navigation,
-      active: activeTab === 'roteirizacao',
-      onClick: () => handleNavigate('/roteirizacao'),
     },
     {
       key: 'bottom-frota',
@@ -693,6 +717,7 @@ function App() {
     }>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/frota/login" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
         <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
         <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
@@ -705,25 +730,21 @@ function App() {
         <Route path="/vehicles/:viaturaId" element={<VehicleProfile />} />
         <Route path="/motoristas" element={<Drivers />} />
         <Route path="/requisicoes" element={<Requisicoes />} />
-        <Route path="/escalas" element={<Escalas />} />
+        <Route path="/escalas" element={<Navigate to="/operacoes/escalas" replace />} />
         <Route path="/escalas-history" element={<EscalasHistory />} />
         <Route path="/horas" element={<Horas />} />
         <Route path="/combustivel" element={<FuelManager />} />
         <Route path="/utilizadores" element={<UserManagementTab />} />
-        <Route path="/colaboradores" element={<Suspense fallback={<div>Loading Colaboradores...</div>}><ColaboradoresPage /></Suspense>} />
         <Route path="/gestores" element={<GestoresTab />} />
         <Route path="/equipa-oficina" element={<EquipaOficinaTab />} />
         <Route path="/meu-perfil" element={<Suspense fallback={<div>Loading Profile...</div>}><Profile /></Suspense>} />
         <Route path="/permissoes" element={<PermissoesTab />} />
-        <Route path="/roteirizacao" element={<RoteirizacaoTab />} />
-        <Route path="/geofences" element={<GeofencesTab />} />
         <Route path="/avaliacao-drivers" element={<AvaliacaoDriversTab />} />
         <Route path="/contabilidade" element={<ContabilidadeTab />} />
         <Route path="/finance/faturas/nova" element={<NovaFaturaPage />} />
         <Route path="/finance/faturas/:invoiceId/editar" element={<SupplierInvoiceDocumentPage mode="edit" />} />
-        <Route path="/lancar-escalas" element={<LancarEscalaTab />} />
+        <Route path="/lancar-escalas" element={<Navigate to="/operacoes/planear-escala" replace />} />
         <Route path="/controlo-operacional" element={<ControloOperacionalTab />} />
-        <Route path="/linha-transportes" element={<Suspense fallback={<div className="p-8 text-slate-400">A carregar Linha de Transportes...</div>}><LinhaTransportes /></Suspense>} />
         <Route path="/fornecedores" element={<Fornecedores />} />
         <Route path="/fornecedores/:supplierId" element={<SupplierProfile />} />
         <Route path="/via-verde" element={<ViaVerde />} />

@@ -274,6 +274,9 @@ export default function Login() {
                             </div>
 
                             <div className="mb-6">
+                                <p className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-blue-700">
+                                    Sistema Frota
+                                </p>
                                 <h1 className="text-[2.1rem] font-extrabold tracking-[-0.04em] text-[#1f2957] sm:text-[2.35rem]">Bem-vindo de volta!</h1>
                                 <p className="mt-2 text-[1.02rem] text-slate-500">Inicie sessão para continuar.</p>
                             </div>
@@ -372,20 +375,6 @@ export default function Login() {
                                     </button>
                                 )}
 
-                                <button
-                                    type="button"
-                                    onClick={() => window.location.href = '/colaborador'}
-                                    className="w-full rounded-2xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800"
-                                >
-                                    É um colaborador? Aceder à Área
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => window.location.href = '/inventario'}
-                                    className="w-full rounded-2xl border border-emerald-200 bg-emerald-50 py-3 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 hover:border-emerald-300"
-                                >
-                                    📦 Aceder ao Sistema de Inventário
-                                </button>
                             </form>
                         </div>
                     </section>
