@@ -1044,8 +1044,8 @@ html.login-active #root {
   overflow-y: auto;
   overflow-x: hidden;
   background: #ffffff;
-  padding-top: 12px;
-  padding-right: 16px;
+  padding-top: 8px;
+  padding-right: 8px;
   padding-left: 8px;
   border-right: 1px solid #e2e8f0;
   min-width: 0;
@@ -1059,10 +1059,10 @@ html.login-active #root {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 12px 10px 12px;
+  padding: 10px 8px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .column-title {
@@ -1073,9 +1073,9 @@ html.login-active #root {
 
 .dispatch-board {
   display: grid;
-  grid-template-columns: minmax(280px, 0.86fr) minmax(660px, 1.92fr) minmax(250px, 0.78fr);
-  gap: 24px;
-  padding: 0 18px 16px;
+  grid-template-columns: minmax(170px, 0.45fr) minmax(760px, 3fr) minmax(170px, 0.45fr);
+  gap: 10px;
+  padding: 0 8px 12px;
   background: #f8fafc;
   max-width: 100%;
 }
@@ -1086,9 +1086,9 @@ html.login-active #root {
 
 .driver-drop-lane {
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 12px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
   background: #ffffff;
 }
 
@@ -1128,7 +1128,7 @@ html.login-active #root {
 .driver-name {
   color: #020617;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 13px;
   white-space: normal;
   word-break: break-word;
 }
@@ -1146,6 +1146,8 @@ html.login-active #root {
 
 .center-assignment-column {
   border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
 }
 
 .center-assignment-column .dispatch-column-label {
@@ -1155,8 +1157,16 @@ html.login-active #root {
 .center-assignment-column .drop-zone {
   border: 1px dashed #cbd5e1;
   border-radius: 14px;
-  padding: 14px;
+  padding: 10px;
   background: #fffaf3;
+}
+
+.side-column .dispatch-column-label {
+  font-size: 12px;
+}
+
+.side-column .driver-drop-lane {
+  background: #fffcf5;
 }
 
 .center-assignment-column .service-card {
@@ -1198,9 +1208,9 @@ html.login-active #root {
 
 @media (max-width: 1280px) {
   .dispatch-board {
-    grid-template-columns: minmax(290px, 0.95fr) minmax(560px, 1.55fr) minmax(240px, 0.8fr);
+    grid-template-columns: minmax(160px, 0.45fr) minmax(560px, 2.2fr) minmax(160px, 0.45fr);
     overflow-x: auto;
-    padding: 0 12px 12px;
+    padding: 0 8px 10px;
   }
 
   .dispatch-column {

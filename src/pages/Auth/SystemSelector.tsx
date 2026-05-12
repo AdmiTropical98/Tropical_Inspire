@@ -143,35 +143,47 @@ export default function SystemSelector() {
             })}
           </div>
 
-          <div className="mt-6 grid gap-5 lg:grid-cols-3">
+          <div className="mt-6 grid gap-5 lg:grid-cols-3 items-stretch">
             {SYSTEMS.map((system) => {
               const Icon = system.icon;
               return (
                 <article
                   key={system.key}
-                  className={`group relative overflow-hidden rounded-3xl border bg-gradient-to-br ${system.tones.panel} ${system.tones.texture} p-8 shadow-md transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-[1.012] hover:border-opacity-80 hover:shadow-xl ${system.tones.glow}`}
+                  className={`group relative flex flex-col overflow-hidden rounded-3xl border bg-gradient-to-br ${system.tones.panel} ${system.tones.texture} shadow-md transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-[1.012] hover:border-opacity-80 hover:shadow-xl ${system.tones.glow}`}
                   style={{ transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease' }}
                 >
-                  <div className={`inline-flex h-18 w-18 items-center justify-center rounded-2xl ${system.tones.badge} ring-2 ring-white/80 shadow-md transition-all duration-200 group-hover:scale-[1.08] group-hover:shadow-lg`}>
-                    <Icon className="h-9 w-9" />
+                  {/* Body — centered vertically */}
+                  <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 pt-10 pb-6 text-center">
+                    {/* Icon */}
+                    <div className={`flex h-20 w-20 items-center justify-center rounded-2xl ${system.tones.badge} ring-2 ring-white/80 shadow-md transition-all duration-200 group-hover:scale-[1.06] group-hover:shadow-lg`}>
+                      <Icon className="h-10 w-10" />
+                    </div>
+
+                    {/* Title */}
+                    <h2 className="text-2xl font-black tracking-tight text-slate-900">{system.title}</h2>
+
+                    {/* Keywords */}
+                    <ul className="w-full space-y-2 text-[14px] font-semibold text-slate-600">
+                      {system.keywords.map((kw) => (
+                        <li key={kw} className="flex items-center justify-center gap-2">
+                          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${system.tones.badge}`} />
+                          {kw}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <h2 className="mt-5 text-2xl font-black tracking-tight text-slate-900">{system.title}</h2>
-                  <ul className="mt-3 grid gap-1.5 text-[15px] font-semibold text-slate-600">
-                    {system.keywords.map((item) => (
-                      <li key={item} className="flex items-center gap-1.5">
-                        <span className={`h-1.5 w-1.5 rounded-full ${system.tones.badge}`} />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => navigate(system.route)}
-                    className={`mt-7 inline-flex items-center gap-2 text-base font-black transition-all duration-200 ${system.tones.accent} group-hover:gap-2.5`}
-                  >
-                    {system.cta}
-                    <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1.5" />
-                  </button>
+
+                  {/* CTA — always at bottom */}
+                  <div className="px-6 pb-6">
+                    <button
+                      type="button"
+                      onClick={() => navigate(system.route)}
+                      className={`flex w-full items-center justify-between rounded-xl px-5 py-3.5 text-[13px] font-black transition-all duration-200 ${system.tones.badge} ${system.tones.accent} hover:opacity-90`}
+                    >
+                      {system.cta}
+                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1.5" />
+                    </button>
+                  </div>
                 </article>
               );
             })}

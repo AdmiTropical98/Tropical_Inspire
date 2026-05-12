@@ -3,26 +3,11 @@ import { useLocation } from 'react-router-dom';
 import {
     Upload, Plus, Calendar as CalendarIcon,
     CheckSquare, MoreVertical, Trash2, ArrowRight, Siren,
-    Send, MapPin, Clock, Users, Car, Bus,
-    Search, AlertTriangle,
-    Table as TableIcon, LayoutGrid, CloudLightning, FileText, CheckCircle, Settings
+    Send, MapPin, Clock, Users, Bus,
+    Search,
+    LayoutGrid, CloudLightning, FileText, CheckCircle, Settings
 } from 'lucide-react';
 
-import {
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    type DragEndEvent
-} from '@dnd-kit/core';
-import {
-    arrayMove,
-    sortableKeyboardCoordinates,
-    useSortable
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-
-import PageHeader from '../../components/common/PageHeader';
 import DispatchBoard from './DispatchBoard';
 import EscalaTimelineModal from './EscalaTimelineModal';
 import { coerceServiceStatus, updateServiceStatus } from '../../services/serviceStatus';
@@ -153,7 +138,7 @@ export default function Escalas() {
     const isOperacoesContext = location.pathname.startsWith('/operacoes');
 
     const {
-        motoristas, servicos, addNotification, updateNotification, centrosCustos,
+        motoristas, servicos, addNotification, centrosCustos,
         updateServico, deleteServico, geofences,
         locais, scaleBatches, createScaleBatch,
         zonasOperacionais, refreshData, viaturas, cartrackVehicles,
@@ -184,13 +169,13 @@ export default function Escalas() {
     // const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Removed: Use layout directly
 
     // View Mode State
-    const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+    const [viewMode] = useState<'cards' | 'table'>('table');
 
     // Grouping State
 
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'busy'>('all');
+    const [filterStatus] = useState<'all' | 'available' | 'busy'>('all');
     const [colaboradores, setColaboradores] = useState<ColaboradorType[]>([]);
 
     const isSupervisorUser = String(userRole || '').toLowerCase() === 'supervisor';
@@ -293,6 +278,7 @@ export default function Escalas() {
 
     // Automation States
     const [showAutoModal, setShowAutoModal] = useState(false);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [isAutoLoading, setIsAutoLoading] = useState(false);
     const [automationTrips, setAutomationTrips] = useState<GroupedTrip[]>([]);
     const [automationMode, setAutomationMode] = useState<'import' | 'auto-dispatch'>('import');
@@ -444,7 +430,7 @@ export default function Escalas() {
         local: '',
         obs: ''
     });
-    const [activeAssociations, setActiveAssociations] = useState<MotoristaViaturaAssoc[]>([]);
+    const [, setActiveAssociations] = useState<MotoristaViaturaAssoc[]>([]);
 
     const loadAssociations = async () => {
         const { data: activeData, error: activeError } = await supabase
@@ -1256,14 +1242,14 @@ export default function Escalas() {
         });
     };
 
-    const handleAssign = async () => {
-        if (!selectedMotoristaForAssign || selectedPendentes.length === 0) return;
+    const assignSelectedServicesToDriver = async (driverId: string) => {
+        if (!driverId || selectedPendentes.length === 0) return;
 
         const servicesToUpdate = servicos.filter(s => selectedPendentes.includes(s.id));
-        await Promise.all(servicesToUpdate.map(s => assignDriverToService(s, selectedMotoristaForAssign)));
+        await Promise.all(servicesToUpdate.map(s => assignDriverToService(s, driverId)));
 
         if (autoEmailEnabled) {
-            const driver = motoristas.find(m => m.id === selectedMotoristaForAssign);
+            const driver = motoristas.find(m => m.id === driverId);
             if (driver?.email) {
                 await Promise.all(
                     servicesToUpdate.map(service =>
@@ -1277,6 +1263,10 @@ export default function Escalas() {
 
         setSelectedPendentes([]);
         setSelectedMotoristaForAssign('');
+    };
+
+    const handleAssign = async () => {
+        await assignSelectedServicesToDriver(selectedMotoristaForAssign);
     };
 
     const handleBatchDelete = async () => {
@@ -1374,12 +1364,32 @@ export default function Escalas() {
         });
     }, [filteredMotoristas, driverOrder]);
 
+    const quickAssignDrivers = useMemo(() => {
+        const statusRank = (status?: string) => {
+            const normalized = String(status || '').toLowerCase();
+            if (normalized === 'disponivel') return 0;
+            if (normalized === 'ocupado' || normalized === 'em_servico') return 1;
+            return 2;
+        };
+
+        return [...displayMotoristas]
+            .sort((a, b) => {
+                const rankA = statusRank(a.status);
+                const rankB = statusRank(b.status);
+                if (rankA !== rankB) return rankA - rankB;
+                const loadA = assigned.filter(service => service.motoristaId === a.id).length;
+                const loadB = assigned.filter(service => service.motoristaId === b.id).length;
+                if (loadA !== loadB) return loadA - loadB;
+                return a.nome.localeCompare(b.nome);
+            })
+            .slice(0, 6);
+    }, [displayMotoristas, assigned]);
+
 
 
     return (
-        <div className={`flex flex-col w-full h-full relative overflow-y-auto ${isOperacoesContext ? 'bg-amber-50/40' : 'bg-slate-50'}`}>
+        <div className={`flex flex-col w-full h-full min-h-0 relative overflow-hidden ${isOperacoesContext ? 'bg-amber-50/30' : 'bg-slate-50'}`}>
 
-            {/* HEADER TOOLBAR */}
             <input
                 type="file"
                 ref={fileInputRef}
@@ -1388,79 +1398,81 @@ export default function Escalas() {
                 accept=".xlsx, .xls, .csv"
             />
 
-            <PageHeader
-                title="Gestão de Escalas"
-                subtitle="Mapas, Escalas e Distribuição"
-                icon={CalendarIcon}
-                breadcrumbs={[]}
-                actions={
-                    <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end animate-in fade-in slide-in-from-right-4 duration-300">
-                        <div className="relative w-full lg:w-[220px]">
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => {
-                                    setSelectedDate(e.target.value);
-                                    setSelectedBatchId(null);
-                                }}
-                                className={`h-11 w-full bg-white text-slate-900 text-sm font-bold px-3 py-2 pl-9 rounded-xl border border-slate-200 outline-none transition-colors shadow-sm ${isOperacoesContext ? 'focus:border-amber-500' : 'focus:border-blue-500'}`}
-                            />
-                            <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        </div>
-
-                        <div className="relative w-full lg:min-w-[280px] lg:max-w-[420px] lg:flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                            <input
-                                type="text"
-                                placeholder="Procurar serviço ou motorista..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className={`h-11 w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-sm text-slate-900 focus:outline-none placeholder:text-slate-500 ${isOperacoesContext ? 'focus:border-amber-500/60' : 'focus:border-blue-500/60'}`}
-                            />
-                        </div>
-                    </div>
-                }
-            >
-                <div className="flex flex-col gap-5 w-full">
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Total</p>
-                            <p className="mt-1 text-lg font-black text-slate-900">{totalServices}</p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Urgentes</p>
-                            <p className={`mt-1 text-lg font-black ${urgentServices.length > 0 ? 'text-red-600' : 'text-slate-900'}`}>{urgentServices.length}</p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Atribuídos</p>
-                            <p className={`mt-1 text-lg font-black ${isOperacoesContext ? 'text-amber-600' : 'text-blue-600'}`}>{assigned.length}</p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Pendentes</p>
-                            <p className={`mt-1 text-lg font-black ${pendentes.length > 0 ? 'text-amber-600' : 'text-slate-900'}`}>{pendentes.length}</p>
-                        </div>
-                    </div>
-
-                    <div className="grid gap-3 xl:grid-cols-[minmax(220px,280px)_1fr_auto] xl:items-center">
-                        <div className="w-full xl:max-w-[260px]">
-                            <select
-                                value={selectedCentroCusto}
-                                onChange={(e) => setSelectedCentroCusto(e.target.value)}
-                                className={`h-11 w-full bg-white border border-slate-200 rounded-xl px-3 text-sm text-slate-700 focus:outline-none appearance-none cursor-pointer shadow-sm ${isOperacoesContext ? 'focus:border-amber-500/50' : 'focus:border-blue-500/50'}`}
-                            >
-                                <option value="all">Todos Centros</option>
-                                {centrosCustos.map(cc => (
-                                    <option key={cc.id} value={cc.id}>{cc.nome}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                            <div className="flex justify-between text-[11px] font-semibold text-slate-500">
-                                <span>Progresso operacional</span>
-                                <span>{progressPercentage}% atribuído</span>
+            <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-slate-50/95 backdrop-blur-md">
+                <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Gestão de Operações</p>
+                            <div className="mt-1 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600 shadow-sm">
+                                    <CalendarIcon className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h1 className="truncate text-2xl font-black tracking-tight text-slate-900">Escalas</h1>
+                                    <p className="truncate text-sm text-slate-500">Mapa operacional, distribuição e atribuição rápida</p>
+                                </div>
                             </div>
-                            <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/70">
+                        </div>
+
+                        <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center lg:justify-end">
+                            <div className="relative w-full lg:w-[200px]">
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => {
+                                        setSelectedDate(e.target.value);
+                                        setSelectedBatchId(null);
+                                    }}
+                                    className={`h-10 w-full bg-white text-slate-900 text-sm font-bold px-3 py-2 pl-9 rounded-xl border border-slate-200 outline-none transition-colors shadow-sm ${isOperacoesContext ? 'focus:border-amber-500' : 'focus:border-blue-500'}`}
+                                />
+                                <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            </div>
+
+                            <div className="relative w-full lg:min-w-[240px] lg:max-w-[340px] lg:flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Procurar serviço ou motorista..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className={`h-10 w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-sm text-slate-900 focus:outline-none placeholder:text-slate-400 ${isOperacoesContext ? 'focus:border-amber-500/60' : 'focus:border-blue-500/60'}`}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {[
+                            { label: 'Total', value: totalServices, color: 'text-slate-900' },
+                            { label: 'Urgentes', value: urgentServices.length, color: urgentServices.length > 0 ? 'text-red-600' : 'text-slate-900' },
+                            { label: 'Atribuídos', value: assigned.length, color: isOperacoesContext ? 'text-amber-600' : 'text-blue-600' },
+                            { label: 'Pendentes', value: pendentes.length, color: pendentes.length > 0 ? 'text-amber-600' : 'text-slate-900' },
+                        ].map(kpi => (
+                            <div key={kpi.label} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{kpi.label}</p>
+                                <p className={`mt-0.5 text-xl font-black leading-none ${kpi.color}`}>{kpi.value}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:gap-3">
+                        <select
+                            value={selectedCentroCusto}
+                            onChange={(e) => setSelectedCentroCusto(e.target.value)}
+                            className={`h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm text-slate-700 focus:outline-none appearance-none cursor-pointer shadow-sm w-full xl:w-[190px] ${isOperacoesContext ? 'focus:border-amber-500/50' : 'focus:border-blue-500/50'}`}
+                        >
+                            <option value="all">Todos Centros</option>
+                            {centrosCustos.map(cc => (
+                                <option key={cc.id} value={cc.id}>{cc.nome}</option>
+                            ))}
+                        </select>
+
+                        <div className="flex flex-1 min-w-[180px] flex-col gap-1.5">
+                            <div className="flex justify-between text-[10px] font-semibold text-slate-400">
+                                <span>Progresso</span>
+                                <span>{progressPercentage}%</span>
+                            </div>
+                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/70">
                                 <div
                                     className={`h-full transition-all duration-500 ${isOperacoesContext ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-500 to-emerald-500'}`}
                                     style={{ width: `${progressPercentage}%` }}
@@ -1469,93 +1481,104 @@ export default function Escalas() {
                         </div>
 
                         {hasAccess(userRole, 'escalas_create') && (
-                            <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+                            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                                 <button
                                     onClick={() => setShowNewServiceModal(true)}
-                                    className={`h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-all ${isOperacoesContext ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-blue-600 text-white hover:bg-blue-500'}`}
+                                    className={`h-10 rounded-xl px-4 text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all ${isOperacoesContext ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-blue-600 text-white hover:bg-blue-500'}`}
                                 >
                                     <Plus className="w-4 h-4" />
-                                    <span>Novo Serviço</span>
+                                    Novo Serviço
                                 </button>
 
                                 <button
                                     onClick={() => setShowUrgentModal(true)}
-                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-red-600 text-white shadow-sm transition-all hover:bg-red-500"
+                                    className="h-10 rounded-xl px-3 text-sm font-bold flex items-center gap-1.5 bg-red-600 text-white shadow-sm transition-all hover:bg-red-500"
                                     title="Transporte de Emergência"
                                 >
                                     <Siren className="w-4 h-4" />
-                                    <span>Emergência</span>
-                                </button>
-
-                                <div className="flex h-11 overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm">
-                                    <button
-                                        onClick={handleRunAutomation}
-                                        disabled={isAutoLoading || selectedCentroCusto === 'all'}
-                                        className="flex-1 px-4 text-sm font-bold flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 transition-all hover:bg-emerald-100 disabled:opacity-50"
-                                    >
-                                        {isAutoLoading ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                        <span>Automação</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setShowAutoSettings(true)}
-                                        className="w-11 border-l border-emerald-200 bg-emerald-100 text-emerald-700 transition-all hover:bg-emerald-200"
-                                        title="Configurações de Automação"
-                                    >
-                                        <Settings className="w-4 h-4 mx-auto" />
-                                    </button>
-                                </div>
-
-                                <button
-                                    onClick={() => setShowDailyDriversPanel(true)}
-                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
-                                >
-                                    <Users className="w-4 h-4 text-amber-500" />
-                                    <span>Motoristas de hoje</span>
+                                    <span className="hidden sm:inline">Emergência</span>
                                 </button>
 
                                 <button
                                     onClick={handleGenerateAutoDispatch}
                                     disabled={isAutoLoading}
-                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
+                                    className="h-10 rounded-xl px-3 text-sm font-bold flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
+                                    title="Distribuição automática"
                                 >
                                     {isAutoLoading ? <Clock className="w-4 h-4 animate-spin text-emerald-600" /> : <CloudLightning className="w-4 h-4 text-emerald-600" />}
-                                    <span>Distribuição automática</span>
+                                    <span className="hidden md:inline">Distribuição</span>
                                 </button>
 
-                                <button
-                                    onClick={() => setShowTemplateModal(true)}
-                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
-                                >
-                                    <CloudLightning className="w-4 h-4 text-amber-500" />
-                                    <span>Modelos</span>
-                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowMoreMenu(v => !v)}
+                                        className="h-10 rounded-xl px-3 text-sm font-bold flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50"
+                                    >
+                                        <MoreVertical className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Mais</span>
+                                    </button>
 
-                                <button
-                                    onClick={handleDownloadTemplate}
-                                    className="h-11 rounded-xl px-4 text-sm font-bold flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
-                                    title="Descarregar ou Atualizar Modelo Excel com locais atuais"
-                                >
-                                    <FileText className="w-4 h-4 text-slate-500" />
-                                    <span>Modelo Excel</span>
-                                </button>
+                                    {showMoreMenu && (
+                                        <>
+                                            <div className="fixed inset-0 z-30" onClick={() => setShowMoreMenu(false)} />
+                                            <div className="absolute right-0 top-full mt-2 z-40 w-52 rounded-2xl border border-slate-200 bg-white shadow-xl py-1.5 divide-y divide-slate-100">
+                                                <div className="px-3 py-1.5">
+                                                    <button
+                                                        onClick={() => { handleRunAutomation(); setShowMoreMenu(false); }}
+                                                        disabled={isAutoLoading || selectedCentroCusto === 'all'}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
+                                                    >
+                                                        {isAutoLoading ? <Clock className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
+                                                        Automação
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setShowAutoSettings(true); setShowMoreMenu(false); }}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <Settings className="w-4 h-4 text-slate-500" />
+                                                        Config. Automação
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setShowDailyDriversPanel(true); setShowMoreMenu(false); }}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <Users className="w-4 h-4 text-amber-500" />
+                                                        Motoristas de hoje
+                                                    </button>
+                                                </div>
+                                                <div className="px-3 py-1.5">
+                                                    <button
+                                                        onClick={() => { setShowTemplateModal(true); setShowMoreMenu(false); }}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <CloudLightning className="w-4 h-4 text-amber-500" />
+                                                        Modelos
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { handleDownloadTemplate(); setShowMoreMenu(false); }}
+                                                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        <FileText className="w-4 h-4 text-slate-500" />
+                                                        Modelo Excel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
-            </PageHeader>
+            </header>
 
             {urgentPendingServices.length > 0 && (
-                <div className="mx-6 mt-4 mb-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-red-300 text-sm font-bold">
-                        <AlertTriangle className="w-4 h-4" />
-                        ⚠ {urgentPendingServices.length} serviço(s) URGENTE(s) pendente(s) de atribuição.
-                    </div>
+                <div className="mx-3 sm:mx-4 lg:mx-6 mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-600">
+                    {urgentPendingServices.length} serviço(s) urgentes pendentes de atribuição.
                 </div>
             )}
 
-            {/* MAIN CONTENT AREA */}
-
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 min-h-0 overflow-hidden relative px-3 sm:px-4 lg:px-6 py-3">
                 <div className="flex flex-col md:flex-row h-full w-full overflow-hidden">
                     {/* DRIVERS GRID WIDGET */}
                     <div className="flex-1 flex flex-col min-w-0 h-full relative md:border-r border-slate-100">
@@ -1578,205 +1601,122 @@ export default function Escalas() {
                         )}
 
                         {viewMode === 'table' && (
-                            <div className="flex-1 flex flex-col bg-white/90/30 overflow-hidden h-full">
-                                {/* Bulk Action Bar */}
-                                <div className="h-16 bg-white/90 border-b border-slate-100 px-6 flex items-center justify-between shrink-0">
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-slate-400 text-sm">
-                                            <span className="text-slate-900 font-bold">{filteredServicos.length}</span> serviços encontrados
-                                        </span>
-                                        {selectedPendentes.length > 0 && (
-                                            <>
-                                                <div className="h-4 w-px bg-white/10" />
-                                                <span className="text-blue-400 text-sm font-bold">
-                                                    {selectedPendentes.length} selecionados
-                                                </span>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    <div className="flex items-center gap-4">
-                                        {selectedPendentes.length > 0 ? (
-                                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                                                <div className="flex items-center gap-2 bg-slate-50 p-1 pr-2 rounded-lg border border-slate-200">
-                                                    <select
-                                                        className="bg-transparent text-sm px-3 py-1.5 text-slate-300 outline-none focus:text-slate-900 cursor-pointer min-w-[200px]"
-                                                        value={selectedMotoristaForAssign}
-                                                        onChange={(e) => setSelectedMotoristaForAssign(e.target.value)}
-                                                    >
-                                                        <option value="" className="bg-white/90">Atribuir a motorista...</option>
-                                                        {displayMotoristas.filter(m => m.status === 'disponivel').map(m => (
-                                                            <option key={m.id} value={m.id} className="bg-white/90">{formatDriverOptionLabel(m)} (Disponível)</option>
-                                                        ))}
-                                                        <option disabled>──────────</option>
-                                                        {displayMotoristas.filter(m => m.status !== 'disponivel').map(m => (
-                                                            <option key={m.id} value={m.id} className="bg-white/90 text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
-                                                        ))}
-                                                    </select>
-                                                    <button
-                                                        onClick={handleAssign}
-                                                        disabled={!selectedMotoristaForAssign}
-                                                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white p-1.5 rounded-md transition-all"
-                                                        title="Confirmar atribuição"
-                                                    >
-                                                        <CheckSquare className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-
-                                                <button
-                                                    onClick={handleBatchDelete}
-                                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                    <span>Apagar</span>
-                                                </button>
+                            <div className="flex-1 min-h-0 overflow-hidden">
+                                <div className="grid h-full min-h-0 gap-3 xl:grid-cols-1">
+                                    <section className="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                                        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                                            <h3 className="text-base font-black text-slate-900">Serviços do dia <span className="ml-2 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-500">{filteredServicos.length}</span></h3>
+                                            <div className="flex items-center gap-2">
+                                                <button className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Filtros</button>
+                                                <button className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Colunas</button>
                                             </div>
-                                        ) : (
-                                            <div className="text-xs text-slate-500 italic">
-                                                Selecione serviços para ações em massa
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Table Header */}
-                                <div className="bg-slate-50 border-b border-slate-100 grid grid-cols-[50px_80px_1fr_1fr_1fr_120px_200px_120px] gap-4 px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider sticky top-0 z-10">
-                                    <div className="flex items-center justify-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedPendentes.length === filteredServicos.length && filteredServicos.length > 0}
-                                            onChange={() => {
-                                                if (selectedPendentes.length === filteredServicos.length) {
-                                                    setSelectedPendentes([]);
-                                                } else {
-                                                    setSelectedPendentes(filteredServicos.map(s => s.id));
-                                                }
-                                            }}
-                                            className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-offset-0 focus:ring-transparent"
-                                        />
-                                    </div>
-                                    <div>Hora</div>
-                                    <div>Passageiro</div>
-                                    <div>Origem</div>
-                                    <div>Destino</div>
-                                    <div>Ref/Voo</div>
-                                    <div>Motorista</div>
-                                    <div className="text-right">Ações</div>
-                                </div>
-
-                                {/* Table Body */}
-                                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                    {filteredServicos.length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                                            <Search className="w-12 h-12 mb-4 opacity-20" />
-                                            <p className="text-lg font-medium">Nenhum serviço encontrado</p>
                                         </div>
-                                    ) : (
-                                        <div className="divide-y divide-slate-100">
-                                            {filteredServicos.map((service) => (
-                                                <div
-                                                    key={service.id}
-                                                    className={`grid grid-cols-[50px_80px_1fr_1fr_1fr_120px_200px_120px] gap-4 px-6 py-3 items-center hover:bg-white/[0.02] transition-colors ${selectedPendentes.includes(service.id) ? 'bg-blue-500/5' : ''}`}
-                                                    onClick={() => togglePendenteSelection(service.id)}
-                                                >
-                                                    {/* Checkbox */}
-                                                    <div className="flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedPendentes.includes(service.id)}
-                                                            onChange={() => togglePendenteSelection(service.id)}
-                                                            className="w-4 h-4 rounded border-slate-300 bg-white text-blue-600 focus:ring-offset-0 focus:ring-transparent"
-                                                        />
-                                                    </div>
 
-                                                    {/* Hora */}
-                                                    <div className="font-mono text-sm text-slate-900 font-medium flex items-center gap-2">
-                                                        {service.hora}
-                                                    </div>
-
-                                                    {/* Passageiro */}
-                                                    <div className="text-sm font-medium text-slate-200 truncate flex items-center gap-2" title={service.passageiro}>
-                                                        <span className="truncate">{service.passageiro}</span>
-                                                        {isUrgentService(service) && (
-                                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/20 text-red-300 shrink-0">⚠ URGENTE</span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Origem */}
-                                                    <div className="text-sm text-slate-400 flex flex-col justify-center" title={service.origem}>
-                                                        <span className="truncate">{service.origem}</span>
-                                                        {service.originConfirmed && (
-                                                            <div className="flex items-center gap-1 text-[10px] text-emerald-400 mt-0.5" title="Chegada à Origem Confirmada (Geofence)">
-                                                                <CheckCircle className="w-3 h-3" />
-                                                                <span>{service.originArrivalTime ? new Date(service.originArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Confirmado'}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Destino */}
-                                                    <div className="text-sm text-slate-400 flex flex-col justify-center" title={service.destino}>
-                                                        <span className="truncate">{service.destino}</span>
-                                                        {service.destinationConfirmed && (
-                                                            <div className="flex items-center gap-1 text-[10px] text-emerald-400 mt-0.5" title="Chegada ao Destino Confirmada (Geofence)">
-                                                                <CheckCircle className="w-3 h-3" />
-                                                                <span>{service.destinationArrivalTime ? new Date(service.destinationArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Confirmado'}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Ref */}
-                                                    <div className="text-xs text-slate-500 truncate">
-                                                        {service.voo || '-'}
-                                                    </div>
-
-                                                    {/* Motorista */}
-                                                    <div onClick={e => e.stopPropagation()}>
-                                                        <select
-                                                            className={`w-full bg-slate-50 border ${service.motoristaId ? 'border-blue-500/30 text-blue-200' : 'border-slate-200 text-slate-400'} text-xs rounded-lg px-2 py-1.5 focus:border-blue-500 outline-none cursor-pointer`}
-                                                            value={service.motoristaId || ''}
-                                                            onChange={async (e) => {
-                                                                const newDriverId = e.target.value;
-                                                                if (newDriverId) {
-                                                                    await assignDriverToService(service, newDriverId);
-                                                                } else {
-                                                                    await assignDriverToService(service, null);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <option value="">-- Por atribuir --</option>
-                                                            {displayMotoristas.filter(m => m.status === 'disponivel' || m.id === service.motoristaId).map(m => (
-                                                                <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
-                                                            ))}
-                                                            <option disabled>──────────</option>
-                                                            {displayMotoristas.filter(m => m.status !== 'disponivel' && m.id !== service.motoristaId).map(m => (
-                                                                <option key={m.id} value={m.id} className="text-slate-500">{formatDriverOptionLabel(m)} ({m.status})</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-
-                                                    {/* Ações */}
-                                                    <div className="flex justify-end items-center gap-2" onClick={e => e.stopPropagation()}>
-                                                        <button
-                                                            onClick={() => handleSendScheduleEmail(service)}
-                                                            disabled={sendingScheduleServiceId === service.id}
-                                                            className="px-2 py-1.5 text-slate-500 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors disabled:opacity-60 flex items-center gap-1"
-                                                            title="Enviar Escala"
-                                                        >
-                                                            <Send className="w-4 h-4" />
-                                                            <span className="text-[11px] font-semibold">Enviar</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => handleDeleteService(service.id, e)}
-                                                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                            title="Eliminar"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
+                                        <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3">
+                                            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                                                <div>
+                                                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Atribuição rápida</p>
+                                                    <p className="text-sm text-slate-600">{selectedPendentes.length} serviço(s) selecionado(s)</p>
                                                 </div>
-                                            ))}
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {quickAssignDrivers.map((driver) => {
+                                                        const load = assigned.filter(service => service.motoristaId === driver.id).length;
+                                                        const isAvailable = String(driver.status || '').toLowerCase() === 'disponivel';
+                                                        return (
+                                                            <button
+                                                                key={driver.id}
+                                                                type="button"
+                                                                onClick={() => assignSelectedServicesToDriver(driver.id)}
+                                                                disabled={selectedPendentes.length === 0}
+                                                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${isAvailable ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                                                            >
+                                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/70 text-[10px] font-black text-slate-600">{driver.nome.slice(0, 2).toUpperCase()}</span>
+                                                                <span className="max-w-[120px] truncate">{driver.nome}</span>
+                                                                <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-black text-slate-500">{load}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
+
+                                        <div className="grid grid-cols-[80px_1.8fr_90px_180px_110px_100px_56px] gap-3 border-b border-slate-100 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-slate-400">
+                                            <span>Hora</span>
+                                            <span>Origem → Destino</span>
+                                            <span>Passageiros</span>
+                                            <span>Motorista</span>
+                                            <span>Estado</span>
+                                            <span>Prioridade</span>
+                                            <span className="text-right">Ações</span>
+                                        </div>
+
+                                        <div className="h-[calc(100%-94px)] overflow-y-auto custom-scrollbar">
+                                            {filteredServicos.length === 0 ? (
+                                                <div className="flex h-full flex-col items-center justify-center text-slate-500">
+                                                    <Search className="mb-3 h-10 w-10 opacity-25" />
+                                                    <p className="text-sm font-semibold">Nenhum serviço encontrado</p>
+                                                </div>
+                                            ) : (
+                                                filteredServicos.slice(0, 12).map((service) => {
+                                                    const urgent = isUrgentService(service);
+                                                    return (
+                                                        <div
+                                                            key={service.id}
+                                                            onClick={() => togglePendenteSelection(service.id)}
+                                                            className={`grid grid-cols-[80px_1.8fr_90px_180px_110px_100px_56px] gap-3 border-b border-slate-100 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50/70 ${selectedPendentes.includes(service.id) ? 'bg-amber-50/60' : ''}`}
+                                                        >
+                                                            <div className="font-mono font-bold text-slate-700">{service.hora}</div>
+                                                            <div className="min-w-0">
+                                                                <p className="truncate font-semibold text-slate-700">{service.origem}</p>
+                                                                <p className="truncate text-xs text-slate-500">→ {service.destino}</p>
+                                                            </div>
+                                                            <div className="text-center font-semibold">{Number(service.passengerCount || 1)}</div>
+                                                            <div onClick={(e) => e.stopPropagation()}>
+                                                                <select
+                                                                    className={`w-full rounded-lg border px-2 py-1.5 text-[11px] outline-none ${service.motoristaId ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-500'}`}
+                                                                    value={service.motoristaId || ''}
+                                                                    onChange={async (e) => {
+                                                                        const newDriverId = e.target.value;
+                                                                        await assignDriverToService(service, newDriverId || null);
+                                                                    }}
+                                                                >
+                                                                    <option value="">Por atribuir</option>
+                                                                    {displayMotoristas.filter(m => m.status === 'disponivel' || m.id === service.motoristaId).map(m => (
+                                                                        <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)}</option>
+                                                                    ))}
+                                                                    <option disabled>──────────</option>
+                                                                    {displayMotoristas.filter(m => m.status !== 'disponivel' && m.id !== service.motoristaId).map(m => (
+                                                                        <option key={m.id} value={m.id}>{formatDriverOptionLabel(m)} ({m.status})</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold border ${service.motoristaId ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                                                                    {service.motoristaId ? 'Scheduled' : 'Pendente'}
+                                                                </span>
+                                                            </div>
+                                                            <div>
+                                                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold border ${urgent ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                                                                    {urgent ? 'Urgente' : 'Normal'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                                                                <button
+                                                                    onClick={() => handleSendScheduleEmail(service)}
+                                                                    disabled={sendingScheduleServiceId === service.id}
+                                                                    className="rounded-md p-1.5 text-slate-500 hover:bg-cyan-50 hover:text-cyan-700 disabled:opacity-60"
+                                                                    title="Enviar Escala"
+                                                                >
+                                                                    <Send className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </section>
+
                                 </div>
                             </div>
                         )}
@@ -1968,7 +1908,7 @@ export default function Escalas() {
                     </div >
                 </div >
                 {
-                    hasAccess(userRole, 'escalas_view_pending') && viewMode === 'table' && (
+                    false && hasAccess(userRole, 'escalas_view_pending') && viewMode === 'table' && (
                         <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full bg-slate-50 border-t md:border-t-0 md:border-l border-slate-100">
                             <div className="h-full flex flex-col bg-slate-50 border-l border-slate-100 overflow-hidden">
                                 <div className="p-4 bg-slate-50/95 backdrop-blur border-b border-slate-100 flex items-center gap-3 shrink-0">

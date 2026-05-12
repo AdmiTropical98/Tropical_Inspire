@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowRight, Car, CheckCircle, Clock3, MapPin, RefreshCw, Sparkles, Users, Wand2, Wifi, WifiOff } from 'lucide-react';
+import { ArrowRight, Car, Clock3, MapPin, RefreshCw, Wand2 } from 'lucide-react';
 import type { Motorista, Servico } from '../../types';
 import { useWorkshop } from '../../contexts/WorkshopContext';
 import { coerceServiceStatus, toDispatchStageLabel, updateServiceStatus } from '../../services/serviceStatus';
@@ -31,7 +31,6 @@ interface DispatchBoardProps {
 }
 
 type ServiceVisualState = 'scheduled' | 'active' | 'completed' | 'delayed' | 'urgent';
-type WorkloadLevel = 'low' | 'medium' | 'high';
 
 interface DriverSuggestion {
     driverId: string;
@@ -94,34 +93,6 @@ const getDriverStateBadge = (driver?: Motorista) => {
     }
 
     return { label: 'DISPONÍVEL', dotClass: 'bg-blue-600', className: 'status-available' };
-};
-
-const getWorkloadLevel = (count: number): { level: WorkloadLevel; label: string; className: string } => {
-    if (count >= 5) return { level: 'high', label: 'Carga Alta', className: 'bg-red-100 text-red-700 border-red-200' };
-    if (count >= 3) return { level: 'medium', label: 'Carga Media', className: 'bg-amber-100 text-amber-700 border-amber-200' };
-    return { level: 'low', label: 'Carga Baixa', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-};
-
-const getWorkloadPercent = (count: number) => {
-    if (count <= 0) return 8;
-    return Math.min(100, Math.round((count / 6) * 100));
-};
-
-const getVehicleLabel = (driver?: Motorista) => {
-    if (!driver?.currentVehicle) {
-        return 'Sem viatura';
-    }
-
-    const operationalState = String(driver.estadoOperacional || '').toLowerCase();
-    if (operationalState === 'em_oficina') {
-        return 'Viatura oficina';
-    }
-
-    if (operationalState === 'indisponivel') {
-        return 'Viatura offline';
-    }
-
-    return `Viatura ${driver.currentVehicle}`;
 };
 
 const isDriverAvailable = (driver?: Motorista) => {
@@ -210,7 +181,6 @@ function ServiceCard({
         }
     };
 
-    const suggestedDriverName = suggestedDriverId ? drivers.find(driver => driver.id === suggestedDriverId)?.nome : null;
     const assignedDriver = service.motoristaId ? drivers.find(driver => driver.id === service.motoristaId) : undefined;
     const hasConflict = Boolean(service.motoristaId && getDriverConflict(assignedDriver, service, assigned).hasConflict);
     const serviceCardClass = !service.motoristaId ? 'pending' : hasConflict ? 'conflict' : 'scheduled';
@@ -223,73 +193,32 @@ function ServiceCard({
             onClick={() => onSelect(service.id)}
             {...listeners}
             {...attributes}
-            className={`service-item service-card ${serviceCardClass} border border-slate-200 bg-white p-3.5 cursor-grab active:cursor-grabbing transition-all duration-200 ${isSelected ? 'ring-2 ring-amber-500/25' : ''} ${isDragging ? 'scale-[1.01]' : 'scale-100'}`}
+            className={`service-item service-card ${serviceCardClass} border border-slate-200 bg-white px-3 py-2.5 cursor-grab active:cursor-grabbing transition-all duration-200 ${isSelected ? 'ring-2 ring-amber-500/25' : ''} ${isDragging ? 'scale-[1.01]' : 'scale-100'}`}
         >
-            <div className="flex items-center justify-between mb-3 gap-3">
-                <div className="inline-flex items-center gap-1.5 text-xs text-slate-700 font-bold">
-                    <Clock3 className="w-3.5 h-3.5 text-amber-600" />
-                    <span className="font-mono text-amber-700">{service.hora}</span>
+            {/* Row 1: time + status */}
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="inline-flex items-center gap-1 text-xs font-black text-amber-700">
+                    <Clock3 className="w-3 h-3 text-amber-500" />
+                    <span className="font-mono">{service.hora}</span>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${styles.badge}`}>{stageLabel}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${styles.badge}`}>{stageLabel}</span>
             </div>
 
-            {suggestedDriverName && !service.motoristaId && (
-                <div className="mb-2 inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700">
-                    <Sparkles className="w-3 h-3" />
-                    Suggested driver: {suggestedDriverName}
+            {/* Row 2: origin → destination */}
+            <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-700 font-medium">
+                    <MapPin className="w-3 h-3 shrink-0 text-slate-400" />
+                    <span className="truncate">{service.origem}</span>
                 </div>
-            )}
-
-            <div className="space-y-2">
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-700">
-                        <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="truncate" title={service.origem}>{service.origem}</span>
-                    </div>
-                    {service.originConfirmed && (
-                        <div className="flex items-center gap-1 text-[9px] text-emerald-500 mt-0.5 ml-5" title="Chegada à Origem Confirmada (Geofence)">
-                            <CheckCircle className="w-2.5 h-2.5" />
-                            <span>{service.originArrivalTime ? new Date(service.originArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Confirmado'}</span>
-                        </div>
-                    )}
-                </div>
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="truncate" title={service.destino}>{service.destino}</span>
-                    </div>
-                    {service.destinationConfirmed && (
-                        <div className="flex items-center gap-1 text-[9px] text-emerald-500 mt-0.5 ml-5" title="Chegada ao Destino Confirmada (Geofence)">
-                            <CheckCircle className="w-2.5 h-2.5" />
-                            <span>{service.destinationArrivalTime ? new Date(service.destinationArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Confirmado'}</span>
-                        </div>
-                    )}
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                    <ArrowRight className="w-3 h-3 shrink-0 text-slate-300" />
+                    <span className="truncate">{service.destino}</span>
                 </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
-                <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{passengerCount} passageiro{passengerCount > 1 ? 's' : ''}</span>
-                <span className="inline-flex items-center gap-1.5 text-slate-500">
-                    <span className={`w-2 h-2 rounded-full ${styles.accent}`} />
-                    Status
-                </span>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                    type="button"
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        if (!suggestedDriverId) return;
-                        onAssign(service, suggestedDriverId, 'button');
-                    }}
-                    className={`inline-flex min-h-8 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold transition-colors ${suggestedDriverId ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'}`}
-                    disabled={!suggestedDriverId}
-                >
-                    <Wand2 className="h-3 w-3" />
-                    Atribuir sugestão
-                </button>
-
+            {/* Row 3: passageiro + quick assign */}
+            <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span className="text-[10px] text-slate-500 truncate max-w-[40%]">{service.passageiro || '—'}</span>
                 <select
                     value=""
                     onClick={(event) => event.stopPropagation()}
@@ -299,9 +228,9 @@ function ServiceCard({
                         void onAssign(service, value, 'button');
                         event.target.value = '';
                     }}
-                    className="ml-auto min-h-8 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] text-slate-700 focus:border-amber-400 focus:outline-none"
+                    className="min-h-6 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[10px] text-slate-700 focus:border-amber-400 focus:outline-none"
                 >
-                    <option value="">Assign to driver</option>
+                    <option value="">Atribuir...</option>
                     {drivers.map(driver => (
                         <option key={driver.id} value={driver.id}>{driver.nome}</option>
                     ))}
@@ -314,12 +243,10 @@ function ServiceCard({
 function BoardColumn({
     id,
     title,
-    subtitle,
     vehicle,
     count,
     services,
     isUrgentService,
-    debugInfo,
     driver,
     activeDragService,
     isDropAllowed,
@@ -331,19 +258,16 @@ function BoardColumn({
     onSelect,
     keyboardDriverIds,
     assigned,
-    telemetry,
     warning,
-    compact = false,
+    minimalLane = false,
     hideHeader = false
 }: {
     id: string;
     title: string;
-    subtitle?: string;
     vehicle?: string;
     count: number;
     services: Servico[];
     isUrgentService: (service: Partial<Servico>) => boolean;
-    debugInfo?: string;
     driver?: Motorista;
     activeDragService: Servico | null;
     isDropAllowed: boolean;
@@ -355,102 +279,94 @@ function BoardColumn({
     onSelect: (serviceId: string) => void;
     keyboardDriverIds: string[];
     assigned: Servico[];
-    telemetry?: DriverTelemetry;
     warning?: boolean;
-    compact?: boolean;
+    minimalLane?: boolean;
     hideHeader?: boolean;
 }) {
     const { setNodeRef, isOver } = useDroppable({ id });
     const isPendingColumn = id === 'pending';
     const driverBadge = getDriverStateBadge(driver);
-    const workload = getWorkloadLevel(count);
-    const workloadPercent = getWorkloadPercent(count);
     const canPreviewDrop = Boolean(activeDragService && isOver && isDropAllowed);
-    const columnWidthClass = compact ? 'w-full' : 'w-full';
-    const dropZoneHeightClass = compact ? 'min-h-[56px]' : 'min-h-[136px]';
+    const dropZoneHeightClass = minimalLane ? 'min-h-[44px]' : 'min-h-[136px]';
     const laneStateClass = isOver && isDropAllowed ? 'bg-blue-50/60' : isOver && !isDropAllowed ? 'bg-red-50/70' : '';
 
     return (
         <section
             ref={setNodeRef}
-            className={`driver-drop-lane ${columnWidthClass} flex flex-col transition-all duration-200 ${laneStateClass} ${highlighted ? 'bg-emerald-50/50' : ''} ${isPendingColumn ? 'pending-column' : ''} ${warning ? 'driver-warning-card' : ''}`}
+            className={`driver-drop-lane w-full flex flex-col transition-all duration-200 ${laneStateClass} ${highlighted ? 'bg-emerald-50/50' : ''} ${isPendingColumn ? 'pending-column' : ''} ${warning ? 'driver-warning-card' : ''}`}
         >
             {!hideHeader && (
-            <header className="pb-2.5 mb-3 border-b border-slate-100">
+            <header className="pb-1.5 mb-2 border-b border-slate-100">
                 <div className="space-y-2">
-                    <h3 className="driver-name break-words whitespace-normal flex items-center gap-1.5">
-                        {isPendingColumn ? <Clock3 className="w-4 h-4 text-red-500" /> : <Car className="w-4 h-4 text-amber-500" />}
+                    <h3 className="driver-name break-words whitespace-normal flex items-center gap-1.5 text-sm font-bold">
+                        {isPendingColumn ? <Clock3 className="w-3.5 h-3.5 text-red-500" /> : <Car className="w-3.5 h-3.5 text-amber-500" />}
                         {title}
                     </h3>
 
-                    {!isPendingColumn && compact ? (
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                            <span className={`status-badge inline-flex items-center gap-2 ${driverBadge.className}`}>
+                    {!isPendingColumn && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 font-semibold ${driverBadge.className}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${driverBadge.dotClass}`} />
                                 {driverBadge.label}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-600">
-                                <Car className="w-3 h-3" />
-                                {vehicle || 'Sem viatura'}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700">
-                                {count} serviço{count === 1 ? '' : 's'}
-                            </span>
-                        </div>
-                    ) : null}
-
-                    {!isPendingColumn && !compact && (
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between text-[10px] text-slate-600 font-semibold uppercase tracking-wide">
-                                <span>Carga operacional</span>
-                                <span className={workload.className}>{workload.label}</span>
-                            </div>
-                            <div className="h-[6px] rounded-[6px] bg-slate-200 overflow-hidden">
-                                <div className="load-bar" style={{ width: `${workloadPercent}%` }} />
-                            </div>
-                            <p className="driver-meta">{count} serviço(s) atribuídos</p>
+                            {vehicle && (
+                                <span className="text-slate-400 font-mono">{vehicle}</span>
+                            )}
+                            <span className="ml-auto text-amber-600 font-bold">{count}sv</span>
                         </div>
                     )}
-
-                    {debugInfo ? null : null}
                 </div>
             </header>
             )}
 
-            <div className={`drop-zone p-1.5 space-y-2.5 ${dropZoneHeightClass} transition-colors duration-200 ${isOver && isDropAllowed ? 'drag-over' : ''}`}>
-                {canPreviewDrop && activeDragService && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-                        <p className="font-semibold">Pré-visualização de drop</p>
-                        <p className="truncate">{activeDragService.hora} • {activeDragService.origem}</p>
-                    </div>
-                )}
+            {minimalLane ? (
+                <div className={`drop-zone px-1 py-1.5 ${dropZoneHeightClass} transition-colors duration-200 ${isOver && isDropAllowed ? 'drag-over' : ''}`}>
+                    {canPreviewDrop && activeDragService ? (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] text-amber-700">
+                            {activeDragService.hora} • {activeDragService.origem}
+                        </div>
+                    ) : (
+                        <div className="text-[10px] text-slate-400">
+                            {count > 0 ? `${count} serviço(s) em rota` : 'Arraste aqui para atribuir'}
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className={`drop-zone p-1.5 space-y-2.5 ${dropZoneHeightClass} transition-colors duration-200 ${isOver && isDropAllowed ? 'drag-over' : ''}`}>
+                    {canPreviewDrop && activeDragService && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                            <p className="font-semibold">Pré-visualização de drop</p>
+                            <p className="truncate">{activeDragService.hora} • {activeDragService.origem}</p>
+                        </div>
+                    )}
 
-                {services.map(service => (
-                    <ServiceCard
-                        key={service.id}
-                        service={service}
-                        isUrgentService={isUrgentService}
-                        drivers={drivers}
-                        suggestedDriverId={suggestedDriverByService.get(service.id) || null}
-                        onAssign={onAssign}
-                        onSelect={onSelect}
-                        isSelected={selectedServiceId === service.id}
-                        keyboardDriverIds={keyboardDriverIds}
-                        assigned={assigned}
-                    />
-                ))}
+                    {services.map(service => (
+                        <ServiceCard
+                            key={service.id}
+                            service={service}
+                            isUrgentService={isUrgentService}
+                            drivers={drivers}
+                            suggestedDriverId={suggestedDriverByService.get(service.id) || null}
+                            onAssign={onAssign}
+                            onSelect={onSelect}
+                            isSelected={selectedServiceId === service.id}
+                            keyboardDriverIds={keyboardDriverIds}
+                            assigned={assigned}
+                        />
+                    ))}
 
-                {services.length === 0 && isPendingColumn && (
-                        <div className={`drop-zone w-full h-32 flex flex-col items-center justify-center gap-1 text-xs transition-all ${
-                        isOver && isDropAllowed
-                                ? 'drag-over text-blue-700'
-                                : 'text-slate-500'
-                    }`}>
-                        <span className="text-[12px] font-semibold">Arrastar serviço para atribuir</span>
-                        <span className="text-[11px] text-slate-500">ou clicar para atribuição automática</span>
-                    </div>
-                )}
-            </div>
+                    {services.length === 0 && isPendingColumn && (
+                            <div className={`drop-zone w-full h-32 flex flex-col items-center justify-center gap-1 text-xs transition-all ${
+                            isOver && isDropAllowed
+                                    ? 'drag-over text-blue-700'
+                                    : 'text-slate-500'
+                        }`}>
+                            <span className="text-[12px] font-semibold">Arrastar serviço para atribuir</span>
+                            <span className="text-[11px] text-slate-500">ou clicar para atribuição automática</span>
+                        </div>
+                    )}
+                </div>
+            )}
         </section>
     );
 }
@@ -487,11 +403,6 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
 
     const withVehicle = useMemo(() => motoristas.filter(driver => Boolean(driver.currentVehicle)), [motoristas]);
     const withoutVehicle = useMemo(() => motoristas.filter(driver => !driver.currentVehicle), [motoristas]);
-    const inRoute = useMemo(() => withVehicle.filter(driver => {
-        const status = String(driver.status || '').toLowerCase();
-        return status === 'ocupado' || status === 'em_servico';
-    }), [withVehicle]);
-
     const workshopDrivers = useMemo(() => withVehicle.filter(driver => String(driver.estadoOperacional || '').toLowerCase() === 'em_oficina'), [withVehicle]);
     const activeDrivers = useMemo(() => withVehicle.filter(driver => !workshopDrivers.includes(driver)), [withVehicle, workshopDrivers]);
     const officeLaneDrivers = useMemo(() => {
@@ -660,10 +571,38 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
 
     return (
         <div className="h-full flex flex-col min-h-0">
-            <div className="dispatch-header mb-3 px-1 flex items-center justify-between text-xs text-slate-500 uppercase tracking-wide">
+            <div className="dispatch-header mb-3 px-1 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 uppercase tracking-wide">
                 <div className="flex items-center gap-2">
                     <Clock3 className="w-4 h-4 text-amber-600" />
                     Dispatch Board
+                </div>
+                <div className="dispatch-header-actions flex items-center gap-1.5 normal-case">
+                    <button
+                        type="button"
+                        onClick={() => setAutoDistributeEnabled(prev => !prev)}
+                        className={`flex items-center justify-center gap-1.5 px-2 py-1 rounded border transition-all ${autoDistributeEnabled ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                        title="Modo Auto distribute services"
+                    >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        Auto
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => distributePendingServices()}
+                        disabled={!autoDistributeEnabled || pendentes.length === 0}
+                        className={`px-2 py-1 rounded border transition-all ${autoDistributeEnabled && pendentes.length > 0 ? 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'}`}
+                    >
+                        Distribuir
+                    </button>
+                    <button
+                        onClick={() => refreshData()}
+                        disabled={isRefreshing}
+                        className={`flex items-center justify-center gap-1.5 px-2 py-1 rounded bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 transition-all ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title="Forçar sincronização com Cartrack e Base de Dados"
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        Sync
+                    </button>
                 </div>
             </div>
 
@@ -698,12 +637,10 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
                                                 key={driver.id}
                                                 id={columnId}
                                                 title={driver.nome}
-                                                subtitle={driver.status ? `Estado: ${driver.status}` : undefined}
                                                 vehicle={driver.currentVehicle || undefined}
                                                 count={driverServices.length}
-                                                services={driverServices}
+                                                services={[]}
                                                 isUrgentService={isUrgentService}
-                                                debugInfo={(driver as any).debugInfo}
                                                 driver={driver}
                                                 activeDragService={activeDragService}
                                                 isDropAllowed={isDropAllowed(columnId, activeDragService)}
@@ -715,9 +652,8 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
                                                 onSelect={setSelectedServiceId}
                                                 keyboardDriverIds={availableForAssignment.map(item => item.id)}
                                                 assigned={assigned}
-                                                telemetry={telemetry}
                                                 warning={Boolean(telemetry && !telemetry.hasSignal)}
-                                                compact
+                                                minimalLane
                                             />
                                         );
                                     })}
@@ -764,12 +700,10 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
                                                 key={driver.id}
                                                 id={columnId}
                                                 title={driver.nome}
-                                                subtitle={driver.status ? `Estado: ${driver.status}` : undefined}
                                                 vehicle={driver.currentVehicle || undefined}
                                                 count={driverServices.length}
-                                                services={driverServices}
+                                                services={[]}
                                                 isUrgentService={isUrgentService}
-                                                debugInfo={(driver as any).debugInfo}
                                                 driver={driver}
                                                 activeDragService={activeDragService}
                                                 isDropAllowed={isDropAllowed(columnId, activeDragService)}
@@ -781,43 +715,14 @@ export default function DispatchBoard({ motoristas, pendentes, assigned, cartrac
                                                 onSelect={setSelectedServiceId}
                                                 keyboardDriverIds={availableForAssignment.map(item => item.id)}
                                                 assigned={assigned}
-                                                telemetry={telemetry}
                                                 warning={Boolean(telemetry && !telemetry.hasSignal)}
-                                                compact
+                                                minimalLane
                                             />
                                         );
                                     })}
                                 </div>
                             )}
 
-                            <div className="dispatch-lane-actions">
-                                <button
-                                    type="button"
-                                    onClick={() => setAutoDistributeEnabled(prev => !prev)}
-                                    className={`flex items-center justify-center gap-1.5 px-2 py-1 rounded border transition-all ${autoDistributeEnabled ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
-                                    title="Modo Auto distribute services"
-                                >
-                                    <Wand2 className="w-3.5 h-3.5" />
-                                    Auto Distribuir Serviços
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => distributePendingServices()}
-                                    disabled={!autoDistributeEnabled || pendentes.length === 0}
-                                    className={`px-2 py-1 rounded border transition-all ${autoDistributeEnabled && pendentes.length > 0 ? 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'}`}
-                                >
-                                    Distribuir Agora
-                                </button>
-                                <button
-                                    onClick={() => refreshData()}
-                                    disabled={isRefreshing}
-                                    className={`flex items-center justify-center gap-1.5 px-2 py-1 rounded bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 transition-all ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    title="Forçar sincronização com Cartrack e Base de Dados"
-                                >
-                                    <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                    {isRefreshing ? 'Sincronizando...' : 'Sincronizar...'}
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>

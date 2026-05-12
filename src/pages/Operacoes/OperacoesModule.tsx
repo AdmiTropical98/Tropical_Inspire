@@ -59,7 +59,7 @@ export default function OperacoesModule() {
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900">
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-[1760px]">
-        <aside className="sticky top-0 hidden h-[100dvh] w-[228px] shrink-0 flex-col border-r border-slate-200/80 bg-white p-2.5 lg:flex">
+        <aside className="sticky top-0 hidden h-[100dvh] w-[200px] shrink-0 flex-col border-r border-slate-200/80 bg-white p-2 lg:flex">
           <div className="rounded-2xl border border-amber-100 bg-amber-50/80 px-3 py-3">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">Módulo</p>
             <h1 className="mt-1 text-lg font-black tracking-tight text-slate-900">Operações</h1>
