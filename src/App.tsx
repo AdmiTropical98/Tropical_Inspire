@@ -18,7 +18,6 @@ import { useChat } from './contexts/ChatContext';
 // Components
 import Login from './pages/Auth/Login';
 import InventoryLogin from './pages/Auth/InventoryLogin';
-import SystemSelector from './pages/Auth/SystemSelector';
 import ResetPassword from './pages/Auth/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import AlertsPage from './pages/Alerts';
@@ -55,6 +54,7 @@ import DriverMode from './pages/DriverMode';
 import InventoryModule from './pages/Inventario/InventoryModule';
 import OperacoesModule from './pages/Operacoes/OperacoesModule';
 import OperacoesLogin from './pages/Auth/OperacoesLogin';
+import DashboardLanding from './pages/Auth/DashboardLanding';
 import { isAndroidAuto } from './utils/isAndroidAuto';
 
 // Lazy loading backoffice
@@ -431,11 +431,11 @@ function App() {
 
   if (!isAuthenticated) {
     if (location.pathname === '/reset-password') return <ResetPassword />;
-    if (location.pathname === '/') return <SystemSelector />;
+    if (location.pathname === '/' || location.pathname === '/dashboard') return <DashboardLanding />;
     if (isFrotaLoginArea) return <Login />;
     if (isOperacoesLoginArea || isOperacoesArea) return <OperacoesLogin />;
     if (isInventoryLoginArea || isInventoryArea) return <InventoryLogin />;
-    return <SystemSelector />;
+    return <DashboardLanding />;
   }
 
   if (isInventoryArea) {
@@ -717,8 +717,11 @@ function App() {
     }>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/frota/login" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
+        <Route path="/dashboard" element={<DashboardLanding />} />
+        <Route path="/frota/login" element={<Login />} />
+        <Route path="/inventario/login" element={<InventoryLogin />} />
+        <Route path="/operacoes/login" element={<OperacoesLogin />} />
+        <Route path="/frota/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
         <Route path="/action.php" element={<LegacySupplierActionRedirect />} />
         <Route path="/public_html_api/action.php" element={<LegacySupplierActionRedirect />} />
         <Route path="/download-requisicao.php" element={<LegacySupplierDownloadRedirect />} />

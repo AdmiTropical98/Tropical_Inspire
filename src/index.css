@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -35,9 +36,8 @@
     overflow-y: auto;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    background-image: url('/fundo_páginas.jpg');
-    background-size: cover;
-    background-position: center;
+    font-family: 'Sora', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(180deg, #04153d 0%, #031130 100%);
     background-attachment: fixed;
     background-repeat: no-repeat;
   }
@@ -46,7 +46,7 @@
     @apply antialiased selection:bg-amber-500/20;
     background-color: transparent;
     color: var(--sf-text-primary);
-    font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Sora', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.4;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     height: 100dvh;
