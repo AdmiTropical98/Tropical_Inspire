@@ -101,106 +101,115 @@ export default function SystemSelector() {
   const navigate = useNavigate();
 
   return (
-    <div
-      className="relative min-h-screen w-full overflow-hidden lg:flex lg:flex-col"
-      style={{
-        backgroundImage: 'url(/modulos.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundColor: '#030b25',
-      }}
-    >
+    <div className="min-h-screen w-full bg-[#0a0f2e] lg:flex lg:flex-col">
       <div className="hidden lg:block lg:min-h-screen lg:w-full">
-        <div className="relative z-10 flex min-h-screen w-full flex-col px-4 py-4 xl:px-6 xl:py-5">
-          <section className="flex h-auto w-full max-w-full items-center justify-between gap-8 py-4 md:py-6">
-            <div className="flex items-center gap-6 flex-1">
-              <img src="/logo-new.png" alt="ALGARTEMPO" className="h-12 w-auto md:h-14" />
-              <div>
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight tracking-tighter text-[#0f1a52]">
-                  Bem-vindo à
-                  <br />
-                  Plataforma <span className="text-[#125dff]">ALGARTEMPO</span>
-                </h1>
-                <p className="mt-1 text-lg md:text-xl text-[#2b4ea5] font-medium">Selecione o módulo para continuar</p>
+        <div className="flex min-h-screen w-full flex-col px-6 py-8">
+          {/* HEADER CARD */}
+          <section className="mb-8 rounded-2xl bg-white p-8 shadow-lg">
+            <div className="flex items-center justify-between gap-8">
+              <div className="flex items-center gap-6">
+                <img src="/logo-new.png" alt="ALGARTEMPO" className="h-12 w-auto" />
+                <div>
+                  <h1 className="text-3xl font-black text-[#0f1a52]">
+                    Bem-vindo à<br />
+                    Plataforma <span className="text-[#125dff]">ALGARTEMPO</span>
+                  </h1>
+                  <p className="mt-1 text-base text-[#2b4ea5] font-medium">Selecione o módulo para continuar</p>
+                </div>
               </div>
+              <button
+                type="button"
+                className="grid h-12 w-12 place-items-center rounded-xl bg-[#2454f5] text-white shadow-lg hover:bg-[#1a3fb8]"
+                aria-label="Abrir menu"
+              >
+                <span className="grid grid-cols-3 gap-1.5">
+                  {Array.from({ length: 9 }).map((_, idx) => (
+                    <span key={idx} className="h-1 w-1 rounded-full bg-white" />
+                  ))}
+                </span>
+              </button>
             </div>
-
-            <button
-              type="button"
-              className="grid h-10 w-10 md:h-12 md:w-12 place-items-center rounded-xl bg-white/80 text-[#2454f5] shadow-lg"
-              aria-label="Abrir menu"
-            >
-              <span className="grid grid-cols-3 gap-1">
-                {Array.from({ length: 9 }).map((_, idx) => (
-                  <span key={idx} className="h-1.5 w-1.5 rounded-full bg-[#2454f5]" />
-                ))}
-              </span>
-            </button>
           </section>
 
-          <section className="grid w-full flex-1 grid-cols-3 gap-4 py-4">
+          {/* CARDS GRID */}
+          <section className="mb-8 grid grid-cols-3 gap-6 flex-1">
             {MODULES.map((module) => {
               const Icon = module.icon;
 
               return (
                 <article
                   key={module.key}
-                  className="group relative flex h-80 md:h-96 flex-col justify-between rounded-3xl border-2 border-white/20 bg-white/5 p-6 md:p-8 backdrop-blur-sm shadow-xl transition duration-300 hover:border-white/40 hover:-translate-y-1"
+                  className="group relative flex h-96 flex-col justify-between overflow-hidden rounded-2xl shadow-xl transition duration-300 hover:shadow-2xl"
+                  style={{
+                    backgroundImage: `url(${module.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}
                 >
-                  <div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className="grid h-12 w-12 place-items-center rounded-lg text-white shadow-lg"
-                        style={{ backgroundColor: module.color }}
-                      >
-                        <Icon className="h-6 w-6" />
+                  {/* DARK OVERLAY */}
+                  <div
+                    className="absolute inset-0 z-0"
+                    style={{
+                      background: module.overlay,
+                    }}
+                  />
+
+                  {/* CONTENT */}
+                  <div className="relative z-10 flex flex-col justify-between h-full p-6">
+                    <div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div
+                          className="grid h-12 w-12 place-items-center rounded-lg text-white"
+                          style={{ backgroundColor: module.color }}
+                        >
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">{module.title}</h2>
                       </div>
-                      <h2 className="text-xl md:text-2xl font-bold text-[#0f1a52]">{module.title}</h2>
+
+                      <div className="h-0.5 w-8 bg-white/40 mb-4" />
+
+                      <p className="text-sm text-white/90 font-medium leading-relaxed mb-4">{module.description}</p>
+
+                      <ul className="space-y-2">
+                        {module.items.map((item) => (
+                          <li key={item} className="flex items-center gap-2 text-xs text-white/80 font-semibold">
+                            <span
+                              className="h-2 w-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: module.color }}
+                            />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
 
-                    <div className="h-0.5 w-8 bg-[#9bb3f6] mb-3" />
-
-                    <p className="text-sm md:text-base text-[#1a2555] font-medium leading-relaxed mb-4">{module.description}</p>
-
-                    <ul className="space-y-1.5">
-                      {module.items.map((item) => (
-                        <li key={item} className="flex items-center gap-2 text-xs md:text-sm font-semibold text-[#1a2555]">
-                          <span className={`grid h-3 w-3 place-items-center rounded-full text-white flex-shrink-0 ${module.bulletBg}`}>
-                            <span className="h-1 w-1 rounded-full bg-white" />
-                          </span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => navigate(module.route)}
+                      className={`mt-6 flex h-11 items-center justify-between rounded-lg px-4 text-sm font-bold text-white shadow-lg transition duration-300 hover:-translate-y-1 ${module.buttonClass}`}
+                    >
+                      <span>{module.cta}</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => navigate(module.route)}
-                    className={`mt-4 flex h-12 w-full items-center justify-between rounded-lg px-5 text-sm md:text-base font-bold text-white shadow-lg transition duration-300 hover:-translate-y-0.5 ${module.buttonClass}`}
-                  >
-                    <span>{module.cta}</span>
-                    <ArrowRight className="h-5 w-5" />
-                  </button>
                 </article>
               );
             })}
           </section>
 
-          <section className="grid w-full grid-cols-3 gap-2 py-4">
+          {/* FOOTER ROW */}
+          <section className="flex gap-8 border-t border-white/10 pt-8">
             {FOOTER_ITEMS.map((item, index) => {
               const Icon = item.icon;
               return (
-                <article
-                  key={item.title}
-                  className={`flex items-center gap-4 px-4 md:px-6 py-3 ${index !== 2 ? 'border-r border-white/10' : ''}`}
-                >
-                  <div className="grid h-10 w-10 md:h-12 md:w-12 shrink-0 place-items-center rounded-full border border-white/20 bg-white/5 text-white">
-                    <Icon className="h-5 w-5 md:h-6 md:w-6" />
+                <article key={item.title} className="flex flex-1 items-start gap-4">
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/10 text-white">
+                    <Icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xs md:text-sm font-bold text-white">{item.title}</h3>
-                    <p className="text-[11px] md:text-xs leading-tight text-white/75">{item.text}</p>
+                    <h3 className="text-sm font-bold text-white">{item.title}</h3>
+                    <p className="mt-1 text-xs text-white/70 leading-relaxed">{item.text}</p>
                   </div>
                 </article>
               );
@@ -209,84 +218,96 @@ export default function SystemSelector() {
         </div>
       </div>
 
-      <main className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col px-4 py-6 lg:hidden">
-        <img
-          src="/modulos.png"
-          alt="Layout base dos módulos"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35"
-        />
-
-        <section className="relative rounded-[24px] border border-white/10 bg-white/88 p-5 shadow-xl backdrop-blur-sm">
-          <div className="flex items-start justify-between gap-4">
+      <main className="flex min-h-screen w-full flex-col bg-[#0a0f2e] px-4 py-6 lg:hidden">
+        {/* HEADER CARD */}
+        <section className="mb-6 rounded-2xl bg-white p-6 shadow-lg">
+          <div className="flex items-start justify-between gap-4 mb-4">
             <img src="/logo-new.png" alt="ALGARTEMPO" className="h-10 w-auto" />
             <button
               type="button"
-              className="grid h-10 w-10 place-items-center rounded-xl border border-[#dce5ff] bg-white text-[#2454f5]"
+              className="grid h-10 w-10 place-items-center rounded-xl bg-[#2454f5] text-white shadow-lg"
               aria-label="Abrir menu"
             >
               <span className="grid grid-cols-3 gap-1">
                 {Array.from({ length: 9 }).map((_, idx) => (
-                  <span key={idx} className="h-1 w-1 rounded-full bg-[#2454f5]" />
+                  <span key={idx} className="h-1 w-1 rounded-full bg-white" />
                 ))}
               </span>
             </button>
           </div>
 
-          <h1 className="mt-5 text-[34px] font-black leading-[1.02] tracking-[-0.03em] text-[#0f1a52]">
-            Bem-vindo à
-            <br />
+          <h1 className="text-3xl font-black text-[#0f1a52]">
+            Bem-vindo à<br />
             Plataforma <span className="text-[#125dff]">ALGARTEMPO</span>
           </h1>
-          <p className="mt-2 text-[18px] text-[#2b4ea5]">Selecione o módulo para continuar</p>
+          <p className="mt-2 text-base text-[#2b4ea5]">Selecione o módulo para continuar</p>
         </section>
 
-        <section className="relative mt-4 space-y-4">
+        {/* MOBILE CARDS */}
+        <section className="mb-6 space-y-4">
           {MODULES.map((module) => {
             const Icon = module.icon;
             return (
-              <article key={module.key} className="rounded-[24px] border border-white/15 bg-white/88 p-5 shadow-lg backdrop-blur-sm">
-                <div className="flex items-center gap-4">
-                  <div className="grid h-14 w-14 place-items-center rounded-2xl text-white" style={{ backgroundColor: module.color }}>
-                    <Icon className="h-7 w-7" />
-                  </div>
-                  <h2 className="text-[24px] font-black text-[#101b50]">{module.title}</h2>
-                </div>
+              <article
+                key={module.key}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl shadow-lg transition duration-300 hover:shadow-xl"
+                style={{
+                  height: '280px',
+                  backgroundImage: `url(${module.image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              >
+                {/* DARK OVERLAY */}
+                <div
+                  className="absolute inset-0 z-0"
+                  style={{
+                    background: module.overlay,
+                  }}
+                />
 
-                <p className="mt-4 text-[15px] leading-[1.45] text-[#1a2555]">{module.description}</p>
-                <ul className="mt-4 space-y-2">
-                  {module.items.map((item) => (
-                    <li key={item} className="flex items-center gap-3 text-[14px] font-semibold text-[#1a2555]">
-                      <span className={`grid h-[15px] w-[15px] place-items-center rounded-full text-white ${module.bulletBg}`}>
-                        <span className="h-[4px] w-[4px] rounded-full bg-white" />
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => navigate(module.route)}
-                  className={`mt-5 flex h-12 w-full items-center justify-between rounded-2xl px-5 text-[16px] font-bold text-white shadow-[0_8px_22px_rgba(2,6,23,0.18)] ${module.buttonClass}`}
-                >
-                  <span>{module.cta}</span>
-                  <ArrowRight className="h-5 w-5" />
-                </button>
+                {/* CONTENT */}
+                <div className="relative z-10 flex flex-col justify-between h-full p-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="grid h-10 w-10 place-items-center rounded-lg text-white"
+                        style={{ backgroundColor: module.color }}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h2 className="text-lg font-bold text-white">{module.title}</h2>
+                    </div>
+
+                    <p className="text-xs text-white/90 leading-tight">{module.description}</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate(module.route)}
+                    className={`flex h-10 items-center justify-between rounded-lg px-3 text-xs font-bold text-white shadow-lg transition duration-300 hover:-translate-y-0.5 ${module.buttonClass}`}
+                  >
+                    <span>{module.cta}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
               </article>
             );
           })}
         </section>
 
-        <section className="relative mt-4 space-y-3 rounded-[24px] border border-white/10 bg-[#0a1f56]/86 p-5 shadow-xl backdrop-blur-sm">
+        {/* FOOTER */}
+        <section className="space-y-3 rounded-2xl bg-white/10 p-4 border border-white/20">
           {FOOTER_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
-              <article key={item.title} className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#6f90f3] bg-[#0b2d83] text-white">
-                  <Icon className="h-6 w-6" />
+              <article key={item.title} className="flex items-start gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white">
+                  <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-[17px] font-bold text-white">{item.title}</h3>
-                  <p className="mt-1 text-[14px] leading-[1.35] text-[#d7e1ff]">{item.text}</p>
+                  <h3 className="text-sm font-bold text-white">{item.title}</h3>
+                  <p className="mt-0.5 text-xs text-white/70 leading-tight">{item.text}</p>
                 </div>
               </article>
             );
