@@ -1,193 +1,284 @@
-import { ArrowRight, Boxes, LayoutGrid, Lock, Navigation2, ShieldCheck, Tag, Truck } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Bus, Puzzle, ShieldCheck, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface SystemCard {
+interface ModuleCard {
   key: string;
   title: string;
-  keywords: string[];
+  description: string;
+  items: string[];
   icon: React.ElementType;
-  cta: string;
   route: string;
-  tones: {
-    panel: string;
-    badge: string;
-    accent: string;
-    glow: string;
-    texture: string;
-  };
+  cta: string;
+  color: string;
+  bulletBg: string;
+  buttonClass: string;
 }
 
-const SYSTEMS: SystemCard[] = [
+const MODULES: ModuleCard[] = [
   {
     key: 'frota',
     title: 'Frota',
-    keywords: ['Viaturas', 'Servicos', 'Combustivel', 'GPS'],
+    description: 'Gestão completa de gastos e compras relacionados à frota da empresa.',
+    items: [
+      'Gastos com combustível',
+      'Compras e manutenção',
+      'Seguros e impostos',
+      'Pneus e acessórios',
+      'Relatórios de custos',
+    ],
     icon: Truck,
-    cta: 'Entrar em Frota',
     route: '/frota/login',
-    tones: {
-      panel: 'from-blue-50 to-cyan-50/80 border-blue-200',
-      badge: 'bg-blue-100 text-blue-700',
-      accent: 'text-blue-700',
-      glow: 'hover:shadow-[0_16px_34px_rgba(37,99,235,0.20)]',
-      texture: 'bg-[radial-gradient(circle_at_12%_18%,rgba(59,130,246,0.10),transparent_48%),radial-gradient(circle_at_88%_88%,rgba(14,165,233,0.08),transparent_46%)]',
-    },
+    cta: 'Entrar em Frota',
+    color: '#125dff',
+    bulletBg: 'bg-[#125dff]',
+    buttonClass: 'bg-gradient-to-r from-[#125dff] to-[#0f4fe0] hover:shadow-[0_12px_30px_rgba(18,93,255,0.42)]',
   },
   {
     key: 'inventario',
-    title: 'Inventario',
-    keywords: ['Stock', 'Materiais', 'Equipamentos', 'Escritorios'],
+    title: 'Inventário',
+    description: 'Controle e gestão de materiais, equipamentos e ativos da empresa.',
+    items: [
+      'Gestão de stock',
+      'Materiais e equipamentos',
+      'Movimentos e transferências',
+      'Inventários e contagens',
+      'Relatórios e análises',
+    ],
     icon: Boxes,
-    cta: 'Entrar em Inventario',
     route: '/inventario/login',
-    tones: {
-      panel: 'from-emerald-50 to-teal-50/80 border-emerald-200',
-      badge: 'bg-emerald-100 text-emerald-700',
-      accent: 'text-emerald-700',
-      glow: 'hover:shadow-[0_16px_34px_rgba(5,150,105,0.20)]',
-      texture: 'bg-[radial-gradient(circle_at_16%_12%,rgba(16,185,129,0.10),transparent_46%),radial-gradient(circle_at_84%_86%,rgba(45,212,191,0.08),transparent_48%)]',
-    },
+    cta: 'Entrar em Inventário',
+    color: '#0f9f6e',
+    bulletBg: 'bg-[#0f9f6e]',
+    buttonClass: 'bg-gradient-to-r from-[#0f9f6e] to-[#0c845c] hover:shadow-[0_12px_30px_rgba(15,159,110,0.42)]',
   },
   {
     key: 'operacoes',
-    title: 'Operacoes',
-    keywords: ['Rotas', 'Linhas', 'GPS', 'Colaboradores'],
-    icon: Navigation2,
-    cta: 'Entrar em Operacoes',
+    title: 'Operações',
+    description: 'Planeamento, execução e acompanhamento de operações logísticas.',
+    items: [
+      'Rotas e percursos',
+      'Linhas e serviços',
+      'GPS e localização',
+      'Colaboradores',
+      'Escalas de Transportes',
+    ],
+    icon: Bus,
     route: '/operacoes/login',
-    tones: {
-      panel: 'from-amber-50 to-orange-50/80 border-amber-200',
-      badge: 'bg-amber-100 text-amber-700',
-      accent: 'text-amber-700',
-      glow: 'hover:shadow-[0_16px_34px_rgba(217,119,6,0.20)]',
-      texture: 'bg-[radial-gradient(circle_at_14%_18%,rgba(251,146,60,0.10),transparent_46%),radial-gradient(circle_at_84%_86%,rgba(251,191,36,0.10),transparent_48%)]',
-    },
+    cta: 'Entrar em Operações',
+    color: '#ff7a00',
+    bulletBg: 'bg-[#ff7a00]',
+    buttonClass: 'bg-gradient-to-r from-[#ff7a00] to-[#ff5f00] hover:shadow-[0_12px_30px_rgba(255,122,0,0.42)]',
   },
 ];
 
-const KPI_ITEMS = [
-  { label: 'Sistemas', value: '3', hint: 'Ambientes independentes', icon: LayoutGrid, dot: 'bg-blue-400' },
-  { label: 'Seguranca', value: 'RBAC', hint: 'Permissoes por modulo', icon: Lock, dot: 'bg-emerald-400' },
-  { label: 'Versao', value: 'v2.0', hint: 'Arquitetura modular', icon: Tag, dot: 'bg-amber-400' },
+const FOOTER_ITEMS = [
+  {
+    title: 'Segurança e Confiabilidade',
+    text: 'Os seus dados protegidos com os mais altos padrões de segurança.',
+    icon: ShieldCheck,
+  },
+  {
+    title: 'Informação em Tempo Real',
+    text: 'Acesso a dados atualizados para melhores decisões.',
+    icon: BarChart3,
+  },
+  {
+    title: 'Módulos Integrados',
+    text: 'Soluções integradas que se adaptam às necessidades da sua empresa.',
+    icon: Puzzle,
+  },
 ];
 
 export default function SystemSelector() {
   const navigate = useNavigate();
 
   return (
-    <div
-      className="relative min-h-[100dvh] overflow-x-hidden overflow-y-auto"
-      style={{ backgroundImage: "url('/fundo_páginas.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
-    >
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(1300px_500px_at_8%_-8%,rgba(59,130,246,0.24),transparent),radial-gradient(1300px_520px_at_92%_-6%,rgba(16,185,129,0.20),transparent),linear-gradient(180deg,rgba(255,255,255,0.40),rgba(255,255,255,0.54))]" />
-      <div className="absolute inset-x-[-10%] bottom-[-2%] h-[28vh] opacity-70" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(219,234,254,0.12) 35%, rgba(191,219,254,0.22) 100%)', clipPath: 'ellipse(72% 58% at 50% 100%)' }} />
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#030b25]">
+      <div className="hidden lg:block">
+        <div className="relative mx-auto w-full max-w-[1366px] aspect-[1366/768]">
+          <img
+            src="/modulos.png"
+            alt="Layout base dos módulos"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          />
 
-      <main className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1460px] flex-col justify-center px-5 py-10 sm:px-8 lg:px-12">
-        <section className="w-full">
+          <div className="absolute inset-0 z-10">
+            <div className="absolute left-[5.6%] top-[6.8%] flex items-center gap-4">
+              <img src="/logo-new.png" alt="ALGARTEMPO" className="h-[58px] w-auto" />
+            </div>
 
-          {/* ── HERO HEADER ─────────────────────────────────────────── */}
-          <div className="mb-7 overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 shadow-lg backdrop-blur-[2px]">
-            {/* top accent line */}
-            <div className="h-[2px] w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-amber-500" />
+            <div className="absolute left-[27.6%] top-[7.3%] text-[#0f1a52]">
+              <h1 className="text-[58px] font-black leading-[0.98] tracking-[-0.035em]">
+                Bem-vindo à
+                <br />
+                Plataforma <span className="text-[#125dff]">ALGARTEMPO</span>
+              </h1>
+              <p className="mt-2 text-[21px] font-medium text-[#2b4ea5]">Selecione o módulo para continuar</p>
+            </div>
 
-            <div className="mx-auto flex w-full max-w-[1180px] flex-col items-center gap-3 px-7 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-10 sm:py-6">
-              {/* LEFT — logo + name */}
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="flex h-24 w-40 shrink-0 items-center justify-center sm:h-28 sm:w-44">
-                  <img
-                    src="/LOGO.png"
-                    alt="Algartempo"
-                    className="h-full w-full object-contain scale-[1.18]"
-                  />
-                </div>
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Algartempo Platform</p>
-                  <h1 className="mt-0.5 text-3xl font-black tracking-[-0.03em] text-slate-900 sm:text-4xl">
-                    Enterprise Modular<br className="hidden sm:block" /> Workspace
-                  </h1>
-                  <p className="mt-1.5 text-sm text-slate-500">Selecione o módulo para continuar</p>
-                </div>
-              </div>
+            <button
+              type="button"
+              className="absolute right-[4.1%] top-[7.5%] grid h-[42px] w-[42px] place-items-center rounded-xl border border-[#dce5ff] bg-white/88 text-[#2454f5] shadow-[0_8px_16px_rgba(15,23,42,0.10)] transition hover:bg-white"
+              aria-label="Abrir menu"
+            >
+              <span className="grid grid-cols-3 gap-1">
+                {Array.from({ length: 9 }).map((_, idx) => (
+                  <span key={idx} className="h-[4px] w-[4px] rounded-full bg-[#2454f5]" />
+                ))}
+              </span>
+            </button>
 
-              {/* RIGHT — badges */}
-              <div className="flex shrink-0 flex-col items-center gap-1.5 sm:items-end">
-                <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[12px] font-black uppercase tracking-[0.18em] text-blue-700 shadow-sm">
-                  <ShieldCheck className="h-4 w-4" />
-                  Plataforma Modular
-                </div>
-                <div className="flex gap-2">
-                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-500 shadow-sm">v2.0</span>
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-600 shadow-sm">● Online</span>
-                  <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold text-amber-600 shadow-sm">Produção</span>
-                </div>
-              </div>
+            <div className="absolute left-[3.6%] right-[3.6%] top-[24.8%] grid grid-cols-3 gap-[1.2%]">
+              {MODULES.map((module) => {
+                const Icon = module.icon;
+
+                return (
+                  <article key={module.key} className="group h-[430px] rounded-[26px] px-[6.3%] pt-[5.3%] pb-[5.6%] transition duration-300 hover:scale-[1.012]">
+                    <div className="flex h-full flex-col">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="grid h-[62px] w-[62px] place-items-center rounded-[16px] text-white shadow-[0_10px_24px_rgba(2,6,23,0.20)]"
+                          style={{ backgroundColor: module.color }}
+                        >
+                          <Icon className="h-8 w-8" />
+                        </div>
+                        <h2 className="text-[24px] font-black tracking-[-0.02em] text-[#101b50]">{module.title}</h2>
+                      </div>
+
+                      <div className="mt-4 h-px w-9 bg-[#9bb3f6]" />
+
+                      <p className="mt-3 max-w-[92%] text-[16px] leading-[1.45] text-[#1a2555]">{module.description}</p>
+
+                      <ul className="mt-5 space-y-2.5">
+                        {module.items.map((item) => (
+                          <li key={item} className="flex items-center gap-3 text-[15px] font-semibold text-[#1a2555]">
+                            <span className={`grid h-[16px] w-[16px] place-items-center rounded-full text-white ${module.bulletBg}`}>
+                              <span className="h-[4px] w-[4px] rounded-full bg-white" />
+                            </span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate(module.route)}
+                        className={`mt-auto flex h-[48px] w-full items-center justify-between rounded-[14px] px-7 text-[17px] font-bold text-white shadow-[0_8px_22px_rgba(2,6,23,0.18)] transition duration-300 hover:-translate-y-0.5 ${module.buttonClass}`}
+                      >
+                        <span>{module.cta}</span>
+                        <ArrowRight className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="absolute bottom-[2.9%] left-[2.6%] right-[2.6%] grid h-[12.6%] grid-cols-3">
+              {FOOTER_ITEMS.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <article
+                    key={item.title}
+                    className={`flex items-center gap-5 px-8 ${index !== 2 ? 'border-r border-[#8aa3ed]/60' : ''}`}
+                  >
+                    <div className="grid h-[56px] w-[56px] shrink-0 place-items-center rounded-full border border-[#6f90f3] bg-[#0b2d83]/88 text-white shadow-[0_8px_20px_rgba(18,93,255,0.22)]">
+                      <Icon className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <h3 className="text-[18px] font-bold tracking-[-0.02em] text-white">{item.title}</h3>
+                      <p className="mt-1 max-w-[270px] text-[14px] leading-[1.35] text-[#d7e1ff]">{item.text}</p>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
-            {KPI_ITEMS.map((item) => {
-              const KpiIcon = item.icon;
-              return (
-              <article key={item.label} className="rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-center gap-2">
-                  <KpiIcon className="h-4 w-4 text-slate-400" />
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</p>
+      <main className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col px-4 py-6 lg:hidden">
+        <img
+          src="/modulos.png"
+          alt="Layout base dos módulos"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35"
+        />
+
+        <section className="relative rounded-[24px] border border-white/10 bg-white/88 p-5 shadow-xl backdrop-blur-sm">
+          <div className="flex items-start justify-between gap-4">
+            <img src="/logo-new.png" alt="ALGARTEMPO" className="h-10 w-auto" />
+            <button
+              type="button"
+              className="grid h-10 w-10 place-items-center rounded-xl border border-[#dce5ff] bg-white text-[#2454f5]"
+              aria-label="Abrir menu"
+            >
+              <span className="grid grid-cols-3 gap-1">
+                {Array.from({ length: 9 }).map((_, idx) => (
+                  <span key={idx} className="h-1 w-1 rounded-full bg-[#2454f5]" />
+                ))}
+              </span>
+            </button>
+          </div>
+
+          <h1 className="mt-5 text-[34px] font-black leading-[1.02] tracking-[-0.03em] text-[#0f1a52]">
+            Bem-vindo à
+            <br />
+            Plataforma <span className="text-[#125dff]">ALGARTEMPO</span>
+          </h1>
+          <p className="mt-2 text-[18px] text-[#2b4ea5]">Selecione o módulo para continuar</p>
+        </section>
+
+        <section className="relative mt-4 space-y-4">
+          {MODULES.map((module) => {
+            const Icon = module.icon;
+            return (
+              <article key={module.key} className="rounded-[24px] border border-white/15 bg-white/88 p-5 shadow-lg backdrop-blur-sm">
+                <div className="flex items-center gap-4">
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl text-white" style={{ backgroundColor: module.color }}>
+                    <Icon className="h-7 w-7" />
+                  </div>
+                  <h2 className="text-[24px] font-black text-[#101b50]">{module.title}</h2>
                 </div>
-                <div className="mt-1 flex items-end gap-2">
-                  <p className="text-2xl font-black leading-none text-slate-900">{item.value}</p>
-                  <span className={`mb-0.5 h-2.5 w-2.5 rounded-full ${item.dot} ring-2 ring-white shadow-sm`} />
-                </div>
-                <p className="mt-0.5 text-[11px] text-slate-500">{item.hint}</p>
+
+                <p className="mt-4 text-[15px] leading-[1.45] text-[#1a2555]">{module.description}</p>
+                <ul className="mt-4 space-y-2">
+                  {module.items.map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-[14px] font-semibold text-[#1a2555]">
+                      <span className={`grid h-[15px] w-[15px] place-items-center rounded-full text-white ${module.bulletBg}`}>
+                        <span className="h-[4px] w-[4px] rounded-full bg-white" />
+                      </span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => navigate(module.route)}
+                  className={`mt-5 flex h-12 w-full items-center justify-between rounded-2xl px-5 text-[16px] font-bold text-white shadow-[0_8px_22px_rgba(2,6,23,0.18)] ${module.buttonClass}`}
+                >
+                  <span>{module.cta}</span>
+                  <ArrowRight className="h-5 w-5" />
+                </button>
               </article>
             );
-            })}
-          </div>
+          })}
+        </section>
 
-          <div className="mt-6 grid gap-5 lg:grid-cols-3 items-stretch">
-            {SYSTEMS.map((system) => {
-              const Icon = system.icon;
-              return (
-                <article
-                  key={system.key}
-                  className={`group relative flex flex-col overflow-hidden rounded-3xl border bg-gradient-to-br ${system.tones.panel} ${system.tones.texture} shadow-md transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-[1.012] hover:border-opacity-80 hover:shadow-xl ${system.tones.glow}`}
-                  style={{ transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease' }}
-                >
-                  {/* Body — centered vertically */}
-                  <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 pt-10 pb-6 text-center">
-                    {/* Icon */}
-                    <div className={`flex h-20 w-20 items-center justify-center rounded-2xl ${system.tones.badge} ring-2 ring-white/80 shadow-md transition-all duration-200 group-hover:scale-[1.06] group-hover:shadow-lg`}>
-                      <Icon className="h-10 w-10" />
-                    </div>
-
-                    {/* Title */}
-                    <h2 className="text-2xl font-black tracking-tight text-slate-900">{system.title}</h2>
-
-                    {/* Keywords */}
-                    <ul className="w-full space-y-2 text-[14px] font-semibold text-slate-600">
-                      {system.keywords.map((kw) => (
-                        <li key={kw} className="flex items-center justify-center gap-2">
-                          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${system.tones.badge}`} />
-                          {kw}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* CTA — always at bottom */}
-                  <div className="px-6 pb-6">
-                    <button
-                      type="button"
-                      onClick={() => navigate(system.route)}
-                      className={`flex w-full items-center justify-between rounded-xl px-5 py-3.5 text-[13px] font-black transition-all duration-200 ${system.tones.badge} ${system.tones.accent} hover:opacity-90`}
-                    >
-                      {system.cta}
-                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1.5" />
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+        <section className="relative mt-4 space-y-3 rounded-[24px] border border-white/10 bg-[#0a1f56]/86 p-5 shadow-xl backdrop-blur-sm">
+          {FOOTER_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title} className="flex items-start gap-4">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#6f90f3] bg-[#0b2d83] text-white">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-bold text-white">{item.title}</h3>
+                  <p className="mt-1 text-[14px] leading-[1.35] text-[#d7e1ff]">{item.text}</p>
+                </div>
+              </article>
+            );
+          })}
         </section>
       </main>
     </div>
