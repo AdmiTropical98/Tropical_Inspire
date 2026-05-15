@@ -1,0 +1,12 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.algartempo.programa
+productName: ALGARTEMPO
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+win:
+  target: nsis
+electronVersion: 42.1.0

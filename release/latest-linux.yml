@@ -1,0 +1,9 @@
+version: 1.9.1
+files:
+  - url: ALGARTEMPO-1.9.1.AppImage
+    sha512: SzsK8RlYuzRqRJnUkrOhAzZS51gf7p16+tTw+YVeasAnbHGDswG6L9HkJXQFU16YT6G7wrIqH1c0tDI+emtr3A==
+    size: 213875189
+    blockMapSize: 223753
+path: ALGARTEMPO-1.9.1.AppImage
+sha512: SzsK8RlYuzRqRJnUkrOhAzZS51gf7p16+tTw+YVeasAnbHGDswG6L9HkJXQFU16YT6G7wrIqH1c0tDI+emtr3A==
+releaseDate: '2026-05-15T13:37:34.882Z'

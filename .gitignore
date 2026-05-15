@@ -28,3 +28,9 @@ dist-ssr
 
 # Supabase local temp artifacts
 supabase/.temp/
+
+# Electron release artifacts (too large for GitHub regular Git)
+release/*.AppImage
+release/*.snap
+release/linux-unpacked/gestao_oficina
+release/linux-unpacked/resources/app.asar
