@@ -255,7 +255,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
 function App() {
   const MOBILE_MAX_WIDTH = 768;
   const SIDEBAR_LOGO = '/LOGO.png';
-  const { isAuthenticated, userRole, logout } = useAuth();
+  const { isAuthenticated, userRole, authEntryModule, logout } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
   const navigate = useNavigate();
@@ -396,13 +396,41 @@ function App() {
       location.pathname.startsWith('/operacoes/');
   const normalizedRole = String(userRole || '').toUpperCase();
   const isAdminRole = normalizedRole === 'ADMIN' || normalizedRole === 'ADMIN_MASTER';
-  const canAccessInventoryModule = isAdminRole || hasAccess(userRole, 'inventario', 'ver');
-    const canAccessOperacoesModule = isAdminRole || hasAccess(userRole, 'operacoes', 'ver');
+  const isGestorRole = normalizedRole === 'GESTOR';
+  const isOperationsOnlyRole = ['SUPERVISOR', 'OFICINA', 'MOTORISTA'].includes(normalizedRole);
+  const canAccessAllModules = isAdminRole || isGestorRole;
+
+  const hasModuleScope = (target: 'frota' | 'inventario' | 'operacoes') => {
+    if (!authEntryModule) return true;
+    // Role policy overrides entry module scope restrictions.
+    if (canAccessAllModules || isOperationsOnlyRole) return true;
+    return authEntryModule === target;
+  };
+
+  const canAccessInventoryModule =
+    hasModuleScope('inventario') &&
+    (
+      canAccessAllModules ||
+      (!isOperationsOnlyRole && hasAccess(userRole, 'inventario', 'ver'))
+    );
+
+  const canAccessOperacoesModule =
+    hasModuleScope('operacoes') &&
+    (
+      canAccessAllModules ||
+      isOperationsOnlyRole ||
+      hasAccess(userRole, 'escalas', 'ver') ||
+      hasAccess(userRole, 'horas', 'ver') ||
+      hasAccess(userRole, 'requisicoes', 'ver') ||
+      hasAccess(userRole, 'dashboard', 'ver')
+    );
+
   const canAccessFleetModule =
-    isAdminRole ||
-    hasAccess(userRole, 'frota', 'ver') ||
-    hasAccess(userRole, 'dashboard', 'ver') ||
-    ['GESTOR', 'SUPERVISOR', 'MOTORISTA', 'OFICINA'].includes(normalizedRole);
+    hasModuleScope('frota') &&
+    (
+      canAccessAllModules ||
+      (!isOperationsOnlyRole && (hasAccess(userRole, 'frota', 'ver') || hasAccess(userRole, 'dashboard', 'ver')))
+    );
 
   if (androidAutoMode) {
     return <DriverMode />;
@@ -457,6 +485,15 @@ function App() {
                   Ir para Frota
                 </button>
               )}
+              {canAccessOperacoesModule && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/operacoes/dashboard')}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+                >
+                  Ir para Operações
+                </button>
+              )}
               <button
                 type="button"
                 onClick={logout}
@@ -492,6 +529,15 @@ function App() {
                     Ir para Frota
                   </button>
                 )}
+                {canAccessInventoryModule && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/inventario/dashboard')}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Ir para Inventário
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={logout}
@@ -507,6 +553,47 @@ function App() {
 
       return <OperacoesModule />;
     }
+
+  if (!isInventoryArea && !isOperacoesArea && !canAccessFleetModule) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-slate-100">
+        <div className="max-w-lg w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sem acesso à Frota</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Esta sessão foi iniciada noutro módulo ou a sua conta não tem permissões para a Frota.
+            Contacte o administrador para ativar o acesso.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {canAccessOperacoesModule && (
+              <button
+                type="button"
+                onClick={() => navigate('/operacoes/dashboard')}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+              >
+                Ir para Operações
+              </button>
+            )}
+            {canAccessInventoryModule && (
+              <button
+                type="button"
+                onClick={() => navigate('/inventario/dashboard')}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 hover:border-slate-300 hover:text-slate-900"
+              >
+                Ir para Inventário
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100"
+            >
+              Terminar sessão
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
   const dashboardItem: NavItem = {

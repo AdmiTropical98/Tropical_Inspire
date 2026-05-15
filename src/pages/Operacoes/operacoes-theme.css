@@ -1,0 +1,73 @@
+.operacoes-theme {
+  position: relative;
+  background:
+    radial-gradient(circle at 16% 32%, rgba(249, 115, 22, 0.2), transparent 34%),
+    radial-gradient(circle at 82% 84%, rgba(249, 115, 22, 0.16), transparent 38%),
+    linear-gradient(120deg, #020b18 0%, #041325 48%, #020c1a 100%);
+}
+
+.operacoes-theme > * {
+  position: relative;
+  z-index: 1;
+}
+
+.operacoes-theme::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0%, rgba(249, 115, 22, 0.08) 38%, transparent 68%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.02) 0,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px,
+      transparent 14px
+    );
+}
+
+.operacoes-theme .border-slate-200,
+.operacoes-theme .border-slate-200\/70,
+.operacoes-theme .border-slate-200\/80,
+.operacoes-theme .border-slate-300 {
+  border-color: rgba(251, 146, 60, 0.2) !important;
+}
+
+.operacoes-theme .bg-white,
+.operacoes-theme .bg-white\/92,
+.operacoes-theme .bg-white\/95,
+.operacoes-theme .bg-slate-50,
+.operacoes-theme .bg-amber-50\/80,
+.operacoes-theme .bg-slate-100 {
+  background-color: rgba(9, 26, 44, 0.84) !important;
+}
+
+.operacoes-theme .text-slate-900,
+.operacoes-theme .text-slate-800,
+.operacoes-theme .text-slate-700 {
+  color: #f8fafc !important;
+}
+
+.operacoes-theme .text-slate-600,
+.operacoes-theme .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+.operacoes-theme .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+.operacoes-theme .placeholder\:text-slate-400::placeholder,
+.operacoes-theme .placeholder\:text-slate-500::placeholder {
+  color: #64748b !important;
+}
+
+.operacoes-theme .hover\:bg-slate-100:hover {
+  background-color: rgba(15, 34, 56, 0.95) !important;
+}
+
+.operacoes-theme .hover\:text-slate-900:hover {
+  color: #ffffff !important;
+}

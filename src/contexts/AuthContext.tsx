@@ -7,11 +7,17 @@ import type { Motorista, Supervisor, OficinaUser, AdminUser, Gestor, UserRole, U
 interface AuthContextType {
     isAuthenticated: boolean;
     userRole: UserRole | 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | null;
+    authEntryModule: 'frota' | 'operacoes' | 'inventario' | null;
     currentUser: UserProfile | Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null;
     isEmailConfirmed: boolean;
     userStatus: 'online' | 'absent' | 'offline';
     language: 'pt' | 'en';
-    login: (type: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | UserRole, identifier: string, credential: string) => Promise<boolean>;
+    login: (
+        type: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | UserRole,
+        identifier: string,
+        credential: string,
+        entryModule?: 'frota' | 'operacoes' | 'inventario'
+    ) => Promise<boolean>;
     logout: () => void;
     updateStatus: (status: 'online' | 'absent' | 'offline') => void;
     refreshCurrentUser: () => Promise<void>;
@@ -26,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { motoristas, supervisors, oficinaUsers, gestores } = useWorkshop();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userRole, setUserRole] = useState<UserRole | 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor' | null>(null);
+    const [authEntryModule, setAuthEntryModule] = useState<'frota' | 'operacoes' | 'inventario' | null>(null);
     const [currentUser, setCurrentUser] = useState<UserProfile | Motorista | Supervisor | OficinaUser | AdminUser | Gestor | null>(null);
     const [isEmailConfirmed, setIsEmailConfirmed] = useState(true); // Default true for PIN users
     const [isLoading, setIsLoading] = useState(true);
@@ -124,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const splashStart = Date.now();
             const storedAuth = localStorage.getItem('isAuthenticated');
             const storedRole = localStorage.getItem('userRole');
+            const storedEntryModule = localStorage.getItem('authEntryModule');
             const storedUser = localStorage.getItem('currentUser');
             const storedStatus = localStorage.getItem('userStatus');
             const storedLang = localStorage.getItem('appLanguage');
@@ -131,6 +139,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (storedAuth === 'true' && storedRole) {
                 setIsAuthenticated(true);
                 setUserRole(storedRole as any);
+                const parsedModule = (storedEntryModule === 'frota' || storedEntryModule === 'operacoes' || storedEntryModule === 'inventario')
+                    ? storedEntryModule
+                    : null;
+                setAuthEntryModule(parsedModule);
 
                 if (storedUser) {
                     try {
@@ -252,7 +264,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('appLanguage', lang);
     }
 
-    async function login(type: UserRole | 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor', identifier: string, credential: string) {
+    async function login(
+        type: UserRole | 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor',
+        identifier: string,
+        credential: string,
+        entryModule: 'frota' | 'operacoes' | 'inventario' = 'frota'
+    ) {
         if (type === 'admin' || type === 'ADMIN_MASTER' || type === 'ADMIN') {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: identifier,
@@ -292,9 +309,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', roleToSave);
                 localStorage.setItem('currentUser', JSON.stringify(appUser));
+                localStorage.setItem('authEntryModule', entryModule);
 
                 setIsAuthenticated(true);
                 setUserRole(roleToSave as UserRole);
+                setAuthEntryModule(entryModule);
                 setCurrentUser(appUser);
                 setIsEmailConfirmed(appUser.email_confirmed);
 
@@ -324,8 +343,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', 'gestor');
                 localStorage.setItem('currentUser', JSON.stringify(gestor));
+                localStorage.setItem('authEntryModule', entryModule);
                 setIsAuthenticated(true);
                 setUserRole('gestor');
+                setAuthEntryModule(entryModule);
                 setCurrentUser(gestor);
                 if (gestor.foto) setUserPhoto(gestor.foto);
                 return true;
@@ -343,8 +364,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', 'oficina');
                 localStorage.setItem('currentUser', JSON.stringify(staff));
+                localStorage.setItem('authEntryModule', entryModule);
                 setIsAuthenticated(true);
                 setUserRole('oficina');
+                setAuthEntryModule(entryModule);
                 setCurrentUser(staff);
                 if (staff.foto) setUserPhoto(staff.foto);
                 return true;
@@ -364,8 +387,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', 'supervisor');
                 localStorage.setItem('currentUser', JSON.stringify(supervisor));
+                localStorage.setItem('authEntryModule', entryModule);
                 setIsAuthenticated(true);
                 setUserRole('supervisor');
+                setAuthEntryModule(entryModule);
                 setCurrentUser(supervisor);
                 if (supervisor.foto) setUserPhoto(supervisor.foto);
                 return true;
@@ -384,8 +409,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', 'motorista');
                 localStorage.setItem('currentUser', JSON.stringify(driver));
+                localStorage.setItem('authEntryModule', entryModule);
                 setIsAuthenticated(true);
                 setUserRole('motorista');
+                setAuthEntryModule(entryModule);
                 setCurrentUser(driver);
                 if (driver.foto) setUserPhoto(driver.foto);
                 return true;
@@ -420,8 +447,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('userRole');
         localStorage.removeItem('currentUser');
+        localStorage.removeItem('authEntryModule');
         setIsAuthenticated(false);
         setUserRole(null);
+        setAuthEntryModule(null);
         setCurrentUser(null);
         setUserPhoto(undefined);
     }
@@ -434,6 +463,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthContext.Provider value={{
             isAuthenticated,
             userRole,
+            authEntryModule,
             currentUser,
             isEmailConfirmed,
             userStatus,

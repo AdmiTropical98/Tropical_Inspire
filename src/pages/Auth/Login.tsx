@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkshop } from '../../contexts/WorkshopContext';
-import { Lock, Mail, ChevronRight, AlertCircle, Eye, EyeOff, User, Users, ShieldCheck, UserCog, Send, CheckCircle, X, Wrench, UserCheck, MapPin } from 'lucide-react';
+import { Lock, Mail, ChevronRight, AlertCircle, Eye, EyeOff, User, Users, ShieldCheck, UserCog, Send, CheckCircle, X, Wrench, UserCheck } from 'lucide-react';
 import type { Notification } from '../../types';
 
 export default function Login() {
@@ -48,12 +48,12 @@ export default function Login() {
 
     const { login } = useAuth();
     const { addNotification, updateNotification, notifications, addSupervisor, addGestor } = useWorkshop();
-    const [role, setRoleState] = useState<'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor'>(() => {
+    const [role, setRoleState] = useState<'admin' | 'gestor'>(() => {
         const saved = localStorage.getItem('last_login_role');
-        return (saved as any) || 'admin';
+        return saved === 'gestor' ? 'gestor' : 'admin';
     });
 
-    const setRole = (newRole: 'admin' | 'motorista' | 'supervisor' | 'oficina' | 'gestor') => {
+    const setRole = (newRole: 'admin' | 'gestor') => {
         setRoleState(newRole);
         localStorage.setItem('last_login_role', newRole);
     };
@@ -68,9 +68,6 @@ export default function Login() {
     const roleConfig = {
         admin: { label: 'Administrador', icon: <ShieldCheck className="w-5 h-5" />, color: 'blue' },
         gestor: { label: 'Gestor', icon: <UserCheck className="w-5 h-5" />, color: 'teal' },
-        supervisor: { label: 'Supervisor', icon: <UserCog className="w-5 h-5" />, color: 'blue' },
-        oficina: { label: 'Oficina', icon: <Wrench className="w-5 h-5" />, color: 'orange' },
-        motorista: { label: 'Motorista', icon: <User className="w-5 h-5" />, color: 'emerald' },
     };
 
     // Registration Modal State
@@ -84,14 +81,10 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        const success = await login(role, email, password);
+        const success = await login(role, email, password, 'frota');
         if (!success) {
-            if (role === 'motorista') {
-                setError('Dados de acesso incorretos.');
-            } else if (role === 'supervisor' || role === 'gestor') {
+            if (role === 'gestor') {
                 setError('Email/telemóvel ou PIN/palavra-passe incorretos.');
-            } else if (role === 'oficina') {
-                setError('Telemóvel ou PIN incorretos.');
             } else {
                 setError('Email ou palavra-passe incorretos.');
             }
@@ -218,123 +211,125 @@ export default function Login() {
 
 
     return (
-        <div className="login-scrollbar relative min-h-[100dvh] overflow-x-hidden overflow-y-auto" style={{ backgroundImage: "url('/fundo_páginas.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
-            <div className="absolute inset-0 z-0" style={{ background: 'rgba(255, 255, 255, 0.55)' }} />
-            <div className="absolute left-[-8%] top-[18%] h-px w-[52%] rotate-[-16deg] bg-gradient-to-r from-transparent via-blue-200/80 to-transparent opacity-70" />
-            <div className="absolute left-[2%] top-[38%] h-px w-[46%] rotate-[8deg] bg-gradient-to-r from-transparent via-blue-100/90 to-transparent opacity-80" />
-            <div className="absolute right-[4%] top-[28%] h-px w-[24%] rotate-[28deg] bg-gradient-to-r from-transparent via-slate-200/80 to-transparent opacity-60 hidden lg:block" />
-            <div className="absolute inset-x-[-10%] bottom-[-2%] h-[28vh] opacity-90" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(219,234,254,0.18) 35%, rgba(191,219,254,0.32) 100%)', clipPath: 'ellipse(72% 58% at 50% 100%)' }} />
-            <div className="absolute inset-x-[-6%] bottom-[-7%] h-[24vh] opacity-90" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 100%)', clipPath: 'ellipse(68% 54% at 50% 100%)' }} />
+        <div
+            className="login-scrollbar relative min-h-[100dvh] overflow-x-hidden overflow-y-auto text-white"
+            style={{
+                backgroundImage: "url('/loginfrota.png')",
+                backgroundSize: 'cover',
+                backgroundPosition: isCapacitorAndroid ? 'center' : 'center center',
+                backgroundRepeat: 'no-repeat',
+            }}
+        >
+            <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_55%,rgba(11,58,180,0.16),transparent_45%),linear-gradient(92deg,rgba(2,9,34,0.68)_0%,rgba(2,9,34,0.35)_42%,rgba(2,9,34,0.70)_100%)]" />
+            <div className="absolute inset-0 z-0 backdrop-blur-[0.5px]" />
 
-            <div className="absolute left-[7%] top-[24%] hidden h-24 w-24 rounded-full border border-blue-100/80 bg-white/20 lg:block">
-                <MapPin className="absolute inset-0 m-auto h-8 w-8 text-blue-100" />
-            </div>
-            <div className="absolute right-[7%] top-[14%] hidden h-16 w-16 rounded-full border border-slate-200/70 bg-white/20 lg:block">
-                <MapPin className="absolute inset-0 m-auto h-5 w-5 text-slate-200" />
-            </div>
-            <div className="absolute right-[9%] top-[42%] hidden h-20 w-20 rounded-full border border-blue-100/70 bg-white/10 lg:block">
-                <MapPin className="absolute inset-0 m-auto h-7 w-7 text-blue-100" />
-            </div>
-
-            <div className={`android-page-shell relative z-10 flex min-h-[100dvh] w-full items-start ${isCapacitorAndroid ? 'android-native-shell mx-0 max-w-[100vw] justify-start px-0 py-0 lg:items-start lg:px-0 xl:px-0' : 'mx-auto max-w-[1440px] justify-center px-4 py-6 sm:px-6 lg:items-center lg:px-16 xl:px-20'}`}>
-                <div className="grid w-full grid-cols-1 items-center gap-6 lg:grid-cols-[1.05fr_0.72fr] xl:gap-16">
-                    <section className="relative hidden items-center justify-center lg:flex lg:justify-start">
-                        <div className="relative flex w-full items-center justify-center lg:justify-center">
-                            <img src="/LOGO.png" alt="Algartempo Frota" className="w-full max-w-[360px] object-contain drop-shadow-[0_20px_40px_rgba(37,99,235,0.08)] sm:max-w-[430px] lg:max-w-[520px]" />
+            <div className={`android-page-shell relative z-10 flex min-h-[100dvh] w-full ${isCapacitorAndroid ? 'android-native-shell mx-0 max-w-[100vw] items-start justify-start px-0 py-0' : 'mx-auto max-w-[1500px] items-center justify-center px-4 py-6 sm:px-8 lg:px-16 xl:px-20'}`}>
+                <div className="grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-[1.12fr_0.78fr] lg:gap-12">
+                    <section className="relative hidden min-h-[600px] items-center justify-center lg:flex lg:justify-start">
+                        <div className="w-full max-w-[760px] px-2">
+                            <img
+                                src="/LOGO22.png"
+                                alt="Algartempo Frota"
+                                className="w-full max-w-[620px] object-contain drop-shadow-[0_14px_30px_rgba(28,96,255,0.25)]"
+                            />
+                            <p className="-mt-6 whitespace-nowrap text-[30px] font-semibold tracking-[-0.02em] text-white/88">Gestão inteligente. Frota eficiente.</p>
                         </div>
                     </section>
 
                     <section className="flex items-center justify-center lg:justify-end">
-                        <div className="android-page-card auth-card w-full max-w-[424px] rounded-[1.9rem] border border-white/85 bg-white/94 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-9">
-                            <div className="mb-4 flex items-center gap-3 sm:hidden">
-                                <div className="rounded-2xl bg-slate-50 px-3 py-2 shadow-sm border border-slate-200">
-                                    <img src="/LOGO.png" alt="Algartempo Frota" className="h-8 w-auto" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Acesso Seguro</p>
-                                    <p className="text-sm font-semibold text-slate-700">Plataforma interna</p>
-                                </div>
+                        <div className="android-page-card auth-card w-full max-w-[470px] rounded-[34px] border border-[#2a6dff66] bg-[linear-gradient(165deg,rgba(6,22,70,0.90),rgba(3,13,44,0.92))] p-6 shadow-[0_20px_45px_rgba(0,0,0,0.45),0_0_32px_rgba(45,118,255,0.35),inset_0_0_0_1px_rgba(105,162,255,0.18)] backdrop-blur-xl sm:p-10">
+                            <div className="mb-5 flex items-center gap-3 sm:hidden">
+                                <img
+                                    src="/LOGO22.png"
+                                    alt="Algartempo Frota"
+                                    className="h-14 w-auto"
+                                />
                             </div>
-                            <div className="mb-5 flex items-center justify-start">
-                                <div className="relative w-full max-w-[190px]">
+
+                            <div className="mb-8 flex items-center justify-start">
+                                <div className="relative w-full max-w-[220px]">
+                                    <div className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#4f96ff]">
+                                        {roleConfig[role].icon}
+                                    </div>
                                     <select
                                         value={role}
                                         onChange={(e) => {
                                             setRole(e.target.value as any);
                                             setError('');
                                         }}
-                                        className="h-10 w-full appearance-none rounded-full border border-slate-200 bg-white px-4 pr-10 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 outline-none transition-colors focus:border-blue-500"
+                                        className="h-11 w-full appearance-none rounded-full border border-[#3574e760] bg-[#071e53bb] pl-12 pr-10 text-[12px] font-bold uppercase tracking-[0.16em] text-white/85 outline-none transition-colors focus:border-[#4a8dff]"
                                     >
                                         {Object.entries(roleConfig).map(([key, config]) => (
-                                            <option key={key} value={key}>{config.label}</option>
+                                            <option key={key} value={key} className="text-slate-900">{config.label}</option>
                                         ))}
                                     </select>
-                                    <ChevronRight className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-400" />
+                                    <ChevronRight className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-white/70" />
                                 </div>
                             </div>
 
-                            <div className="mb-6">
-                                <p className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-blue-700">
+                            <div className="mb-8">
+                                <p className="inline-flex items-center rounded-full bg-[#0d3a8a] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#75afff]">
                                     Sistema Frota
                                 </p>
-                                <h1 className="text-[2.1rem] font-extrabold tracking-[-0.04em] text-[#1f2957] sm:text-[2.35rem]">Bem-vindo de volta!</h1>
-                                <p className="mt-2 text-[1.02rem] text-slate-500">Inicie sessão para continuar.</p>
+                                <h1 className="mt-3 text-[2.9rem] font-extrabold leading-[0.98] tracking-[-0.04em] text-white sm:text-[3.15rem]">
+                                    Bem-vindo de
+                                    <span className="block text-[#2f7cff]">volta!</span>
+                                </h1>
+                                <p className="mt-3 text-[1.06rem] text-[#c9d9ffcc]">Inicie sessão para continuar.</p>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 {error && (
-                                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-center gap-3">
-                                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                    <div className="flex items-center gap-3 rounded-2xl border border-red-400/50 bg-red-950/35 px-4 py-3 text-sm text-red-100">
+                                        <AlertCircle className="h-5 w-5 flex-shrink-0" />
                                         {error}
                                     </div>
                                 )}
 
                                 <div className="space-y-2">
                                     <label className="sr-only">
-                                        {(role === 'motorista' || role === 'oficina') ? 'Telemóvel' : 'Endereço de E-mail'}
+                                        {role === 'gestor' ? 'Email ou Telemovel' : 'Endereco de E-mail'}
                                     </label>
                                     <div className="relative">
-                                        {(role === 'admin' || role === 'supervisor' || role === 'gestor') ? (
-                                            <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
+                                        {(role === 'admin' || role === 'gestor') ? (
+                                            <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a6c4ff99]" />
                                         ) : (
-                                            <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
+                                            <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a6c4ff99]" />
                                         )}
                                         <input
-                                            type={role === 'motorista' || role === 'oficina' ? 'tel' : 'email'}
-                                            inputMode={role === 'motorista' || role === 'oficina' ? 'numeric' : 'email'}
+                                            type={role === 'gestor' ? 'text' : 'email'}
+                                            inputMode={role === 'gestor' ? 'text' : 'email'}
                                             required
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-                                            className="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-700 shadow-[inset_0_1px_2px_rgba(15,23,42,0.03)] outline-none transition-all placeholder:text-slate-400 focus:border-[#d8ab42] focus:ring-4 focus:ring-amber-100"
-                                            placeholder={(role === 'motorista' || role === 'oficina') ? 'Telemóvel' : 'Endereço de E-mail'}
+                                            className="h-[54px] w-full rounded-2xl border border-[#8db1ef7a] bg-[#081c53bf] pl-12 pr-4 text-base text-white outline-none transition-all placeholder:text-[#9eb8ec99] focus:border-[#9ec2ff] focus:ring-2 focus:ring-[#2a6dff55]"
+                                            placeholder={role === 'gestor' ? 'Email ou Telemovel' : 'Endereco de E-mail'}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="sr-only">
-                                        {(role === 'motorista' || role === 'oficina') ? 'PIN de Acesso' : 'Palavra-passe'}
+                                        {role === 'gestor' ? 'PIN ou Palavra-passe' : 'Palavra-passe'}
                                     </label>
                                     <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
+                                        <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a6c4ff99]" />
                                         <input
                                             type={showPassword ? 'text' : 'password'}
-                                            inputMode={role === 'motorista' || role === 'oficina' ? 'numeric' : 'text'}
+                                            inputMode={role === 'gestor' ? 'text' : 'text'}
                                             required
                                             value={password}
                                             onChange={(e) => {
                                                 const val = e.target.value;
-                                                if ((role === 'motorista' || role === 'oficina') && !/^\d*$/.test(val)) return;
                                                 setPassword(val);
                                             }}
-                                            className="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-14 text-base text-slate-700 shadow-[inset_0_1px_2px_rgba(15,23,42,0.03)] outline-none transition-all placeholder:text-slate-400 focus:border-[#d8ab42] focus:ring-4 focus:ring-amber-100"
-                                            placeholder={(role === 'motorista' || role === 'oficina') ? 'PIN de Acesso' : 'Palavra-passe'}
-                                            maxLength={(role === 'motorista' || role === 'oficina') ? 6 : undefined}
+                                            className="h-[54px] w-full rounded-2xl border border-[#8db1ef7a] bg-[#081c53bf] pl-12 pr-14 text-base text-white outline-none transition-all placeholder:text-[#9eb8ec99] focus:border-[#9ec2ff] focus:ring-2 focus:ring-[#2a6dff55]"
+                                            placeholder={role === 'gestor' ? 'PIN ou Palavra-passe' : 'Palavra-passe'}
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#a6c4ff99] transition-colors hover:text-white"
                                         >
                                             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                         </button>
@@ -345,7 +340,7 @@ export default function Login() {
                                     <button
                                         type="button"
                                         onClick={() => window.location.href = '/reset-password'}
-                                        className="text-[0.92rem] font-semibold text-[#2c4e86] transition-colors hover:text-[#1f2957]"
+                                        className="text-[0.96rem] font-semibold text-[#2d82ff] transition-colors hover:text-[#60a8ff]"
                                     >
                                         Esqueceu a palavra-passe?
                                     </button>
@@ -353,14 +348,15 @@ export default function Login() {
 
                                 <button
                                     type="submit"
-                                    className="mt-2 flex h-[3.55rem] w-full items-center justify-center rounded-2xl bg-[linear-gradient(90deg,#d59d31_0%,#e8b547_40%,#ffcc58_100%)] px-6 text-[1.08rem] font-extrabold text-white shadow-[0_10px_20px_rgba(201,163,78,0.34)] transition-all hover:brightness-[1.02] active:translate-y-px"
+                                    className="mt-2 flex h-[3.3rem] w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(90deg,#bd871f_0%,#d89e33_45%,#e9b548_100%)] px-6 text-[1.1rem] font-extrabold text-white shadow-[0_8px_18px_rgba(194,136,25,0.36)] transition-all hover:brightness-105 active:translate-y-px"
                                 >
-                                    Iniciar Sessão
+                                    Iniciar Sessao
+                                    <ChevronRight className="h-5 w-5" />
                                 </button>
 
-                                <div className="pt-2 text-center text-[0.98rem] text-slate-500">
+                                <div className="pt-2 text-center text-[0.98rem] text-[#c9d9ffcc]">
                                     Precisa de ajuda?{' '}
-                                    <a href="mailto:suporte@algartempo.com" className="font-semibold text-[#1f4f8b] hover:text-[#143a67]">
+                                    <a href="mailto:suporte@algartempo.com" className="font-semibold text-[#2d82ff] hover:text-[#60a8ff]">
                                         Contacte o Suporte
                                     </a>
                                 </div>
@@ -369,12 +365,11 @@ export default function Login() {
                                     <button
                                         type="button"
                                         onClick={() => setShowRegistration(true)}
-                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                        className="w-full rounded-2xl border border-[#4f72b766] bg-[#0b2458cc] py-3 text-sm font-semibold text-white/85 transition-colors hover:bg-[#11306fdd]"
                                     >
                                         Criar Conta {role === 'supervisor' ? 'Supervisor' : 'Gestor'}
                                     </button>
                                 )}
-
                             </form>
                         </div>
                     </section>

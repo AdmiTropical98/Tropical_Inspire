@@ -139,20 +139,19 @@ export default function DashboardLanding() {
       </svg>
 
       <div
-        className="relative flex flex-col overflow-hidden"
+        className="relative flex h-full flex-col justify-center overflow-hidden"
         style={{
-          height: 'calc(100vh - 40px)',
-          maxWidth: '1700px',
-          width: 'calc(100% - 40px)',
-          margin: '20px auto',
-          gap: '18px',
+          maxWidth: '1560px',
+          width: 'calc(100% - 32px)',
+          margin: '0 auto',
+          gap: '14px',
         }}
       >
         <div
           className="relative overflow-hidden rounded-[35px]"
           style={{
-            height: '180px',
-            padding: '28px 40px',
+            height: '160px',
+            padding: '22px 32px',
             background: 'linear-gradient(135deg, rgba(255,255,255,0.97), rgba(235,242,255,0.93))',
             backdropFilter: 'blur(18px)',
             border: '1px solid rgba(255,255,255,0.32)',
@@ -252,16 +251,16 @@ export default function DashboardLanding() {
             <rect x="315" y="38" width="36" height="12" rx="3" fill="#1a3eff" opacity="0.10" />
             <rect x="455" y="30" width="40" height="12" rx="3" fill="#1a3eff" opacity="0.09" />
           </svg>
-          <div className="relative z-10 flex h-full items-center gap-8">
+          <div className="relative z-10 flex h-full items-center gap-6">
             <div className="shrink-0">
-              <img src="/LOGO.png" alt="Algartempo" className="h-auto w-[170px]" style={{ filter: 'drop-shadow(0 0 20px rgba(37,99,235,0.45))' }} />
+              <img src="/LOGO.png" alt="Algartempo" className="h-auto w-[150px]" style={{ filter: 'drop-shadow(0 0 20px rgba(37,99,235,0.45))' }} />
             </div>
             <div className="flex-1">
-              <h1 className="text-[clamp(32px,2.4vw,46px)] leading-[0.95] font-extrabold text-[#101c56]" style={{fontFamily: "'Sora', sans-serif", fontWeight:800, letterSpacing:'-2px'}}>Bem-vindo à</h1>
-              <h2 className="text-[clamp(32px,2.4vw,46px)] leading-[0.95] font-extrabold text-[#101c56]" style={{fontFamily: "'Sora', sans-serif", fontWeight:800, letterSpacing:'-2px'}}>
+              <h1 className="text-[clamp(28px,2.1vw,40px)] leading-[0.95] font-extrabold text-[#101c56]" style={{fontFamily: "'Sora', sans-serif", fontWeight:800, letterSpacing:'-1.6px'}}>Bem-vindo à</h1>
+              <h2 className="text-[clamp(28px,2.1vw,40px)] leading-[0.95] font-extrabold text-[#101c56]" style={{fontFamily: "'Sora', sans-serif", fontWeight:800, letterSpacing:'-1.6px'}}>
                 Plataforma <span className="text-[#1f4dff]">ALGARTEMPO</span>
               </h2>
-              <p className="mt-2 text-[clamp(16px,1.1vw,21px)] font-medium leading-[1.1] text-[#274194]" style={{fontFamily: "'Sora', sans-serif", fontWeight:500}}>Selecione o módulo para continuar</p>
+              <p className="mt-1.5 text-[clamp(14px,1vw,18px)] font-medium leading-[1.1] text-[#274194]" style={{fontFamily: "'Sora', sans-serif", fontWeight:500}}>Selecione o módulo para continuar</p>
             </div>
           </div>
         </div>
@@ -270,14 +269,14 @@ export default function DashboardLanding() {
           className="grid grid-cols-3"
           style={{
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '22px',
-            height: 'clamp(370px, calc(100vh - 348px), 500px)',
+            gap: '18px',
+            height: 'clamp(330px, calc(100vh - 304px), 440px)',
           }}
         >
           {modules.map((module) => (
             <div
               key={module.key}
-              className="group relative overflow-hidden rounded-[28px] transition-all duration-[350ms] ease-[ease] hover:-translate-y-[6px]"
+              className="group relative overflow-hidden rounded-[24px] transition-all duration-[350ms] ease-[ease] hover:-translate-y-[5px]"
               style={{
                 height: '100%',
                 backdropFilter: 'blur(6px)',
@@ -307,33 +306,33 @@ export default function DashboardLanding() {
                 }}
               />
 
-              <div className="relative z-10 flex h-full flex-col p-7">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl border border-white/20 ${module.iconClass}`}>
-                    <module.icon className="h-7 w-7 text-white" strokeWidth={2.2} />
+              <div className="relative z-10 flex h-full flex-col p-6">
+                <div className="mb-2.5 flex items-center gap-2.5">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 ${module.iconClass}`}>
+                    <module.icon className="h-6 w-6 text-white" strokeWidth={2.2} />
                   </div>
                   <h3
-                    className="text-[38px] leading-none font-extrabold tracking-[-1px] text-white"
-                    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.45)', fontFamily: "'Sora', sans-serif", fontWeight:800, letterSpacing:'-1.5px' }}
+                    className="text-[34px] leading-none font-extrabold tracking-[-1px] text-white"
+                    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.45)', fontFamily: "'Sora', sans-serif", fontWeight:800, letterSpacing:'-1.2px' }}
                   >
                     {module.title}
                   </h3>
                 </div>
 
-                <div className="mb-3 h-[2px] w-10 rounded-full" style={{ backgroundColor: module.accent }} />
+                <div className="mb-2.5 h-[2px] w-9 rounded-full" style={{ backgroundColor: module.accent }} />
                 <p
-                  className="mb-4 max-w-[88%] text-[16px] leading-[1.25] font-medium text-[rgba(255,255,255,0.97)]"
+                  className="mb-3 max-w-[88%] text-[15px] leading-[1.2] font-medium text-[rgba(255,255,255,0.97)]"
                   style={{ textShadow: '0 2px 8px rgba(0,0,0,0.45)', fontFamily: "'Sora', sans-serif", fontWeight:500 }}
                 >
                   {module.description}
                 </p>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {module.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: module.accent }} />
+                    <div key={idx} className="flex items-center gap-1.5">
+                      <div className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: module.accent }} />
                       <span
-                        className="text-[14px] leading-tight font-medium text-[rgba(255,255,255,0.92)]"
+                        className="text-[13px] leading-tight font-medium text-[rgba(255,255,255,0.92)]"
                         style={{ textShadow: '0 2px 8px rgba(0,0,0,0.45)', fontFamily: "'Sora', sans-serif", fontWeight:500 }}
                       >
                         {feature}
@@ -344,11 +343,11 @@ export default function DashboardLanding() {
 
                 <button
                   onClick={() => navigate(module.route)}
-                  className={`group mt-auto flex h-[72px] w-full items-center justify-center gap-2 rounded-[20px] bg-gradient-to-r ${module.buttonClass} px-4 text-[20px] font-bold leading-none text-white transition-all duration-[350ms] ease-[ease] hover:brightness-110`}
+                  className={`group mt-auto flex h-[62px] w-full items-center justify-center gap-2 rounded-[18px] bg-gradient-to-r ${module.buttonClass} px-4 text-[18px] font-bold leading-none text-white transition-all duration-[350ms] ease-[ease] hover:brightness-110`}
                   style={{ boxShadow: `0 12px 28px rgba(0,0,0,0.35), 0 0 20px ${module.accent}88`, fontFamily: "'Sora', sans-serif", fontWeight:700 }}
                 >
                   {module.buttonText}
-                  <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </button>
               </div>
             </div>
@@ -361,38 +360,38 @@ export default function DashboardLanding() {
             backdropFilter: 'blur(12px)',
             background: 'rgba(5,15,45,0.82)',
             boxShadow: '0 0 34px rgba(62,118,255,0.22), 0 12px 28px rgba(0,0,0,0.22)',
-            minHeight: '82px',
-            height: '82px',
+            minHeight: '72px',
+            height: '72px',
           }}
         >
           {/* ALGARTEMPO-specific info blocks */}
-          <div className="flex h-full items-center gap-3 px-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#6aa3ff] bg-[#113b92] text-white shadow-[0_0_12px_rgba(81,146,255,0.32)]">
-              <Shield className="h-5 w-5" />
+          <div className="flex h-full items-center gap-2.5 px-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#6aa3ff] bg-[#113b92] text-white shadow-[0_0_12px_rgba(81,146,255,0.32)]">
+              <Shield className="h-4.5 w-4.5" />
             </div>
             <div className="flex flex-col justify-center">
-              <h4 className="text-[16px] font-bold leading-none text-white" style={{fontFamily: "'Sora', sans-serif", fontWeight:700}}>Operação Segura e Organizada</h4>
-              <p className="mt-0.5 text-[12px] leading-tight text-white/85" style={{fontFamily: "'Sora', sans-serif", fontWeight:500}}>Gestão centralizada das operações internas da ALGARTEMPO com foco em eficiência, controlo e fiabilidade diária.</p>
+              <h4 className="text-[14px] font-bold leading-none text-white" style={{fontFamily: "'Sora', sans-serif", fontWeight:700}}>Operação Segura e Organizada</h4>
+              <p className="mt-0.5 text-[11px] leading-tight text-white/85" style={{fontFamily: "'Sora', sans-serif", fontWeight:500}}>Gestão centralizada das operações internas da ALGARTEMPO com foco em eficiência, controlo e fiabilidade diária.</p>
             </div>
           </div>
 
-          <div className="flex h-full items-center gap-3 border-l border-[#6f98eb]/40 px-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#6aa3ff] bg-[#113b92] text-white shadow-[0_0_12px_rgba(81,146,255,0.32)]">
-              <Network className="h-5 w-5" />
+          <div className="flex h-full items-center gap-2.5 border-l border-[#6f98eb]/40 px-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#6aa3ff] bg-[#113b92] text-white shadow-[0_0_12px_rgba(81,146,255,0.32)]">
+              <Network className="h-4.5 w-4.5" />
             </div>
             <div className="flex flex-col justify-center">
-              <h4 className="text-[16px] font-bold leading-none text-white" style={{fontFamily: "'Sora', sans-serif", fontWeight:700}}>Monitorização Operacional</h4>
-              <p className="mt-0.5 text-[12px] leading-tight text-white/85" style={{fontFamily: "'Sora', sans-serif", fontWeight:500}}>Acompanhamento em tempo real das rotas, escalas, viaturas e operações da ALGARTEMPO.</p>
+              <h4 className="text-[14px] font-bold leading-none text-white" style={{fontFamily: "'Sora', sans-serif", fontWeight:700}}>Monitorização Operacional</h4>
+              <p className="mt-0.5 text-[11px] leading-tight text-white/85" style={{fontFamily: "'Sora', sans-serif", fontWeight:500}}>Acompanhamento em tempo real das rotas, escalas, viaturas e operações da ALGARTEMPO.</p>
             </div>
           </div>
 
-          <div className="flex h-full items-center gap-3 border-l border-[#6f98eb]/40 px-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#6aa3ff] bg-[#113b92] text-white shadow-[0_0_12px_rgba(81,146,255,0.32)]">
-              <Boxes className="h-5 w-5" />
+          <div className="flex h-full items-center gap-2.5 border-l border-[#6f98eb]/40 px-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#6aa3ff] bg-[#113b92] text-white shadow-[0_0_12px_rgba(81,146,255,0.32)]">
+              <Boxes className="h-4.5 w-4.5" />
             </div>
             <div className="flex flex-col justify-center">
-              <h4 className="text-[16px] font-bold leading-none text-white" style={{fontFamily: "'Sora', sans-serif", fontWeight:700}}>Sistema Integrado ALGARTEMPO</h4>
-              <p className="mt-0.5 text-[12px] leading-tight text-white/85" style={{fontFamily: "'Sora', sans-serif", fontWeight:500}}>Plataforma desenvolvida exclusivamente para otimizar os processos internos da ALGARTEMPO.</p>
+              <h4 className="text-[14px] font-bold leading-none text-white" style={{fontFamily: "'Sora', sans-serif", fontWeight:700}}>Sistema Integrado ALGARTEMPO</h4>
+              <p className="mt-0.5 text-[11px] leading-tight text-white/85" style={{fontFamily: "'Sora', sans-serif", fontWeight:500}}>Plataforma desenvolvida exclusivamente para otimizar os processos internos da ALGARTEMPO.</p>
             </div>
           </div>
         </div>
