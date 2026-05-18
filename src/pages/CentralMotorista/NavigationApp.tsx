@@ -195,7 +195,7 @@ export default function NavigationApp({
     useEffect(() => { return () => stopNavigation(); }, []);
 
     const carIcon = new L.Icon({
-        iconUrl: '/nav-car-blue.png',
+        iconUrl: 'nav-car-blue.png',
         iconSize: [80, 80],
         iconAnchor: [40, 40],
         popupAnchor: [0, -40],

@@ -65,11 +65,11 @@ export default function InventoryLogin() {
   return (
     <div
       className="relative min-h-[100dvh] overflow-hidden"
-      style={{ backgroundImage: "url('/logininventario2.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+      style={{ backgroundImage: "url('logininventario2.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
     >
       <div className="absolute left-6 top-6 z-20 sm:left-8 sm:top-8">
         <img
-          src="/LOGO22.png"
+          src="LOGO22.png"
           alt="Algartempo"
           className="h-14 w-auto sm:h-16"
         />

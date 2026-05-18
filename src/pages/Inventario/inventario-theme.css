@@ -1,7 +1,7 @@
 body.inventory-bg {
   background:
     linear-gradient(rgba(2, 12, 24, 0.92), rgba(2, 12, 24, 0.96)),
-    url('/Dinvetario.png?v=20260514b');
+    url('Dinvetario.png?v=20260514b');
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;

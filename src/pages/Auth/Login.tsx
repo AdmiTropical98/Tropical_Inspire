@@ -214,7 +214,7 @@ export default function Login() {
         <div
             className="login-scrollbar relative min-h-[100dvh] overflow-x-hidden overflow-y-auto text-white"
             style={{
-                backgroundImage: "url('/loginfrota.png')",
+                backgroundImage: "url('loginfrota.png')",
                 backgroundSize: 'cover',
                 backgroundPosition: isCapacitorAndroid ? 'center' : 'center center',
                 backgroundRepeat: 'no-repeat',
@@ -228,7 +228,7 @@ export default function Login() {
                     <section className="relative hidden min-h-[600px] items-center justify-center lg:flex lg:justify-start">
                         <div className="w-full max-w-[760px] px-2">
                             <img
-                                src="/LOGO22.png"
+                                src="LOGO22.png"
                                 alt="Algartempo Frota"
                                 className="w-full max-w-[620px] object-contain drop-shadow-[0_14px_30px_rgba(28,96,255,0.25)]"
                             />
@@ -240,7 +240,7 @@ export default function Login() {
                         <div className="android-page-card auth-card w-full max-w-[470px] rounded-[34px] border border-[#2a6dff66] bg-[linear-gradient(165deg,rgba(6,22,70,0.90),rgba(3,13,44,0.92))] p-6 shadow-[0_20px_45px_rgba(0,0,0,0.45),0_0_32px_rgba(45,118,255,0.35),inset_0_0_0_1px_rgba(105,162,255,0.18)] backdrop-blur-xl sm:p-10">
                             <div className="mb-5 flex items-center gap-3 sm:hidden">
                                 <img
-                                    src="/LOGO22.png"
+                                    src="LOGO22.png"
                                     alt="Algartempo Frota"
                                     className="h-14 w-auto"
                                 />

@@ -78,7 +78,7 @@ export default function ResetPassword() {
             <div className="android-page-card w-full max-w-md relative z-10 -mt-8">
                 <div className="text-center mb-2">
                     <img
-                        src="/LOGO.png"
+                        src="LOGO.png"
                         alt="Algar Frota"
                         className="w-72 h-auto object-contain mx-auto mb-2"
                     />

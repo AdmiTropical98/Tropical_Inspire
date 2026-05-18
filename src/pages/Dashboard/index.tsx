@@ -67,7 +67,7 @@ export default function Dashboard({
     const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 
     return (
-        <div className="android-native-dashboard w-full min-w-0 space-y-6 animate-in fade-in duration-700">
+        <div className="frota-page frota-page--dashboard android-native-dashboard w-full min-w-0 space-y-6 animate-in fade-in duration-700">
             {/* ... Modal ... */}
             {hasAccess(userRole, 'equipa-oficina') && (
                 <ApprovalsModal isOpen={showApprovalsModal} onClose={() => setShowApprovalsModal(false)} />
@@ -76,7 +76,7 @@ export default function Dashboard({
             {isAndroidNative && (
                 <section className="android-native-dashboard-brand">
                     <div className="android-native-dashboard-brand-head">
-                        <img src="/LOGO.png?v=3" alt="Algartempo Frota" className="android-native-dashboard-brand-logo" />
+                        <img src="LOGO.png?v=3" alt="Algartempo Frota" className="android-native-dashboard-brand-logo" />
                         <div>
                             <p className="android-native-dashboard-brand-kicker">Aplicação Operacional</p>
                             <h2 className="android-native-dashboard-brand-title">Centro de Comando</h2>
@@ -111,7 +111,7 @@ export default function Dashboard({
                 }
             />
 
-            <div className="p-3 md:p-8 space-y-5 md:space-y-8">
+            <div className="frota-page-body p-3 md:p-8 space-y-5 md:space-y-8">
 
                 {/* DASHBOARD GRID */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6 auto-rows-min">

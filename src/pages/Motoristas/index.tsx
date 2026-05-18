@@ -173,7 +173,7 @@ export default function Motoristas() {
     }, [motoristas, filter, statusFilter, sortBy]);
 
     return (
-        <div className="space-y-8 fade-in">
+        <div className="frota-page frota-page--motoristas space-y-8 fade-in">
             {selectedDriver && (
                 <DriverProfile
                     motorista={selectedDriver}
@@ -195,7 +195,7 @@ export default function Motoristas() {
                 />
             )}
 
-            <div className="mb-8">
+            <div className="frota-page-header mb-8">
                 <h1 className="text-3xl font-extrabold text-[#1f2957] mb-2 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
                         <User className="w-6 h-6 text-blue-600" />

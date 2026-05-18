@@ -12,7 +12,7 @@ const SLIDES = [
         title: 'FROTA',
         subtitle: 'POTÊNCIA E CONFORTO',
         description: 'Viaturas de topo para viagens inesquecíveis.',
-        image: '/assets/3d_renault.png',
+        image: 'assets/3d_renault.png',
         color: 'from-blue-500 to-indigo-600',
         accent: 'blue',
         animationClass: 'animate-drive-in-right'
@@ -22,7 +22,7 @@ const SLIDES = [
         title: 'AGILIDADE',
         subtitle: 'FLEXIBILIDADE TOTAL',
         description: 'Rapidez e eficiência em cada serviço realizado.',
-        image: '/assets/3d_agility.png',
+        image: 'assets/3d_agility.png',
         color: 'from-sky-400 to-cyan-600',
         accent: 'cyan',
         animationClass: 'animate-float-intense'
@@ -32,7 +32,7 @@ const SLIDES = [
         title: 'EQUIPA',
         subtitle: 'MOTORISTAS DE ELITE',
         description: 'Profissionais dedicados para uma experiência segura.',
-        image: '/assets/3d_driver.png',
+        image: 'assets/3d_driver.png',
         color: 'from-emerald-400 to-teal-600',
         accent: 'emerald',
         animationClass: 'animate-float-intense'
@@ -42,7 +42,7 @@ const SLIDES = [
         title: 'VISÃO',
         subtitle: 'ESTRATÉGIA DIGITAL',
         description: 'Dados inteligentes para decisões que transformam o negócio.',
-        image: '/assets/3d_manager.png',
+        image: 'assets/3d_manager.png',
         color: 'from-purple-500 to-fuchsia-600',
         accent: 'purple',
         animationClass: 'animate-float-intense'

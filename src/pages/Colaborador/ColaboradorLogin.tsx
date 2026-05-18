@@ -61,7 +61,7 @@ const ColaboradorLogin: React.FC<ColaboradorLoginProps> = ({ onLogin }) => {
         <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-[1.05fr_0.72fr] xl:gap-16">
           <section className="relative flex min-h-[150px] items-center justify-center sm:min-h-[220px] lg:min-h-[720px] lg:justify-start">
             <div className="relative flex w-full items-center justify-center lg:justify-center">
-              <img src="/LOGO.png" alt="Algartempo Frota" className="w-full max-w-[360px] object-contain drop-shadow-[0_20px_40px_rgba(37,99,235,0.08)] sm:max-w-[430px] lg:max-w-[520px]" />
+              <img src="LOGO.png" alt="Algartempo Frota" className="w-full max-w-[360px] object-contain drop-shadow-[0_20px_40px_rgba(37,99,235,0.08)] sm:max-w-[430px] lg:max-w-[520px]" />
             </div>
           </section>
 
@@ -69,7 +69,7 @@ const ColaboradorLogin: React.FC<ColaboradorLoginProps> = ({ onLogin }) => {
             <div className="android-page-card colaborador-login-card w-full max-w-[424px] rounded-[1.9rem] border border-white/85 bg-white/94 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-9">
               <div className="mb-4 flex items-center gap-3 sm:hidden">
                 <div className="rounded-2xl bg-slate-50 px-3 py-2 shadow-sm border border-slate-200">
-                  <img src="/LOGO.png" alt="Algartempo Frota" className="h-8 w-auto" />
+                  <img src="LOGO.png" alt="Algartempo Frota" className="h-8 w-auto" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Transporte interno</p>

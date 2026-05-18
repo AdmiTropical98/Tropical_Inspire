@@ -227,7 +227,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
       className="colaborador-dashboard relative min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#d8e8f8] text-slate-900"
       style={{
         backgroundImage:
-          "radial-gradient(140% 100% at 50% 100%, rgba(96,165,250,0.45) 0%, rgba(96,165,250,0) 55%), radial-gradient(120% 95% at 50% 0%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0) 70%), url('/grid-pattern.svg'), linear-gradient(180deg, #cfdff1 0%, #dce8f6 45%, #e5eef9 100%)",
+          "radial-gradient(140% 100% at 50% 100%, rgba(96,165,250,0.45) 0%, rgba(96,165,250,0) 55%), radial-gradient(120% 95% at 50% 0%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0) 70%), url('grid-pattern.svg'), linear-gradient(180deg, #cfdff1 0%, #dce8f6 45%, #e5eef9 100%)",
         backgroundSize: "100% 100%, 100% 100%, 420px 420px, 100% 100%",
         backgroundPosition: "center, center, center, center",
       }}
@@ -240,7 +240,7 @@ const ColaboradorDashboard: React.FC<ColaboradorDashboardProps> = ({ colaborador
         <div className="flex items-center justify-between md:block">
           <div className="flex items-center gap-3">
             <div className="inline-flex rounded-xl bg-white/65 px-2.5 py-1.5 shadow-[0_8px_25px_rgba(15,35,80,0.18)] backdrop-blur-sm md:rounded-2xl md:px-4 md:py-2">
-              <img src="/LOGO.png" alt="Algartempo Frota" className="h-8 w-auto drop-shadow-[0_3px_8px_rgba(17,24,39,0.25)] md:h-14" />
+              <img src="LOGO.png" alt="Algartempo Frota" className="h-8 w-auto drop-shadow-[0_3px_8px_rgba(17,24,39,0.25)] md:h-14" />
             </div>
             <div className="md:hidden">
               <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-widest leading-none">Área Colaborador</p>

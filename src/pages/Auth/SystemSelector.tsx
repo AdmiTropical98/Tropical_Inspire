@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const BG_IMAGE = '/modulos.png';
+const BG_IMAGE = 'modulos.png';
 const IMAGE_RATIO = 1671 / 941;
 
 interface Rect {

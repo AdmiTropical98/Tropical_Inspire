@@ -148,7 +148,7 @@ async function bootstrapApp() {
     ]);
 
     const React = ReactModule.default;
-    const { BrowserRouter } = RouterModule;
+    const { BrowserRouter, HashRouter } = RouterModule;
     const App = AppModule.default;
     const { AuthProvider } = AuthModule;
     const { PermissionsProvider } = PermissionsModule;
@@ -157,6 +157,8 @@ async function bootstrapApp() {
     const { ChatProvider } = ChatModule;
     const { FinancialProvider } = FinancialModule;
 
+    const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter;
+
     createRoot(document.getElementById('root')!).render(
       <ErrorBoundary>
         <WorkshopProvider>
@@ -164,9 +166,9 @@ async function bootstrapApp() {
             <AuthProvider>
               <PermissionsProvider>
                 <ChatProvider>
-                  <BrowserRouter>
+                  <Router>
                     <App />
-                  </BrowserRouter>
+                  </Router>
                 </ChatProvider>
               </PermissionsProvider>
             </AuthProvider>

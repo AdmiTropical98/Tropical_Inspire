@@ -100,7 +100,7 @@ export default function Requisicoes() {
         return labels[key] || key;
     };
 
-    const EMAIL_LOGO_URL = '/LOGO.png';
+    const EMAIL_LOGO_URL = 'LOGO.png';
     const DOWNLOAD_LINK_PLACEHOLDER = '{download_link}';
     const SENDER_EMAIL = 'frota@algartempo.pt';
 
@@ -1415,7 +1415,7 @@ export default function Requisicoes() {
         try {
             // Header
             try {
-                const logoImg = await loadImage('/LOGO.png');
+                const logoImg = await loadImage('LOGO.png');
                 const logoWidth = 50;
                 const scaleFactor = logoWidth / logoImg.naturalWidth;
                 const logoHeight = logoImg.naturalHeight * scaleFactor;
@@ -1856,10 +1856,10 @@ export default function Requisicoes() {
     });
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-            <div className="max-w-[1600px] mx-auto space-y-8">
+        <div className="frota-page frota-page--requisicoes min-h-screen bg-[#f8fafc] p-4 md:p-8">
+            <div className="frota-page-body max-w-[1600px] mx-auto space-y-8">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="frota-page-header flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
@@ -1876,7 +1876,7 @@ export default function Requisicoes() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="frota-page-toolbar flex items-center gap-3">
                         <button
                             onClick={() => refreshData()}
                             className={`p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
@@ -1895,7 +1895,7 @@ export default function Requisicoes() {
                 </div>
 
                 {/* Main Navigation Tabs */}
-                <div className="flex p-1.5 bg-slate-100/80 rounded-[2rem] w-fit backdrop-blur-sm border border-slate-200/50">
+                <div className="frota-segmented-tabs flex p-1.5 bg-slate-100/80 rounded-[2rem] w-fit backdrop-blur-sm border border-slate-200/50">
                     <button
                         onClick={() => setActiveTab('overview')}
                         className={`flex items-center gap-2 px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all ${

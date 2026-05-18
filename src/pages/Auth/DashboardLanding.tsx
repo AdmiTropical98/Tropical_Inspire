@@ -13,6 +13,7 @@ import {
 
 export default function DashboardLanding() {
   const navigate = useNavigate();
+  const assetPath = (file: string) => `${import.meta.env.BASE_URL}${file.replace(/^\/+/, '')}`;
 
   useEffect(() => {
     const root = document.getElementById('root');
@@ -42,7 +43,7 @@ export default function DashboardLanding() {
       key: 'frota',
       title: 'Frota',
       description: 'Gestão completa de gastos e compras relacionadas à frota da empresa.',
-      image: '/frota.png',
+      image: assetPath('frota.png'),
       icon: Truck,
       features: [
         'Gastos com combustível',
@@ -64,7 +65,7 @@ export default function DashboardLanding() {
       key: 'inventario',
       title: 'Inventário',
       description: 'Controle e gestão de materiais, equipamentos e ativos da empresa.',
-      image: '/inventario.png',
+      image: assetPath('inventario.png'),
       icon: Boxes,
       features: [
         'Gestão de stock',
@@ -86,7 +87,7 @@ export default function DashboardLanding() {
       key: 'operacoes',
       title: 'Operações',
       description: 'Planeamento, execução e acompanhamento de operações logísticas.',
-      image: '/operacao.png',
+      image: assetPath('operacao.png'),
       icon: Bus,
       features: [
         'Rotas e percursos',
@@ -253,7 +254,7 @@ export default function DashboardLanding() {
           </svg>
           <div className="relative z-10 flex h-full items-center gap-6">
             <div className="shrink-0">
-              <img src="/LOGO.png" alt="Algartempo" className="h-auto w-[150px]" style={{ filter: 'drop-shadow(0 0 20px rgba(37,99,235,0.45))' }} />
+              <img src={assetPath('LOGO.png')} alt="Algartempo" className="h-auto w-[150px]" style={{ filter: 'drop-shadow(0 0 20px rgba(37,99,235,0.45))' }} />
             </div>
             <div className="flex-1">
               <h1 className="text-[clamp(28px,2.1vw,40px)] leading-[0.95] font-extrabold text-[#101c56]" style={{fontFamily: "'Sora', sans-serif", fontWeight:800, letterSpacing:'-1.6px'}}>Bem-vindo à</h1>

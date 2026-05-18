@@ -259,9 +259,9 @@ export default function AlertsPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-6">
+    <div className="frota-page frota-page--alerts h-full overflow-y-auto custom-scrollbar p-4 md:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="frota-page-header flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#1f2957] mb-2 tracking-tight">
             Gestão de Alertas

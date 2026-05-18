@@ -436,7 +436,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
 
         // 1. Logo Handling
         try {
-            const logoUrl = '/LOGO.png';
+            const logoUrl = 'LOGO.png';
             const imgData = await fetch(logoUrl)
                 .then(res => res.blob())
                 .then(blob => new Promise<string | ArrayBuffer>((resolve) => {
@@ -819,7 +819,7 @@ export default function LancarEscala({ onNavigate }: LancarEscalaProps) {
             </div>
 
             {/* Main Grid Area */}
-            <div className="flex-1 bg-[url('/grid-pattern.svg')] bg-repeat opacity-[0.98] rounded-3xl">
+            <div className="flex-1 bg-[url('grid-pattern.svg')] bg-repeat opacity-[0.98] rounded-3xl">
                 <div className="w-full">
 
                     <div className="bg-white border border-slate-200 rounded-2xl shadow-[0_8px_18px_-12px_rgba(15,23,42,0.22)] overflow-hidden flex flex-col">

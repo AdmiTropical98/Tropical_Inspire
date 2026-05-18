@@ -108,14 +108,14 @@ export default function Viaturas() {
     );
 
     return (
-        <div className="android-native-vehicles flex flex-col text-slate-900">
+        <div className="frota-page frota-page--viaturas android-native-vehicles flex flex-col text-slate-900">
             {/* Full Page Container */}
             <div className="flex flex-col">
                 {/* Scrollable Content Area */}
-                <div className="space-y-10">
+                <div className="frota-page-body space-y-10">
 
                     {/* Header Section */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="frota-page-header flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
                             <h1 className="text-3xl font-extrabold text-[#1f2957] tracking-tight mb-2 flex items-center gap-4">
                                 <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
@@ -130,7 +130,7 @@ export default function Viaturas() {
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="frota-page-toolbar flex items-center gap-3">
                             <button
                                 onClick={handleDownloadTemplate}
                                 className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 rounded-xl font-medium transition-all shadow-sm"
@@ -154,7 +154,7 @@ export default function Viaturas() {
                     </div>
 
                     {/* Navigation Tabs */}
-                    <div className="android-native-vehicles-tabs flex items-center gap-2 border-b border-slate-200">
+                    <div className="frota-segmented-tabs android-native-vehicles-tabs flex items-center gap-2 border-b border-slate-200">
                         {[
                             { id: 'overview', label: 'Dashboard Geral', icon: LayoutTemplate },
                             { id: 'list', label: 'Lista de Frota', icon: List },

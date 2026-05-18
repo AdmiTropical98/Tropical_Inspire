@@ -35,12 +35,12 @@ export default function MyProfile() {
     const [spriteUrl, setSpriteUrl] = useState<string | null>(null);
 
     const predefinedAvatars = [
-        { role: 'OFICINA', label: 'OFICINA', path: 'sprite:OFICINA', fallback: '/assets/img/avatars/avatar_oficina.svg' },
-        { role: 'GESTOR', label: 'GESTOR', path: 'sprite:GESTOR', fallback: '/assets/img/avatars/avatar_gestor.svg' },
-        { role: 'ADMINISTRADOR', label: 'ADMINISTRADOR', path: 'sprite:ADMINISTRADOR', fallback: '/assets/img/avatars/avatar_admin.svg' },
-        { role: 'SUPERVISOR', label: 'SUPERVISOR', path: 'sprite:SUPERVISOR', fallback: '/assets/img/avatars/avatar_supervisor.svg' },
-        { role: 'MOTORISTA', label: 'MOTORISTA', path: 'sprite:MOTORISTA', fallback: '/assets/img/avatars/avatar_motorista.svg' },
-        { role: 'COLABORADOR', label: 'COLABORADOR', path: 'sprite:COLABORADOR', fallback: '/assets/img/avatars/avatar_colaborador.svg' }
+        { role: 'OFICINA', label: 'OFICINA', path: 'sprite:OFICINA', fallback: 'assets/img/avatars/avatar_oficina.svg' },
+        { role: 'GESTOR', label: 'GESTOR', path: 'sprite:GESTOR', fallback: 'assets/img/avatars/avatar_gestor.svg' },
+        { role: 'ADMINISTRADOR', label: 'ADMINISTRADOR', path: 'sprite:ADMINISTRADOR', fallback: 'assets/img/avatars/avatar_admin.svg' },
+        { role: 'SUPERVISOR', label: 'SUPERVISOR', path: 'sprite:SUPERVISOR', fallback: 'assets/img/avatars/avatar_supervisor.svg' },
+        { role: 'MOTORISTA', label: 'MOTORISTA', path: 'sprite:MOTORISTA', fallback: 'assets/img/avatars/avatar_motorista.svg' },
+        { role: 'COLABORADOR', label: 'COLABORADOR', path: 'sprite:COLABORADOR', fallback: 'assets/img/avatars/avatar_colaborador.svg' }
     ];
 
     const spritePositions: Record<string, string> = {
@@ -56,12 +56,12 @@ export default function MyProfile() {
     const getSpriteRole = (value: string) => value.replace('sprite:', '').toUpperCase();
 
     const spriteCandidates = [
-        '/AVATARES.PNG',
-        '/avatares.png',
-        '/assets/img/avatars/AVATARES.PNG',
-        '/assets/img/avatars/avatares.png',
-        '/avatars/AVATARES.PNG',
-        '/avatars/avatares.png'
+        'AVATARES.PNG',
+        'avatares.png',
+        'assets/img/avatars/AVATARES.PNG',
+        'assets/img/avatars/avatares.png',
+        'avatars/AVATARES.PNG',
+        'avatars/avatares.png'
     ];
 
     const normalizeRoleForAvatar = (role?: string | null) => {
@@ -117,7 +117,7 @@ export default function MyProfile() {
             );
         }
 
-        const fallback = predefinedAvatars.find(a => a.path === avatarValue)?.fallback || '/assets/img/avatars/avatar_colaborador.svg';
+        const fallback = predefinedAvatars.find(a => a.path === avatarValue)?.fallback || 'assets/img/avatars/avatar_colaborador.svg';
         const finalSrc = isSpriteAvatar(avatarValue) ? fallback : avatarValue;
         return (
             <img

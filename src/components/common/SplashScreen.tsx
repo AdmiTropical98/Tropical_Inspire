@@ -18,7 +18,7 @@ export default function SplashScreen({
                 className="absolute inset-0 animate-in fade-in duration-500"
                 style={{
                     backgroundImage:
-                        "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(246,250,255,0.86) 36%, rgba(219,233,255,0.82) 68%, rgba(186,210,252,0.88) 100%), radial-gradient(95% 75% at 50% 100%, rgba(126,165,235,0.42) 0%, rgba(126,165,235,0) 65%), radial-gradient(65% 55% at 10% 80%, rgba(173,204,255,0.36) 0%, rgba(173,204,255,0) 72%), radial-gradient(55% 45% at 85% 90%, rgba(173,204,255,0.34) 0%, rgba(173,204,255,0) 74%), url('/grid-pattern.svg')",
+                        "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(246,250,255,0.86) 36%, rgba(219,233,255,0.82) 68%, rgba(186,210,252,0.88) 100%), radial-gradient(95% 75% at 50% 100%, rgba(126,165,235,0.42) 0%, rgba(126,165,235,0) 65%), radial-gradient(65% 55% at 10% 80%, rgba(173,204,255,0.36) 0%, rgba(173,204,255,0) 72%), radial-gradient(55% 45% at 85% 90%, rgba(173,204,255,0.34) 0%, rgba(173,204,255,0) 74%), url('grid-pattern.svg')",
                     backgroundSize: '100% 100%, 100% 100%, 100% 100%, 100% 100%, cover',
                     backgroundPosition: 'center, center, center, center, center',
                     backgroundRepeat: 'no-repeat',
@@ -46,7 +46,7 @@ export default function SplashScreen({
             <div className="relative z-10 flex flex-col items-center gap-7 px-6 text-center">
                 {/* Logo */}
                 <img
-                    src="/LOGO.png"
+                    src="LOGO.png"
                     alt="Algartempo Frota"
                     className="w-[340px] sm:w-[430px] md:w-[560px] h-auto object-contain [transform:scale(1.18)] drop-shadow-[0_14px_26px_rgba(17,24,39,0.20)] [animation:logoFadeIn_0.6s_ease_forwards]"
                 />

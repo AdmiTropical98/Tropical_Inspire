@@ -760,7 +760,7 @@ html.login-active #root {
 
 /* Global App Content Background */
 .app-content-bg {
-  background-image: url('/fundo_páginas.jpg');
+  background-image: url('fundo_páginas.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -976,6 +976,329 @@ html.login-active #root {
   border-radius: 10px;
   font-weight: 600;
   padding: 9px 12px;
+}
+
+/* Fleet desktop shell (sidebar + topbar) */
+.frota-shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  background:
+    radial-gradient(circle at 10% 6%, rgba(37, 99, 235, 0.12), transparent 30%),
+    radial-gradient(circle at 90% 0%, rgba(14, 116, 144, 0.10), transparent 36%),
+    #d9e3f1;
+}
+
+.frota-sidebar {
+  background: linear-gradient(180deg, #082f87 0%, #07266f 48%, #061f5b 100%);
+  color: #dbeafe;
+  border-right: 1px solid rgba(37, 99, 235, 0.22);
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: 14px 12px;
+}
+
+.frota-sidebar-brand {
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  margin-bottom: 8px;
+}
+
+.frota-sidebar-logo {
+  width: 100%;
+  max-width: 110px;
+  object-fit: contain;
+}
+
+.frota-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.frota-sidebar-group-title {
+  color: #b9cbf3;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 8px 10px 6px;
+}
+
+.frota-sidebar-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.frota-sidebar-item {
+  border: 0;
+  background: transparent;
+  color: #d7e5ff;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.frota-sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+}
+
+.frota-sidebar-item.active {
+  background: linear-gradient(90deg, #2d70ff 0%, #245ee0 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 18px -10px rgba(0, 0, 0, 0.5);
+}
+
+.frota-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.frota-topbar {
+  height: 64px;
+  background: linear-gradient(90deg, #1e4ea8 0%, #295fbe 100%);
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 0 8px 24px -18px rgba(15, 23, 42, 0.65);
+}
+
+.frota-topbar h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.frota-content {
+  min-height: calc(100dvh - 64px);
+  padding: 18px;
+  background: linear-gradient(180deg, #dce5f2 0%, #d4deee 100%);
+}
+
+.frota-content.frota-content-full {
+  padding: 0;
+}
+
+/* Unified Frota desktop design system across all pages */
+.frota-content {
+  --frota-surface: rgba(228, 236, 248, 0.9);
+  --frota-surface-strong: rgba(239, 244, 252, 0.96);
+  --frota-border: rgba(100, 116, 139, 0.34);
+  --frota-shadow: 0 16px 34px -24px rgba(15, 23, 42, 0.32);
+  --frota-shadow-soft: 0 10px 22px -18px rgba(15, 23, 42, 0.34);
+  --frota-text: #0b1328;
+  --frota-muted: #4f6078;
+  --frota-accent: #2563eb;
+  color: var(--frota-text);
+}
+
+.frota-content :is(.bg-white, .bg-white\/90, .bg-white\/80, .bg-slate-50, .bg-slate-100) {
+  background-color: var(--frota-surface) !important;
+}
+
+.frota-content > * {
+  animation: frota-fade-up 280ms ease;
+}
+
+.frota-content :is(.surface-card, .glass-card, .kpi-card) {
+  background: var(--frota-surface) !important;
+  border: 1px solid var(--frota-border) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--frota-shadow-soft) !important;
+}
+
+.frota-content :is(div, section, article)[class*='bg-white'][class*='border'][class*='rounded-2xl'],
+.frota-content :is(div, section, article)[class*='bg-slate-50'][class*='border'][class*='rounded-2xl'] {
+  background: var(--frota-surface) !important;
+  border-color: var(--frota-border) !important;
+  box-shadow: var(--frota-shadow-soft);
+}
+
+.frota-content .frota-page {
+  color: var(--frota-text);
+}
+
+.frota-content .frota-page-body {
+  width: 100%;
+}
+
+.frota-content .frota-page-header {
+  border: 1px solid var(--frota-border);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(235, 242, 252, 0.96) 0%, rgba(223, 233, 247, 0.96) 100%);
+  box-shadow: var(--frota-shadow-soft);
+  padding: 18px;
+}
+
+.frota-content .frota-page-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.frota-content .frota-segmented-tabs {
+  border: 1px solid var(--frota-border) !important;
+  border-radius: 16px !important;
+  background: rgba(219, 229, 244, 0.92) !important;
+  box-shadow: var(--frota-shadow-soft);
+  padding: 6px;
+}
+
+.frota-content .frota-segmented-tabs button {
+  border-radius: 12px !important;
+}
+
+.frota-content .frota-page--dashboard .frota-page-body,
+.frota-content .frota-page--viaturas .frota-page-body,
+.frota-content .frota-page--requisicoes .frota-page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.frota-content .frota-page--alerts,
+.frota-content .frota-page--motoristas,
+.frota-content .frota-page--viaturas,
+.frota-content .frota-page--requisicoes,
+.frota-content .frota-page--dashboard {
+  animation: frota-fade-up 240ms ease;
+}
+
+.frota-content .frota-page--alerts > .frota-page-header,
+.frota-content .frota-page--motoristas > .frota-page-header {
+  margin-bottom: 4px;
+}
+
+.frota-content .frota-page .kpi-card {
+  border-radius: 16px !important;
+  padding: 18px !important;
+}
+
+.frota-content h1,
+.frota-content h2,
+.frota-content h3 {
+  color: #0a1838;
+  letter-spacing: -0.015em;
+}
+
+.frota-content p,
+.frota-content span,
+.frota-content label,
+.frota-content small {
+  color: inherit;
+}
+
+.frota-content [class*='text-slate-400'],
+.frota-content [class*='text-slate-500'],
+.frota-content [class*='text-slate-600'] {
+  color: var(--frota-muted) !important;
+}
+
+.frota-content input:not([type='checkbox']):not([type='radio']):not([type='range']),
+.frota-content select,
+.frota-content textarea {
+  background: var(--frota-surface-strong) !important;
+  border: 1px solid rgba(100, 116, 139, 0.42) !important;
+  border-radius: 12px !important;
+  color: #0f172a !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.frota-content input:not([type='checkbox']):not([type='radio']):not([type='range']):focus,
+.frota-content select:focus,
+.frota-content textarea:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16) !important;
+}
+
+.frota-content table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--frota-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--frota-surface-strong);
+}
+
+.frota-content thead {
+  background: #e0e9f6;
+}
+
+.frota-content th {
+  color: #475569;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.frota-content th,
+.frota-content td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.frota-content tbody tr:hover {
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.frota-content button {
+  transition: transform 120ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.frota-content button:hover {
+  box-shadow: 0 8px 16px -14px rgba(15, 23, 42, 0.45);
+}
+
+.frota-content button:active {
+  transform: translateY(1px);
+}
+
+@keyframes frota-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1200px) {
+  .frota-shell {
+    grid-template-columns: 228px minmax(0, 1fr);
+  }
+
+  .frota-sidebar-item {
+    font-size: 12px;
+    padding: 9px;
+  }
+
+  .frota-content {
+    padding: 14px;
+  }
 }
 
 .custom-navbar .dropdown-item:hover {

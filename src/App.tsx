@@ -134,12 +134,12 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
   const isSpriteAvatar = (value: string) => value.startsWith('sprite:');
   const getSpriteRole = (value: string) => value.replace('sprite:', '').toUpperCase();
   const spriteCandidates = [
-    '/AVATARES.PNG',
-    '/avatares.png',
-    '/assets/img/avatars/AVATARES.PNG',
-    '/assets/img/avatars/avatares.png',
-    '/avatars/AVATARES.PNG',
-    '/avatars/avatares.png'
+    'AVATARES.PNG',
+    'avatares.png',
+    'assets/img/avatars/AVATARES.PNG',
+    'assets/img/avatars/avatares.png',
+    'avatars/AVATARES.PNG',
+    'avatars/avatares.png'
   ];
 
   useEffect(() => {
@@ -218,7 +218,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
               src={navbarAvatarSrc}
               alt={currentUser?.nome || 'Avatar'}
               className="h-full w-full object-cover"
-              onError={() => setNavbarAvatarSrc('/assets/img/avatars/avatar_colaborador.svg')}
+              onError={() => setNavbarAvatarSrc('./assets/img/avatars/avatar_colaborador.svg')}
             />
           ) : (
             <span>{currentUser?.nome ? currentUser.nome.charAt(0).toUpperCase() : 'M'}</span>
@@ -254,7 +254,7 @@ const UserProfileMenu: React.FC<{ onNavigate: (path: string) => void; showName?:
 
 function App() {
   const MOBILE_MAX_WIDTH = 768;
-  const SIDEBAR_LOGO = '/LOGO.png';
+  const SIDEBAR_LOGO = `${import.meta.env.BASE_URL}LOGO.png`;
   const { isAuthenticated, userRole, authEntryModule, logout } = useAuth();
   const { hasAccess } = usePermissions();
   const { unreadCount } = useChat();
@@ -736,11 +736,6 @@ function App() {
     key: 'mais',
     label: 'Mais',
     items: [
-      // Sempre mostrar Clientes e Fornecedores para ADMINISTRADOR
-      ...((userRole && String(userRole).toLowerCase().includes('admin')) ? [
-        { key: 'clientes', label: 'Clientes', icon: Building2, path: '/clientes', active: activeTab === 'clientes' },
-        { key: 'fornecedores', label: 'Fornecedores', icon: Briefcase, path: '/fornecedores', active: activeTab === 'fornecedores' },
-      ] : []),
       ...(hasAccess(userRole, 'utilizadores') ? [{ key: 'utilizadores', label: 'Perfis', icon: UserCheck, path: '/utilizadores', active: activeTab === 'utilizadores' } as NavItem] : []),
 
       {
@@ -804,7 +799,7 @@ function App() {
     }>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardLanding />} />
+        <Route path="/dashboard" element={<Dashboard setActiveTab={handleNavigate} />} />
         <Route path="/frota/login" element={<Login />} />
         <Route path="/inventario/login" element={<InventoryLogin />} />
         <Route path="/operacoes/login" element={<OperacoesLogin />} />
@@ -855,6 +850,71 @@ function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
+  );
+
+  const allNavItems = [
+    dashboardItem,
+    ...operationsGroup.items,
+    ...fleetGroup.items,
+    ...clientesFornecedoresGroup.items,
+    ...moreGroup.items,
+  ];
+
+  const currentSectionLabel = allNavItems.find(item => item.active)?.label ?? 'Dashboard';
+
+  const frotaSidebarGroups = [
+    { label: 'OPERACOES', items: [dashboardItem, ...operationsGroup.items, ...fleetGroup.items] },
+    { label: 'GESTAO', items: [...clientesFornecedoresGroup.items, ...moreGroup.items.filter(item => item.key === 'utilizadores')] },
+    { label: 'CONFIGURACOES', items: moreGroup.items.filter(item => item.key === 'mensagens') },
+  ].filter(group => group.items.length > 0);
+
+  const frotaDesktopShell = (
+    <div className="frota-shell">
+      <aside className="frota-sidebar">
+        <button className="frota-sidebar-brand" onClick={() => handleNavigate('/dashboard')}>
+          <img src={`${SIDEBAR_LOGO}?v=3`} alt="Algartempo Frota" className="frota-sidebar-logo" />
+        </button>
+
+        <nav className="frota-sidebar-nav">
+          {frotaSidebarGroups.map(group => (
+            <section key={group.label} className="frota-sidebar-group">
+              <p className="frota-sidebar-group-title">{group.label}</p>
+              <div className="frota-sidebar-items">
+                {group.items.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => handleNavigate(item.path)}
+                      className={`frota-sidebar-item ${item.active ? 'active' : ''}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </nav>
+      </aside>
+
+      <section className="frota-main">
+        <header className="frota-topbar">
+          <div className="frota-topbar-left">
+            <h1>{currentSectionLabel}</h1>
+          </div>
+          <div className="frota-topbar-right">
+            <UserProfileMenu onNavigate={handleNavigate} showName compact />
+          </div>
+        </header>
+
+        <main className={`frota-content app-content-bg ${isFullScreenPage ? 'frota-content-full' : ''}`}>
+          {appRoutes}
+        </main>
+      </section>
+    </div>
   );
 
   const desktopNavbar = (
@@ -970,6 +1030,10 @@ function App() {
         {appRoutes}
       </LayoutMobile>
     );
+  }
+
+  if (!isInventoryArea && !isOperacoesArea) {
+    return frotaDesktopShell;
   }
 
   return (
